@@ -72,14 +72,14 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
     >
       {/* Job Title and Company */}
       <div className="mb-4">
-        <h3 className={`font-bold text-lg leading-tight ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-white'}`}>{job.title}</h3>
-        <p className="text-sm mt-1 font-medium text-slate-500 dark:text-slate-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors truncate">{job.company}</p>
+        <h3 className={`font-bold text-lg leading-tight ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-white'}`}>{job.title}</h3>
+        <p className="text-sm mt-1 font-medium text-slate-500 dark:text-slate-300 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors truncate">{job.company}</p>
       </div>
 
-      {/* Bottom Badges Row */}
+       {/* Bottom Badges Row */}
       <div className="flex justify-between items-center mb-4">
         {/* Left Side Badges */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {distanceBadge}
           
           {hasTransparentSalary && (
@@ -89,6 +89,8 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
               <span className="sm:hidden">EU</span>
             </div>
           )}
+
+
         </div>
         
         {/* Right Side Actions */}
@@ -99,7 +101,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
           
           <button
             onClick={handleSaveClick}
-            className={`p-1.5 rounded transition-all ${isSaved ? 'text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200' : 'text-slate-400 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-white'}`}
+            className={`p-1.5 rounded transition-all ${isSaved ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-500/10 border-cyan-200' : 'text-slate-400 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-white'}`}
             title={isSaved ? "Odstranit z uložených" : "Uložit pozici"}
           >
             <Bookmark size={18} className={isSaved ? "fill-current" : ""} />

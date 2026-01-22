@@ -1,7 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Save, Plus, Trash2, Upload, Briefcase, GraduationCap, Award, Link, ExternalLink, Check } from 'lucide-react';
-import { UserProfile } from '../types';
-import { updateUserProfile, uploadCVFile } from '../services/supabaseService';
+import React, { useState, useRef } from 'react';
+import { Save, Plus, Trash2, Upload, Briefcase, GraduationCap, Award, Link, ExternalLink } from 'lucide-react';
+import { UserProfile, WorkExperience, Education } from '../types';
+import { uploadCVFile } from '../services/supabaseService';
 
 interface CVProfileEditorProps {
   profile: UserProfile;
@@ -31,8 +31,8 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
     ? 'bg-slate-700 border-slate-600 text-white placeholder-slate-400'
     : 'bg-white border-slate-300 text-slate-900 placeholder-slate-500';
   const buttonClass = isDark
-    ? 'bg-indigo-600 hover:bg-indigo-700 text-white'
-    : 'bg-indigo-600 hover:bg-indigo-700 text-white';
+    ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
+    : 'bg-cyan-600 hover:bg-cyan-700 text-white';
 
   // Form state
   const [formData, setFormData] = useState({
@@ -152,19 +152,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
     }));
   };
 
-  const handleAddCertificate = () => {
-    const newCertificate: any = {
-      id: Date.now().toString(),
-      name: '',
-      issuer: '',
-      date: '',
-      url: ''
-    };
-    setFormData(prev => ({
-      ...prev,
-      certificates: [...prev.certificates, newCertificate]
-    }));
-  };
+
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -178,7 +166,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
     }
   };
 
-  const skillsArray = Array.isArray(formData.skills) ? formData.skills : formData.skills.split(',').map(s => s.trim()).filter(s => s);
+  const skillsArray = Array.isArray(formData.skills) ? formData.skills : [];
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -186,7 +174,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
           <h2 className="text-xl font-bold flex items-center gap-2">
-            <Briefcase className="w-5 h-5 text-indigo-600" />
+                  <Briefcase className="w-5 h-5 text-cyan-600" />
             Editor životopisu
           </h2>
           <button
@@ -199,7 +187,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
 
         {/* Tabs */}
         <div className="flex border-b border-slate-200 dark:border-slate-700">
-          {['personal', 'experience', 'education', 'skills'].map((tab) => (
+          {(['personal', 'experience', 'education', 'skills'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -225,7 +213,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
               {/* CV Upload */}
               <div className={`p-4 rounded-lg border ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
                 <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Upload className="w-5 h-5 text-indigo-600" />
+                  <Upload className="w-5 h-5 text-cyan-600" />
                   Nahrání CV
                 </h3>
                 
@@ -241,7 +229,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isSaving}
                   className={`w-full px-4 py-3 rounded-lg border-2 border-dashed transition-colors ${
-                    cvFile ? 'border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20' : 'border-slate-300 hover:border-indigo-400'
+                    cvFile ? 'border-cyan-600 bg-cyan-50 dark:bg-cyan-900/20' : 'border-slate-300 hover:border-cyan-400'
                   } ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
                 >
                   <Upload className="w-5 h-5 mr-2" />
@@ -256,7 +244,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
                   value={formData.cvText}
                   onChange={(e) => setFormData(prev => ({ ...prev, cvText: e.target.value }))}
                   placeholder="Vložte text vašeho životopisu sem nebo nahrajte CV výše..."
-                  className={`w-full h-32 p-3 rounded-lg ${inputClass} resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                  className={`w-full h-32 p-3 rounded-lg ${inputClass} resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                 />
               </div>
 
@@ -268,7 +256,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                    className={`w-full px-4 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    className={`w-full px-4 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                   />
                 </div>
                 
@@ -278,7 +266,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                    className={`w-full px-4 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    className={`w-full px-4 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                   />
                 </div>
               </div>
@@ -290,7 +278,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
-                    className={`w-full px-4 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    className={`w-full px-4 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                   />
                 </div>
                 
@@ -300,7 +288,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
                     type="text"
                     value={formData.jobTitle}
                     onChange={(e) => setFormData(prev => ({ ...prev, jobTitle: e.target.value }))}
-                    className={`w-full px-4 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                    className={`w-full px-4 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                   />
                 </div>
               </div>
@@ -311,7 +299,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
                   type="text"
                   value={formData.address}
                   onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
-                  className={`w-full px-4 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                  className={`w-full px-4 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                   placeholder="Ulice, město, PSČ"
                 />
               </div>
@@ -326,7 +314,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
                       type="url"
                       value={formData.linkedIn}
                       onChange={(e) => setFormData(prev => ({ ...prev, linkedIn: e.target.value }))}
-                      className={`w-full pl-10 pr-4 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                      className={`w-full pl-10 pr-4 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                       placeholder="linkedin.com/in/jmeno-prijmeni"
                     />
                   </div>
@@ -340,7 +328,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
                       type="url"
                       value={formData.portfolio}
                       onChange={(e) => setFormData(prev => ({ ...prev, portfolio: e.target.value }))}
-                      className={`w-full pl-10 pr-4 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                      className={`w-full pl-10 pr-4 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                       placeholder="vasewebova.cz"
                     />
                   </div>
@@ -356,7 +344,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
                       type="url"
                       value={formData.github}
                       onChange={(e) => setFormData(prev => ({ ...prev, github: e.target.value }))}
-                      className={`w-full pl-10 pr-4 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                      className={`w-full pl-10 pr-4 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                       placeholder="github.com/jmeno"
                     />
                   </div>
@@ -370,7 +358,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
             <div className="space-y-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Briefcase className="w-5 h-5 text-indigo-600" />
+            <Briefcase className="w-5 h-5 text-cyan-600" />
                   Pracovní zkušenosti
                 </h3>
                 <button
@@ -402,7 +390,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
                         type="text"
                         value={experience.company}
                         onChange={(e) => handleUpdateWorkExperience(experience.id, 'company', e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                        className={`w-full px-3 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                         placeholder="Název společnosti"
                       />
                     </div>
@@ -413,30 +401,29 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
                         type="text"
                         value={experience.role}
                         onChange={(e) => handleUpdateWorkExperience(experience.id, 'role', e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                        className={`w-full px-3 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                         placeholder="Název pozice"
                       />
                     </div>
                   </div>
                   
-                  <div className="md:col-span-2">
+                  <div className="mt-4">
                     <label className="block text-sm font-medium mb-1">Doba působení</label>
                     <input
                       type="text"
                       value={experience.duration}
                       onChange={(e) => handleUpdateWorkExperience(experience.id, 'duration', e.target.value)}
-                      className={`w-full px-3 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                        placeholder="např. 2020 - 2022 (2 roky)"
-                      />
-                    </div>
+                      className={`w-full px-3 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+                      placeholder="např. 2020 - 2022 (2 roky)"
+                    />
                   </div>
                   
-                  <div className="md:col-span-2">
+                  <div className="mt-4">
                     <label className="block text-sm font-medium mb-1">Popis práce a úspěchy</label>
                     <textarea
                       value={experience.description}
                       onChange={(e) => handleUpdateWorkExperience(experience.id, 'description', e.target.value)}
-                      className={`w-full px-3 py-2 rounded-lg ${inputClass} resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                      className={`w-full px-3 py-2 rounded-lg ${inputClass} resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                       rows={3}
                       placeholder="Popište své hlavní odpovědnosti a úspěchy..."
                     />
@@ -451,7 +438,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
             <div className="space-y-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <GraduationCap className="w-5 h-5 text-indigo-600" />
+                  <GraduationCap className="w-5 h-5 text-cyan-600" />
                   Vzdělání
                 </h3>
                 <button
@@ -483,7 +470,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
                         type="text"
                         value={edu.school}
                         onChange={(e) => handleUpdateEducation(edu.id, 'school', e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                        className={`w-full px-3 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                         placeholder="Název instituce"
                       />
                     </div>
@@ -494,33 +481,32 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
                         type="text"
                         value={edu.degree}
                         onChange={(e) => handleUpdateEducation(edu.id, 'degree', e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
+                        className={`w-full px-3 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
                         placeholder="např. Ing., Bc., Mgr."
                       />
                     </div>
                   </div>
                   
-                  <div>
+                  <div className="mt-4">
                     <label className="block text-sm font-medium mb-1">Obor</label>
-                      <input
-                        type="text"
-                        value={edu.field}
-                        onChange={(e) => handleUpdateEducation(edu.id, 'field', e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                        placeholder="např. Informační technologie"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Rok ukončení</label>
-                      <input
-                        type="text"
-                        value={edu.year}
-                        onChange={(e) => handleUpdateEducation(edu.id, 'year', e.target.value)}
-                        className={`w-full px-3 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-indigo-500`}
-                        placeholder="např. 2020"
-                      />
-                    </div>
+                    <input
+                      type="text"
+                      value={edu.field}
+                      onChange={(e) => handleUpdateEducation(edu.id, 'field', e.target.value)}
+                      className={`w-full px-3 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+                      placeholder="např. Informační technologie"
+                    />
+                  </div>
+                  
+                  <div className="mt-4">
+                    <label className="block text-sm font-medium mb-1">Rok ukončení</label>
+                    <input
+                      type="text"
+                      value={edu.year}
+                      onChange={(e) => handleUpdateEducation(edu.id, 'year', e.target.value)}
+                      className={`w-full px-3 py-2 rounded-lg ${inputClass} focus:outline-none focus:ring-2 focus:ring-cyan-500`}
+                      placeholder="např. 2020"
+                    />
                   </div>
                 </div>
               ))}
@@ -532,7 +518,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
             <div className="space-y-4">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Award className="w-5 h-5 text-indigo-600" />
+                  <Award className="w-5 h-5 text-cyan-600" />
                   Dovednosti
                 </h3>
                 <button
@@ -545,7 +531,7 @@ const CVProfileEditor: React.FC<CVProfileEditorProps> = ({
               </div>
 
               <div className="space-y-2">
-                {skillsArray.map((skill, index) => (
+                {skillsArray.map((skill: string, index: number) => (
                   <div key={index} className={`flex items-center justify-between p-3 rounded-lg border ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
                     <span className="font-medium">{skill}</span>
                     <button

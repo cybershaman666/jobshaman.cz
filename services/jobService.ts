@@ -1,5 +1,6 @@
 import { supabase, isSupabaseConfigured } from './supabaseService';
 import { Job, JHI, NoiseMetrics } from '../types';
+import { contextualRelevanceScorer, ContextualRelevanceScorer } from './contextualRelevanceService';
 
 // Loose interface to accept whatever Supabase returns
 interface ScrapedJob {
@@ -390,9 +391,18 @@ const mapJobs = (data: any[]): Job[] => {
                 benefits = Array.from(detectedBenefits);
             }
 
+            // 6. Contextual Relevance Scoring
+            const workMode = ContextualRelevanceScorer.inferWorkMode(String(scraped.work_type || ''), fullDesc);
+            const jobCategory = ContextualRelevanceScorer.inferJobType(String(scraped.title || ''), fullDesc);
+            const contextualRelevance = contextualRelevanceScorer.calculateRelevanceScore(
+                benefits,
+                workMode,
+                jobCategory
+            );
+
             return {
                 id: `db-${scraped.id}`,
-                title: scraped.title || 'Pozice bez názvu',
+                title: scraped.title || (scraped.company ? `${scraped.company} - Pozice` : 'Pozice bez názvu'),
                 company: scraped.company || 'Neznámá společnost',
                 location: locationString,
                 type: jobType,
@@ -417,7 +427,9 @@ const mapJobs = (data: any[]): Job[] => {
                     inDemandSkills: []
                 },
                 tags: uniqueTags,
-                benefits: benefits
+                benefits: benefits,
+                contextualRelevance: contextualRelevance,
+                required_skills: []
             };
         } catch (innerError) {
             console.error("Mapping error for job ID:", item.id, innerError);

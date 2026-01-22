@@ -1,15 +1,14 @@
 
 import React from 'react';
 import { TransparencyMetrics } from '../types';
-import { Users, UserX, Clock, AlertOctagon, Activity } from 'lucide-react';
+import { Users, UserX, Clock, AlertOctagon, Activity, Info, Euro } from 'lucide-react';
 
 interface TransparencyCardProps {
   data: TransparencyMetrics;
-  companyName: string;
   variant?: 'light' | 'dark';
 }
 
-const TransparencyCard: React.FC<TransparencyCardProps> = ({ data, companyName, variant = 'light' }) => {
+const TransparencyCard: React.FC<TransparencyCardProps> = ({ data, variant = 'light' }) => {
   const isDark = variant === 'dark';
 
   // Styles
@@ -109,10 +108,28 @@ const TransparencyCard: React.FC<TransparencyCardProps> = ({ data, companyName, 
              <div className={`text-[10px] leading-tight mt-1 ${subTextColor}`}>
                 šance, že se po CV nikdy neozvou
              </div>
-         </div>
-      </div>
+          </div>
+       </div>
 
-      {/* Red Flags Specifics */}
+       {/* EU Transparent Badge Explanation */}
+       <div className={`p-3 border-t ${isDark ? 'bg-emerald-950/10 border-emerald-900/20' : 'bg-emerald-50 border-emerald-100'}`}>
+          <div className="flex items-start gap-2">
+             <Euro size={14} className="text-emerald-600 mt-0.5" />
+             <div className="flex-1">
+                <div className="flex items-center gap-1.5 mb-1">
+                   <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Proč vidíte EU Transparent odznak?</h4>
+                   <Info size={10} className="text-emerald-500" />
+                </div>
+                <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
+                   Od června 2026 bude uvádění platového rozmezí v EU povinné. 
+                   My v JobShamanu věříme, že váš čas má svou cenu už dnes. 
+                   Firmy s tímto označením hrají fér a otevřeně ukazují odměnu jako první.
+                </p>
+             </div>
+          </div>
+       </div>
+
+       {/* Red Flags Specifics */}
       {data.redFlags.length > 0 && (
          <div className={`p-3 border-t ${isDark ? 'bg-rose-950/20 border-rose-900/30' : 'bg-rose-50 border-rose-100'}`}>
             <div className="flex items-start gap-2">

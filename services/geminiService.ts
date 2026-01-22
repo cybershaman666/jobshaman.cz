@@ -624,7 +624,7 @@ export const matchCandidateToJob = async (candidateBio: string, jobDescription: 
             return JSON.parse(jsonText);
         } catch (parseError) {
             console.error("Failed to parse AI response:", jsonText);
-            return {};
+            return { score: 0, reason: "Failed to parse AI response" };
         }
    } catch (e) {
      return { score: 0, reason: "AI Service Error" };

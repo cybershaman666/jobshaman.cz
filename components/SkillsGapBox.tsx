@@ -1,5 +1,5 @@
-import React from 'react';
-import { BookOpen, Clock, Award, ExternalLink, TrendingUp } from 'lucide-react';
+import React, { useState } from 'react';
+import { BookOpen, Clock, Award, ExternalLink, TrendingUp, ShoppingBag, Star, Users, Target, Sparkles, ChevronRight, Lock, AlertCircle } from 'lucide-react';
 import { LearningResource, SkillsGapAnalysis } from '../types';
 
 interface SkillsGapBoxProps {
@@ -16,6 +16,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
   error = null,
   onResourceClick
 }) => {
+  const [selectedTab, setSelectedTab] = useState<'courses' | 'marketplace'>('courses');
 
 
   if (isLoading) {

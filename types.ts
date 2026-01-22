@@ -69,6 +69,7 @@ export interface Job {
   companyProfile?: CompanyProfile; 
   tags: string[];
   benefits: string[];
+  contextualRelevance?: ContextualRelevanceScore; // New field for benefit relevance analysis
   // New fields for Career Pathfinder
   required_skills: string[];
   lat?: number;
@@ -136,6 +137,7 @@ export interface ShamanAdvice {
 }
 
 export interface WorkExperience {
+    id: string;
     role: string;
     company: string;
     duration: string;
@@ -143,8 +145,10 @@ export interface WorkExperience {
 }
 
 export interface Education {
+    id: string;
     school: string;
     degree: string;
+    field: string;
     year: string;
 }
 
@@ -264,3 +268,21 @@ export interface Assessment {
   }[];
   createdAt: string;
 }
+
+export interface ContextualRelevanceScore {
+  contextual_relevance_score: number; // 0-100
+  flagged_benefits: FlaggedBenefit[];
+  summary_text: string;
+}
+
+export interface FlaggedBenefit {
+  benefit: string;
+  relevance: 'relevant' | 'weakly_relevant' | 'context_mismatch';
+  explanation: string;
+  weight: number; // 1.0, 0.5, or 0.0
+}
+
+export type WorkMode = 'remote' | 'hybrid' | 'onsite' | 'field';
+export type JobType = 'office' | 'field' | 'service' | 'technical' | 'care' | 'logistics';
+export type LocationType = 'fixed' | 'multi-site' | 'mobile';
+export type ScheduleType = 'fixed' | 'flexible' | 'shift-based';

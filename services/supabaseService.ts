@@ -1,21 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import { UserProfile, CompanyProfile, LearningResource, BenefitValuation, AssessmentResult, Job } from '../types';
 
-// Safe environment access helper
-const getEnv = (key: string, fallback: string): string => {
-  try {
-    if (typeof process !== 'undefined' && process.env && process.env[key]) {
-      return process.env[key] as string;
-    }
-  } catch (e) {
-    // Ignore error in environments where process is not defined
-  }
-  return fallback;
-};
-
 // Configuration provided by user
-const supabaseUrl = getEnv('SUPABASE_URL', 'https://frquoinhhxkxnvcyomtr.supabase.co');
-const supabaseKey = getEnv('SUPABASE_KEY', 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZycXVvaW5oaHhreG52Y3lvbXRyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg4ODMyMzUsImV4cCI6MjA4NDQ1OTIzNX0.cJyu1wUtcCjzWkd_MfXJhrF5d0XV0i622PrpbzM3lWs');
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
+const supabaseKey = import.meta.env.VITE_SUPABASE_KEY || '';
 
 // Create a single supabase client for interacting with your database
 // WRAPPED IN TRY-CATCH TO PREVENT WHITE SCREEN OF DEATH ON INIT
@@ -129,26 +117,18 @@ export const getUserProfile = async (userId: string): Promise<Partial<UserProfil
              console.warn("Candidate profile missing or error", candidateError);
         }
 
-        // 3. Fetch CV URL from the new table
-        const { data: cvUrlData, error: cvUrlError } = await supabase
-            .from('public_candidate_cv_urls')
-            .select('url')
-            .eq('candidate_id', userId)
-            .single();
-
-        let cvUrl = '';
-        if (cvUrlError && cvUrlError.code !== 'PGRST116') { // Ignore 'row not found' error code
-            console.warn("CV URL fetch error:", cvUrlError);
-        } else if (cvUrlData) {
-            cvUrl = cvUrlData.url;
-        }
+        // 3. CV URL is now part of candidate_profiles table
+        let cvUrl = candidateData?.cv_url || '';
 
         return {
             id: profileData.id,
             name: profileData.full_name,
             email: profileData.email,
             role: profileData.role,
+            photo: profileData.avatar_url,
             // Candidate specific
+            phone: candidateData?.phone || '',
+            jobTitle: candidateData?.job_title || '',
             address: candidateData?.address || '',
             cvText: candidateData?.cv_text || '',
             cvUrl: cvUrl,
@@ -168,6 +148,144 @@ export const getUserProfile = async (userId: string): Promise<Partial<UserProfil
     } catch (error) {
         console.error("Error loading user profile:", error);
         return null;
+    }
+};
+
+export const uploadProfilePhoto = async (userId: string, file: File): Promise<string | null> => {
+    if (!supabase) return null;
+
+    try {
+        // Generate unique filename with user ID for better organization
+        const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'jpg';
+        const fileName = `${userId}/profile-photo-${Date.now()}.${fileExtension}`;
+
+        console.log("Uploading profile photo:", fileName, "Size:", file.size, "Type:", file.type);
+
+        // First, ensure user profile exists to avoid RLS issues
+        try {
+            const { error: profileCheckError } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('id', userId)
+                .single();
+                
+            if (profileCheckError && profileCheckError.code === 'PGRST116') {
+                // Profile doesn't exist, create it first
+                console.log("Creating profile for user:", userId);
+                const { error: createError } = await supabase
+                    .from('profiles')
+                    .insert({ id: userId, email: '', role: 'candidate' });
+                    
+                if (createError) {
+                    console.error("Failed to create profile:", createError);
+                    // Continue with upload anyway - storage might have different policies
+                }
+            }
+        } catch (profileError) {
+            console.warn("Profile check failed, continuing with upload:", profileError);
+        }
+
+        // Upload to Supabase Storage with better error handling
+        const { data, error } = await supabase.storage
+            .from('profile-photos')
+            .upload(fileName, file, {
+                cacheControl: '3600',
+                upsert: true, // Allow overwriting to avoid conflicts
+                contentType: file.type
+            });
+
+        if (error) {
+            console.error("Profile photo upload error:", error);
+            
+            // More specific error handling
+            if (error.message.includes('Bucket not found') || error.message.includes('storage')) {
+                console.warn("Storage bucket not available, using fallback");
+                return null; // Silent fail for storage issues
+            }
+            
+            if (error.message.includes('row-level security') || error.message.includes('policy')) {
+                console.warn("RLS policy prevented upload, this might be expected");
+                return null; // Silent fail for RLS issues
+            }
+            
+            // For other errors, still try to continue
+            console.warn("Upload failed, but continuing with photo processing");
+            return null;
+        }
+
+        console.log("Profile photo upload successful:", data);
+
+        // Get public URL with error handling
+        const { data: urlData } = supabase.storage
+            .from('profile-photos')
+            .getPublicUrl(fileName);
+
+        if (!urlData?.publicUrl) {
+            console.error("Failed to get public URL for uploaded photo");
+            return null;
+        }
+
+        const publicUrl = urlData.publicUrl;
+        console.log("Profile photo public URL:", publicUrl);
+
+        // Update user profile with the new photo URL
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ avatar_url: publicUrl })
+            .eq('id', userId);
+
+        if (updateError) {
+            console.error("Failed to update profile with photo URL:", updateError);
+            // Still return the URL since the file was uploaded successfully
+        }
+
+        return publicUrl;
+
+    } catch (error) {
+        console.error("Error uploading profile photo:", error);
+        return null;
+    }
+};
+
+export const deleteProfilePhoto = async (userId: string, photoUrl: string): Promise<boolean> => {
+    if (!supabase) return false;
+
+    try {
+        // Extract file path from URL
+        const url = new URL(photoUrl);
+        const pathParts = url.pathname.split('/');
+        const fileName = pathParts[pathParts.length - 1];
+        const filePath = `${userId}/${fileName}`;
+
+        console.log("Deleting profile photo:", filePath);
+
+        // Delete from storage
+        const { error } = await supabase.storage
+            .from('profile-photos')
+            .remove([filePath]);
+
+        if (error) {
+            console.error("Failed to delete profile photo from storage:", error);
+            return false;
+        }
+
+        // Clear photo URL from profile
+        const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ avatar_url: null })
+            .eq('id', userId);
+
+        if (updateError) {
+            console.error("Failed to clear photo URL from profile:", updateError);
+            return false;
+        }
+
+        console.log("Profile photo deleted successfully");
+        return true;
+
+    } catch (error) {
+        console.error("Error deleting profile photo:", error);
+        return false;
     }
 };
 
@@ -261,14 +379,13 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     const baseUpdates: any = {};
     if (updates.name) baseUpdates.full_name = updates.name;
     if (updates.email) baseUpdates.email = updates.email;
-    if (updates.phone) baseUpdates.phone = updates.phone;
-    if (updates.jobTitle) baseUpdates.job_title = updates.jobTitle;
-    if (updates.photo) baseUpdates.photo = updates.photo;
+    if (updates.photo !== undefined) baseUpdates.avatar_url = updates.photo;
 
     const candidateUpdates: any = {};
+    if (updates.phone) candidateUpdates.phone = updates.phone;
+    if (updates.jobTitle) candidateUpdates.job_title = updates.jobTitle;
     if (updates.address !== undefined) candidateUpdates.address = updates.address;
-    if (updates.cvText !== undefined) candidateUpdates.cv_text = updates.cvText;
-    // Note: cvUrl is handled separately in public_candidate_cv_urls table
+if (updates.cvText !== undefined) candidateUpdates.cv_text = updates.cvText;
     if (updates.transportMode !== undefined) candidateUpdates.transport_mode = updates.transportMode;
     if (updates.preferences !== undefined) candidateUpdates.preferences = updates.preferences;
     if (updates.skills !== undefined) {
@@ -297,19 +414,9 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
         }));
     }
     
-    // Handle CV URL update in the new table
+    // Handle CV URL update - it's now part of candidate_profiles table
     if (updates.cvUrl !== undefined) {
-        if (updates.cvUrl) {
-            // If CV URL is provided, upsert it to the new table
-            promises.push(supabase.from('public_candidate_cv_urls').upsert({
-                candidate_id: userId,
-                url: updates.cvUrl,
-                updated_at: new Date().toISOString()
-            }));
-        } else {
-            // If CV URL is null/empty, delete it from the table
-            promises.push(supabase.from('public_candidate_cv_urls').delete().eq('candidate_id', userId));
-        }
+        candidateUpdates.cv_url = updates.cvUrl;
     }
 
     try {

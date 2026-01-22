@@ -8,6 +8,7 @@ import BullshitMeter from './components/BullshitMeter';
 import TransparencyCard from './components/TransparencyCard';
 import FinancialReality from './components/FinancialReality';
 import SkillsGapBox from './components/SkillsGapBox';
+import ContextualRelevance from './components/ContextualRelevance';
 import CookieBanner from './components/CookieBanner';
 import ProfileEditor from './components/ProfileEditor';
 import ApplicationModal from './components/ApplicationModal';
@@ -30,6 +31,7 @@ import {
   LogOut,
   MapPin,
   Clock,
+  Home,
   Wallet,
   Building,
   Bookmark,
@@ -111,7 +113,7 @@ export default function App() {
   const [showCookieBanner, setShowCookieBanner] = useState(false);
   
   // UI State
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
 
   // Auth & Onboarding State
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -468,6 +470,21 @@ export default function App() {
     setSavedJobIds(prev => prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]);
   };
 
+  const handleJobSelect = (jobId: string) => {
+    setSelectedJobId(jobId);
+    
+    // Scroll detail view to top after a short delay to allow the content to render
+    setTimeout(() => {
+      const detailScrollElement = document.querySelector('[data-detail-scroll="true"]');
+      if (detailScrollElement) {
+        detailScrollElement.scrollTo({
+          top: 0,
+          behavior: 'smooth'
+        });
+      }
+    }, 150);
+  };
+
   const handleAnalyzeJob = async () => {
     if (!selectedJob) return;
     setAnalyzing(true);
@@ -540,7 +557,7 @@ export default function App() {
             className="flex items-center gap-2 cursor-pointer group"
             onClick={() => { setViewState(ViewState.LIST); setSelectedJobId(null); }}
         >
-            <div className="p-1.5 bg-indigo-600 rounded-lg text-white group-hover:bg-indigo-500 transition-colors">
+            <div className="p-1.5 bg-cyan-600 rounded-lg text-white group-hover:bg-cyan-500 transition-colors">
                 <BrainCircuit size={24} />
             </div>
             <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight hidden sm:block">JobShaman</span>
@@ -733,6 +750,23 @@ export default function App() {
                             <p className="text-xs text-slate-500 mt-4 leading-relaxed">
                                 Zobrazujeme průměrnou délku úvazku a pravděpodobnost, že se vám ozvou zpět. Data, která HR tají.
                             </p>
+                            
+                            {/* EU Transparent Badge Explanation */}
+                            <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800 rounded-lg">
+                                <div className="flex items-start gap-2">
+                                    <div className="flex items-center gap-1.5 mb-1">
+                                        <div className="w-4 h-4 bg-emerald-600 dark:bg-emerald-500 rounded flex items-center justify-center">
+                                            <span className="text-white text-[10px] font-bold">€</span>
+                                        </div>
+                                        <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Proč vidíte EU Transparent odznak?</h4>
+                                    </div>
+                                </div>
+                                <p className="text-xs leading-relaxed text-emerald-700 dark:text-emerald-300 mt-2">
+                                    Od června 2026 bude uvádění platového rozmezí v EU povinné. 
+                                    My v JobShamanu věříme, že váš čas má svou cenu už dnes. 
+                                    Firmy s tímto označením hrají fér a otevřeně ukazují odměnu jako první.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -808,12 +842,13 @@ export default function App() {
                                 type="text" 
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
+                                onFocus={() => setShowFilters(true)}
                                 placeholder={viewState === ViewState.SAVED ? "Hledat v uložených..." : "Hledat pozici, firmu..."} 
-                                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none text-sm font-medium text-slate-900 dark:text-slate-200 placeholder:text-slate-500 transition-all"
+                                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none text-sm font-medium text-slate-900 dark:text-slate-200 placeholder:text-slate-500 transition-all"
                               />
                               <button 
                                 onClick={() => setShowFilters(!showFilters)}
-                                className={`absolute inset-y-1 right-1 p-1.5 rounded-md transition-all ${showFilters ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400' : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400'}`}
+                                className={`absolute inset-y-1 right-1 p-1.5 rounded-md transition-all ${showFilters ? 'bg-cyan-100 text-cyan-600 dark:bg-cyan-500/20 dark:text-cyan-400' : 'hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-400'}`}
                                 title="Filtry"
                               >
                                  <Filter size={16} className={showFilters ? "fill-current" : ""} />
@@ -840,15 +875,15 @@ export default function App() {
                                                 value={filterCity} 
                                                 onChange={(e) => setFilterCity(e.target.value)} 
                                                 placeholder="Město (např. Praha)" 
-                                                className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-indigo-500 placeholder:text-slate-400 dark:placeholder:text-slate-500" 
+                                                className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500 placeholder:text-slate-400 dark:placeholder:text-slate-500" 
                                             />
                                         </div>
                                         <label className="flex items-center justify-between cursor-pointer p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors">
                                             <div className="flex items-center gap-2">
-                                                <Car size={16} className={`transition-colors ${enableCommuteFilter ? 'text-indigo-500' : 'text-slate-400'}`} />
+                                                <Car size={16} className={`transition-colors ${enableCommuteFilter ? 'text-cyan-500' : 'text-slate-400'}`} />
                                                 <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Limitovat dojezdem</span>
                                             </div>
-                                            <div className={`w-10 h-5 rounded-full relative transition-colors ${enableCommuteFilter ? 'bg-indigo-600' : 'bg-slate-300 dark:bg-slate-700'}`} onClick={(e) => { e.preventDefault(); setEnableCommuteFilter(!enableCommuteFilter); }}>
+                                            <div className={`w-10 h-5 rounded-full relative transition-colors ${enableCommuteFilter ? 'bg-cyan-600' : 'bg-slate-300 dark:bg-slate-700'}`} onClick={(e) => { e.preventDefault(); setEnableCommuteFilter(!enableCommuteFilter); }}>
                                                 <div className={`absolute top-1 w-3 h-3 rounded-full bg-white shadow-sm transition-all ${enableCommuteFilter ? 'left-6' : 'left-1'}`}></div>
                                             </div>
                                         </label>
@@ -856,9 +891,9 @@ export default function App() {
                                             <div className={`p-3 rounded-md border ${userProfile.isLoggedIn && userProfile.address ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800' : 'bg-slate-100 dark:bg-slate-900/50 border-dashed border-slate-300 dark:border-slate-800 opacity-60'}`}>
                                                 <div className="flex justify-between text-xs mb-2">
                                                     <span className="font-medium text-slate-500 dark:text-slate-400">Max Vzdálenost</span>
-                                                    <span className="font-mono text-indigo-600 dark:text-indigo-400">{userProfile.isLoggedIn && userProfile.address ? `${filterMaxDistance} km` : 'N/A'}</span>
+                                                    <span className="font-mono text-cyan-600 dark:text-cyan-400">{userProfile.isLoggedIn && userProfile.address ? `${filterMaxDistance} km` : 'N/A'}</span>
                                                 </div>
-                                                <input type="range" min="5" max="100" step="5" value={filterMaxDistance} onChange={(e) => setFilterMaxDistance(parseInt(e.target.value))} disabled={!userProfile.isLoggedIn || !userProfile.address} className="w-full accent-indigo-500 cursor-pointer disabled:cursor-not-allowed bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full appearance-none" />
+                                                <input type="range" min="5" max="100" step="5" value={filterMaxDistance} onChange={(e) => setFilterMaxDistance(parseInt(e.target.value))} disabled={!userProfile.isLoggedIn || !userProfile.address} className="w-full accent-cyan-500 cursor-pointer disabled:cursor-not-allowed bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full appearance-none" />
                                             </div>
                                         )}
                                     </div>
@@ -879,7 +914,7 @@ export default function App() {
                                             <button 
                                                 key={type}
                                                 onClick={() => toggleContractFilter(type)}
-                                                className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${filterContractType.includes(type) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}
+                                                className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${filterContractType.includes(type) ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}
                                             >
                                                 {type}
                                             </button>
@@ -900,7 +935,7 @@ export default function App() {
                                     <div className="space-y-2 animate-in slide-in-from-top-1">
                                         {['Remote First', 'Flexibilní doba', '5 týdnů dovolené', 'Dog Friendly', 'ESOP'].map(benefit => (
                                             <label key={benefit} className="flex items-center gap-3 cursor-pointer group">
-                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${filterBenefits.includes(benefit) ? 'bg-indigo-600 border-indigo-600' : 'border-slate-300 dark:border-slate-600 group-hover:border-indigo-400'}`}>
+                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${filterBenefits.includes(benefit) ? 'bg-cyan-600 border-cyan-600' : 'border-slate-300 dark:border-slate-600 group-hover:border-cyan-400'}`}>
                                                     {filterBenefits.includes(benefit) && <CheckCircle size={10} className="text-white" />}
                                                 </div>
                                                 <input type="checkbox" className="hidden" checked={filterBenefits.includes(benefit)} onChange={() => toggleBenefitFilter(benefit)} />
@@ -919,7 +954,7 @@ export default function App() {
                       <div className="mb-4 flex items-center justify-between">
                           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nalezené pozice ({filteredJobs.length})</h3>
                           {showFilters && (
-                              <button onClick={() => setShowFilters(false)} className="text-xs text-indigo-500 hover:underline lg:hidden">
+                              <button onClick={() => setShowFilters(false)} className="text-xs text-cyan-500 hover:underline lg:hidden">
                                   Skrýt filtry
                               </button>
                           )}
@@ -928,7 +963,7 @@ export default function App() {
                       <div className="space-y-3">
                           {isLoadingJobs ? (
                               <div className="py-12 flex flex-col items-center justify-center text-slate-400">
-                                  <Activity className="animate-spin mb-2 text-indigo-500" size={24} />
+                                  <Activity className="animate-spin mb-2 text-cyan-500" size={24} />
                                   <p className="text-sm">Hledám nabídky...</p>
                               </div>
                           ) : filteredJobs.length > 0 ? (
@@ -939,7 +974,7 @@ export default function App() {
                                 isSelected={selectedJobId === job.id}
                                 isSaved={savedJobIds.includes(job.id)}
                                 onToggleSave={() => handleToggleSave(job.id)}
-                                onClick={() => setSelectedJobId(job.id)}
+                                onClick={() => handleJobSelect(job.id)}
                                 variant={theme}
                                 userProfile={userProfile}
                             />
@@ -1015,7 +1050,7 @@ export default function App() {
                     </div>
                     </div>
                 </div>
-                <div className="flex-1 overflow-y-auto custom-scrollbar">
+                <div className="flex-1 overflow-y-auto custom-scrollbar" data-detail-scroll="true">
                     {/* Detail Content */}
                     <div className="p-6 sm:p-8 space-y-8">
                         
@@ -1074,7 +1109,25 @@ export default function App() {
                             {showCommuteDetails && (
                                 <div className="grid grid-cols-1 md:grid-cols-2">
                                     <div className="p-6 border-r border-slate-700 flex flex-col justify-center">
-                                        {commuteAnalysis.isRelocation ? (
+                                        {selectedJob.type === 'Remote' ? (
+                                            <div className="text-center py-2">
+                                                <Home size={40} className="text-emerald-400 mx-auto mb-3 opacity-80" />
+                                                <h4 className="text-white font-bold text-lg mb-1">Home Office</h4>
+                                                <div className="text-emerald-400 text-sm font-medium mb-2">
+                                                    Úspora za home office
+                                                </div>
+                                                <div className="text-xs text-emerald-400 mb-3 text-center">
+                                                    <div className="flex items-center gap-1 justify-center">
+                                                        <span className="text-green-400">🏠</span>
+                                                        <div>
+                                                            <div>{commuteAnalysis.financialReality.avoidedCommuteCost.toLocaleString()} {cur}/měsíc</div>
+                                                            <div>Ušetřený čas a peníze za dojíždění.</div>
+                                                            <div>Ekologicky šetrnější volba.</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ) : commuteAnalysis.isRelocation ? (
                                             <div className="text-center py-2">
                                                 <Globe size={40} className="text-cyan-400 mx-auto mb-3 opacity-80" />
                                                 <h4 className="text-white font-bold text-lg mb-1">Nutná Relokace</h4>
@@ -1146,10 +1199,12 @@ export default function App() {
                                                     </div>
                                                 </div>
                                             )}
-                                            <div className="flex justify-between text-rose-400">
-                                                <span>- Náklady na cestu</span>
-                                                <span>{commuteAnalysis.isRelocation ? '???' : `${commuteAnalysis.financialReality.commuteCost.toLocaleString()} ${cur}`}</span>
-                                            </div>
+                                            { (
+                                                <div className="flex justify-between text-rose-400">
+                                                    <span>- Náklady na cestu</span>
+                                                    <span>{commuteAnalysis.isRelocation ? '???' : `${commuteAnalysis.financialReality.commuteCost.toLocaleString()} ${cur}`}</span>
+                                                </div>
+                                            )}
                                             <div className="flex justify-between text-xl font-bold text-white pt-3 mt-3 border-t border-slate-700">
                                                 <span>Čistá Realita</span>
                                                 <span>{commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString()} {cur}</span>
@@ -1161,18 +1216,27 @@ export default function App() {
                         </div>
 
                         {/* Benefits Section */}
+                        {/* Benefits Section */}
                         {selectedJob.benefits && selectedJob.benefits.length > 0 && (
                             <div className="mb-8">
                                 <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
                                     <Gift size={16} /> Benefity & Výhody
                                 </h3>
-                                <div className="flex flex-wrap gap-2">
+                                
+                                <div className="flex flex-wrap gap-2 mb-6">
                                     {selectedJob.benefits.map((benefit, i) => (
                                         <span key={i} className="px-3 py-1.5 rounded-lg text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                                             {benefit}
                                         </span>
                                     ))}
                                 </div>
+                            </div>
+                        )}
+
+                        {/* Contextual Relevance Section */}
+                        {selectedJob.contextualRelevance && (
+                            <div className="mb-8">
+                                <ContextualRelevance contextualRelevance={selectedJob.contextualRelevance} compact={false} />
                             </div>
                         )}
 
@@ -1221,7 +1285,7 @@ export default function App() {
                                    }}
                                  />
                                  <BullshitMeter metrics={selectedJob.noiseMetrics} variant={theme} />
-                                 <TransparencyCard data={selectedJob.transparency} companyName={selectedJob.company} variant={theme} />
+                                 <TransparencyCard data={selectedJob.transparency} variant={theme} />
                               </div>
                         </div>
                     </div>
