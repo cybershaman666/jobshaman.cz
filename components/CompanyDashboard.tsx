@@ -8,6 +8,7 @@ import BullshitMeter from './BullshitMeter';
 import CompanySettings from './CompanySettings';
 import AssessmentCreator from './AssessmentCreator';
 import BenefitInsights from './BenefitInsights';
+ // import CompanyMarketplace from './CompanyMarketplace';
 import { 
   Briefcase, 
   Users, 
@@ -53,7 +54,7 @@ interface CompanyDashboardProps {
 }
 
 const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: propProfile }) => {
-  const [activeTab, setActiveTab] = useState<'overview' | 'create-ad' | 'candidates' | 'settings' | 'assessments'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'create-ad' | 'candidates' | 'settings' | 'assessments' | 'marketplace'>('overview');
   
   // Real User Detection
   // If propProfile exists, we are in "Real" mode and should start empty.
@@ -363,7 +364,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                                {jobs.slice(0, 5).map((job, idx) => {
+                                {jobs.slice(0, 5).map((job) => {
                                     // Generate stats based on job characteristics to ensure visual consistency
                                     let baseViews = 200;
                                     let conversionRate = 0.08;
@@ -886,6 +887,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 >
                     Kandidáti
                 </button>
+                <button 
+                    onClick={() => setActiveTab('marketplace')}
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'marketplace' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                >
+                    Marketplace kurzů
+                </button>
             </div>
         </div>
 
@@ -896,6 +903,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             {activeTab === 'create-ad' && renderCreateAd()}
             {activeTab === 'assessments' && <AssessmentCreator />}
             {activeTab === 'candidates' && renderCandidates()}
+            {/* {activeTab === 'marketplace' && <CompanyMarketplace />} */}
         </div>
     </div>
   );

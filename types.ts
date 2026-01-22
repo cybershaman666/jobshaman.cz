@@ -96,7 +96,8 @@ export enum ViewState {
   DETAIL = 'DETAIL',
   SAVED = 'SAVED',
   PROFILE = 'PROFILE',
-  COMPANY_DASHBOARD = 'COMPANY_DASHBOARD'
+  COMPANY_DASHBOARD = 'COMPANY_DASHBOARD',
+  MARKETPLACE = 'MARKETPLACE'
 }
 
 export interface AIAnalysisResult {
@@ -192,6 +193,24 @@ export interface LearningResource {
   currency: string;
   rating: number;
   reviews_count: number;
+  created_at: string;
+  // New fields for marketplace with government funding
+  is_government_funded?: boolean;
+  funding_amount_czk?: number;
+  affiliate_url?: string;
+  location?: string;
+  lat?: number;
+  lng?: number;
+  status?: 'active' | 'draft' | 'archived';
+  partner_name?: string;
+}
+
+export interface MarketplacePartner {
+  id: string;
+  name: string;
+  contact_email: string;
+  commission_rate: number;
+  partner_type: 'online_platform' | 'driving_school' | 'training_center';
   created_at: string;
 }
 

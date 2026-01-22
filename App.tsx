@@ -8,15 +8,16 @@ import BullshitMeter from './components/BullshitMeter';
 import TransparencyCard from './components/TransparencyCard';
 import FinancialReality from './components/FinancialReality';
 import SkillsGapBox from './components/SkillsGapBox';
-import ContextualRelevance from './components/ContextualRelevance';
-import CookieBanner from './components/CookieBanner';
-import ProfileEditor from './components/ProfileEditor';
-import ApplicationModal from './components/ApplicationModal';
 import CompanyDashboard from './components/CompanyDashboard';
-import AuthModal from './components/AuthModal';
 import CompanyOnboarding from './components/CompanyOnboarding';
+import ProfileEditor from './components/ProfileEditor';
+import AuthModal from './components/AuthModal';
 import CompanyRegistrationModal from './components/CompanyRegistrationModal';
+import MarketplacePage from './components/MarketplacePage';
 import CompanyLandingPage from './components/CompanyLandingPage';
+import ContextualRelevance from './components/ContextualRelevance';
+import ApplicationModal from './components/ApplicationModal';
+import CookieBanner from './components/CookieBanner';
 import { analyzeJobDescription, getShamanAdvice, estimateSalary } from './services/geminiService';
 import { calculateCommuteReality } from './services/commuteService';
 import { fetchRealJobs } from './services/jobService';
@@ -61,7 +62,8 @@ import {
   RefreshCw,
   Lock,
   Navigation,
-  X
+  X,
+  ShoppingBag
 } from 'lucide-react';
 
 // Default user profile
@@ -585,6 +587,13 @@ export default function App() {
                 Profil
             </button>
             <button 
+                onClick={() => setViewState(ViewState.MARKETPLACE)}
+                className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.MARKETPLACE ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+            >
+                <ShoppingBag className="w-4 h-4" />
+                Kurzy & Rekvalifikace
+            </button>
+            <button 
                 onClick={() => {
                     if (showCompanyLanding) {
                         setShowCompanyLanding(false);
@@ -803,6 +812,14 @@ export default function App() {
                     onChange={handleProfileUpdate}
                     onSave={() => setViewState(ViewState.LIST)}
                 />
+            </div>
+        );
+    }
+
+    if (viewState === ViewState.MARKETPLACE) {
+        return (
+            <div className="col-span-1 lg:col-span-12 max-w-7xl mx-auto w-full h-full overflow-y-auto custom-scrollbar pb-6 px-1">
+                <MarketplacePage theme={theme} userProfile={userProfile} />
             </div>
         );
     }
@@ -1272,21 +1289,26 @@ export default function App() {
                                         {analyzing ? 'Analyzuji...' : 'Spustit AI Analýzu'}
                                     </button>
                                 )}
-                             </div>
-                              <div className="space-y-6">
-                                 {/* Career Pathfinder - Skills Gap Analysis */}
-                                 <SkillsGapBox
-                                   skillsGapAnalysis={pathfinderAnalysis?.skillsGapAnalysis || null}
-                                   isLoading={pathfinderAnalysis?.isLoading || false}
-                                   error={pathfinderAnalysis?.error || null}
-                                   theme={theme}
-                                   onResourceClick={(resource) => {
-                                     window.open(resource.url, '_blank');
-                                   }}
-                                 />
-                                 <BullshitMeter metrics={selectedJob.noiseMetrics} variant={theme} />
-                                 <TransparencyCard data={selectedJob.transparency} variant={theme} />
+                                <TransparencyCard data={selectedJob.transparency} variant={theme} />
                               </div>
+                               <div className="space-y-6">
+                                  {/* Career Pathfinder - Skills Gap Analysis */}
+                                  <SkillsGapBox
+                                    skillsGapAnalysis={pathfinderAnalysis?.skillsGapAnalysis || null}
+                                    isLoading={pathfinderAnalysis?.isLoading || false}
+                                    error={pathfinderAnalysis?.error || null}
+                                    theme={theme}
+                                    userProfile={{
+                                      isLoggedIn: userProfile.isLoggedIn,
+                                      hasCV: !!userProfile.cvText || !!userProfile.cvUrl,
+                                      name: userProfile.name
+                                    }}
+                                    onResourceClick={(resource) => {
+                                      window.open(resource.url, '_blank');
+                                    }}
+                                  />
+                                  <BullshitMeter metrics={selectedJob.noiseMetrics} variant={theme} />
+                               </div>
                         </div>
                     </div>
                 </div>
@@ -1347,14 +1369,14 @@ export default function App() {
          {/* Cookie Banner */}
          <CookieBanner 
            theme={theme}
-           onAccept={(preferences) => {
-             console.log('Cookie preferences accepted:', preferences);
-             setShowCookieBanner(false);
-           }}
-           onCustomize={() => {
-             console.log('Customize cookie preferences');
-             setShowCookieBanner(false);
-           }}
+            onAccept={(preferences: any) => {
+              console.log('Cookie preferences accepted:', preferences);
+              setShowCookieBanner(false);
+            }}
+            onCustomize={() => {
+              console.log('Customize cookie preferences');
+              setShowCookieBanner(false);
+            }}
          />
      </div>
    );

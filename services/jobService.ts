@@ -217,23 +217,24 @@ export const fetchRealJobs = async (): Promise<Job[]> => {
         
         // Use a simpler query first to avoid sorting crashes if column missing
         // We will fetch widely then sort in memory to be safe against DB schema mismatches
-        const mainLimit = 800; 
+        // Increased limit to handle all 20,000+ jobs in database
+        const mainLimit = 25000; 
         
         const queries = [
             // 1. Recent Global
             supabase.from('jobs').select('*').neq('description', 'Popis nenalezen').limit(mainLimit),
             
             // 2. Brno Boost
-            supabase.from('jobs').select('*').ilike('location', '%Brno%').neq('description', 'Popis nenalezen').limit(300),
+            supabase.from('jobs').select('*').ilike('location', '%Brno%').neq('description', 'Popis nenalezen').limit(5000),
             
             // 3. Ostrava Boost
-            supabase.from('jobs').select('*').ilike('location', '%Ostrava%').neq('description', 'Popis nenalezen').limit(200),
+            supabase.from('jobs').select('*').ilike('location', '%Ostrava%').neq('description', 'Popis nenalezen').limit(3000),
             
             // 4. Plzeň Boost
-            supabase.from('jobs').select('*').or('location.ilike.%plzen%,location.ilike.%plzeň%').neq('description', 'Popis nenalezen').limit(200),
+            supabase.from('jobs').select('*').or('location.ilike.%plzen%,location.ilike.%plzeň%').neq('description', 'Popis nenalezen').limit(3000),
             
             // 5. Remote Boost
-            supabase.from('jobs').select('*').or('work_type.ilike.%remote%,title.ilike.%remote%').neq('description', 'Popis nenalezen').limit(200)
+            supabase.from('jobs').select('*').or('work_type.ilike.%remote%,title.ilike.%remote%').neq('description', 'Popis nenalezen').limit(5000)
         ];
 
         const results = await Promise.all(queries);
