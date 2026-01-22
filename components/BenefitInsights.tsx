@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { BenefitInsight } from '../types';
+import React from 'react';
+
 import { MOCK_BENEFIT_STATS } from '../constants';
 import { TrendingUp, DollarSign, Heart, Coffee, BookOpen, AlertCircle } from 'lucide-react';
 

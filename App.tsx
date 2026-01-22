@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Job, ViewState, UserProfile, CompanyProfile } from './types';
+import { Job, ViewState, UserProfile } from './types';
 import JobCard from './components/JobCard';
 import ApplicationModal from './components/ApplicationModal';
 import { fetchRealJobs } from './services/jobService';
-import { supabase, signOut, getUserProfile } from './services/supabaseService';
+import { signOut, getUserProfile } from './services/supabaseService';
 import { 
   Search, 
   Filter, 
@@ -16,9 +16,16 @@ import {
 // --- DEFAULTS ---
 const DEFAULT_USER_PROFILE: UserProfile = {
   isLoggedIn: false,
-  full_name: '',
-  avatar_url: '',
-  role: 'candidate'
+  name: '',
+  role: 'candidate',
+  address: '',
+  transportMode: 'car',
+  preferences: {
+    workLifeBalance: 50,
+    financialGoals: 50,
+    commuteTolerance: 60,
+    priorities: []
+  }
 };
 
 // --- APP ---
@@ -148,6 +155,9 @@ const App: React.FC = () => {
             job={job} 
             userProfile={userProfile}
             onClick={() => setSelectedJobId(job.id)}
+            isSelected={selectedJobId === job.id}
+            isSaved={false}
+            onToggleSave={() => {}}
           />
         ))
       )}
@@ -176,15 +186,17 @@ const App: React.FC = () => {
         <JobCard 
           job={selectedJob} 
           userProfile={userProfile}
-          isExpanded={true}
+          isSelected={true}
+          isSaved={false}
+          onToggleSave={() => {}}
+          onClick={() => {}}
         />
         {userProfile.isLoggedIn && (
           <ApplicationModal 
             isOpen={false}
             onClose={() => {}}
             job={selectedJob}
-            userProfile={userProfile}
-            aiAnalysis={null}
+            user={userProfile}
           />
         )}
       </div>
@@ -245,7 +257,7 @@ const App: React.FC = () => {
               {userProfile.isLoggedIn ? (
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-slate-600 dark:text-slate-400">
-                    Vítejte, {userProfile.full_name}
+                    Vítejte, {userProfile.name}
                   </span>
                   <button 
                     onClick={handleSignOut}

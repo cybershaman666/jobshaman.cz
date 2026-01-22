@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrainCircuit, TrendingUp, Target } from 'lucide-react';
+import { BrainCircuit, TrendingUp } from 'lucide-react';
 
 interface WelcomePageProps {
   title: string;

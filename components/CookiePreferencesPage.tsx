@@ -1,13 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Shield, Lock, Eye, Trash2, RefreshCw } from 'lucide-react';
-import { useState } from 'react';
 
 interface CookiePreferencesPageProps {
   theme?: 'light' | 'dark';
 }
 
 const CookiePreferencesPage: React.FC<CookiePreferencesPageProps> = ({ theme = 'light' }) => {
-  const [preferences, setPreferences] = useState<any>(() => {
+  const [preferences] = useState<any>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('cookie-consent');
       return stored ? JSON.parse(stored) : null;

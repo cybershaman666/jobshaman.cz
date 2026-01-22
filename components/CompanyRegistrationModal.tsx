@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Building, Mail, Phone, User, Lock, Eye, EyeOff, Briefcase, Globe, MapPin, Check, Star, TrendingUp, Shield, Users, Zap } from 'lucide-react';
+import { X, Building, Mail, Phone, User, Lock, Eye, EyeOff, Briefcase, Globe, MapPin, Users } from 'lucide-react';
 
 interface CompanyRegistrationModalProps {
   isOpen: boolean;

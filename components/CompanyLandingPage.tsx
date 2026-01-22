@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building, Zap, TrendingUp, Shield, Users, BrainCircuit, Target, Eye, Star, CheckCircle, ArrowRight, Crown, Sparkles, BarChart, MessageSquare, FileText, Wrench, Info, Briefcase, Search, Filter, Menu } from 'lucide-react';
+import { Building, TrendingUp, Shield, Users, BrainCircuit, Target, Eye, Star, CheckCircle, Crown, Sparkles, BarChart, MessageSquare, Info } from 'lucide-react';
 
 interface CompanyLandingPageProps {
   onRegister?: () => void;
