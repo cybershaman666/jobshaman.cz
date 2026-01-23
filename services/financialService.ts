@@ -186,6 +186,7 @@ export const calculateFinancialScoreAdjustment = (
   // When no salary info available, still give bonus for good benefits
   if (netSalary === 0 && baseGross === 0) {
     // Give small positive score for good benefits, even without salary
+    // Assuming benefitsValue is in EUR from financial calculation
     if (benefitsValue > 200) return 5; // Benefits worth >200 EUR/month
     if (benefitsValue > 100) return 3; // Benefits worth >100 EUR/month
     return 0;

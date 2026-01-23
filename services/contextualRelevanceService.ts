@@ -98,21 +98,21 @@ class ContextualRelevanceScorer {
       if (workMode === 'remote' || workMode === 'hybrid') {
         return {
           relevance: 'relevant',
-          explanation: 'Flexibility benefits are highly relevant for remote/hybrid roles',
+          explanation: 'Flexibilní benefity jsou vysoce relevantní pro vzdálené/hybridní role',
           weight: 1.0
         };
       }
       if (workMode === 'onsite') {
         return {
           relevance: 'weakly_relevant',
-          explanation: 'Some flexibility may apply to onsite roles with core hours',
+          explanation: 'Nějaká flexibilita může platit pro prezenční role s pevnými hodinami',
           weight: 0.5
         };
       }
       if (workMode === 'field') {
         return {
           relevance: 'context_mismatch',
-          explanation: 'Field roles typically have fixed schedules based on client needs',
+          explanation: 'Terénní role typicky mají pevný harmonogram podle potřeb klientů',
           weight: 0.0
         };
       }
@@ -124,27 +124,27 @@ class ContextualRelevanceScorer {
         if (jobType === 'office') {
           return {
             relevance: 'relevant',
-            explanation: 'Office environment benefits directly apply to onsite office roles',
+            explanation: 'Benefity kancelářského prostředí přímo platí pro prezenční kancelářské role',
             weight: 1.0
           };
         }
         return {
           relevance: 'weakly_relevant',
-          explanation: 'Office amenities may be used occasionally in hybrid roles',
+          explanation: 'Kancelářské vybavení může být používáno občas v hybridních rolích',
           weight: 0.5
         };
       }
       if (workMode === 'remote') {
         return {
           relevance: 'context_mismatch',
-          explanation: 'Office environment benefits do not apply to fully remote roles',
+          explanation: 'Benefity kancelářského prostředí neplatí pro plně vzdálené role',
           weight: 0.0
         };
       }
       if (jobType === 'field' || jobType === 'logistics') {
         return {
           relevance: 'context_mismatch',
-          explanation: 'Field/logistics roles rarely access office facilities',
+          explanation: 'Terénní/logistické role zřídka přistupují do kancelářských zařízení',
           weight: 0.0
         };
       }
@@ -155,28 +155,28 @@ class ContextualRelevanceScorer {
       if (workMode === 'onsite') {
         return {
           relevance: 'relevant',
-          explanation: 'Commuting benefits are essential for onsite roles',
+          explanation: 'Dopravní benefity jsou nezbytné pro prezenční role',
           weight: 1.0
         };
       }
       if (workMode === 'hybrid') {
         return {
           relevance: 'weakly_relevant',
-          explanation: 'Commuting benefits partially apply to hybrid roles',
+          explanation: 'Dopravní benefity částečně platí pro hybridní role',
           weight: 0.5
         };
       }
       if (workMode === 'remote') {
         return {
           relevance: 'context_mismatch',
-          explanation: 'Commuting benefits do not apply to fully remote roles',
+          explanation: 'Dopravní benefity neplatí pro plně vzdálené role',
           weight: 0.0
         };
       }
       if (jobType === 'field') {
         return {
           relevance: 'relevant',
-          explanation: 'Commuting/transport benefits are essential for field roles',
+          explanation: 'Dopravní benefity jsou nezbytné pro terénní role',
           weight: 1.0
         };
       }
@@ -188,7 +188,7 @@ class ContextualRelevanceScorer {
         if (scheduleType === 'shift-based') {
           return {
             relevance: 'relevant',
-            explanation: 'Sick days are important for shift-based healthcare continuity',
+            explanation: 'Sick days jsou důležité pro kontinuitu zdravotní péče ve směnném provozu',
             weight: 1.0
           };
         }
@@ -196,7 +196,7 @@ class ContextualRelevanceScorer {
       // Health benefits are generally relevant across all roles
       return {
         relevance: 'relevant',
-        explanation: 'Health and wellness benefits apply to all work arrangements',
+        explanation: 'Zdravotní benefity platí pro všechny pracovní uspořádání',
         weight: 1.0
       };
     }
@@ -206,13 +206,13 @@ class ContextualRelevanceScorer {
       if (jobType === 'technical' || jobType === 'office') {
         return {
           relevance: 'relevant',
-          explanation: 'Growth opportunities are highly valued in technical/office roles',
+          explanation: 'Růstové příležitosti jsou vysoce ceněny v technických/kancelářských rolích',
           weight: 1.0
         };
       }
       return {
         relevance: 'weakly_relevant',
-        explanation: 'Growth benefits may be available but less emphasized in this role type',
+        explanation: 'Růstové benefity mohou být dostupné ale méně zdůrazňované v tomto typu role',
         weight: 0.5
       };
     }
@@ -223,20 +223,20 @@ class ContextualRelevanceScorer {
         if (workMode === 'remote') {
           return {
             relevance: 'weakly_relevant',
-            explanation: 'Meal benefits may be partially available for remote workers',
+            explanation: 'Stravovací benefity mohou být částečně dostupné pro vzdálené pracovníky',
             weight: 0.5
           };
         }
         return {
           relevance: 'relevant',
-          explanation: 'Meal benefits are standard for onsite roles',
+          explanation: 'Stravovací benefity jsou standardní pro prezenční role',
           weight: 1.0
         };
       }
       // Other financial benefits are generally relevant
       return {
         relevance: 'relevant',
-        explanation: 'Financial benefits apply across different work arrangements',
+        explanation: 'Finanční benefity platí napříč různými pracovními uspořádáními',
         weight: 1.0
       };
     }
@@ -246,20 +246,20 @@ class ContextualRelevanceScorer {
       if (workMode === 'remote' || workMode === 'hybrid') {
         return {
           relevance: 'relevant',
-          explanation: 'Equipment benefits are essential for remote/hybrid work',
+          explanation: 'Vybavení je nezbytné pro vzdálenou/hybridní práci',
           weight: 1.0
         };
       }
       if (jobType === 'technical') {
         return {
           relevance: 'relevant',
-          explanation: 'Technical roles typically require specialized equipment',
+          explanation: 'Technické role typicky vyžadují specializované vybavení',
           weight: 1.0
         };
       }
       return {
         relevance: 'weakly_relevant',
-        explanation: 'Equipment may be provided but is less critical for this role',
+        explanation: 'Vybavení může být poskytnuto ale je méně kritické pro tuto roli',
         weight: 0.5
       };
     }
@@ -267,7 +267,7 @@ class ContextualRelevanceScorer {
     // Default case for uncategorized benefits
     return {
       relevance: 'weakly_relevant',
-      explanation: 'Benefit relevance unclear without specific context',
+      explanation: 'Relevance benefitu není jasná bez specifického kontextu',
       weight: 0.5
     };
   }
@@ -290,13 +290,13 @@ class ContextualRelevanceScorer {
    */
   private generateSummary(score: number, _flaggedBenefits: FlaggedBenefit[]): string {
     if (score >= 80) {
-      return "Listed benefits align well with this role's work setup.";
+      return "Uvedené benefity dobře odpovídají pracovnímu uspořádání této role.";
     } else if (score >= 60) {
-      return "Some listed benefits may have limited applicability to this role's work setup.";
+      return "Některé uvedené benefity mohou mít omezenou použitelnost pro tuto roli.";
     } else if (score >= 40) {
-      return "Several listed benefits may not fully apply to this role's work setup.";
+      return "Několik uvedených benefitů nemusí plně platit pro pracovní uspořádání této role.";
     } else {
-      return "Many listed benefits appear inconsistent with this role's work setup.";
+      return "Mnoho uvedených benefitů se zdá být nekonzistentních s pracovním uspořádáním této role.";
     }
   }
 

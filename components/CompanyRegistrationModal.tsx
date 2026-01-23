@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Building, Mail, Phone, User, Lock, Eye, EyeOff, Briefcase, Globe, MapPin, Users } from 'lucide-react';
+import { sendEmail, EmailTemplates } from '../services/emailService';
 
 interface CompanyRegistrationModalProps {
   isOpen: boolean;
@@ -7,10 +8,26 @@ interface CompanyRegistrationModalProps {
   onSuccess: () => void;
 }
 
+interface CompanyRegistrationFormData {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  companyName: string;
+  industry: string;
+  website: string;
+  address: string;
+  phone: string;
+  contactPerson: string;
+  employees: string;
+  description: string;
+  agreedToTerms: boolean;
+  agreedToPrivacy: boolean;
+}
+
 const CompanyRegistrationModal: React.FC<CompanyRegistrationModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<number | 'success' | 'submitting'>(1);
   const [showPassword, setShowPassword] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<CompanyRegistrationFormData>({
     email: '',
     password: '',
     confirmPassword: '',
@@ -21,6 +38,7 @@ const CompanyRegistrationModal: React.FC<CompanyRegistrationModalProps> = ({ isO
     phone: '',
     contactPerson: '',
     employees: '',
+    description: '',
     agreedToTerms: false,
     agreedToPrivacy: false
   });
@@ -51,12 +69,52 @@ const CompanyRegistrationModal: React.FC<CompanyRegistrationModalProps> = ({ isO
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement actual registration logic
-    console.log('Company registration:', formData);
-    onSuccess();
-    onClose();
+    
+    try {
+      // Send email notification
+      const emailResult = await sendEmail({
+        to: 'floki@jobshaman.cz',
+        ...EmailTemplates.companyRegistration(formData)
+      });
+
+      if (emailResult.success) {
+        // Show success message
+        setStep('success');
+        // Store for backend processing
+        console.log('Company registration data:', formData);
+        
+// Clear form after delay
+        setTimeout(() => {
+          onSuccess();
+          onClose();
+          // Reset form
+          setFormData({
+            email: '',
+            password: '',
+            confirmPassword: '',
+            companyName: '',
+            industry: '',
+            website: '',
+            address: '',
+            phone: '',
+            contactPerson: '',
+            employees: '',
+            description: '',
+            agreedToTerms: false,
+            agreedToPrivacy: false
+          });
+          setStep(1);
+        }, 3000);
+      } else {
+        console.error('Failed to send registration email:', emailResult.error);
+        alert('Nepodařilo se odeslat registraci. Zkuste to prosím znovu.');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      alert('Došlo k chybě při registraci. Zkuste to prosím znovu.');
+    }
   };
 
   if (!isOpen) return null;
@@ -93,8 +151,8 @@ const CompanyRegistrationModal: React.FC<CompanyRegistrationModalProps> = ({ isO
           <div className="flex items-center gap-2 mt-4">
             {[...Array(totalSteps)].map((_, i) => (
               <React.Fragment key={i}>
-                <div className={`flex-1 h-1 rounded-full ${i < step ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-700'}`} />
-                {i < totalSteps - 1 && <div className="w-2 h-1 bg-transparent" />}
+                <div className={`flex-1 h-1 rounded-full ${typeof step === 'number' && i < step ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-700'}`} />
+                {typeof step === 'number' && i < totalSteps - 1 && <div className="w-2 h-1 bg-transparent" />}
               </React.Fragment>
             ))}
           </div>
@@ -337,19 +395,19 @@ const CompanyRegistrationModal: React.FC<CompanyRegistrationModalProps> = ({ isO
             {/* Navigation */}
             <div className="flex justify-between gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
               <button
-                type="button"
-                onClick={() => setStep(Math.max(1, step - 1))}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  step === 1 
-                    ? 'invisible' 
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                }`}
+                 type="button"
+                 onClick={() => setStep(Math.max(1, typeof step === 'number' ? step - 1 : 1))}
+                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                   step === 1 
+                     ? 'invisible' 
+                     : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                 }`}
               >
                 Zpět
               </button>
               <button
                 type={step === totalSteps ? 'submit' : 'button'}
-                onClick={() => step < totalSteps && setStep(step + 1)}
+                 onClick={() => (typeof step === 'number' && step < totalSteps) && setStep(step + 1)}
                 className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors"
               >
                 {step === totalSteps ? 'Dokončit registraci' : 'Pokračovat'}

@@ -45,7 +45,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
           <div className="p-1.5 bg-cyan-600 rounded-lg text-white group-hover:bg-cyan-500 transition-colors">
               <BrainCircuit size={24} />
           </div>
-          <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight hidden sm:block">JobShaman</span>
+          <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight hidden sm:block">Job<span className="text-cyan-600 dark:text-cyan-400">Shaman</span></span>
       </div>
 
       {/* Navigation */}

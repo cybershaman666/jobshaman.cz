@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Building, Mail, Phone, User, Globe, Send, CheckCircle, Loader2, FileText, Percent, MapPin, Users, TrendingUp, Calendar } from 'lucide-react';
+import { sendEmail, EmailTemplates } from '../services/emailService';
 
 interface PartnerOfferModalProps {
   isOpen: boolean;
@@ -21,7 +22,8 @@ const PartnerOfferModal: React.FC<PartnerOfferModalProps> = ({ isOpen, onClose }
     commissionRate: '',
     description: '',
     address: '',
-    courseCategories: [] as string[]
+    courseCategories: [] as string[],
+    offer: ''
   });
 
   const courseCategories = [
@@ -50,12 +52,49 @@ const PartnerOfferModal: React.FC<PartnerOfferModalProps> = ({ isOpen, onClose }
     }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setStep('submitting');
-    // Simulate API call to save to marketplace_partners table
-    setTimeout(() => {
-      setStep('success');
-    }, 2000);
+    
+    try {
+      // Send email notification
+      const emailResult = await sendEmail({
+        to: 'floki@jobshaman.cz',
+        ...EmailTemplates.partnerOffer(formData)
+      });
+
+      if (emailResult.success) {
+        setStep('success');
+        console.log('Partner offer data:', formData);
+        
+        // Clear form after delay
+        setTimeout(() => {
+          onClose();
+          // Reset form
+          setFormData({
+            companyName: '',
+            contactName: '',
+            email: '',
+            phone: '',
+            website: '',
+            partnerType: 'education' as 'education' | 'company' | 'individual',
+            commissionRate: '',
+            description: '',
+            address: '',
+            courseCategories: [],
+            offer: ''
+          });
+          setStep('form');
+        }, 3000);
+      } else {
+        console.error('Failed to send partner offer email:', emailResult.error);
+        setStep('form');
+        alert('Nepodařilo se odeslat poptávku. Zkuste to prosím znovu.');
+      }
+    } catch (error) {
+      console.error('Partner offer error:', error);
+      setStep('form');
+      alert('Došlo k chybě při odesílání poptávky. Zkuste to prosím znovu.');
+    }
   };
 
   const isFormValid = formData.companyName && formData.contactName && formData.email && formData.phone;

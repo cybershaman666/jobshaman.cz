@@ -19,6 +19,8 @@ import CompanyLandingPage from './components/CompanyLandingPage';
 import ContextualRelevance from './components/ContextualRelevance';
 import ApplicationModal from './components/ApplicationModal';
 import CookieBanner from './components/CookieBanner';
+import PodminkyUziti from './pages/PodminkyUziti';
+import OchranaSoukromi from './pages/OchranaSoukromi';
 import { analyzeJobDescription, estimateSalary } from './services/geminiService';
 import { calculateCommuteReality } from './services/commuteService';
 import { fetchRealJobs } from './services/jobService';
@@ -582,7 +584,7 @@ export default function App() {
                 alt="JobShaman" 
                 className="w-8 h-8 rounded-lg transition-transform group-hover:scale-105"
             />
-            <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight hidden sm:block">JobShaman</span>
+            <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight hidden sm:block">Job<span className="text-cyan-600 dark:text-cyan-400">Shaman</span></span>
         </div>
 
         {/* Navigation */}
@@ -814,6 +816,24 @@ export default function App() {
   };
 
   const renderContent = () => {
+    // Handle static pages based on pathname
+    const pathname = window.location.pathname;
+    if (pathname === '/podminky-uziti') {
+        return (
+            <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+                <PodminkyUziti />
+            </div>
+        );
+    }
+    
+    if (pathname === '/ochrana-osobnich-udaju') {
+        return (
+            <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+                <OchranaSoukromi />
+            </div>
+        );
+    }
+
     if (showCompanyLanding) {
         return (
             <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
@@ -855,11 +875,30 @@ export default function App() {
 
     const dynamicJHI = selectedJob ? { ...selectedJob.jhi } : null;
     if (dynamicJHI && commuteAnalysis) {
-        if (!commuteAnalysis.isRelocation && commuteAnalysis.distanceKm !== -1) {
-            dynamicJHI.timeCost = Math.max(0, dynamicJHI.timeCost + (commuteAnalysis.jhiImpact * 2));
+        // Apply time cost impact (both negative for long commute, positive for remote)
+        if (commuteAnalysis.jhiImpact !== 0) {
+            dynamicJHI.timeCost = Math.max(0, Math.min(100, dynamicJHI.timeCost + (commuteAnalysis.jhiImpact * 2)));
         }
+        
+        // Apply financial adjustment (benefits, costs, etc.)
         const finAdjustment = commuteAnalysis.financialReality.scoreAdjustment;
         dynamicJHI.financial = Math.min(100, Math.max(0, dynamicJHI.financial + finAdjustment));
+        
+        // Apply bonus for good benefits package directly to growth/values
+        const benefitsValue = commuteAnalysis.financialReality.benefitsValue;
+        if (benefitsValue > 100) { // >100 EUR/month benefits
+            const benefitsBonus = Math.min(8, Math.round(benefitsValue / 30)); // Up to 8 points, more generous scaling
+            dynamicJHI.values = Math.min(100, dynamicJHI.values + benefitsBonus);
+        }
+        
+        // Additional financial bonus for high net value (benefits - commute cost)
+        const netBenefitValue = benefitsValue - commuteAnalysis.financialReality.commuteCost;
+        if (netBenefitValue > 200) { // >200 EUR/month net benefit
+            const netBonus = Math.min(6, Math.round((netBenefitValue - 200) / 100)); // Additional bonus
+            dynamicJHI.growth = Math.min(100, dynamicJHI.growth + netBonus);
+        }
+        
+        // Recalculate overall score
         dynamicJHI.score = Math.round((dynamicJHI.financial + dynamicJHI.timeCost + dynamicJHI.mentalLoad + dynamicJHI.growth + dynamicJHI.values) / 5);
     }
 
@@ -1410,9 +1449,35 @@ export default function App() {
                  setShowCookieBanner(false);
                }}
             />
-          )}
-          
+           )}
 
-    </div>
+            {/* Footer */}
+            <footer className="bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-8 mt-auto">
+             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+               <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+                 <div className="text-sm text-slate-600 dark:text-slate-400">
+                   © 2026 JobShaman. Všechna práva vyhrazena.
+                 </div>
+                 <div className="flex gap-6 text-sm">
+                   <a 
+                     href="/podminky-uziti"
+                     target="_blank"
+                     className="text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                   >
+                     Podmínky použití
+                   </a>
+                   <a 
+                     href="/ochrana-osobnich-udaju"
+                     target="_blank"
+                     className="text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                   >
+                     Ochrana osobních údajů
+                    </a>
+                   </div>
+                 </div>
+              </div>
+            </footer>
+
+        </div>
      );
   }

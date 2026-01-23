@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Job, UserProfile } from '../types';
 import { X, Upload, FileText, Wand2, CheckCircle, Send, Loader2, BrainCircuit, User, Mail, Phone, Linkedin, Link as LinkIcon } from 'lucide-react';
 import { generateCoverLetter } from '../services/geminiService';
+import { sendEmail, EmailTemplates } from '../services/emailService';
 
 interface ApplicationModalProps {
   job: Job;
@@ -68,12 +69,32 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
     }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setStep('submitting');
-    // Simulate API call
-    setTimeout(() => {
-      setStep('success');
-    }, 2000);
+    
+    try {
+      // Send email notification
+      const emailResult = await sendEmail({
+        to: 'floki@jobshaman.cz',
+        ...EmailTemplates.jobApplication(formData, job)
+      });
+
+      if (emailResult.success) {
+        // Simulate API call
+        setTimeout(() => {
+          setStep('success');
+          console.log('Application submitted:', { formData, job: job.title });
+        }, 2000);
+      } else {
+        console.error('Failed to send application email:', emailResult.error);
+        alert('Nepodařilo se odeslat přihlášku. Zkuste to prosím znovu.');
+        setStep('form');
+      }
+    } catch (error) {
+      console.error('Application error:', error);
+      alert('Došlo k chybě při odesílání přihlášky. Zkuste to prosím znovu.');
+      setStep('form');
+    }
   };
 
   const renderContent = () => {

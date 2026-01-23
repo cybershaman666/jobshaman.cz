@@ -309,8 +309,24 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
   const scoreAdjustment = calculateFinancialScoreAdjustment(net, grossMonthlySalary, benefitsValue, realMonthlyCost);
 
   // 4. JHI Time Impact
-  const timePenalty = (distanceKm === -1 || isRelocation) ? 0 : Math.max(0, timeMinutes - user.preferences.commuteTolerance) * 1;
-  const totalJhiImpact = -Math.round(timePenalty);
+  let timePenalty = 0;
+  let remoteBonus = 0;
+  
+  if (isRemote) {
+    // Positive impact for home office - saves time and money
+    remoteBonus = 5; // Base bonus for remote work
+    // Additional bonus based on potential commute savings
+    const potentialDailyCommute = (avoidedDistanceKm / SPEED_KMPH[mode]) * 2; // Round trip in hours
+    if (potentialDailyCommute > 1) {
+      remoteBonus += Math.min(3, Math.round(potentialDailyCommute * 2)); // Up to 3 extra points
+    }
+  } else if (distanceKm === -1 || isRelocation) {
+    timePenalty = 0;
+  } else {
+    timePenalty = Math.max(0, timeMinutes - user.preferences.commuteTolerance) * 1;
+  }
+  
+  const totalJhiImpact = Math.round(remoteBonus - timePenalty);
 
   return {
     distanceKm,
