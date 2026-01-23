@@ -612,41 +612,43 @@ export default function App() {
         </nav>
 
         {/* Right Actions */}
-        <div className="flex items-center gap-3">
-            <button 
-                onClick={toggleTheme}
-                className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
-                title="Změnit režim"
-            >
-                {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            
-            <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
+        {!showCompanyLanding && (
+            <div className="flex items-center gap-3">
+                <button 
+                    onClick={toggleTheme}
+                    className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
+                    title="Změnit režim"
+                >
+                    {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+                </button>
+                
+                <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
 
-            {userProfile.isLoggedIn ? (
-                <div className="flex items-center gap-3 pl-2">
-                    <div className="text-right hidden md:block">
-                        <div className="text-sm font-bold text-slate-900 dark:text-white leading-none mb-1">{userProfile.name}</div>
-                        <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded uppercase tracking-wider inline-block">JHI Aktivní</div>
+                {userProfile.isLoggedIn ? (
+                    <div className="flex items-center gap-3 pl-2">
+                        <div className="text-right hidden md:block">
+                            <div className="text-sm font-bold text-slate-900 dark:text-white leading-none mb-1">{userProfile.name}</div>
+                            <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded uppercase tracking-wider inline-block">JHI Aktivní</div>
+                        </div>
+                        <button 
+                            onClick={handleAuthAction}
+                            className="text-slate-400 hover:text-rose-500 transition-colors"
+                            title="Odhlásit se"
+                        >
+                            <LogOut size={20} />
+                        </button>
                     </div>
+                ) : (
                     <button 
                         onClick={handleAuthAction}
-                        className="text-slate-400 hover:text-rose-500 transition-colors"
-                        title="Odhlásit se"
+                        className="flex items-center gap-2 text-sm font-bold text-white bg-slate-900 dark:bg-white dark:text-slate-900 px-4 py-2 rounded-lg hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
                     >
-                        <LogOut size={20} />
+                        <UserCircle size={18} />
+                        Přihlásit
                     </button>
-                </div>
-            ) : (
-                <button 
-                    onClick={handleAuthAction}
-                    className="flex items-center gap-2 text-sm font-bold text-white bg-slate-900 dark:bg-white dark:text-slate-900 px-4 py-2 rounded-lg hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
-                >
-                    <UserCircle size={18} />
-                    Přihlásit
-                </button>
-            )}
-        </div>
+                )}
+            </div>
+        )}
       </div>
     </header>
   );
