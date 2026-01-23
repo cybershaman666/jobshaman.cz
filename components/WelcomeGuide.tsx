@@ -7,7 +7,7 @@ import {
     ThumbsUp,
     Wallet,
     ShieldCheck,
-    MapPin
+
 } from 'lucide-react';
 import { JHI } from '../types';
 import JHIChart from './JHIChart';

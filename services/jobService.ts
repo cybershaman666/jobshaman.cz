@@ -218,24 +218,41 @@ export const fetchRealJobs = async (): Promise<Job[]> => {
         // Use a simpler query first to avoid sorting crashes if column missing
         // We will fetch widely then sort in memory to be safe against DB schema mismatches
         // Increased limit to handle all 20,000+ jobs in database
-        const mainLimit = 25000; 
+        const mainLimit = 50000; // Increased limit to fetch more jobs
         
-        const queries = [
-            // 1. Recent Global
-            supabase.from('jobs').select('*').neq('description', 'Popis nenalezen').limit(mainLimit),
+        // Single comprehensive query to avoid duplication issues
+        const mainQuery = supabase
+            .from('jobs')
+            .select('*')
+            .neq('description', 'Popis nenalezen')
+            .limit(mainLimit);
+        
+        // Additional city-specific queries to boost coverage
+        const cityQueries = [
+            // Brno Boost
+            supabase.from('jobs').select('*').ilike('location', '%Brno%').neq('description', 'Popis nenalezen').limit(10000),
             
-            // 2. Brno Boost
-            supabase.from('jobs').select('*').ilike('location', '%Brno%').neq('description', 'Popis nenalezen').limit(5000),
+            // Ostrava Boost
+            supabase.from('jobs').select('*').ilike('location', '%Ostrava%').neq('description', 'Popis nenalezen').limit(8000),
             
-            // 3. Ostrava Boost
-            supabase.from('jobs').select('*').ilike('location', '%Ostrava%').neq('description', 'Popis nenalezen').limit(3000),
+            // Plzeň Boost
+            supabase.from('jobs').select('*').or('location.ilike.%plzen%,location.ilike.%plzeň%').neq('description', 'Popis nenalezen').limit(8000),
             
-            // 4. Plzeň Boost
-            supabase.from('jobs').select('*').or('location.ilike.%plzen%,location.ilike.%plzeň%').neq('description', 'Popis nenalezen').limit(3000),
-            
-            // 5. Remote Boost
-            supabase.from('jobs').select('*').or('work_type.ilike.%remote%,title.ilike.%remote%').neq('description', 'Popis nenalezen').limit(5000)
+            // Remote Boost
+            supabase.from('jobs').select('*').or('work_type.ilike.%remote%,title.ilike.%remote%').neq('description', 'Popis nenalezen').limit(10000)
         ];
+
+        // Add a catch-all query to ensure we get any missed jobs
+        const fallbackQuery = supabase
+            .from('jobs')
+            .select('*')
+            .neq('description', 'Popis nenalezen')
+            .limit(20000);
+            
+        const queries = [mainQuery, ...cityQueries, fallbackQuery];
+
+        console.log(`Executing ${queries.length} queries with limits:`, 
+            mainLimit, 10000, 8000, 8000, 10000);
 
         const results = await Promise.all(queries);
         
@@ -247,17 +264,19 @@ export const fetchRealJobs = async (): Promise<Job[]> => {
             return [];
         }
 
-        // Deduplicate by ID
+        // Enhanced deduplication by ID
         const seenIds = new Set();
         const uniqueRows = [];
         for (const row of allRows) {
             if (!seenIds.has(row.id)) {
                 seenIds.add(row.id);
                 uniqueRows.push(row);
+            } else {
+                console.log(`Duplicate job ID found and skipped: ${row.id}`);
             }
         }
 
-        console.log(`Fetched ${allRows.length} rows, ${uniqueRows.length} unique.`);
+        console.log(`Fetched ${allRows.length} total rows, ${uniqueRows.length} unique after deduplication.`);
         
         const mapped = mapJobs(uniqueRows);
         
@@ -303,7 +322,8 @@ const mapJobs = (data: any[]): Job[] => {
             // 1. Description Processing
             const fullDesc = formatDescription(scraped.description);
             
-            if (fullDesc.length < 50) { // Very permissive length check
+            if (fullDesc.length < 20) { // More permissive length check
+                console.log(`Skipping job ${scraped.id} due to short description: ${fullDesc.substring(0, 50)}...`);
                 return null;
             }
 
@@ -438,5 +458,12 @@ const mapJobs = (data: any[]): Job[] => {
         }
     });
 
-    return mappedJobs.filter((j): j is Job => j !== null);
+    const validJobs = mappedJobs.filter((j): j is Job => j !== null);
+    const filteredOutCount = mappedJobs.length - validJobs.length;
+    
+    if (filteredOutCount > 0) {
+        console.log(`Filtered out ${filteredOutCount} jobs during mapping. ${validJobs.length} valid jobs remain.`);
+    }
+    
+    return validJobs;
 }

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Markdown from 'markdown-to-jsx';
 import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, CompanyProfile, JHI, CareerPathfinderResult } from './types';
-import PodminkyUziti from './pages/PodminkyUziti';
-import OchranaSoukromi from './pages/OchranaSoukromi';
+
 import { Analytics } from '@vercel/analytics/react';
 import { generateSEOMetadata, updatePageMeta } from './utils/seo';
 import JobCard from './components/JobCard';
@@ -20,7 +19,7 @@ import CompanyLandingPage from './components/CompanyLandingPage';
 import ContextualRelevance from './components/ContextualRelevance';
 import ApplicationModal from './components/ApplicationModal';
 import CookieBanner from './components/CookieBanner';
-import { analyzeJobDescription, getShamanAdvice, estimateSalary } from './services/geminiService';
+import { analyzeJobDescription, estimateSalary } from './services/geminiService';
 import { calculateCommuteReality } from './services/commuteService';
 import { fetchRealJobs } from './services/jobService';
 import { supabase, signOut, getUserProfile, updateUserProfile, getRecruiterCompany } from './services/supabaseService';
@@ -53,7 +52,7 @@ import {
   CheckCircle,
   Gift,
   Globe,
-  X,
+
   Map,
   ShieldCheck,
   Info,
@@ -119,8 +118,7 @@ export default function App() {
   // Cookie Consent State
   const [showCookieBanner, setShowCookieBanner] = useState(false);
   
-  // Legal Pages State
-  const [legalPage, setLegalPage] = useState<'podminky' | 'ochrana' | null>(null);
+
   
   // UI State
   const [showFilters, setShowFilters] = useState(false);
@@ -140,9 +138,7 @@ export default function App() {
     benefits: true
   });
 
-  // Shaman Advice State
-  const [shamanAdvice, setShamanAdvice] = useState<any>(null);
-  const [isShamanThinking, setIsShamanThinking] = useState(false);
+
 
   // Application Modal State
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
@@ -287,7 +283,6 @@ export default function App() {
   useEffect(() => {
     setAiAnalysis(null);
     setCommuteAnalysis(null);
-    setShamanAdvice(null);
     setIsApplyModalOpen(false);
 
     // Always attempt commute calc if we have a job
@@ -300,14 +295,7 @@ export default function App() {
             setCommuteAnalysis(null);
         }
         
-        // Shaman Advice Logic
-        if (userProfile.cvText) {
-            setIsShamanThinking(true);
-            getShamanAdvice(userProfile, selectedJob.description)
-                .then(setShamanAdvice)
-                .catch(console.error)
-                .finally(() => setIsShamanThinking(false));
-        }
+
 
         // Salary Estimation Logic (New)
         if ((!selectedJob.salaryRange || selectedJob.salaryRange === "Mzda neuvedena") && !selectedJob.aiEstimatedSalary && !isEstimatingSalary) {

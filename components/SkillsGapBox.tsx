@@ -327,7 +327,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
     );
   }
 
-  const { recommended_resources, match_percentage, missing_skills } = skillsGapAnalysis;
+  const { recommended_resources = [], match_percentage = 0, missing_skills = [] } = skillsGapAnalysis || {};
 
   return (
     <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-700">
@@ -397,7 +397,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
           Chybějící dovednosti ({missing_skills.length})
         </h4>
         <div className="flex flex-wrap gap-2">
-          {missing_skills.map((skill, index) => (
+          {missing_skills.map((skill: string, index: number) => (
             <span
               key={index}
               className="px-3 py-1 bg-gradient-to-r from-rose-100 to-pink-100 text-rose-700 dark:from-rose-900/30 dark:to-pink-900/30 dark:text-rose-400 rounded-full text-sm font-medium border border-rose-200 dark:border-rose-700"
@@ -418,7 +418,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
               </h4>
             
             <div className="grid gap-4">
-              {recommended_resources.map((resource) => (
+              {recommended_resources.map((resource: LearningResource) => (
                 <div
                   key={resource.id}
                   className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-cyan-100 dark:border-cyan-700 hover:border-cyan-300 dark:hover:border-cyan-600 transition-all hover:shadow-lg"
@@ -457,7 +457,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                   
                   {/* Skill Tags */}
                   <div className="flex flex-wrap gap-1 mt-3">
-                    {resource.skill_tags.slice(0, 3).map((tag, index) => (
+                    {resource.skill_tags.slice(0, 3).map((tag: string, index: number) => (
                       <span
                         key={index}
                         className="px-2 py-1 bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400 rounded text-xs"
@@ -604,7 +604,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                   
                   {/* Skill Tags */}
                   <div className="flex flex-wrap gap-1 mt-3">
-                    {course.skill_tags.map((tag, index) => (
+                    {course.skill_tags.map((tag: string, index: number) => (
                       <span
                         key={index}
                         className="px-2 py-1 bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400 rounded text-xs"
@@ -645,14 +645,14 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
             <div>
               <span className="text-purple-700 dark:text-purple-300">Celková doba:</span>
               <div className="font-bold text-purple-900 dark:text-purple-100">
-                {formatDuration(recommended_resources.reduce((sum, r) => sum + r.duration_hours, 0))}
+                {formatDuration(recommended_resources.reduce((sum: number, r: LearningResource) => sum + r.duration_hours, 0))}
               </div>
             </div>
             <div>
               <span className="text-purple-700 dark:text-purple-300">Celková cena:</span>
               <div className="font-bold text-purple-900 dark:text-purple-100">
                 {formatPrice(
-                  recommended_resources.reduce((sum, r) => sum + r.price, 0),
+                  recommended_resources.reduce((sum: number, r: LearningResource) => sum + r.price, 0),
                   'Kč'
                 )}
               </div>
