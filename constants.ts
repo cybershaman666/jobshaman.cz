@@ -71,7 +71,7 @@ export const MOCK_BENEFIT_STATS: BenefitInsight[] = [
     impactOnRetention: "Medium"
   },
   {
-    name: "ESOP / Zaměstnanecké akcie",
+    name: "Zaměstnanecké akcie",
     category: "Financial",
     popularityScore: 85,
     marketAdoption: 10,

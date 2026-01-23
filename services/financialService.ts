@@ -42,8 +42,9 @@ const BENEFIT_VALUES: Record<string, number> = {
   'Sick days': 20,
   'Cafeteria': 40, // ~1,000 Kč
   'Kafeterie': 40,
-  'ESOP': 200, // Stock options (conservative)
+  'Zaměstnanecké akcie': 200, // Stock options (conservative)
   'Akcie': 200,
+  'ESOP': 200, // Stock options (conservative)
   'Home Office': 40, // ~1,000 Kč allowance
   'Remote First': 60, // ~1,500 Kč savings
   'Sleva': 20, // ~500 Kč

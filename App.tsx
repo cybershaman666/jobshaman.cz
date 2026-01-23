@@ -87,7 +87,14 @@ const BENEFIT_KEYWORDS: Record<string, string[]> = {
     'Flexibilní doba': ['flexibilní', 'pružná', 'volná pracovní doba', 'flexibilita'],
     '5 týdnů dovolené': ['5 týdnů', '25 dnů', 'týden dovolené navíc', 'dovolená 5 týdnů', '25 dní'],
     'Dog Friendly': ['dog', 'pes', 'psa', 'pet friendly'],
-    'ESOP': ['esop', 'akcie', 'podíl', 'equity', 'stock']
+    'Auto pro osobní použití': ['auto', 'firemní auto', 'služební auto', 'firemní vůz', 'company car', 'car benefit'],
+    'Přátelské k dětem': ['děti', 'dětmi', 'child friendly', 'kids', 'rodina s dětmi', 'family'],
+    'Flexibilní hodiny': ['flexibilní hodiny', 'pružná doba', 'flextime', 'flexi čas', 'svobodná pracovní doba'],
+    'Vzdělávací kurzy': ['školení', 'kurzy', 'vzdělávání', 'training', 'education', 'courses'],
+    'Multisport karta': ['multisport', 'sport', 'fitko', 'posilovna', 'gym', 'fitness'],
+    'Příspěvek na stravu': ['stravenky', 'stravování', 'jídlo', 'meal voucher', 'příspěvek jídlo'],
+    'Home Office': ['home office', 'home-office', 'z domova', 'práce na dálku', 'remote'],
+    'Zaměstnanecké akcie': ['esop', 'akcie', 'podíl', 'equity', 'stock', 'zaměstnanecké akcie']
 };
 
 export default function App() {
@@ -949,7 +956,7 @@ export default function App() {
                                 </button>
                                 {expandedSections.benefits && (
                                     <div className="space-y-2 animate-in slide-in-from-top-1">
-                                        {['Remote First', 'Flexibilní doba', '5 týdnů dovolené', 'Dog Friendly', 'ESOP'].map(benefit => (
+                                        {['Auto pro osobní použití', 'Přátelské k dětem', 'Flexibilní hodiny', 'Vzdělávací kurzy', 'Multisport karta', 'Příspěvek na stravu', 'Home Office', '5 týdnů dovolené', 'Dog Friendly', 'Zaměstnanecké akcie'].map(benefit => (
                                             <label key={benefit} className="flex items-center gap-3 cursor-pointer group">
                                                 <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${filterBenefits.includes(benefit) ? 'bg-cyan-600 border-cyan-600' : 'border-slate-300 dark:border-slate-600 group-hover:border-cyan-400'}`}>
                                                     {filterBenefits.includes(benefit) && <CheckCircle size={10} className="text-white" />}
