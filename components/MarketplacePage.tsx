@@ -70,17 +70,17 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
     // Government funded courses
     {
       id: 'gov-1',
-      title: 'Řidičský průkaz skupiny B',
-      description: 'Základní řidičský průkaz pro osobní automobily. Pro nezaměstnané hrazeno Úřadem práce do výše 50 000 Kč.',
-      skill_tags: ['Řidičský průkaz', 'Osobní doprava'],
-      provider: 'Autoškola Centrum',
-      instructor: 'Ing. Novák',
-      duration_hours: 40,
-      difficulty: 'Beginner',
-      price: 35000,
+      title: 'Elektrikář - Montážní elektrikářská činnost',
+      description: 'Kurz pro získání osvědčení o odborné způsobilosti pro montážní elektrikářské činnosti. Vysoká poptávka na trhu práce.',
+      skill_tags: ['Elektroinstalace', 'Montáže', 'Revize', 'Bezpečnost práce'],
+      provider: 'ELEKTRO Institut Praha',
+      instructor: 'Ing. Horák',
+      duration_hours: 160,
+      difficulty: 'Intermediate',
+      price: 45000,
       currency: 'Kč',
-      rating: 4.8,
-      reviews_count: 234,
+      rating: 4.7,
+      reviews_count: 186,
       created_at: new Date().toISOString(),
       is_government_funded: true,
       funding_amount_czk: 50000,
@@ -288,6 +288,19 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
               <p className="text-slate-600 dark:text-slate-300 text-lg mt-2">
                 Investujte do své budoucnosti. Najděte si dokonalý kurz pro vaši kariéru.
               </p>
+              <div className="mt-3 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <div className="p-1 bg-amber-500 rounded-full">
+                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-semibold text-amber-800 dark:text-amber-200">Demo data:</span>
+                    <span className="text-amber-700 dark:text-amber-300 ml-1">Toto jsou ukázkové kurzy pro demonstraci. Reálné kurzy budou dostupné brzy.</span>
+                  </div>
+                </div>
+              </div>
             </div>
             
             {userProfile.isLoggedIn && (
@@ -361,8 +374,8 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                   <div className="bg-white/80 dark:bg-emerald-900/20 backdrop-blur rounded-lg p-4">
-                    <h4 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">Řidičské průkazy</h4>
-                    <p className="text-emerald-700 dark:text-emerald-300 text-sm">B, C, C+E</p>
+                    <h4 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">Technické profese</h4>
+                    <p className="text-emerald-700 dark:text-emerald-300 text-sm">Elektrikář, Svářeč, Instalatér</p>
                   </div>
                   <div className="bg-white/80 dark:bg-emerald-900/20 backdrop-blur rounded-lg p-4">
                     <h4 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">Technické kurzy</h4>
@@ -451,11 +464,22 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
             {filteredCourses.map((course) => (
               <div
                 key={course.id}
-                className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-cyan-100 dark:border-cyan-700 hover:border-cyan-300 dark:hover:border-cyan-600 transition-all hover:shadow-xl group overflow-hidden min-h-[420px] flex flex-col"
+                className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-cyan-100 dark:border-cyan-700 hover:border-cyan-300 dark:hover:border-cyan-600 transition-all hover:shadow-xl group overflow-hidden min-h-[450px] flex flex-col"
               >
                 {/* Course Header */}
                 <div className="p-6 flex-1 flex flex-col">
-                  {/* Title and Badges - Fixed Layout */}
+                  {/* Provider Section - More Prominent */}
+                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-slate-700">
+                    <div className="flex items-center gap-3">
+                      <Building className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                      <span className="font-semibold text-cyan-900 dark:text-cyan-100 text-sm">{course.provider}</span>
+                    </div>
+                    <div className={`px-2 py-1 rounded-full text-xs font-medium ${getDifficultyColor(course.difficulty)}`}>
+                      {getDifficultyText(course.difficulty)}
+                    </div>
+                  </div>
+
+                  {/* Title and Badges */}
                   <div className="mb-4">
                     <div className="flex items-start gap-2 mb-3">
                       <h4 className="text-lg font-bold text-slate-900 dark:text-white flex-1 min-w-0 leading-tight">
@@ -463,7 +487,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                       </h4>
                     </div>
                     
-                    {/* Badges on separate line */}
+                    {/* Funding Badges */}
                     <div className="flex flex-wrap gap-2 mb-3">
                       {course.is_government_funded && (
                         <span className="px-2 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-sm">
@@ -529,87 +553,85 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
 
                   {/* Spacer to push content down */}
                   <div className="flex-1"></div>
-                  
-                  {/* Bottom Section - Price and Stats */}
-                  <div className="border-t border-cyan-100 dark:border-cyan-700 pt-4 mt-auto">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 flex-1 min-w-0">
-                        <span className="font-medium truncate">{course.provider}</span>
-                        <span className="flex items-center gap-1 flex-shrink-0">
-                          <Clock className="w-3 h-3" />
-                          {formatDuration(course.duration_hours)}
+                </div>
+
+                {/* Bottom Section - Separated into distinct areas */}
+                <div className="border-t border-cyan-100 dark:border-cyan-700 bg-slate-50/50 dark:bg-slate-900/50">
+                  {/* Stats Row */}
+                  <div className="px-6 py-3 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700">
+                    <div className="flex items-center gap-4">
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        {formatDuration(course.duration_hours)}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Star className="w-3 h-3 text-amber-500" />
+                        {course.rating}/5
+                      </span>
+                      {course.enrollment_count && (
+                        <span className="flex items-center gap-1">
+                          <Users className="w-3 h-3" />
+                          {course.enrollment_count > 999 ? '999+' : course.enrollment_count}
                         </span>
-                        <span className="flex items-center gap-1 flex-shrink-0">
-                          <Star className="w-3 h-3 text-amber-500" />
-                          {course.rating}/5
-                        </span>
-                         {course.enrollment_count && (
-                           <span className="flex items-center gap-1 flex-shrink-0">
-                             <Users className="w-3 h-3" />
-                             {course.enrollment_count > 999 ? '999+' : course.enrollment_count}
-                           </span>
-                         )}
-                         {course.reviews_count > 0 && (
-                           <span className="flex items-center gap-1 flex-shrink-0">
-                             <Star className="w-3 h-3 text-amber-500" />
-                             {course.reviews_count} recenzí
-                           </span>
-                         )}
-                      </div>
+                      )}
                     </div>
-                    
-                    <div className="flex items-center justify-between gap-3">
-                      {/* Price Section */}
-                      <div className="flex flex-col">
-                        {course.is_government_funded ? (
-                          <>
-                            <div className="text-xs text-slate-500 line-through">
-                              {formatPrice(course.price, course.currency)}
-                            </div>
-                            <div className="text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                              ZDARMA
-                            </div>
-                          </>
-                        ) : (
-                          <div className="text-xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+                    {course.reviews_count > 0 && (
+                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                        <Star className="w-3 h-3" />
+                        {course.reviews_count} recenzí
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Price and Action Row */}
+                  <div className="px-6 py-4 flex items-center justify-between gap-3">
+                    {/* Price Section */}
+                    <div className="flex flex-col">
+                      {course.is_government_funded ? (
+                        <>
+                          <div className="text-xs text-slate-500 line-through">
                             {formatPrice(course.price, course.currency)}
                           </div>
-                        )}
-                         <div className={`inline-block px-2 py-1 rounded text-xs font-medium ${getDifficultyColor(course.difficulty)}`}>
-                           {getDifficultyText(course.difficulty)}
-                         </div>
-                      </div>
+                          <div className="text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                            ZDARMA
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+                          {formatPrice(course.price, course.currency)}
+                        </div>
+                      )}
+                    </div>
+                       
+                    {/* Action Buttons */}
+                    <div className="flex gap-2">
+                      {course.reviews_count > 0 && (
+                        <button
+                          onClick={() => {
+                            setSelectedReviewCourse(course);
+                            setShowReviewModal(true);
+                          }}
+                          className="px-3 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-all flex items-center gap-1 flex-shrink-0 border border-amber-200 dark:border-amber-700"
+                        >
+                          <Star className="w-3 h-3" />
+                          Recenze
+                        </button>
+                      )}
                       
-                       {/* Action Buttons */}
-                       <div className="flex gap-2">
-                         {course.reviews_count > 0 && (
-                            <button
-                              onClick={() => {
-                                setSelectedReviewCourse(course);
-                                setShowReviewModal(true);
-                              }}
-                              className="px-2 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-all flex items-center gap-1 flex-shrink-0 border border-amber-200 dark:border-amber-700"
-                            >
-                              <Star className="w-3 h-3" />
-                              Recenze
-                            </button>
-                         )}
-                         
-                         <button
-                           onClick={() => {
-                             // Handle course enrollment/Detail view
-                             if (userProfile.isLoggedIn) {
-                               alert(`Registrace na kurz: ${course.title}`);
-                             } else {
-                               alert(`Pro registraci se nejprve přihlaste.`);
-                             }
-                           }}
-                           className="flex-1 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white text-sm font-medium rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-1.5 flex-shrink-0"
-                         >
-                           {userProfile.isLoggedIn ? 'Přihlásit se' : 'Detail'}
-                           <ChevronRight className="w-3 h-3" />
-                         </button>
-                       </div>
+                      <button
+                        onClick={() => {
+                          // Handle course enrollment/Detail view
+                          if (userProfile.isLoggedIn) {
+                            alert(`Registrace na kurz: ${course.title}`);
+                          } else {
+                            alert(`Pro registraci se nejprve přihlaste.`);
+                          }
+                        }}
+                        className="px-6 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white text-sm font-medium rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-1.5 flex-shrink-0"
+                      >
+                        {userProfile.isLoggedIn ? 'Přihlásit se' : 'Detail'}
+                        <ChevronRight className="w-3 h-3" />
+                      </button>
                     </div>
                   </div>
                 </div>

@@ -158,8 +158,8 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
     );
   }
 
-  // Show placeholder for non-logged in users or users without CV
-  if (!userProfile.isLoggedIn || !userProfile.hasCV || !skillsGapAnalysis) {
+  // Show placeholder for non-logged in users
+  if (!userProfile.isLoggedIn) {
     return (
       <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-700">
         <div className="text-center space-y-6">
@@ -273,6 +273,60 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
     }
   };
 
+  // Handle logged in users without CV or skills analysis
+  if (userProfile.isLoggedIn && (!userProfile.hasCV || !skillsGapAnalysis)) {
+    return (
+      <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-700">
+        <div className="text-center space-y-6">
+          <div className="flex items-center justify-center gap-3">
+            <div className="p-3 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl">
+              <Sparkles className="w-8 h-8 text-white" />
+            </div>
+            <div className="text-left">
+              <h3 className="text-xl font-bold bg-gradient-to-r from-purple-900 to-violet-900 bg-clip-text text-transparent">
+                {!userProfile.hasCV ? "Doplňte své CV" : "Probíhá analýza"}
+              </h3>
+              <p className="text-sm text-purple-700 dark:text-purple-300">
+                {!userProfile.hasCV 
+                  ? "Pro získání personalizovaných doporučení kurzy vyplňte své CV"
+                  : "Analyzujeme vaše dovednosti a připravujeme doporučení"
+                }
+              </p>
+            </div>
+          </div>
+          
+          {/* Demo Warning */}
+          <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+            <div className="flex items-center gap-2">
+              <div className="p-1 bg-amber-500 rounded-full">
+                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="text-sm">
+                <span className="font-semibold text-amber-800 dark:text-amber-200">Demo data:</span>
+                <span className="text-amber-700 dark:text-amber-300 ml-1">Kurzy jsou pro demonstrační účely.</span>
+              </div>
+            </div>
+          </div>
+          
+          <div className="flex justify-center">
+            <button
+              onClick={() => {
+                // This would navigate to profile/CV editor
+                alert("Přesměrování na editor CV...");
+              }}
+              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white font-medium rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+            >
+              {!userProfile.hasCV ? "Doplňit CV" : "Zobrazit marketplace"}
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const { recommended_resources, match_percentage, missing_skills } = skillsGapAnalysis;
 
   return (
@@ -291,6 +345,21 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
             <p className="text-sm text-purple-700 dark:text-purple-300">
               {match_percentage}% shoda • Zvyšte si konkurenceschopnost
             </p>
+          </div>
+        </div>
+
+        {/* Demo Warning */}
+        <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
+          <div className="flex items-center gap-2">
+            <div className="p-1 bg-amber-500 rounded-full">
+              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="text-sm">
+              <span className="font-semibold text-amber-800 dark:text-amber-200">Demo data:</span>
+              <span className="text-amber-700 dark:text-amber-300 ml-1">Doporučené kurzy jsou pro demonstrační účely.</span>
+            </div>
           </div>
         </div>
 
