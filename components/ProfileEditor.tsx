@@ -3,7 +3,7 @@ import { UserProfile } from '../types';
 import { User, FileText, Upload, Sparkles, BrainCircuit, Copy, Briefcase, FileOutput, Plus, Trash2, Edit, GraduationCap, Camera, X } from 'lucide-react';
 import { generateStyledCV } from '../services/geminiService';
 import { uploadCVFile, uploadProfilePhoto, deleteProfilePhoto, updateUserProfile } from '../services/supabaseService';
-import { parseProfileFromCV } from '../services/geminiService';
+import { parseProfileFromCVWithFallback } from '../services/cvParserService';
 import Markdown from 'markdown-to-jsx';
 
 interface ProfileEditorProps {
@@ -40,23 +40,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
     setIsUploading(true);
 
     try {
-      // Convert file to base64 for parsing
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const result = reader.result as string;
-          const base64 = result.split(',')[1]; // Remove data URL prefix
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-
-      // Parse CV content
-      const parsedData = await parseProfileFromCV({
-        base64: base64Data,
-        mimeType: file.type
-      });
+      // Parse CV content with fallback
+      const parsedData = await parseProfileFromCVWithFallback(file);
 
       // Try to upload file to Supabase Storage
       let cvUrl = null;
