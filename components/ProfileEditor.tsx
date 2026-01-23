@@ -2,7 +2,8 @@ import React, { useState, useRef } from 'react';
 import { UserProfile } from '../types';
 import { User, FileText, Upload, Sparkles, BrainCircuit, Copy, Briefcase, FileOutput, Plus, Trash2, Edit, GraduationCap, Camera, X } from 'lucide-react';
 import { generateStyledCV } from '../services/geminiService';
-import { uploadCVFile, uploadProfilePhoto, deleteProfilePhoto } from '../services/supabaseService';
+import { uploadCVFile, uploadProfilePhoto, deleteProfilePhoto, updateUserProfile } from '../services/supabaseService';
+import { parseProfileFromCV } from '../services/geminiService';
 import Markdown from 'markdown-to-jsx';
 
 interface ProfileEditorProps {
@@ -39,14 +40,58 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
     setIsUploading(true);
 
     try {
-      const cvUrl = await uploadCVFile(profile.id || '', file);
-      if (cvUrl) {
-        onChange({ ...profile, cvUrl, cvText: `[Uploaded: ${file.name}]` });
-        alert('CV úspěšně nahráno!');
+      // Convert file to base64 for parsing
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64 = result.split(',')[1]; // Remove data URL prefix
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Parse CV content
+      const parsedData = await parseProfileFromCV({
+        base64: base64Data,
+        mimeType: file.type
+      });
+
+      // Try to upload file to Supabase Storage
+      let cvUrl = null;
+      try {
+        cvUrl = await uploadCVFile(profile.id || '', file);
+      } catch (uploadError) {
+        console.warn("CV upload failed, but continuing with parsed data:", uploadError);
       }
+
+      // Create updated profile with parsed data
+      const updatedProfile = {
+        ...profile,
+        cvText: parsedData.cvText || profile.cvText || `[Extrahováno z ${file.name}]`,
+        cvUrl: cvUrl || undefined,
+        name: parsedData.name || profile.name,
+        email: parsedData.email || profile.email,
+        phone: parsedData.phone || profile.phone,
+        jobTitle: parsedData.jobTitle || profile.jobTitle,
+        skills: parsedData.skills || profile.skills,
+        workHistory: parsedData.workHistory || profile.workHistory,
+        education: parsedData.education || profile.education
+      };
+
+      // Update local state
+      onChange(updatedProfile);
+
+      // Save to Supabase
+      await updateUserProfile(profile.id || '', updatedProfile);
+
+      const uploadStatus = cvUrl ? 'nahráno a zpracováno' : 'zpracováno';
+      alert(`CV úspěšně ${uploadStatus}! Extrahováno ${parsedData.skills?.length || 0} dovedností.`);
+
     } catch (error) {
-      console.error('CV upload failed:', error);
-      alert('Nepodařilo se nahrát CV. Zkuste to znovu.');
+      console.error('CV processing failed:', error);
+      alert("Nepodařilo se zpracovat CV. Zkuste to znovu nebo zvolte jiný soubor.");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
