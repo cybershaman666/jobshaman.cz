@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Markdown from 'markdown-to-jsx';
 import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, CompanyProfile, JHI, CareerPathfinderResult } from './types';
+import { Analytics } from '@vercel/analytics/react';
 import { generateSEOMetadata, updatePageMeta } from './utils/seo';
 import JobCard from './components/JobCard';
 import JHIChart from './components/JHIChart';
@@ -889,6 +890,8 @@ export default function App() {
 
     return (
         <>
+          {/* Vercel Analytics */}
+          <Analytics />
             {/* LEFT COLUMN: Sidebar (Fixed Filters + Scrollable List) */}
             <section className={`lg:col-span-4 xl:col-span-3 flex flex-col gap-4 min-h-0 ${selectedJobId ? 'hidden lg:flex' : 'flex'} sticky top-20 max-h-[calc(100vh-100px)]`}>
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col h-full overflow-hidden">
@@ -1465,6 +1468,7 @@ export default function App() {
               </div>
             </div>
           )}
-      </div>
-   );
- }
+</div>
+     );
+  }
+}
