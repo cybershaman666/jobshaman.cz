@@ -675,11 +675,27 @@ export default function App() {
                     >
                         <UserCircle size={18} />
                         Přihlásit
-                    </button>
+</button>
                 )}
             </div>
         )}
-      </div>
+        
+        {/* Legal Links - Desktop */}
+        <div className="hidden lg:flex items-center gap-4 pl-2 border-l border-slate-200 dark:border-slate-700">
+            <a 
+                href="/podminky-uziti" 
+                className="text-xs text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 transition-colors"
+            >
+                Podmínky užití
+            </a>
+            <a 
+                href="/ochrana-soukromi" 
+                className="text-xs text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 transition-colors"
+            >
+                Ochrana soukromí
+            </a>
+        </div>
+       </div>
     </header>
   );
 

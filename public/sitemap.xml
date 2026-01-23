@@ -62,4 +62,20 @@
     <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/kurzy-a-rekvalifikace" />
   </url>
 
+  <!-- Legal Pages -->
+  <url>
+    <loc>https://jobshaman.cz/podminky-uziti</loc>
+    <lastmod>2026-01-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+    <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/podminky-uziti" />
+  </url>
+  <url>
+    <loc>https://jobshaman.cz/ochrana-soukromi</loc>
+    <lastmod>2026-01-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+    <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/ochrana-soukromi" />
+  </url>
+
 </urlset>
