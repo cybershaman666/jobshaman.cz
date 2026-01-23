@@ -1,0 +1,96 @@
+{
+  "name": "JobShaman - Chytré nabídky práce",
+  "short_name": "JobShaman",
+  "description": "Najděte si ideální práci s AI analýzou a JHI skóre v Česku",
+  "lang": "cs-CZ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#0891b2",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "categories": ["business", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/favicon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/favicon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png"
+    },
+    {
+      "src": "/favicon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "platform": "wide",
+      "label": "JobShaman desktop interface"
+    },
+    {
+      "src": "/screenshot-mobile.png", 
+      "sizes": "375x667",
+      "type": "image/png",
+      "platform": "narrow",
+      "label": "JobShaman mobile interface"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Hledat práci",
+      "short_name": "Hledat",
+      "description": "Začněte hledat novou práci",
+      "url": "/?view=search",
+      "icons": [{ "src": "/icon-search.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Uložené pozice",
+      "short_name": "Uložené",
+      "description": "Zobrazte uložené pracovní pozice",
+      "url": "/?view=saved",
+      "icons": [{ "src": "/icon-saved.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Profil",
+      "short_name": "Profil",
+      "description": "Spravujte svůj profil",
+      "url": "/?view=profile",
+      "icons": [{ "src": "/icon-profile.png", "sizes": "96x96" }]
+    }
+  ]
+}

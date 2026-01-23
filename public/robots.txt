@@ -1,0 +1,20 @@
+User-agent: *
+Allow: /
+
+# Prioritize important pages
+Crawl-delay: 1
+
+# Sitemap location
+Sitemap: https://jobshaman.cz/sitemap.xml
+
+# Block admin/utility pages
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /static/
+Disallow: /.well-known/
+
+# Allow specific static assets
+Allow: /static/css/
+Allow: /static/js/
+Allow: /assets/

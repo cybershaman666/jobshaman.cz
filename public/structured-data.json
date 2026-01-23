@@ -1,0 +1,107 @@
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://jobshaman.cz/#website",
+      "url": "https://jobshaman.cz/",
+      "name": "JobShaman",
+      "description": "Chytré nabídky práce v Česku s AI analýzou, transparentností a JHI skóre. Najděte si ideální práci s reálnými benefity a podmínkami.",
+      "inLanguage": "cs-CZ",
+      "potentialAction": [
+        {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://jobshaman.cz/?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        },
+        {
+          "@type": "ReadAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://jobshaman.cz/nabidky"
+          },
+          "object": {
+            "@type": "JobPosting",
+            "name": "Pracovní pozice"
+          }
+        }
+      ]
+    },
+    {
+      "@type": "Organization",
+      "@id": "https://jobshaman.cz/#organization",
+      "name": "JobShaman",
+      "url": "https://jobshaman.cz/",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://jobshaman.cz/logo.png",
+        "width": 200,
+        "height": 200
+      },
+      "sameAs": [
+        "https://www.linkedin.com/company/jobshaman",
+        "https://www.facebook.com/jobshaman.cz"
+      ],
+      "contactPoint": {
+        "@type": "ContactPoint",
+        "telephone": "+420-123-456-789",
+        "contactType": "customer service",
+        "availableLanguage": ["Czech"]
+      }
+    },
+    {
+      "@type": "WebApplication",
+      "@id": "https://jobshaman.cz/#webapp",
+      "name": "JobShaman",
+      "url": "https://jobshaman.cz/",
+      "applicationCategory": "Job Search",
+      "operatingSystem": "Any",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "CZK"
+      },
+      "featureList": [
+        "AI-powered job analysis",
+        "JHI scoring system",
+        "Transparent salary information",
+        "Commute analysis",
+        "Company culture insights",
+        "Benefits calculator"
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://jobshaman.cz/#faq",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Jak funguje JHI skóre?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "JHI (Job Happiness Index) je unikátní skóre 0-100, které hodnotí pracovní nabídky z pohledu finanční ziskovosti, časových nákladů, duševní zátěže, možností růstu a hodnotových hodnocení."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Je JobShaman zdarma?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ano, JobShaman je zcela zdarma pro uchazeče. Firmy mohou využít placené služby pro publikování pracovních nabídek a analýzu."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Jaké benefity analyzujete?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Analyzujeme přes 40 typů benefitů včetně zaměstnaneckých akcií, firemních aut, příspěvků na stravu, multisport karet, kurzů a dalšího. Vše převedeme na peněžní hodnotu."
+          }
+        }
+      ]
+    }
+  ]
+}

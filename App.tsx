@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Markdown from 'markdown-to-jsx';
 import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, CompanyProfile, JHI, CareerPathfinderResult } from './types';
+import { generateSEOMetadata, updatePageMeta } from './utils/seo';
 import JobCard from './components/JobCard';
 import JHIChart from './components/JHIChart';
 import BullshitMeter from './components/BullshitMeter';
@@ -218,6 +219,16 @@ export default function App() {
       document.documentElement.classList.remove('dark');
     }
 
+    // Update SEO meta tags based on current view
+    const pageName = showCompanyLanding ? 'company-dashboard' : 
+                     viewState === ViewState.LIST ? 'home' :
+                     viewState === ViewState.PROFILE ? 'profile' :
+                     viewState === ViewState.MARKETPLACE ? 'marketplace' :
+                     viewState === ViewState.COMPANY_DASHBOARD ? 'company-dashboard' : 'home';
+    
+    const metadata = generateSEOMetadata(pageName, selectedJob);
+    updatePageMeta(metadata);
+
     // LOAD REAL DATA
     loadRealJobs();
 
@@ -242,6 +253,18 @@ export default function App() {
         return () => subscription.unsubscribe();
     }
   }, []);
+
+  // SEO Update Effect
+  useEffect(() => {
+    const pageName = showCompanyLanding ? 'company-dashboard' : 
+                     viewState === ViewState.LIST ? 'home' :
+                     viewState === ViewState.PROFILE ? 'profile' :
+                     viewState === ViewState.MARKETPLACE ? 'marketplace' :
+                     viewState === ViewState.COMPANY_DASHBOARD ? 'company-dashboard' : 'home';
+    
+    const metadata = generateSEOMetadata(pageName, selectedJob);
+    updatePageMeta(metadata);
+  }, [viewState, showCompanyLanding, selectedJob, userProfile]);
 
   useEffect(() => {
     if (theme === 'dark') {
