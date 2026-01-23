@@ -7,6 +7,7 @@ export default defineConfig({
   plugins: [react()],
   root: process.cwd(), // Explicitly set root to current directory
   publicDir: 'public',
+  base: './', // Use relative paths for Vercel deployment
   define: {
     // Polyfill process.env for local development if needed by some libs
     'process.env': process.env
@@ -19,6 +20,20 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src')
+    }
+  },
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['lucide-react'],
+          supabase: ['@supabase/supabase-js'],
+          charts: ['recharts']
+        }
+      }
     }
   }
 });
