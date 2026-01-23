@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Markdown from 'markdown-to-jsx';
-import { MOCK_JOBS } from './constants';
-import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, ShamanAdvice, CompanyProfile, JHI, NoiseMetrics, TransparencyMetrics, CareerPathfinderResult } from './types';
+import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, CompanyProfile, JHI, CareerPathfinderResult } from './types';
 import JobCard from './components/JobCard';
 import JHIChart from './components/JHIChart';
 import BullshitMeter from './components/BullshitMeter';
 import TransparencyCard from './components/TransparencyCard';
-import FinancialReality from './components/FinancialReality';
 import SkillsGapBox from './components/SkillsGapBox';
 import CompanyDashboard from './components/CompanyDashboard';
 import CompanyOnboarding from './components/CompanyOnboarding';
@@ -22,7 +20,7 @@ import { analyzeJobDescription, getShamanAdvice, estimateSalary } from './servic
 import { calculateCommuteReality } from './services/commuteService';
 import { fetchRealJobs } from './services/jobService';
 import { supabase, signOut, getUserProfile, updateUserProfile, getRecruiterCompany } from './services/supabaseService';
-import { analyzeJobForPathfinder, preloadPathfinderData } from './services/careerPathfinderService';
+import { analyzeJobForPathfinder } from './services/careerPathfinderService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
 import { 
   Search, BrainCircuit, 
@@ -34,7 +32,6 @@ import {
   Clock,
   Home,
   Wallet,
-  Building,
   Bookmark,
   Calculator,
   Car,
@@ -46,10 +43,8 @@ import {
   Activity,
   Sun,
   Moon,
-  AlertTriangle,
   ChevronDown,
   ChevronUp,
-  TrendingUp,
   ThumbsUp,
   CheckCircle,
   Gift,
@@ -57,12 +52,10 @@ import {
   Map,
   ShieldCheck,
   Info,
-  Menu,
   Briefcase,
   RefreshCw,
   Lock,
   Navigation,
-  X,
   ShoppingBag
 } from 'lucide-react';
 
@@ -133,7 +126,7 @@ export default function App() {
   });
 
   // Shaman Advice State
-  const [shamanAdvice, setShamanAdvice] = useState<ShamanAdvice | null>(null);
+  const [shamanAdvice, setShamanAdvice] = useState<any>(null);
   const [isShamanThinking, setIsShamanThinking] = useState(false);
 
   // Application Modal State
@@ -1366,18 +1359,36 @@ export default function App() {
              />
          )}
          
-         {/* Cookie Banner */}
-         <CookieBanner 
-           theme={theme}
-            onAccept={(preferences: any) => {
-              console.log('Cookie preferences accepted:', preferences);
-              setShowCookieBanner(false);
-            }}
-            onCustomize={() => {
-              console.log('Customize cookie preferences');
-              setShowCookieBanner(false);
-            }}
-         />
-     </div>
+{/* Cookie Banner - Only show when needed */}
+          {showCookieBanner && (
+            <CookieBanner 
+              theme={theme}
+               onAccept={(preferences: any) => {
+                 console.log('Cookie preferences accepted:', preferences);
+                 setShowCookieBanner(false);
+               }}
+               onCustomize={() => {
+                 console.log('Customize cookie preferences');
+                 setShowCookieBanner(false);
+               }}
+            />
+          )}
+          
+          {/* Shaman Advice - Only show when available */}
+          {isShamanThinking && (
+            <div className="fixed bottom-4 right-4 max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg p-4 z-50">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-cyan-500 animate-pulse" />
+                <span className="text-sm text-slate-600 dark:text-slate-400">Shaman přemýšlí...</span>
+              </div>
+            </div>
+          )}
+          {shamanAdvice && !isShamanThinking && (
+            <div className="fixed bottom-4 right-4 max-w-sm bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg shadow-lg p-4 z-50">
+              <h4 className="font-semibold text-slate-900 dark:text-white mb-2">Shaman Rada</h4>
+              <p className="text-sm text-slate-600 dark:text-slate-400">{shamanAdvice}</p>
+            </div>
+          )}
+      </div>
    );
  }
