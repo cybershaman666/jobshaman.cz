@@ -470,38 +470,42 @@ def fix_duplicated_city(text):
     return text
 
 
-if __name__ == "__main__":
+def run_all_scrapers():
     if not supabase:
-        print("❌ Supabase není dostupné.")
-    else:
-        websites = [
-            {
-                "name": "jobs.cz",
-                "base_url": "https://www.jobs.cz/prace/?language-skill=cs",
-                "max_pages": 15,
-            },
-            {
-                "name": "prace.cz",
-                "base_url": "https://www.prace.cz/nabidky",
-                "max_pages": 15,
-            },
-            {
-                "name": "jenprace.cz",
-                "base_url": "https://www.jenprace.cz/nabidky",
-                "max_pages": 15,
-            },
-        ]
-        choice = input("Zadej číslo volby (1=all,2=jobs,3=prace,4=jenprace): ").strip()
-        grand_total = 0
-        if choice == "1":
-            for site in websites:
-                grand_total += scrape_website(
-                    site["name"], site["base_url"], site["max_pages"]
-                )
-        elif choice in ["2", "3", "4"]:
-            idx = int(choice) - 2
-            site = websites[idx]
-            grand_total = scrape_website(
+        print("❌ Supabase není dostupné. Scrapování zrušeno.")
+        return 0
+        
+    websites = [
+        {
+            "name": "jobs.cz",
+            "base_url": "https://www.jobs.cz/prace/?language-skill=cs",
+            "max_pages": 15,
+        },
+        {
+            "name": "prace.cz",
+            "base_url": "https://www.prace.cz/nabidky",
+            "max_pages": 15,
+        },
+        {
+            "name": "jenprace.cz",
+            "base_url": "https://www.jenprace.cz/nabidky",
+            "max_pages": 15,
+        },
+    ]
+    
+    grand_total = 0
+    print(f"🚀 Spouštím hromadné scrapování: {now_iso()}")
+    for site in websites:
+        try:
+            grand_total += scrape_website(
                 site["name"], site["base_url"], site["max_pages"]
             )
-        print(f"Celkem uloženo {grand_total} nabídek.")
+        except Exception as e:
+            print(f"❌ Chyba při scrapování {site['name']}: {e}")
+            
+    print(f"✅ Scrapování dokončeno. Celkem uloženo {grand_total} nabídek.")
+    return grand_total
+
+
+if __name__ == "__main__":
+    run_all_scrapers()

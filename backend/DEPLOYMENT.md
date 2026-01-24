@@ -18,28 +18,33 @@ The project includes a `render.yaml` file that defines all services.
 2. Click **New +** -> **Blueprint**.
 3. Connect your repository.
 4. Render will automatically detect `render.yaml` and propose creating:
-   - `jobshaman-api` (FastAPI Web Service)
-   - `jobshaman-scraper` (Background Worker)
+   - `jobshaman-backend` (FastAPI Web Service with integrated Scraper)
 5. Fill in the missing **Environment Variables** when prompted:
    - `SUPABASE_URL`
    - `SUPABASE_KEY`
    - `GEMINI_API_KEY`
    - `RESEND_API_KEY`
+   - `SECRET_KEY` (Any random string for one-click tokens)
+   - `API_BASE_URL` (Your Render URL, e.g., `https://jobshaman-backend.onrender.com`)
 6. Click **Apply**.
 
-### Option 2: Manual Setup
-If you prefer manual setup:
-#### FastAPI Service
-- **Service Type**: Web Service
-- **Runtime**: Python
+### Option 2: Manual Setup (If Blueprint fails)
+If you created the Web Service manually, you **MUST** set these values in **Settings**:
 - **Build Command**: `pip install -r backend/requirements.txt`
-- **Start Command**: `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`
+- **Start Command**: `gunicorn -k uvicorn.workers.UvicornWorker backend.app.main:app --bind 0.0.0.0:$PORT`
+  *(Note: Using gunicorn + uvicorn worker is more reliable for Render production)*
 
-#### Scraper Worker
-- **Service Type**: Background Worker
-- **Runtime**: Python
-- **Build Command**: `pip install -r backend/requirements.txt`
-- **Start Command**: `python backend/scraper/scraper_multi.py`
+### ⚠️ Troubleshooting: "gunicorn: command not found"
+If you see this error, it means Render is using its default start command instead of ours. 
+1. Go to **Settings** in your Render service.
+2. Find the **Start Command** field.
+3. Ensure it is set to the command mentioned above.
+4. Click **Save**.
+
+## Integrated Scraper (Free Plan)
+The scraper is now baked into the API service. It runs automatically every 12 hours.
+- To trigger it manually, visit: `https://your-app.onrender.com/scrape`
+- **Tip**: Since Render's free tier sleeps after 15 mins of inactivity, use a service like [cron-job.org](https://cron-job.org) to ping the `/scrape` endpoint every 12 hours. This will wake up the app and perform the scraping.
 
 ## Integration with Frontend
 Once deployed, you should point your frontend (e.g., in a new `jobPublishService.ts`) to the `jobshaman-api` URL to trigger legality checks when a user creates an ad.

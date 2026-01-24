@@ -240,18 +240,18 @@ export const uploadProfilePhoto = async (userId: string, file: File): Promise<st
                     if (retryData) {
                         console.log("Retry upload successful:", retryData);
                         
-                        // Get public URL
-                        const { data: urlData } = supabase.storage
+                        // Get signed URL (works even for private buckets)
+                        const { data: urlData, error: urlError } = await supabase.storage
                             .from('profile-photos')
-                            .getPublicUrl(fileName);
+                            .createSignedUrl(fileName, 31536000); // 1 year expiry
 
-                        if (!urlData?.publicUrl) {
-                            console.error("Failed to get public URL for retry upload");
+                        if (urlError || !urlData?.signedUrl) {
+                            console.error("Failed to create signed URL for retry upload:", urlError);
                             return null;
                         }
 
-                        const publicUrl = urlData.publicUrl;
-                        console.log("Profile photo public URL (retry):", publicUrl);
+                        const publicUrl = urlData.signedUrl;
+                        console.log("Profile photo signed URL (retry):", publicUrl);
 
                         // Update user profile with new photo URL
                         await supabase
@@ -274,18 +274,26 @@ export const uploadProfilePhoto = async (userId: string, file: File): Promise<st
 
         console.log("Profile photo upload successful:", data);
 
-        // Get public URL with error handling
-        const { data: urlData } = supabase.storage
+        // Get signed URL (works even for private buckets)
+        const { data: urlData, error: urlError } = await supabase.storage
             .from('profile-photos')
-            .getPublicUrl(fileName);
+            .createSignedUrl(fileName, 31536000); // 1 year expiry
 
-        if (!urlData?.publicUrl) {
-            console.error("Failed to get public URL for uploaded photo");
+        if (urlError || !urlData?.signedUrl) {
+            console.error("Failed to create signed URL for uploaded photo:", urlError);
             return null;
         }
 
-        const publicUrl = urlData.publicUrl;
-        console.log("Profile photo public URL:", publicUrl);
+        const publicUrl = urlData.signedUrl;
+        console.log("Profile photo signed URL:", publicUrl);
+        
+        // Test if URL is accessible
+        try {
+            const testResponse = await fetch(publicUrl, { method: 'HEAD' });
+            console.log("Photo URL accessibility test:", testResponse.status);
+        } catch (fetchError) {
+            console.warn("Photo URL not accessible:", fetchError);
+        }
 
         // Update user profile with the new photo URL
         const { error: updateError } = await supabase

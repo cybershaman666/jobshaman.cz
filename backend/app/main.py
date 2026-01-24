@@ -9,10 +9,20 @@ from dotenv import load_dotenv
 
 from itsdangerous import URLSafeTimedSerializer
 from fastapi.responses import HTMLResponse
+from apscheduler.schedulers.background import BackgroundScheduler
+import sys
+# Add scraper directory to path so we can import it
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'scraper'))
+from scraper_multi import run_all_scrapers
 
 load_dotenv()
 
 app = FastAPI(title="JobShaman Backend Services")
+
+# Configure Scheduler
+scheduler = BackgroundScheduler()
+scheduler.add_job(func=run_all_scrapers, trigger="interval", hours=12)
+scheduler.start()
 
 # Configure APIs
 SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-shaman-key")
@@ -40,6 +50,15 @@ class JobCheckResponse(BaseModel):
 @app.get("/")
 async def root():
     return {"status": "online", "service": "JobShaman Backend"}
+
+@app.get("/scrape")
+async def trigger_scrape():
+    """Manual trigger for the scraper. Useful for local testing or external cron-jobs."""
+    try:
+        count = run_all_scrapers()
+        return {"status": "success", "jobs_saved": count}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/job-action/{job_id}/{action}", response_class=HTMLResponse)
 async def perform_job_action(job_id: str, action: str, token: str):

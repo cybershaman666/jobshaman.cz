@@ -1,5 +1,6 @@
 fastapi
-uvicorn
+uvicorn[standard]
+gunicorn
 google-generativeai
 resend
 supabase
@@ -8,3 +9,4 @@ beautifulsoup4
 requests
 pydantic
 itsdangerous
+apscheduler
