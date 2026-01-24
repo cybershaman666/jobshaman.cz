@@ -39,10 +39,32 @@ If you created the Web Service manually, you **MUST** set these values in **Sett
 
 **TO FIX IT:**
 1. Go to **Settings** in your Render dashboard for `jobshaman-backend`.
-2. Find **Build Command** and ensure it is correct.
-3. Find **Start Command** and ensure it is correct (it must use `--chdir backend`).
+2. Find **Build Command** and ensure it is: `pip install -r requirements.txt`
+3. Find **Start Command** and ensure it is exactly:
+   `gunicorn -k uvicorn.workers.UvicornWorker app.main:app --chdir backend --bind 0.0.0.0:$PORT --timeout 120`
 4. Click **Save Changes**.
-5. Render will automatically redeploy with the correct command.
+
+### 🧹 Deep Clean Procedure (Run this locally)
+The server is likely seeing old versions of files. Run these exact commands in your terminal to fix it:
+```bash
+# 1. Ensure old files are physically gone
+rm backend/scraper_multi.py 
+rm scraper_multi.py
+
+# 2. Tell Git to track these deletions!
+git add .
+git commit -m "chore: clean up backend structure and fix imports"
+git push origin main
+```
+
+### 🔑 Environment Variables Checklist
+Ensure these are set in Render -> Settings -> Environment Variables:
+- `SUPABASE_URL`
+- `SUPABASE_KEY`
+- `GEMINI_API_KEY`
+- `RESEND_API_KEY`
+- `SECRET_KEY` (Can be anything)
+- `API_BASE_URL` (e.g. https://jobshaman-cz.onrender.com)
 
 ## Integrated Scraper (Free Plan)
 The scraper is now baked into the API service. It runs automatically every 12 hours.

@@ -20,16 +20,16 @@ interface PricingPlan {
 const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onRequestDemo }) => {
   const plans: PricingPlan[] = [
     {
-      name: 'Start',
-      price: '1 990 Kč',
-      period: 'měsíc',
+      name: 'Základní',
+      price: 'Zdarma',
+      period: '',
       description: 'Pro malé týmy a začátečníky',
       features: [
-        'Až 3 aktivní inzeráty',
-        'Základní AI analýza inzerátů',
-        '1 hodnocení kandidáta měsíčně',
+        'Až 5 inzerátů měsíčně',
+        'Základní správa inzerátů',
         'Emailová podpora',
-        'Základní statistiky'
+        'Základní statistiky',
+        'Žádné AI funkce'
       ],
       highlighted: false
     },
@@ -40,13 +40,12 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
       period: 'měsíc',
       description: 'Pro rostoucí společnosti',
       features: [
-        'Až 15 aktivních inzerátů',
-        'Pokročilá AI optimalizace inzerátů',
-        'Neomezeně hodnocení kandidátů',
-        'AI Assessment Center',
-        'Video rozhovory s AI asistentem',
+        'Neomezený počet inzerátů',
+        '10 AI assessmentů měsíčně',
+        'Doporučení vhodných kandidátů',
+        'AI optimalizace inzerátů',
         'Prioritní podpora',
-        'Pokročilé statistiky a reporting',
+        'Pokročilé statistiky',
         'Branding firemního profilu'
       ],
       highlighted: true,
@@ -58,14 +57,13 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
       period: '',
       description: 'Pro velké korporace',
       features: [
-        'Neomezeně inzerátů',
         'Všechny Business funkce',
+        'Neomezené AI assessmenty',
         'Integrace s ATS systémy',
         'Dedikovaný account manager',
-        'Na míru štýlované řešení',
-        'API přístup',
-        'Školení týmů',
-        'SLA garance'
+        'SLA garance',
+        'Vlastní branding',
+        'API přístupy'
       ],
       highlighted: false
     }
@@ -97,9 +95,9 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
       color: 'bg-orange-100 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400'
     },
     {
-      icon: MessageSquare,
-      title: 'AI Video Rozhovory',
-      description: 'Automatizované video pohovory s AI asistentem pro úvodní screening',
+      icon: BrainCircuit,
+      title: 'AI Assessment Centrum',
+      description: 'Podrobná analýza kandidátových schopností a dovedností. Ušetří až 2 kola pohovorů. Na míru pozici a zábavnou formou.',
       color: 'bg-pink-100 text-pink-600 dark:bg-pink-950/30 dark:text-pink-400'
     },
     {
@@ -270,8 +268,18 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                 <div key={index} className={`relative bg-slate-50 dark:bg-slate-950 rounded-xl p-6 border-2 transition-all ${
                   plan.highlighted 
                     ? 'border-cyan-500 dark:border-cyan-400 bg-cyan-50/50 dark:bg-cyan-950/20' 
+                    : plan.price === 'Zdarma'
+                    ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 hover:border-emerald-300 dark:hover:border-emerald-700'
                     : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                 }`}>
+                  {plan.price === 'Zdarma' && (
+                    <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
+                      <div className="flex items-center gap-1 bg-emerald-600 text-white px-3 py-1 rounded-full text-xs font-bold">
+                        <Star className="w-3 h-3" />
+                        Vždy zdarma
+                      </div>
+                    </div>
+                  )}
                   {plan.highlighted && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       <div className="flex items-center gap-1 bg-cyan-600 text-white px-3 py-1 rounded-full text-xs font-bold">
@@ -294,22 +302,42 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                           Zaváděcí sleva
                         </div>
                       )}
-                      <div className="flex items-baseline gap-2">
+                      <div className="space-y-1">
                         {plan.originalPrice && (
-                          <span className="text-lg text-slate-400 line-through">
-                            {plan.originalPrice}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg text-slate-400 line-through">
+                              {plan.originalPrice}
+                            </span>
+                            {plan.period && (
+                              <span className="text-slate-400 text-sm">
+                                /{plan.period}
+                              </span>
+                            )}
+                          </div>
                         )}
-                        <span className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
-                          {plan.price}
-                        </span>
-                        <span className="text-slate-600 dark:text-slate-400 text-sm">
-                          /{plan.period || 'měsíc'}
-                        </span>
+                        <div className="flex items-baseline gap-2">
+                          <span className={`text-2xl font-bold ${
+                            plan.price === 'Zdarma' 
+                              ? 'text-emerald-600 dark:text-emerald-400' 
+                              : 'text-cyan-600 dark:text-cyan-400'
+                          }`}>
+                            {plan.price}
+                          </span>
+                          {plan.period && !plan.originalPrice && (
+                            <span className="text-slate-600 dark:text-slate-400 text-sm">
+                              /{plan.period}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       {plan.isPromotional && (
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                           * Startovací cena pro začátek projektu
+                        </p>
+                      )}
+                      {plan.name === 'Business' && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Každý další AI assessment: 99 Kč
                         </p>
                       )}
                     </div>
@@ -329,16 +357,18 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                       </li>
                     )}
                   </ul>
-                  <button 
-                    onClick={plan.name === 'Enterprise' ? onRequestDemo : onRegister}
-                    className={`w-full py-2.5 rounded-lg font-semibold transition-all text-sm ${
-                      plan.highlighted
-                        ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
-                        : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white'
-                    }`}
-                  >
-                    {plan.name === 'Enterprise' ? 'Kontakt' : 'Začít'}
-                  </button>
+                   <button 
+                     onClick={plan.name === 'Enterprise' ? onRequestDemo : onRegister}
+                     className={`w-full py-2.5 rounded-lg font-semibold transition-all text-sm ${
+                       plan.price === 'Zdarma'
+                         ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                         : plan.highlighted
+                         ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                         : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white'
+                     }`}
+                   >
+                     {plan.name === 'Enterprise' ? 'Kontakt' : plan.price === 'Zdarma' ? 'Začít zdarma' : 'Začít'}
+                   </button>
                 </div>
               ))}
             </div>

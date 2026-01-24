@@ -32,7 +32,17 @@ resend.api_key = os.getenv("RESEND_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+def get_supabase_client():
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        print("❌ CHYBA: SUPABASE_URL nebo SUPABASE_KEY chybí v prostředí Renderu! Nastav je v dashboardu.")
+        return None
+    try:
+        return create_client(SUPABASE_URL, SUPABASE_KEY)
+    except Exception as e:
+        print(f"❌ Chyba při připojování k Supabase: {e}")
+        return None
+
+supabase: Client = get_supabase_client()
 serializer = URLSafeTimedSerializer(SECRET_KEY)
 
 class JobCheckRequest(BaseModel):
