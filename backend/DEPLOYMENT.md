@@ -34,12 +34,16 @@ If you created the Web Service manually, you **MUST** set these values in **Sett
 - **Start Command**: `gunicorn -k uvicorn.workers.UvicornWorker backend.app.main:app --bind 0.0.0.0:$PORT`
   *(Note: Using gunicorn + uvicorn worker is more reliable for Render production)*
 
-### ⚠️ Troubleshooting: "gunicorn: command not found"
-If you see this error, it means Render is using its default start command instead of ours. 
-1. Go to **Settings** in your Render service.
+### ⚠️ Troubleshooting: "gunicorn: command not found" or "No module named 'your_application'"
+If you see these errors, it means Render is using its default settings instead of our configuration. 
+
+**TO FIX IT:**
+1. Go to **Settings** in your Render dashboard for `jobshaman-backend`.
 2. Find the **Start Command** field.
-3. Ensure it is set to the command mentioned above.
+3. Replace the current text with exactly this:
+   `gunicorn -k uvicorn.workers.UvicornWorker backend.app.main:app --bind 0.0.0.0:$PORT --timeout 120`
 4. Click **Save**.
+5. Render will automatically redeploy with the correct command.
 
 ## Integrated Scraper (Free Plan)
 The scraper is now baked into the API service. It runs automatically every 12 hours.

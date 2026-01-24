@@ -41,7 +41,8 @@ import {
     Code,
     Smile,
     Eye,
-    LayoutTemplate
+    LayoutTemplate,
+    RefreshCw
 } from 'lucide-react';
 
 // Curated Emojis for Job Ads
