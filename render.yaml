@@ -3,7 +3,7 @@ services:
     name: jobshaman-backend
     env: python
     buildCommand: pip install -r backend/requirements.txt
-    startCommand: gunicorn -k uvicorn.workers.UvicornWorker backend.app.main:app --bind 0.0.0.0:$PORT
+    startCommand: gunicorn -k uvicorn.workers.UvicornWorker app.main:app --chdir backend --bind 0.0.0.0:$PORT --timeout 120
     envVars:
       - key: SUPABASE_URL
         sync: false

@@ -30,19 +30,18 @@ The project includes a `render.yaml` file that defines all services.
 
 ### Option 2: Manual Setup (If Blueprint fails)
 If you created the Web Service manually, you **MUST** set these values in **Settings**:
-- **Build Command**: `pip install -r backend/requirements.txt`
-- **Start Command**: `gunicorn -k uvicorn.workers.UvicornWorker backend.app.main:app --bind 0.0.0.0:$PORT`
-  *(Note: Using gunicorn + uvicorn worker is more reliable for Render production)*
+- **Build Command**: `pip install -r backend/requirements.txt` (or just `pip install -r requirements.txt`)
+- **Start Command**: `gunicorn -k uvicorn.workers.UvicornWorker app.main:app --chdir backend --bind 0.0.0.0:$PORT --timeout 120`
 
-### ⚠️ Troubleshooting: "gunicorn: command not found" or "No module named 'your_application'"
-If you see these errors, it means Render is using its default settings instead of our configuration. 
+### ⚠️ Troubleshooting: Build Failed / Start Failed
+1. **requirements.txt not found**: If Render fails during build, ensure your **Build Command** is set correctly. *Fixed: I have also added a copy of `requirements.txt` to the root directory for extra safety.*
+2. **No module named 'backend' / 'app'**: If Render fails to start, ensure your **Start Command** includes `--chdir backend`.
 
 **TO FIX IT:**
 1. Go to **Settings** in your Render dashboard for `jobshaman-backend`.
-2. Find the **Start Command** field.
-3. Replace the current text with exactly this:
-   `gunicorn -k uvicorn.workers.UvicornWorker backend.app.main:app --bind 0.0.0.0:$PORT --timeout 120`
-4. Click **Save**.
+2. Find **Build Command** and ensure it is correct.
+3. Find **Start Command** and ensure it is correct (it must use `--chdir backend`).
+4. Click **Save Changes**.
 5. Render will automatically redeploy with the correct command.
 
 ## Integrated Scraper (Free Plan)

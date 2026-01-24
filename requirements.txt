@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+gunicorn
+google-generativeai
+resend
+supabase
+python-dotenv
+beautifulsoup4
+requests
+pydantic
+itsdangerous
+apscheduler
