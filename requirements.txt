@@ -10,3 +10,4 @@ requests
 pydantic
 itsdangerous
 apscheduler
+stripe
