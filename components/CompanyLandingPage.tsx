@@ -155,14 +155,14 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
               Moderní náborový platforma s AI analýzou kandidátů, Assessment Centrem a inteligentní optimalizací inzerátů. Přestaňte ztrácet čas s nevhodnými uchazeči.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button 
+              <button
                 onClick={onRegister}
-                className="flex items-center gap-2 text-sm font-bold text-white bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-200 px-6 py-2.5 rounded-lg transition-colors"
+                className="flex items-center gap-2 text-sm font-bold text-white dark:text-slate-900 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-200 px-6 py-2.5 rounded-lg transition-colors"
               >
                 <Building size={18} />
                 Začít zdarma
               </button>
-              <button 
+              <button
                 onClick={onRequestDemo}
                 className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-6 py-2.5 rounded-lg transition-colors border border-slate-300 dark:border-slate-600"
               >
@@ -265,13 +265,12 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             </div>
             <div className="grid md:grid-cols-3 gap-6">
               {plans.map((plan, index) => (
-                <div key={index} className={`relative bg-slate-50 dark:bg-slate-950 rounded-xl p-6 border-2 transition-all ${
-                  plan.highlighted 
-                    ? 'border-cyan-500 dark:border-cyan-400 bg-cyan-50/50 dark:bg-cyan-950/20' 
+                <div key={index} className={`relative bg-slate-50 dark:bg-slate-950 rounded-xl p-6 border-2 transition-all ${plan.highlighted
+                    ? 'border-cyan-500 dark:border-cyan-400 bg-cyan-50/50 dark:bg-cyan-950/20'
                     : plan.price === 'Zdarma'
-                    ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 hover:border-emerald-300 dark:hover:border-emerald-700'
-                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
-                }`}>
+                      ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 hover:border-emerald-300 dark:hover:border-emerald-700'
+                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                  }`}>
                   {plan.price === 'Zdarma' && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       <div className="flex items-center gap-1 bg-emerald-600 text-white px-3 py-1 rounded-full text-xs font-bold">
@@ -316,11 +315,10 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                           </div>
                         )}
                         <div className="flex items-baseline gap-2">
-                          <span className={`text-2xl font-bold ${
-                            plan.price === 'Zdarma' 
-                              ? 'text-emerald-600 dark:text-emerald-400' 
+                          <span className={`text-2xl font-bold ${plan.price === 'Zdarma'
+                              ? 'text-emerald-600 dark:text-emerald-400'
                               : 'text-cyan-600 dark:text-cyan-400'
-                          }`}>
+                            }`}>
                             {plan.price}
                           </span>
                           {plan.period && !plan.originalPrice && (
@@ -357,18 +355,17 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                       </li>
                     )}
                   </ul>
-                   <button 
-                     onClick={plan.name === 'Enterprise' ? onRequestDemo : onRegister}
-                     className={`w-full py-2.5 rounded-lg font-semibold transition-all text-sm ${
-                       plan.price === 'Zdarma'
-                         ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                         : plan.highlighted
-                         ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
-                         : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white'
-                     }`}
-                   >
-                     {plan.name === 'Enterprise' ? 'Kontakt' : plan.price === 'Zdarma' ? 'Začít zdarma' : 'Začít'}
-                   </button>
+                  <button
+                    onClick={plan.name === 'Enterprise' ? onRequestDemo : onRegister}
+                    className={`w-full py-2.5 rounded-lg font-semibold transition-all text-sm ${plan.price === 'Zdarma'
+                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                        : plan.highlighted
+                          ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                          : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white'
+                      }`}
+                  >
+                    {plan.name === 'Enterprise' ? 'Kontakt' : plan.price === 'Zdarma' ? 'Začít zdarma' : 'Začít'}
+                  </button>
                 </div>
               ))}
             </div>
@@ -420,14 +417,14 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                 Přidejte se ke stovkám spokojených firem a najděte ty nejlepší talenty efektivněji.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <button 
+                <button
                   onClick={onRegister}
                   className="flex items-center gap-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 px-6 py-2.5 rounded-lg transition-colors"
                 >
                   <Building size={18} />
                   Registrovat firmu
                 </button>
-                <button 
+                <button
                   onClick={onRequestDemo}
                   className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-6 py-2.5 rounded-lg transition-colors border border-slate-300 dark:border-slate-600"
                 >

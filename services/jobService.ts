@@ -45,12 +45,12 @@ const getRelativeTime = (dateString?: string | null): string => {
     try {
         const date = new Date(dateString);
         if (isNaN(date.getTime())) return 'N/A';
-        
+
         const now = new Date();
         const diffTime = now.getTime() - date.getTime();
         const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
         const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
-        
+
         if (diffHours < 1) return 'Před chvílí';
         if (diffHours < 24) return `před ${diffHours} hod.`;
         if (diffDays === 1) return 'Včera';
@@ -64,7 +64,7 @@ const safeParseInt = (val: string | number | null | undefined): number | null =>
     if (val === null || val === undefined) return null;
     if (typeof val === 'number') return val;
     if (typeof val === 'string') {
-        const cleaned = val.replace(/\s/g, '').replace(/,/g, '').replace(/\u00A0/g, ''); 
+        const cleaned = val.replace(/\s/g, '').replace(/,/g, '').replace(/\u00A0/g, '');
         const parsed = parseInt(cleaned, 10);
         return isNaN(parsed) ? null : parsed;
     }
@@ -74,12 +74,12 @@ const safeParseInt = (val: string | number | null | undefined): number | null =>
 // Robust parser for Python lists stored as strings: "['A', 'B']"
 const parseBenefits = (raw: string[] | string | null | any): string[] => {
     if (!raw) return [];
-    
+
     // 1. If it's already an array (Supabase JSON/Array column)
     if (Array.isArray(raw)) {
         return raw.map(String).filter(b => b && b.trim().length > 0 && b.toLowerCase() !== 'benefity nespecifikovány');
     }
-    
+
     if (typeof raw === 'string') {
         let text = raw.trim();
         if (!text || text === '[]' || text === '{}') return [];
@@ -95,10 +95,10 @@ const parseBenefits = (raw: string[] | string | null | any): string[] => {
                 const matches = text.match(/(['"])(.*?)\1/g);
                 if (matches) {
                     return matches.map(m => m.slice(1, -1).trim()) // Remove quotes
-                                  .filter(b => b.length > 0 && b.toLowerCase() !== 'benefity nespecifikovány');
+                        .filter(b => b.length > 0 && b.toLowerCase() !== 'benefity nespecifikovány');
                 }
                 // Fallback for simple comma separation if regex fails
-                const content = text.slice(1, -1); 
+                const content = text.slice(1, -1);
                 return content.split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
             }
         }
@@ -123,7 +123,7 @@ const parseBenefits = (raw: string[] | string | null | any): string[] => {
 
 const formatDescription = (desc: string | null | undefined): string => {
     if (!desc) return "Popis není k dispozici.";
-    
+
     let clean = String(desc).trim();
     if (clean === "Popis nenalezen") return "Detailní popis pozice se nepodařilo stáhnout. Navštivte původní zdroj.";
 
@@ -140,7 +140,7 @@ const formatDescription = (desc: string | null | undefined): string => {
         // Strip remaining tags
         clean = clean.replace(/<[^>]*>/g, '');
     }
-    
+
     // Normalize newlines
     clean = clean.replace(/\n\s*\n\s*\n/g, '\n\n');
 
@@ -157,7 +157,7 @@ const estimateJHI = (job: ScrapedJob, salaryFrom: number | null): JHI => {
     let values = 50;
 
     const desc = (job.description || "").toLowerCase();
-    
+
     // Financial Score
     if (salaryFrom) {
         if (salaryFrom > 100000) financial = 95;
@@ -173,9 +173,9 @@ const estimateJHI = (job: ScrapedJob, salaryFrom: number | null): JHI => {
     if (desc.includes('stres') || desc.includes('dynamické')) mentalLoad -= 15;
     if (desc.includes('přátelský') || desc.includes('rodinná')) mentalLoad += 15;
     if (desc.includes('vzdělávání') || desc.includes('školení')) growth += 20;
-    
+
     const clamp = (n: number) => Math.max(0, Math.min(100, n));
-    
+
     return {
         score: Math.round((financial + timeCost + mentalLoad + growth + values) / 5),
         financial: clamp(financial),
@@ -189,14 +189,14 @@ const estimateJHI = (job: ScrapedJob, salaryFrom: number | null): JHI => {
 const estimateNoise = (text: string): NoiseMetrics => {
     const flags = [];
     const lower = text.toLowerCase();
-    
+
     if (lower.includes('rodina')) flags.push('Jsme rodina');
     if (lower.includes('odolnost vůči stresu')) flags.push('Odolnost vůči stresu');
     if (lower.includes('dynamické prostředí')) flags.push('Dynamické prostředí');
     if (lower.includes('ninja') || lower.includes('rockstar')) flags.push('Ninja/Rockstar');
-    
+
     const score = Math.min(100, flags.length * 20 + 10);
-    
+
     return {
         score,
         flags,
@@ -213,95 +213,81 @@ export const fetchRealJobs = async (): Promise<Job[]> => {
     }
 
     try {
-        console.log("Fetching jobs from Supabase...");
-        
-        // Use a simpler query first to avoid sorting crashes if column missing
-        // We will fetch widely then sort in memory to be safe against DB schema mismatches
-        // Increased limit to handle all 20,000+ jobs in database
-        const mainLimit = 50000; // Increased limit to fetch more jobs
-        
-        // Single comprehensive query to avoid duplication issues
-        const mainQuery = supabase
+        console.log("Fetching jobs from Supabase with parallel pagination...");
+
+        // 1. Get total count of valid jobs
+        const { count, error: countError } = await supabase
             .from('jobs')
-            .select('*')
-            .neq('description', 'Popis nenalezen')
-            .limit(mainLimit);
-        
-        // Additional city-specific queries to boost coverage
-        const cityQueries = [
-            // Brno Boost
-            supabase.from('jobs').select('*').ilike('location', '%Brno%').neq('description', 'Popis nenalezen').limit(10000),
-            
-            // Ostrava Boost
-            supabase.from('jobs').select('*').ilike('location', '%Ostrava%').neq('description', 'Popis nenalezen').limit(8000),
-            
-            // Plzeň Boost
-            supabase.from('jobs').select('*').or('location.ilike.%plzen%,location.ilike.%plzeň%').neq('description', 'Popis nenalezen').limit(8000),
-            
-            // Remote Boost
-            supabase.from('jobs').select('*').or('work_type.ilike.%remote%,title.ilike.%remote%').neq('description', 'Popis nenalezen').limit(10000)
-        ];
+            .select('*', { count: 'exact', head: true })
+            .neq('description', 'Popis nenalezen');
 
-        // Add a catch-all query to ensure we get any missed jobs
-        const fallbackQuery = supabase
-            .from('jobs')
-            .select('*')
-            .neq('description', 'Popis nenalezen')
-            .limit(20000);
-            
-        const queries = [mainQuery, ...cityQueries, fallbackQuery];
-
-        console.log(`Executing ${queries.length} queries with limits:`, 
-            mainLimit, 10000, 8000, 8000, 10000);
-
-        const results = await Promise.all(queries);
-        
-        // Flatten and Deduplicate
-        const allRows = results.flatMap(r => r.data || []);
-        
-        if (allRows.length === 0) {
-            console.log("No jobs found in DB.");
+        if (countError) {
+            console.error("Error fetching job count:", countError);
             return [];
         }
 
-        // Enhanced deduplication by ID
+        const totalJobs = count || 0;
+        console.log(`Found ${totalJobs} jobs in database.`);
+
+        if (totalJobs === 0) return [];
+
+        // 2. Fetch in chunks (Parallel)
+        const PAGE_SIZE = 1000;
+        const totalPages = Math.ceil(totalJobs / PAGE_SIZE);
+        const promises = [];
+
+        console.log(`Starting fetch for ${totalPages} pages...`);
+
+        for (let i = 0; i < totalPages; i++) {
+            const from = i * PAGE_SIZE;
+            const to = from + PAGE_SIZE - 1;
+
+            promises.push(
+                supabase
+                    .from('jobs')
+                    .select('*')
+                    .neq('description', 'Popis nenalezen')
+                    .range(from, to)
+                    .order('scraped_at', { ascending: false })
+            );
+        }
+
+        const results = await Promise.all(promises);
+
+        // 3. Aggregate Results
+        let allRows: any[] = [];
+        results.forEach((result, index) => {
+            if (result.error) {
+                console.error(`Error fetching page ${index}:`, result.error);
+            } else if (result.data) {
+                allRows.push(...result.data);
+            }
+        });
+
+        // 4. Deduplicate (though ranges should be unique, safety first)
         const seenIds = new Set();
         const uniqueRows = [];
         for (const row of allRows) {
             if (!seenIds.has(row.id)) {
                 seenIds.add(row.id);
                 uniqueRows.push(row);
-            } else {
-                console.log(`Duplicate job ID found and skipped: ${row.id}`);
             }
         }
 
         console.log(`Fetched ${allRows.length} total rows, ${uniqueRows.length} unique after deduplication.`);
-        
+
+        // 5. Map to Domain Objects
         const mapped = mapJobs(uniqueRows);
-        
-        // SAFE SORTING: Handle missing, invalid, or non-standard SQL timestamps
+
+        // 6. Final Sort (Newest first)
         mapped.sort((a, b) => {
             const getTime = (dateStr?: string) => {
                 if (!dateStr) return 0;
-                // Fix common SQL format '2024-01-01 10:00:00' -> '2024-01-01T10:00:00' for reliable browser parsing
-                const cleanStr = dateStr.replace(' ', 'T'); 
+                const cleanStr = dateStr.replace(' ', 'T');
                 const d = new Date(cleanStr);
                 return isNaN(d.getTime()) ? 0 : d.getTime();
             };
-
-            const timeA = getTime(a.scrapedAt);
-            const timeB = getTime(b.scrapedAt);
-
-            // Sort Descending (Newest first)
-            if (timeA !== timeB) {
-                return timeB - timeA;
-            }
-
-            // Fallback to ID sorting logic
-            const idA = parseInt(String(a.id).replace(/\D/g, '')) || 0;
-            const idB = parseInt(String(b.id).replace(/\D/g, '')) || 0;
-            return idB - idA;
+            return getTime(b.scrapedAt) - getTime(a.scrapedAt);
         });
 
         console.log(`Valid jobs after processing: ${mapped.length}`);
@@ -309,7 +295,6 @@ export const fetchRealJobs = async (): Promise<Job[]> => {
 
     } catch (e) {
         console.error("Critical error in fetchRealJobs:", e);
-        // Return empty array instead of crashing
         return [];
     }
 };
@@ -318,10 +303,10 @@ const mapJobs = (data: any[]): Job[] => {
     const mappedJobs = data.map((item: any): Job | null => {
         try {
             const scraped = item as ScrapedJob;
-            
+
             // 1. Description Processing
             const fullDesc = formatDescription(scraped.description);
-            
+
             if (fullDesc.length < 20) { // More permissive length check
                 console.log(`Skipping job ${scraped.id} due to short description: ${fullDesc.substring(0, 50)}...`);
                 return null;
@@ -330,7 +315,7 @@ const mapJobs = (data: any[]): Job[] => {
             // 2. Salary Processing
             let salaryFrom = safeParseInt(scraped.salary_from);
             let salaryTo = safeParseInt(scraped.salary_to);
-            
+
             // Fix for salaries stored as thousands (e.g., 38 should be 38,000)
             if (salaryFrom && salaryFrom < 1000) {
                 salaryFrom = salaryFrom * 1000;
@@ -338,7 +323,7 @@ const mapJobs = (data: any[]): Job[] => {
             if (salaryTo && salaryTo < 1000) {
                 salaryTo = salaryTo * 1000;
             }
-            
+
             let salaryRange = undefined;
             if (salaryFrom) {
                 salaryRange = `${salaryFrom.toLocaleString()} Kč`;
@@ -365,7 +350,7 @@ const mapJobs = (data: any[]): Job[] => {
             const techTags: string[] = [];
             const otherTags: string[] = [];
             const locationTags: string[] = [];
-            
+
             const rawLocation = scraped.location || (scraped as any).place || (scraped as any).region || 'Česká republika';
             const locationString = String(rawLocation).trim();
             const locLower = locationString.toLowerCase();
@@ -376,7 +361,7 @@ const mapJobs = (data: any[]): Job[] => {
             else if (locLower.includes('plzeň') || locLower.includes('plzen')) locationTags.push('Plzeň');
             else if (locLower.includes('olomouc')) locationTags.push('Olomouc');
             else if (locLower.includes('liberec')) locationTags.push('Liberec');
-            
+
             if (locLower.includes('remote')) locationTags.push('Remote');
 
             if (titleLower.includes('react') || descLower.includes('react')) techTags.push('React');
@@ -387,11 +372,11 @@ const mapJobs = (data: any[]): Job[] => {
             if (titleLower.includes('php') || descLower.includes('php')) techTags.push('PHP');
             if (titleLower.includes('typescript') || descLower.includes('typescript')) techTags.push('TypeScript');
             if (titleLower.includes('javascript') || descLower.includes('javascript')) techTags.push('JavaScript');
-            
+
             if (titleLower.includes('manager') || titleLower.includes('vedoucí')) otherTags.push('Management');
             if (titleLower.includes('řidič') || titleLower.includes('kurýr')) otherTags.push('Logistika');
             if (titleLower.includes('prodavač') || titleLower.includes('asistent')) otherTags.push('Prodej');
-            
+
             const cType = String(scraped.contract_type || '').toLowerCase();
             if (cType.includes('hpp') || cType.includes('plný')) otherTags.push('HPP');
             if (cType.includes('ičo') || cType.includes('fakturace') || titleLower.includes('ičo')) otherTags.push('IČO');
@@ -460,10 +445,10 @@ const mapJobs = (data: any[]): Job[] => {
 
     const validJobs = mappedJobs.filter((j): j is Job => j !== null);
     const filteredOutCount = mappedJobs.length - validJobs.length;
-    
+
     if (filteredOutCount > 0) {
         console.log(`Filtered out ${filteredOutCount} jobs during mapping. ${validJobs.length} valid jobs remain.`);
     }
-    
+
     return validJobs;
 }

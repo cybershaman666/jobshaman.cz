@@ -1183,7 +1183,7 @@ export default function App() {
                 {/* RIGHT COLUMN: Detail View (or Welcome Guide) */}
                 <section className={`lg:col-span-8 xl:col-span-9 flex flex-col min-h-0 ${!selectedJobId ? 'hidden lg:flex' : 'flex'}`}>
                     {selectedJob && dynamicJHI ? (
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg flex flex-col h-full relative overflow-hidden sticky top-20 max-h-[calc(100vh-100px)]">
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg flex flex-col h-full overflow-hidden sticky top-20 max-h-[calc(100vh-100px)]">
                             <div className="p-6 sm:p-8 border-b border-slate-200 dark:border-slate-800 flex-none bg-white dark:bg-slate-900 z-10">
                                 <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                                     <div className="w-full">

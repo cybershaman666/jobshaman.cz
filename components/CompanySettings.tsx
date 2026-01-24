@@ -113,7 +113,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                         <div className="space-y-6">
                             {/* Mission / Philosophy */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                                     <MessageSquare size={16} /> Mise & Filozofie
                                 </label>
                                 <textarea
@@ -127,7 +127,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                             {/* Tone of Voice */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                                         <Heart size={16} /> Tón Komunikace
                                     </label>
                                     <select
