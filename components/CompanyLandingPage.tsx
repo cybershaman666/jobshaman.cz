@@ -6,8 +6,19 @@ interface CompanyLandingPageProps {
   onRequestDemo?: () => void;
 }
 
+interface PricingPlan {
+  name: string;
+  price: string;
+  originalPrice?: string;
+  period: string;
+  description: string;
+  features: string[];
+  highlighted: boolean;
+  isPromotional?: boolean;
+}
+
 const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onRequestDemo }) => {
-  const plans = [
+  const plans: PricingPlan[] = [
     {
       name: 'Start',
       price: '1 990 Kč',
@@ -25,6 +36,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     {
       name: 'Business',
       price: '4 990 Kč',
+      originalPrice: '9 990 Kč',
       period: 'měsíc',
       description: 'Pro rostoucí společnosti',
       features: [
@@ -37,7 +49,8 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
         'Pokročilé statistiky a reporting',
         'Branding firemního profilu'
       ],
-      highlighted: true
+      highlighted: true,
+      isPromotional: true
     },
     {
       name: 'Enterprise',
@@ -263,7 +276,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       <div className="flex items-center gap-1 bg-cyan-600 text-white px-3 py-1 rounded-full text-xs font-bold">
                         <Star className="w-3 h-3" />
-                        Nejlepší volba
+                        {plan.isPromotional ? 'Akční nabídka' : 'Nejlepší volba'}
                       </div>
                     </div>
                   )}
@@ -275,12 +288,30 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                       {plan.description}
                     </p>
                     <div className="mb-4">
-                      <span className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
-                        {plan.price}
-                      </span>
-                      <span className="text-slate-600 dark:text-slate-400 text-sm">
-                        /{plan.period || 'měsíc'}
-                      </span>
+                      {plan.isPromotional && (
+                        <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-semibold mb-2">
+                          <Sparkles size={12} />
+                          Zaváděcí sleva
+                        </div>
+                      )}
+                      <div className="flex items-baseline gap-2">
+                        {plan.originalPrice && (
+                          <span className="text-lg text-slate-400 line-through">
+                            {plan.originalPrice}
+                          </span>
+                        )}
+                        <span className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
+                          {plan.price}
+                        </span>
+                        <span className="text-slate-600 dark:text-slate-400 text-sm">
+                          /{plan.period || 'měsíc'}
+                        </span>
+                      </div>
+                      {plan.isPromotional && (
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          * Startovací cena pro začátek projektu
+                        </p>
+                      )}
                     </div>
                   </div>
                   <ul className="space-y-2 mb-6 text-sm">

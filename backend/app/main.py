@@ -11,9 +11,9 @@ from itsdangerous import URLSafeTimedSerializer
 from fastapi.responses import HTMLResponse
 from apscheduler.schedulers.background import BackgroundScheduler
 import sys
-# Add scraper directory to path so we can import it
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'scraper'))
-from scraper_multi import run_all_scrapers
+# Ensure we can import from the sibling scraper package
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from scraper.scraper_multi import run_all_scrapers
 
 load_dotenv()
 

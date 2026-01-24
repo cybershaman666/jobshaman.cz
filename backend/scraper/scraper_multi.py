@@ -14,14 +14,19 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-try:
+def get_supabase_client():
     if not SUPABASE_URL or not SUPABASE_KEY:
-        raise ValueError("Nastav prosím SUPABASE_URL a SUPABASE_KEY v souboru .env.")
-    supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
-    print("✅ Úspěšně vytvořen klient Supabase.")
-except Exception as e:
-    print(f"❌ Chyba při inicializaci Supabase klienta: {e}")
-    supabase = None
+        print("⚠️ VAROVÁNÍ: SUPABASE_URL nebo SUPABASE_KEY chybí. Scrapování bude fungovat, ale data se neuloží.")
+        return None
+    try:
+        client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        print("✅ Úspěšně vytvořen klient Supabase.")
+        return client
+    except Exception as e:
+        print(f"❌ Chyba při inicializaci Supabase klienta: {e}")
+        return None
+
+supabase: Client = get_supabase_client()
 
 
 # --- Pomocné funkce ---
