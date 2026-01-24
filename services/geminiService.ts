@@ -386,7 +386,7 @@ export const parseProfileFromCV = async (cvInput: string | { base64: string, mim
     if (!ai) return {};
 
     try {
-        console.log("CV input type:", typeof cvInput, typeof cvInput !== 'string' ? cvInput.mimeType : 'text');
+        
         const schemaPrompt = `
         Extract structured data from the provided document or text.
         OUTPUT IN CZECH context but standard JSON.
@@ -469,7 +469,7 @@ export const parseProfileFromCV = async (cvInput: string | { base64: string, mim
         });
 
         const jsonText = response.text;
-        console.log("Gemini CV parsing response:", jsonText);
+        
         if (!jsonText) throw new Error("No response");
         return JSON.parse(jsonText);
     } catch (e) {

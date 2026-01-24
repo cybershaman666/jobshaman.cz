@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
-import { UserProfile, CompanyProfile, LearningResource, BenefitValuation, AssessmentResult, Job } from '../types';
+import { UserProfile, CompanyProfile, LearningResource, BenefitValuation, AssessmentResult, Job, CVDocument } from '../types';
+import { parseProfileFromCVWithFallback } from './cvParserService';
 
 // Configuration provided by user
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -139,9 +140,9 @@ export const getUserProfile = async (userId: string): Promise<Partial<UserProfil
                 commuteTolerance: 45,
                 priorities: []
             },
-            skills: candidateData?.skills || [],
-            workHistory: candidateData?.work_history || [],
-            education: candidateData?.education || [],
+            skills: candidateData?.skills ? (typeof candidateData.skills === 'string' ? JSON.parse(candidateData.skills) : candidateData.skills) : [],
+            workHistory: candidateData?.work_history ? (typeof candidateData.work_history === 'string' ? JSON.parse(candidateData.work_history) : candidateData.work_history) : [],
+            education: candidateData?.education ? (typeof candidateData.education === 'string' ? JSON.parse(candidateData.education) : candidateData.education) : [],
             isLoggedIn: true
         };
 
@@ -185,14 +186,24 @@ export const uploadProfilePhoto = async (userId: string, file: File): Promise<st
             console.warn("Profile check failed, continuing with upload:", profileError);
         }
 
-        // Upload to Supabase Storage with better error handling
-        const { data, error } = await supabase.storage
+        // Upload to Supabase Storage with better error handling and timeout
+        console.log("Starting photo upload for:", fileName);
+        
+        const uploadPromise = supabase.storage
             .from('profile-photos')
             .upload(fileName, file, {
                 cacheControl: '3600',
                 upsert: true, // Allow overwriting to avoid conflicts
                 contentType: file.type
             });
+            
+        // Add timeout to prevent hanging uploads
+        const { data, error } = await Promise.race([
+            uploadPromise,
+            new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Upload timeout')), 30000) // 30 second timeout
+            )
+        ]) as any;
 
         if (error) {
             console.error("Profile photo upload error:", error);
@@ -206,6 +217,54 @@ export const uploadProfilePhoto = async (userId: string, file: File): Promise<st
             if (error.message.includes('row-level security') || error.message.includes('policy')) {
                 console.warn("RLS policy prevented upload, this might be expected");
                 return null; // Silent fail for RLS issues
+            }
+            
+            if (error.message.includes('timeout') || error.message.includes('aborted')) {
+                console.warn("Upload timed out or was aborted, this might be a network issue");
+                // Try one more time with a smaller timeout
+                try {
+                    console.log("Retrying photo upload...");
+                    const { data: retryData, error: retryError } = await supabase.storage
+                        .from('profile-photos')
+                        .upload(fileName, file, {
+                            cacheControl: '3600',
+                            upsert: true,
+                            contentType: file.type
+                        });
+                    
+                    if (retryError) {
+                        console.error("Retry upload failed:", retryError);
+                        return null;
+                    }
+                    
+                    if (retryData) {
+                        console.log("Retry upload successful:", retryData);
+                        
+                        // Get public URL
+                        const { data: urlData } = supabase.storage
+                            .from('profile-photos')
+                            .getPublicUrl(fileName);
+
+                        if (!urlData?.publicUrl) {
+                            console.error("Failed to get public URL for retry upload");
+                            return null;
+                        }
+
+                        const publicUrl = urlData.publicUrl;
+                        console.log("Profile photo public URL (retry):", publicUrl);
+
+                        // Update user profile with new photo URL
+                        await supabase
+                            .from('profiles')
+                            .update({ avatar_url: publicUrl })
+                            .eq('id', userId);
+
+                        return publicUrl;
+                    }
+                } catch (retryError) {
+                    console.error("Retry upload failed:", retryError);
+                    return null;
+                }
             }
             
             // For other errors, still try to continue
@@ -285,6 +344,231 @@ export const deleteProfilePhoto = async (userId: string, photoUrl: string): Prom
 
     } catch (error) {
         console.error("Error deleting profile photo:", error);
+        return false;
+    }
+};
+
+// CV Management Functions
+export const uploadCVDocument = async (userId: string, file: File): Promise<CVDocument | null> => {
+    if (!supabase) return null;
+
+    try {
+        // Generate unique filename
+        const fileExtension = file.name.split('.').pop()?.toLowerCase() || 'pdf';
+        const fileName = `${userId}/cv-${Date.now()}.${fileExtension}`;
+
+        console.log("Uploading CV document:", fileName, "Size:", file.size, "Type:", file.type);
+
+        // Upload to Supabase Storage
+        const { data, error } = await supabase.storage
+            .from('cvs')
+            .upload(fileName, file, {
+                cacheControl: '3600',
+                upsert: true,
+                contentType: file.type
+            });
+
+        if (error) {
+            console.error("CV document upload error:", error);
+            return null;
+        }
+
+        console.log("CV document upload successful:", data);
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+            .from('cvs')
+            .getPublicUrl(fileName);
+
+        if (!urlData?.publicUrl) {
+            console.error("Failed to get public URL for uploaded CV");
+            return null;
+        }
+
+        // Parse CV content
+        let parsedData = null;
+        try {
+            parsedData = await parseProfileFromCVWithFallback(file);
+        } catch (parseError) {
+            console.warn("CV parsing failed, but continuing with upload:", parseError);
+        }
+
+        // Create CV document record
+        const cvDocument: CVDocument = {
+            id: data.id,
+            userId,
+            fileName,
+            originalName: file.name,
+            fileUrl: urlData.publicUrl,
+            fileSize: file.size,
+            contentType: file.type,
+            isActive: true, // Make new CV active by default
+            parsedData: parsedData ? {
+                name: parsedData.name,
+                email: parsedData.email,
+                phone: parsedData.phone,
+                jobTitle: parsedData.jobTitle,
+                skills: parsedData.skills,
+                workHistory: parsedData.workHistory,
+                education: parsedData.education,
+                cvText: parsedData.cvText
+            } : undefined,
+            uploadedAt: new Date().toISOString(),
+            lastUsed: new Date().toISOString()
+        };
+
+        // Save to database
+        const { error: dbError } = await supabase
+            .from('cv_documents')
+            .insert(cvDocument);
+
+        if (dbError) {
+            console.error("Failed to save CV document to database:", dbError);
+            return null;
+        }
+
+        // Update user's current CV
+        await updateUserCVSelection(userId, data.id);
+
+        console.log("CV document saved successfully:", cvDocument);
+        return cvDocument;
+
+    } catch (error) {
+        console.error("CV document upload failed:", error);
+        return null;
+    }
+};
+
+export const getUserCVDocuments = async (userId: string): Promise<CVDocument[]> => {
+    if (!supabase) return [];
+
+    try {
+        const { data, error } = await supabase
+            .from('cv_documents')
+            .select('*')
+            .eq('user_id', userId)
+            .order('uploaded_at', { ascending: false });
+
+        if (error) {
+            console.error("Failed to fetch user CV documents:", error);
+            return [];
+        }
+
+        return data || [];
+    } catch (error) {
+        console.error("Error fetching CV documents:", error);
+        return [];
+    }
+};
+
+export const updateUserCVSelection = async (userId: string, cvId: string): Promise<boolean> => {
+    if (!supabase) return false;
+
+    try {
+        // First, deactivate all CVs for this user
+        await supabase
+            .from('cv_documents')
+            .update({ is_active: false })
+            .eq('user_id', userId);
+
+        // Then activate the selected CV
+        const { error } = await supabase
+            .from('cv_documents')
+            .update({ 
+                is_active: true, 
+                last_used: new Date().toISOString() 
+            })
+            .eq('id', cvId)
+            .eq('user_id', userId);
+
+        if (error) {
+            console.error("Failed to update CV selection:", error);
+            return false;
+        }
+
+        // Update user profile with parsed data from selected CV
+        const { data: cvData } = await supabase
+            .from('cv_documents')
+            .select('parsed_data')
+            .eq('id', cvId)
+            .single();
+
+        if (cvData?.parsed_data) {
+            const parsedData = cvData.parsed_data as any;
+            await updateUserProfile(userId, {
+                name: parsedData.name,
+                email: parsedData.email,
+                phone: parsedData.phone,
+                jobTitle: parsedData.jobTitle,
+                skills: parsedData.skills || [],
+                workHistory: parsedData.workHistory || [],
+                education: parsedData.education || [],
+                cvText: parsedData.cvText
+            });
+        }
+
+        console.log("CV selection updated successfully:", cvId);
+        return true;
+    } catch (error) {
+        console.error("Error updating CV selection:", error);
+        return false;
+    }
+};
+
+export const deleteCVDocument = async (userId: string, cvId: string): Promise<boolean> => {
+    if (!supabase) return false;
+
+    try {
+        // Get CV document info first
+        const { data: cvDoc } = await supabase
+            .from('cv_documents')
+            .select('file_url, is_active')
+            .eq('id', cvId)
+            .eq('user_id', userId)
+            .single();
+
+        if (!cvDoc) {
+            console.error("CV document not found:", cvId);
+            return false;
+        }
+
+        // Delete from storage
+        const fileName = cvDoc.file_url.split('/').pop();
+        if (fileName) {
+            await supabase.storage
+                .from('cvs')
+                .remove([`${userId}/${fileName}`]);
+        }
+
+        // Delete from database
+        const { error } = await supabase
+            .from('cv_documents')
+            .delete()
+            .eq('id', cvId)
+            .eq('user_id', userId);
+
+        if (error) {
+            console.error("Failed to delete CV document:", error);
+            return false;
+        }
+
+        // If this was the active CV, activate another one if available
+        if (cvDoc.is_active) {
+            const { data: remainingCVs } = await supabase
+                .from('cv_documents')
+                .select('id')
+                .eq('user_id', userId)
+                .limit(1);
+
+            if (remainingCVs && remainingCVs.length > 0) {
+                await updateUserCVSelection(userId, remainingCVs[0].id);
+            }
+        }
+
+        console.log("CV document deleted successfully:", cvId);
+        return true;
+    } catch (error) {
+        console.error("Error deleting CV document:", error);
         return false;
     }
 };
@@ -389,10 +673,8 @@ if (updates.cvText !== undefined) candidateUpdates.cv_text = updates.cvText;
     if (updates.transportMode !== undefined) candidateUpdates.transport_mode = updates.transportMode;
     if (updates.preferences !== undefined) candidateUpdates.preferences = updates.preferences;
     if (updates.skills !== undefined) {
-        // Handle both array and string formats
-        candidateUpdates.skills = Array.isArray(updates.skills) 
-            ? updates.skills.join(', ') 
-            : updates.skills;
+        // Always save skills as JSON string for consistency
+        candidateUpdates.skills = JSON.stringify(updates.skills);
     }
     if (updates.workHistory !== undefined) {
         candidateUpdates.work_history = JSON.stringify(updates.workHistory);
@@ -405,6 +687,12 @@ if (updates.cvText !== undefined) candidateUpdates.cv_text = updates.cvText;
     if (Object.keys(baseUpdates).length > 0) {
         promises.push(supabase.from('profiles').update(baseUpdates).eq('id', userId));
     }
+    
+    // Handle CV URL update - it's part of candidate_profiles table
+    if (updates.cvUrl !== undefined) {
+        candidateUpdates.cv_url = updates.cvUrl;
+    }
+    
     if (Object.keys(candidateUpdates).length > 0) {
         // Use UPSERT instead of UPDATE to ensure row creation if missing
         promises.push(supabase.from('candidate_profiles').upsert({ 
@@ -412,11 +700,6 @@ if (updates.cvText !== undefined) candidateUpdates.cv_text = updates.cvText;
             ...candidateUpdates,
             updated_at: new Date().toISOString()
         }));
-    }
-    
-    // Handle CV URL update - it's now part of candidate_profiles table
-    if (updates.cvUrl !== undefined) {
-        candidateUpdates.cv_url = updates.cvUrl;
     }
 
     try {

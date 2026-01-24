@@ -1,10 +1,22 @@
 import React, { useState, useRef } from 'react';
-import { UserProfile } from '../types';
-import { User, FileText, Upload, Sparkles, BrainCircuit, Copy, Briefcase, FileOutput, Plus, Trash2, Edit, GraduationCap, Camera, X } from 'lucide-react';
-import { generateStyledCV } from '../services/geminiService';
-import { uploadCVFile, uploadProfilePhoto, deleteProfilePhoto, updateUserProfile } from '../services/supabaseService';
-import { parseProfileFromCVWithFallback } from '../services/cvParserService';
-import Markdown from 'markdown-to-jsx';
+import { UserProfile, WorkExperience, Education } from '../types';
+import { 
+  User, 
+  Upload, 
+  X, 
+  Camera, 
+  Briefcase, 
+  GraduationCap, 
+  Award, 
+  Plus, 
+  Trash2, 
+  Save,
+  Link,
+  ExternalLink,
+  Edit,
+  FileText
+} from 'lucide-react';
+import { uploadProfilePhoto, uploadCVFile } from '../services/supabaseService';
 
 interface ProfileEditorProps {
   profile: UserProfile;
@@ -12,90 +24,43 @@ interface ProfileEditorProps {
   onSave: () => void;
 }
 
-const CV_TEMPLATES = [
-  { id: 'modern', name: 'Moderní', desc: 'Čisté a minimalistické' },
-  { id: 'professional', name: 'Profesionální', desc: 'Konzervativní a elegantní' },
-  { id: 'creative', name: 'Kreativní', desc: 'Barevné a výrazné' }
-];
-
 const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave }) => {
-  const [activeTab, setActiveTab] = useState<'edit' | 'cv-gen'>('edit');
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [newSkill, setNewSkill] = useState('');
-  const [isGeneratingCV, setIsGeneratingCV] = useState(false);
-  const [selectedTemplate, setSelectedTemplate] = useState('modern');
-  const [generatedCV, setGeneratedCV] = useState('');
-  const [copiedAts, setCopiedAts] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploadingCV, setIsUploadingCV] = useState(false);
+  const [editingSection, setEditingSection] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const cvInputRef = useRef<HTMLInputElement>(null);
 
-  // Manual CV section handlers
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  // Form state for different sections
+  const [formData, setFormData] = useState({
+    personal: {
+      name: profile.name || '',
+      jobTitle: profile.jobTitle || '',
+      email: profile.email || '',
+      phone: profile.phone || '',
+      address: profile.address || '',
+      linkedIn: (profile as any).linkedIn || '',
+      portfolio: (profile as any).portfolio || '',
+      github: (profile as any).github || ''
+    },
+    experience: profile.workHistory || [],
+    education: profile.education || [],
+    skills: profile.skills || []
+  });
 
-    setUploadedFile(file);
-    setIsUploading(true);
-
-    try {
-      // Parse CV content with fallback
-      const parsedData = await parseProfileFromCVWithFallback(file);
-
-      // Try to upload file to Supabase Storage
-      let cvUrl = null;
-      try {
-        cvUrl = await uploadCVFile(profile.id || '', file);
-      } catch (uploadError) {
-        console.warn("CV upload failed, but continuing with parsed data:", uploadError);
-      }
-
-      // Create updated profile with parsed data
-      const updatedProfile = {
-        ...profile,
-        cvText: parsedData.cvText || profile.cvText || `[Extrahováno z ${file.name}]`,
-        cvUrl: cvUrl || undefined,
-        name: parsedData.name || profile.name,
-        email: parsedData.email || profile.email,
-        phone: parsedData.phone || profile.phone,
-        jobTitle: parsedData.jobTitle || profile.jobTitle,
-        skills: parsedData.skills || profile.skills,
-        workHistory: parsedData.workHistory || profile.workHistory,
-        education: parsedData.education || profile.education
-      };
-
-      // Update local state
-      onChange(updatedProfile);
-
-      // Save to Supabase
-      await updateUserProfile(profile.id || '', updatedProfile);
-
-      const uploadStatus = cvUrl ? 'nahráno a zpracováno' : 'zpracováno';
-      alert(`CV úspěšně ${uploadStatus}! Extrahováno ${parsedData.skills?.length || 0} dovedností.`);
-
-    } catch (error) {
-      console.error('CV processing failed:', error);
-      alert("Nepodařilo se zpracovat CV. Zkuste to znovu nebo zvolte jiný soubor.");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-    }
-  };
-
+  // Photo upload handler
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validate file type and size
+    if (isUploadingPhoto) return;
+
     if (!file.type.startsWith('image/')) {
       alert('Prosím nahrávejte pouze obrázky.');
       return;
     }
     
-    if (file.size > 5 * 1024 * 1024) { // 5MB limit
+    if (file.size > 5 * 1024 * 1024) {
       alert('Obrázek je příliš velký. Maximální velikost je 5MB.');
       return;
     }
@@ -103,14 +68,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
     setIsUploadingPhoto(true);
 
     try {
-      // Upload to Supabase Storage
       const photoUrl = await uploadProfilePhoto(profile.id || '', file);
       
       if (photoUrl) {
         onChange({ ...profile, photo: photoUrl });
         alert('Fotka úspěšně nahrána!');
-      } else {
-        throw new Error('Failed to upload photo');
       }
     } catch (error) {
       console.error('Photo upload failed:', error);
@@ -123,654 +85,649 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
     }
   };
 
-  const removePhoto = async () => {
-    if (profile.photo) {
-      try {
-        await deleteProfilePhoto(profile.id || '', profile.photo);
-        onChange({ ...profile, photo: undefined });
-        alert('Fotka úspěšně smazána!');
-      } catch (error) {
-        console.error('Failed to delete photo:', error);
-        alert('Nepodařilo se smazat fotku. Zkuste to znovu.');
+  // CV upload handler
+  const handleCVUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (isUploadingCV) return;
+
+    if (!file.type.match(/(pdf|doc|docx)/)) {
+      alert('Prosím nahrávejte pouze PDF, DOC nebo DOCX soubory.');
+      return;
+    }
+    
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Soubor je příliš velký. Maximální velikost je 10MB.');
+      return;
+    }
+
+    setIsUploadingCV(true);
+
+    try {
+      const cvUrl = await uploadCVFile(profile.id || '', file);
+      if (cvUrl) {
+        onChange({ ...profile, cvUrl, cvText: `[Uploaded: ${file.name}]` });
+        alert('CV úspěšně nahráno!');
+      }
+    } catch (error) {
+      console.error('CV upload failed:', error);
+      alert('Nepodařilo se nahrát CV. Zkuste to znovu.');
+    } finally {
+      setIsUploadingCV(false);
+      if (cvInputRef.current) {
+        cvInputRef.current.value = '';
       }
     }
   };
 
-  const addEducation = () => {
-    const newEducation = {
-      id: Date.now().toString(),
-      school: '',
-      degree: '',
-      field: '',
-      year: ''
+  // Personal info update handlers
+  const handlePersonalInfoChange = (field: string, value: string) => {
+    const newFormData = {
+      ...formData,
+      personal: { ...formData.personal, [field]: value }
     };
-    const currentEducation = Array.isArray(profile.education) ? profile.education : [];
-    onChange({ ...profile, education: [...currentEducation, newEducation] });
+    setFormData(newFormData);
+    onChange({ ...profile, ...formData.personal, [field]: value });
   };
 
-  const updateEducation = (index: number, field: string, value: string) => {
-    const currentEducation = Array.isArray(profile.education) ? profile.education : [];
-    const updatedEducation = currentEducation.map((edu, i) => 
-      i === index ? { ...edu, [field]: value } : edu
-    );
-    onChange({ ...profile, education: updatedEducation });
-  };
-
-  const removeEducation = (index: number) => {
-    const currentEducation = Array.isArray(profile.education) ? profile.education : [];
-    const updatedEducation = currentEducation.filter((_, i) => i !== index);
-    onChange({ ...profile, education: updatedEducation });
-  };
-
-  const addSkill = () => {
-    if (newSkill.trim()) {
-      const currentSkills = Array.isArray(profile.skills) ? profile.skills : [];
-      if (!currentSkills.includes(newSkill.trim())) {
-        onChange({ ...profile, skills: [...currentSkills, newSkill.trim()] });
-        setNewSkill('');
-      }
-    }
-  };
-
-  const addWorkExperience = () => {
-    const newExperience = {
+  // Experience handlers
+  const handleAddExperience = () => {
+    const newExperience: WorkExperience = {
       id: Date.now().toString(),
       company: '',
       role: '',
       duration: '',
       description: ''
     };
-    const currentWorkHistory = Array.isArray(profile.workHistory) ? profile.workHistory : [];
-    onChange({ ...profile, workHistory: [...currentWorkHistory, newExperience] });
+    const newFormData = {
+      ...formData,
+      experience: [...formData.experience, newExperience]
+    };
+    setFormData(newFormData);
+    onChange({ ...profile, workHistory: newFormData.experience });
   };
 
-  const updateWorkExperience = (index: number, field: string, value: string) => {
-    const currentWorkHistory = Array.isArray(profile.workHistory) ? profile.workHistory : [];
-    const updatedHistory = currentWorkHistory.map((exp, i) => 
-      i === index ? { ...exp, [field]: value } : exp
+  const handleUpdateExperience = (id: string, field: keyof WorkExperience, value: string) => {
+    const updatedExperience = formData.experience.map(exp => 
+      exp.id === id ? { ...exp, [field]: value } : exp
     );
-    onChange({ ...profile, workHistory: updatedHistory });
+    const newFormData = { ...formData, experience: updatedExperience };
+    setFormData(newFormData);
+    onChange({ ...profile, workHistory: updatedExperience });
   };
 
-  const removeWorkExperience = (index: number) => {
-    const currentWorkHistory = Array.isArray(profile.workHistory) ? profile.workHistory : [];
-    const updatedHistory = currentWorkHistory.filter((_, i) => i !== index);
-    onChange({ ...profile, workHistory: updatedHistory });
+  const handleRemoveExperience = (id: string) => {
+    const updatedExperience = formData.experience.filter(exp => exp.id !== id);
+    const newFormData = { ...formData, experience: updatedExperience };
+    setFormData(newFormData);
+    onChange({ ...profile, workHistory: updatedExperience });
   };
 
-  const handleGenerateCV = async () => {
-    setIsGeneratingCV(true);
-    try {
-      const result = await generateStyledCV(profile, selectedTemplate);
-      setGeneratedCV(result);
-    } catch (error) {
-      console.error('CV generation failed:', error);
-      alert('Nepodařilo se vygenerovat CV. Zkuste to znovu.');
-    } finally {
-      setIsGeneratingCV(false);
+  // Education handlers
+  const handleAddEducation = () => {
+    const newEducation: Education = {
+      id: Date.now().toString(),
+      school: '',
+      degree: '',
+      field: '',
+      year: ''
+    };
+    const newFormData = {
+      ...formData,
+      education: [...formData.education, newEducation]
+    };
+    setFormData(newFormData);
+    onChange({ ...profile, education: newFormData.education });
+  };
+
+  const handleUpdateEducation = (id: string, field: keyof Education, value: string) => {
+    const updatedEducation = formData.education.map(edu => 
+      edu.id === id ? { ...edu, [field]: value } : edu
+    );
+    const newFormData = { ...formData, education: updatedEducation };
+    setFormData(newFormData);
+    onChange({ ...profile, education: updatedEducation });
+  };
+
+  const handleRemoveEducation = (id: string) => {
+    const updatedEducation = formData.education.filter(edu => edu.id !== id);
+    const newFormData = { ...formData, education: updatedEducation };
+    setFormData(newFormData);
+    onChange({ ...profile, education: updatedEducation });
+  };
+
+  // Skills handlers
+  const handleAddSkill = () => {
+    const newSkill = prompt('Přidejte novou dovednost:');
+    if (newSkill && newSkill.trim()) {
+      const updatedSkills = [...formData.skills, newSkill.trim()];
+      const newFormData = { ...formData, skills: updatedSkills };
+      setFormData(newFormData);
+      onChange({ ...profile, skills: updatedSkills });
     }
   };
 
-  const copyAtsResult = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setCopiedAts(true);
-    setTimeout(() => setCopiedAts(false), 2000);
+  const handleRemoveSkill = (skillToRemove: string) => {
+    const updatedSkills = formData.skills.filter(skill => skill !== skillToRemove);
+    const newFormData = { ...formData, skills: updatedSkills };
+    setFormData(newFormData);
+    onChange({ ...profile, skills: updatedSkills });
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg overflow-hidden animate-in fade-in slide-in-from-bottom-4 transition-colors duration-300">
-      
-      {/* Header Tabs */}
-      <div className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="flex">
-          <button 
-            onClick={() => setActiveTab('edit')}
-            className={`flex-1 p-4 text-sm font-bold flex items-center justify-center gap-2 border-b-2 transition-all ${activeTab === 'edit' ? 'border-cyan-500 text-slate-900 dark:text-white' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+      <div className="max-w-6xl mx-auto py-8 space-y-6">
+        {/* Header */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className="relative">
+              {profile.photo ? (
+                <img 
+                  src={profile.photo} 
+                  alt="Profile" 
+                  className="w-20 h-20 rounded-full object-cover border-2 border-cyan-500"
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center">
+                  <Camera size={32} className="text-slate-400" />
+                </div>
+              )}
+              
+              <label className="absolute bottom-0 right-0 bg-cyan-600 text-white rounded-full p-2 cursor-pointer hover:bg-cyan-700 transition-colors">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoUpload}
+                  disabled={isUploadingPhoto}
+                  className="hidden"
+                />
+                <Upload size={14} />
+              </label>
+            </div>
+            
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+                {profile.name || 'Vaše jméno'}
+              </h1>
+              <p className="text-slate-600 dark:text-slate-400">
+                {profile.jobTitle || 'Vaše pracovní pozice'}
+              </p>
+            </div>
+          </div>
+          
+          <button
+            onClick={onSave}
+            className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium flex items-center gap-2 shadow-lg"
           >
-            <User size={18} /> Profil & Data
-          </button>
-          <button 
-            onClick={() => setActiveTab('cv-gen')}
-            className={`flex-1 p-4 text-sm font-bold flex items-center justify-center gap-2 border-b-2 transition-all ${activeTab === 'cv-gen' ? 'border-cyan-500 text-slate-900 dark:text-white' : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
-          >
-            <FileOutput size={18} /> CV Generátor
+            <Save size={18} />
+            Uložit profil
           </button>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="p-8">
-        {(() => {
-          switch (activeTab) {
-            case 'edit': return (
-              <div className="space-y-8 animate-in slide-in-from-right-4">
-                 {/* Manual Entry Header */}
-                 <div className="mb-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700">
-                   <div className="flex items-center gap-3 mb-4">
-                      <Edit className="w-5 h-5 text-cyan-600" />
-                     <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                       Manuální zadání údajů
-                     </h3>
-                   </div>
-                    <p className="text-sm text-cyan-600 dark:text-cyan-400">
-                     Vyplňte své údaje ručně. Můžete také nahrát CV soubor pro doplnění informací.
-                   </p>
-                 </div>
+      {/* Personal Information Section */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                <User className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+              </div>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Osobní údaje</h2>
+            </div>
+            <button
+              onClick={() => setEditingSection(editingSection === 'personal' ? null : 'personal')}
+              className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
+            >
+              <Edit size={16} />
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Celé jméno</label>
+              <input
+                type="text"
+                value={formData.personal.name}
+                onChange={(e) => handlePersonalInfoChange('name', e.target.value)}
+                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Pracovní pozice</label>
+              <input
+                type="text"
+                value={formData.personal.jobTitle}
+                onChange={(e) => handlePersonalInfoChange('jobTitle', e.target.value)}
+                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+              />
+            </div>
+          </div>
 
-                 {/* Manual Entry Section */}
-                 <div className="space-y-6 animate-in slide-in-from-top-2">
-                   {/* Personal Photo and Information Section */}
-                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                     {/* Personal Photo Section */}
-                     <div className="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                       <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-                         <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                            <Camera className="w-5 h-5 text-cyan-600" />
-                           Profilová fotka
-                         </h3>
-                       </div>
-                       <div className="p-6">
-                         <div className="flex items-center gap-6">
-                           {/* Photo Preview */}
-                           <div className="relative">
-                             {profile.photo ? (
-                               <div className="relative group">
-                                 <img
-                                   src={profile.photo}
-                                   alt="Profilová fotka"
-                                   className="w-24 h-24 rounded-full object-cover border-4 border-slate-200 dark:border-slate-700"
-                                 />
-                                 <button
-                                   onClick={removePhoto}
-                                   className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 hover:bg-red-600 text-white rounded-full flex items-center justify-center transition-colors shadow-lg"
-                                 >
-                                   <X className="w-3 h-3" />
-                                 </button>
-                               </div>
-                             ) : (
-                               <div className="w-24 h-24 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center border-4 border-slate-200 dark:border-slate-700">
-                                 <Camera className="w-8 h-8 text-slate-400 dark:text-slate-500" />
-                               </div>
-                             )}
-                           </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email</label>
+              <input
+                type="email"
+                value={formData.personal.email}
+                onChange={(e) => handlePersonalInfoChange('email', e.target.value)}
+                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Telefon</label>
+              <input
+                type="tel"
+                value={formData.personal.phone}
+                onChange={(e) => handlePersonalInfoChange('phone', e.target.value)}
+                className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+              />
+            </div>
+          </div>
 
-                           {/* Upload Controls */}
-                           <div className="flex-1">
-                             <input
-                               ref={photoInputRef}
-                               type="file"
-                               accept="image/*"
-                               onChange={handlePhotoUpload}
-                               className="hidden"
-                             />
-                             
-                             <button
-                               onClick={() => photoInputRef.current?.click()}
-                               disabled={isUploadingPhoto}
-                                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                             >
-                               {isUploadingPhoto ? 'Nahrávám...' : profile.photo ? 'Změnit fotku' : 'Nahrát fotku'}
-                             </button>
-                             
-                             <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                               Formát: JPG, PNG. Maximální velikost: 5MB
-                             </p>
-                           </div>
-                         </div>
-                       </div>
-                     </div>
+          <div className="mt-6">
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Adresa</label>
+            <input
+              type="text"
+              value={formData.personal.address}
+              onChange={(e) => handlePersonalInfoChange('address', e.target.value)}
+              className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+              placeholder="Ulice, město, PSČ"
+            />
+          </div>
 
-                     {/* Personal Information */}
-                     <div className="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                       <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-                         <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                            <User className="w-5 h-5 text-cyan-600" />
-                           Osobní údaje
-                         </h3>
-                       </div>
-                       <div className="p-6 space-y-4">
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           <div>
-                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                               Jméno
-                             </label>
-                             <input
-                               type="text"
-                               value={profile.name || ''}
-                               onChange={(e) => onChange({...profile, name: e.target.value})}
-                                className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                                placeholder="Jméno Příjmení"
-                              />
-                            </div>
-                            
-                            <div>
-                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                E-mail
-                              </label>
-                              <input
-                                type="email"
-                                value={profile.email || ''}
-                                onChange={(e) => onChange({...profile, email: e.target.value})}
-                                className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                               placeholder="email@priklad.cz"
-                             />
-                           </div>
-                         </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">LinkedIn</label>
+              <div className="relative">
+                <Link className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <input
+                  type="url"
+                  value={formData.personal.linkedIn}
+                  onChange={(e) => handlePersonalInfoChange('linkedIn', e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                  placeholder="linkedin.com/in/jmeno-prijmeni"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Portfolio</label>
+              <div className="relative">
+                <ExternalLink className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <input
+                  type="url"
+                  value={formData.personal.portfolio}
+                  onChange={(e) => handlePersonalInfoChange('portfolio', e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                  placeholder="vasewebova.cz"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">GitHub</label>
+              <div className="relative">
+                <Link className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                <input
+                  type="url"
+                  value={formData.personal.github}
+                  onChange={(e) => handlePersonalInfoChange('github', e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                  placeholder="github.com/jmeno"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                           <div>
-                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                               Telefon
-                             </label>
-                             <input
-                               type="tel"
-                               value={profile.phone || ''}
-                               onChange={(e) => onChange({...profile, phone: e.target.value})}
-                                className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                               placeholder="+420 123 456 789"
-                             />
-                           </div>
-                           
-                           <div>
-                             <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                               Pracovní pozice
-                             </label>
-                             <input
-                               type="text"
-                               value={profile.jobTitle || ''}
-                               onChange={(e) => onChange({...profile, jobTitle: e.target.value})}
-                                className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                               placeholder="Senior Developer"
-                             />
-                           </div>
-                         </div>
-
-                         <div>
-                           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                             Adresa
-                           </label>
-                           <input
-                             type="text"
-                             value={profile.address || ''}
-                             onChange={(e) => onChange({...profile, address: e.target.value})}
-                             className="w-full px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                             placeholder="Ulice 123, 123 45 Město"
-                           />
-                         </div>
-                       </div>
-                     </div>
-                   </div>
-
-                   {/* CV Upload Section */}
-                   <div className="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                     <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-                       <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                          <Upload className="w-5 h-5 text-cyan-600" />
-                         Nahrání CV (volitelné)
-                       </h3>
-                     </div>
-                     <div className="p-6">
-                       <input
-                         ref={fileInputRef}
-                         type="file"
-                         accept=".pdf,.doc,.docx"
-                         onChange={handleFileUpload}
-                         className="hidden"
-                       />
-                       
-                       <button
-                         onClick={() => fileInputRef.current?.click()}
-                         disabled={isUploading}
-                         className={`w-full px-6 py-4 rounded-lg border-2 border-dashed transition-all ${
-                            uploadedFile 
-                              ? 'border-cyan-600 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300' 
-                              : 'border-slate-300 dark:border-slate-600 hover:border-cyan-400 text-slate-600 dark:text-slate-400'
-                         } ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                       >
-                         <Upload className="w-5 h-5 mr-2 inline" />
-                         {isUploading 
-                           ? 'Nahrávám...' 
-                           : uploadedFile 
-                             ? `Nahráno: ${uploadedFile.name}` 
-                             : 'Klikněte pro nahrání CV (PDF, DOC, DOCX)'
-                         }
-                       </button>
-                     </div>
-                   </div>
-
-                  {/* Work Experience Section */}
-                  <div className="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                    <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                        <Briefcase className="w-5 h-5 text-cyan-600" />
-                        Pracovní zkušenosti
-                      </h3>
-                       <button
-                         onClick={addWorkExperience}
-                         className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                       >
-                        <Plus className="w-4 h-4" />
-                        Přidat zkušenost
-                      </button>
-                    </div>
-                    <div className="p-6 space-y-4">
-                      {Array.isArray(profile.workHistory) && profile.workHistory.length > 0 ? (
-                        profile.workHistory.map((exp, index) => (
-                          <div key={exp.id || index} className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                  Společnost
-                                </label>
-                                <input
-                                  type="text"
-                                  value={exp.company || ''}
-                                  onChange={(e) => updateWorkExperience(index, 'company', e.target.value)}
-                                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                                  placeholder="Název společnosti"
-                                />
-                              </div>
-                              
-                              <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                  Pozice
-                                </label>
-                                <input
-                                  type="text"
-                                  value={exp.role || ''}
-                                  onChange={(e) => updateWorkExperience(index, 'role', e.target.value)}
-                                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                                  placeholder="Vaše pozice"
-                                />
-                              </div>
-                              
-                              <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                  Doba trvání
-                                </label>
-                                <input
-                                  type="text"
-                                  value={exp.duration || ''}
-                                  onChange={(e) => updateWorkExperience(index, 'duration', e.target.value)}
-                                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                                  placeholder="2020 - 2023"
-                                />
-                              </div>
-                              
-                              <div className="flex items-end">
-                                <button
-                                  onClick={() => removeWorkExperience(index)}
-                                  className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                  Odstranit
-                                </button>
-                              </div>
-                            </div>
-                            
-                            <div className="mt-4">
-                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                Popis práce
-                              </label>
-                              <textarea
-                                value={exp.description || ''}
-                                onChange={(e) => updateWorkExperience(index, 'description', e.target.value)}
-                                className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm resize-none h-20"
-                                placeholder="Popis vašich hlavních povinností a úspěchů..."
-                              />
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                          <Briefcase className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                          <p>Zatím nemáte přidané žádné pracovní zkušenosti.</p>
-                          <p className="text-sm">Klikněte na "Přidat zkušenost" pro začátek.</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Education Section */}
-                  <div className="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                    <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-                      <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                        <GraduationCap className="w-5 h-5 text-cyan-600" />
-                        Vzdělání
-                      </h3>
-                       <button
-                         onClick={addEducation}
-                         className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                       >
-                        <Plus className="w-4 h-4" />
-                        Přidat vzdělání
-                      </button>
-                    </div>
-                    <div className="p-6 space-y-4">
-                      {Array.isArray(profile.education) && profile.education.length > 0 ? (
-                        profile.education.map((edu, index) => (
-                          <div key={edu.id || index} className="p-4 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                  Škola
-                                </label>
-                                <input
-                                  type="text"
-                                  value={edu.school || ''}
-                                  onChange={(e) => updateEducation(index, 'school', e.target.value)}
-                                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                                  placeholder="Název školy"
-                                />
-                              </div>
-                              
-                              <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                  Stupeň vzdělání
-                                </label>
-                                <select
-                                  value={edu.degree || ''}
-                                  onChange={(e) => updateEducation(index, 'degree', e.target.value)}
-                                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                                >
-                                  <option value="">Vyberte stupeň</option>
-                                  <option value="Středoškolské">Středoškolské</option>
-                                  <option value="Vyšší odborné">Vyšší odborné</option>
-                                  <option value="Vysokoškolské bakalářské">Vysokoškolské bakalářské</option>
-                                  <option value="Vysokoškolské magisterské">Vysokoškolské magisterské</option>
-                                  <option value="Vysokoškolské doktorské">Vysokoškolské doktorské</option>
-                                </select>
-                              </div>
-                              
-                              <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                  Obor
-                                </label>
-                                <input
-                                  type="text"
-                                  value={edu.field || ''}
-                                  onChange={(e) => updateEducation(index, 'field', e.target.value)}
-                                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                                  placeholder="Název oboru"
-                                />
-                              </div>
-                              
-                              <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                                  Rok ukončení
-                                </label>
-                                <input
-                                  type="text"
-                                  value={edu.year || ''}
-                                  onChange={(e) => updateEducation(index, 'year', e.target.value)}
-                                  className="w-full px-3 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm"
-                                  placeholder="2023"
-                                />
-                              </div>
-                              
-                              <div className="flex items-end">
-                                <button
-                                  onClick={() => removeEducation(index)}
-                                  className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                  Odstranit
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                          <GraduationCap className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                          <p>Zatím nemáte přidané žádné vzdělání.</p>
-                          <p className="text-sm">Klikněte na "Přidat vzdělání" pro začátek.</p>
-                        </div>
-                      )}
-                    </div>
-                   </div>
-
-                   {/* Skills Section */}
-                   <div className="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                     <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-                       <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                          <BrainCircuit className="w-5 h-5 text-cyan-600" />
-                         Dovednosti
-                       </h3>
-                     </div>
-                     <div className="p-6">
-                       <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                         Vaše dovednosti
-                       </label>
-                       <div className="space-y-3">
-                         <div className="flex flex-wrap gap-2 mb-3">
-                           {Array.isArray(profile.skills) ? profile.skills.map((skill, index) => (
-                             <span 
-                               key={index}
-                                className="inline-flex items-center gap-1 px-3 py-1 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 rounded-full text-sm"
-                             >
-                               {skill}
-                               <button
-                                 onClick={() => {
-                                   const newSkills = [...profile.skills!];
-                                   newSkills.splice(index, 1);
-                                   onChange({...profile, skills: newSkills});
-                                 }}
-                                  className="hover:text-cyan-900 dark:hover:text-cyan-100"
-                               >
-                                 ×
-                               </button>
-                             </span>
-                           )) : null}
-                         </div>
-                         <div className="flex gap-2">
-                           <input
-                             type="text"
-                             value={newSkill}
-                             onChange={(e) => setNewSkill(e.target.value)}
-                             onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addSkill())}
-                              className="flex-1 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent"
-                             placeholder="Přidejte dovednost (např. JavaScript)"
-                           />
-                           <button
-                             onClick={addSkill}
-                              className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg transition-colors"
-                           >
-                             <Plus className="w-4 h-4" />
-                           </button>
-                         </div>
-                       </div>
-                     </div>
-                   </div>
-
-                     {/* CV Text Section */}
-                    <div className="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-                      <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-                        <h3 className="text-lg font-semibold text-slate-900 dark:text-white flex items-center gap-2">
-                          <FileText className="w-5 h-5 text-cyan-600" />
-                          Text životopisu
-                        </h3>
-                      </div>
-                      <div className="p-6">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                          Plný text vašeho životopisu (volitelné)
-                        </label>
-                        <textarea
-                          value={profile.cvText || ''}
-                          onChange={(e) => onChange({...profile, cvText: e.target.value})}
-                          className="w-full px-4 py-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg text-slate-900 dark:text-white placeholder-slate-500 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none h-40"
-                          placeholder="Vložte sem plný text vašeho životopisu, nebo jej nahoře nahrajte jako soubor..."
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                {/* Save Button */}
-                <div className="flex justify-end">
-                  <button 
-                    onClick={onSave}
-                    className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-lg shadow-md transition-colors"
+      {/* CV Upload Section */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+              <FileText className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+            </div>
+            <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Životopis (CV)</h2>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          <input
+            ref={cvInputRef}
+            type="file"
+            accept=".pdf,.doc,.docx"
+            onChange={handleCVUpload}
+            className="hidden"
+          />
+          
+          <div className={`w-full p-8 border-2 border-dashed rounded-lg transition-colors ${
+            profile.cvUrl ? 'border-cyan-600 bg-cyan-50 dark:bg-cyan-900/20' : 'border-slate-300 hover:border-cyan-400'
+          }`}>
+            <div className="text-center">
+              <FileText className={`w-12 h-12 mx-auto mb-4 ${profile.cvUrl ? 'text-cyan-600' : 'text-slate-400'}`} />
+              
+              {profile.cvUrl ? (
+                <div>
+                  <p className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                    CV nahráno
+                  </p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                    {profile.cvText || 'CV soubor je k dispozici pro analýzu'}
+                  </p>
+                  <button
+                    onClick={() => cvInputRef.current?.click()}
+                    disabled={isUploadingCV}
+                    className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors text-sm"
                   >
-                    Uložit změny
+                    Nahradit CV
                   </button>
                 </div>
+              ) : (
+                <div>
+                  <p className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                    Nahrajte své CV
+                  </p>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                    Nahrajte PDF, DOC nebo DOCX soubor (max. 10MB) pro automatickou analýzu dovedností a zkušeností
+                  </p>
+                  <button
+                    onClick={() => cvInputRef.current?.click()}
+                    disabled={isUploadingCV}
+                    className={`px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium ${
+                      isUploadingCV ? 'opacity-50 cursor-not-allowed' : ''
+                    }`}
+                  >
+                    {isUploadingCV ? 'Nahrávám...' : 'Vybrat soubor CV'}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {profile.cvUrl && (
+            <div className="mt-4 p-4 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg">
+              <h4 className="font-medium text-cyan-900 dark:text-cyan-100 mb-2">Automatická analýza CV</h4>
+              <p className="text-sm text-cyan-700 dark:text-cyan-300">
+                Vaše CV bude automaticky zpracováno pro extrakci dovedností, zkušeností a vzdělání. Tato data nám pomohou lépe porovnat váš profil s požadavky pracovních pozic.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Work Experience Section */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                <Briefcase className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
               </div>
-            );
-
-            case 'cv-gen': return (
-              <div className="animate-in slide-in-from-right-4 space-y-8">
-                {/* CV Generator Content */}
-                <div className="text-center mb-6">
-                  <h3 className="text-xl font-bold text-slate-900 dark:text-white">Generátor Životopisu</h3>
-                  <p className="text-slate-500 dark:text-slate-400">Vyberte šablonu a JobShaman vytvoří profesionální CV z vašeho profilu.</p>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Pracovní zkušenosti</h2>
+            </div>
+            <button
+              onClick={handleAddExperience}
+              className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-6 space-y-4">
+          {formData.experience.length === 0 ? (
+            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+              <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Zatím nemáte žádné pracovní zkušenosti</p>
+              <button
+                onClick={handleAddExperience}
+                className="mt-4 text-cyan-600 hover:text-cyan-700 font-medium"
+              >
+                Přidat první zkušenost
+              </button>
+            </div>
+          ) : (
+            formData.experience.map((experience) => (
+              <div key={experience.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-slate-900 dark:text-white">
+                    {experience.role || 'Nová pozice'} {experience.company && `@ ${experience.company}`}
+                  </h3>
+                  <button
+                    onClick={() => handleRemoveExperience(experience.id)}
+                    className="text-red-500 hover:text-red-600 transition-colors"
+                    title="Smazat"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                 </div>
-
-                {/* Templates Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {CV_TEMPLATES.map(t => (
-                    <div 
-                      key={t.id}
-                      onClick={() => setSelectedTemplate(t.id)}
-                      className={`p-4 rounded-xl border cursor-pointer transition-all ${selectedTemplate === t.id ? 'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-500 ring-1 ring-cyan-500' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-cyan-300'}`}
-                    >
-                      <span className="font-bold text-slate-900 dark:text-white">{t.name}</span>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{t.desc}</p>
-                    </div>
-                  ))}
-                </div>
-
-                <button 
-                  onClick={handleGenerateCV}
-                  disabled={isGeneratingCV}
-                  className="w-full py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-cyan-900/20 flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {isGeneratingCV ? <Sparkles className="animate-spin" /> : <Sparkles />}
-                  {isGeneratingCV ? 'Generuji...' : 'Vygenerovat CV'}
-                </button>
-
-                {/* Generated Result */}
-                {generatedCV && (
-                  <div className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden shadow-xl animate-in zoom-in-95">
-                    <div className="p-4 bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
-                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">Náhled (Markdown)</span>
-                      <button 
-                        onClick={() => copyAtsResult(generatedCV)}
-                        className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
-                      >
-                        <Copy size={14} /> {copiedAts ? 'Zkopírováno!' : 'Zkopírovat Text'}
-                      </button>
-                    </div>
-                    <div className="p-8 prose prose-slate dark:prose-invert max-w-none text-sm leading-relaxed overflow-auto max-h-[600px] custom-scrollbar bg-white dark:bg-slate-950">
-                      <Markdown>{generatedCV}</Markdown>
-                    </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Společnost</label>
+                    <input
+                      type="text"
+                      value={experience.company}
+                      onChange={(e) => handleUpdateExperience(experience.id, 'company', e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                      placeholder="Název společnosti"
+                    />
                   </div>
-                )}
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Pozice</label>
+                    <input
+                      type="text"
+                      value={experience.role}
+                      onChange={(e) => handleUpdateExperience(experience.id, 'role', e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                      placeholder="Název pozice"
+                    />
+                  </div>
+                </div>
+                
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Doba působení</label>
+                  <input
+                    type="text"
+                    value={experience.duration}
+                    onChange={(e) => handleUpdateExperience(experience.id, 'duration', e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                    placeholder="např. 2020 - 2022 (2 roky)"
+                  />
+                </div>
+                
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Popis práce a úspěchy</label>
+                  <textarea
+                    value={experience.description}
+                    onChange={(e) => handleUpdateExperience(experience.id, 'description', e.target.value)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                    rows={3}
+                    placeholder="Popište své hlavní odpovědnosti a úspěchy..."
+                  />
+                </div>
               </div>
-            );
+            ))
+          )}
+        </div>
+      </div>
 
-            default: return null;
-          }
-        })()}
+      {/* Education Section */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                <GraduationCap className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+              </div>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Vzdělání</h2>
+            </div>
+            <button
+              onClick={handleAddEducation}
+              className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-6 space-y-4">
+          {formData.education.length === 0 ? (
+            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+              <GraduationCap className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Zatím nemáte žádné vzdělání</p>
+              <button
+                onClick={handleAddEducation}
+                className="mt-4 text-cyan-600 hover:text-cyan-700 font-medium"
+              >
+                Přidat první vzdělání
+              </button>
+            </div>
+          ) : (
+            formData.education.map((edu) => (
+              <div key={edu.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="font-semibold text-slate-900 dark:text-white">
+                    {edu.degree || 'Nové vzdělání'} {edu.school && `@ ${edu.school}`}
+                  </h3>
+                  <button
+                    onClick={() => handleRemoveEducation(edu.id)}
+                    className="text-red-500 hover:text-red-600 transition-colors"
+                    title="Smazat"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Škola / Univerzita</label>
+                    <input
+                      type="text"
+                      value={edu.school}
+                      onChange={(e) => handleUpdateEducation(edu.id, 'school', e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                      placeholder="Název instituce"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Stupeň / Titul</label>
+                    <input
+                      type="text"
+                      value={edu.degree}
+                      onChange={(e) => handleUpdateEducation(edu.id, 'degree', e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                      placeholder="např. Ing., Bc., Mgr."
+                    />
+                  </div>
+                </div>
+                
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Obor</label>
+                    <input
+                      type="text"
+                      value={edu.field}
+                      onChange={(e) => handleUpdateEducation(edu.id, 'field', e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                      placeholder="např. Informační technologie"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Rok ukončení</label>
+                    <input
+                      type="text"
+                      value={edu.year}
+                      onChange={(e) => handleUpdateEducation(edu.id, 'year', e.target.value)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                      placeholder="např. 2020"
+                    />
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Skills Section */}
+      <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                <Award className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+              </div>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Dovednosti</h2>
+              <span className="bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-sm px-2 py-1 rounded-full">
+                {formData.skills.length} dovedností
+              </span>
+            </div>
+            <button
+              onClick={handleAddSkill}
+              className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
+        </div>
+        
+        <div className="p-6">
+          {formData.skills.length === 0 ? (
+            <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+              <Award className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>Zatím nemáte žádné dovednosti</p>
+              <p className="text-sm mt-2 mb-4">Dovednosti jsou klíčové pro porovnání s požadavky pracovních pozic</p>
+              <button
+                onClick={handleAddSkill}
+                className="text-cyan-600 hover:text-cyan-700 font-medium"
+              >
+                Přidat první dovednost
+              </button>
+            </div>
+          ) : (
+            <div>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {formData.skills.map((skill, index) => (
+                  <div key={index} className="group relative">
+                    <span className="inline-flex items-center px-3 py-1 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-300 text-sm rounded-full border border-cyan-200 dark:border-cyan-700">
+                      {skill}
+                      <button
+                        onClick={() => handleRemoveSkill(skill)}
+                        className="ml-2 text-cyan-600 hover:text-red-500 transition-colors"
+                        title="Smazat"
+                      >
+                        <X size={14} />
+                      </button>
+                    </span>
+                  </div>
+                ))}
+              </div>
+              
+              <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4">
+                <h4 className="font-medium text-cyan-900 dark:text-cyan-100 mb-2">Proč jsou dovednosti důležité?</h4>
+                <ul className="text-sm text-cyan-700 dark:text-cyan-300 space-y-1">
+                  <li>• Umožňují automatické porovnání s požadavky pracovních pozic</li>
+                  <li>• Pomáhají doporučit relevantní kurzy pro váš rozvoj</li>
+                  <li>• Zvyšují vaši viditelnost pro personalisty</li>
+                  <li>• Umožňují personalizovaná doporučení</li>
+                </ul>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
       </div>
     </div>
   );

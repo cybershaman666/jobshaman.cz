@@ -150,9 +150,9 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
 
   if (isLoading) {
     return (
-      <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-700">
+      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
         <div className="flex items-center justify-center h-32">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-500"></div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-500"></div>
         </div>
       </div>
     );
@@ -161,18 +161,18 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
   // Show placeholder for non-logged in users
   if (!userProfile.isLoggedIn) {
     return (
-      <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-700">
+      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
         <div className="text-center space-y-6">
           {/* Header */}
           <div className="flex items-center justify-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl">
-              <Sparkles className="w-8 h-8 text-white" />
+            <div className="p-3 bg-gradient-to-br slate-100 dark:bg-slate-800 rounded-xl">
+              <Sparkles className="w-8 h-8 text-slate-600 dark:text-slate-400" />
             </div>
             <div className="text-left">
-              <h3 className="text-xl font-bold bg-gradient-to-r from-purple-900 to-violet-900 bg-clip-text text-transparent">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                 Přestaňte jen snít o lepší práci
               </h3>
-              <p className="text-sm text-purple-700 dark:text-purple-300">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 Získejte konkurenční výhodu s kurzy šitými na míru
               </p>
             </div>
@@ -180,25 +180,25 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
 
           {/* Benefits */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-purple-100 dark:border-purple-700">
-              <Target className="w-6 h-6 text-purple-600 dark:text-purple-400 mb-2" />
-              <h4 className="font-semibold text-slate-900 dark:text-white mb-1">Cílený rozvoj</h4>
+            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+              <Target className="w-6 h-6 text-slate-600 dark:text-slate-400 mb-2" />
+              <h4 className="font-semibold text-slate-900 dark:text-slate-600 dark:text-slate-400 mb-1">Cílený rozvoj</h4>
               <p className="text-xs text-slate-600 dark:text-slate-300">Kurzy na míru podle vašeho CV a požadavků trhu</p>
             </div>
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-purple-100 dark:border-purple-700">
-              <TrendingUp className="w-6 h-6 text-purple-600 dark:text-purple-400 mb-2" />
-              <h4 className="font-semibold text-slate-900 dark:text-white mb-1">Kariérní růst</h4>
+            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+              <TrendingUp className="w-6 h-6 text-slate-600 dark:text-slate-400 mb-2" />
+              <h4 className="font-semibold text-slate-900 dark:text-slate-600 dark:text-slate-400 mb-1">Kariérní růst</h4>
               <p className="text-xs text-slate-600 dark:text-slate-300">Zvyšte si mzdu až o 40% novými dovednostmi</p>
             </div>
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-purple-100 dark:border-purple-700">
-              <Users className="w-6 h-6 text-purple-600 dark:text-purple-400 mb-2" />
-              <h4 className="font-semibold text-slate-900 dark:text-white mb-1">Ověřeno zaměstnavateli</h4>
+            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-slate-200 dark:border-slate-700">
+              <Users className="w-6 h-6 text-slate-600 dark:text-slate-400 mb-2" />
+              <h4 className="font-semibold text-slate-900 dark:text-slate-600 dark:text-slate-400 mb-1">Ověřeno zaměstnavateli</h4>
               <p className="text-xs text-slate-600 dark:text-slate-300">Certifikace, které skutečně hledají</p>
             </div>
           </div>
 
       {/* Government Funding Info */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl p-6 text-white">
+      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl p-6 text-slate-600 dark:text-slate-400">
         <h4 className="text-lg font-bold mb-2 flex items-center gap-2">
           <CheckCircle className="w-5 h-5" />
           Rekvalifikační kurzy od Úřadu práce
@@ -227,7 +227,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
       </div>
 
       {/* CTA */}
-      <div className="bg-gradient-to-r from-purple-600 to-violet-600 rounded-xl p-6 text-white">
+      <div className="bg-gradient-to-r slate-600 rounded-xl p-6 text-slate-600 dark:text-slate-400">
         <h4 className="text-lg font-bold mb-2">Přihlaste se a vyplňte své CV</h4>
         <p className="text-sm opacity-90 mb-4">
           Získáte personalizovanou analýzu dovednostních mezer a doporučení na kurzy, 
@@ -245,7 +245,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
 
   if (error) {
     return (
-      <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-700">
+      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
         <div className="flex items-center gap-3 text-red-600">
           <AlertCircle className="w-5 h-5" />
           <span className="text-sm">Došlo k chybě při načítání analýzy dovedností</span>
@@ -276,17 +276,17 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
   // Handle logged in users without CV or skills analysis
   if (userProfile.isLoggedIn && (!userProfile.hasCV || !skillsGapAnalysis)) {
     return (
-      <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-700">
+      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
         <div className="text-center space-y-6">
           <div className="flex items-center justify-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl">
-              <Sparkles className="w-8 h-8 text-white" />
+            <div className="p-3 bg-gradient-to-br slate-100 dark:bg-slate-800 rounded-xl">
+              <Sparkles className="w-8 h-8 text-slate-600 dark:text-slate-400" />
             </div>
             <div className="text-left">
-              <h3 className="text-xl font-bold bg-gradient-to-r from-purple-900 to-violet-900 bg-clip-text text-transparent">
+              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
                 {!userProfile.hasCV ? "Doplňte své CV" : "Probíhá analýza"}
               </h3>
-              <p className="text-sm text-purple-700 dark:text-purple-300">
+              <p className="text-sm text-slate-600 dark:text-slate-300">
                 {!userProfile.hasCV 
                   ? "Pro získání personalizovaných doporučení kurzy vyplňte své CV"
                   : "Analyzujeme vaše dovednosti a připravujeme doporučení"
@@ -299,7 +299,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
           <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
             <div className="flex items-center gap-2">
               <div className="p-1 bg-amber-500 rounded-full">
-                <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+                <svg className="w-4 h-4 text-slate-600 dark:text-slate-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
               </div>
@@ -316,7 +316,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                 // This would navigate to profile/CV editor
                 alert("Přesměrování na editor CV...");
               }}
-              className="px-6 py-3 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white font-medium rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2"
+              className="px-6 py-3 bg-gradient-to-r slate-600 hover:slate-700 text-slate-600 dark:text-slate-400 font-medium rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2"
             >
               {!userProfile.hasCV ? "Doplňit CV" : "Zobrazit marketplace"}
               <ChevronRight className="w-4 h-4" />
@@ -330,19 +330,19 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
   const { recommended_resources = [], match_percentage = 0, missing_skills = [] } = skillsGapAnalysis || {};
 
   return (
-    <div className="bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-900/20 dark:to-violet-900/20 rounded-xl p-6 border border-purple-200 dark:border-purple-700">
+      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
       
       {/* Header with Tabs */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-gradient-to-br from-purple-500 to-violet-600 rounded-lg">
-            <TrendingUp className="w-6 h-6 text-white" />
+          <div className="p-2 bg-gradient-to-br slate-100 dark:bg-slate-800 rounded-lg">
+            <TrendingUp className="w-6 h-6 text-slate-600 dark:text-slate-400" />
           </div>
           <div className="flex-1">
-            <h3 className="text-xl font-bold bg-gradient-to-r from-purple-900 to-violet-900 bg-clip-text text-transparent">
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white">
               Investujte do své kariéry
             </h3>
-            <p className="text-sm text-purple-700 dark:text-purple-300">
+            <p className="text-sm text-slate-600 dark:text-slate-300">
               {match_percentage}% shoda • Zvyšte si konkurenceschopnost
             </p>
           </div>
@@ -352,7 +352,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
         <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
           <div className="flex items-center gap-2">
             <div className="p-1 bg-amber-500 rounded-full">
-              <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
+              <svg className="w-4 h-4 text-slate-600 dark:text-slate-400" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
             </div>
@@ -364,13 +364,13 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex gap-2 p-1 bg-white/60 dark:bg-slate-800/60 backdrop-blur rounded-lg border border-purple-100 dark:border-purple-700">
+        <div className="flex gap-2 p-1 bg-white/60 dark:bg-slate-800/60 backdrop-blur rounded-lg border border-slate-200 dark:border-slate-700">
           <button
             onClick={() => setSelectedTab('courses')}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
               selectedTab === 'courses'
-                ? 'bg-gradient-to-r from-purple-500 to-violet-600 text-white shadow-md'
-                : 'text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30'
+                ? 'bg-gradient-to-r slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 shadow-md'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/30'
             }`}
           >
             <BookOpen className="w-4 h-4" />
@@ -380,8 +380,8 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
             onClick={() => setSelectedTab('marketplace')}
             className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
               selectedTab === 'marketplace'
-                ? 'bg-gradient-to-r from-purple-500 to-violet-600 text-white shadow-md'
-                : 'text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30'
+                ? 'bg-gradient-to-r slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 shadow-md'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/30'
             }`}
           >
             <ShoppingBag className="w-4 h-4" />
@@ -391,9 +391,9 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
       </div>
 
       {/* Skills Gap Overview */}
-      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-purple-100 dark:border-purple-700 mb-6">
-        <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-          <Target className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+      <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-slate-200 dark:border-slate-700 mb-6">
+        <h4 className="text-sm font-bold text-slate-900 dark:text-slate-600 dark:text-slate-400 mb-3 flex items-center gap-2">
+          <Target className="w-4 h-4 text-slate-600 dark:text-slate-400" />
           Chybějící dovednosti ({missing_skills.length})
         </h4>
         <div className="flex flex-wrap gap-2">
@@ -412,8 +412,8 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
       <div className="space-y-4">
         {selectedTab === 'courses' && recommended_resources.length > 0 && (
           <>
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+              <h4 className="text-sm font-bold text-slate-900 dark:text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                 Kurzy pro váš růst
               </h4>
             
@@ -421,11 +421,11 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
               {recommended_resources.map((resource: LearningResource) => (
                 <div
                   key={resource.id}
-                  className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-cyan-100 dark:border-cyan-700 hover:border-cyan-300 dark:hover:border-cyan-600 transition-all hover:shadow-lg"
+                  className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all hover:shadow-lg"
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
-                      <h5 className="font-semibold text-slate-900 dark:text-white mb-1">
+                      <h5 className="font-semibold text-slate-900 dark:text-slate-600 dark:text-slate-400 mb-1">
                         {resource.title}
                       </h5>
                       <p className="text-sm text-slate-600 dark:text-slate-300 mb-2 line-clamp-2">
@@ -446,7 +446,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                     </div>
                     
                     <div className="ml-4 text-right">
-                      <div className="text-lg font-bold text-cyan-600 dark:text-cyan-400">
+                      <div className="text-lg font-bold text-slate-600 dark:text-slate-400">
                         {formatPrice(resource.price, resource.currency)}
                       </div>
                       <div className={`inline-block px-2 py-1 rounded text-xs font-medium ${getDifficultyColor(resource.difficulty)}`}>
@@ -460,7 +460,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                     {resource.skill_tags.slice(0, 3).map((tag: string, index: number) => (
                       <span
                         key={index}
-                        className="px-2 py-1 bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400 rounded text-xs"
+                        className="px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 rounded text-xs"
                       >
                         {tag}
                       </span>
@@ -476,7 +476,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                   <div className="mt-3 flex justify-end">
                     <button
                       onClick={() => onResourceClick?.(resource)}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white text-sm font-medium rounded-lg transition-all shadow-md hover:shadow-lg"
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r slate-600 hover:slate-700 text-slate-600 dark:text-slate-400 text-sm font-medium rounded-lg transition-all shadow-md hover:shadow-lg"
                     >
                       Zobrazit kurz
                       <ChevronRight className="w-3 h-3" />
@@ -490,8 +490,8 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
 
         {selectedTab === 'marketplace' && (
           <>
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+              <h4 className="text-sm font-bold text-slate-900 dark:text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                <ShoppingBag className="w-4 h-4 text-slate-600 dark:text-slate-400" />
                 Kurzy od prověřených poskytovatelů
               </h4>
             
@@ -499,17 +499,17 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
               {marketplaceCourses.map((course) => (
                 <div
                   key={course.id}
-                  className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-cyan-100 dark:border-cyan-700 hover:border-cyan-300 dark:hover:border-cyan-600 transition-all hover:shadow-lg"
+                  className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 transition-all hover:shadow-lg"
                 >
                   <div className="flex items-start gap-4">
                     {/* Course Info */}
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <h5 className="font-semibold text-slate-900 dark:text-white">
+                        <h5 className="font-semibold text-slate-900 dark:text-slate-600 dark:text-slate-400">
                           {course.title}
                         </h5>
                         {course.isPremium && (
-                          <span className="px-2 py-1 bg-gradient-to-r from-amber-400 to-orange-400 text-white text-xs font-bold rounded-full">
+                          <span className="px-2 py-1 bg-gradient-to-r from-amber-400 to-orange-400 text-slate-600 dark:text-slate-400 text-xs font-bold rounded-full">
                             PREMIUM
                           </span>
                         )}
@@ -522,7 +522,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                       {/* Course Features */}
                     <div className="flex flex-wrap gap-2 mb-3">
                       {course.is_government_funded && (
-                        <span className="px-2 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-sm">
+                        <span className="px-2 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-600 dark:text-slate-400 text-xs font-bold rounded-full flex items-center gap-1 shadow-sm">
                           <CheckCircle className="w-3 h-3" />
                           Hrazeno Úřadem práce
                           {course.funding_amount_czk && (
@@ -544,7 +544,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                         </span>
                       )}
                       {course.company_sponsored && (
-                          <span className="px-2 py-1 bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400 rounded text-xs font-medium">
+                          <span className="px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 rounded text-xs font-medium">
                             Firemní sponsoring
                           </span>
                       )}
@@ -591,7 +591,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                             </div>
                           </>
                         ) : (
-                            <div className="text-2xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+                            <div className="text-2xl font-bold bg-gradient-to-r slate-600 bg-clip-text text-transparent">
                               {formatPrice(course.price, course.currency)}
                             </div>
                         )}
@@ -607,7 +607,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                     {course.skill_tags.map((tag: string, index: number) => (
                       <span
                         key={index}
-                        className="px-2 py-1 bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400 rounded text-xs"
+                        className="px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 rounded text-xs"
                       >
                         {tag}
                       </span>
@@ -616,12 +616,12 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                   
                   {/* Action Button */}
                   <div className="mt-4 flex justify-between items-center">
-                    <div className="text-xs text-purple-600 dark:text-purple-400 font-medium">
+                    <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">
                       Provozovatel kurzu • {course.provider}
                     </div>
                     <button
                       onClick={() => onResourceClick?.(course)}
-                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 text-white text-sm font-medium rounded-lg transition-all shadow-md hover:shadow-lg"
+                      className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r slate-600 hover:slate-700 text-slate-600 dark:text-slate-400 text-sm font-medium rounded-lg transition-all shadow-md hover:shadow-lg"
                     >
                       Detail kurzu
                       <ChevronRight className="w-3 h-3" />
@@ -636,21 +636,21 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
 
       {/* Learning Summary */}
       {(selectedTab === 'courses' && recommended_resources.length > 0) && (
-        <div className="mt-6 p-4 bg-gradient-to-r from-purple-100 to-violet-100 dark:from-purple-900/30 dark:to-violet-900/30 rounded-lg border border-purple-200 dark:border-purple-700">
-          <h4 className="text-sm font-bold text-purple-900 dark:text-purple-100 mb-2 flex items-center gap-2">
+        <div className="mt-6 p-4 bg-gradient-to-r from-cyan-100 to-blue-100 dark:from-cyan-900/30 dark:to-blue-900/30 rounded-lg border border-slate-200 dark:border-slate-700">
+          <h4 className="text-sm font-bold text-slate-900 dark:text-slate-100 mb-2 flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
             Investice do vaší budoucnosti
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
             <div>
-              <span className="text-purple-700 dark:text-purple-300">Celková doba:</span>
-              <div className="font-bold text-purple-900 dark:text-purple-100">
+              <span className="text-slate-600 dark:text-slate-300">Celková doba:</span>
+              <div className="font-bold text-slate-900 dark:text-slate-100">
                 {formatDuration(recommended_resources.reduce((sum: number, r: LearningResource) => sum + r.duration_hours, 0))}
               </div>
             </div>
             <div>
-              <span className="text-purple-700 dark:text-purple-300">Celková cena:</span>
-              <div className="font-bold text-purple-900 dark:text-purple-100">
+              <span className="text-slate-600 dark:text-slate-300">Celková cena:</span>
+              <div className="font-bold text-slate-900 dark:text-slate-100">
                 {formatPrice(
                   recommended_resources.reduce((sum: number, r: LearningResource) => sum + r.price, 0),
                   'Kč'
@@ -658,8 +658,8 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
               </div>
             </div>
             <div>
-              <span className="text-purple-700 dark:text-purple-300">Potenciál růstu:</span>
-              <div className="font-bold text-purple-900 dark:text-purple-100">
+              <span className="text-slate-600 dark:text-slate-300">Potenciál růstu:</span>
+              <div className="font-bold text-slate-900 dark:text-slate-100">
                 +{Math.round(100 - match_percentage)}%
               </div>
             </div>

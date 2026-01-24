@@ -154,6 +154,29 @@ export interface Education {
     year: string;
 }
 
+export interface CVDocument {
+    id: string;
+    userId: string;
+    fileName: string;
+    originalName: string;
+    fileUrl: string;
+    fileSize: number;
+    contentType: string;
+    isActive: boolean; // Currently selected CV
+    parsedData?: {
+        name?: string;
+        email?: string;
+        phone?: string;
+        jobTitle?: string;
+        skills?: string[];
+        workHistory?: WorkExperience[];
+        education?: Education[];
+        cvText?: string;
+    };
+    uploadedAt: string;
+    lastUsed?: string; // When this CV was last used for application
+}
+
 export interface UserProfile {
   id?: string;
   email?: string;
@@ -178,6 +201,9 @@ export interface UserProfile {
     commuteTolerance: number; // Minutes
     priorities: string[]; // e.g. "Dog Friendly", "Wheelchair Access"
   };
+  // New fields for CV management
+  currentCVId?: string; // ID of currently selected CV
+  cvs?: CVDocument[]; // All uploaded CVs
 }
 
 // New types for Career Pathfinder
