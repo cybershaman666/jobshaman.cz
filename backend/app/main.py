@@ -53,7 +53,7 @@ class JobCheckRequest(BaseModel):
     company: str
     description: str
 
-    needs_manual_review: bool
+    needs_manual_review: bool = False
 
 class CheckoutRequest(BaseModel):
     tier: str # 'premium' | 'business'

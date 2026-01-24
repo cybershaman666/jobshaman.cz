@@ -831,7 +831,15 @@ export const getRecruiterCompany = async (userId: string): Promise<CompanyProfil
             avatar: m.profile.avatar_url,
             role: m.role,
             joinedAt: m.joined_at
-        }))
+        })),
+        subscription: {
+            tier: company.subscription_tier || 'basic',
+            usage: company.usage_stats || {
+                activeJobsCount: 0,
+                aiAssessmentsUsed: 0,
+                adOptimizationsUsed: 0
+            }
+        }
     };
 };
 
