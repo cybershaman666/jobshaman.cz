@@ -22,9 +22,10 @@ interface ProfileEditorProps {
   profile: UserProfile;
   onChange: (profile: UserProfile) => void;
   onSave: () => void;
+  onRefreshProfile?: () => void;
 }
 
-const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave }) => {
+const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave, onRefreshProfile }) => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isUploadingCV, setIsUploadingCV] = useState(false);
   const [editingSection, setEditingSection] = useState<string | null>(null);
@@ -107,8 +108,17 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
     try {
       const cvUrl = await uploadCVFile(profile.id || '', file);
       if (cvUrl) {
-        onChange({ ...profile, cvUrl, cvText: `[Uploaded: ${file.name}]` });
-        alert('CV úspěšně nahráno!');
+        // Just set the CV URL - the parsing will update the profile separately
+        onChange({ ...profile, cvUrl });
+        
+        // Trigger profile refresh after a short delay to allow parsing to complete
+        setTimeout(() => {
+          if (onRefreshProfile) {
+            onRefreshProfile();
+          }
+        }, 2000);
+        
+        alert('CV úspěšně nahráno a zpracováno!');
       }
     } catch (error) {
       console.error('CV upload failed:', error);

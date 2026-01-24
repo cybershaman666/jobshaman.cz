@@ -40,6 +40,16 @@ export interface CompanyProfile {
   address?: string;
   website?: string;
   description?: string;
+  members?: RecruiterMember[];
+}
+
+export interface RecruiterMember {
+  id: string;
+  name: string;
+  email: string;
+  role: 'admin' | 'recruiter';
+  avatar?: string;
+  joinedAt: string;
 }
 
 export interface SalaryEstimate {
@@ -64,9 +74,9 @@ export interface Job {
   url?: string; // Original job posting URL
   jhi: JHI;
   noiseMetrics: NoiseMetrics;
-  transparency: TransparencyMetrics; 
-  market: MarketContext; 
-  companyProfile?: CompanyProfile; 
+  transparency: TransparencyMetrics;
+  market: MarketContext;
+  companyProfile?: CompanyProfile;
   tags: string[];
   benefits: string[];
   contextualRelevance?: ContextualRelevanceScore; // New field for benefit relevance analysis
@@ -139,42 +149,42 @@ export interface ShamanAdvice {
 }
 
 export interface WorkExperience {
-    id: string;
-    role: string;
-    company: string;
-    duration: string;
-    description: string;
+  id: string;
+  role: string;
+  company: string;
+  duration: string;
+  description: string;
 }
 
 export interface Education {
-    id: string;
-    school: string;
-    degree: string;
-    field: string;
-    year: string;
+  id: string;
+  school: string;
+  degree: string;
+  field: string;
+  year: string;
 }
 
 export interface CVDocument {
-    id: string;
-    userId: string;
-    fileName: string;
-    originalName: string;
-    fileUrl: string;
-    fileSize: number;
-    contentType: string;
-    isActive: boolean; // Currently selected CV
-    parsedData?: {
-        name?: string;
-        email?: string;
-        phone?: string;
-        jobTitle?: string;
-        skills?: string[];
-        workHistory?: WorkExperience[];
-        education?: Education[];
-        cvText?: string;
-    };
-    uploadedAt: string;
-    lastUsed?: string; // When this CV was last used for application
+  id: string;
+  userId: string;
+  fileName: string;
+  originalName: string;
+  fileUrl: string;
+  fileSize: number;
+  contentType: string;
+  isActive: boolean; // Currently selected CV
+  parsedData?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    jobTitle?: string;
+    skills?: string[];
+    workHistory?: WorkExperience[];
+    education?: Education[];
+    cvText?: string;
+  };
+  uploadedAt: string;
+  lastUsed?: string; // When this CV was last used for application
 }
 
 export interface UserProfile {

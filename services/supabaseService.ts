@@ -10,13 +10,13 @@ const supabaseKey = import.meta.env.VITE_SUPABASE_KEY || '';
 // WRAPPED IN TRY-CATCH TO PREVENT WHITE SCREEN OF DEATH ON INIT
 let client = null;
 try {
-  if (supabaseUrl && supabaseKey) {
-    client = createClient(supabaseUrl, supabaseKey);
-  } else {
-    console.warn("Supabase credentials missing");
-  }
+    if (supabaseUrl && supabaseKey) {
+        client = createClient(supabaseUrl, supabaseKey);
+    } else {
+        console.warn("Supabase credentials missing");
+    }
 } catch (error) {
-  console.error("Supabase initialization error:", error);
+    console.error("Supabase initialization error:", error);
 }
 
 export const supabase = client;
@@ -30,7 +30,7 @@ export const isSupabaseConfigured = (): boolean => {
 export const signInWithEmail = async (email: string, pass: string) => {
     if (!supabase) throw new Error("Supabase not configured");
     const result = await supabase.auth.signInWithPassword({ email, password: pass });
-    
+
     // Explicitly check for profile existence after login to fix missing profile issues
     if (result.data.user) {
         const profile = await getUserProfile(result.data.user.id);
@@ -38,16 +38,16 @@ export const signInWithEmail = async (email: string, pass: string) => {
             await createBaseProfile(result.data.user.id, email, email.split('@')[0]);
         }
     }
-    
+
     return result;
 };
 
 export const signUpWithEmail = async (email: string, pass: string, fullName: string) => {
     if (!supabase) throw new Error("Supabase not configured");
-    
+
     // 1. Sign Up
-    const { data, error } = await supabase.auth.signUp({ 
-        email, 
+    const { data, error } = await supabase.auth.signUp({
+        email,
         password: pass,
         options: {
             data: { full_name: fullName }
@@ -71,7 +71,7 @@ const createBaseProfile = async (userId: string, email: string, fullName: string
         const { error: profileError } = await supabase
             .from('profiles')
             .upsert({ id: userId, email: email, full_name: fullName, role: 'candidate' });
-            
+
         if (profileError) console.warn("Failed to create base profile:", profileError);
 
         // Try inserting into candidate_profiles
@@ -112,10 +112,10 @@ export const getUserProfile = async (userId: string): Promise<Partial<UserProfil
             .select('*')
             .eq('id', userId)
             .single();
-        
+
         // If no candidate profile exists yet (rare), just return base
         if (candidateError && candidateError.code !== 'PGRST116') { // Ignore 'row not found' error code
-             console.warn("Candidate profile missing or error", candidateError);
+            console.warn("Candidate profile missing or error", candidateError);
         }
 
         // 3. CV URL is now part of candidate_profiles table
@@ -169,14 +169,14 @@ export const uploadProfilePhoto = async (userId: string, file: File): Promise<st
                 .select('id')
                 .eq('id', userId)
                 .single();
-                
+
             if (profileCheckError && profileCheckError.code === 'PGRST116') {
                 // Profile doesn't exist, create it first
                 console.log("Creating profile for user:", userId);
                 const { error: createError } = await supabase
                     .from('profiles')
                     .insert({ id: userId, email: '', role: 'candidate' });
-                    
+
                 if (createError) {
                     console.error("Failed to create profile:", createError);
                     // Continue with upload anyway - storage might have different policies
@@ -188,7 +188,7 @@ export const uploadProfilePhoto = async (userId: string, file: File): Promise<st
 
         // Upload to Supabase Storage with better error handling and timeout
         console.log("Starting photo upload for:", fileName);
-        
+
         const uploadPromise = supabase.storage
             .from('profile-photos')
             .upload(fileName, file, {
@@ -196,29 +196,29 @@ export const uploadProfilePhoto = async (userId: string, file: File): Promise<st
                 upsert: true, // Allow overwriting to avoid conflicts
                 contentType: file.type
             });
-            
+
         // Add timeout to prevent hanging uploads
         const { data, error } = await Promise.race([
             uploadPromise,
-            new Promise((_, reject) => 
+            new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Upload timeout')), 30000) // 30 second timeout
             )
         ]) as any;
 
         if (error) {
             console.error("Profile photo upload error:", error);
-            
+
             // More specific error handling
             if (error.message.includes('Bucket not found') || error.message.includes('storage')) {
                 console.warn("Storage bucket not available, using fallback");
                 return null; // Silent fail for storage issues
             }
-            
+
             if (error.message.includes('row-level security') || error.message.includes('policy')) {
                 console.warn("RLS policy prevented upload, this might be expected");
                 return null; // Silent fail for RLS issues
             }
-            
+
             if (error.message.includes('timeout') || error.message.includes('aborted')) {
                 console.warn("Upload timed out or was aborted, this might be a network issue");
                 // Try one more time with a smaller timeout
@@ -231,15 +231,15 @@ export const uploadProfilePhoto = async (userId: string, file: File): Promise<st
                             upsert: true,
                             contentType: file.type
                         });
-                    
+
                     if (retryError) {
                         console.error("Retry upload failed:", retryError);
                         return null;
                     }
-                    
+
                     if (retryData) {
                         console.log("Retry upload successful:", retryData);
-                        
+
                         // Get signed URL (works even for private buckets)
                         const { data: urlData, error: urlError } = await supabase.storage
                             .from('profile-photos')
@@ -266,7 +266,7 @@ export const uploadProfilePhoto = async (userId: string, file: File): Promise<st
                     return null;
                 }
             }
-            
+
             // For other errors, still try to continue
             console.warn("Upload failed, but continuing with photo processing");
             return null;
@@ -286,7 +286,7 @@ export const uploadProfilePhoto = async (userId: string, file: File): Promise<st
 
         const publicUrl = urlData.signedUrl;
         console.log("Profile photo signed URL:", publicUrl);
-        
+
         // Test if URL is accessible
         try {
             const testResponse = await fetch(publicUrl, { method: 'HEAD' });
@@ -482,9 +482,9 @@ export const updateUserCVSelection = async (userId: string, cvId: string): Promi
         // Then activate the selected CV
         const { error } = await supabase
             .from('cv_documents')
-            .update({ 
-                is_active: true, 
-                last_used: new Date().toISOString() 
+            .update({
+                is_active: true,
+                last_used: new Date().toISOString()
             })
             .eq('id', cvId)
             .eq('user_id', userId);
@@ -598,14 +598,14 @@ export const uploadCVFile = async (userId: string, file: File): Promise<string |
                 .select('id')
                 .eq('id', userId)
                 .single();
-                
+
             if (profileCheckError && profileCheckError.code === 'PGRST116') {
                 // Profile doesn't exist, create it first
                 console.log("Creating candidate profile for user:", userId);
                 const { error: createError } = await supabase
                     .from('candidate_profiles')
                     .insert({ id: userId });
-                    
+
                 if (createError) {
                     console.error("Failed to create candidate profile:", createError);
                     // Continue with upload anyway - storage might have different policies
@@ -626,18 +626,18 @@ export const uploadCVFile = async (userId: string, file: File): Promise<string |
 
         if (error) {
             console.error("CV upload error:", error);
-            
+
             // More specific error handling
             if (error.message.includes('Bucket not found') || error.message.includes('storage')) {
                 console.warn("Storage bucket not available, using fallback");
                 return null; // Silent fail for storage issues
             }
-            
+
             if (error.message.includes('row-level security') || error.message.includes('policy')) {
                 console.warn("RLS policy prevented upload, this might be expected");
                 return null; // Silent fail for RLS issues
             }
-            
+
             // For other errors, still try to continue
             console.warn("Upload failed, but continuing with CV processing");
             return null;
@@ -652,6 +652,26 @@ export const uploadCVFile = async (userId: string, file: File): Promise<string |
 
         if (urlData && urlData.publicUrl) {
             console.log("CV public URL:", urlData.publicUrl);
+
+            // Parse CV content
+            try {
+                const parsedData = await parseProfileFromCVWithFallback(file);
+                console.log("CV parsed successfully:", parsedData);
+
+                // Update user profile with parsed data
+                if (parsedData && Object.keys(parsedData).length > 0) {
+                    await updateUserProfile(userId, parsedData);
+                    console.log("Profile updated with CV data");
+                }
+
+                // Return the URL (parsing happens in background and updates DB directly)
+                return urlData.publicUrl;
+            } catch (parseError) {
+                console.warn("CV parsing failed, but upload succeeded:", parseError);
+                // Still return the URL even if parsing fails
+                return urlData.publicUrl;
+            }
+
             return urlData.publicUrl;
         } else {
             console.warn("Could not get public URL, but upload succeeded");
@@ -677,7 +697,7 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     if (updates.phone) candidateUpdates.phone = updates.phone;
     if (updates.jobTitle) candidateUpdates.job_title = updates.jobTitle;
     if (updates.address !== undefined) candidateUpdates.address = updates.address;
-if (updates.cvText !== undefined) candidateUpdates.cv_text = updates.cvText;
+    if (updates.cvText !== undefined) candidateUpdates.cv_text = updates.cvText;
     if (updates.transportMode !== undefined) candidateUpdates.transport_mode = updates.transportMode;
     if (updates.preferences !== undefined) candidateUpdates.preferences = updates.preferences;
     if (updates.skills !== undefined) {
@@ -695,16 +715,16 @@ if (updates.cvText !== undefined) candidateUpdates.cv_text = updates.cvText;
     if (Object.keys(baseUpdates).length > 0) {
         promises.push(supabase.from('profiles').update(baseUpdates).eq('id', userId));
     }
-    
+
     // Handle CV URL update - it's part of candidate_profiles table
     if (updates.cvUrl !== undefined) {
         candidateUpdates.cv_url = updates.cvUrl;
     }
-    
+
     if (Object.keys(candidateUpdates).length > 0) {
         // Use UPSERT instead of UPDATE to ensure row creation if missing
-        promises.push(supabase.from('candidate_profiles').upsert({ 
-            id: userId, 
+        promises.push(supabase.from('candidate_profiles').upsert({
+            id: userId,
             ...candidateUpdates,
             updated_at: new Date().toISOString()
         }));
@@ -721,7 +741,7 @@ if (updates.cvText !== undefined) candidateUpdates.cv_text = updates.cvText;
 
 // --- COMPANY SERVICES ---
 
-export const createCompany = async (profile: CompanyProfile, recruiterId: string) => {
+export const createCompany = async (profile: CompanyProfile, creatorId: string) => {
     if (!supabase) return null;
 
     // 1. Insert Company
@@ -735,7 +755,7 @@ export const createCompany = async (profile: CompanyProfile, recruiterId: string
             description: profile.description,
             industry: profile.industry,
             tone: profile.tone,
-            owner_id: recruiterId,
+            created_by: creatorId,
             values: profile.values,
             philosophy: profile.philosophy
         })
@@ -744,12 +764,14 @@ export const createCompany = async (profile: CompanyProfile, recruiterId: string
 
     if (error) throw error;
 
-    // 2. Link Recruiter to Company
+    // 2. Link Creator as Admin Member
     await supabase
-        .from('recruiter_profiles')
+        .from('company_members')
         .insert({
-            id: recruiterId,
-            company_id: company.id
+            company_id: company.id,
+            user_id: creatorId,
+            role: 'admin',
+            joined_at: new Date().toISOString()
         });
 
     return company;
@@ -758,11 +780,12 @@ export const createCompany = async (profile: CompanyProfile, recruiterId: string
 export const getRecruiterCompany = async (userId: string): Promise<CompanyProfile | null> => {
     if (!supabase) return null;
 
-    // Get company ID from recruiter_profiles
+    // Get company ID from company_members
     const { data: link } = await supabase
-        .from('recruiter_profiles')
+        .from('company_members')
         .select('company_id')
-        .eq('id', userId)
+        .eq('user_id', userId)
+        .eq('is_active', true)
         .single();
 
     if (!link) return null;
@@ -775,6 +798,17 @@ export const getRecruiterCompany = async (userId: string): Promise<CompanyProfil
 
     if (!company) return null;
 
+    // Fetch members as well
+    const { data: members } = await supabase
+        .from('company_members')
+        .select(`
+            id,
+            role,
+            joined_at,
+            profile:profiles(id, full_name, email, avatar_url)
+        `)
+        .eq('company_id', company.id);
+
     return {
         id: company.id,
         name: company.name,
@@ -785,8 +819,45 @@ export const getRecruiterCompany = async (userId: string): Promise<CompanyProfil
         industry: company.industry,
         tone: company.tone,
         values: company.values || [],
-        philosophy: company.philosophy
+        philosophy: company.philosophy,
+        members: (members || []).map((m: any) => ({
+            id: m.profile.id,
+            name: m.profile.full_name,
+            email: m.profile.email,
+            avatar: m.profile.avatar_url,
+            role: m.role,
+            joinedAt: m.joined_at
+        }))
     };
+};
+
+export const inviteRecruiter = async (companyId: string, email: string, invitedBy: string) => {
+    if (!supabase) return null;
+
+    // In a real app we'd first check if user exists. 
+    // For this flow, we'll assume we are inviting an existing profile or 
+    // creating a pending invite that will be linked on signup.
+
+    // 1. Try to find profile by email
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email)
+        .single();
+
+    if (profile) {
+        return await supabase
+            .from('company_members')
+            .insert({
+                company_id: companyId,
+                user_id: profile.id,
+                role: 'recruiter',
+                invited_by: invitedBy,
+                is_active: true // Auto-join if profile exists for demo simplicity
+            });
+    }
+
+    return null; // Handle non-existent user case (maybe send email invite)
 };
 
 // New functions for Career Pathfinder AI
@@ -808,7 +879,7 @@ export const fetchLearningResources = async (skillTags?: string[]): Promise<Lear
         }
 
         const { data, error } = await query.limit(50);
-        
+
         if (error) throw error;
         return data || [];
     } catch (error) {
@@ -887,7 +958,7 @@ export const fetchJobsWithDetails = async (limit: number = 50): Promise<Job[]> =
             .limit(limit);
 
         if (error) throw error;
-        
+
         // Process jobs to include new fields
         return (data || []).map(job => ({
             ...job,

@@ -193,6 +193,25 @@ export default function App() {
       }
   };
 
+  const refreshUserProfile = async () => {
+      try {
+          if (!supabase) return;
+          const userId = (await supabase.auth.getUser()).data.user?.id;
+          if (userId) {
+              const profile = await getUserProfile(userId);
+              if (profile) {
+                  setUserProfile(prev => ({
+                      ...prev,
+                      ...profile,
+                      isLoggedIn: true
+                  }));
+              }
+          }
+      } catch (error) {
+          console.error("Failed to refresh user profile:", error);
+      }
+  };
+
   const loadRealJobs = async () => {
       setIsLoadingJobs(true);
       try {
@@ -860,6 +879,7 @@ export default function App() {
                     profile={userProfile}
                     onChange={handleProfileUpdate}
                     onSave={() => setViewState(ViewState.LIST)}
+                    onRefreshProfile={refreshUserProfile}
                 />
             </div>
         );

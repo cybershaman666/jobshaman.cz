@@ -4,7 +4,8 @@ import Markdown from 'markdown-to-jsx';
 import { Job, Candidate, AIAdOptimizationResult, CompanyProfile } from '../types';
 import { MOCK_CANDIDATES, MOCK_JOBS, MOCK_COMPANY_PROFILE } from '../constants';
 import { optimizeJobDescription, matchCandidateToJob } from '../services/geminiService';
-import { publishJob } from '../services/jobPublishService';
+import { publishJob, getCandidateMatches } from '../services/jobPublishService';
+import { supabase } from '../services/supabaseService';
 import BullshitMeter from './BullshitMeter';
 import CompanySettings from './CompanySettings';
 import AssessmentCreator from './AssessmentCreator';
@@ -67,8 +68,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(propProfile || MOCK_COMPANY_PROFILE);
 
     // Data State (Empty for Real, Mocks for Demo)
-    const [jobs] = useState<Job[]>(isRealUser ? [] : MOCK_JOBS);
-    const [candidates] = useState<Candidate[]>(isRealUser ? [] : MOCK_CANDIDATES);
+    const [jobs, setJobs] = useState<Job[]>(isRealUser ? [] : MOCK_JOBS);
+    const [candidates, setCandidates] = useState<Candidate[]>(isRealUser ? [] : MOCK_CANDIDATES);
 
     const [adDraft, setAdDraft] = useState(isRealUser ? '' : MOCK_JOBS[1].description);
     const [jobTitle, setJobTitle] = useState(isRealUser ? '' : MOCK_JOBS[1].title);
@@ -172,17 +173,71 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         const job = jobs.find(j => j.id === selectedJobId);
         if (!job) return;
 
-        const newMatches: Record<string, { score: number, reason: string }> = {};
+        if (isRealUser) {
+            try {
+                const result = await getCandidateMatches(selectedJobId);
+                const newMatches: Record<string, { score: number, reason: string }> = {};
+                const backendCandidates: Candidate[] = [];
 
-        // Simulate parallel requests for demo
-        for (const c of candidates) {
-            const result = await matchCandidateToJob(c.bio + " " + c.skills.join(", "), job.description);
-            newMatches[c.id] = result;
+                result.matches.forEach((m: any) => {
+                    newMatches[m.candidate_id] = { score: m.score, reason: m.reasons.join(", ") };
+                    // Reconstruct basic candidate info from the backend response
+                    backendCandidates.push({
+                        id: m.candidate_id,
+                        name: m.profile.name,
+                        job_title: m.profile.job_title,
+                        skills: m.profile.skills,
+                        bio: m.profile.bio
+                    });
+                });
+
+                setCandidates(backendCandidates);
+                setCandidateMatches(newMatches);
+            } catch (e) {
+                console.error("Match fetch failed", e);
+            }
+        } else {
+            const newMatches: Record<string, { score: number, reason: string }> = {};
+            // Simulate parallel requests for demo
+            for (const c of candidates) {
+                const result = await matchCandidateToJob(c.bio + " " + c.skills.join(", "), job.description);
+                newMatches[c.id] = result;
+            }
+            setCandidateMatches(newMatches);
         }
 
-        setCandidateMatches(newMatches);
         setIsMatching(false);
     };
+
+    // Load initial data for Real User
+    React.useEffect(() => {
+        if (isRealUser) {
+            const loadData = async () => {
+                try {
+                    // Fetch real jobs
+                    const { data: realJobs } = await supabase.from('jobs').select('*').order('scraped_at', { ascending: false });
+                    if (realJobs) {
+                        setJobs(realJobs as Job[]);
+                        if (realJobs.length > 0) setSelectedJobId(realJobs[0].id);
+                    }
+                } catch (e) {
+                    console.error("Failed to load dashboard data", e);
+                }
+            };
+            loadData();
+        }
+    }, [isRealUser]);
+
+    // Recruiter Filtering
+    const [selectedRecruiterId, setSelectedRecruiterId] = useState<string>('all');
+    const recruiters = companyProfile.members || [
+        { id: 'all', name: 'Všichni náboraři', email: '', role: 'admin', joinedAt: '' },
+        { id: '1', name: 'Floki Shaman', email: 'floki@jobshaman.cz', role: 'admin', joinedAt: '' }
+    ];
+
+    const filteredJobs = selectedRecruiterId === 'all'
+        ? jobs
+        : jobs.filter(j => j.company_id === companyProfile.id); // In a real app we'd filter by recruiter_id
 
     const renderOverview = () => {
         // If Real User & Empty, show Empty State
@@ -207,17 +262,29 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             );
         }
 
-        // Mock Data Calculations (Only if jobs exist)
-        const totalBudget = 2500000;
-        const spentBudget = 1450000;
-        const projectedSpend = 2100000;
-        const percentSpent = (spentBudget / totalBudget) * 100;
-        const agencySavings = 850000;
-        const costPerHire = 12500;
-        const marketAvgCostPerHire = 45000;
-
         return (
             <div className="space-y-6 animate-in fade-in">
+
+                {/* Recruiter Selector & Header */}
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+                    <div>
+                        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Přehled Náboru</h2>
+                        <p className="text-sm text-slate-500">Statistiky pro celou společnost a jednotlivé náboraře.</p>
+                    </div>
+                    <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                        <Users size={16} className="ml-2 text-slate-400" />
+                        <select
+                            value={selectedRecruiterId}
+                            onChange={(e) => setSelectedRecruiterId(e.target.value)}
+                            className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 dark:text-slate-300 pr-8 cursor-pointer"
+                        >
+                            <option value="all">Všichni náboraři (Celá Firma)</option>
+                            {recruiters.filter(r => r.id !== 'all').map(r => (
+                                <option key={r.id} value={r.id}>{r.name}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
 
                 {/* 1. Top Metrics Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -53,6 +53,18 @@ export const publishJob = async (jobData: PublishJobRequest) => {
     }
 };
 
+export const getCandidateMatches = async (jobId: string | number) => {
+    try {
+        const response = await fetch(`${BACKEND_URL}/match-candidates?job_id=${jobId}`, {
+            method: 'POST'
+        });
+        return await response.json();
+    } catch (error) {
+        console.error("Failed to fetch candidate matches:", error);
+        throw error;
+    }
+};
+
 export const triggerManualScrape = async () => {
     try {
         const response = await fetch(`${BACKEND_URL}/scrape`);

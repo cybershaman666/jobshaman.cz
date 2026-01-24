@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { X, Building, Mail, Phone, User, Lock, Eye, EyeOff, Briefcase, Globe, MapPin, Users } from 'lucide-react';
+import { X, Building, Mail, Phone, User, Lock, Eye, EyeOff, Briefcase, Globe, MapPin, Users, CheckCircle, Loader2, ShieldCheck, ArrowRight, Info } from 'lucide-react';
 import { sendEmail, EmailTemplates } from '../services/emailService';
+import { createCompany } from '../services/supabaseService';
 
 interface CompanyRegistrationModalProps {
   isOpen: boolean;
@@ -19,6 +20,8 @@ interface CompanyRegistrationFormData {
   phone: string;
   contactPerson: string;
   employees: string;
+  ico: string;
+  dic: string;
   description: string;
   agreedToTerms: boolean;
   agreedToPrivacy: boolean;
@@ -27,6 +30,8 @@ interface CompanyRegistrationFormData {
 const CompanyRegistrationModal: React.FC<CompanyRegistrationModalProps> = ({ isOpen, onClose, onSuccess }) => {
   const [step, setStep] = useState<number | 'success' | 'submitting'>(1);
   const [showPassword, setShowPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
   const [formData, setFormData] = useState<CompanyRegistrationFormData>({
     email: '',
     password: '',
@@ -38,6 +43,8 @@ const CompanyRegistrationModal: React.FC<CompanyRegistrationModalProps> = ({ isO
     phone: '',
     contactPerson: '',
     employees: '',
+    ico: '',
+    dic: '',
     description: '',
     agreedToTerms: false,
     agreedToPrivacy: false
@@ -71,48 +78,42 @@ const CompanyRegistrationModal: React.FC<CompanyRegistrationModalProps> = ({ isO
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+    setIsSubmitting(true);
+    setStep('submitting');
+
     try {
-      // Send email notification
+      // 1. Get current user ID if logged in
+      let userId = 'new-recruiter-id'; // Fallback for demo
+      if (supabase) {
+        const { data } = await supabase.auth.getUser();
+        if (data.user) userId = data.user.id;
+      }
+
+      // 2. Create Company in Database
+      await createCompany(formData as any, userId);
+
+      // 3. Send email notification
       const emailResult = await sendEmail({
         to: 'floki@jobshaman.cz',
         ...EmailTemplates.companyRegistration(formData)
       });
 
       if (emailResult.success) {
-        // Show success message
         setStep('success');
-        // Store for backend processing
-        console.log('Company registration data:', formData);
-        
-// Clear form after delay
         setTimeout(() => {
           onSuccess();
           onClose();
-          // Reset form
-          setFormData({
-            email: '',
-            password: '',
-            confirmPassword: '',
-            companyName: '',
-            industry: '',
-            website: '',
-            address: '',
-            phone: '',
-            contactPerson: '',
-            employees: '',
-            description: '',
-            agreedToTerms: false,
-            agreedToPrivacy: false
-          });
+          // Reset
           setStep(1);
+          setIsSubmitting(false);
         }, 3000);
       } else {
-        console.error('Failed to send registration email:', emailResult.error);
-        alert('Nepodařilo se odeslat registraci. Zkuste to prosím znovu.');
+        throw new Error('Email failed');
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      console.error('Registration failed:', error);
+      setStep(2); // Go back if error
+      setIsSubmitting(false);
       alert('Došlo k chybě při registraci. Zkuste to prosím znovu.');
     }
   };
@@ -121,300 +122,332 @@ const CompanyRegistrationModal: React.FC<CompanyRegistrationModalProps> = ({ isO
 
   const totalSteps = 3;
 
-  return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        {/* Header */}
-        <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 p-6 pb-4">
-          <div className="flex justify-between items-center">
+  const renderContent = () => {
+    if (step === 'success') {
+      return (
+        <div className="text-center py-16 px-6 animate-in fade-in zoom-in-95">
+          <div className="w-24 h-24 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-8 border border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.2)]">
+            <CheckCircle size={48} />
+          </div>
+          <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-4 tracking-tight">Vítejte na palubě!</h2>
+          <p className="text-slate-600 dark:text-slate-300 text-lg mb-8 max-w-md mx-auto">
+            Registrace vaší společnosti proběhla úspěšně. Za malý okamžik vás přesměrujeme do vašeho nového dashboardu.
+          </p>
+          <div className="flex justify-center gap-2">
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce"></div>
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+            <div className="w-2 h-2 bg-emerald-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+          </div>
+        </div>
+      );
+    }
+
+    if (step === 'submitting') {
+      return (
+        <div className="flex flex-col items-center justify-center py-24 px-6 animate-in fade-in">
+          <Loader2 size={64} className="text-cyan-500 animate-spin mb-8" />
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Probouzím Šamana...</h2>
+          <p className="text-slate-500 dark:text-slate-400 mt-2">Vytváříme váš firemní profil a připravujeme prostředí.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="flex flex-col h-full">
+        {/* Header Section */}
+        <div className="p-8 pb-4">
+          <div className="flex justify-between items-start mb-6">
             <div>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                {step === 1 && 'Firemní Registrace'}
-                {step === 2 && 'Informace o Společnosti'}
-                {step === 3 && 'Potvrzení'}
+              <div className="flex items-center gap-2 mb-2">
+                <div className="p-2 bg-cyan-500/10 rounded-lg">
+                  <ShieldCheck size={20} className="text-cyan-500" />
+                </div>
+                <span className="text-xs font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-widest font-mono">
+                  Partner Registration
+                </span>
+              </div>
+              <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                {step === 1 && 'Váš Účet'}
+                {step === 2 && 'Profil Firmy'}
+                {step === 3 && 'Finální Kontrola'}
               </h2>
-              <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">
-                {step === 1 && 'Vytvořte si účet pro přístup do portálu'}
-                {step === 2 && 'Přidejte detaily o vaší společnosti'}
-                {step === 3 && 'Zkontrolujte a potvrďte údaje'}
-              </p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              className="p-2 text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all"
             >
-              <X size={20} className="text-slate-500 dark:text-slate-400" />
+              <X size={24} />
             </button>
           </div>
 
-          {/* Progress Bar */}
-          <div className="flex items-center gap-2 mt-4">
-            {[...Array(totalSteps)].map((_, i) => (
-              <React.Fragment key={i}>
-                <div className={`flex-1 h-1 rounded-full ${typeof step === 'number' && i < step ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-700'}`} />
-                {typeof step === 'number' && i < totalSteps - 1 && <div className="w-2 h-1 bg-transparent" />}
-              </React.Fragment>
+          {/* Progress Indicator */}
+          <div className="flex items-center gap-3 mb-8">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex-1 flex flex-col gap-2">
+                <div className={`h-1.5 rounded-full transition-all duration-500 ${typeof step === 'number' && step >= i ? 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.4)]' : 'bg-slate-100 dark:bg-slate-800'}`}></div>
+                <span className={`text-[10px] font-bold uppercase tracking-tighter ${typeof step === 'number' && step === i ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400'}`}>
+                  {i === 1 ? 'Účet' : i === 2 ? 'Detaily' : 'Souhlas'}
+                </span>
+              </div>
             ))}
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6 pt-4">
-          <form onSubmit={handleSubmit}>
-            {/* Step 1: Account */}
+        {/* Form Content */}
+        <div className="flex-1 overflow-y-auto px-8 pb-8 custom-scrollbar">
+          <form onSubmit={(e) => e.preventDefault()} className="space-y-6">
             {step === 1 && (
-              <div className="space-y-4">
+              <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-500">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      <Mail size={16} className="inline mr-2" />
-                      E-mail (Přihlašovací)
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={formData.email}
-                      onChange={(e) => handleInputChange('email', e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                      placeholder="info@spolecnost.cz"
-                    />
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">E-mail</label>
+                    <div className="relative group">
+                      <Mail size={18} className="absolute left-3.5 top-3.5 text-slate-400 group-focus-within:text-cyan-500 transition-colors" />
+                      <input
+                        type="email"
+                        required
+                        value={formData.email}
+                        onChange={(e) => handleInputChange('email', e.target.value)}
+                        className="w-full pl-11 p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
+                        placeholder="hr@spolecnost.cz"
+                      />
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      <Lock size={16} className="inline mr-2" />
-                      Heslo
-                    </label>
-                    <div className="relative">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">Heslo</label>
+                    <div className="relative group">
+                      <Lock size={18} className="absolute left-3.5 top-3.5 text-slate-400 group-focus-within:text-cyan-500 transition-colors" />
                       <input
                         type={showPassword ? 'text' : 'password'}
                         required
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                        className="w-full pl-11 pr-11 p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
                         placeholder="••••••••"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-2.5 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+                        className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
                       >
                         {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                       </button>
                     </div>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    <Lock size={16} className="inline mr-2" />
-                    Potvrďte heslo
-                  </label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-slate-500 uppercase ml-1">Potvrďte Heslo</label>
                   <input
                     type="password"
                     required
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                    className="w-full p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
                     placeholder="••••••••"
                   />
+                </div>
+                <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 p-4 rounded-xl flex gap-3 items-start">
+                  <Info size={16} className="text-cyan-500 mt-0.5" />
+                  <p className="text-xs text-slate-500 leading-relaxed">
+                    Bezpečnost je pro nás prioritou. Vaše heslo je šifrováno a nikdy jej nesdílíme.
+                  </p>
                 </div>
               </div>
             )}
 
-            {/* Step 2: Company Info */}
             {step === 2 && (
-              <div className="space-y-4">
+              <div className="space-y-5 animate-in fade-in slide-in-from-right-4 duration-500">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      <Building size={16} className="inline mr-2" />
-                      Název společnosti
-                    </label>
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">Název Firmy</label>
+                    <div className="relative group">
+                      <Building size={18} className="absolute left-3.5 top-3.5 text-slate-400 group-focus-within:text-cyan-500 transition-colors" />
+                      <input
+                        type="text"
+                        required
+                        value={formData.companyName}
+                        onChange={(e) => handleInputChange('companyName', e.target.value)}
+                        className="w-full pl-11 p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
+                        placeholder="Moje Firma s.r.o."
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">IČO</label>
                     <input
                       type="text"
                       required
-                      value={formData.companyName}
-                      onChange={(e) => handleInputChange('companyName', e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                      placeholder="Moje Firma s.r.o."
+                      value={formData.ico}
+                      onChange={(e) => handleInputChange('ico', e.target.value)}
+                      className="w-full p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
+                      placeholder="12345678"
                     />
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      <Briefcase size={16} className="inline mr-2" />
-                      Obor
-                    </label>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">DIČ</label>
+                    <input
+                      type="text"
+                      value={formData.dic}
+                      onChange={(e) => handleInputChange('dic', e.target.value)}
+                      className="w-full p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
+                      placeholder="CZ12345678"
+                    />
+                  </div>
+                  <div className="sm:col-span-2 space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">Sídlo Firmy (Adresa)</label>
+                    <div className="relative group">
+                      <MapPin size={18} className="absolute left-3.5 top-3.5 text-slate-400 group-focus-within:text-cyan-500 transition-colors" />
+                      <input
+                        type="text"
+                        required
+                        value={formData.address}
+                        onChange={(e) => handleInputChange('address', e.target.value)}
+                        className="w-full pl-11 p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all"
+                        placeholder="Václavské náměstí 1, Praha"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">Obor Podnikání</label>
                     <select
                       required
                       value={formData.industry}
                       onChange={(e) => handleInputChange('industry', e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                      className="w-full p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all appearance-none cursor-pointer"
                     >
                       <option value="">Vyberte obor</option>
-                      {industries.map(industry => (
-                        <option key={industry} value={industry}>{industry}</option>
-                      ))}
+                      {industries.map(i => <option key={i} value={i}>{i}</option>)}
                     </select>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      <Globe size={16} className="inline mr-2" />
-                      Webové stránky
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.website}
-                      onChange={(e) => handleInputChange('website', e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                      placeholder="https://www.mojespolecnost.cz"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      <Users size={16} className="inline mr-2" />
-                      Počet zaměstnanců
-                    </label>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-500 uppercase ml-1">Velikost Firmy</label>
                     <select
                       required
                       value={formData.employees}
                       onChange={(e) => handleInputChange('employees', e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
+                      className="w-full p-3.5 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-xl text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 outline-none transition-all appearance-none cursor-pointer"
                     >
                       <option value="">Vyberte rozsah</option>
-                      {employeeRanges.map(range => (
-                        <option key={range} value={range}>{range}</option>
-                      ))}
+                      {employeeRanges.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </div>
                 </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                    <MapPin size={16} className="inline mr-2" />
-                    Sídlo společnosti
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.address}
-                    onChange={(e) => handleInputChange('address', e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                    placeholder="Hlavní 123, 110 00 Praha 1"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      <User size={16} className="inline mr-2" />
-                      Kontaktní osoba
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={formData.contactPerson}
-                      onChange={(e) => handleInputChange('contactPerson', e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                      placeholder="Jan Novák"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      <Phone size={16} className="inline mr-2" />
-                      Telefon
-                    </label>
-                    <input
-                      type="tel"
-                      value={formData.phone}
-                      onChange={(e) => handleInputChange('phone', e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                      placeholder="+420 123 456 789"
-                    />
-                  </div>
-                </div>
               </div>
             )}
 
-            {/* Step 3: Confirmation */}
             {step === 3 && (
-              <div className="space-y-6">
-                <div className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 space-y-3">
-                  <h3 className="font-semibold text-slate-900 dark:text-white mb-3">Shrnutí údajů</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span className="text-slate-600 dark:text-slate-400">E-mail:</span>
-                      <div className="font-medium text-slate-900 dark:text-white">{formData.email}</div>
+              <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+                <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 space-y-4">
+                  <div className="flex items-center gap-3 pb-4 border-b border-slate-200 dark:border-slate-800">
+                    <div className="w-12 h-12 bg-cyan-500/10 rounded-full flex items-center justify-center text-cyan-500">
+                      <Building size={24} />
                     </div>
                     <div>
-                      <span className="text-slate-600 dark:text-slate-400">Společnost:</span>
-                      <div className="font-medium text-slate-900 dark:text-white">{formData.companyName}</div>
+                      <h4 className="font-bold text-slate-900 dark:text-white">{formData.companyName || 'Název firmy'}</h4>
+                      <p className="text-xs text-slate-500">{formData.industry || 'Obor nebyl vybrán'}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-y-4 gap-x-8 text-sm">
+                    <div>
+                      <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">E-mail:</span>
+                      <div className="text-slate-700 dark:text-slate-200 font-medium">{formData.email}</div>
                     </div>
                     <div>
-                      <span className="text-slate-600 dark:text-slate-400">Obor:</span>
-                      <div className="font-medium text-slate-900 dark:text-white">{formData.industry}</div>
+                      <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">IČO:</span>
+                      <div className="text-slate-700 dark:text-slate-200 font-medium">{formData.ico}</div>
                     </div>
                     <div>
-                      <span className="text-slate-600 dark:text-slate-400">Počet zaměstnanců:</span>
-                      <div className="font-medium text-slate-900 dark:text-white">{formData.employees}</div>
+                      <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Sídlo:</span>
+                      <div className="text-slate-700 dark:text-slate-200 font-medium truncate max-w-[150px]">{formData.address}</div>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">Velikost:</span>
+                      <div className="text-slate-700 dark:text-slate-200 font-medium">{formData.employees}</div>
                     </div>
                   </div>
                 </div>
 
-                <div className="space-y-3">
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      required
-                      checked={formData.agreedToTerms}
-                      onChange={(e) => handleInputChange('agreedToTerms', e.target.checked)}
-                      className="mt-1 w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
-                    />
-                    <span className="text-sm text-slate-700 dark:text-slate-300">
-                      Souhlasím s <a href="#" className="text-indigo-600 hover:text-indigo-500 underline">obchodními podmínkami</a> a <a href="#" className="text-indigo-600 hover:text-indigo-500 underline">podmínkami používání služby</a>
+                <div className="space-y-4 pt-2">
+                  <label className="group flex items-start gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-800">
+                    <div className="relative flex items-center justify-center mt-0.5">
+                      <input
+                        type="checkbox"
+                        required
+                        checked={formData.agreedToTerms}
+                        onChange={(e) => handleInputChange('agreedToTerms', e.target.checked)}
+                        className="peer h-5 w-5 rounded-md border-2 border-slate-300 dark:border-slate-700 text-cyan-600 focus:ring-cyan-500 transition-all cursor-pointer opacity-0 absolute z-10"
+                      />
+                      <div className="h-5 w-5 rounded-md border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 peer-checked:bg-cyan-500 peer-checked:border-cyan-500 flex items-center justify-center text-white transition-all">
+                        <CheckCircle size={14} className="scale-0 peer-checked:scale-100 transition-transform" />
+                      </div>
+                    </div>
+                    <span className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                      Souhlasím s <a href="#" className="font-bold text-cyan-600 hover:text-cyan-500 underline">obchodními podmínkami</a> a využíváním shamanic cloud služeb.
                     </span>
                   </label>
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="checkbox"
-                      required
-                      checked={formData.agreedToPrivacy}
-                      onChange={(e) => handleInputChange('agreedToPrivacy', e.target.checked)}
-                      className="mt-1 w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500"
-                    />
-                    <span className="text-sm text-slate-700 dark:text-slate-300">
-                      Souhlasím se <a href="#" className="text-indigo-600 hover:text-indigo-500 underline">zpracováním osobních údajů</a> v souladu s GDPR
+
+                  <label className="group flex items-start gap-4 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-900 cursor-pointer transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-800">
+                    <div className="relative flex items-center justify-center mt-0.5">
+                      <input
+                        type="checkbox"
+                        required
+                        checked={formData.agreedToPrivacy}
+                        onChange={(e) => handleInputChange('agreedToPrivacy', e.target.checked)}
+                        className="peer h-5 w-5 rounded-md border-2 border-slate-300 dark:border-slate-700 text-cyan-600 focus:ring-cyan-500 transition-all cursor-pointer opacity-0 absolute z-10"
+                      />
+                      <div className="h-5 w-5 rounded-md border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 peer-checked:bg-cyan-500 peer-checked:border-cyan-500 flex items-center justify-center text-white transition-all">
+                        <CheckCircle size={14} className="scale-0 peer-checked:scale-100 transition-transform" />
+                      </div>
+                    </div>
+                    <span className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                      Potvrzuji seznámení se se <a href="#" className="font-bold text-cyan-600 hover:text-cyan-500 underline">zásadami zpracování</a> v Shamanic AI Ekosystému.
                     </span>
                   </label>
                 </div>
               </div>
             )}
-
-            {/* Navigation */}
-            <div className="flex justify-between gap-3 mt-6 pt-4 border-t border-slate-200 dark:border-slate-700">
-              <button
-                 type="button"
-                 onClick={() => setStep(Math.max(1, typeof step === 'number' ? step - 1 : 1))}
-                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                   step === 1 
-                     ? 'invisible' 
-                     : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                 }`}
-              >
-                Zpět
-              </button>
-              <button
-                type={step === totalSteps ? 'submit' : 'button'}
-                 onClick={() => (typeof step === 'number' && step < totalSteps) && setStep(step + 1)}
-                className="px-6 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-medium transition-colors"
-              >
-                {step === totalSteps ? 'Dokončit registraci' : 'Pokračovat'}
-              </button>
-            </div>
           </form>
         </div>
+
+        {/* Footer Actions */}
+        <div className="p-8 pt-4 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-800 flex gap-4">
+          {step > 1 && (
+            <button
+              onClick={() => setStep(step === 'success' ? 1 : step - 1)}
+              className="px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold rounded-xl hover:bg-white dark:hover:bg-slate-800 transition-all flex items-center gap-2"
+            >
+              Zpět
+            </button>
+          )}
+          <button
+            onClick={(e) => {
+              if (step === 3) handleSubmit(e as any);
+              else setStep(step + 1);
+            }}
+            disabled={(step === 1 && (!formData.email || !formData.password)) || (step === 2 && (!formData.companyName || !formData.ico)) || (step === 3 && (!formData.agreedToTerms || !formData.agreedToPrivacy))}
+            className="flex-1 flex items-center justify-center gap-2 px-8 py-3.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-xl hover:opacity-90 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-xl shadow-black/10 dark:shadow-white/5"
+          >
+            {step === 3 ? 'Aktivovat Firemní Profil' : 'Pokračovat'}
+            <ArrowRight size={20} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-slate-950/80 backdrop-blur-md transition-opacity duration-300"
+        onClick={onClose}
+      ></div>
+      <div className="relative bg-white dark:bg-[#0b1121] border border-slate-200 dark:border-slate-800/60 rounded-[2.5rem] shadow-[0_30px_70px_rgba(0,0,0,0.4)] w-full max-w-2xl overflow-hidden ring-1 ring-black/5 dark:ring-white/5 transition-all animate-in zoom-in-95 duration-300">
+        <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-cyan-500 via-emerald-500 to-cyan-500"></div>
+        {renderContent()}
+        {/* Shamanic background glow */}
+        <div className="absolute -bottom-24 -right-24 w-80 h-80 bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none"></div>
+        <div className="absolute -top-24 -left-24 w-80 h-80 bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none"></div>
       </div>
     </div>
   );
