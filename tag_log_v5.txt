@@ -1,0 +1,317 @@
+155: [1] (O:1 C:0) <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300">
+159: [0] (O:0 C:1) ></div>
+160: [1] (O:1 C:0) <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+161: [1] (O:1 C:1) <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-600 to-blue-600"></div>
+163: [2] (O:1 C:0) <div className="p-10 flex flex-col md:flex-row gap-10">
+164: [3] (O:1 C:0) <div className="flex-1">
+165: [4] (O:1 C:0) <div className="w-16 h-16 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-2xl flex items-center justify-center mb-6">
+167: [3] (O:0 C:1) </div>
+173: [4] (O:1 C:0) <div className="space-y-4">
+180: [5] (O:1 C:0) <div key={i} className="flex items-center gap-3">
+181: [6] (O:1 C:0) <div className="p-1.5 bg-emerald-500/10 text-emerald-600 rounded-lg">
+183: [5] (O:0 C:1) </div>
+185: [4] (O:0 C:1) </div>
+187: [3] (O:0 C:1) </div>
+188: [2] (O:0 C:1) </div>
+190: [3] (O:1 C:0) <div className="w-full md:w-64 flex flex-col gap-4">
+191: [4] (O:1 C:0) <div className="p-6 bg-cyan-50 dark:bg-cyan-950/20 border-2 border-cyan-500 rounded-2xl relative">
+192: [4] (O:1 C:1) <div className="absolute -top-3 right-4 bg-cyan-600 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Nejoblíbenější</div>
+194: [5] (O:1 C:0) <div className="flex items-baseline gap-1 mb-4">
+197: [4] (O:0 C:1) </div>
+210: [3] (O:0 C:1) </div>
+212: [4] (O:1 C:0) <div className="p-6 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl">
+214: [4] (O:1 C:1) <div className="text-sm text-slate-500 mb-4">Na míru velkým firmám</div>
+221: [3] (O:0 C:1) </div>
+222: [2] (O:0 C:1) </div>
+223: [1] (O:0 C:1) </div>
+347: [2] (O:1 C:0) <div className="flex flex-col items-center justify-center py-20 animate-in fade-in">
+348: [3] (O:1 C:0) <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
+350: [2] (O:0 C:1) </div>
+362: [1] (O:0 C:1) </div>
+367: [2] (O:1 C:0) <div className="space-y-6 animate-in fade-in">
+370: [3] (O:1 C:0) <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+371: [4] (O:1 C:0) <div>
+374: [3] (O:0 C:1) </div>
+375: [4] (O:1 C:0) <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+387: [3] (O:0 C:1) </div>
+388: [2] (O:0 C:1) </div>
+390: [3] (O:1 C:0) <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+394: [4] (O:1 C:0) <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+395: [5] (O:1 C:0) <div className="flex justify-between items-start mb-4">
+396: [6] (O:1 C:0) <div>
+397: [6] (O:1 C:1) <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">Pipeline</div>
+398: [6] (O:1 C:1) <div className="text-3xl font-bold text-slate-900 dark:text-white">1,240</div>
+399: [5] (O:0 C:1) </div>
+400: [6] (O:1 C:0) <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
+402: [5] (O:0 C:1) </div>
+403: [4] (O:0 C:1) </div>
+406: [5] (O:1 C:0) <div className="space-y-2">
+407: [6] (O:1 C:0) <div className="flex h-2 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+408: [6] (O:1 C:1) <div className="bg-emerald-500 w-[30%]" title="New: 340"></div>
+409: [6] (O:1 C:1) <div className="bg-blue-500 w-[45%]" title="Screening: 520"></div>
+410: [6] (O:1 C:1) <div className="bg-purple-500 w-[15%]" title="Interview: 280"></div>
+411: [6] (O:1 C:1) <div className="bg-amber-500 w-[10%]" title="Offer: 100"></div>
+412: [5] (O:0 C:1) </div>
+413: [6] (O:1 C:0) <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-mono">
+414: [6] (O:1 C:1) <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>New</span>
+415: [6] (O:1 C:1) <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>Screen</span>
+416: [6] (O:1 C:1) <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>Int</span>
+417: [6] (O:1 C:1) <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>Off</span>
+418: [5] (O:0 C:1) </div>
+419: [4] (O:0 C:1) </div>
+420: [3] (O:0 C:1) </div>
+423: [4] (O:1 C:0) <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+424: [5] (O:1 C:0) <div className="flex justify-between items-start mb-2">
+425: [6] (O:1 C:0) <div>
+426: [6] (O:1 C:1) <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">Match Score</div>
+427: [6] (O:1 C:1) <div className="text-3xl font-bold text-slate-900 dark:text-white">68<span className="text-lg text-slate-400 font-normal">/100</span></div>
+428: [5] (O:0 C:1) </div>
+429: [6] (O:1 C:0) <div className="p-2 bg-cyan-50 dark:bg-cyan-500/10 rounded-lg text-cyan-600 dark:text-cyan-400">
+431: [5] (O:0 C:1) </div>
+432: [4] (O:0 C:1) </div>
+433: [5] (O:1 C:0) <div className="text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium bg-emerald-50 dark:bg-emerald-900/10 py-1 px-2 rounded w-fit mb-2">
+435: [4] (O:0 C:1) </div>
+439: [3] (O:0 C:1) </div>
+442: [4] (O:1 C:0) <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+443: [5] (O:1 C:0) <div className="flex justify-between items-start mb-2">
+444: [6] (O:1 C:0) <div>
+445: [6] (O:1 C:1) <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">Time to Hire</div>
+446: [6] (O:1 C:1) <div className="text-3xl font-bold text-slate-900 dark:text-white">24 <span className="text-lg font-normal text-slate-500">dní</span></div>
+447: [5] (O:0 C:1) </div>
+448: [6] (O:1 C:0) <div className="p-2 bg-amber-50 dark:bg-amber-500/10 rounded-lg text-amber-600 dark:text-amber-400">
+450: [5] (O:0 C:1) </div>
+451: [4] (O:0 C:1) </div>
+453: [5] (O:1 C:0) <div className="flex items-center gap-2 mt-3 text-sm border-t border-slate-100 dark:border-slate-800 pt-2">
+458: [4] (O:0 C:1) </div>
+460: [5] (O:1 C:0) <div className="mt-2 text-xs text-slate-500 space-y-0.5">
+461: [6] (O:1 C:0) <div className="flex justify-between">
+464: [5] (O:0 C:1) </div>
+465: [6] (O:1 C:0) <div className="flex justify-between">
+468: [5] (O:0 C:1) </div>
+469: [4] (O:0 C:1) </div>
+470: [3] (O:0 C:1) </div>
+473: [4] (O:1 C:0) <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+474: [5] (O:1 C:0) <div className="flex justify-between items-start mb-2">
+475: [6] (O:1 C:0) <div>
+476: [6] (O:1 C:1) <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">Ušetřeno</div>
+477: [7] (O:1 C:0) <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+479: [6] (O:0 C:1) </div>
+480: [5] (O:0 C:1) </div>
+481: [6] (O:1 C:0) <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400">
+483: [5] (O:0 C:1) </div>
+484: [4] (O:0 C:1) </div>
+486: [5] (O:1 C:0) <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mb-1 mt-2">
+490: [4] (O:0 C:1) ></div>
+491: [3] (O:0 C:1) </div>
+492: [4] (O:1 C:0) <div className="flex justify-between text-xs text-slate-400 mb-2">
+495: [3] (O:0 C:1) </div>
+497: [4] (O:1 C:0) <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+498: [5] (O:1 C:0) <div className="flex justify-between items-center text-xs">
+501: [4] (O:0 C:1) </div>
+502: [5] (O:1 C:0) <div className="text-xs text-right text-emerald-500">
+504: [4] (O:0 C:1) </div>
+505: [3] (O:0 C:1) </div>
+506: [2] (O:0 C:1) </div>
+510: [3] (O:1 C:0) <div className="bg-gradient-to-r from-indigo-50 to-cyan-50 dark:from-indigo-950/20 dark:to-cyan-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center gap-4 relative overflow-hidden">
+511: [4] (O:1 C:0) <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none text-indigo-500">
+513: [3] (O:0 C:1) </div>
+515: [4] (O:1 C:0) <div className="p-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800 z-10">
+517: [3] (O:0 C:1) </div>
+519: [4] (O:1 C:0) <div className="flex-1 z-10">
+521: [5] (O:1 C:0) <div className="flex flex-col md:flex-row gap-4 text-sm text-indigo-800 dark:text-indigo-300">
+522: [6] (O:1 C:0) <div className="flex items-center gap-2">
+525: [5] (O:0 C:1) </div>
+526: [6] (O:1 C:0) <div className="flex items-center gap-2">
+529: [5] (O:0 C:1) </div>
+530: [4] (O:0 C:1) </div>
+531: [3] (O:0 C:1) </div>
+532: [2] (O:0 C:1) </div>
+534: [3] (O:1 C:0) <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+537: [4] (O:1 C:0) <div className="xl:col-span-2 space-y-4">
+538: [5] (O:1 C:0) <div className="flex items-center justify-between">
+542: [6] (O:1 C:0) <div className="flex gap-2">
+549: [5] (O:0 C:1) </div>
+550: [4] (O:0 C:1) </div>
+552: [5] (O:1 C:0) <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+553: [6] (O:1 C:0) <div className="overflow-x-auto">
+588: [6] (O:1 C:1) <div className="font-bold text-slate-900 dark:text-white text-sm">{job.title}</div>
+589: [7] (O:1 C:0) <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+592: [6] (O:0 C:1) </div>
+597: [7] (O:1 C:0) <div className="flex items-center gap-2 mb-1">
+600: [6] (O:0 C:1) </div>
+601: [7] (O:1 C:0) <div className="flex h-1.5 w-24 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+602: [7] (O:1 C:1) <div className="bg-emerald-500" style={{ width: '20%' }}></div>
+603: [7] (O:1 C:1) <div className="bg-blue-500" style={{ width: '40%' }}></div>
+604: [7] (O:1 C:1) <div className="bg-purple-500" style={{ width: '10%' }}></div>
+605: [6] (O:0 C:1) </div>
+617: [7] (O:1 C:0) <div className="text-xs text-slate-500">
+618: [7] (O:1 C:1) <div className="font-bold text-slate-700 dark:text-slate-300">{views} views</div>
+619: [7] (O:1 C:1) <div className={isLowPerf ? "text-rose-500 font-bold" : ""}>{realConversion.toFixed(1)}% conv.</div>
+620: [6] (O:0 C:1) </div>
+625: [7] (O:1 C:0) <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+635: [6] (O:0 C:1) </div>
+642: [5] (O:0 C:1) </div>
+645: [6] (O:1 C:0) <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30">
+647: [7] (O:1 C:0) <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 relative">
+649: [7] (O:1 C:1) <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-200 dark:bg-slate-800 -z-10 transform -translate-y-1/2"></div>
+651: [8] (O:1 C:0) <div className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-800 text-center">
+652: [8] (O:1 C:1) <div className="font-bold">12,450</div>
+653: [8] (O:1 C:1) <div className="text-xs text-slate-400">Views</div>
+654: [7] (O:0 C:1) </div>
+656: [8] (O:1 C:0) <div className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-800 text-center">
+657: [8] (O:1 C:1) <div className="font-bold">1,240</div>
+658: [8] (O:1 C:1) <div className="text-xs text-slate-400">Applicants (10%)</div>
+659: [7] (O:0 C:1) </div>
+661: [8] (O:1 C:0) <div className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-800 text-center">
+662: [8] (O:1 C:1) <div className="font-bold">280</div>
+663: [8] (O:1 C:1) <div className="text-xs text-slate-400">Interviews (22%)</div>
+664: [7] (O:0 C:1) </div>
+666: [8] (O:1 C:0) <div className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-800 text-center border-emerald-500/30 bg-emerald-50 dark:bg-emerald-900/10">
+667: [8] (O:1 C:1) <div className="font-bold text-emerald-600 dark:text-emerald-400">42</div>
+668: [8] (O:1 C:1) <div className="text-xs text-emerald-500">Hires (15%)</div>
+669: [7] (O:0 C:1) </div>
+670: [6] (O:0 C:1) </div>
+671: [5] (O:0 C:1) </div>
+672: [4] (O:0 C:1) </div>
+673: [3] (O:0 C:1) </div>
+676: [4] (O:1 C:0) <div className="space-y-6">
+679: [5] (O:1 C:0) <div className="space-y-4">
+680: [6] (O:1 C:0) <div className="flex items-center justify-between">
+685: [5] (O:0 C:1) </div>
+687: [6] (O:1 C:0) <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+688: [7] (O:1 C:0) <div className="divide-y divide-slate-100 dark:divide-slate-800">
+696: [8] (O:1 C:0) <div key={candidate.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+697: [9] (O:1 C:0) <div className="flex justify-between items-start mb-2">
+698: [10] (O:1 C:0) <div className="flex items-center gap-3">
+699: [11] (O:1 C:0) <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center text-xs font-bold text-slate-700 dark:text-slate-200 shadow-inner">
+701: [10] (O:0 C:1) </div>
+702: [11] (O:1 C:0) <div>
+703: [12] (O:1 C:0) <div className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-cyan-600 transition-colors flex items-center gap-2">
+706: [11] (O:0 C:1) </div>
+707: [11] (O:1 C:1) <div className="text-xs text-slate-500 dark:text-slate-400">{candidate.role}</div>
+708: [10] (O:0 C:1) </div>
+709: [9] (O:0 C:1) </div>
+712: [10] (O:1 C:0) <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+722: [9] (O:0 C:1) </div>
+723: [8] (O:0 C:1) </div>
+725: [9] (O:1 C:0) <div className="mt-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-950/50 p-2 rounded border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+727: [10] (O:1 C:0) <div className="flex items-center gap-1 font-bold text-slate-900 dark:text-white" title="Match Score">
+730: [9] (O:0 C:1) </div>
+731: [8] (O:0 C:1) </div>
+732: [7] (O:0 C:1) </div>
+735: [6] (O:0 C:1) </div>
+739: [5] (O:0 C:1) </div>
+740: [4] (O:0 C:1) </div>
+743: [5] (O:1 C:0) <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+744: [6] (O:1 C:0) <div className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-700 dark:text-slate-200">
+746: [5] (O:0 C:1) </div>
+747: [6] (O:1 C:0) <div className="flex items-center justify-between">
+748: [7] (O:1 C:0) <div className="flex items-center gap-2">
+749: [7] (O:1 C:1) <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300">P</div>
+750: [8] (O:1 C:0) <div className="text-xs">
+751: [8] (O:1 C:1) <div className="font-bold dark:text-white">Petra N.</div>
+752: [8] (O:1 C:1) <div className="text-slate-500">8 Hires</div>
+753: [7] (O:0 C:1) </div>
+754: [6] (O:0 C:1) </div>
+755: [7] (O:1 C:0) <div className="text-right text-xs">
+756: [7] (O:1 C:1) <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400">19 dní</div>
+757: [7] (O:1 C:1) <div className="text-slate-400">Avg TTH</div>
+758: [6] (O:0 C:1) </div>
+759: [5] (O:0 C:1) </div>
+760: [4] (O:0 C:1) </div>
+762: [3] (O:0 C:1) </div>
+763: [2] (O:0 C:1) </div>
+764: [1] (O:0 C:1) </div>
+769: [2] (O:1 C:0) <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-200px)] min-h-[600px] animate-in slide-in-from-right-4">
+772: [3] (O:1 C:0) <div className="lg:col-span-8 flex flex-col h-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden order-2 lg:order-1">
+773: [4] (O:1 C:0) <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50">
+778: [3] (O:0 C:1) </div>
+781: [4] (O:1 C:0) <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+790: [3] (O:0 C:1) </div>
+793: [4] (O:1 C:0) <div className="flex items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10">
+798: [4] (O:1 C:1) <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+806: [4] (O:1 C:1) <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+816: [4] (O:1 C:1) <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+819: [5] (O:1 C:0) <div className="relative">
+830: [6] (O:1 C:0) <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl p-3 z-50 grid grid-cols-5 gap-1 animate-in zoom-in-95">
+840: [5] (O:0 C:1) </div>
+842: [4] (O:0 C:1) </div>
+844: [4] (O:1 C:1) <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+851: [3] (O:0 C:1) </div>
+862: [4] (O:1 C:0) <div className="flex-1 w-full p-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950/30">
+866: [3] (O:0 C:1) </div>
+869: [4] (O:1 C:0) <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30 flex justify-end gap-3">
+870: [5] (O:1 C:0) <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mr-auto">
+873: [4] (O:0 C:1) </div>
+891: [3] (O:0 C:1) </div>
+892: [2] (O:0 C:1) </div>
+895: [3] (O:1 C:0) <div className="lg:col-span-4 space-y-6 overflow-y-auto pr-2 custom-scrollbar order-1 lg:order-2 h-full">
+899: [4] (O:1 C:0) <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-xl p-6 animate-in zoom-in-95 shadow-sm">
+900: [5] (O:1 C:0) <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-4">
+903: [4] (O:0 C:1) </div>
+905: [5] (O:1 C:0) <div className="space-y-4">
+906: [6] (O:1 C:0) <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
+908: [7] (O:1 C:0) <div className="flex flex-wrap gap-1">
+914: [6] (O:0 C:1) </div>
+915: [5] (O:0 C:1) </div>
+917: [6] (O:1 C:0) <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
+920: [5] (O:0 C:1) </div>
+922: [6] (O:1 C:0) <div className="border-t border-emerald-200 dark:border-emerald-900/50 pt-4">
+929: [5] (O:0 C:1) </div>
+930: [4] (O:0 C:1) </div>
+931: [3] (O:0 C:1) </div>
+943: [2] (O:0 C:1) </div>
+944: [1] (O:0 C:1) </div>
+951: [2] (O:1 C:0) <div className="flex flex-col items-center justify-center py-20 animate-in fade-in text-center">
+952: [3] (O:1 C:0) <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
+954: [2] (O:0 C:1) </div>
+959: [1] (O:0 C:1) </div>
+964: [2] (O:1 C:0) <div className="space-y-6 animate-in fade-in">
+965: [3] (O:1 C:0) <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
+966: [4] (O:1 C:0) <div className="flex items-center gap-3 w-full md:w-auto">
+967: [5] (O:1 C:0) <div className="p-2 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-lg">
+969: [4] (O:0 C:1) </div>
+979: [3] (O:0 C:1) </div>
+981: [4] (O:1 C:0) <div className="w-full md:w-auto flex flex-col items-end gap-1">
+993: [3] (O:0 C:1) </div>
+994: [2] (O:0 C:1) </div>
+996: [3] (O:1 C:0) <div className="grid grid-cols-1 gap-4">
+1000: [4] (O:1 C:0) <div key={candidate.id} className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all relative overflow-hidden group">
+1002: [5] (O:1 C:0) <div className="absolute top-0 right-0 p-4 text-right">
+1003: [5] (O:1 C:1) <div className="text-3xl font-bold text-cyan-600 dark:text-cyan-400 font-mono">{match.score}%</div>
+1004: [5] (O:1 C:1) <div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Shoda</div>
+1005: [4] (O:0 C:1) </div>
+1008: [5] (O:1 C:0) <div className="flex flex-col md:flex-row gap-6">
+1009: [6] (O:1 C:0) <div className="flex-1">
+1010: [7] (O:1 C:0) <div className="flex items-center gap-3 mb-2">
+1013: [6] (O:0 C:1) </div>
+1016: [7] (O:1 C:0) <div className="flex flex-wrap gap-2 mb-4">
+1022: [6] (O:0 C:1) </div>
+1024: [7] (O:1 C:0) <div className="flex items-center gap-6 text-sm text-slate-500 dark:text-slate-400">
+1032: [6] (O:0 C:1) </div>
+1033: [5] (O:0 C:1) </div>
+1036: [6] (O:1 C:0) <div className="md:w-64 bg-slate-50 dark:bg-slate-950/50 rounded-lg p-4 border border-slate-200 dark:border-slate-800">
+1039: [7] (O:1 C:0) <div className="mb-3">
+1040: [8] (O:1 C:0) <div className="flex justify-between text-xs mb-1">
+1045: [7] (O:0 C:1) </div>
+1046: [8] (O:1 C:0) <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full">
+1050: [7] (O:0 C:1) ></div>
+1051: [6] (O:0 C:1) </div>
+1052: [5] (O:0 C:1) </div>
+1055: [6] (O:1 C:0) <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+1057: [5] (O:0 C:1) </div>
+1059: [4] (O:0 C:1) </div>
+1060: [3] (O:0 C:1) </div>
+1061: [2] (O:0 C:1) </div>
+1064: [1] (O:0 C:1) </div>
+1065: [0] (O:0 C:1) </div>
+1070: [1] (O:1 C:0) <div className="w-full max-w-[1920px] mx-auto min-h-full pb-10">
+1072: [2] (O:1 C:0) <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+1073: [3] (O:1 C:0) <div>
+1076: [2] (O:0 C:1) </div>
+1078: [3] (O:1 C:0) <div className="flex flex-wrap bg-white dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800 overflow-x-auto">
+1115: [2] (O:0 C:1) </div>
+1116: [1] (O:0 C:1) </div>
+1119: [2] (O:1 C:0) <div className="min-h-[500px]">
+1126: [1] (O:0 C:1) </div>
+1129: [0] (O:0 C:1) </div>

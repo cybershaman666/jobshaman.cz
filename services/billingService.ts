@@ -1,4 +1,4 @@
-import { UserProfile, CompanyProfile, CompanyServiceTier, CandidateSubscriptionTier } from '../types';
+import { UserProfile, CompanyProfile } from '../types';
 
 export type PremiumFeature =
     | 'COVER_LETTER'
@@ -58,7 +58,7 @@ export const canCompanyUseFeature = (company: CompanyProfile, feature: PremiumFe
  * Checks if a company can post more jobs based on their current plan.
  */
 export const canCompanyPostJob = (company: CompanyProfile, userEmail?: string): { allowed: boolean; reason?: string } => {
-    if (isAdminTester(userEmail)) return true;
+    if (isAdminTester(userEmail)) return { allowed: true };
 
     const tier = company.subscription?.tier || 'basic';
     const activeJobsCount = company.subscription?.usage?.activeJobsCount || 0;
@@ -83,7 +83,7 @@ export const getRemainingAssessments = (company: CompanyProfile): number => {
     const used = company.subscription?.usage?.aiAssessmentsUsed || 0;
 
     if (tier === 'enterprise') return 999999; // Practically unlimited
-    if (tier === 'business') return Math.max(0, 10 - used);
+    if (tier === 'business' || tier === 'assessment_bundle') return Math.max(0, 10 - used);
 
     return 0; // No free assessments
 };

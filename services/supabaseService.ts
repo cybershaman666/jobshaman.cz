@@ -143,6 +143,7 @@ export const getUserProfile = async (userId: string): Promise<Partial<UserProfil
             skills: candidateData?.skills ? (typeof candidateData.skills === 'string' ? JSON.parse(candidateData.skills) : candidateData.skills) : [],
             workHistory: candidateData?.work_history ? (typeof candidateData.work_history === 'string' ? JSON.parse(candidateData.work_history) : candidateData.work_history) : [],
             education: candidateData?.education ? (typeof candidateData.education === 'string' ? JSON.parse(candidateData.education) : candidateData.education) : [],
+            hasAssessment: profileData?.has_assessment || false,
             isLoggedIn: true
         };
 
@@ -709,6 +710,9 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     }
     if (updates.education !== undefined) {
         candidateUpdates.education = JSON.stringify(updates.education);
+    }
+    if (updates.hasAssessment !== undefined) {
+        baseUpdates.has_assessment = updates.hasAssessment;
     }
 
     const promises = [];

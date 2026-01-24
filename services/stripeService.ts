@@ -1,16 +1,15 @@
-import { loadStripe } from '@stripe/stripe-js';
+// import { loadStripe } from '@stripe/stripe-js';
 
-// TODO: Replace with your real Stripe Publishable Key from the dashboard
-const STRIPE_PUBLIC_KEY = 'pk_live_51StCnSG2Aezsy59epwvFwsyhMk0N9ySXq0U5fYgWBoTpfzZnX2rMCaQ41XEfGgWZoI3lWD2P0mUxF169hQYZV5Cc00Yl5xKCGh';
+export const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_live_51StCnSG2Aezsy59epwvFwsyhMk0N9ySXq0U5fYgWBoTpfzZnX2rMCaQ41XEfGgWZoI3lWD2P0mUxF169hQYZV5Cc00Yl5xKCGh';
 // TODO: Replace with your real Render backend URL
 const BACKEND_URL = 'https://jobshaman-cz.onrender.com';
 
 /**
  * Initiates a Stripe Checkout session for a specific subscription tier.
- * @param tier 'premium' for candidates, 'business' for companies
+ * @param tier 'premium' for candidates, 'business' for companies, 'assessment' for AI Assessment Center
  * @param userId The ID of the user or company to associate with the payment
  */
-export const redirectToCheckout = async (tier: 'premium' | 'business', userId: string) => {
+export const redirectToCheckout = async (tier: 'premium' | 'business' | 'assessment' | 'assessment_bundle', userId: string) => {
     try {
         const response = await fetch(`${BACKEND_URL}/create-checkout-session`, {
             method: 'POST',

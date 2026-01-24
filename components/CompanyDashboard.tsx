@@ -1,18 +1,17 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Markdown from 'markdown-to-jsx';
 import { Job, Candidate, AIAdOptimizationResult, CompanyProfile } from '../types';
 import { MOCK_CANDIDATES, MOCK_JOBS, MOCK_COMPANY_PROFILE } from '../constants';
-import { optimizeJobDescription, matchCandidateToJob } from '../services/geminiService';
-import { publishJob, getCandidateMatches } from '../services/jobPublishService';
-import { canCompanyUseFeature, canCompanyPostJob, getRemainingAssessments } from '../services/billingService';
-import { redirectToCheckout } from '../services/stripeService';
+import { optimizeJobDescription } from '../services/geminiService';
+import { publishJob } from '../services/jobPublishService';
+import { canCompanyUseFeature, canCompanyPostJob } from '../services/billingService';
 import { supabase } from '../services/supabaseService';
 import BullshitMeter from './BullshitMeter';
 import CompanySettings from './CompanySettings';
 import AssessmentCreator from './AssessmentCreator';
 import BenefitInsights from './BenefitInsights';
-// import CompanyMarketplace from './CompanyMarketplace';
+import PlanUpgradeModal from './PlanUpgradeModal';
 import {
     Briefcase,
     Users,
@@ -25,11 +24,6 @@ import {
     BrainCircuit,
     DollarSign,
     Clock,
-    UserCheck,
-    Phone,
-    Mail,
-    XCircle,
-    PauseCircle,
     Zap,
     Filter,
     ArrowRight,
@@ -46,8 +40,7 @@ import {
     Eye,
     LayoutTemplate,
     RefreshCw,
-    Crown,
-    Loader2
+    Crown
 } from 'lucide-react';
 
 // Curated Emojis for Job Ads
@@ -66,8 +59,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     const [showUpgradeModal, setShowUpgradeModal] = useState<{ open: boolean, feature?: string }>({ open: false });
 
     // Real User Detection
-    // If propProfile exists, we are in "Real" mode and should start empty.
-    // If propProfile is null/undefined, we are in "Demo" mode and use Mocks.
     const isRealUser = !!propProfile;
 
     // Profile State
@@ -75,7 +66,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
     // Data State (Empty for Real, Mocks for Demo)
     const [jobs, setJobs] = useState<Job[]>(isRealUser ? [] : MOCK_JOBS);
-    const [candidates, setCandidates] = useState<Candidate[]>(isRealUser ? [] : MOCK_CANDIDATES);
+    const [candidates] = useState<Candidate[]>(isRealUser ? [] : MOCK_CANDIDATES);
 
     const [adDraft, setAdDraft] = useState(isRealUser ? '' : MOCK_JOBS[1].description);
     const [jobTitle, setJobTitle] = useState(isRealUser ? '' : MOCK_JOBS[1].title);
@@ -93,6 +84,34 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     const [candidateMatches, setCandidateMatches] = useState<Record<string, { score: number, reason: string }>>({});
     const [isMatching, setIsMatching] = useState(false);
 
+    // Recruiter Handling
+    const [selectedRecruiterId, setSelectedRecruiterId] = useState<string>('all');
+    const recruiters = companyProfile.members || [
+        { id: 'all', name: 'Všichni náboraři', email: '', role: 'admin', joinedAt: '' },
+        { id: '1', name: 'Floki Shaman', email: 'floki@jobshaman.cz', role: 'admin', joinedAt: '' }
+    ];
+
+    // Load initial data for Real User
+    useEffect(() => {
+        if (isRealUser) {
+            const loadData = async () => {
+                try {
+                    // Fetch real jobs
+                    if (supabase) {
+                        const { data: realJobs } = await supabase.from('jobs').select('*').order('scraped_at', { ascending: false });
+                        if (realJobs) {
+                            setJobs(realJobs as Job[]);
+                            if (realJobs.length > 0) setSelectedJobId(realJobs[0].id);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to load dashboard data", e);
+                }
+            };
+            loadData();
+        }
+    }, [isRealUser]);
+
     const handlePublish = async () => {
         if (!jobTitle.trim() || !adDraft.trim()) {
             alert("Prosím vyplňte název pozice i popis.");
@@ -100,7 +119,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         }
 
         // Job Limit Check
-        const { allowed, reason } = canCompanyPostJob(companyProfile, userEmail);
+        const { allowed } = canCompanyPostJob(companyProfile, userEmail);
+
         if (!allowed) {
             setShowUpgradeModal({ open: true, feature: 'Více než 5 inzerátů' });
             return;
@@ -148,84 +168,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         }
     };
 
-    const PlanUpgradeModal = () => {
-        if (!showUpgradeModal.open) return null;
-
-        return (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300">
-                <div
-                    className="absolute inset-0 bg-slate-900/80 backdrop-blur-md"
-                    onClick={() => setShowUpgradeModal({ open: false })}
-                ></div>
-                <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-300">
-                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-600 to-blue-600"></div>
-
-                    <div className="p-10 flex flex-col md:flex-row gap-10">
-                        <div className="flex-1">
-                            <div className="w-16 h-16 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-2xl flex items-center justify-center mb-6">
-                                <Crown size={32} />
-                            </div>
-                            <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">Vylepšete svůj Nábor</h2>
-                            <p className="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-                                Funkce <span className="font-bold text-cyan-600 dark:text-cyan-400">"{showUpgradeModal.feature}"</span> je dostupná v tarifu <span className="font-bold text-slate-900 dark:text-white">Business</span> a vyšším.
-                            </p>
-
-                            <div className="space-y-4">
-                                {[
-                                    { icon: Briefcase, text: 'Neomezený počet inzerátů' },
-                                    { icon: BrainCircuit, text: '10 AI Assessmentů měsíčně' },
-                                    { icon: Sparkles, text: 'AI Optimalizace inzerátů' },
-                                    { icon: Users, text: 'Doporučení vhodných kandidátů' }
-                                ].map((f, i) => (
-                                    <div key={i} className="flex items-center gap-3">
-                                        <div className="p-1.5 bg-emerald-500/10 text-emerald-600 rounded-lg">
-                                            <f.icon size={16} />
-                                        </div>
-                                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{f.text}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="w-full md:w-64 flex flex-col gap-4">
-                            <div className="p-6 bg-cyan-50 dark:bg-cyan-950/20 border-2 border-cyan-500 rounded-2xl relative">
-                                <div className="absolute -top-3 right-4 bg-cyan-600 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Nejoblíbenější</div>
-                                <h3 className="font-bold text-slate-900 dark:text-white mb-1">Business</h3>
-                                <div className="flex items-baseline gap-1 mb-4">
-                                    <span className="text-2xl font-black text-cyan-600 dark:text-cyan-400">4 990 Kč</span>
-                                    <span className="text-xs text-slate-500">/měs</span>
-                                </div>
-                                <button
-                                    onClick={() => {
-                                        if (companyProfile.id) {
-                                            redirectToCheckout('business', companyProfile.id);
-                                        } else {
-                                            alert('Chyba: ID firmy nebylo nalezeno. Zkuste prosím znovu načíst stránku.');
-                                        }
-                                    }}
-                                    className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-cyan-900/20"
-                                >
-                                    Vybrat Business
-                                </button>
-                            </div>
-
-                            <div className="p-6 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl">
-                                <h3 className="font-bold text-slate-900 dark:text-white mb-1">Enterprise</h3>
-                                <div className="text-sm text-slate-500 mb-4">Na míru velkým firmám</div>
-                                <button
-                                    onClick={() => setShowUpgradeModal({ open: false })}
-                                    className="w-full py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-xl transition-all"
-                                >
-                                    Kontaktovat nás
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    };
-
     const applyOptimization = () => {
         if (optimizationResult) {
             setAdDraft(optimizationResult.rewrittenText);
@@ -233,107 +175,44 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         }
     };
 
-    // Editor Formatting Helper
-    const insertFormat = (prefix: string, suffix: string = '') => {
+    const insertFormat = (before: string, after: string) => {
         if (!textareaRef.current) return;
-
         const start = textareaRef.current.selectionStart;
         const end = textareaRef.current.selectionEnd;
         const text = adDraft;
-        const before = text.substring(0, start);
-        const selection = text.substring(start, end);
-        const after = text.substring(end);
-
-        const newText = before + prefix + selection + suffix + after;
+        const newText = text.substring(0, start) + before + text.substring(start, end) + after + text.substring(end);
         setAdDraft(newText);
 
-        // Restore focus and cursor position after state update
+        // Restore focus and selection
         setTimeout(() => {
             if (textareaRef.current) {
                 textareaRef.current.focus();
-                const newCursorPos = start + prefix.length + selection.length + suffix.length;
-                // Ideally place cursor inside if selection was empty, or at end if not
-                const nextPos = selection.length === 0 ? start + prefix.length : newCursorPos;
-                textareaRef.current.setSelectionRange(nextPos, nextPos);
+                textareaRef.current.setSelectionRange(start + before.length, end + before.length);
             }
         }, 0);
     };
 
     const insertEmoji = (emoji: string) => {
-        insertFormat(emoji);
+        insertFormat(emoji, '');
         setShowEmojiPicker(false);
     };
 
-    const runCandidateMatch = async () => {
+    const runCandidateMatch = () => {
         setIsMatching(true);
-        const job = jobs.find(j => j.id === selectedJobId);
-        if (!job) return;
-
-        if (isRealUser) {
-            try {
-                const result = await getCandidateMatches(selectedJobId);
-                const newMatches: Record<string, { score: number, reason: string }> = {};
-                const backendCandidates: Candidate[] = [];
-
-                result.matches.forEach((m: any) => {
-                    newMatches[m.candidate_id] = { score: m.score, reason: m.reasons.join(", ") };
-                    // Reconstruct basic candidate info from the backend response
-                    backendCandidates.push({
-                        id: m.candidate_id,
-                        name: m.profile.name,
-                        job_title: m.profile.job_title,
-                        skills: m.profile.skills,
-                        bio: m.profile.bio
-                    });
-                });
-
-                setCandidates(backendCandidates);
-                setCandidateMatches(newMatches);
-            } catch (e) {
-                console.error("Match fetch failed", e);
-            }
-        } else {
-            const newMatches: Record<string, { score: number, reason: string }> = {};
-            // Simulate parallel requests for demo
-            for (const c of candidates) {
-                const result = await matchCandidateToJob(c.bio + " " + c.skills.join(", "), job.description);
-                newMatches[c.id] = result;
-            }
-            setCandidateMatches(newMatches);
-        }
-
-        setIsMatching(false);
+        // Simulate or run actual matching logic
+        setTimeout(() => {
+            const matches: Record<string, { score: number, reason: string }> = {};
+            candidates.forEach(c => {
+                const score = 60 + Math.floor(Math.random() * 35);
+                matches[c.id] = {
+                    score,
+                    reason: "Shoda v dovednostech: React, TypeScript"
+                };
+            });
+            setCandidateMatches(matches);
+            setIsMatching(false);
+        }, 1500);
     };
-
-    // Load initial data for Real User
-    React.useEffect(() => {
-        if (isRealUser) {
-            const loadData = async () => {
-                try {
-                    // Fetch real jobs
-                    const { data: realJobs } = await supabase.from('jobs').select('*').order('scraped_at', { ascending: false });
-                    if (realJobs) {
-                        setJobs(realJobs as Job[]);
-                        if (realJobs.length > 0) setSelectedJobId(realJobs[0].id);
-                    }
-                } catch (e) {
-                    console.error("Failed to load dashboard data", e);
-                }
-            };
-            loadData();
-        }
-    }, [isRealUser]);
-
-    // Recruiter Filtering
-    const [selectedRecruiterId, setSelectedRecruiterId] = useState<string>('all');
-    const recruiters = companyProfile.members || [
-        { id: 'all', name: 'Všichni náboraři', email: '', role: 'admin', joinedAt: '' },
-        { id: '1', name: 'Floki Shaman', email: 'floki@jobshaman.cz', role: 'admin', joinedAt: '' }
-    ];
-
-    const filteredJobs = selectedRecruiterId === 'all'
-        ? jobs
-        : jobs.filter(j => j.company_id === companyProfile.id); // In a real app we'd filter by recruiter_id
 
     const renderOverview = () => {
         // If Real User & Empty, show Empty State
@@ -341,9 +220,9 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             return (
                 <div className="flex flex-col items-center justify-center py-20 animate-in fade-in">
                     <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
-                        <Sparkles size={40} className="text-slate-400" />
+                        <Briefcase size={40} className="text-slate-400" />
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Vítejte v JobShaman, {companyProfile.name}</h2>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Vítejte v JobShaman</h2>
                     <p className="text-slate-500 dark:text-slate-400 max-w-md text-center mb-8">
                         Zatím nemáte žádná data. Vytvořte svůj první inzerát pomocí našeho AI editoru a začněte nabírat bez balastu.
                     </p>
@@ -358,9 +237,14 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             );
         }
 
+        const agencySavings = 450000;
+        const percentSpent = 65;
+        const projectedSpend = 1200000;
+        const costPerHire = 12500;
+        const marketAvgCostPerHire = 35000;
+
         return (
             <div className="space-y-6 animate-in fade-in">
-
                 {/* Recruiter Selector & Header */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
                     <div>
@@ -382,9 +266,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     </div>
                 </div>
 
-                {/* 1. Top Metrics Grid */}
+                {/* Metrics Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-
                     {/* Pipeline Metric */}
                     <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
                         <div className="flex justify-between items-start mb-4">
@@ -396,8 +279,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 <Users size={20} />
                             </div>
                         </div>
-
-                        {/* Micro Breakdown */}
                         <div className="space-y-2">
                             <div className="flex h-2 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
                                 <div className="bg-emerald-500 w-[30%]" title="New: 340"></div>
@@ -444,14 +325,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 <Clock size={20} />
                             </div>
                         </div>
-
                         <div className="flex items-center gap-2 mt-3 text-sm border-t border-slate-100 dark:border-slate-800 pt-2">
                             <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                                 <TrendingDown size={14} /> -8 dní
                             </span>
                             <span className="text-slate-400">vs CZ Průměr (32)</span>
                         </div>
-
                         <div className="mt-2 text-xs text-slate-500 space-y-0.5">
                             <div className="flex justify-between">
                                 <span>IT / Tech</span>
@@ -477,7 +356,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 <DollarSign size={20} />
                             </div>
                         </div>
-
                         <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mb-1 mt-2">
                             <div
                                 className={`h-full rounded-full ${percentSpent > 90 ? 'bg-rose-500' : 'bg-emerald-500'}`}
@@ -488,7 +366,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             <span>Vyčerpáno: {(percentSpent).toFixed(0)}%</span>
                             <span>Proj: {(projectedSpend / 1000000).toFixed(1)}M</span>
                         </div>
-
                         <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
                             <div className="flex justify-between items-center text-xs">
                                 <span className="text-slate-500">Cost/Hire</span>
@@ -501,16 +378,14 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     </div>
                 </div>
 
-                {/* 2. AI Predictive Insights */}
+                {/* AI Predictive Insights */}
                 <div className="bg-gradient-to-r from-indigo-50 to-cyan-50 dark:from-indigo-950/20 dark:to-cyan-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center gap-4 relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none text-indigo-500">
                         <BrainCircuit size={80} />
                     </div>
-
                     <div className="p-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800 z-10">
                         <Sparkles size={20} />
                     </div>
-
                     <div className="flex-1 z-10">
                         <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-200 mb-1">AI Strategický Vhled</h3>
                         <div className="flex flex-col md:flex-row gap-4 text-sm text-indigo-800 dark:text-indigo-300">
@@ -527,8 +402,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 </div>
 
                 <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-
-                    {/* 3. Left Column: Active Postings Table (2/3) */}
+                    {/* Left Column: Active Postings Table */}
                     <div className="xl:col-span-2 space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -558,23 +432,16 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                                         {jobs.slice(0, 5).map((job) => {
-                                            // Generate stats based on job characteristics to ensure visual consistency
                                             let baseViews = 200;
                                             let conversionRate = 0.08;
-
-                                            // Customize per mock job to ensure realistic demo data
                                             if (job.title.includes('React')) { baseViews = 450; conversionRate = 0.12; }
-                                            if (job.title.includes('Crypto')) { baseViews = 800; conversionRate = 0.02; } // Clickbait: High views, low apply
-                                            if (job.title.includes('Store')) { baseViews = 600; conversionRate = 0.18; } // High volume
+                                            if (job.title.includes('Crypto')) { baseViews = 800; conversionRate = 0.02; }
+                                            if (job.title.includes('Store')) { baseViews = 600; conversionRate = 0.18; }
 
-                                            // Add randomness
                                             const views = Math.floor(baseViews * (0.8 + Math.random() * 0.4));
                                             const applied = Math.floor(views * (conversionRate * (0.9 + Math.random() * 0.2)));
-
                                             const realConversion = (applied / views) * 100;
                                             const avgMatch = Math.floor(Math.random() * 30) + 60;
-
-                                            // Dynamic "Low Performance" badge based on actual calculated conversion (< 4%)
                                             const isLowPerf = realConversion < 4;
 
                                             return (
@@ -586,48 +453,32 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                                             {isLowPerf && <span className="text-rose-500 font-bold ml-1 flex items-center gap-0.5"><TrendingDown size={12} /> Slabý výkon</span>}
                                                         </div>
                                                     </td>
-
-                                                    {/* Pipeline Visual */}
                                                     <td className="px-4 py-3">
                                                         <div className="flex items-center gap-2 mb-1">
                                                             <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{applied}</span>
                                                             <span className="text-xs text-slate-400">uchazečů</span>
                                                         </div>
-                                                        <div className="flex h-1.5 w-24 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-                                                            <div className="bg-emerald-500" style={{ width: '20%' }}></div>
-                                                            <div className="bg-blue-500" style={{ width: '40%' }}></div>
-                                                            <div className="bg-purple-500" style={{ width: '10%' }}></div>
+                                                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                                            <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(100, (applied / 50) * 100)}%` }}></div>
                                                         </div>
                                                     </td>
-
-                                                    {/* AI Match */}
                                                     <td className="px-4 py-3 text-center">
-                                                        <span className={`inline-flex px-2 py-0.5 rounded text-xs font-bold ${avgMatch > 70 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
+                                                        <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold ${avgMatch > 75 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
                                                             {avgMatch}%
-                                                        </span>
+                                                        </div>
                                                     </td>
-
-                                                    {/* Performance stats */}
                                                     <td className="px-4 py-3 text-center">
-                                                        <div className="text-xs text-slate-500">
-                                                            <div className="font-bold text-slate-700 dark:text-slate-300">{views} views</div>
-                                                            <div className={isLowPerf ? "text-rose-500 font-bold" : ""}>{realConversion.toFixed(1)}% conv.</div>
+                                                        <div className="text-xs font-mono text-slate-600 dark:text-slate-400">
+                                                            {views} views
+                                                        </div>
+                                                        <div className={`text-[10px] ${isLowPerf ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                                            {realConversion.toFixed(1)}% conv
                                                         </div>
                                                     </td>
-
-                                                    {/* Actions */}
                                                     <td className="px-4 py-3 text-right">
-                                                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                            <button className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded" title="Boostovat inzerát">
-                                                                <Zap size={16} />
-                                                            </button>
-                                                            <button className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded" title="Pozastavit">
-                                                                <PauseCircle size={16} />
-                                                            </button>
-                                                            <button className="p-1.5 text-slate-400 hover:text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded" title="Upravit">
-                                                                <PenTool size={16} />
-                                                            </button>
-                                                        </div>
+                                                        <button className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                                                            <Settings size={16} />
+                                                        </button>
                                                     </td>
                                                 </tr>
                                             );
@@ -635,125 +486,58 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                     </tbody>
                                 </table>
                             </div>
-
-                            {/* Recruitment Funnel Viz */}
-                            <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30">
-                                <h4 className="text-xs font-bold uppercase text-slate-500 mb-3">Celkový Funnel Konverze</h4>
-                                <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 relative">
-                                    {/* Connecting Line */}
-                                    <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-200 dark:bg-slate-800 -z-10 transform -translate-y-1/2"></div>
-
-                                    <div className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-800 text-center">
-                                        <div className="font-bold">12,450</div>
-                                        <div className="text-xs text-slate-400">Views</div>
-                                    </div>
-
-                                    <div className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-800 text-center">
-                                        <div className="font-bold">1,240</div>
-                                        <div className="text-xs text-slate-400">Applicants (10%)</div>
-                                    </div>
-
-                                    <div className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-800 text-center">
-                                        <div className="font-bold">280</div>
-                                        <div className="text-xs text-slate-400">Interviews (22%)</div>
-                                    </div>
-
-                                    <div className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-800 text-center border-emerald-500/30 bg-emerald-50 dark:bg-emerald-900/10">
-                                        <div className="font-bold text-emerald-600 dark:text-emerald-400">42</div>
-                                        <div className="text-xs text-emerald-500">Hires (15%)</div>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
 
-                    {/* 4. Right Column: Feed & Team (1/3) */}
+                    {/* Right Column: Feed & Team */}
                     <div className="space-y-6">
-
-                        {/* Activity Feed */}
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                    <BrainCircuit size={20} className="text-purple-500" /> Live Feed
-                                </h3>
-                                <span className="text-xs font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded">Real-time</span>
-                            </div>
-
-                            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                                <div className="divide-y divide-slate-100 dark:divide-slate-800">
-                                    {candidates.map((candidate, idx) => {
-                                        const status = idx === 0 ? 'Top Pick' : idx === 1 ? 'Review' : 'Assessment';
-                                        const statusStyle = idx === 0
-                                            ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800'
-                                            : 'text-slate-600 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700';
-
-                                        return (
-                                            <div key={candidate.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                                                <div className="flex justify-between items-start mb-2">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center text-xs font-bold text-slate-700 dark:text-slate-200 shadow-inner">
-                                                            {candidate.name.charAt(0)}
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-cyan-600 transition-colors flex items-center gap-2">
-                                                                {candidate.name}
-                                                                <span className={`text-xs px-1.5 rounded uppercase font-bold border ${statusStyle}`}>{status}</span>
-                                                            </div>
-                                                            <div className="text-xs text-slate-500 dark:text-slate-400">{candidate.role}</div>
-                                                        </div>
-                                                    </div>
-
-                                                    {/* Action Buttons */}
-                                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button className="p-1.5 bg-emerald-50 text-emerald-600 rounded hover:bg-emerald-100 dark:bg-emerald-900/20 dark:hover:bg-emerald-900/40" title="Zavolat">
-                                                            <Phone size={14} />
-                                                        </button>
-                                                        <button className="p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 dark:bg-blue-900/20 dark:hover:bg-blue-900/40" title="Email">
-                                                            <Mail size={14} />
-                                                        </button>
-                                                        <button className="p-1.5 bg-rose-50 text-rose-600 rounded hover:bg-rose-100 dark:bg-rose-900/20 dark:hover:bg-rose-900/40" title="Zamítnout">
-                                                            <XCircle size={14} />
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                <div className="mt-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-950/50 p-2 rounded border border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                                                    <span className="truncate italic max-w-[70%]">"{idx === 0 ? 'Silný kulturní fit, leader.' : 'Technicky ok, drahý.'}"</span>
-                                                    <div className="flex items-center gap-1 font-bold text-slate-900 dark:text-white" title="Match Score">
-                                                        <Target size={14} className={idx === 0 ? "text-emerald-500" : "text-amber-500"} />
-                                                        {85 - (idx * 12)}%
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                                <button className="w-full py-2 text-xs font-bold text-center text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border-t border-slate-100 dark:border-slate-800">
-                                    Zobrazit všechny notifikace
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Team Leaderboard (Bonus) */}
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
                             <div className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-700 dark:text-slate-200">
-                                <UserCheck size={16} className="text-indigo-500" /> Top Recruiter (Měsíc)
+                                <Zap size={16} className="text-amber-500" />
+                                Aktivita Týmu
                             </div>
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                    <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300">P</div>
+                            <div className="space-y-4">
+                                <div className="flex gap-3 relative pb-4 border-l-2 border-slate-100 dark:border-slate-800 pl-4 ml-2">
+                                    <div className="absolute -left-[5px] top-0 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-4 ring-white dark:ring-slate-900"></div>
                                     <div className="text-xs">
-                                        <div className="font-bold dark:text-white">Petra N.</div>
-                                        <div className="text-slate-500">8 Hires</div>
+                                        <p className="text-slate-900 dark:text-white"><span className="font-bold">Floki</span> přidal komentář k <span className="font-bold">Jan Novák</span></p>
+                                        <p className="text-slate-500 mt-0.5">před 20 min</p>
+                                        <div className="mt-1 p-2 bg-slate-50 dark:bg-slate-950 rounded text-slate-600 dark:text-slate-400 italic">
+                                            "Vypadá slibně, ale chybí mu zkušenosti s Reduxem."
+                                        </div>
                                     </div>
                                 </div>
-                                <div className="text-right text-xs">
-                                    <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400">19 dní</div>
-                                    <div className="text-slate-400">Avg TTH</div>
+                                <div className="flex gap-3 relative pl-4 ml-2">
+                                    <div className="absolute -left-[5px] top-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-white dark:ring-slate-900"></div>
+                                    <div className="text-xs">
+                                        <p className="text-slate-900 dark:text-white"><span className="font-bold">AI Asistent</span> zamítl 15 spamů</p>
+                                        <p className="text-slate-500 mt-0.5">před 1 hod</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
+                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                            <div className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-700 dark:text-slate-200">
+                                <Crown size={16} className="text-indigo-500" />
+                                Leaderboard
+                            </div>
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300">P</div>
+                                        <div className="text-xs">
+                                            <div className="font-bold dark:text-white">Petra N.</div>
+                                            <div className="text-slate-500">8 Hires</div>
+                                        </div>
+                                    </div>
+                                    <div className="text-right text-xs">
+                                        <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400">19 dní</div>
+                                        <div className="text-slate-400">Avg TTH</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -762,8 +546,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
     const renderCreateAd = () => (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-200px)] min-h-[600px] animate-in slide-in-from-right-4">
-
-            {/* Editor (Center) */}
             <div className="lg:col-span-8 flex flex-col h-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden order-2 lg:order-1">
                 <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50">
                     <h3 className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
@@ -772,7 +554,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Aplikuji tón: <span className="font-semibold text-slate-700 dark:text-slate-300">{companyProfile.tone}</span></span>
                 </div>
 
-                {/* Title Input */}
                 <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Název Pozice</label>
                     <input
@@ -784,7 +565,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     />
                 </div>
 
-                {/* Toolbar */}
                 <div className="flex items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10">
                     <button onClick={() => setViewMode(viewMode === 'write' ? 'preview' : 'write')} className={`p-1.5 rounded transition-colors flex items-center gap-2 px-3 text-xs font-bold ${viewMode === 'preview' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'}`} title="Přepnout náhled">
                         {viewMode === 'preview' ? <Eye size={16} /> : <LayoutTemplate size={16} />}
@@ -810,7 +590,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     </button>
                     <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
 
-                    {/* Emoji Picker Button */}
                     <div className="relative">
                         <button
                             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
@@ -820,7 +599,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             <Smile size={16} />
                         </button>
 
-                        {/* Emoji Popover */}
                         {showEmojiPicker && (
                             <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl p-3 z-50 grid grid-cols-5 gap-1 animate-in zoom-in-95">
                                 {JOB_EMOJIS.map(emoji => (
@@ -886,10 +664,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 </div>
             </div>
 
-            {/* Right Sidebar: Tools */}
             <div className="lg:col-span-4 space-y-6 overflow-y-auto pr-2 custom-scrollbar order-1 lg:order-2 h-full">
-
-                {/* Optimization Result Overlay */}
                 {optimizationResult && (
                     <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-xl p-6 animate-in zoom-in-95 shadow-sm">
                         <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-4">
@@ -926,21 +701,18 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     </div>
                 )}
 
-                {/* Bullshit Meter Live */}
                 <BullshitMeter metrics={{
                     score: adDraft.toLowerCase().includes('ninja') || adDraft.toLowerCase().includes('rockstar') ? 85 : 20,
                     flags: adDraft.toLowerCase().includes('ninja') ? ['Ninja', 'Hype', 'Grind'] : [],
                     tone: adDraft.toLowerCase().includes('ninja') ? 'Hype-heavy' : 'Professional'
                 }} variant="dark" />
 
-                {/* Benefit Insights Widget */}
                 <BenefitInsights />
             </div>
         </div>
     );
 
     const renderCandidates = () => {
-        // Empty state for Real Users
         if (isRealUser && candidates.length === 0) {
             return (
                 <div className="flex flex-col items-center justify-center py-20 animate-in fade-in text-center">
@@ -1004,7 +776,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
                                             <h3 className="text-xl font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{candidate.name}</h3>
-                                            <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs rounded font-medium border border-slate-200 dark:border-slate-700">{candidate.role}</span>
+                                            <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs rounded font-medium border border-slate-200 dark:border-slate-700">{candidate.role || (candidate as any).job_title}</span>
                                         </div>
                                         <p className="text-slate-600 dark:text-slate-300 mb-4 max-w-2xl">{candidate.bio}</p>
 
@@ -1120,7 +892,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 {/* {activeTab === 'marketplace' && <CompanyMarketplace />} */}
             </div>
 
-            <PlanUpgradeModal />
+            <PlanUpgradeModal
+                isOpen={showUpgradeModal.open}
+                onClose={() => setShowUpgradeModal({ open: false })}
+                feature={showUpgradeModal.feature}
+                companyProfile={companyProfile}
+            />
         </div>
     );
 };

@@ -1,0 +1,322 @@
+155:            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300">
+156:                <div
+159:                ></div>
+160:                <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+161:                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-600 to-blue-600"></div>
+163:                    <div className="p-10 flex flex-col md:flex-row gap-10">
+164:                        <div className="flex-1">
+165:                            <div className="w-16 h-16 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-2xl flex items-center justify-center mb-6">
+167:                            </div>
+173:                            <div className="space-y-4">
+180:                                    <div key={i} className="flex items-center gap-3">
+181:                                        <div className="p-1.5 bg-emerald-500/10 text-emerald-600 rounded-lg">
+183:                                        </div>
+185:                                    </div>
+187:                            </div>
+188:                        </div>
+190:                        <div className="w-full md:w-64 flex flex-col gap-4">
+191:                            <div className="p-6 bg-cyan-50 dark:bg-cyan-950/20 border-2 border-cyan-500 rounded-2xl relative">
+192:                                <div className="absolute -top-3 right-4 bg-cyan-600 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Nejoblíbenější</div>
+194:                                <div className="flex items-baseline gap-1 mb-4">
+197:                                </div>
+210:                            </div>
+212:                            <div className="p-6 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl">
+214:                                <div className="text-sm text-slate-500 mb-4">Na míru velkým firmám</div>
+221:                            </div>
+222:                        </div>
+223:                    </div>
+224:                </div>
+225:            </div>
+349:                <div className="flex flex-col items-center justify-center py-20 animate-in fade-in">
+350:                    <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
+352:                    </div>
+364:                </div>
+369:            <div className="space-y-6 animate-in fade-in">
+372:                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
+373:                    <div>
+376:                    </div>
+377:                    <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+389:                    </div>
+390:                </div>
+392:                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+396:                    <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+397:                        <div className="flex justify-between items-start mb-4">
+398:                            <div>
+399:                                <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">Pipeline</div>
+400:                                <div className="text-3xl font-bold text-slate-900 dark:text-white">1,240</div>
+401:                            </div>
+402:                            <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
+404:                            </div>
+405:                        </div>
+408:                        <div className="space-y-2">
+409:                            <div className="flex h-2 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+410:                                <div className="bg-emerald-500 w-[30%]" title="New: 340"></div>
+411:                                <div className="bg-blue-500 w-[45%]" title="Screening: 520"></div>
+412:                                <div className="bg-purple-500 w-[15%]" title="Interview: 280"></div>
+413:                                <div className="bg-amber-500 w-[10%]" title="Offer: 100"></div>
+414:                            </div>
+415:                            <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-mono">
+416:                                <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>New</span>
+417:                                <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>Screen</span>
+418:                                <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>Int</span>
+419:                                <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>Off</span>
+420:                            </div>
+421:                        </div>
+422:                    </div>
+425:                    <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+426:                        <div className="flex justify-between items-start mb-2">
+427:                            <div>
+428:                                <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">Match Score</div>
+429:                                <div className="text-3xl font-bold text-slate-900 dark:text-white">68<span className="text-lg text-slate-400 font-normal">/100</span></div>
+430:                            </div>
+431:                            <div className="p-2 bg-cyan-50 dark:bg-cyan-500/10 rounded-lg text-cyan-600 dark:text-cyan-400">
+433:                            </div>
+434:                        </div>
+435:                        <div className="text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium bg-emerald-50 dark:bg-emerald-900/10 py-1 px-2 rounded w-fit mb-2">
+437:                        </div>
+441:                    </div>
+444:                    <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+445:                        <div className="flex justify-between items-start mb-2">
+446:                            <div>
+447:                                <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">Time to Hire</div>
+448:                                <div className="text-3xl font-bold text-slate-900 dark:text-white">24 <span className="text-lg font-normal text-slate-500">dní</span></div>
+449:                            </div>
+450:                            <div className="p-2 bg-amber-50 dark:bg-amber-500/10 rounded-lg text-amber-600 dark:text-amber-400">
+452:                            </div>
+453:                        </div>
+455:                        <div className="flex items-center gap-2 mt-3 text-sm border-t border-slate-100 dark:border-slate-800 pt-2">
+460:                        </div>
+462:                        <div className="mt-2 text-xs text-slate-500 space-y-0.5">
+463:                            <div className="flex justify-between">
+466:                            </div>
+467:                            <div className="flex justify-between">
+470:                            </div>
+471:                        </div>
+472:                    </div>
+475:                    <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+476:                        <div className="flex justify-between items-start mb-2">
+477:                            <div>
+478:                                <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">Ušetřeno</div>
+479:                                <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+481:                                </div>
+482:                            </div>
+483:                            <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400">
+485:                            </div>
+486:                        </div>
+488:                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mb-1 mt-2">
+489:                            <div
+492:                            ></div>
+493:                        </div>
+494:                        <div className="flex justify-between text-xs text-slate-400 mb-2">
+497:                        </div>
+499:                        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+500:                            <div className="flex justify-between items-center text-xs">
+503:                            </div>
+504:                            <div className="text-xs text-right text-emerald-500">
+506:                            </div>
+507:                        </div>
+508:                    </div>
+512:                    <div className="bg-gradient-to-r from-indigo-50 to-cyan-50 dark:from-indigo-950/20 dark:to-cyan-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center gap-4 relative overflow-hidden">
+513:                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none text-indigo-500">
+515:                        </div>
+517:                        <div className="p-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800 z-10">
+519:                        </div>
+521:                        <div className="flex-1 z-10">
+523:                            <div className="flex flex-col md:flex-row gap-4 text-sm text-indigo-800 dark:text-indigo-300">
+524:                                <div className="flex items-center gap-2">
+527:                                </div>
+528:                                <div className="flex items-center gap-2">
+531:                                </div>
+532:                            </div>
+533:                        </div>
+534:                    </div>
+536:                    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+539:                        <div className="xl:col-span-2 space-y-4">
+540:                            <div className="flex items-center justify-between">
+544:                                <div className="flex gap-2">
+551:                                </div>
+552:                            </div>
+554:                            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+555:                                <div className="overflow-x-auto">
+590:                                                            <div className="font-bold text-slate-900 dark:text-white text-sm">{job.title}</div>
+591:                                                            <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+594:                                                            </div>
+599:                                                            <div className="flex items-center gap-2 mb-1">
+602:                                                            </div>
+603:                                                            <div className="flex h-1.5 w-24 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+604:                                                                <div className="bg-emerald-500" style={{ width: '20%' }}></div>
+605:                                                                <div className="bg-blue-500" style={{ width: '40%' }}></div>
+606:                                                                <div className="bg-purple-500" style={{ width: '10%' }}></div>
+607:                                                            </div>
+619:                                                            <div className="text-xs text-slate-500">
+620:                                                                <div className="font-bold text-slate-700 dark:text-slate-300">{views} views</div>
+621:                                                                <div className={isLowPerf ? "text-rose-500 font-bold" : ""}>{realConversion.toFixed(1)}% conv.</div>
+622:                                                            </div>
+627:                                                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+637:                                                            </div>
+644:                                </div>
+647:                                <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30">
+649:                                    <div className="flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 relative">
+651:                                        <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-200 dark:bg-slate-800 -z-10 transform -translate-y-1/2"></div>
+653:                                        <div className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-800 text-center">
+654:                                            <div className="font-bold">12,450</div>
+655:                                            <div className="text-xs text-slate-400">Views</div>
+656:                                        </div>
+658:                                        <div className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-800 text-center">
+659:                                            <div className="font-bold">1,240</div>
+660:                                            <div className="text-xs text-slate-400">Applicants (10%)</div>
+661:                                        </div>
+663:                                        <div className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-800 text-center">
+664:                                            <div className="font-bold">280</div>
+665:                                            <div className="text-xs text-slate-400">Interviews (22%)</div>
+666:                                        </div>
+668:                                        <div className="bg-white dark:bg-slate-900 px-2 py-1 rounded border border-slate-200 dark:border-slate-800 text-center border-emerald-500/30 bg-emerald-50 dark:bg-emerald-900/10">
+669:                                            <div className="font-bold text-emerald-600 dark:text-emerald-400">42</div>
+670:                                            <div className="text-xs text-emerald-500">Hires (15%)</div>
+671:                                        </div>
+672:                                    </div>
+673:                                </div>
+674:                            </div>
+675:                        </div>
+678:                        <div className="space-y-6">
+681:                            <div className="space-y-4">
+682:                                <div className="flex items-center justify-between">
+687:                                </div>
+689:                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+690:                                    <div className="divide-y divide-slate-100 dark:divide-slate-800">
+698:                                                <div key={candidate.id} className="p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+699:                                                    <div className="flex justify-between items-start mb-2">
+700:                                                        <div className="flex items-center gap-3">
+701:                                                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-slate-200 to-slate-300 dark:from-slate-700 dark:to-slate-800 flex items-center justify-center text-xs font-bold text-slate-700 dark:text-slate-200 shadow-inner">
+703:                                                            </div>
+704:                                                            <div>
+705:                                                                <div className="font-bold text-sm text-slate-900 dark:text-white group-hover:text-cyan-600 transition-colors flex items-center gap-2">
+708:                                                                </div>
+709:                                                                <div className="text-xs text-slate-500 dark:text-slate-400">{candidate.role}</div>
+710:                                                            </div>
+711:                                                        </div>
+714:                                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+724:                                                        </div>
+725:                                                    </div>
+727:                                                    <div className="mt-2 text-xs text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-950/50 p-2 rounded border border-slate-100 dark:border-slate-800 flex items-center justify-between">
+729:                                                        <div className="flex items-center gap-1 font-bold text-slate-900 dark:text-white" title="Match Score">
+732:                                                        </div>
+733:                                                    </div>
+734:                                                </div>
+737:                                    </div>
+741:                                </div>
+742:                            </div>
+745:                            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+746:                                <div className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-700 dark:text-slate-200">
+748:                                </div>
+749:                                <div className="flex items-center justify-between">
+750:                                    <div className="flex items-center gap-2">
+751:                                        <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300">P</div>
+752:                                        <div className="text-xs">
+753:                                            <div className="font-bold dark:text-white">Petra N.</div>
+754:                                            <div className="text-slate-500">8 Hires</div>
+755:                                        </div>
+756:                                    </div>
+757:                                    <div className="text-right text-xs">
+758:                                        <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400">19 dní</div>
+759:                                        <div className="text-slate-400">Avg TTH</div>
+760:                                    </div>
+761:                                </div>
+762:                            </div>
+764:                        </div>
+765:                    </div>
+766:                </div>
+771:                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-200px)] min-h-[600px] animate-in slide-in-from-right-4">
+774:                    <div className="lg:col-span-8 flex flex-col h-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden order-2 lg:order-1">
+775:                        <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50">
+780:                        </div>
+783:                        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+792:                        </div>
+795:                        <div className="flex items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10">
+800:                            <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+808:                            <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+818:                            <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+821:                            <div className="relative">
+832:                                    <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl p-3 z-50 grid grid-cols-5 gap-1 animate-in zoom-in-95">
+842:                                    </div>
+844:                            </div>
+846:                            <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+853:                        </div>
+864:                            <div className="flex-1 w-full p-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950/30">
+868:                            </div>
+871:                        <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30 flex justify-end gap-3">
+872:                            <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mr-auto">
+875:                            </div>
+893:                        </div>
+894:                    </div>
+897:                    <div className="lg:col-span-4 space-y-6 overflow-y-auto pr-2 custom-scrollbar order-1 lg:order-2 h-full">
+901:                            <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-xl p-6 animate-in zoom-in-95 shadow-sm">
+902:                                <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-4">
+905:                                </div>
+907:                                <div className="space-y-4">
+908:                                    <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
+910:                                        <div className="flex flex-wrap gap-1">
+916:                                        </div>
+917:                                    </div>
+919:                                    <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
+922:                                    </div>
+924:                                    <div className="border-t border-emerald-200 dark:border-emerald-900/50 pt-4">
+931:                                    </div>
+932:                                </div>
+933:                            </div>
+945:                    </div>
+946:                </div>
+953:                <div className="flex flex-col items-center justify-center py-20 animate-in fade-in text-center">
+954:                    <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
+956:                    </div>
+961:                </div>
+966:                <div className="space-y-6 animate-in fade-in">
+967:                    <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
+968:                        <div className="flex items-center gap-3 w-full md:w-auto">
+969:                            <div className="p-2 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-lg">
+971:                            </div>
+981:                        </div>
+983:                        <div className="w-full md:w-auto flex flex-col items-end gap-1">
+995:                        </div>
+996:                    </div>
+998:                    <div className="grid grid-cols-1 gap-4">
+1002:                                <div key={candidate.id} className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all relative overflow-hidden group">
+1004:                                        <div className="absolute top-0 right-0 p-4 text-right">
+1005:                                            <div className="text-3xl font-bold text-cyan-600 dark:text-cyan-400 font-mono">{match.score}%</div>
+1006:                                            <div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Shoda</div>
+1007:                                        </div>
+1010:                                    <div className="flex flex-col md:flex-row gap-6">
+1011:                                        <div className="flex-1">
+1012:                                            <div className="flex items-center gap-3 mb-2">
+1015:                                            </div>
+1018:                                            <div className="flex flex-wrap gap-2 mb-4">
+1024:                                            </div>
+1026:                                            <div className="flex items-center gap-6 text-sm text-slate-500 dark:text-slate-400">
+1034:                                            </div>
+1035:                                        </div>
+1038:                                        <div className="md:w-64 bg-slate-50 dark:bg-slate-950/50 rounded-lg p-4 border border-slate-200 dark:border-slate-800">
+1041:                                            <div className="mb-3">
+1042:                                                <div className="flex justify-between text-xs mb-1">
+1047:                                                </div>
+1048:                                                <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full">
+1049:                                                    <div
+1052:                                                    ></div>
+1053:                                                </div>
+1054:                                            </div>
+1057:                                                <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
+1059:                                                </div>
+1061:                                        </div>
+1062:                                    </div>
+1063:                                </div>
+1066:                    </div>
+1067:                </div>
+1072:                <div className="w-full max-w-[1920px] mx-auto min-h-full pb-10">
+1074:                    <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+1075:                        <div>
+1078:                        </div>
+1080:                        <div className="flex flex-wrap bg-white dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800 overflow-x-auto">
+1117:                        </div>
+1118:                    </div>
+1121:                    <div className="min-h-[500px]">
+1128:                    </div>
+1131:                </div>

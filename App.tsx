@@ -25,7 +25,7 @@ import { analyzeJobDescription, estimateSalary } from './services/geminiService'
 import { calculateCommuteReality } from './services/commuteService';
 import { fetchRealJobs } from './services/jobService';
 import { supabase, signOut, getUserProfile, updateUserProfile, getRecruiterCompany } from './services/supabaseService';
-import { canCandidateUseFeature, canCompanyUseFeature, canCompanyPostJob } from './services/billingService';
+import { canCandidateUseFeature } from './services/billingService';
 import { analyzeJobForPathfinder } from './services/careerPathfinderService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
 import { redirectToCheckout, checkPaymentStatus } from './services/stripeService';
@@ -1199,18 +1199,35 @@ export default function App() {
                                         <button onClick={() => handleToggleSave(selectedJob.id)} className={`p-2.5 rounded-lg border transition-all ${savedJobIds.includes(selectedJob.id) ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 text-indigo-600' : 'bg-slate-100 dark:bg-slate-800 border-slate-200'}`}>
                                             <Bookmark size={20} className={savedJobIds.includes(selectedJob.id) ? "fill-current" : ""} />
                                         </button>
-                                        {pathfinderAnalysis?.hasAssessment && (
-                                            <button
-                                                className="px-3 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg border border-amber-600 transition-colors text-sm font-medium flex items-center gap-2"
-                                                title="Spustit AI Assessment"
-                                                onClick={() => {
-                                                    alert('AI Assessment module brzy dostupný!');
-                                                    // TODO: Implement actual assessment functionality
-                                                }}
-                                            >
-                                                <img src="/logo.png" alt="AI Test" className="w-4 h-4" />
-                                                AI Test
-                                            </button>
+                                        {pathfinderAnalysis && !pathfinderAnalysis.isLoading && (
+                                            pathfinderAnalysis.hasAssessment ? (
+                                                <button
+                                                    className="px-3 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg border border-amber-600 transition-colors text-sm font-medium flex items-center gap-2"
+                                                    title="Spustit AI Assessment"
+                                                    onClick={() => {
+                                                        alert('AI Assessment module brzy dostupný!');
+                                                        // TODO: Implement actual assessment functionality
+                                                    }}
+                                                >
+                                                    <img src="/logo.png" alt="AI Test" className="w-4 h-4" />
+                                                    AI Test
+                                                </button>
+                                            ) : (
+                                                <button
+                                                    className="px-3 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors text-sm font-medium flex items-center gap-2"
+                                                    title="Koupit AI Assessment"
+                                                    onClick={() => {
+                                                        if (!userProfile.isLoggedIn || !userProfile.id) {
+                                                            setIsAuthModalOpen(true);
+                                                            return;
+                                                        }
+                                                        redirectToCheckout('assessment', userProfile.id);
+                                                    }}
+                                                >
+                                                    <Zap size={16} className="text-amber-500" />
+                                                    AI Test
+                                                </button>
+                                            )
                                         )}
                                         {selectedJob.url ? (
                                             <a

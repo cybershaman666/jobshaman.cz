@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { CompanyProfile } from '../types';
 import { createCompany } from '../services/supabaseService';
-import { Building, MapPin, FileText, CheckCircle, Loader2, X, Briefcase, Globe, Info, ArrowRight } from 'lucide-react';
+import { Building, MapPin, FileText, CheckCircle, Loader2, X, Briefcase, Info, ArrowRight } from 'lucide-react';
 
 interface CompanyOnboardingProps {
     userId: string;

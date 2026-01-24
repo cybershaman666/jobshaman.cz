@@ -346,17 +346,27 @@ def send_review_email(job: JobCheckRequest, result: JobCheckResponse):
 @app.post("/create-checkout-session")
 async def create_checkout_session(req: CheckoutRequest):
     try:
-        # Define prices (Replace placeholders with real Stripe Price IDs)
-        # B2C Premium: 199 CZK -> price_123...
-        # B2B Business: 4990 CZK -> price_456...
-        price_id = "price_placeholder_premium" if req.tier == "premium" else "price_placeholder_business"
+        # Live Stripe Price IDs
+        prices = {
+            "premium": "price_1StDJuG2Aezsy59eqi584FWl",
+            "business": "price_1StDKmG2Aezsy59e1eiG9bny",
+            "assessment": "price_1StDLUG2Aezsy59eJaSeiWvY",
+            "assessment_bundle": "price_1StDTGG2Aezsy59esZLgocHw"
+        }
+        
+        price_id = prices.get(req.tier)
+        if not price_id:
+            raise HTTPException(status_code=400, detail="Invalid tier")
+        
+        # 'premium' and 'business' are subscriptions, 'assessment' is a one-time payment
+        mode = 'subscription' if req.tier in ['premium', 'business'] else 'payment'
         
         checkout_session = stripe.checkout.Session.create(
             line_items=[{
                 'price': price_id,
                 'quantity': 1,
             }],
-            mode='subscription',
+            mode=mode,
             success_url=req.successUrl,
             cancel_url=req.cancelUrl,
             metadata={
@@ -396,8 +406,18 @@ async def stripe_webhook(request: Request):
                 supabase.table("companies").update({
                     "subscription_tier": "business"
                 }).eq("id", user_id).execute()
+            elif tier == "assessment":
+                # Update Candidate Profile for one-time assessment
+                supabase.table("profiles").update({
+                    "has_assessment": True
+                }).eq("id", user_id).execute()
+            elif tier == "assessment_bundle":
+                # Update Company Profile for bundle
+                supabase.table("companies").update({
+                    "subscription_tier": "assessment_bundle"
+                }).eq("id", user_id).execute()
                 
-        print(f"✅ Subscription updated for {user_id} to {tier}")
+        print(f"✅ Stripe Payment completed for {user_id} tier: {tier}")
 
     return {"status": "success"}
 
