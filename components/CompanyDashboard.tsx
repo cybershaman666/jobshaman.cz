@@ -5,6 +5,8 @@ import { Job, Candidate, AIAdOptimizationResult, CompanyProfile } from '../types
 import { MOCK_CANDIDATES, MOCK_JOBS, MOCK_COMPANY_PROFILE } from '../constants';
 import { optimizeJobDescription, matchCandidateToJob } from '../services/geminiService';
 import { publishJob, getCandidateMatches } from '../services/jobPublishService';
+import { canCompanyUseFeature, canCompanyPostJob, getRemainingAssessments } from '../services/billingService';
+import { redirectToCheckout } from '../services/stripeService';
 import { supabase } from '../services/supabaseService';
 import BullshitMeter from './BullshitMeter';
 import CompanySettings from './CompanySettings';
@@ -43,7 +45,9 @@ import {
     Smile,
     Eye,
     LayoutTemplate,
-    RefreshCw
+    RefreshCw,
+    Crown,
+    Loader2
 } from 'lucide-react';
 
 // Curated Emojis for Job Ads
@@ -54,10 +58,12 @@ const JOB_EMOJIS = [
 
 interface CompanyDashboardProps {
     companyProfile?: CompanyProfile | null;
+    userEmail?: string;
 }
 
-const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: propProfile }) => {
+const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: propProfile, userEmail }) => {
     const [activeTab, setActiveTab] = useState<'overview' | 'create-ad' | 'candidates' | 'settings' | 'assessments' | 'marketplace'>('overview');
+    const [showUpgradeModal, setShowUpgradeModal] = useState<{ open: boolean, feature?: string }>({ open: false });
 
     // Real User Detection
     // If propProfile exists, we are in "Real" mode and should start empty.
@@ -93,6 +99,13 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             return;
         }
 
+        // Job Limit Check
+        const { allowed, reason } = canCompanyPostJob(companyProfile, userEmail);
+        if (!allowed) {
+            setShowUpgradeModal({ open: true, feature: 'Více než 5 inzerátů' });
+            return;
+        }
+
         setIsPublishing(true);
         try {
             await publishJob({
@@ -115,19 +128,102 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     };
 
     const handleOptimize = async () => {
+        // Feature Gating
+        if (!canCompanyUseFeature(companyProfile, 'COMPANY_AI_AD', userEmail)) {
+            setShowUpgradeModal({ open: true, feature: 'AI Optimalizace Inzerátů' });
+            return;
+        }
+
         setIsOptimizing(true);
         try {
-            // Pass the company profile to the AI
             const result = await optimizeJobDescription(adDraft, companyProfile);
             setOptimizationResult(result);
             if (result) {
-                setViewMode('write'); // Switch back to write mode to see changes or apply them
+                setViewMode('write');
             }
         } catch (e) {
             console.error(e);
         } finally {
             setIsOptimizing(false);
         }
+    };
+
+    const PlanUpgradeModal = () => {
+        if (!showUpgradeModal.open) return null;
+
+        return (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300">
+                <div
+                    className="absolute inset-0 bg-slate-900/80 backdrop-blur-md"
+                    onClick={() => setShowUpgradeModal({ open: false })}
+                ></div>
+                <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-300">
+                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-600 to-blue-600"></div>
+
+                    <div className="p-10 flex flex-col md:flex-row gap-10">
+                        <div className="flex-1">
+                            <div className="w-16 h-16 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-2xl flex items-center justify-center mb-6">
+                                <Crown size={32} />
+                            </div>
+                            <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">Vylepšete svůj Nábor</h2>
+                            <p className="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
+                                Funkce <span className="font-bold text-cyan-600 dark:text-cyan-400">"{showUpgradeModal.feature}"</span> je dostupná v tarifu <span className="font-bold text-slate-900 dark:text-white">Business</span> a vyšším.
+                            </p>
+
+                            <div className="space-y-4">
+                                {[
+                                    { icon: Briefcase, text: 'Neomezený počet inzerátů' },
+                                    { icon: BrainCircuit, text: '10 AI Assessmentů měsíčně' },
+                                    { icon: Sparkles, text: 'AI Optimalizace inzerátů' },
+                                    { icon: Users, text: 'Doporučení vhodných kandidátů' }
+                                ].map((f, i) => (
+                                    <div key={i} className="flex items-center gap-3">
+                                        <div className="p-1.5 bg-emerald-500/10 text-emerald-600 rounded-lg">
+                                            <f.icon size={16} />
+                                        </div>
+                                        <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{f.text}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="w-full md:w-64 flex flex-col gap-4">
+                            <div className="p-6 bg-cyan-50 dark:bg-cyan-950/20 border-2 border-cyan-500 rounded-2xl relative">
+                                <div className="absolute -top-3 right-4 bg-cyan-600 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Nejoblíbenější</div>
+                                <h3 className="font-bold text-slate-900 dark:text-white mb-1">Business</h3>
+                                <div className="flex items-baseline gap-1 mb-4">
+                                    <span className="text-2xl font-black text-cyan-600 dark:text-cyan-400">4 990 Kč</span>
+                                    <span className="text-xs text-slate-500">/měs</span>
+                                </div>
+                                <button
+                                    onClick={() => {
+                                        if (companyProfile.id) {
+                                            redirectToCheckout('business', companyProfile.id);
+                                        } else {
+                                            alert('Chyba: ID firmy nebylo nalezeno. Zkuste prosím znovu načíst stránku.');
+                                        }
+                                    }}
+                                    className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-cyan-900/20"
+                                >
+                                    Vybrat Business
+                                </button>
+                            </div>
+
+                            <div className="p-6 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-2xl">
+                                <h3 className="font-bold text-slate-900 dark:text-white mb-1">Enterprise</h3>
+                                <div className="text-sm text-slate-500 mb-4">Na míru velkým firmám</div>
+                                <button
+                                    onClick={() => setShowUpgradeModal({ open: false })}
+                                    className="w-full py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-xl transition-all"
+                                >
+                                    Kontaktovat nás
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
     };
 
     const applyOptimization = () => {
@@ -1023,6 +1119,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 {activeTab === 'candidates' && renderCandidates()}
                 {/* {activeTab === 'marketplace' && <CompanyMarketplace />} */}
             </div>
+
+            <PlanUpgradeModal />
         </div>
     );
 };

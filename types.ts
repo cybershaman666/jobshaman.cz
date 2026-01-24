@@ -41,6 +41,19 @@ export interface CompanyProfile {
   website?: string;
   description?: string;
   members?: RecruiterMember[];
+  subscription?: {
+    tier: CompanyServiceTier;
+    expiresAt?: string;
+    usage?: CompanyUsageStats;
+  };
+}
+
+export type CompanyServiceTier = 'basic' | 'business' | 'enterprise';
+
+export interface CompanyUsageStats {
+  activeJobsCount: number;
+  aiAssessmentsUsed: number;
+  adOptimizationsUsed: number;
 }
 
 export interface RecruiterMember {
@@ -214,6 +227,19 @@ export interface UserProfile {
   // New fields for CV management
   currentCVId?: string; // ID of currently selected CV
   cvs?: CVDocument[]; // All uploaded CVs
+  subscription?: {
+    tier: CandidateSubscriptionTier;
+    expiresAt?: string;
+    usage?: CandidateUsageStats;
+  };
+}
+
+export type CandidateSubscriptionTier = 'free' | 'premium';
+
+export interface CandidateUsageStats {
+  cvOptimizationsUsed: number;
+  coverLettersGenerated: number;
+  atcHacksUsed: number;
 }
 
 // New types for Career Pathfinder

@@ -1,7 +1,7 @@
-import os
-from fastapi import FastAPI, HTTPException, Body
+from fastapi import FastAPI, HTTPException, Body, Request
 from pydantic import BaseModel
 from typing import List, Optional
+import stripe
 import resend
 from supabase import create_client, Client
 from dotenv import load_dotenv
@@ -28,6 +28,10 @@ SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-shaman-key")
 resend.api_key = os.getenv("RESEND_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://jobshaman-cz.onrender.com")
+
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_WEBHOOK_SECRET = os.getenv("STRIPE_WEBHOOK_SECRET")
 
 def get_supabase_client():
     if not SUPABASE_URL or not SUPABASE_KEY:
@@ -47,6 +51,14 @@ class JobCheckRequest(BaseModel):
     title: str
     company: str
     description: str
+
+    needs_manual_review: bool
+
+class CheckoutRequest(BaseModel):
+    tier: str # 'premium' | 'business'
+    userId: str # profile ID or company ID
+    successUrl: str
+    cancelUrl: str
 
 class JobCheckResponse(BaseModel):
     risk_score: float
@@ -328,6 +340,66 @@ def send_review_email(job: JobCheckRequest, result: JobCheckResponse):
         return r
     except Exception as e:
         print(f"Failed to send email: {e}")
+
+# --- STRIPE ENDPOINTS ---
+
+@app.post("/create-checkout-session")
+async def create_checkout_session(req: CheckoutRequest):
+    try:
+        # Define prices (Replace placeholders with real Stripe Price IDs)
+        # B2C Premium: 199 CZK -> price_123...
+        # B2B Business: 4990 CZK -> price_456...
+        price_id = "price_placeholder_premium" if req.tier == "premium" else "price_placeholder_business"
+        
+        checkout_session = stripe.checkout.Session.create(
+            line_items=[{
+                'price': price_id,
+                'quantity': 1,
+            }],
+            mode='subscription',
+            success_url=req.successUrl,
+            cancel_url=req.cancelUrl,
+            metadata={
+                "userId": req.userId,
+                "tier": req.tier
+            }
+        )
+        return {"url": checkout_session.url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/webhooks/stripe")
+async def stripe_webhook(request: Request):
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, STRIPE_WEBHOOK_SECRET
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Webhook Error: {str(e)}")
+
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        user_id = session["metadata"]["userId"]
+        tier = session["metadata"]["tier"]
+        
+        if supabase:
+            if tier == "premium":
+                # Update Candidate Profile
+                supabase.table("profiles").update({
+                    "subscription_tier": "premium"
+                }).eq("id", user_id).execute()
+            elif tier == "business":
+                # Update Company Profile
+                supabase.table("companies").update({
+                    "subscription_tier": "business"
+                }).eq("id", user_id).execute()
+                
+        print(f"✅ Subscription updated for {user_id} to {tier}")
+
+    return {"status": "success"}
 
 if __name__ == "__main__":
     import uvicorn
