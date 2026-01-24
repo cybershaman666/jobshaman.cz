@@ -10,6 +10,7 @@ from itsdangerous import URLSafeTimedSerializer
 from fastapi.responses import HTMLResponse
 from apscheduler.schedulers.background import BackgroundScheduler
 import sys
+import os
 # Ensure we can import from the sibling scraper package
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 from scraper.scraper_multi import run_all_scrapers
