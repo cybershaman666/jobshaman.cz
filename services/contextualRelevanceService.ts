@@ -3,7 +3,7 @@ import { ContextualRelevanceScore, FlaggedBenefit, WorkMode, JobType, LocationTy
 // Benefit categories and their typical relevance patterns
 const BENEFIT_CATEGORIES = {
   FLEXIBILITY: ['flexibilní začátek/konec', 'home office', 'remote work', 'flexibilní doba', 'práce z domova'],
-  OFFICE_ENVIRONMENT: ['kávovar', 'ovoce v kanclu', 'pizza days', 'občerstvení', 'relaxační místnost', 'table football'],
+  OFFICE_ENVIRONMENT: ['kávovar', 'ovoce', 'pizza', 'občerstvení', 'relax', 'fotbálek', 'table football', 'pes', 'dog', 'psí', 'pet', 'herna', 'playstation', 'office'],
   COMMUTING: ['služební auto', 'příspěvek na dopravu', 'parkovací místo', 'karta na MHD'],
   HEALTH_WELLNESS: ['multisport', 'sick days', 'zdravotní volno', 'penzijní připojištění', 'životní pojištění'],
   GROWTH: ['školení', 'kurzy', 'konference', 'vzdělávání', 'rozpočet na vzdělávání', 'kariérní růst'],
@@ -46,10 +46,10 @@ class ContextualRelevanceScorer {
   ): FlaggedBenefit[] {
     return benefits.map(benefit => {
       const normalizedBenefit = benefit.toLowerCase().trim();
-      
+
       // Determine benefit category
       const category = this.getBenefitCategory(normalizedBenefit);
-      
+
       // Apply relevance rules based on job context
       const { relevance, explanation, weight } = this.applyRelevanceRules(
         normalizedBenefit,
@@ -92,7 +92,7 @@ class ContextualRelevanceScorer {
     _locationType: LocationType,
     scheduleType: ScheduleType
   ): { relevance: 'relevant' | 'weakly_relevant' | 'context_mismatch', explanation: string, weight: number } {
-    
+
     // FLEXIBILITY BENEFITS
     if (category === 'FLEXIBILITY') {
       if (workMode === 'remote' || workMode === 'hybrid') {
@@ -135,9 +135,35 @@ class ContextualRelevanceScorer {
         };
       }
       if (workMode === 'remote') {
+        // Wit & Context Logic: Absurd Office Perks for Remote Jobs
+
+        if (benefit.includes('dog') || benefit.includes('pes') || benefit.includes('psí') || benefit.includes('pet')) {
+          return {
+            relevance: 'context_mismatch',
+            explanation: 'Firma sice nabízí dog-friendly office, ale jelikož budete pracovat z obýváku, doporučujeme probrat s vaším psem, jestli s vaší celodenní přítomností u něj doma souhlasí.',
+            weight: 0.0
+          };
+        }
+
+        if (benefit.includes('ovoce') || benefit.includes('káva') || benefit.includes('občerstvení') || benefit.includes('pizza') || benefit.includes('snídaně')) {
+          return {
+            relevance: 'context_mismatch',
+            explanation: 'Ovoce v kanceláři je super, ale přes obrazovku vám ho bohužel nepošlou. Budete se muset spolehnout na vlastní lednici.',
+            weight: 0.0
+          };
+        }
+
+        if (benefit.includes('fotbálek') || benefit.includes('relax') || benefit.includes('playstation') || benefit.includes('herna') || benefit.includes('table football')) {
+          return {
+            relevance: 'context_mismatch',
+            explanation: 'Fotbálek v kanclu vás asi nevytrhne, leda byste si ho jeli zahrát v rámci teambuildingu jednou za kvartál.',
+            weight: 0.0
+          };
+        }
+
         return {
           relevance: 'context_mismatch',
-          explanation: 'Benefity kancelářského prostředí neplatí pro plně vzdálené role',
+          explanation: 'Benefity kancelářského prostředí (jako tento) jsou u plně vzdálené role spíše úsměvné.',
           weight: 0.0
         };
       }

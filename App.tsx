@@ -64,7 +64,9 @@ import {
     RefreshCw,
     Lock,
     Navigation,
-    ShoppingBag
+    ShoppingBag,
+    Dog,
+    AlertTriangle
 } from 'lucide-react';
 
 // Default user profile
@@ -176,6 +178,19 @@ export default function App() {
                     ...profile,
                     isLoggedIn: true
                 }));
+
+                // Auto-Upgrade Logic for Admin Tester
+                if (profile.email === 'misahlavacu@gmail.com' && profile.role !== 'recruiter') {
+                    console.log("Auto-upgrading admin tester to recruiter...");
+                    await updateUserProfile(userId, { role: 'recruiter' });
+                    // Force update local state
+                    setUserProfile(prev => ({ ...prev, role: 'recruiter' }));
+                    // Reload window to ensure fresh state or just let the effect handle it?
+                    // Effect might not re-run immediately, but setUserProfile should trigger re-render.
+                    // However, we also need to route to company dashboard.
+                    setViewState(ViewState.COMPANY_DASHBOARD);
+                    setIsOnboardingCompany(true); // Assuming they need to create a company if they don't have one
+                }
 
                 // Auto-enable commute filter on restore if address exists
                 if (profile.address) {
@@ -900,6 +915,69 @@ export default function App() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Benefit Validation Example */}
+                        <div className="mt-16 bg-white dark:bg-slate-900 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg text-amber-600 dark:text-amber-400">
+                                    <AlertTriangle size={20} />
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white">Kontextová Validace Benefitů</h3>
+                                <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">AI Rozbor</span>
+                            </div>
+
+                            <div className="space-y-6">
+                                <div className="border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20 p-4 rounded-r-lg">
+                                    <div className="flex items-center gap-2 mb-2">
+                                        <Dog size={16} className="text-amber-600 dark:text-amber-400" />
+                                        <span className="text-sm font-bold text-amber-800 dark:text-amber-200">Příklad z praxe</span>
+                                    </div>
+                                    <div className="text-slate-700 dark:text-slate-300 text-sm">
+                                        <p className="font-medium mb-2">Vzdálená práce • 100% remote • Možnost home office</p>
+                                        <div className="bg-white dark:bg-slate-800 p-3 rounded border border-amber-200 dark:border-amber-700">
+                                            <div className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-2">Neaplikovatelné (1)</div>
+                                            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                                                <span>•</span>
+                                                <span className="font-medium">dog-friendly office</span>
+                                            </div>
+                                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-3 italic leading-relaxed">
+                                                Firma sice nabízí dog-friendly office, ale jelikož budete pracovat z obýváku, doporučujeme probrat s vaším psem, jestli s vaší celodenní přítomností u něj doma souhlasí.
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                                    <div className="bg-emerald-50 dark:bg-emerald-950/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <ThumbsUp size={16} className="text-emerald-600 dark:text-emerald-400" />
+                                            <span className="font-bold text-emerald-800 dark:text-emerald-200">Relevantní benefity</span>
+                                        </div>
+                                        <ul className="text-emerald-700 dark:text-emerald-300 space-y-1 text-xs">
+                                            <li>• Flexibilní pracovní doba</li>
+                                            <li>• Příspěvek na home office vybavení</li>
+                                            <li>• Virtualní teambuildingy</li>
+                                        </ul>
+                                    </div>
+                                    <div className="bg-rose-50 dark:bg-rose-950/20 p-4 rounded-lg border border-rose-200 dark:border-rose-700">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <AlertTriangle size={16} className="text-rose-600 dark:text-rose-400" />
+                                            <span className="font-bold text-rose-800 dark:text-rose-200">Varovné signály</span>
+                                        </div>
+                                        <ul className="text-rose-700 dark:text-rose-300 space-y-1 text-xs">
+                                            <li>• "Kancelářský pes" při remote práci</li>
+                                            <li>• "Skvělá atmosféra v kanceláři"</li>
+                                            <li>• "Obědy v firemní kantýně"</li>
+                                        </ul>
+                                    </div>
+                                </div>
+
+                                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+                                    Naše AI analyzuje relevantnost benefitů v kontextu pracovních podmínek. 
+                                    Odhalíme nesrovnalosti a ušetříme čas čtením mezi řádky.
+                                </p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -931,6 +1009,7 @@ export default function App() {
                     <CompanyLandingPage
                         onRegister={() => setIsCompanyRegistrationOpen(true)}
                         onRequestDemo={() => alert('Demo brzy dostupné! Kontaktujte nás na info@jobshaman.cz')}
+                        onLogin={handleAuthAction}
                     />
                 </div>
             );

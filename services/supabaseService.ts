@@ -692,6 +692,7 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     const baseUpdates: any = {};
     if (updates.name) baseUpdates.full_name = updates.name;
     if (updates.email) baseUpdates.email = updates.email;
+    if (updates.role) baseUpdates.role = updates.role;
     if (updates.photo !== undefined) baseUpdates.avatar_url = updates.photo;
 
     const candidateUpdates: any = {};

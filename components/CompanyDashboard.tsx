@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import Markdown from 'markdown-to-jsx';
 import { Job, Candidate, AIAdOptimizationResult, CompanyProfile } from '../types';
-import { MOCK_CANDIDATES, MOCK_JOBS, MOCK_COMPANY_PROFILE } from '../constants';
+import { MOCK_COMPANY_PROFILE } from '../constants';
 import { optimizeJobDescription } from '../services/geminiService';
 import { publishJob } from '../services/jobPublishService';
 import { canCompanyUseFeature, canCompanyPostJob } from '../services/billingService';
@@ -40,7 +40,11 @@ import {
     Eye,
     LayoutTemplate,
     RefreshCw,
-    Crown
+    Crown,
+    Edit,
+    Trash2,
+    X,
+    MoreVertical
 } from 'lucide-react';
 
 // Curated Emojis for Job Ads
@@ -57,6 +61,7 @@ interface CompanyDashboardProps {
 const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: propProfile, userEmail }) => {
     const [activeTab, setActiveTab] = useState<'overview' | 'create-ad' | 'candidates' | 'settings' | 'assessments' | 'marketplace'>('overview');
     const [showUpgradeModal, setShowUpgradeModal] = useState<{ open: boolean, feature?: string }>({ open: false });
+    const [activeDropdownJobId, setActiveDropdownJobId] = useState<string | null>(null);
 
     // Real User Detection
     const isRealUser = !!propProfile;
@@ -65,11 +70,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(propProfile || MOCK_COMPANY_PROFILE);
 
     // Data State (Empty for Real, Mocks for Demo)
-    const [jobs, setJobs] = useState<Job[]>(isRealUser ? [] : MOCK_JOBS);
-    const [candidates] = useState<Candidate[]>(isRealUser ? [] : MOCK_CANDIDATES);
+    // Data State (Empty for initial load, fetched from Supabase)
+    const [jobs, setJobs] = useState<Job[]>([]);
+    const [candidates] = useState<Candidate[]>([]);
 
-    const [adDraft, setAdDraft] = useState(isRealUser ? '' : MOCK_JOBS[1].description);
-    const [jobTitle, setJobTitle] = useState(isRealUser ? '' : MOCK_JOBS[1].title);
+    const [adDraft, setAdDraft] = useState('');
+    const [jobTitle, setJobTitle] = useState('');
     const [optimizationResult, setOptimizationResult] = useState<AIAdOptimizationResult | null>(null);
     const [isOptimizing, setIsOptimizing] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
@@ -93,24 +99,35 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
     // Load initial data for Real User
     useEffect(() => {
-        if (isRealUser) {
-            const loadData = async () => {
-                try {
-                    // Fetch real jobs
-                    if (supabase) {
-                        const { data: realJobs } = await supabase.from('jobs').select('*').order('scraped_at', { ascending: false });
-                        if (realJobs) {
-                            setJobs(realJobs as Job[]);
-                            if (realJobs.length > 0) setSelectedJobId(realJobs[0].id);
-                        }
+        const loadData = async () => {
+            try {
+                // Fetch real jobs
+                if (supabase) {
+                    const { data: realJobs } = await supabase.from('jobs').select('*').order('scraped_at', { ascending: false });
+                    if (realJobs) {
+                        setJobs(realJobs as Job[]);
+                        if (realJobs.length > 0) setSelectedJobId(realJobs[0].id);
                     }
-                } catch (e) {
-                    console.error("Failed to load dashboard data", e);
                 }
-            };
-            loadData();
-        }
-    }, [isRealUser]);
+            } catch (e) {
+                console.error("Failed to load dashboard data", e);
+            }
+        };
+        loadData();
+    }, []);
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as HTMLElement;
+            if (!target.closest('.relative')) {
+                setActiveDropdownJobId(null);
+            }
+        };
+
+        document.addEventListener('click', handleClickOutside);
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, []);
 
     const handlePublish = async () => {
         if (!jobTitle.trim() || !adDraft.trim()) {
@@ -214,9 +231,39 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         }, 1500);
     };
 
+    const handleEditJob = (jobId: string) => {
+        const job = jobs.find(j => j.id === jobId);
+        if (job) {
+            setJobTitle(job.title);
+            setAdDraft(job.description);
+            setActiveTab('create-ad');
+            setActiveDropdownJobId(null);
+        }
+    };
+
+    const handleDeleteJob = (jobId: string) => {
+        if (confirm('Opravdu chcete smazat tuto pozici?')) {
+            setJobs(jobs.filter(job => job.id !== jobId));
+            setActiveDropdownJobId(null);
+        }
+    };
+
+    const handleCloseJob = (jobId: string) => {
+        if (confirm('Opravdu chcete označit tuto pozici jako uzavřenou?')) {
+            setJobs(jobs.map(job => 
+                job.id === jobId ? { ...job, status: 'closed' } : job
+            ));
+            setActiveDropdownJobId(null);
+        }
+    };
+
+    const toggleDropdown = (jobId: string) => {
+        setActiveDropdownJobId(activeDropdownJobId === jobId ? null : jobId);
+    };
+
     const renderOverview = () => {
-        // If Real User & Empty, show Empty State
-        if (isRealUser && jobs.length === 0) {
+        // Show Empty State if no jobs
+        if (jobs.length === 0) {
             return (
                 <div className="flex flex-col items-center justify-center py-20 animate-in fade-in">
                     <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
@@ -224,7 +271,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     </div>
                     <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Vítejte v JobShaman</h2>
                     <p className="text-slate-500 dark:text-slate-400 max-w-md text-center mb-8">
-                        Zatím nemáte žádná data. Vytvořte svůj první inzerát pomocí našeho AI editoru a začněte nabírat bez balastu.
+                        Zatím nemáte žádná data. Vytvořte svůj první inzerát a začněte nabírat.
                     </p>
                     <button
                         onClick={() => setActiveTab('create-ad')}
@@ -245,24 +292,33 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
         return (
             <div className="space-y-6 animate-in fade-in">
-                {/* Recruiter Selector & Header */}
+                {/* Header & Actions */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
                     <div>
                         <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Přehled Náboru</h2>
                         <p className="text-sm text-slate-500">Statistiky pro celou společnost a jednotlivé náboraře.</p>
                     </div>
-                    <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
-                        <Users size={16} className="ml-2 text-slate-400" />
-                        <select
-                            value={selectedRecruiterId}
-                            onChange={(e) => setSelectedRecruiterId(e.target.value)}
-                            className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 dark:text-slate-300 pr-8 cursor-pointer"
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setActiveTab('create-ad')}
+                            className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow-sm hover:bg-indigo-500 transition-colors flex items-center gap-2"
                         >
-                            <option value="all">Všichni náboraři (Celá Firma)</option>
-                            {recruiters.filter(r => r.id !== 'all').map(r => (
-                                <option key={r.id} value={r.id}>{r.name}</option>
-                            ))}
-                        </select>
+                            <PenTool size={18} />
+                            Vytvořit Inzerát
+                        </button>
+                        <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
+                            <Users size={16} className="ml-2 text-slate-400" />
+                            <select
+                                value={selectedRecruiterId}
+                                onChange={(e) => setSelectedRecruiterId(e.target.value)}
+                                className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 dark:text-slate-300 pr-8 cursor-pointer"
+                            >
+                                <option value="all">Všichni náboraři</option>
+                                {recruiters.filter(r => r.id !== 'all').map(r => (
+                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -476,9 +532,41 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
-                                                        <button className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
-                                                            <Settings size={16} />
-                                                        </button>
+                                                        <div className="relative">
+                                                            <button 
+                                                                onClick={() => toggleDropdown(job.id)}
+                                                                className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-1"
+                                                            >
+                                                                <MoreVertical size={16} />
+                                                            </button>
+                                                            
+                                                            {activeDropdownJobId === job.id && (
+                                                                <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-lg z-50">
+                                                                    <button
+                                                                        onClick={() => handleEditJob(job.id)}
+                                                                        className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
+                                                                    >
+                                                                        <Edit size={14} />
+                                                                        Upravit pozici
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleCloseJob(job.id)}
+                                                                        className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
+                                                                    >
+                                                                        <X size={14} />
+                                                                        Označit jako uzavřenou
+                                                                    </button>
+                                                                    <div className="border-t border-slate-200 dark:border-slate-700"></div>
+                                                                    <button
+                                                                        onClick={() => handleDeleteJob(job.id)}
+                                                                        className="w-full text-left px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors flex items-center gap-2"
+                                                                    >
+                                                                        <Trash2 size={14} />
+                                                                        Smazat pozici
+                                                                    </button>
+                                                                </div>
+                                                            )}
+                                                        </div>
                                                     </td>
                                                 </tr>
                                             );

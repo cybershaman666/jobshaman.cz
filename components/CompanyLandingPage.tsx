@@ -1,9 +1,10 @@
 import React from 'react';
-import { Building, TrendingUp, Shield, Users, BrainCircuit, Target, Eye, Star, CheckCircle, Crown, Sparkles, BarChart, MessageSquare, Info } from 'lucide-react';
+import { Building, TrendingUp, Shield, Users, BrainCircuit, Target, Eye, Star, CheckCircle, Crown, Sparkles, BarChart, MessageSquare, Info, LogIn } from 'lucide-react';
 
 interface CompanyLandingPageProps {
   onRegister?: () => void;
   onRequestDemo?: () => void;
+  onLogin?: () => void;
 }
 
 interface PricingPlan {
@@ -17,7 +18,7 @@ interface PricingPlan {
   isPromotional?: boolean;
 }
 
-const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onRequestDemo }) => {
+const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onRequestDemo, onLogin }) => {
   const plans: PricingPlan[] = [
     {
       name: 'Základní',
@@ -141,6 +142,16 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
 
   return (
     <div className="h-full flex flex-col overflow-y-auto custom-scrollbar relative w-full bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+      {/* Login Button in top right */}
+      <div className="absolute top-6 right-6 z-20">
+        <button
+          onClick={onLogin}
+          className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors shadow-sm"
+        >
+          <LogIn size={16} />
+          Přihlásit se
+        </button>
+      </div>
       <div className="relative z-10 flex-1 flex flex-col items-center justify-start p-8 lg:p-16 w-full">
         <div className="my-auto w-full max-w-5xl">
           <div className="text-center mb-16">
@@ -161,6 +172,13 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
               >
                 <Building size={18} />
                 Začít zdarma
+              </button>
+              <button
+                onClick={onLogin}
+                className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-6 py-2.5 rounded-lg transition-colors border border-slate-300 dark:border-slate-600"
+              >
+                <LogIn size={18} />
+                Přihlásit se
               </button>
               <button
                 onClick={onRequestDemo}
@@ -266,10 +284,10 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             <div className="grid md:grid-cols-3 gap-6">
               {plans.map((plan, index) => (
                 <div key={index} className={`relative bg-slate-50 dark:bg-slate-950 rounded-xl p-6 border-2 transition-all ${plan.highlighted
-                    ? 'border-cyan-500 dark:border-cyan-400 bg-cyan-50/50 dark:bg-cyan-950/20'
-                    : plan.price === 'Zdarma'
-                      ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 hover:border-emerald-300 dark:hover:border-emerald-700'
-                      : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                  ? 'border-cyan-500 dark:border-cyan-400 bg-cyan-50/50 dark:bg-cyan-950/20'
+                  : plan.price === 'Zdarma'
+                    ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 hover:border-emerald-300 dark:hover:border-emerald-700'
+                    : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                   }`}>
                   {plan.price === 'Zdarma' && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
@@ -316,8 +334,8 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                         )}
                         <div className="flex items-baseline gap-2">
                           <span className={`text-2xl font-bold ${plan.price === 'Zdarma'
-                              ? 'text-emerald-600 dark:text-emerald-400'
-                              : 'text-cyan-600 dark:text-cyan-400'
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-cyan-600 dark:text-cyan-400'
                             }`}>
                             {plan.price}
                           </span>
@@ -358,10 +376,10 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                   <button
                     onClick={plan.name === 'Enterprise' ? onRequestDemo : onRegister}
                     className={`w-full py-2.5 rounded-lg font-semibold transition-all text-sm ${plan.price === 'Zdarma'
-                        ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
-                        : plan.highlighted
-                          ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
-                          : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white'
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
+                      : plan.highlighted
+                        ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
+                        : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white'
                       }`}
                   >
                     {plan.name === 'Enterprise' ? 'Kontakt' : plan.price === 'Zdarma' ? 'Začít zdarma' : 'Začít'}
@@ -423,6 +441,13 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                 >
                   <Building size={18} />
                   Registrovat firmu
+                </button>
+                <button
+                  onClick={onLogin}
+                  className="flex items-center gap-2 text-sm font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-6 py-2.5 rounded-lg transition-colors border border-slate-700"
+                >
+                  <LogIn size={18} />
+                  Přihlásit se
                 </button>
                 <button
                   onClick={onRequestDemo}

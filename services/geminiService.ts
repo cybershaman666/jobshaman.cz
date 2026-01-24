@@ -4,13 +4,13 @@ import { AIAnalysisResult, AIAdOptimizationResult, CompanyProfile, Assessment, C
 
 // Safe API Key Access
 const getApiKey = () => {
-  try {
-    // Check for process existence before accessing env
-    if (typeof process !== 'undefined' && process.env) {
-      return process.env.API_KEY;
-    }
-  } catch(e) {}
-  return undefined;
+    try {
+        // Check for process existence before accessing env
+        if (typeof process !== 'undefined' && process.env) {
+            return process.env.API_KEY;
+        }
+    } catch (e) { }
+    return undefined;
 };
 
 // Lazy initialization to prevent top-level crash
@@ -19,7 +19,7 @@ let aiInstance: GoogleGenAI | null = null;
 const getAi = () => {
     const key = getApiKey();
     if (!key) return null;
-    
+
     if (!aiInstance) {
         try {
             aiInstance = new GoogleGenAI({ apiKey: key });
@@ -35,22 +35,22 @@ const getAi = () => {
 export const hasApiKey = (): boolean => !!getApiKey();
 
 export const analyzeJobDescription = async (description: string): Promise<AIAnalysisResult> => {
-  const ai = getAi();
-  if (!ai) {
-    // Fallback mock response if no key is provided for demo purposes
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve({
-          summary: "Tento inzerát nemá API klíč pro reálnou analýzu. Na základě statických pravidel se však zdá být standardní nabídkou.",
-          hiddenRisks: ["Nelze detekovat rizika bez AI připojení."],
-          culturalFit: "Neutrální"
+    const ai = getAi();
+    if (!ai) {
+        // Fallback mock response if no key is provided for demo purposes
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve({
+                    summary: "Tento inzerát nemá API klíč pro reálnou analýzu. Na základě statických pravidel se však zdá být standardní nabídkou.",
+                    hiddenRisks: ["Nelze detekovat rizika bez AI připojení."],
+                    culturalFit: "Neutrální"
+                });
+            }, 1000);
         });
-      }, 1000);
-    });
-  }
+    }
 
-  try {
-    const prompt = `
+    try {
+        const prompt = `
       Analyze the following job description for a candidate. 
       Be a cynical but helpful career coach. 
       OUTPUT IN CZECH LANGUAGE.
@@ -64,35 +64,35 @@ export const analyzeJobDescription = async (description: string): Promise<AIAnal
       ${description.substring(0, 5000)}
     `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            summary: { type: Type.STRING },
-            hiddenRisks: { 
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            },
-            culturalFit: { type: Type.STRING }
-          },
-          required: ["summary", "hiddenRisks", "culturalFit"]
-        }
-      }
-    });
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        summary: { type: Type.STRING },
+                        hiddenRisks: {
+                            type: Type.ARRAY,
+                            items: { type: Type.STRING }
+                        },
+                        culturalFit: { type: Type.STRING }
+                    },
+                    required: ["summary", "hiddenRisks", "culturalFit"]
+                }
+            }
+        });
 
-    const jsonText = response.text;
-    if (!jsonText) throw new Error("No response from AI");
-    
-    return JSON.parse(jsonText) as AIAnalysisResult;
+        const jsonText = response.text;
+        if (!jsonText) throw new Error("No response from AI");
 
-  } catch (error) {
-    console.error("AI Analysis failed:", error);
-    throw error;
-  }
+        return JSON.parse(jsonText) as AIAnalysisResult;
+
+    } catch (error) {
+        console.error("AI Analysis failed:", error);
+        throw error;
+    }
 };
 
 export const estimateSalary = async (title: string, company: string, location: string, description: string): Promise<SalaryEstimate | null> => {
@@ -168,12 +168,12 @@ export const generateCoverLetter = async (jobTitle: string, company: string, des
           - Respect the reader's time.
           - Keep it under 200 words.
         `;
-    
+
         const response = await ai.models.generateContent({
-          model: 'gemini-3-flash-preview',
-          contents: prompt,
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
         });
-    
+
         return response.text || "Nepodařilo se vygenerovat dopis.";
 
     } catch (e) {
@@ -386,7 +386,7 @@ export const parseProfileFromCV = async (cvInput: string | { base64: string, mim
     if (!ai) return {};
 
     try {
-        
+
         const schemaPrompt = `
         Extract structured data from the provided document or text.
         OUTPUT IN CZECH context but standard JSON.
@@ -405,18 +405,18 @@ export const parseProfileFromCV = async (cvInput: string | { base64: string, mim
         let contents;
 
         if (typeof cvInput === 'string') {
-             contents = {
+            contents = {
                 parts: [
                     { text: schemaPrompt },
                     { text: `Input Text:\n${cvInput.substring(0, 10000)}` }
                 ]
-             };
+            };
         } else {
             // Multimodal input for PDF/Image
             contents = {
                 parts: [
                     { text: schemaPrompt },
-                    { 
+                    {
                         inlineData: {
                             mimeType: cvInput.mimeType,
                             data: cvInput.base64
@@ -469,7 +469,7 @@ export const parseProfileFromCV = async (cvInput: string | { base64: string, mim
         });
 
         const jsonText = response.text;
-        
+
         if (!jsonText) throw new Error("No response");
         return JSON.parse(jsonText);
     } catch (e) {
@@ -522,27 +522,27 @@ export const generateStyledCV = async (profile: UserProfile, template: string): 
  */
 
 export const optimizeJobDescription = async (currentDescription: string, companyProfile?: CompanyProfile): Promise<AIAdOptimizationResult> => {
-  const ai = getAi();
-  if (!ai) {
-    return {
-      rewrittenText: "API Key chybí. Zde by byl text přepsaný AI, zbavený marketingového balastu.",
-      removedCliches: ["API Key missing", "Mock Data"],
-      improvedClarity: "Prosím přidejte API klíč pro reálnou optimalizaci inzerátu."
-    };
-  }
+    const ai = getAi();
+    if (!ai) {
+        return {
+            rewrittenText: "API Key chybí. Zde by byl text přepsaný AI, zbavený marketingového balastu.",
+            removedCliches: ["API Key missing", "Mock Data"],
+            improvedClarity: "Prosím přidejte API klíč pro reálnou optimalizaci inzerátu."
+        };
+    }
 
-  try {
-    let contextPrompt = "";
-    if (companyProfile) {
-        contextPrompt = `
+    try {
+        let contextPrompt = "";
+        if (companyProfile) {
+            contextPrompt = `
         Align the writing with this company profile:
         - Tone: ${companyProfile.tone}
         - Values: ${companyProfile.values.join(', ')}
         - Philosophy: ${companyProfile.philosophy}
         `;
-    }
+        }
 
-    const prompt = `
+        const prompt = `
       You are an expert HR editor who hates corporate buzzwords. 
       Rewrite the following job description to be transparent, human-centric, and honest.
       OUTPUT IN CZECH.
@@ -562,40 +562,40 @@ export const optimizeJobDescription = async (currentDescription: string, company
       ${currentDescription.substring(0, 5000)}
     `;
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            rewrittenText: { type: Type.STRING },
-            removedCliches: { type: Type.ARRAY, items: { type: Type.STRING } },
-            improvedClarity: { type: Type.STRING }
-          },
-          required: ["rewrittenText", "removedCliches", "improvedClarity"]
-        }
-      }
-    });
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        rewrittenText: { type: Type.STRING },
+                        removedCliches: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        improvedClarity: { type: Type.STRING }
+                    },
+                    required: ["rewrittenText", "removedCliches", "improvedClarity"]
+                }
+            }
+        });
 
-    const jsonText = response.text;
-    if (!jsonText) throw new Error("No response from AI");
-    return JSON.parse(jsonText) as AIAdOptimizationResult;
-  } catch (error) {
-    console.error("Ad Optimization failed:", error);
-    throw error;
-  }
+        const jsonText = response.text;
+        if (!jsonText) throw new Error("No response from AI");
+        return JSON.parse(jsonText) as AIAdOptimizationResult;
+    } catch (error) {
+        console.error("Ad Optimization failed:", error);
+        throw error;
+    }
 };
 
-export const matchCandidateToJob = async (candidateBio: string, jobDescription: string): Promise<{score: number, reason: string}> => {
-   const ai = getAi();
-   if (!ai) {
-       return { score: 75, reason: "Mock Match: API klíč chybí. Odhad na základě klíčových slov." };
-   }
+export const matchCandidateToJob = async (candidateBio: string, jobDescription: string): Promise<{ score: number, reason: string }> => {
+    const ai = getAi();
+    if (!ai) {
+        return { score: 75, reason: "Mock Match: API klíč chybí. Odhad na základě klíčových slov." };
+    }
 
-   try {
-     const prompt = `
+    try {
+        const prompt = `
        Compare this candidate to the job.
        Candidate Bio/Skills: ${candidateBio}
        Job: ${jobDescription.substring(0, 1000)}
@@ -605,21 +605,21 @@ export const matchCandidateToJob = async (candidateBio: string, jobDescription: 
        - reason: Short Czech explanation of the fit (or lack thereof).
      `;
 
-     const response = await ai.models.generateContent({
-       model: 'gemini-3-flash-preview',
-       contents: prompt,
-       config: {
-         responseMimeType: "application/json",
-         responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-                score: { type: Type.NUMBER },
-                reason: { type: Type.STRING }
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        score: { type: Type.NUMBER },
+                        reason: { type: Type.STRING }
+                    }
+                }
             }
-         }
-       }
-     });
-     
+        });
+
         const jsonText = response.text;
         if (!jsonText) throw new Error("No response from AI");
         try {
@@ -628,12 +628,12 @@ export const matchCandidateToJob = async (candidateBio: string, jobDescription: 
             console.error("Failed to parse AI response:", jsonText);
             return { score: 0, reason: "Failed to parse AI response" };
         }
-   } catch (e) {
-     return { score: 0, reason: "AI Service Error" };
-   }
+    } catch (e) {
+        return { score: 0, reason: "AI Service Error" };
+    }
 };
 
-export const generateAssessment = async (role: string, skills: string[], difficulty: string): Promise<Assessment> => {
+export const generateAssessment = async (role: string, skills: string[], difficulty: string, questionCount: number = 5): Promise<Assessment> => {
     const ai = getAi();
     if (!ai) {
         return {
@@ -655,7 +655,7 @@ export const generateAssessment = async (role: string, skills: string[], difficu
         Difficulty: ${difficulty}.
         OUTPUT IN CZECH.
 
-        Generate 3 distinct questions to verify real-world competence, not just trivia.
+        Generate ${questionCount} distinct questions to verify real-world competence, not just trivia.
         
         JSON Structure:
         - title: Name of the test
@@ -689,7 +689,7 @@ export const generateAssessment = async (role: string, skills: string[], difficu
         const jsonText = response.text;
         if (!jsonText) throw new Error("No response");
         const data = JSON.parse(jsonText);
-        
+
         return {
             id: crypto.randomUUID(),
             role: role,
