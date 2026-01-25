@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { uploadProfilePhoto, uploadCVFile } from '../services/supabaseService';
 import PremiumFeaturesPreview from './PremiumFeaturesPreview';
+import MyInvitations from './MyInvitations';
 
 interface ProfileEditorProps {
   profile: UserProfile;
@@ -280,6 +281,15 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
 
       {/* Premium Features Preview */}
       <PremiumFeaturesPreview userProfile={profile} />
+
+      {/* Candidate Invitations (if logged in) */}
+      {profile.isLoggedIn && (
+        <div className="max-w-6xl mx-auto py-4">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
+            <MyInvitations />
+          </div>
+        </div>
+      )}
 
       {/* Personal Information Section */}
       <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">

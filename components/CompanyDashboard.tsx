@@ -13,6 +13,8 @@ import CompanySettings from './CompanySettings';
 import AssessmentCreator from './AssessmentCreator';
 import BenefitInsights from './BenefitInsights';
 import PlanUpgradeModal from './PlanUpgradeModal';
+import AssessmentInvitationModal from './AssessmentInvitationModal';
+import MyInvitations from './MyInvitations';
 import {
     Briefcase,
     Users,
@@ -62,6 +64,8 @@ interface CompanyDashboardProps {
 const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: propProfile, userEmail }) => {
     const [activeTab, setActiveTab] = useState<'overview' | 'create-ad' | 'candidates' | 'settings' | 'assessments' | 'marketplace'>('overview');
     const [showUpgradeModal, setShowUpgradeModal] = useState<{ open: boolean, feature?: string }>({ open: false });
+    const [showInvitationModal, setShowInvitationModal] = useState(false);
+    const [showInvitationsList, setShowInvitationsList] = useState(false);
     const [activeDropdownJobId, setActiveDropdownJobId] = useState<string | null>(null);
 
     // Real User Detection
@@ -1004,7 +1008,25 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 {activeTab === 'overview' && renderOverview()}
                 {activeTab === 'settings' && <CompanySettings profile={companyProfile} onSave={setCompanyProfile} />}
                 {activeTab === 'create-ad' && renderCreateAd()}
-                {activeTab === 'assessments' && <AssessmentCreator companyProfile={companyProfile} />}
+                {activeTab === 'assessments' && (
+                    <div>
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="text-sm text-slate-500">Vytvářejte a spravujte interview‑replacement assessmenty</div>
+                            <div className="flex items-center gap-2">
+                                <button onClick={() => setShowInvitationsList(prev => !prev)} className="px-3 py-1 rounded-md border text-sm">{showInvitationsList ? 'Zavřít pozvánky' : 'Spravovat pozvánky'}</button>
+                                <button onClick={() => setShowInvitationModal(true)} className="px-3 py-1 rounded-md bg-cyan-600 text-white text-sm">Pozvat kandidáta</button>
+                            </div>
+                        </div>
+
+                        {showInvitationsList && (
+                            <div className="mb-6">
+                                <MyInvitations forCompany />
+                            </div>
+                        )}
+
+                        <AssessmentCreator companyProfile={companyProfile} />
+                    </div>
+                )}
                 {activeTab === 'candidates' && renderCandidates()}
                 {/* {activeTab === 'marketplace' && <CompanyMarketplace />} */}
             </div>

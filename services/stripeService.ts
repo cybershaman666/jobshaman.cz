@@ -15,10 +15,10 @@ const BACKEND_URL = 'https://jobshaman-cz.onrender.com';
 
 /**
  * Initiates a Stripe Checkout session for a specific subscription tier.
- * @param tier 'premium'/'basic' for candidates, 'business' for companies, 'assessment_bundle' for AI Assessment Center
+ * @param tier 'premium' for personal users (99 CZK/month), 'business' for companies (4990 CZK/month), 'assessment_bundle' (990 CZK), 'single_assessment' (99 CZK)
  * @param userId The ID of the user or company to associate with the payment
  */
-export const redirectToCheckout = async (tier: 'premium' | 'basic' | 'business' | 'assessment_bundle', userId: string) => {
+export const redirectToCheckout = async (tier: 'premium' | 'basic' | 'business' | 'assessment_bundle' | 'single_assessment', userId: string) => {
     try {
         const response = await fetch(`${BACKEND_URL}/create-checkout-session`, {
             method: 'POST',
