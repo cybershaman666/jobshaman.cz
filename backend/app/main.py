@@ -835,6 +835,7 @@ def send_review_email(job: JobCheckRequest, result: JobCheckResponse):
 @app.get("/csrf-token")
 @limiter.limit("60/minute")
 async def get_csrf_token(
+    request: Request,
     user: dict = Depends(get_current_user),
 ):
     """
