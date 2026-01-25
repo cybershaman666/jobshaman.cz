@@ -22,7 +22,7 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
     setError(null);
     setLoading(true);
     try {
-      const res = await authenticatedFetch(`${BACKEND_URL}/assessments/invitations`, { method: 'GET' });
+      const res = await authenticatedFetch(`${BACKEND_URL}/assessments/invitations${forCompany ? '?for_company=true' : ''}`, { method: 'GET' });
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const data = await res.json();
       setInvitations(data.invitations || []);
