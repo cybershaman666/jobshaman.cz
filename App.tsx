@@ -23,6 +23,7 @@ import ApplicationModal from './components/ApplicationModal';
 import CookieBanner from './components/CookieBanner';
 import PodminkyUziti from './pages/PodminkyUziti';
 import OchranaSoukromi from './pages/OchranaSoukromi';
+import SubscriptionManagementPage from './pages/SubscriptionManagementPage';
 import PremiumUpgradeModal from './components/PremiumUpgradeModal';
 import AppFooter from './components/AppFooter';
 import { analyzeJobDescription, estimateSalary } from './services/geminiService';
@@ -702,6 +703,14 @@ export default function App() {
             return (
                 <div className="col-span-1 lg:col-span-12 max-w-7xl mx-auto w-full h-full overflow-y-auto custom-scrollbar pb-6 px-1">
                     <MarketplacePage theme={theme} userProfile={userProfile} />
+                </div>
+            );
+        }
+
+        if (viewState === ViewState.SUBSCRIPTION) {
+            return (
+                <div className="col-span-1 lg:col-span-12 max-w-4xl mx-auto w-full h-full overflow-y-auto custom-scrollbar pb-6 px-1">
+                    <SubscriptionManagementPage />
                 </div>
             );
         }

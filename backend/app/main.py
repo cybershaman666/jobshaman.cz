@@ -882,8 +882,8 @@ def verify_csrf_token_header(request: Request, user: dict) -> bool:
 @app.post("/verify-billing")
 @limiter.limit("100/minute")
 async def verify_billing(
-    request: BillingVerificationRequest,
-    http_request: Request,
+    request: Request,
+    billing_request: BillingVerificationRequest,
     user: dict = Depends(verify_subscription),
 ):
     """
@@ -902,13 +902,13 @@ async def verify_billing(
                         "user_id": user_id,
                         "feature": feature,
                         "endpoint": "/verify-billing",
-                        "ip_address": http_request.client.host if http_request.client else None,
+                        "ip_address": request.client.host if request.client else None,
                         "subscription_tier": user_tier,
                         "result": "allowed" if allowed else "denied",
                         "reason": reason,
                         "metadata": {
-                            "feature_requested": request.feature,
-                            "user_agent": http_request.headers.get("user-agent")
+                            "feature_requested": billing_request.feature,
+                            "user_agent": request.headers.get("user-agent")
                         }
                     }).execute()
                 except Exception as e:
@@ -999,7 +999,7 @@ async def verify_billing(
 @app.post("/cancel-subscription")
 @limiter.limit("10/minute")
 async def cancel_subscription(
-    http_request: Request,
+    request: Request,
     user: dict = Depends(verify_subscription),
 ):
     """
@@ -1009,7 +1009,7 @@ async def cancel_subscription(
     """
     try:
         # SECURITY: Verify CSRF token
-        if not verify_csrf_token_header(http_request, user):
+        if not verify_csrf_token_header(request, user):
             raise HTTPException(
                 status_code=403,
                 detail="CSRF token missing or invalid. Call /csrf-token first."
@@ -1074,7 +1074,7 @@ async def cancel_subscription(
                     "user_id": user_id,
                     "feature": "SUBSCRIPTION_CANCEL",
                     "endpoint": "/cancel-subscription",
-                    "ip_address": http_request.client.host if http_request.client else None,
+                    "ip_address": request.client.host if request.client else None,
                     "subscription_tier": user_tier,
                     "result": "canceled",
                     "reason": "User-initiated cancellation",
