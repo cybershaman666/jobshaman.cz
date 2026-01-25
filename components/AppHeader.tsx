@@ -6,9 +6,11 @@ import {
   Sun, 
   Moon, 
   LogOut, 
-  UserCircle 
+  UserCircle,
+  CreditCard
 } from 'lucide-react';
 import { ViewState, UserProfile } from '../types';
+import SubscriptionStatusBadge from './SubscriptionStatusBadge';
 
 interface AppHeaderProps {
   viewState: ViewState;
@@ -72,11 +74,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                       Profil
                   </button>
                   <button 
-                      onClick={() => setViewState(ViewState.MARKETPLACE)}
-                      className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.MARKETPLACE ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                      onClick={() => userProfile.isLoggedIn ? setViewState(ViewState.SUBSCRIPTION) : handleAuthAction()}
+                      className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.SUBSCRIPTION ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                   >
-                      <ShoppingBag className="w-4 h-4" />
-                      Kurzy & Rekvalifikace
+                      <CreditCard className="w-4 h-4" />
+                      Předplatné
                   </button>
               </>
           )}
@@ -118,7 +120,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                   <div className="flex items-center gap-3 pl-2">
                       <div className="text-right hidden md:block">
                           <div className="text-sm font-bold text-slate-900 dark:text-white leading-none mb-1">{userProfile.name}</div>
-                          <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded uppercase tracking-wider inline-block">JHI Aktivní</div>
+                          <div className="flex items-center gap-2">
+                              <SubscriptionStatusBadge userId={userProfile.id} />
+                          </div>
                       </div>
                       <button 
                           onClick={handleAuthAction}
