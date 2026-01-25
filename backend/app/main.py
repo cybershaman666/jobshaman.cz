@@ -312,7 +312,29 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "User-Agent", "X-CSRF-Token"],
+    expose_headers=["Access-Control-Allow-Origin", "X-CSRF-Token"],
+    max_age=600,
 )
+
+
+# CORS Error Handler Middleware - Ensure CORS headers on errors
+@app.middleware("http")
+async def cors_middleware(request: Request, call_next):
+    """
+    Ensure CORS headers are included in all responses, including errors
+    """
+    origin = request.headers.get("origin")
+    
+    if origin in allowed_origins or origin is None:
+        response = await call_next(request)
+        
+        if origin:
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+        
+        return response
+    
+    return await call_next(request)
 
 
 # Security Headers Middleware
