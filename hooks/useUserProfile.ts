@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { UserProfile, CompanyProfile, ViewState } from '../types';
 import { signOut, getUserProfile, getRecruiterCompany, updateUserProfile as updateUserProfileService } from '../services/supabaseService';
+import { fetchCsrfToken, clearCsrfToken } from '../services/csrfService';
+import { supabase } from '../services/supabaseClient';
 
 // Default user profile
 const DEFAULT_USER_PROFILE: UserProfile = {
@@ -32,6 +34,18 @@ export const useUserProfile = () => {
                     ...profile,
                     isLoggedIn: true
                 }));
+
+                // CSRF: Fetch CSRF token after successful session restoration
+                try {
+                    const session = await supabase?.auth.getSession();
+                    const accessToken = session?.data?.session?.access_token;
+                    if (accessToken) {
+                        await fetchCsrfToken(accessToken);
+                    }
+                } catch (csrfError) {
+                    console.warn('⚠️ Could not fetch CSRF token:', csrfError);
+                    // Don't fail session restoration if CSRF fetch fails
+                }
 
                 // Auto-Upgrade Logic for Admin Tester
                 if (profile.email === 'misahlavacu@gmail.com' && profile.role !== 'recruiter') {
@@ -74,6 +88,7 @@ export const useUserProfile = () => {
 
     const signOutUser = async () => {
         await signOut();
+        clearCsrfToken();  // Clear CSRF token on logout
         setUserProfile(DEFAULT_USER_PROFILE);
         setCompanyProfile(null);
         setViewState(ViewState.LIST);

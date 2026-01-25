@@ -1,6 +1,15 @@
 // import { loadStripe } from '@stripe/stripe-js';
 
-export const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY || 'pk_live_51StCnSG2Aezsy59epwvFwsyhMk0N9ySXq0U5fYgWBoTpfzZnX2rMCaQ41XEfGgWZoI3lWD2P0mUxF169hQYZV5Cc00Yl5xKCGh';
+export const STRIPE_PUBLIC_KEY = import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY;
+
+if (!STRIPE_PUBLIC_KEY) {
+    throw new Error(
+        '❌ CRITICAL: Stripe public key not configured.\n' +
+        'Set VITE_STRIPE_PUBLISHABLE_KEY environment variable in .env or .env.local with your Stripe publishable key.\n' +
+        'Example: VITE_STRIPE_PUBLISHABLE_KEY=pk_live_your_actual_key_here'
+    );
+}
+
 // TODO: Replace with your real Render backend URL
 const BACKEND_URL = 'https://jobshaman-cz.onrender.com';
 
