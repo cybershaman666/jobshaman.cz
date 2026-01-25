@@ -63,7 +63,7 @@ export const useJobFilters = (jobs: Job[]) => {
 
         // Commute distance filter
         if (enableCommuteFilter && filterMaxDistance) {
-            filtered = filtered.filter(job => {
+            filtered = filtered.filter(() => {
                 // This would be calculated based on user's address and job location
                 // For now, assume all jobs pass the distance filter
                 return true;
