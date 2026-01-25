@@ -4,6 +4,7 @@
  */
 
 import { authenticatedFetch } from './csrfService';
+import { BACKEND_URL } from '../constants';
 
 export interface ServerSideBillingCheck {
   userId: string;
@@ -31,7 +32,7 @@ export async function verifyServerSideBilling(
   check: ServerSideBillingCheck
 ): Promise<BillingVerificationResult> {
   try {
-    const response = await authenticatedFetch('/api/verify-billing', {
+    const response = await authenticatedFetch(`${BACKEND_URL}/verify-billing`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -90,7 +91,7 @@ export async function getSubscriptionStatus(userId: string): Promise<{
   canceledAt?: string;
 }> {
   try {
-    const response = await fetch(`/api/subscription-status?userId=${userId}`);
+    const response = await fetch(`${BACKEND_URL}/subscription-status?userId=${userId}`);
     if (!response.ok) {
       throw new Error('Failed to get subscription status');
     }
