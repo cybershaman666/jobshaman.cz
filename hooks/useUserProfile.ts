@@ -6,6 +6,7 @@ import { supabase } from '../services/supabaseClient';
 
 // Default user profile
 const DEFAULT_USER_PROFILE: UserProfile = {
+    id: undefined,
     isLoggedIn: false,
     name: '',
     email: '',
@@ -27,13 +28,21 @@ export const useUserProfile = () => {
     // Session restoration and profile management
     const handleSessionRestoration = async (userId: string) => {
         try {
+            console.log('🔄 handleSessionRestoration called with userId:', userId);
             const profile = await getUserProfile(userId);
+            console.log('Profile returned from getUserProfile:', { id: profile?.id, email: profile?.email, isLoggedIn: profile?.isLoggedIn });
+            
             if (profile) {
-                setUserProfile(prev => ({
-                    ...prev,
-                    ...profile,
-                    isLoggedIn: true
-                }));
+                console.log('Setting user profile with id:', profile.id);
+                setUserProfile(prev => {
+                    const updated = {
+                        ...prev,
+                        ...profile,
+                        isLoggedIn: true
+                    };
+                    console.log('Updated profile state - id now:', updated.id);
+                    return updated;
+                });
 
                 // CSRF: Fetch CSRF token after successful session restoration
                 try {

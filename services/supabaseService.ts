@@ -125,6 +125,8 @@ export const createBaseProfile = async (userId: string, email: string, name: str
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
     if (!supabase) return null;
     
+    console.log('📥 Fetching user profile for userId:', userId);
+    
     // Fetch from profiles table
     const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -147,6 +149,11 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         console.error('Profile fetch error:', profileError);
         return null;
     }
+
+    if (!profileData) {
+        console.warn('⚠️ Profile data is null/undefined');
+        return null;
+    }
     
     // Fetch from candidate_profiles table
     const { data: candidateData, error: _candidateError } = await supabase
@@ -157,8 +164,8 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
     
     // If candidate profile doesn't exist, that's ok, we'll use defaults
     
-    // Map to UserProfile structure
-    return {
+    // Map to UserProfile structure - ENSURE id is always included
+    const userProfile: UserProfile = {
         id: profileData.id,
         email: profileData.email,
         name: profileData.full_name || '',
@@ -195,6 +202,9 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         hasAssessment: profileData.has_assessment || false,
         role: profileData.role
     };
+
+    console.log('✅ User profile loaded with id:', userProfile.id);
+    return userProfile;
 };
 
 export const updateUserProfile = async (userId: string, updates: Partial<UserProfile>): Promise<void> => {

@@ -2,6 +2,7 @@ import React from 'react';
 import { useUserProfile } from '../hooks/useUserProfile';
 import SubscriptionDashboard from '../components/SubscriptionDashboard';
 import PlanUpgradeModal from '../components/PlanUpgradeModal';
+import PremiumUpsellCard from '../components/PremiumUpsellCard';
 
 /**
  * Subscription Management Page
@@ -13,12 +14,19 @@ import PlanUpgradeModal from '../components/PlanUpgradeModal';
  */
 export const SubscriptionManagementPage = () => {
   const { userProfile: user, companyProfile: company } = useUserProfile();
-  const loading = !user || !user.isLoggedIn;
+  
+  // Check if user is still loading (not yet logged in and no id)
+  const isLoading = !user?.isLoggedIn || !user?.id;
   const [showUpgradeModal, setShowUpgradeModal] = React.useState(false);
 
-  console.log('📄 SubscriptionManagementPage - user:', user ? 'logged in' : 'not logged in', 'id:', user?.id);
+  console.log('📄 SubscriptionManagementPage - user:', {
+    isLoggedIn: user?.isLoggedIn,
+    hasId: !!user?.id,
+    userId: user?.id,
+    email: user?.email
+  });
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
         <div className="max-w-4xl mx-auto">
@@ -80,6 +88,9 @@ export const SubscriptionManagementPage = () => {
                 }}
               />
             </div>
+
+            {/* Premium Features Upsell */}
+            <PremiumUpsellCard userId={user.id || ''} />
 
             {/* Additional Info */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
