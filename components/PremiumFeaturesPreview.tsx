@@ -23,6 +23,9 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
 }) => {
   const isPremium = userProfile.subscription?.tier === 'premium';
   
+  // If user is not logged in or has no id, show a simpler version
+  const isIncomplete = !userProfile.isLoggedIn || !userProfile.id;
+  
   const premiumFeatures = [
     {
       icon: FileText,
@@ -67,6 +70,7 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
 
   const handleUpgrade = () => {
     if (!userProfile.isLoggedIn || !userProfile.id) {
+      // If user is not logged in, they'll need to log in first
       onUpgradeClick?.();
       return;
     }
@@ -75,6 +79,71 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
 
   if (isPremium) {
     return null; // Don't show upselling to premium users
+  }
+
+  // Show a simplified version for users without id
+  if (isIncomplete) {
+    return (
+      <div className="w-full bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-2xl border border-blue-200 dark:border-blue-800 overflow-hidden">
+        <div className="bg-gradient-to-r from-blue-600 to-cyan-600 px-6 md:px-8 py-6">
+          <div className="flex items-center gap-3">
+            <Star className="w-6 h-6 text-white" fill="white" />
+            <div>
+              <h2 className="text-xl md:text-2xl font-bold text-white">Odemkněte JobShaman Premium</h2>
+              <p className="text-blue-100 text-sm mt-1">
+                AI nástroje pro CV, motivační dopisy a optimalizaci
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="px-6 md:px-8 py-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div className="flex items-start gap-3">
+              <FileText className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-slate-900 dark:text-white">CV Šablony</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Profesionální designy</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <Wand2 className="w-6 h-6 text-purple-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-slate-900 dark:text-white">AI Přepsání CV</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Optimalizace na pozici</p>
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <Mail className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-slate-900 dark:text-white">AI Motivační Dopis</p>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Personalizované</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-xl border border-blue-200 dark:border-blue-800 p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div>
+              <p className="text-slate-600 dark:text-slate-300 mb-1">Přístup ke všem funkcím za</p>
+              <p className="text-3xl font-bold text-slate-900 dark:text-white">
+                199 Kč <span className="text-lg text-slate-500 dark:text-slate-400">/měsíc</span>
+              </p>
+            </div>
+
+            <button
+              onClick={handleUpgrade}
+              className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold rounded-lg transition-all hover:shadow-lg whitespace-nowrap"
+            >
+              <Lock className="w-5 h-5" />
+              Upgradovat
+              <ArrowRight className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
