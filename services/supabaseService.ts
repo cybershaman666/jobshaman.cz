@@ -1,18 +1,13 @@
 // Updated Supabase service functions for new paywall schema
 import { supabase } from './supabaseClient';
 export { supabase };
-import { UserProfile, CompanyProfile, LearningResource, BenefitValuation, AssessmentResult, Job, CVDocument } from '../types';
+import { UserProfile, CompanyProfile, CVDocument } from '../types';
 
-export const resetUserRoleToCandidate = async (userId: string): Promise<void> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { error } = await supabase
-        .from('profiles')
-        .update({ role: 'candidate' })
-        .eq('id', userId);
-    
-    if (error) throw error;
+export const isSupabaseConfigured = (): boolean => {
+    return !!supabase;
 };
+
+
 
 // ========================================
 // AUTH SERVICES (unchanged)
@@ -701,48 +696,7 @@ export const getUsageSummary = async (companyId: string) => {
     return usage as any;
 };
 
-// Legacy functions - keeping them for compatibility
-export const createCandidateProfile = async (userId: string, profileData: any): Promise<void> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { error } = await supabase
-        .from('candidate_profiles')
-        .insert({
-            id: userId,
-            ...profileData,
-            created_at: new Date().toISOString(),
-        });
-    
-    if (error) throw error;
-};
 
-export const updateCandidateProfile = async (userId: string, updates: any): Promise<void> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { error } = await supabase
-        .from('candidate_profiles')
-        .update(updates)
-        .eq('id', userId);
-    
-    if (error) throw error;
-};
-
-export const getCandidateProfile = async (userId: string): Promise<any> => {
-    if (!supabase) return null;
-    
-    const { data, error } = await supabase
-        .from('candidate_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-    
-    if (error) {
-        console.error('Candidate profile fetch error:', error);
-        return null;
-    }
-    
-    return data;
-};
 
 export const createCompany = async (companyData: any, userId?: string): Promise<any> => {
     if (!supabase) throw new Error("Supabase not configured");
@@ -763,207 +717,13 @@ export const createCompany = async (companyData: any, userId?: string): Promise<
     return data;
 };
 
-export const updateCompany = async (companyId: string, updates: any): Promise<void> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { error } = await supabase
-        .from('companies')
-        .update(updates)
-        .eq('id', companyId);
-    
-    if (error) throw error;
-};
 
-export const getJobs = async (filters?: any): Promise<Job[]> => {
-    if (!supabase) return [];
-    
-    let query = supabase.from('jobs').select('*');
-    
-    if (filters) {
-        if (filters.location) {
-            query = query.ilike('location', `%${filters.location}%`);
-        }
-        if (filters.contract_type) {
-            query = query.eq('contract_type', filters.contract_type);
-        }
-        if (filters.work_type) {
-            query = query.eq('work_type', filters.work_type);
-        }
-        if (filters.salary_from) {
-            query = query.gte('salary_from', filters.salary_from);
-        }
-        if (filters.salary_to) {
-            query = query.lte('salary_to', filters.salary_to);
-        }
-    }
-    
-    const { data, error } = await query.order('scraped_at', { ascending: false });
-    
-    if (error) {
-        console.error('Jobs fetch error:', error);
-        return [];
-    }
-    
-    return data || [];
-};
 
-export const getJob = async (jobId: number): Promise<Job | null> => {
-    if (!supabase) return null;
-    
-    const { data, error } = await supabase
-        .from('jobs')
-        .select('*')
-        .eq('id', jobId)
-        .single();
-    
-    if (error) {
-        console.error('Job fetch error:', error);
-        return null;
-    }
-    
-    return data;
-};
 
-export const createJob = async (jobData: any): Promise<number> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { data, error } = await supabase
-        .from('jobs')
-        .insert({
-            ...jobData,
-            scraped_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-    
-    if (error) throw error;
-    
-    return data.id;
-};
 
-export const updateJob = async (jobId: number, updates: any): Promise<void> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { error } = await supabase
-        .from('jobs')
-        .update(updates)
-        .eq('id', jobId);
-    
-    if (error) throw error;
-};
 
-export const deleteJob = async (jobId: number): Promise<void> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { error } = await supabase
-        .from('jobs')
-        .delete()
-        .eq('id', jobId);
-    
-    if (error) throw error;
-};
 
-export const getLearningResources = async (skillName?: string): Promise<LearningResource[]> => {
-    if (!supabase) return [];
-    
-    let query = supabase.from('learning_resources').select('*');
-    
-    if (skillName) {
-        query = query.contains('skill_name', [skillName]);
-    }
-    
-    const { data, error } = await query.order('relevance_score', { ascending: false });
-    
-    if (error) {
-        console.error('Learning resources fetch error:', error);
-        return [];
-    }
-    
-    return data || [];
-};
 
-export const createLearningResource = async (resourceData: any): Promise<string> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { data, error } = await supabase
-        .from('learning_resources')
-        .insert({
-            ...resourceData,
-            created_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-    
-    if (error) throw error;
-    
-    return data.id;
-};
-
-export const getBenefitValuations = async (): Promise<BenefitValuation[]> => {
-    if (!supabase) return [];
-    
-    const { data, error } = await supabase
-        .from('benefit_valuations')
-        .select('*')
-        .order('monthly_value_czk', { ascending: false });
-    
-    if (error) {
-        console.error('Benefit valuations fetch error:', error);
-        return [];
-    }
-    
-    return data || [];
-};
-
-export const createBenefitValuation = async (valuationData: any): Promise<void> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { error } = await supabase
-        .from('benefit_valuations')
-        .insert(valuationData);
-    
-    if (error) throw error;
-};
-
-export const getAssessmentResults = async (candidateId?: string, jobId?: number): Promise<AssessmentResult[]> => {
-    if (!supabase) return [];
-    
-    let query = supabase.from('assessment_results').select('*');
-    
-    if (candidateId) {
-        query = query.eq('candidate_id', candidateId);
-    }
-    
-    if (jobId) {
-        query = query.eq('job_id', jobId);
-    }
-    
-    const { data, error } = await query.order('completed_at', { ascending: false });
-    
-    if (error) {
-        console.error('Assessment results fetch error:', error);
-        return [];
-    }
-    
-    return data || [];
-};
-
-export const createAssessmentResult = async (resultData: any): Promise<string> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { data, error } = await supabase
-        .from('assessment_results')
-        .insert({
-            ...resultData,
-            completed_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-    
-    if (error) throw error;
-    
-    return data.id;
-};
 
 export const getCVDocuments = async (userId?: string): Promise<CVDocument[]> => {
     if (!supabase) return [];
@@ -1001,224 +761,11 @@ export const createCVDocument = async (documentData: any): Promise<string> => {
     return data.id;
 };
 
-export const getJobCandidateMatches = async (jobId?: number, candidateId?: string): Promise<any[]> => {
-    if (!supabase) return [];
-    
-    let query = supabase.from('job_candidate_matches').select('*');
-    
-    if (jobId) {
-        query = query.eq('job_id', jobId);
-    }
-    
-    if (candidateId) {
-        query = query.eq('candidate_id', candidateId);
-    }
-    
-    const { data, error } = await query.order('created_at', { ascending: false });
-    
-    if (error) {
-        console.error('Job candidate matches fetch error:', error);
-        return [];
-    }
-    
-    return data || [];
-};
 
-export const createJobCandidateMatch = async (matchData: any): Promise<string> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { data, error } = await supabase
-        .from('job_candidate_matches')
-        .insert({
-            ...matchData,
-            created_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-    
-    if (error) throw error;
-    
-    return data.id;
-};
 
-export const getCareerTracks = async (candidateId?: string): Promise<any[]> => {
-    if (!supabase) return [];
-    
-    let query = supabase.from('career_tracks').select('*');
-    
-    if (candidateId) {
-        query = query.eq('candidate_id', candidateId);
-    }
-    
-    const { data, error } = await query.order('created_at', { ascending: false });
-    
-    if (error) {
-        console.error('Career tracks fetch error:', error);
-        return [];
-    }
-    
-    return data || [];
-};
 
-export const createCareerTrack = async (trackData: any): Promise<string> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { data, error } = await supabase
-        .from('career_tracks')
-        .insert({
-            ...trackData,
-            created_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-    
-    if (error) throw error;
-    
-    return data.id;
-};
 
-export const updateCareerTrack = async (trackId: string, updates: any): Promise<void> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { error } = await supabase
-        .from('career_tracks')
-        .update(updates)
-        .eq('id', trackId);
-    
-    if (error) throw error;
-};
 
-export const getMarketplacePartners = async (): Promise<any[]> => {
-    if (!supabase) return [];
-    
-    const { data, error } = await supabase
-        .from('marketplace_partners')
-        .select('*')
-        .order('created_at', { ascending: false });
-    
-    if (error) {
-        console.error('Marketplace partners fetch error:', error);
-        return [];
-    }
-    
-    return data || [];
-};
-
-export const createMarketplacePartner = async (partnerData: any): Promise<string> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { data, error } = await supabase
-        .from('marketplace_partners')
-        .insert({
-            ...partnerData,
-            created_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-    
-    if (error) throw error;
-    
-    return data.id;
-};
-
-export const getResourceReviews = async (resourceId?: string): Promise<any[]> => {
-    if (!supabase) return [];
-    
-    let query = supabase.from('resource_reviews').select('*');
-    
-    if (resourceId) {
-        query = query.eq('resource_id', resourceId);
-    }
-    
-    const { data, error } = await query.order('created_at', { ascending: false });
-    
-    if (error) {
-        console.error('Resource reviews fetch error:', error);
-        return [];
-    }
-    
-    return data || [];
-};
-
-export const createResourceReview = async (reviewData: any): Promise<string> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { data, error } = await supabase
-        .from('resource_reviews')
-        .insert({
-            ...reviewData,
-            created_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-    
-    if (error) throw error;
-    
-    return data.id;
-};
-
-export const getCompanyMembers = async (companyId?: string): Promise<any[]> => {
-    if (!supabase) return [];
-    
-    let query = supabase.from('company_members').select('*');
-    
-    if (companyId) {
-        query = query.eq('company_id', companyId);
-    }
-    
-    const { data, error } = await query.order('joined_at', { ascending: false });
-    
-    if (error) {
-        console.error('Company members fetch error:', error);
-        return [];
-    }
-    
-    return data || [];
-};
-
-export const createCompanyMember = async (memberData: any): Promise<string> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { data, error } = await supabase
-        .from('company_members')
-        .insert({
-            ...memberData,
-            invited_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-    
-    if (error) throw error;
-    
-    return data.id;
-};
-
-export const getRecruiterProfile = async (userId: string): Promise<any> => {
-    if (!supabase) return null;
-    
-    const { data, error } = await supabase
-        .from('recruiter_profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-    
-    if (error) {
-        console.error('Recruiter profile fetch error:', error);
-        return null;
-    }
-    
-    return data;
-};
-
-export const createRecruiterProfile = async (profileData: any): Promise<void> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { error } = await supabase
-        .from('recruiter_profiles')
-        .insert(profileData);
-    
-    if (error) throw error;
-};
 
 // Missing functions from imports
 export const inviteRecruiter = async (companyId: string, email: string, invitedBy: string): Promise<boolean> => {
@@ -1371,42 +918,56 @@ export const uploadCVDocument = async (userId: string, file: File): Promise<CVDo
     if (!supabase) return null;
     
     try {
-        // First, upload the file to Supabase Storage
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${userId}/${Date.now()}.${fileExt}`;
+        // SECURITY: Validate file before upload
+        const validation = validateFileUpload(file);
+        if (!validation.isValid) {
+            throw new Error(validation.error);
+        }
         
+        // SECURITY: Generate safe filename
+        const fileExt = validation.extension!;
+        const safeFileName = generateSafeFileName(userId, file.name, fileExt);
+        
+        // SECURITY: Upload with metadata validation
         const { data: _uploadData, error: uploadError } = await supabase.storage
             .from('cvs')
-            .upload(fileName, file);
+            .upload(safeFileName, file, {
+                contentType: file.type,
+                cacheControl: '3600',
+                upsert: false
+            });
         
         if (uploadError) {
             console.error('File upload error:', uploadError);
-            throw uploadError;
+            throw new Error(`Upload failed: ${uploadError.message}`);
         }
         
-        // Get the public URL
+        // SECURITY: Get public URL safely
         const { data: urlData } = supabase.storage
             .from('cvs')
-            .getPublicUrl(fileName);
+            .getPublicUrl(safeFileName);
         
-        // Insert record into cv_documents table
+        // SECURITY: Insert with additional security checks
         const { data, error } = await supabase
             .from('cv_documents')
             .insert({
                 user_id: userId,
-                file_name: fileName,
-                original_name: file.name,
+                file_name: safeFileName,
+                original_name: sanitizeFileName(file.name),
                 file_url: urlData.publicUrl,
                 file_size: file.size,
                 content_type: file.type,
-                is_active: false
+                is_active: false,
+                virus_scan_status: 'pending', // Add virus scanning
+                upload_ip: null // Could be passed from client for IP tracking
             })
             .select()
             .single();
         
         if (error) {
-            console.error('Database insert error:', error);
-            throw error;
+            // SECURITY: Cleanup failed upload
+            await supabase.storage.from('cvs').remove([safeFileName]);
+            throw new Error(`Database error: ${error.message}`);
         }
         
         return {
@@ -1418,15 +979,70 @@ export const uploadCVDocument = async (userId: string, file: File): Promise<CVDo
             fileSize: data.file_size,
             contentType: data.content_type,
             isActive: data.is_active || false,
-            parsedData: data.parsed_data,
             uploadedAt: data.uploaded_at,
             lastUsed: data.last_used
         };
     } catch (error) {
         console.error('CV upload failed:', error);
-        return null;
+        throw error;
     }
-};
+}
+
+// SECURITY: File validation function
+function validateFileUpload(file: File): { isValid: boolean; extension?: string; error?: string } {
+    // SECURITY: File type whitelist
+    const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'text/plain'
+    ];
+    
+    // SECURITY: File extension whitelist
+    const allowedExtensions = ['pdf', 'doc', 'docx', 'txt'];
+    
+    // SECURITY: File size limit (10MB max)
+    const maxSizeBytes = 10 * 1024 * 1024;
+    
+    // Check file size
+    if (file.size > maxSizeBytes) {
+        return { isValid: false, error: 'File size exceeds 10MB limit' };
+    }
+    
+    // Check MIME type
+    if (!allowedTypes.includes(file.type)) {
+        return { isValid: false, error: 'File type not allowed' };
+    }
+    
+    // Check extension
+    const fileExt = file.name.split('.').pop()?.toLowerCase();
+    if (!fileExt || !allowedExtensions.includes(fileExt)) {
+        return { isValid: false, error: 'File extension not allowed' };
+    }
+    
+    // SECURITY: Additional filename checks
+    if (file.name.includes('..') || file.name.includes('/') || file.name.includes('\\')) {
+        return { isValid: false, error: 'Invalid filename' };
+    }
+    
+    return { isValid: true, extension: fileExt };
+}
+
+// SECURITY: Generate safe filename
+function generateSafeFileName(userId: string, originalName: string, extension: string): string {
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 15);
+    const sanitizedUserId = userId.replace(/[^a-zA-Z0-9-_]/g, '');
+    return `${sanitizedUserId}/${timestamp}_${randomId}.${extension}`;
+}
+
+// SECURITY: Sanitize filename
+function sanitizeFileName(fileName: string): string {
+    return fileName
+        .replace(/[^a-zA-Z0-9.-_]/g, '_')
+        .replace(/_{2,}/g, '_')
+        .substring(0, 255); // Limit length
+}
 
 export const updateUserCVSelection = async (userId: string, cvId: string): Promise<boolean> => {
     if (!supabase) return false;

@@ -3,7 +3,9 @@ import Markdown from 'markdown-to-jsx';
 import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, CompanyProfile, JHI, CareerPathfinderResult } from './types';
 
 import { Analytics } from '@vercel/analytics/react';
+import AppHeader from './components/AppHeader';
 import { generateSEOMetadata, updatePageMeta } from './utils/seo';
+import { removeAccents } from './utils/benefits';
 import JobCard from './components/JobCard';
 import JHIChart from './components/JHIChart';
 import BullshitMeter from './components/BullshitMeter';
@@ -22,14 +24,18 @@ import ApplicationModal from './components/ApplicationModal';
 import CookieBanner from './components/CookieBanner';
 import PodminkyUziti from './pages/PodminkyUziti';
 import OchranaSoukromi from './pages/OchranaSoukromi';
+import PremiumUpgradeModal from './components/PremiumUpgradeModal';
+import AppFooter from './components/AppFooter';
 import { analyzeJobDescription, estimateSalary } from './services/geminiService';
 import { calculateCommuteReality } from './services/commuteService';
 import { fetchRealJobs } from './services/jobService';
-import { supabase, signOut, getUserProfile, updateUserProfile, getRecruiterCompany } from './services/supabaseService';
+import { supabase, signOut, getUserProfile, getRecruiterCompany, updateUserProfile } from './services/supabaseService';
 import { canCandidateUseFeature } from './services/billingService';
 import { analyzeJobForPathfinder } from './services/careerPathfinderService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
 import { redirectToCheckout, checkPaymentStatus } from './services/stripeService';
+import { useUserProfile } from './hooks/useUserProfile';
+import { useJobFilters } from './hooks/useJobFilters';
 import {
     Search,
     Filter,
@@ -85,12 +91,7 @@ const DEFAULT_USER_PROFILE: UserProfile = {
     }
 };
 
-// HELPER: Remove accents for robust searching (Brno == Brňo, Plzen == Plzeň)
-const removeAccents = (str: any) => {
-    if (!str) return '';
-    if (typeof str !== 'string') return String(str).toLowerCase();
-    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-};
+
 
 // HELPER: Benefit keyword mapping for smart filtering
 const BENEFIT_KEYWORDS: Record<string, string[]> = {
@@ -113,7 +114,6 @@ export default function App() {
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
     const [jobs, setJobs] = useState<Job[]>([]);
     const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-    const [viewState, setViewState] = useState<ViewState>(ViewState.LIST);
     const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
     const [analyzing, setAnalyzing] = useState(false);
     const [isLoadingJobs, setIsLoadingJobs] = useState(true);
@@ -125,99 +125,56 @@ export default function App() {
     // Cookie Consent State
     const [showCookieBanner, setShowCookieBanner] = useState(false);
 
-
-
     // UI State
-    const [showFilters, setShowFilters] = useState(false);
-
-    // Auth & Onboarding State
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isOnboardingCompany, setIsOnboardingCompany] = useState(false);
-
-    // USER PROFILE STATE
-    const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
-    const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
-
-    // Filter Sections State
-    const [expandedSections, setExpandedSections] = useState({
-        location: true,
-        contract: true,
-        benefits: true
-    });
-
-
-
-    // Application Modal State
     const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
-
-    // Company Registration State
     const [isCompanyRegistrationOpen, setIsCompanyRegistrationOpen] = useState(false);
     const [showCompanyLanding, setShowCompanyLanding] = useState(false);
-
-    // Saved Jobs State
-    const [savedJobIds, setSavedJobIds] = useState<string[]>([]);
-
-    // Search & Filter State
-    const [searchTerm, setSearchTerm] = useState('');
-    const [filterCity, setFilterCity] = useState('');
-    const [filterMaxDistance, setFilterMaxDistance] = useState<number>(50); // Default 50km
-    const [enableCommuteFilter, setEnableCommuteFilter] = useState(false); // Default OFF to show all jobs
-    const [filterBenefits, setFilterBenefits] = useState<string[]>([]);
-    const [filterContractType, setFilterContractType] = useState<string[]>([]);
-
     const [commuteAnalysis, setCommuteAnalysis] = useState<CommuteAnalysis | null>(null);
-    const selectedJob = jobs.find(j => j.id === selectedJobId);
+
+    // Use custom hooks
+    const {
+        userProfile,
+        companyProfile,
+        viewState,
+        setViewState,
+        setUserProfile,
+        setCompanyProfile,
+        signOut,
+        handleSessionRestoration
+    } = useUserProfile();
+
+    const {
+        filteredJobs,
+        totalJobCount,
+        filteredJobCount,
+        searchTerm,
+        filterCity,
+        filterMaxDistance,
+        enableCommuteFilter,
+        filterBenefits,
+        filterContractType,
+        savedJobIds,
+        showFilters,
+        expandedSections,
+        setSearchTerm,
+        setFilterCity,
+        setFilterMaxDistance,
+        setEnableCommuteFilter,
+        setFilterBenefits,
+        setFilterContractType,
+        setSavedJobIds,
+        setShowFilters,
+        setExpandedSections,
+        toggleBenefitFilter,
+        toggleContractTypeFilter,
+        clearAllFilters
+    } = useJobFilters(jobs);
+
+    const selectedJob = filteredJobs.find(j => j.id === selectedJobId);
 
     // --- EFFECTS ---
-
-    const handleSessionRestoration = async (userId: string) => {
-        try {
-            const profile = await getUserProfile(userId);
-            if (profile) {
-                setUserProfile(prev => ({
-                    ...prev,
-                    ...profile,
-                    isLoggedIn: true
-                }));
-
-                // Auto-Upgrade Logic for Admin Tester
-                if (profile.email === 'misahlavacu@gmail.com' && profile.role !== 'recruiter') {
-                    console.log("Auto-upgrading admin tester to recruiter...");
-                    await updateUserProfile(userId, { role: 'recruiter' });
-                    // Force update local state
-                    setUserProfile(prev => ({ ...prev, role: 'recruiter' }));
-                    // Check if admin already has a company
-                    const company = await getRecruiterCompany(userId);
-                    if (company) {
-                        setCompanyProfile(company);
-                        setViewState(ViewState.COMPANY_DASHBOARD);
-                    } else {
-                        // Don't automatically show onboarding - let them click to create company
-                        setViewState(ViewState.LIST);
-                    }
-                }
-
-                // Auto-enable commute filter on restore if address exists
-                if (profile.address) {
-                    setEnableCommuteFilter(true);
-                    setFilterMaxDistance(50);
-                }
-
-                if (profile.role === 'recruiter') {
-                    const company = await getRecruiterCompany(userId);
-                    if (company) {
-                        setCompanyProfile(company);
-                        setViewState(ViewState.COMPANY_DASHBOARD);
-                    } else {
-                        // Don't automatically show onboarding - user can click to create company
-                        setViewState(ViewState.LIST);
-                    }
-                }
-            }
-        } catch (error) {
-            console.error("Session restoration failed:", error);
-        }
-    };
 
     const refreshUserProfile = async () => {
         try {
@@ -226,11 +183,10 @@ export default function App() {
             if (userId) {
                 const profile = await getUserProfile(userId);
                 if (profile) {
-                    setUserProfile(prev => ({
-                        ...prev,
+                    setUserProfile({
                         ...profile,
                         isLoggedIn: true
-                    }));
+                    });
                 }
             }
         } catch (error) {
@@ -386,110 +342,7 @@ export default function App() {
         }
     }, []);
 
-    // --- FILTERING LOGIC ---
 
-    const filteredJobs = useMemo(() => {
-        let sourceJobs = jobs;
-        if (viewState === ViewState.SAVED) {
-            sourceJobs = jobs.filter(job => savedJobIds.includes(job.id));
-        }
-
-        const filtered = sourceJobs.filter(job => {
-            // 1. Text Search (Accent Insensitive)
-            const searchNormalized = removeAccents(searchTerm.trim());
-
-            if (searchNormalized) {
-                const matchesText =
-                    removeAccents(job.title).includes(searchNormalized) ||
-                    removeAccents(job.company).includes(searchNormalized) ||
-                    removeAccents(job.location).includes(searchNormalized) ||
-                    (job.description && removeAccents(job.description).includes(searchNormalized)) ||
-                    (job.benefits && job.benefits.some(b => removeAccents(b).includes(searchNormalized))) ||
-                    job.tags.some(t => removeAccents(t).includes(searchNormalized));
-
-                if (!matchesText) return false;
-            }
-
-            // 2. City Filter (Accent Insensitive + Tag Check)
-            // Determines if we are in "Manual Location Mode"
-            const isManualLocationSearch = filterCity.trim().length > 0;
-
-            if (isManualLocationSearch) {
-                const cityNormalized = removeAccents(filterCity.trim());
-                // Check explicit location OR tags (tags often contain the normalized city name)
-                const locMatch = removeAccents(job.location).includes(cityNormalized);
-                const tagMatch = job.tags.some(t => removeAccents(t).includes(cityNormalized));
-
-                if (!locMatch && !tagMatch) return false;
-            }
-
-            // 3. Benefits Filter (Smart Matching)
-            if (filterBenefits.length > 0) {
-                const hasAllBenefits = filterBenefits.every(filterBenefit => {
-                    // Get keywords for this filter category
-                    const keywords = BENEFIT_KEYWORDS[filterBenefit] || [removeAccents(filterBenefit)];
-
-                    // Check if ANY of the keywords exist in ANY of the job benefits
-                    return job.benefits.some(jobBenefit => {
-                        const benefitNormalized = removeAccents(jobBenefit);
-                        return keywords.some(kw => benefitNormalized.includes(kw));
-                    }) || job.tags.some(tag => {
-                        const tagNormalized = removeAccents(tag);
-                        return keywords.some(kw => tagNormalized.includes(kw));
-                    });
-                });
-
-                if (!hasAllBenefits) return false;
-            }
-
-            // 4. Contract Type
-            if (filterContractType.length > 0) {
-                const isIco = job.tags.some(t => ['Kontraktor', 'IČO', 'Freelance', 'Gig Economy'].includes(t)) || job.title.includes('IČO') || job.description.includes('fakturace');
-                const isPartTime = job.tags.some(t => ['Part-time', 'Zkrácený', 'Brigáda'].includes(t));
-                const isHpp = !isIco && !isPartTime;
-
-                const matchesType = filterContractType.some(type => {
-                    if (type === 'IČO') return isIco;
-                    if (type === 'HPP') return isHpp;
-                    if (type === 'Part-time') return isPartTime;
-                    return false;
-                });
-                if (!matchesType) return false;
-            }
-
-            // 5. Distance Filter
-            // Rule: Auto-apply if enabled AND user has address AND user is NOT manually searching for another city
-            if (!isManualLocationSearch && enableCommuteFilter && userProfile.isLoggedIn && userProfile.address) {
-                const commute = calculateCommuteReality(job, userProfile);
-                if (commute && commute.distanceKm !== -1 && !commute.isRelocation && commute.distanceKm > filterMaxDistance) return false;
-            }
-
-            return true;
-        });
-
-        // --- SORTING ---
-        if (userProfile.isLoggedIn && userProfile.address && !searchTerm && !filterCity) {
-            return filtered.sort((a, b) => {
-                const commuteA = calculateCommuteReality(a, userProfile);
-                const commuteB = calculateCommuteReality(b, userProfile);
-
-                const getSortDist = (c: CommuteAnalysis | null) => {
-                    if (!c) return 99999;
-                    if (c.isRelocation) return 88888;
-                    if (c.distanceKm === -1) return 99999;
-                    return c.distanceKm;
-                };
-
-                const distA = getSortDist(commuteA);
-                const distB = getSortDist(commuteB);
-
-                return distA - distB;
-            });
-        }
-
-        return filtered;
-
-    }, [searchTerm, filterCity, filterMaxDistance, enableCommuteFilter, filterBenefits, filterContractType, userProfile, viewState, savedJobIds, jobs]);
 
 
     // --- HANDLERS ---
@@ -559,8 +412,8 @@ export default function App() {
         if (!selectedJob) return;
 
         // Feature Gating
-        if (!canCandidateUseFeature(userProfile, 'ATC_HACK')) {
-            setShowPremiumUpgrade({ open: true, feature: 'AI Analýza & ATC Hack' });
+        if (!canCandidateUseFeature(userProfile, 'AI_JOB_ANALYSIS')) {
+            setShowPremiumUpgrade({ open: true, feature: 'AI analýza pracovních inzerátů' });
             return;
         }
 
@@ -664,13 +517,7 @@ export default function App() {
         }
     };
 
-    const toggleBenefitFilter = (benefit: string) => {
-        setFilterBenefits(prev => prev.includes(benefit) ? prev.filter(b => b !== benefit) : [...prev, benefit]);
-    };
-
-    const toggleContractFilter = (type: string) => {
-        setFilterContractType(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
-    };
+    
 
     const toggleSection = (section: keyof typeof expandedSections) => {
         setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -1188,7 +1035,7 @@ export default function App() {
                                                 {['HPP', 'IČO', 'Part-time'].map(type => (
                                                     <button
                                                         key={type}
-                                                        onClick={() => toggleContractFilter(type)}
+                                                        onClick={() => toggleContractTypeFilter(type)}
                                                         className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${filterContractType.includes(type) ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}
                                                     >
                                                         {type}
@@ -1301,8 +1148,11 @@ export default function App() {
                                                     className="px-3 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg border border-amber-600 transition-colors text-sm font-medium flex items-center gap-2"
                                                     title="Spustit AI Assessment"
                                                     onClick={() => {
-                                                        alert('AI Assessment module brzy dostupný!');
-                                                        // TODO: Implement actual assessment functionality
+                                                        if (userProfile.isLoggedIn) {
+                                                            setViewState(ViewState.ASSESSMENT);
+                                                        } else {
+                                                            setIsAuthModalOpen(true);
+                                                        }
                                                     }}
                                                 >
                                                     <img src="/logo.png" alt="AI Test" className="w-4 h-4" />
@@ -1598,7 +1448,18 @@ export default function App() {
 
     return (
         <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-sans transition-colors duration-300 selection:bg-cyan-500/30 selection:text-cyan-900 dark:selection:text-cyan-100`}>
-            <Header />
+            <AppHeader
+                viewState={viewState}
+                setViewState={setViewState}
+                setSelectedJobId={setSelectedJobId}
+                showCompanyLanding={showCompanyLanding}
+                setShowCompanyLanding={setShowCompanyLanding}
+                savedJobIds={savedJobIds}
+                userProfile={userProfile}
+                handleAuthAction={() => setIsAuthModalOpen(true)}
+                toggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                theme={theme}
+            />
 
             <main className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-6 h-[calc(100vh-64px)] overflow-hidden">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
@@ -1606,7 +1467,12 @@ export default function App() {
                 </div>
             </main>
 
-            <PremiumUpgradeModal />
+            <PremiumUpgradeModal
+                show={{ open: showPremiumUpgrade.open, feature: showPremiumUpgrade.feature }}
+                onClose={() => setShowPremiumUpgrade({ open: false })}
+                userProfile={userProfile}
+                onAuth={() => setIsAuthModalOpen(true)}
+            />
 
             <AuthModal
                 isOpen={isAuthModalOpen}
@@ -1619,7 +1485,7 @@ export default function App() {
                 onClose={() => setIsCompanyRegistrationOpen(false)}
                 onSuccess={() => {
                     setIsCompanyRegistrationOpen(false);
-                    // TODO: Handle successful registration
+                    console.log('Company registration successful');
                 }}
             />
 
@@ -1658,33 +1524,7 @@ export default function App() {
                 />
             )}
 
-            {/* Footer */}
-            <footer className="bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-8 mt-auto">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-                        <div className="text-sm text-slate-600 dark:text-slate-400">
-                            © 2026 JobShaman. Všechna práva vyhrazena.
-                        </div>
-                        <div className="flex gap-6 text-sm">
-                            <a
-                                href="/podminky-uziti"
-                                target="_blank"
-                                className="text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
-                            >
-                                Podmínky použití
-                            </a>
-                            <a
-                                href="/ochrana-osobnich-udaju"
-                                target="_blank"
-                                className="text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
-                            >
-                                Ochrana osobních údajů
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </footer>
-
+            <AppFooter theme={theme} />
         </div>
     );
 }

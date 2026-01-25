@@ -3,7 +3,7 @@ import { UserProfile, CompanyProfile } from '../types';
 export type PremiumFeature =
     | 'COVER_LETTER'
     | 'CV_OPTIMIZATION'
-    | 'ATC_HACK'
+    | 'AI_JOB_ANALYSIS'
     | 'COMPANY_AI_AD'
     | 'COMPANY_RECOMMENDATIONS'
     | 'COMPANY_UNLIMITED_JOBS';

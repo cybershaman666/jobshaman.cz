@@ -1,12 +1,17 @@
 from fastapi import FastAPI, HTTPException, Body, Request, Query, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr, validator, Field
 from typing import List, Optional
 import stripe
 import resend
 from supabase import create_client, Client
 from dotenv import load_dotenv
 from fastapi.middleware.cors import CORSMiddleware
+import jwt
+import re
+from datetime import datetime, timedelta
+import html
+import bleach
 
 from itsdangerous import URLSafeTimedSerializer
 from fastapi.responses import HTMLResponse
@@ -36,10 +41,10 @@ security = HTTPBearer()
 
 # Define premium endpoints that require subscription
 PREMIUM_ENDPOINTS = {
-    "/check-legality": ["premium", "business"],
+    "/check-legality": ["basic", "business"],
     "/match-candidates": ["business"],
-    "/ai-optimize-job": ["premium", "business"],
-    "/ai-assess-candidate": ["premium"],
+    "/ai-optimize-job": ["basic", "business"],
+    "/ai-assess-candidate": ["basic"],
 }
 
 
@@ -47,33 +52,144 @@ def now_iso():
     return time.strftime("%Y-%m-%d %H:%M:%S")
 
 
+def verify_supabase_token(token: str) -> dict:
+    """Verify Supabase JWT token and return user data"""
+    try:
+        # Use Supabase client to verify the token
+        if not supabase:
+            raise HTTPException(
+                status_code=500, detail="Authentication service unavailable"
+            )
+
+        # Get user from Supabase auth
+        user_response = supabase.auth.get_user(token)
+        if not user_response or not user_response.user:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+        user_data = user_response.user
+
+        # Get additional user profile data
+        profile_response = (
+            supabase.table("profiles").select("*").eq("id", user_data.id).execute()
+        )
+        if profile_response.data and len(profile_response.data) > 0:
+            profile_data = profile_response.data[0]
+            if isinstance(profile_data, dict):
+                result = profile_data.copy()
+                result["user_type"] = "candidate"
+                result["auth_id"] = user_data.id
+                result["email"] = getattr(user_data, "email", "")
+                return result
+
+        # Try companies table
+        company_response = (
+            supabase.table("companies").select("*").eq("id", user_data.id).execute()
+        )
+        if company_response.data and len(company_response.data) > 0:
+            company_data = company_response.data[0]
+            if isinstance(company_data, dict):
+                result = company_data.copy()
+                result["user_type"] = "company"
+                result["auth_id"] = user_data.id
+                result["email"] = getattr(user_data, "email", "")
+                return result
+
+        # Try companies table
+        company_response = (
+            supabase.table("companies").select("*").eq("id", user_data.id).execute()
+        )
+        if company_response.data:
+            result = company_response.data[0].copy()
+            result["user_type"] = "company"
+            result["auth_id"] = user_data.id
+            result["email"] = getattr(user_data, "email", "")
+            return result
+
+        # Try companies table
+        company_response = (
+            supabase.table("companies").select("*").eq("id", user_data.id).execute()
+        )
+        if company_response.data:
+            result = {"user_type": "company"}
+            # Add auth user data
+            if hasattr(user_data, "model_dump"):
+                for key, value in user_data.model_dump().items():
+                    result[key] = value
+            # Add company data
+            for key, value in company_response.data[0].items():
+                result[key] = value
+            return result
+
+        # Try companies table
+        company_response = (
+            supabase.table("companies").select("*").eq("id", user_data.id).execute()
+        )
+        if company_response.data:
+            user_dict = (
+                user_data.model_dump() if hasattr(user_data, "model_dump") else {}
+            )
+            company_dict = company_response.data[0]
+            result = {**user_dict, **company_dict, "user_type": "company"}
+            return result
+
+        # Try companies table
+        company_response = (
+            supabase.table("companies").select("*").eq("id", user_data.id).execute()
+        )
+        if company_response.data:
+            user_dict = (
+                user_data.model_dump()
+                if hasattr(user_data, "model_dump")
+                else vars(user_data)
+            )
+            result = {**user_dict, **company_response.data[0], "user_type": "company"}
+            return result
+
+        raise HTTPException(status_code=401, detail="User profile not found")
+
+    except Exception as e:
+        if "Invalid" in str(e) or "expired" in str(e).lower():
+            raise HTTPException(
+                status_code=401, detail="Invalid or expired authentication token"
+            )
+        raise HTTPException(status_code=500, detail=f"Authentication error: {str(e)}")
+
+
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
-    """Extract and verify user from JWT token"""
+    """Extract and verify user from Supabase JWT token"""
     try:
         token = credentials.credentials
-        # For now, we'll use the token as user ID (in production, verify JWT)
-        # TODO: Implement proper JWT verification
+
+        # Validate token format
         if not token or token == "undefined":
-            raise HTTPException(status_code=401, detail="Invalid authentication token")
+            raise HTTPException(status_code=401, detail="Authentication token required")
 
-        # Get user from Supabase
-        if not supabase:
-            raise HTTPException(status_code=500, detail="Database not available")
+        # Basic token format validation
+        if not token.startswith("eyJ") or len(token) < 100:
+            raise HTTPException(status_code=401, detail="Invalid token format")
 
-        user_response = supabase.table("profiles").select("*").eq("id", token).execute()
-        if not user_response.data:
-            # Try companies table
-            user_response = (
-                supabase.table("companies").select("*").eq("id", token).execute()
-            )
-            if not user_response.data:
-                raise HTTPException(status_code=401, detail="User not found")
+        # Verify with Supabase
+        user = verify_supabase_token(token)
 
-        return user_response.data[0]
+        # Check if user is active
+        if user.get("banned", False):
+            raise HTTPException(status_code=403, detail="Account suspended")
+
+        return user
+
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Authentication failed: {str(e)}")
+        raise HTTPException(status_code=401, detail="Authentication failed")
+
+
+async def get_current_active_user(current_user: dict = Depends(get_current_user)):
+    """Ensure user is active and not banned"""
+    if current_user.get("banned", False):
+        raise HTTPException(status_code=403, detail="Account suspended")
+    return current_user
 
 
 async def verify_subscription(
@@ -116,13 +232,27 @@ async def verify_subscription(
     return user
 
 
-# Configure CORS
+# Configure CORS with specific origins for security
+allowed_origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://localhost:3000",
+    "https://localhost:5173",
+    "https://jobshaman-cz.onrender.com",
+    "https://jobshaman.cz",
+]
+
+# In production, you can override with environment variable
+production_origins = os.getenv("ALLOWED_ORIGINS")
+if production_origins:
+    allowed_origins = [origin.strip() for origin in production_origins.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # In production, specify your frontend domain
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "User-Agent"],
 )
 
 # Configure Scheduler
@@ -159,19 +289,50 @@ serializer = URLSafeTimedSerializer(SECRET_KEY)
 
 
 class JobCheckRequest(BaseModel):
-    id: str
-    title: str
-    company: str
-    description: str
-
+    id: str = Field(..., min_length=1, max_length=100, description="Job ID")
+    title: str = Field(..., min_length=1, max_length=200, description="Job title")
+    company: str = Field(..., min_length=1, max_length=200, description="Company name")
+    description: str = Field(
+        ..., min_length=10, max_length=5000, description="Job description"
+    )
     needs_manual_review: bool = False
+
+    @validator("title", "company")
+    def sanitize_text_fields(cls, v):
+        """Sanitize text fields to prevent XSS"""
+        if not v:
+            raise ValueError("This field cannot be empty")
+        # Remove HTML tags and escape special characters
+        return html.escape(bleach.clean(v.strip(), tags=[], attributes={}, strip=True))
+
+    @validator("description")
+    def validate_description(cls, v):
+        """Validate and sanitize description"""
+        if not v or len(v.strip()) < 10:
+            raise ValueError("Description must be at least 10 characters long")
+        # Allow basic formatting but sanitize dangerous content
+        allowed_tags = ["p", "br", "strong", "em", "ul", "ol", "li"]
+        return bleach.clean(v.strip(), tags=allowed_tags, attributes={}, strip=True)
 
 
 class CheckoutRequest(BaseModel):
-    tier: str  # 'premium' | 'business'
-    userId: str  # profile ID or company ID
-    successUrl: str
-    cancelUrl: str
+    tier: str = Field(
+        ...,
+        regex=r"^(premium|business|assessment|assessment_bundle)$",
+        description="Subscription tier",
+    )
+    userId: str = Field(..., min_length=1, max_length=100, description="User ID")
+    successUrl: str = Field(..., regex=r"^https?://.+", description="Success URL")
+    cancelUrl: str = Field(..., regex=r"^https?://.+", description="Cancel URL")
+
+    @validator("successUrl", "cancelUrl")
+    def validate_urls(cls, v):
+        """Validate URLs to prevent redirect attacks"""
+        if not v.startswith(
+            ("http://localhost", "https://localhost", "https://jobshaman")
+        ):
+            raise ValueError("URL must point to authorized domain")
+        return v
 
 
 class BillingVerificationRequest(BaseModel):
@@ -187,12 +348,14 @@ class JobCheckResponse(BaseModel):
 
 
 @app.get("/")
-async def root():
+@limiter.limit("100/minute")  # General rate limiting
+async def root(request: Request):
     return {"status": "online", "service": "JobShaman Backend"}
 
 
 @app.get("/scrape")
-async def trigger_scrape():
+@limiter.limit("5/minute")  # Very strict rate limiting for scraping
+async def trigger_scrape(request: Request):
     """Manual trigger for the scraper. Useful for local testing or external cron-jobs."""
     try:
         count = run_all_scrapers()
@@ -208,12 +371,23 @@ async def trigger_scrape():
 
 
 @app.get("/job-action/{job_id}/{action}", response_class=HTMLResponse)
-async def perform_job_action(job_id: str, action: str, token: str):
+@limiter.limit("20/minute")  # Rate limiting for job actions
+async def perform_job_action(job_id: str, action: str, token: str, request: Request):
     try:
-        # Verify token (valid for 48 hours)
+        # Verify token (valid for 48 hours) and check if user is admin
         email = serializer.loads(token, salt="job-action", max_age=172800)
-        if email != "floki@jobshaman.cz":
-            raise HTTPException(status_code=403, detail="Unauthorized")
+
+        # Check if user has admin role in database
+        if not supabase:
+            raise HTTPException(status_code=500, detail="Database not available")
+
+        admin_check = (
+            supabase.table("profiles").select("role").eq("email", email).execute()
+        )
+        if not admin_check.data or admin_check.data[0].get("role") != "admin":
+            raise HTTPException(
+                status_code=403, detail="Unauthorized - admin access required"
+            )
 
         status = "approved" if action == "approve" else "rejected"
         supabase.table("jobs").update(
@@ -500,14 +674,28 @@ async def match_candidates_service(
 
 def send_review_email(job: JobCheckRequest, result: JobCheckResponse):
     try:
-        token = serializer.dumps("floki@jobshaman.cz", salt="job-action")
+        # Get admin users from database
+        admin_users = (
+            supabase.table("profiles").select("email").eq("role", "admin").execute()
+        )
+        admin_emails = (
+            [user["email"] for user in admin_users.data] if admin_users.data else []
+        )
+
+        # If no admins in database, use fallback email from environment
+        if not admin_emails:
+            admin_emails = [os.getenv("ADMIN_EMAIL", "admin@jobshaman.cz")]
+
+        # Create tokens for each admin
+        admin_email = admin_emails[0]  # Use first admin for the token
+        token = serializer.dumps(admin_email, salt="job-action")
         approve_url = f"{API_BASE_URL}/job-action/{job.id}/approve?token={token}"
         reject_url = f"{API_BASE_URL}/job-action/{job.id}/reject?token={token}"
 
         r = resend.Emails.send(
             {
                 "from": "JobShaman <noreply@jobshaman.cz>",
-                "to": ["floki@jobshaman.cz"],
+                "to": admin_emails,
                 "subject": f"⚠️ Ruční kontrola inzerátu: {job.title}",
                 "html": f"""
             <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px;">
@@ -559,8 +747,8 @@ async def verify_billing(
 
         # Define feature access by tier
         feature_access = {
-            "premium": {
-                "features": ["COVER_LETTER", "CV_OPTIMIZATION", "ATC_HACK"],
+            "basic": {
+                "features": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS"],
                 "assessments": 0,
             },
             "business": {
@@ -693,9 +881,8 @@ async def create_checkout_session(req: CheckoutRequest):
     try:
         # Live Stripe Price IDs
         prices = {
-            "premium": "price_1StDJuG2Aezsy59eqi584FWl",
+            "basic": "price_1StDJuG2Aezsy59eqi584FWl",  # Was premium
             "business": "price_1StDKmG2Aezsy59e1eiG9bny",
-            "assessment": "price_1StDLUG2Aezsy59eJaSeiWvY",
             "assessment_bundle": "price_1StDTGG2Aezsy59esZLgocHw",
         }
 
@@ -703,8 +890,12 @@ async def create_checkout_session(req: CheckoutRequest):
         if not price_id:
             raise HTTPException(status_code=400, detail="Invalid tier")
 
-        # 'premium' and 'business' are subscriptions, 'assessment' is a one-time payment
-        mode = "subscription" if req.tier in ["premium", "business"] else "payment"
+        # 'basic' and 'business' are subscriptions, 'assessment_bundle' is also a subscription
+        mode = (
+            "subscription"
+            if req.tier in ["basic", "business", "assessment_bundle"]
+            else "payment"
+        )
 
         checkout_session = stripe.checkout.Session.create(
             line_items=[
@@ -742,10 +933,9 @@ async def stripe_webhook(request: Request):
 
         # SECURITY: Verify payment amount matches expected tier pricing
         expected_amounts = {
-            "premium": 29000,  # 290 CZK in cents
-            "business": 59000,  # 590 CZK in cents
-            "assessment": 15000,  # 150 CZK in cents
-            "assessment_bundle": 39000,  # 390 CZK in cents
+            "basic": 99000,  # 990 CZK in cents
+            "business": 499000,  # 4 990 CZK in cents
+            "assessment_bundle": 99000,  # 990 CZK in cents
         }
 
         expected_amount = expected_amounts.get(tier)
@@ -764,9 +954,9 @@ async def stripe_webhook(request: Request):
             return {"status": "error", "message": "Payment not completed"}
 
         if supabase:
-            if tier == "premium":
+            if tier == "basic":
                 # Update Candidate Profile
-                supabase.table("profiles").update({"subscription_tier": "premium"}).eq(
+                supabase.table("profiles").update({"subscription_tier": "basic"}).eq(
                     "id", user_id
                 ).execute()
             elif tier == "business":
@@ -803,11 +993,6 @@ async def stripe_webhook(request: Request):
                             "current_period_end": session.get("current_period_end"),
                         }
                     ).execute()
-            elif tier == "assessment":
-                # Update Candidate Profile for one-time assessment
-                supabase.table("profiles").update({"has_assessment": True}).eq(
-                    "id", user_id
-                ).execute()
             elif tier == "assessment_bundle":
                 # Update Company Profile for bundle
                 supabase.table("companies").update(
