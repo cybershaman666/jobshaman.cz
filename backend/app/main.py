@@ -62,43 +62,128 @@ app = FastAPI(title="JobShaman Backend Services")
 # Security setup
 security = HTTPBearer()
 
-# CSRF Token Management
-# In production, these should be stored in Redis or database
-csrf_tokens: dict = {}  # Maps token -> {user_id, created_at, expires_at}
+# CSRF Token Management - Now stored in Supabase for multi-instance scalability
+# Previously used in-memory storage, now using database for session persistence
+csrf_tokens: dict = {}  # In-memory fallback cache only
 CSRF_TOKEN_EXPIRY = 3600  # 1 hour
 
 def generate_csrf_token(user_id: str) -> str:
-    """Generate a CSRF token for a user"""
+    """Generate a CSRF token for a user - stored in Supabase for multi-instance deployments"""
     token = secrets.token_urlsafe(32)
-    csrf_tokens[token] = {
-        "user_id": user_id,
-        "created_at": datetime.utcnow(),
-        "expires_at": datetime.utcnow() + timedelta(seconds=CSRF_TOKEN_EXPIRY)
-    }
+    created_at = datetime.utcnow()
+    expires_at = created_at + timedelta(seconds=CSRF_TOKEN_EXPIRY)
+    
+    # Store in Supabase for multi-instance scalability
+    if supabase:
+        try:
+            supabase.table("csrf_sessions").insert({
+                "token": token,
+                "user_id": user_id,
+                "created_at": created_at.isoformat(),
+                "expires_at": expires_at.isoformat(),
+                "consumed": False
+            }).execute()
+            print(f"✅ CSRF token generated and stored in Supabase for user {user_id}")
+        except Exception as e:
+            print(f"⚠️ Failed to store CSRF token in Supabase: {e}")
+            # Fallback to in-memory storage
+            csrf_tokens[token] = {
+                "user_id": user_id,
+                "created_at": created_at,
+                "expires_at": expires_at
+            }
+    else:
+        # If Supabase is not available, use in-memory storage (fallback)
+        csrf_tokens[token] = {
+            "user_id": user_id,
+            "created_at": created_at,
+            "expires_at": expires_at
+        }
+        print(f"⚠️ CSRF token stored in-memory (Supabase unavailable)")
+    
     return token
 
 def validate_csrf_token(token: str, user_id: str) -> bool:
-    """Validate a CSRF token"""
+    """Validate a CSRF token - checks Supabase first, then in-memory fallback"""
+    if not token or not user_id:
+        print("❌ CSRF validation: token or user_id missing")
+        return False
+    
+    # Try Supabase first
+    if supabase:
+        try:
+            token_data_resp = (
+                supabase.table("csrf_sessions")
+                .select("*")
+                .eq("token", token)
+                .eq("user_id", user_id)
+                .execute()
+            )
+            
+            if token_data_resp.data:
+                token_data = token_data_resp.data[0]
+                
+                # Check if already consumed
+                if token_data.get("consumed"):
+                    print(f"❌ CSRF token already consumed")
+                    return False
+                
+                # Check expiration
+                expires_at = datetime.fromisoformat(token_data["expires_at"])
+                if datetime.utcnow() > expires_at:
+                    print(f"❌ CSRF token expired")
+                    return False
+                
+                print(f"✅ CSRF token validated from Supabase")
+                return True
+            else:
+                # Token not found in Supabase
+                print(f"❌ CSRF token not found in Supabase")
+                # Fall through to in-memory check
+        except Exception as e:
+            print(f"⚠️ Error validating CSRF token in Supabase: {e}")
+            # Fall through to in-memory check
+    
+    # Fallback to in-memory storage
     if token not in csrf_tokens:
+        print(f"❌ CSRF token not found in-memory")
         return False
     
     token_data = csrf_tokens[token]
     
     # Check expiration
     if datetime.utcnow() > token_data["expires_at"]:
+        print(f"❌ CSRF token expired (in-memory)")
         del csrf_tokens[token]
         return False
     
     # Check user_id matches
     if token_data["user_id"] != user_id:
+        print(f"❌ CSRF token user_id mismatch")
         return False
     
+    print(f"✅ CSRF token validated from in-memory cache")
     return True
 
 def consume_csrf_token(token: str) -> None:
-    """Consume a CSRF token (one-time use)"""
+    """Consume a CSRF token (one-time use) - marks as consumed in Supabase"""
+    if not token:
+        return
+    
+    # Try to consume in Supabase
+    if supabase:
+        try:
+            supabase.table("csrf_sessions").update({
+                "consumed": True
+            }).eq("token", token).execute()
+            print(f"✅ CSRF token marked as consumed in Supabase")
+        except Exception as e:
+            print(f"⚠️ Failed to mark CSRF token as consumed: {e}")
+    
+    # Remove from in-memory cache
     if token in csrf_tokens:
         del csrf_tokens[token]
+        print(f"✅ CSRF token removed from in-memory cache")
 
 # Define premium endpoints that require subscription
 PREMIUM_ENDPOINTS = {
@@ -549,16 +634,45 @@ async def startup_event():
 async def trigger_scrape(request: Request):
     """Manual trigger for the scraper. Useful for local testing or external cron-jobs."""
     try:
-        count = run_all_scrapers()
-        # After scraping, find matches for everything new/active
-        # (For efficiency, we could limit this to just new IDs, but here we run for all active)
-        return {
-            "status": "success",
-            "jobs_saved": count,
-            "message": "Scraping complete. Auto-matching will run as jobs are viewed or periodically.",
-        }
+        # Validate dependencies
+        if not run_all_scrapers:
+            print("❌ Scraper module not available")
+            raise HTTPException(status_code=503, detail="Scraper service unavailable")
+        
+        print("📋 Starting manual scrape trigger")
+        
+        try:
+            # Execute scraper with timeout protection
+            count = run_all_scrapers()
+            
+            # Validate result
+            if count is None or not isinstance(count, (int, float)):
+                print(f"⚠️ Scraper returned invalid count: {count}")
+                count = 0
+            
+            if count < 0:
+                print(f"⚠️ Scraper returned negative count: {count}")
+                count = 0
+            
+            print(f"✅ Scraping completed: {count} jobs saved")
+            # After scraping, find matches for everything new/active
+            # (For efficiency, we could limit this to just new IDs, but here we run for all active)
+            return {
+                "status": "success",
+                "jobs_saved": count,
+                "message": "Scraping complete. Auto-matching will run as jobs are viewed or periodically.",
+            }
+        except TimeoutError:
+            print("❌ Scraper timeout - operation took too long")
+            raise HTTPException(status_code=504, detail="Scraper timeout - operation took too long")
+        except Exception as scraper_error:
+            print(f"❌ Scraper execution failed: {scraper_error}")
+            raise HTTPException(status_code=500, detail=f"Scraper failed: {str(scraper_error)}")
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        print(f"❌ Scrape endpoint failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Scrape failed: {str(e)}")
 
 
 @app.get("/job-action/{job_id}/{action}", response_class=HTMLResponse)
@@ -1057,8 +1171,23 @@ async def verify_billing(
     This is the ONLY way to verify feature access
     """
     try:
+        # Validate dependencies
+        if not supabase:
+            print("❌ Supabase connection unavailable")
+            raise HTTPException(status_code=503, detail="Database service unavailable")
+        
+        # Validate input
+        if not billing_request or not billing_request.feature:
+            print("❌ Invalid billing request: missing feature")
+            raise HTTPException(status_code=400, detail="Feature parameter required")
+        
         user_tier = user.get("subscription_tier", "free")
         user_id = user.get("id")
+        
+        # Validate user
+        if not user_id:
+            print("❌ User not properly authenticated")
+            raise HTTPException(status_code=401, detail="User not authenticated")
         
         # Helper to log access attempts to audit table
         def log_access(feature, allowed, reason=None):
@@ -1100,37 +1229,65 @@ async def verify_billing(
             },
         }
 
+        print(f"📋 Verifying billing access for feature: {billing_request.feature}")
+        
+        # Define feature access by tier
+        feature_access = {
+            "basic": {
+                "features": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS"],
+                "assessments": 0,
+            },
+            "business": {
+                "features": [
+                    "COMPANY_AI_AD",
+                    "COMPANY_RECOMMENDATIONS",
+                    "COMPANY_UNLIMITED_JOBS",
+                ],
+                "assessments": 10,
+            },
+            "assessment_bundle": {
+                "features": ["COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS"],
+                "assessments": 10,
+            },
+        }
+
         # Check if user has access to the feature
         tier_config = feature_access.get(user_tier, {"features": [], "assessments": 0})
 
-        if request.feature not in tier_config["features"]:
-            log_access(request.feature, False, f"Feature not available in {user_tier} tier")
+        if billing_request.feature not in tier_config["features"]:
+            log_access(billing_request.feature, False, f"Feature not available in {user_tier} tier")
+            print(f"❌ Feature {billing_request.feature} not available in tier {user_tier}")
             return {
                 "hasAccess": False,
                 "subscriptionTier": user_tier,
-                "reason": f"Feature '{request.feature}' not available in {user_tier} tier",
+                "reason": f"Feature '{billing_request.feature}' not available in {user_tier} tier",
             }
 
         # For assessment features, check usage
-        if "ASSESS" in request.feature and user_tier in [
+        if "ASSESS" in billing_request.feature and user_tier in [
             "business",
             "assessment_bundle",
         ]:
-            # Get current usage
-            usage_response = (
-                supabase.table("subscriptions")
-                .select("ai_assessments_used")
-                .eq("company_id", user_id)
-                .execute()
-            )
-            current_usage = (
-                usage_response.data[0].get("ai_assessments_used", 0)
-                if usage_response.data
-                else 0
-            )
+            try:
+                # Get current usage with error handling
+                usage_response = (
+                    supabase.table("subscriptions")
+                    .select("ai_assessments_used")
+                    .eq("company_id", user_id)
+                    .execute()
+                )
+                current_usage = (
+                    usage_response.data[0].get("ai_assessments_used", 0)
+                    if usage_response.data
+                    else 0
+                )
+            except Exception as e:
+                print(f"❌ Failed to fetch usage data: {e}")
+                raise HTTPException(status_code=500, detail="Failed to check assessment usage")
 
             if current_usage >= tier_config["assessments"]:
-                log_access(request.feature, False, "Assessment limit exceeded")
+                log_access(billing_request.feature, False, "Assessment limit exceeded")
+                print(f"❌ Assessment limit exceeded: {current_usage}/{tier_config['assessments']}")
                 return {
                     "hasAccess": False,
                     "subscriptionTier": user_tier,
@@ -1142,7 +1299,8 @@ async def verify_billing(
                     },
                 }
 
-            log_access(request.feature, True, "Assessment within limit")
+            log_access(billing_request.feature, True, "Assessment within limit")
+            print(f"✅ Assessment access granted: {current_usage}/{tier_config['assessments']}")
             return {
                 "hasAccess": True,
                 "subscriptionTier": user_tier,
@@ -1153,10 +1311,14 @@ async def verify_billing(
                 },
             }
 
-        log_access(request.feature, True, "Feature access allowed")
+        log_access(billing_request.feature, True, "Feature access allowed")
+        print(f"✅ Feature access granted: {billing_request.feature}")
         return {"hasAccess": True, "subscriptionTier": user_tier}
 
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"❌ Billing verification failed: {str(e)}")
         raise HTTPException(
             status_code=500, detail=f"Billing verification failed: {str(e)}"
         )
@@ -1217,21 +1379,38 @@ async def cancel_subscription(
                 detail="Subscription not linked to Stripe"
             )
         
-        # Cancel subscription in Stripe
+        # Cancel subscription in Stripe with detailed error handling
         try:
+            if not stripe_subscription_id or len(str(stripe_subscription_id)) < 3:
+                raise HTTPException(status_code=400, detail="Invalid Stripe subscription ID")
+            
             stripe.Subscription.delete(stripe_subscription_id)
             print(f"✅ Stripe subscription {stripe_subscription_id} cancelled")
         except stripe.error.StripeError as e:
-            # If Stripe cancellation fails, still update our database
+            # Handle specific Stripe errors
+            if "not exist" in str(e):
+                print(f"⚠️ Stripe subscription not found (already deleted): {e}")
+            elif "invalid_request_error" in str(e):
+                print(f"❌ Invalid Stripe subscription: {e}")
+                raise HTTPException(status_code=400, detail="Subscription not found in Stripe")
+            else:
+                print(f"❌ Stripe API error: {e}")
+                raise HTTPException(status_code=503, detail="Stripe service temporarily unavailable")
+        except Exception as e:
+            # If other Stripe errors, log but continue
             print(f"⚠️ Stripe cancellation failed: {e}")
-            # Continue to cancel in our database anyway
         
         # Update subscriptions table to mark as canceled
-        supabase.table("subscriptions").update({
-            "status": "canceled",
-            "canceled_at": now_iso(),
-            "updated_at": now_iso(),
-        }).eq("id", subscription["id"]).execute()
+        try:
+            supabase.table("subscriptions").update({
+                "status": "canceled",
+                "canceled_at": now_iso(),
+                "updated_at": now_iso(),
+            }).eq("id", subscription["id"]).execute()
+            print(f"✅ Subscription {subscription['id']} marked as canceled in database")
+        except Exception as e:
+            print(f"❌ Failed to update subscription status: {e}")
+            raise HTTPException(status_code=500, detail="Failed to cancel subscription in database")
         
         # Log the cancellation
         if supabase:
@@ -1314,7 +1493,19 @@ async def get_subscription_status(
     Reads from subscriptions table (single source of truth) for both personal and company users
     """
     try:
+        # Validate dependencies
+        if not supabase:
+            print("❌ Supabase connection unavailable")
+            raise HTTPException(status_code=503, detail="Database service unavailable")
+        
+        # Validate input parameters
+        if not userId or len(str(userId)) < 1:
+            print("❌ Invalid userId parameter")
+            raise HTTPException(status_code=400, detail="Valid user ID required")
+        
+        # Validate authorization
         if user.get("id") != userId:
+            print(f"❌ Unauthorized access attempt: {user.get('id')} tried to access {userId}")
             raise HTTPException(
                 status_code=403, detail="Cannot access other users' subscription info"
             )
@@ -1373,22 +1564,33 @@ async def get_subscription_status(
         job_postings_used = 0
         if subscription_details and supabase:
             try:
-                usage_resp = (
-                    supabase.table("subscription_usage")
-                    .select("active_jobs_count, ai_assessments_used, ad_optimizations_used, period_start, period_end")
-                    .eq("subscription_id", subscription_details.get("id"))
-                    .order("period_end", {"ascending": False})
-                    .limit(1)
-                    .execute()
-                )
-                if usage_resp.data:
-                    usage = usage_resp.data[0]
-                    assessments_used = usage.get("ai_assessments_used", subscription_details.get("ai_assessments_used", 0) if subscription_details else 0)
-                    job_postings_used = usage.get("active_jobs_count", 0)
+                # Validate subscription ID before querying
+                sub_id = subscription_details.get("id")
+                if not sub_id:
+                    print("⚠️ Subscription ID missing, skipping usage lookup")
+                    assessments_used = subscription_details.get("ai_assessments_used", 0)
                 else:
-                    assessments_used = subscription_details.get("ai_assessments_used", 0) if subscription_details else 0
+                    usage_resp = (
+                        supabase.table("subscription_usage")
+                        .select("active_jobs_count, ai_assessments_used, ad_optimizations_used, period_start, period_end")
+                        .eq("subscription_id", sub_id)
+                        .order("period_end", {"ascending": False})
+                        .limit(1)
+                        .execute()
+                    )
+                    if usage_resp.data:
+                        usage = usage_resp.data[0]
+                        assessments_used = usage.get("ai_assessments_used")
+                        job_postings_used = usage.get("active_jobs_count", 0)
+                        # Validate data types
+                        if assessments_used is None or not isinstance(assessments_used, (int, float)):
+                            assessments_used = subscription_details.get("ai_assessments_used", 0)
+                        if job_postings_used is None:
+                            job_postings_used = 0
+                    else:
+                        assessments_used = subscription_details.get("ai_assessments_used", 0)
             except Exception as e:
-                print(f"⚠️ Warning: could not read subscription_usage: {e}")
+                print(f"❌ Error reading subscription_usage: {e}")
                 assessments_used = subscription_details.get("ai_assessments_used", 0) if subscription_details else 0
         else:
             assessments_used = subscription_details.get("ai_assessments_used", 0) if subscription_details else 0
@@ -1488,37 +1690,100 @@ async def create_checkout_session(req: CheckoutRequest):
 
 @app.post("/webhooks/stripe")
 async def stripe_webhook(request: Request):
-    payload = await request.body()
-    sig_header = request.headers.get("stripe-signature")
-
     try:
-        event = stripe.Webhook.construct_event(
-            payload, sig_header, STRIPE_WEBHOOK_SECRET
-        )
+        # Validate dependencies
+        if not STRIPE_WEBHOOK_SECRET:
+            print("❌ Stripe webhook secret not configured")
+            raise HTTPException(status_code=500, detail="Webhook secret not configured")
+        
+        payload = await request.body()
+        sig_header = request.headers.get("stripe-signature")
+        
+        # Validate required webhook signature header
+        if not sig_header:
+            print("❌ Stripe signature header missing")
+            raise HTTPException(status_code=400, detail="Stripe signature header required")
+        
+        if not payload:
+            print("❌ Webhook payload is empty")
+            raise HTTPException(status_code=400, detail="Webhook payload cannot be empty")
+        
+        # Construct and validate event signature
+        try:
+            event = stripe.Webhook.construct_event(
+                payload, sig_header, STRIPE_WEBHOOK_SECRET
+            )
+            print(f"✅ Webhook signature verified: {event.get('type')}")
+        except stripe.error.SignatureVerificationError as e:
+            print(f"❌ Invalid webhook signature: {e}")
+            raise HTTPException(status_code=401, detail="Invalid webhook signature")
+        except ValueError as e:
+            print(f"❌ Invalid webhook payload format: {e}")
+            raise HTTPException(status_code=400, detail="Invalid webhook payload format")
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"❌ Webhook processing error: {e}")
         raise HTTPException(status_code=400, detail=f"Webhook Error: {str(e)}")
 
     # SECURITY: Check if this webhook has already been processed (idempotency)
-    event_id = event["id"]
-    if supabase:
-        try:
-            existing_event = (
-                supabase.table("webhook_events")
-                .select("*")
-                .eq("stripe_event_id", event_id)
-                .execute()
-            )
-            if existing_event.data:
-                print(f"✅ Webhook {event_id} already processed, skipping duplicate")
-                return {"status": "already_processed"}
-        except Exception as e:
-            print(f"⚠️ Warning: Could not check webhook idempotency: {e}")
-            # Continue anyway to not block payments
+    try:
+        event_id = event.get("id")
+        event_type = event.get("type")
+        
+        if not event_id:
+            print("❌ Event ID missing from webhook")
+            raise HTTPException(status_code=400, detail="Event ID missing")
+        
+        if not event_type:
+            print("❌ Event type missing from webhook")
+            raise HTTPException(status_code=400, detail="Event type missing")
+        
+        if supabase:
+            try:
+                existing_event = (
+                    supabase.table("webhook_events")
+                    .select("*")
+                    .eq("stripe_event_id", event_id)
+                    .execute()
+                )
+                if existing_event.data:
+                    print(f"✅ Webhook {event_id} already processed, skipping duplicate")
+                    return {"status": "already_processed"}
+            except Exception as e:
+                print(f"⚠️ Warning: Could not check webhook idempotency: {e}")
+                # Continue anyway to not block payments
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error checking webhook idempotency: {e}")
+        # Don't fail here - still process the webhook
 
-    if event["type"] == "checkout.session.completed":
-        session = event["data"]["object"]
-        user_id = session["metadata"]["userId"]
-        tier = session["metadata"]["tier"]
+    if event.get("type") == "checkout.session.completed":
+        try:
+            # Validate event structure
+            session = event.get("data", {}).get("object")
+            if not session:
+                print("❌ Webhook: session object missing from event")
+                raise HTTPException(status_code=400, detail="Session data missing")
+            
+            metadata = session.get("metadata")
+            if not metadata:
+                print("❌ Webhook: metadata missing from session")
+                raise HTTPException(status_code=400, detail="Session metadata missing")
+            
+            user_id = metadata.get("userId")
+            tier = metadata.get("tier")
+            
+            # Validate required fields
+            if not user_id or not tier:
+                print(f"❌ Webhook: missing required metadata - userId: {bool(user_id)}, tier: {bool(tier)}")
+                raise HTTPException(status_code=400, detail="Required metadata missing")
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"❌ Webhook: failed to parse session data: {e}")
+            raise HTTPException(status_code=400, detail="Invalid session data")
 
         # SECURITY: Verify payment amount matches expected tier pricing
         expected_amounts = {
@@ -1528,18 +1793,25 @@ async def stripe_webhook(request: Request):
             "single_assessment": 9900,  # 99 CZK in cents (one-time)
         }
 
+        # Validate amount
+        amount_total = session.get("amount_total")
+        if amount_total is None or not isinstance(amount_total, (int, float)):
+            print(f"❌ Invalid or missing amount_total: {amount_total}")
+            return {"status": "error", "message": "Invalid payment amount"}
+        
         expected_amount = expected_amounts.get(tier)
-        if expected_amount and session["amount_total"] != expected_amount:
+        if expected_amount and amount_total != expected_amount:
             print(
-                f"🚨 SECURITY ALERT: Payment amount mismatch for {user_id}. Expected: {expected_amount}, Got: {session['amount_total']}"
+                f"🚨 SECURITY ALERT: Payment amount mismatch for {user_id}. Expected: {expected_amount}, Got: {amount_total}"
             )
             # Don't grant access if payment amount doesn't match
             return {"status": "error", "message": "Payment verification failed"}
 
-        # Additional security: Verify the payment was successful
-        if session["payment_status"] != "paid":
+        # Validate payment status
+        payment_status = session.get("payment_status")
+        if not payment_status or payment_status != "paid":
             print(
-                f"🚨 SECURITY ALERT: Payment not completed for {user_id}. Status: {session['payment_status']}"
+                f"🚨 SECURITY ALERT: Payment not completed for {user_id}. Status: {payment_status}"
             )
             return {"status": "error", "message": "Payment not completed"}
 
