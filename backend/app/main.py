@@ -1300,6 +1300,12 @@ async def get_subscription_status(
 @app.post("/create-checkout-session")
 async def create_checkout_session(req: CheckoutRequest):
     try:
+        # Validate Stripe API key is set
+        if not stripe.api_key:
+            error_msg = "STRIPE_SECRET_KEY environment variable not set on server"
+            print(f"❌ {error_msg}")
+            raise HTTPException(status_code=500, detail=error_msg)
+        
         # Map frontend tier names to backend/Stripe tier names
         tier_mapping = {
             "premium": "premium",  # Personal users
@@ -1334,10 +1340,12 @@ async def create_checkout_session(req: CheckoutRequest):
         # One-time: single_assessment (when price is configured)
         mode = (
             "subscription"
-            if backend_tier in ["basic", "business", "assessment_bundle"]
+            if backend_tier in ["basic", "premium", "business", "assessment_bundle"]
             else "payment"
         )
 
+        print(f"📝 Creating Stripe checkout: tier={backend_tier}, price_id={price_id}, mode={mode}")
+        
         checkout_session = stripe.checkout.Session.create(
             line_items=[
                 {
@@ -1350,9 +1358,12 @@ async def create_checkout_session(req: CheckoutRequest):
             cancel_url=req.cancelUrl,
             metadata={"userId": req.userId, "tier": backend_tier},
         )
+        print(f"✅ Checkout session created: {checkout_session.id}")
         return {"url": checkout_session.url}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        error_detail = str(e)
+        print(f"❌ Checkout error: {error_detail}")
+        raise HTTPException(status_code=500, detail=error_detail)
 
 
 @app.post("/webhooks/stripe")
