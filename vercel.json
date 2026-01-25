@@ -25,5 +25,11 @@
         }
       ]
     }
-  ]
+  ],
+  "env": {
+    "VITE_SUPABASE_URL": "@supabase-url",
+    "VITE_SUPABASE_KEY": "@supabase-anon-key",
+    "VITE_RESEND_API_KEY": "@resend-api-key",
+    "VITE_STRIPE_PUBLISHABLE_KEY": "@stripe-publishable-key"
+  }
 }

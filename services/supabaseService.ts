@@ -1,28 +1,7 @@
 // Updated Supabase service functions for new paywall schema
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from './supabaseClient';
+export { supabase };
 import { UserProfile, CompanyProfile, LearningResource, BenefitValuation, AssessmentResult, Job, CVDocument } from '../types';
-
-// Configuration provided by user
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY || '';
-
-// Create a single supabase client for interacting with your database
-let client = null;
-try {
-    if (supabaseUrl && supabaseKey) {
-        client = createClient(supabaseUrl, supabaseKey);
-    } else {
-        console.warn("Supabase credentials missing");
-    }
-} catch (error) {
-    console.error("Supabase initialization error:", error);
-}
-
-export const supabase = client;
-
-export const isSupabaseConfigured = (): boolean => {
-    return !!supabase;
-};
 
 export const resetUserRoleToCandidate = async (userId: string): Promise<void> => {
     if (!supabase) throw new Error("Supabase not configured");
@@ -85,8 +64,37 @@ export const signOut = async (): Promise<void> => {
 
 export const getCurrentUser = async () => {
     if (!supabase) return null;
-    const { data: { user } } = await supabase.auth.getUser();
-    return user;
+    
+    try {
+        // Try to get current user first
+        const { data: { user }, error } = await supabase.auth.getUser();
+        
+        if (error) {
+            console.error('Error getting current user:', error);
+            
+            // If it's a refresh token error, try to refresh the session
+            if (error.message.includes('Invalid Refresh Token') || error.message.includes('Refresh Token Not Found')) {
+                console.log('Attempting to refresh session...');
+                const { refreshSession } = await import('./supabaseClient');
+                
+                const refreshedSession = await refreshSession();
+                if (refreshedSession) {
+                    // Retry getting the user after refresh
+                    const { data: { user: refreshedUser }, error: retryError } = await supabase.auth.getUser();
+                    if (!retryError && refreshedUser) {
+                        return refreshedUser;
+                    }
+                }
+            }
+            
+            return null;
+        }
+        
+        return user;
+    } catch (error) {
+        console.error('Current user fetch error:', error);
+        return null;
+    }
 };
 
 export const createBaseProfile = async (userId: string, email: string, name: string) => {
@@ -1253,7 +1261,7 @@ export const uploadCVFile = async (_userId: string, file: File): Promise<string>
     
     const fileName = `uploads/${Date.now()}-${file.name}`;
     const { data, error } = await supabase.storage
-        .from('cv-documents')
+        .from('cvs')
         .upload(fileName, file);
     
     if (error) throw error;
@@ -1264,16 +1272,16 @@ export const uploadCVFile = async (_userId: string, file: File): Promise<string>
 export const uploadProfilePhoto = async (userId: string, file: File): Promise<string> => {
     if (!supabase) throw new Error("Supabase not configured");
     
-    const fileName = `avatars/${userId}/${Date.now()}-${file.name}`;
+    const fileName = `${userId}/${Date.now()}-${file.name}`;
     const { data: _uploadData, error } = await supabase.storage
-        .from('avatars')
+        .from('profile_photos')
         .upload(fileName, file);
     
     if (error) throw error;
     
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
+        .from('profile_photos')
         .getPublicUrl(fileName);
     
     return publicUrl;
@@ -1344,7 +1352,7 @@ export const getUserCVDocuments = async (userId: string): Promise<CVDocument[]> 
         return [];
     }
     
-    return (data || []).map(doc => ({
+    return (data || []).map((doc: any) => ({
         id: doc.id,
         userId: doc.user_id,
         fileName: doc.file_name,
@@ -1368,7 +1376,7 @@ export const uploadCVDocument = async (userId: string, file: File): Promise<CVDo
         const fileName = `${userId}/${Date.now()}.${fileExt}`;
         
         const { data: _uploadData, error: uploadError } = await supabase.storage
-            .from('cv-documents')
+            .from('cvs')
             .upload(fileName, file);
         
         if (uploadError) {
@@ -1378,7 +1386,7 @@ export const uploadCVDocument = async (userId: string, file: File): Promise<CVDo
         
         // Get the public URL
         const { data: urlData } = supabase.storage
-            .from('cv-documents')
+            .from('cvs')
             .getPublicUrl(fileName);
         
         // Insert record into cv_documents table
@@ -1472,7 +1480,7 @@ export const deleteCVDocument = async (userId: string, cvId: string): Promise<bo
         // Delete from storage
         if (cvData?.file_name) {
             await supabase.storage
-                .from('cv-documents')
+                .from('cvs')
                 .remove([cvData.file_name]);
         }
         

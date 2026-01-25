@@ -1,28 +1,7 @@
 // Updated Supabase service functions for new paywall schema
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from './supabaseClient';
+export { supabase };
 import { UserProfile, CompanyProfile, CandidateSubscriptionTier, CompanyServiceTier, CompanyUsageStats } from '../types';
-
-// Configuration provided by user
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
-const supabaseKey = import.meta.env.VITE_SUPABASE_KEY || '';
-
-// Create a single supabase client for interacting with your database
-let client = null;
-try {
-    if (supabaseUrl && supabaseKey) {
-        client = createClient(supabaseUrl, supabaseKey);
-    } else {
-        console.warn("Supabase credentials missing");
-    }
-} catch (error) {
-    console.error("Supabase initialization error:", error);
-}
-
-export const supabase = client;
-
-export const isSupabaseConfigured = (): boolean => {
-    return !!supabase;
-};
 
 // ========================================
 // AUTH SERVICES (unchanged)

@@ -9,26 +9,23 @@ export type PremiumFeature =
     | 'COMPANY_UNLIMITED_JOBS';
 
 /**
- * Checks if a user is an administrative tester.
+ * Checks if a user is an administrator (server-side verified only).
+ * SECURITY: This function should only be used for display purposes.
+ * All authorization checks MUST happen on the server.
  */
-export const isAdminTester = (email?: string): boolean => {
-    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'misahlavacu@gmail.com';
-    return email === adminEmail;
+export const isAdminUser = async (email?: string): Promise<boolean> => {
+    // Always false on client-side - admin verification happens server-side only
+    return false;
 };
 
 /**
- * Checks if a candidate has access to a premium AI feature.
+ * DEPRECATED: This function is client-side only and insecure.
+ * All billing verification must happen on the server.
  */
 export const canCandidateUseFeature = (user: UserProfile, feature: PremiumFeature): boolean => {
-    if (isAdminTester(user.email)) return true;
-
-    const tier = user.subscription?.tier || 'free';
-
-    if (tier === 'premium') return true;
-
-    // Free tier features
-    const freeFeatures: PremiumFeature[] = []; // Currently no AI features are free
-    return freeFeatures.includes(feature);
+    console.warn('⚠️  SECURITY WARNING: canCandidateUseFeature is deprecated and insecure. Use server-side verification instead.');
+    // Always return false to force server-side verification
+    return false;
 };
 
 /**
@@ -43,61 +40,26 @@ export const isSubscriptionExpired = (company: CompanyProfile): boolean => {
 };
 
 /**
- * Checks if a company has access to a specific service level feature.
+ * DEPRECATED: This function is client-side only and insecure.
+ * All billing verification must happen on the server.
  */
 export const canCompanyUseFeature = (company: CompanyProfile, feature: PremiumFeature, userEmail?: string): boolean => {
-    if (isAdminTester(userEmail)) return true;
-
-    // Check subscription expiry first
-    if (isSubscriptionExpired(company)) {
-        return false;
-    }
-
-    const tier = company.subscription?.tier || 'basic';
-
-    if (tier === 'enterprise') return true;
-
-    if (tier === 'business') {
-        const businessFeatures: PremiumFeature[] = [
-            'COMPANY_AI_AD',
-            'COMPANY_RECOMMENDATIONS',
-            'COMPANY_UNLIMITED_JOBS'
-        ];
-        return businessFeatures.includes(feature);
-    }
-
-    // Basic tier features
-    const basicFeatures: PremiumFeature[] = [];
-    return basicFeatures.includes(feature);
+    console.warn('⚠️  SECURITY WARNING: canCompanyUseFeature is deprecated and insecure. Use server-side verification instead.');
+    // Always return false to force server-side verification
+    return false;
 };
 
 /**
- * Checks if a company can post more jobs based on their current plan.
+ * DEPRECATED: This function is client-side only and insecure.
+ * All billing verification must happen on the server.
  */
 export const canCompanyPostJob = (company: CompanyProfile, userEmail?: string): { allowed: boolean; reason?: string } => {
-    if (isAdminTester(userEmail)) return { allowed: true };
-
-    // Check subscription expiry first
-    if (isSubscriptionExpired(company)) {
-        return {
-            allowed: false,
-            reason: 'Vaše předplatné vypršelo. Prosím, obnovte předplatné pro pokračování v používání služeb.'
-        };
-    }
-
-    const tier = company.subscription?.tier || 'basic';
-    const activeJobsCount = company.subscription?.usage?.activeJobsCount || 0;
-
-    if (tier !== 'basic') return { allowed: true };
-
-    if (activeJobsCount >= 5) {
-        return {
-            allowed: false,
-            reason: 'Dosáhli jste limitu 5 inzerátů pro tarif Základní. Upgradujte na Business pro neomezený počet.'
-        };
-    }
-
-    return { allowed: true };
+    console.warn('⚠️  SECURITY WARNING: canCompanyPostJob is deprecated and insecure. Use server-side verification instead.');
+    // Always require server-side verification
+    return { 
+        allowed: false, 
+        reason: 'Vyžaduje se ověření na serveru. Prosím, přihlaste se znovu.' 
+    };
 };
 
 /**
