@@ -3,6 +3,8 @@
  * This replaces all client-side billing verification for security.
  */
 
+import { authenticatedFetch } from './csrfService';
+
 export interface ServerSideBillingCheck {
   userId: string;
   feature: string;
@@ -23,16 +25,16 @@ export interface BillingVerificationResult {
 /**
  * SERVER-SIDE ONLY: Verify if user can access a premium feature
  * This function should ONLY be called from the backend API endpoints
+ * Automatically includes CSRF token via authenticatedFetch
  */
 export async function verifyServerSideBilling(
   check: ServerSideBillingCheck
 ): Promise<BillingVerificationResult> {
   try {
-    const response = await fetch('/api/verify-billing', {
+    const response = await authenticatedFetch('/api/verify-billing', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${check.userId}`
       },
       body: JSON.stringify({
         feature: check.feature,
@@ -41,9 +43,21 @@ export async function verifyServerSideBilling(
     });
 
     if (!response.ok) {
+      // Handle CSRF token errors
+      if (response.status === 403) {
+        const error = await response.json();
+        if (error.detail && error.detail.includes('CSRF')) {
+          console.error('❌ CSRF token validation failed. Please refresh the page.');
+          return {
+            hasAccess: false,
+            reason: 'Ověření selhalo. Prosím, osvěžte stránku a zkuste znovu.'
+          };
+        }
+      }
+      
       return {
         hasAccess: false,
-        reason: 'Billing verification failed'
+        reason: 'Ověření poplatku selhalo'
       };
     }
 
@@ -52,7 +66,7 @@ export async function verifyServerSideBilling(
     console.error('Billing verification error:', error);
     return {
       hasAccess: false,
-      reason: 'Unable to verify subscription'
+      reason: 'Nelze ověřit odběr'
     };
   }
 }

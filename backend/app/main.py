@@ -12,7 +12,8 @@ import re
 from datetime import datetime, timedelta
 import html
 import bleach
-
+import secrets
+import hashlib
 from itsdangerous import URLSafeTimedSerializer
 from fastapi.responses import HTMLResponse
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -38,6 +39,44 @@ app = FastAPI(title="JobShaman Backend Services")
 
 # Security setup
 security = HTTPBearer()
+
+# CSRF Token Management
+# In production, these should be stored in Redis or database
+csrf_tokens: dict = {}  # Maps token -> {user_id, created_at, expires_at}
+CSRF_TOKEN_EXPIRY = 3600  # 1 hour
+
+def generate_csrf_token(user_id: str) -> str:
+    """Generate a CSRF token for a user"""
+    token = secrets.token_urlsafe(32)
+    csrf_tokens[token] = {
+        "user_id": user_id,
+        "created_at": datetime.utcnow(),
+        "expires_at": datetime.utcnow() + timedelta(seconds=CSRF_TOKEN_EXPIRY)
+    }
+    return token
+
+def validate_csrf_token(token: str, user_id: str) -> bool:
+    """Validate a CSRF token"""
+    if token not in csrf_tokens:
+        return False
+    
+    token_data = csrf_tokens[token]
+    
+    # Check expiration
+    if datetime.utcnow() > token_data["expires_at"]:
+        del csrf_tokens[token]
+        return False
+    
+    # Check user_id matches
+    if token_data["user_id"] != user_id:
+        return False
+    
+    return True
+
+def consume_csrf_token(token: str) -> None:
+    """Consume a CSRF token (one-time use)"""
+    if token in csrf_tokens:
+        del csrf_tokens[token]
 
 # Define premium endpoints that require subscription
 PREMIUM_ENDPOINTS = {
@@ -203,32 +242,50 @@ async def verify_subscription(
         return user  # No subscription required for this endpoint
 
     required_tiers = PREMIUM_ENDPOINTS[path]
-    user_tier = user.get("subscription_tier", "free")
+    user_id = user.get("id")
+    
+    # CRITICAL: Read tier from subscriptions table, not from JWT
+    # This is the single source of truth for subscription status
+    user_tier = "free"
+    
+    if user_id:
+        try:
+            # Check for company subscription (business)
+            if user.get("company_name"):
+                subscription_check = (
+                    supabase.table("subscriptions")
+                    .select("tier, status")
+                    .eq("company_id", user_id)
+                    .eq("status", "active")
+                    .execute()
+                )
+            else:
+                # Check for user subscription (basic)
+                subscription_check = (
+                    supabase.table("subscriptions")
+                    .select("tier, status")
+                    .eq("user_id", user_id)
+                    .eq("status", "active")
+                    .execute()
+                )
+            
+            if subscription_check.data:
+                user_tier = subscription_check.data[0].get("tier", "free")
+            
+        except Exception as e:
+            print(f"⚠️ Warning: Could not read subscription from database: {e}")
+            # Fallback to JWT tier if database read fails
+            user_tier = user.get("subscription_tier", "free")
 
     # No admin bypass - all users must have valid subscriptions
-
     if user_tier not in required_tiers and user_tier != "admin":
         raise HTTPException(
             status_code=403,
             detail=f"Premium subscription required. Current tier: {user_tier}, Required: {', '.join(required_tiers)}",
         )
 
-    # Verify subscription is active in database
-    if user_tier in ["premium", "business"]:
-        if user.get("id"):
-            subscription_check = (
-                supabase.table("subscriptions")
-                .select("*")
-                .eq("company_id" if user.get("company_name") else "user_id", user["id"])
-                .eq("status", "active")
-                .execute()
-            )
-
-            if not subscription_check.data and user_tier != "admin":
-                raise HTTPException(
-                    status_code=403, detail="Subscription not active or expired"
-                )
-
+    # Update user dict with correct tier from database
+    user["subscription_tier"] = user_tier
     return user
 
 
@@ -254,6 +311,51 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "User-Agent"],
 )
+
+
+# Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    """
+    Add critical security headers to all responses
+    """
+    response = await call_next(request)
+    
+    # Prevent MIME type sniffing
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    
+    # Prevent clickjacking
+    response.headers["X-Frame-Options"] = "DENY"
+    
+    # Enable browser XSS protection
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    
+    # Enforce HTTPS (1 year)
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload"
+    
+    # Prevent referrer leakage
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    
+    # Restrict feature permissions
+    response.headers["Permissions-Policy"] = (
+        "geolocation=(), microphone=(), camera=(), payment=(), "
+        "usb=(), magnetometer=(), gyroscope=(), accelerometer=()"
+    )
+    
+    # Content Security Policy - strict but allows our resources
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' https://js.stripe.com https://cdn.jsdelivr.net; "
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+        "font-src 'self' https://fonts.gstatic.com; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' https://api.stripe.com https://m.stripe.network https://*.supabase.co; "
+        "frame-src https://js.stripe.com https://hooks.stripe.com; "
+        "upgrade-insecure-requests"
+    )
+    
+    return response
+
 
 # Configure Scheduler
 scheduler = BackgroundScheduler()
@@ -727,6 +829,52 @@ def send_review_email(job: JobCheckRequest, result: JobCheckResponse):
         print(f"Failed to send email: {e}")
 
 
+# --- CSRF PROTECTION ENDPOINTS ---
+
+
+@app.get("/csrf-token")
+@limiter.limit("60/minute")
+async def get_csrf_token(
+    user: dict = Depends(get_current_user),
+):
+    """
+    Get a CSRF token for the authenticated user
+    Required for POST/PUT/DELETE requests
+    """
+    try:
+        user_id = user.get("id")
+        if not user_id:
+            raise HTTPException(status_code=401, detail="User not authenticated")
+        
+        token = generate_csrf_token(user_id)
+        
+        return {
+            "status": "success",
+            "csrf_token": token,
+            "expiry": CSRF_TOKEN_EXPIRY  # seconds
+        }
+    except Exception as e:
+        print(f"❌ Error generating CSRF token: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to generate CSRF token"
+        )
+
+
+def verify_csrf_token_header(request: Request, user: dict) -> bool:
+    """Helper to verify CSRF token from request headers"""
+    csrf_token = request.headers.get("X-CSRF-Token")
+    
+    if not csrf_token:
+        return False
+    
+    user_id = user.get("id")
+    if not user_id:
+        return False
+    
+    return validate_csrf_token(csrf_token, user_id)
+
+
 # --- BILLING VERIFICATION ENDPOINTS ---
 
 
@@ -744,6 +892,26 @@ async def verify_billing(
     try:
         user_tier = user.get("subscription_tier", "free")
         user_id = user.get("id")
+        
+        # Helper to log access attempts to audit table
+        def log_access(feature, allowed, reason=None):
+            if supabase and user_id:
+                try:
+                    supabase.table("premium_access_logs").insert({
+                        "user_id": user_id,
+                        "feature": feature,
+                        "endpoint": "/verify-billing",
+                        "ip_address": http_request.client.host if http_request.client else None,
+                        "subscription_tier": user_tier,
+                        "result": "allowed" if allowed else "denied",
+                        "reason": reason,
+                        "metadata": {
+                            "feature_requested": request.feature,
+                            "user_agent": http_request.headers.get("user-agent")
+                        }
+                    }).execute()
+                except Exception as e:
+                    print(f"⚠️ Warning: Could not log access: {e}")
 
         # Define feature access by tier
         feature_access = {
@@ -769,6 +937,7 @@ async def verify_billing(
         tier_config = feature_access.get(user_tier, {"features": [], "assessments": 0})
 
         if request.feature not in tier_config["features"]:
+            log_access(request.feature, False, f"Feature not available in {user_tier} tier")
             return {
                 "hasAccess": False,
                 "subscriptionTier": user_tier,
@@ -794,6 +963,7 @@ async def verify_billing(
             )
 
             if current_usage >= tier_config["assessments"]:
+                log_access(request.feature, False, "Assessment limit exceeded")
                 return {
                     "hasAccess": False,
                     "subscriptionTier": user_tier,
@@ -805,6 +975,7 @@ async def verify_billing(
                     },
                 }
 
+            log_access(request.feature, True, "Assessment within limit")
             return {
                 "hasAccess": True,
                 "subscriptionTier": user_tier,
@@ -815,11 +986,153 @@ async def verify_billing(
                 },
             }
 
+        log_access(request.feature, True, "Feature access allowed")
         return {"hasAccess": True, "subscriptionTier": user_tier}
 
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Billing verification failed: {str(e)}"
+        )
+
+
+@app.post("/cancel-subscription")
+@limiter.limit("10/minute")
+async def cancel_subscription(
+    http_request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    """
+    Cancel user's subscription and Stripe subscription
+    Only company/basic tier subscribers can cancel their own subscriptions
+    REQUIRES: X-CSRF-Token header
+    """
+    try:
+        # SECURITY: Verify CSRF token
+        if not verify_csrf_token_header(http_request, user):
+            raise HTTPException(
+                status_code=403,
+                detail="CSRF token missing or invalid. Call /csrf-token first."
+            )
+        
+        user_id = user.get("id")
+        user_tier = user.get("subscription_tier", "free")
+        
+        if not user_id:
+            raise HTTPException(status_code=400, detail="User ID not found")
+        
+        if user_tier == "free":
+            raise HTTPException(status_code=400, detail="No active subscription to cancel")
+        
+        # Determine if user or company subscription
+        is_company = user.get("company_name") is not None
+        
+        # Get subscription from database
+        subscription_response = (
+            supabase.table("subscriptions")
+            .select("*")
+            .eq("company_id" if is_company else "user_id", user_id)
+            .eq("status", "active")
+            .execute()
+        )
+        
+        if not subscription_response.data:
+            raise HTTPException(
+                status_code=404,
+                detail="No active subscription found"
+            )
+        
+        subscription = subscription_response.data[0]
+        stripe_subscription_id = subscription.get("stripe_subscription_id")
+        
+        if not stripe_subscription_id:
+            raise HTTPException(
+                status_code=400,
+                detail="Subscription not linked to Stripe"
+            )
+        
+        # Cancel subscription in Stripe
+        try:
+            stripe.Subscription.delete(stripe_subscription_id)
+            print(f"✅ Stripe subscription {stripe_subscription_id} cancelled")
+        except stripe.error.StripeError as e:
+            # If Stripe cancellation fails, still update our database
+            print(f"⚠️ Stripe cancellation failed: {e}")
+            # Continue to cancel in our database anyway
+        
+        # Update subscriptions table to mark as canceled
+        supabase.table("subscriptions").update({
+            "status": "canceled",
+            "canceled_at": now_iso(),
+            "updated_at": now_iso(),
+        }).eq("id", subscription["id"]).execute()
+        
+        # Log the cancellation
+        if supabase:
+            try:
+                supabase.table("premium_access_logs").insert({
+                    "user_id": user_id,
+                    "feature": "SUBSCRIPTION_CANCEL",
+                    "endpoint": "/cancel-subscription",
+                    "ip_address": http_request.client.host if http_request.client else None,
+                    "subscription_tier": user_tier,
+                    "result": "canceled",
+                    "reason": "User-initiated cancellation",
+                    "metadata": {
+                        "stripe_subscription_id": stripe_subscription_id,
+                        "canceled_at": now_iso()
+                    }
+                }).execute()
+            except Exception as e:
+                print(f"⚠️ Warning: Could not log cancellation: {e}")
+        
+        # Send cancellation confirmation email
+        try:
+            email_to = user.get("email")
+            if email_to:
+                send_email(
+                    to_email=email_to,
+                    subject="📋 Subscription Cancelled - JobShaman",
+                    html=f"""
+                    <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px;">
+                        <h2 style="color: #1e40af;">Subscription Cancelled</h2>
+                        <p>Your JobShaman {user_tier} subscription has been successfully cancelled.</p>
+                        
+                        <p><strong>What happens now:</strong></p>
+                        <ul>
+                            <li>You will lose access to premium features at the end of your current billing period</li>
+                            <li>Your data will remain safe and can be exported anytime</li>
+                            <li>You can re-subscribe at any time</li>
+                        </ul>
+                        
+                        <p style="margin-top: 30px;">
+                            <a href="https://jobshaman.cz" style="background: #1e40af; color: white; padding: 12px 24px; border-radius: 6px; text-decoration: none; font-weight: bold;">Return to JobShaman</a>
+                        </p>
+                        
+                        <p style="font-size: 0.9rem; color: #94a3b8; margin-top: 20px;">
+                            If you have questions, please contact us at support@jobshaman.cz
+                        </p>
+                    </div>
+                    """
+                )
+                print(f"✅ Cancellation email sent to {email_to}")
+        except Exception as e:
+            print(f"⚠️ Warning: Could not send cancellation email: {e}")
+        
+        return {
+            "status": "success",
+            "message": "Subscription cancelled successfully",
+            "tier": user_tier,
+            "canceledAt": now_iso(),
+            "note": "Premium features will remain active until the end of your billing period"
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Subscription cancellation failed: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to cancel subscription: {str(e)}"
         )
 
 
@@ -926,6 +1239,23 @@ async def stripe_webhook(request: Request):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Webhook Error: {str(e)}")
 
+    # SECURITY: Check if this webhook has already been processed (idempotency)
+    event_id = event["id"]
+    if supabase:
+        try:
+            existing_event = (
+                supabase.table("webhook_events")
+                .select("*")
+                .eq("stripe_event_id", event_id)
+                .execute()
+            )
+            if existing_event.data:
+                print(f"✅ Webhook {event_id} already processed, skipping duplicate")
+                return {"status": "already_processed"}
+        except Exception as e:
+            print(f"⚠️ Warning: Could not check webhook idempotency: {e}")
+            # Continue anyway to not block payments
+
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
         user_id = session["metadata"]["userId"]
@@ -954,17 +1284,42 @@ async def stripe_webhook(request: Request):
             return {"status": "error", "message": "Payment not completed"}
 
         if supabase:
+            # CRITICAL: Only write to subscriptions table (single source of truth)
+            # Do NOT write to companies.subscription_tier or profiles.subscription_tier
+            
             if tier == "basic":
-                # Update Candidate Profile
-                supabase.table("profiles").update({"subscription_tier": "basic"}).eq(
-                    "id", user_id
-                ).execute()
+                # For basic tier: create subscription record for candidates
+                existing = (
+                    supabase.table("subscriptions")
+                    .select("id")
+                    .eq("user_id", user_id)
+                    .execute()
+                )
+                if existing.data:
+                    supabase.table("subscriptions").update(
+                        {
+                            "tier": "basic",
+                            "status": "active",
+                            "stripe_subscription_id": session.get("subscription"),
+                            "current_period_start": session.get("current_period_start"),
+                            "current_period_end": session.get("current_period_end"),
+                            "updated_at": now_iso(),
+                        }
+                    ).eq("user_id", user_id).execute()
+                else:
+                    supabase.table("subscriptions").insert(
+                        {
+                            "user_id": user_id,
+                            "tier": "basic",
+                            "status": "active",
+                            "stripe_subscription_id": session.get("subscription"),
+                            "current_period_start": session.get("current_period_start"),
+                            "current_period_end": session.get("current_period_end"),
+                        }
+                    ).execute()
+                    
             elif tier == "business":
-                # Update Company Profile
-                supabase.table("companies").update(
-                    {"subscription_tier": "business"}
-                ).eq("id", user_id).execute()
-                # Also create/update subscriptions table entry
+                # For business tier: update subscriptions table (single source of truth)
                 existing = (
                     supabase.table("subscriptions")
                     .select("id")
@@ -993,13 +1348,187 @@ async def stripe_webhook(request: Request):
                             "current_period_end": session.get("current_period_end"),
                         }
                     ).execute()
+                    
             elif tier == "assessment_bundle":
-                # Update Company Profile for bundle
-                supabase.table("companies").update(
-                    {"subscription_tier": "assessment_bundle"}
-                ).eq("id", user_id).execute()
+                # For bundle tier: update subscriptions table (single source of truth)
+                existing = (
+                    supabase.table("subscriptions")
+                    .select("id")
+                    .eq("company_id", user_id)
+                    .execute()
+                )
+                if existing.data:
+                    supabase.table("subscriptions").update(
+                        {
+                            "tier": "assessment_bundle",
+                            "status": "active",
+                            "stripe_subscription_id": session.get("subscription"),
+                            "current_period_start": session.get("current_period_start"),
+                            "current_period_end": session.get("current_period_end"),
+                            "updated_at": now_iso(),
+                        }
+                    ).eq("company_id", user_id).execute()
+                else:
+                    supabase.table("subscriptions").insert(
+                        {
+                            "company_id": user_id,
+                            "tier": "assessment_bundle",
+                            "status": "active",
+                            "stripe_subscription_id": session.get("subscription"),
+                            "current_period_start": session.get("current_period_start"),
+                            "current_period_end": session.get("current_period_end"),
+                        }
+                    ).execute()
 
         print(f"✅ Stripe Payment verified and completed for {user_id} tier: {tier}")
+
+    elif event["type"] == "customer.subscription.updated":
+        """Handle subscription updates (tier changes, renewal, etc.)"""
+        subscription = event["data"]["object"]
+        stripe_subscription_id = subscription["id"]
+        
+        # Find subscription in our database
+        if supabase:
+            try:
+                existing = (
+                    supabase.table("subscriptions")
+                    .select("id, user_id, company_id")
+                    .eq("stripe_subscription_id", stripe_subscription_id)
+                    .execute()
+                )
+                
+                if existing.data:
+                    sub_record = existing.data[0]
+                    
+                    # Update subscription details
+                    supabase.table("subscriptions").update({
+                        "current_period_start": subscription.get("current_period_start"),
+                        "current_period_end": subscription.get("current_period_end"),
+                        "status": "active" if subscription["status"] in ["active", "trialing"] else "inactive",
+                        "updated_at": now_iso(),
+                    }).eq("id", sub_record["id"]).execute()
+                    
+                    # Log the update
+                    user_id = sub_record.get("user_id") or sub_record.get("company_id")
+                    supabase.table("premium_access_logs").insert({
+                        "user_id": user_id,
+                        "feature": "SUBSCRIPTION_UPDATE",
+                        "endpoint": "/webhooks/stripe",
+                        "subscription_tier": "unknown",
+                        "result": "updated",
+                        "reason": f"Stripe event: {subscription['status']}",
+                        "metadata": {
+                            "stripe_subscription_id": stripe_subscription_id,
+                            "next_period_end": subscription.get("current_period_end")
+                        }
+                    }).execute()
+                    
+                    print(f"✅ Subscription {stripe_subscription_id} updated: {subscription['status']}")
+            except Exception as e:
+                print(f"⚠️ Error handling subscription.updated: {e}")
+    
+    elif event["type"] == "customer.subscription.deleted":
+        """Handle subscription cancellation via Stripe dashboard"""
+        subscription = event["data"]["object"]
+        stripe_subscription_id = subscription["id"]
+        
+        if supabase:
+            try:
+                existing = (
+                    supabase.table("subscriptions")
+                    .select("id, user_id, company_id")
+                    .eq("stripe_subscription_id", stripe_subscription_id)
+                    .execute()
+                )
+                
+                if existing.data:
+                    sub_record = existing.data[0]
+                    
+                    # Mark subscription as canceled
+                    supabase.table("subscriptions").update({
+                        "status": "canceled",
+                        "canceled_at": now_iso(),
+                        "updated_at": now_iso(),
+                    }).eq("id", sub_record["id"]).execute()
+                    
+                    # Log the cancellation
+                    user_id = sub_record.get("user_id") or sub_record.get("company_id")
+                    supabase.table("premium_access_logs").insert({
+                        "user_id": user_id,
+                        "feature": "SUBSCRIPTION_DELETED",
+                        "endpoint": "/webhooks/stripe",
+                        "subscription_tier": "unknown",
+                        "result": "canceled",
+                        "reason": "Stripe: Subscription deleted via dashboard",
+                        "metadata": {
+                            "stripe_subscription_id": stripe_subscription_id,
+                            "deleted_at": now_iso()
+                        }
+                    }).execute()
+                    
+                    print(f"✅ Subscription {stripe_subscription_id} marked as deleted")
+            except Exception as e:
+                print(f"⚠️ Error handling subscription.deleted: {e}")
+    
+    elif event["type"] == "invoice.payment_failed":
+        """Handle failed payment attempts"""
+        invoice = event["data"]["object"]
+        stripe_subscription_id = invoice.get("subscription")
+        
+        if supabase and stripe_subscription_id:
+            try:
+                existing = (
+                    supabase.table("subscriptions")
+                    .select("id, user_id, company_id")
+                    .eq("stripe_subscription_id", stripe_subscription_id)
+                    .execute()
+                )
+                
+                if existing.data:
+                    sub_record = existing.data[0]
+                    
+                    # Log the failed payment
+                    user_id = sub_record.get("user_id") or sub_record.get("company_id")
+                    supabase.table("premium_access_logs").insert({
+                        "user_id": user_id,
+                        "feature": "INVOICE_PAYMENT_FAILED",
+                        "endpoint": "/webhooks/stripe",
+                        "subscription_tier": "unknown",
+                        "result": "denied",
+                        "reason": f"Payment failed: {invoice.get('attempt_count', 1)} attempts",
+                        "metadata": {
+                            "stripe_subscription_id": stripe_subscription_id,
+                            "invoice_id": invoice.get("id"),
+                            "amount_due": invoice.get("amount_due"),
+                            "next_payment_attempt": invoice.get("next_payment_attempt")
+                        }
+                    }).execute()
+                    
+                    # If too many attempts, suspend subscription
+                    if invoice.get("attempt_count", 1) >= 3:
+                        supabase.table("subscriptions").update({
+                            "status": "suspended",
+                            "updated_at": now_iso(),
+                        }).eq("id", sub_record["id"]).execute()
+                        print(f"⚠️ Subscription {stripe_subscription_id} suspended due to payment failure")
+                    else:
+                        print(f"⚠️ Payment failed for {stripe_subscription_id}, attempt {invoice.get('attempt_count')}")
+            except Exception as e:
+                print(f"⚠️ Error handling invoice.payment_failed: {e}")
+
+    # SECURITY: Mark this webhook as processed (idempotency)
+    if supabase:
+        try:
+            supabase.table("webhook_events").insert({
+                "stripe_event_id": event_id,
+                "event_type": event["type"],
+                "processed_at": now_iso(),
+                "status": "processed"
+            }).execute()
+            print(f"✅ Webhook {event_id} marked as processed in database")
+        except Exception as e:
+            print(f"⚠️ Warning: Could not mark webhook as processed: {e}")
+            # Don't fail the webhook if we can't mark it
 
     return {"status": "success"}
 

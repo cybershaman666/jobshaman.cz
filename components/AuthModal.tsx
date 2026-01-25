@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { signInWithEmail, signUpWithEmail } from '../services/supabaseService';
+import { fetchCsrfToken } from '../services/csrfService';
 import { X, Mail, Lock, User, Loader2, AlertCircle } from 'lucide-react';
 
 interface AuthModalProps {
@@ -28,13 +29,35 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
     setError(null);
 
     try {
+        let userData;
+        
         if (isLogin) {
-            const { error } = await signInWithEmail(formData.email, formData.password);
-            if (error) throw error;
+            const result = await signInWithEmail(formData.email, formData.password);
+            if (result.error) throw result.error;
+            userData = result.data?.user;
         } else {
-            const { error } = await signUpWithEmail(formData.email, formData.password, formData.fullName);
-            if (error) throw error;
+            const result = await signUpWithEmail(formData.email, formData.password, formData.fullName);
+            if (result.error) throw result.error;
+            userData = result.data?.user;
         }
+
+        // CSRF: Fetch CSRF token after successful authentication
+        if (userData) {
+            try {
+                const authToken = userData.id; // Use user ID as token for now, real token from Supabase session
+                // Get the actual session token
+                const session = await (await import('../services/supabaseClient')).supabase?.auth.getSession();
+                const accessToken = session?.data?.session?.access_token;
+                
+                if (accessToken) {
+                    await fetchCsrfToken(accessToken);
+                }
+            } catch (csrfError) {
+                console.warn('⚠️ Could not fetch CSRF token:', csrfError);
+                // Don't fail login if CSRF token fetch fails
+            }
+        }
+
         onSuccess();
         onClose();
     } catch (err: any) {
