@@ -1,5 +1,6 @@
 import React from 'react';
 import { UserProfile, CompanyProfile } from '../types';
+import { useUserProfile } from '../hooks/useUserProfile';
 import SubscriptionDashboard from '../components/SubscriptionDashboard';
 import PlanUpgradeModal from '../components/PlanUpgradeModal';
 import PremiumUpsellCard from '../components/PremiumUpsellCard';
@@ -11,21 +12,30 @@ import PremiumUpsellCard from '../components/PremiumUpsellCard';
  * Usage:
  * - Individual users: Shows their personal subscription
  * - Company admins: Can view and manage their company subscription
+ * 
+ * Props are optional - component will fall back to useUserProfile hook if not provided
  */
 interface SubscriptionManagementPageProps {
-  userProfile: UserProfile;
-  companyProfile: CompanyProfile | null;
+  userProfile?: UserProfile;
+  companyProfile?: CompanyProfile | null;
 }
 
 export const SubscriptionManagementPage: React.FC<SubscriptionManagementPageProps> = ({ 
-  userProfile: user, 
-  companyProfile: company 
+  userProfile: propsUser, 
+  companyProfile: propsCompany 
 }) => {
+  // Fall back to useUserProfile hook if props not provided
+  const hookData = useUserProfile();
+  const user = propsUser || hookData.userProfile;
+  const company = propsCompany || hookData.companyProfile;
   // Check if user is still loading (not yet logged in and no id)
   const isLoading = !user?.isLoggedIn || !user?.id;
   const [showUpgradeModal, setShowUpgradeModal] = React.useState(false);
 
   console.log('📄 SubscriptionManagementPage - user:', {
+    propsReceived: !!propsUser,
+    usingProps: !!propsUser,
+    usingHook: !propsUser,
     isLoggedIn: user?.isLoggedIn,
     hasId: !!user?.id,
     userId: user?.id,
