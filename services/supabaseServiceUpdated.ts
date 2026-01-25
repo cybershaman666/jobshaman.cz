@@ -1,6 +1,6 @@
 // Updated Supabase service functions for new paywall schema
 import { createClient } from '@supabase/supabase-js';
-import { UserProfile, CompanyProfile } from '../types';
+import { UserProfile, CompanyProfile, CandidateSubscriptionTier, CompanyServiceTier } from '../types';
 
 // Configuration provided by user
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -125,7 +125,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         tier: data.subscription_tier as CandidateSubscriptionTier,
         usage: null,
         expiresAt: null
-    } : null;
+    } : undefined;
 
     return {
         ...data,
@@ -191,7 +191,7 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
     }
 
     // Fetch subscription details
-    let subscription = null;
+    let subscription: { tier: CompanyServiceTier; expiresAt: string } | undefined = undefined;
     let usage = null;
     
     if (data.subscription_id) {
@@ -213,7 +213,7 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
             console.error('Subscription fetch error:', subError);
         } else if (subData) {
             // Check if expired
-            const isExpired = new Date(subData.current_period_end) < new Date();
+            const _isExpired = new Date(subData.current_period_end) < new Date();
             
             subscription = {
                 tier: subData.tier as CompanyServiceTier,

@@ -290,14 +290,15 @@ export const calculateFinancialReality = async (
   job: Job,
   userProfile: UserProfile,
   benefitValuations: BenefitValuation[]
-): Promise<FinancialReality & { commuteDetails: { distance: number; monthlyCost: number } }> => {
+): Promise<(FinancialReality & { commuteDetails: { distance: number; monthlyCost: number } }) | null> => {
   // Extract salary information
   const baseSalary = job.salary_from || 
     parseMonthlySalary(job.salaryRange) ||
     (job.aiEstimatedSalary ? job.aiEstimatedSalary.min : 0);
   
   if (baseSalary === 0) {
-    throw new Error('No salary information available');
+    console.warn('No salary information available for job:', job.title);
+    return null; // Return null instead of throwing error
   }
   
   // Detect currency

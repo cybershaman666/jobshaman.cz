@@ -5,6 +5,7 @@ import stripe
 import resend
 from supabase import create_client, Client
 from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
 
 from itsdangerous import URLSafeTimedSerializer
 from fastapi.responses import HTMLResponse
@@ -18,6 +19,15 @@ from scraper.scraper_multi import run_all_scrapers
 load_dotenv()
 
 app = FastAPI(title="JobShaman Backend Services")
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify your frontend domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Configure Scheduler
 scheduler = BackgroundScheduler()

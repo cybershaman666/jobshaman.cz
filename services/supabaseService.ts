@@ -1265,7 +1265,7 @@ export const uploadProfilePhoto = async (userId: string, file: File): Promise<st
     if (!supabase) throw new Error("Supabase not configured");
     
     const fileName = `avatars/${userId}/${Date.now()}-${file.name}`;
-    const { data, error } = await supabase.storage
+    const { data: _uploadData, error } = await supabase.storage
         .from('avatars')
         .upload(fileName, file);
     
@@ -1367,7 +1367,7 @@ export const uploadCVDocument = async (userId: string, file: File): Promise<CVDo
         const fileExt = file.name.split('.').pop();
         const fileName = `${userId}/${Date.now()}.${fileExt}`;
         
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { data: _uploadData, error: uploadError } = await supabase.storage
             .from('cv-documents')
             .upload(fileName, file);
         

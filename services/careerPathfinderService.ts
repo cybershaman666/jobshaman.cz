@@ -105,13 +105,16 @@ export class CareerPathfinderService {
   ): Promise<FinancialReality & { commuteDetails: { distance: number; monthlyCost: number } } | null> {
     try {
       // Check if we have necessary data for financial analysis
-      const hasSalary = job.salary_from || job.salaryRange || job.aiEstimatedSalary;
+      const hasSalary = job.salary_from || 
+        (job.salaryRange && job.salaryRange !== 'Mzda neuvedena' && job.salaryRange !== 'Salary not specified') || 
+        job.aiEstimatedSalary;
 
       if (!hasSalary) {
         return null; // Cannot calculate without salary information
       }
 
-      return await calculateFinancialReality(job, userProfile, this.benefitValuationsCache);
+      const result = await calculateFinancialReality(job, userProfile, this.benefitValuationsCache);
+      return result; // May be null if salary parsing fails
     } catch (error) {
       console.error('Financial calculation error:', error);
       return null;
