@@ -1,0 +1,194 @@
+import React, { useEffect, useState } from 'react';
+import { generateAssessment } from '../services/geminiService';
+import { BACKEND_URL } from '../constants';
+import { authenticatedFetch } from '../services/csrfService';
+
+interface InvitationDetail {
+  invitation_id: string;
+  assessment_id: string;
+  company_id: string;
+  company_name: string;
+  candidate_email: string;
+  status: string;
+  expires_at: string;
+  metadata: any;
+}
+
+const InvitationLanding: React.FC = () => {
+  const [loading, setLoading] = useState(true);
+  const [invitation, setInvitation] = useState<InvitationDetail | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [assessment, setAssessment] = useState<any | null>(null);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const path = window.location.pathname; // /assessment/{invitation_id}
+    const match = path.match(/^\/assessment\/(.+)$/);
+    const invitationId = match ? match[1] : null;
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token') || undefined;
+
+    if (!invitationId || !token) {
+      setError('Neplatný odkaz na pozvánku (chybí id nebo token)');
+      setLoading(false);
+      return;
+    }
+
+    const load = async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/assessments/invitations/${invitationId}?token=${encodeURIComponent(token)}`);
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.detail || `Chyba API: ${res.status}`);
+        }
+        const data = await res.json();
+        setInvitation({
+          invitation_id: data.invitation_id || invitationId,
+          assessment_id: data.assessment_id,
+          company_id: data.company_id,
+          company_name: data.company_name,
+          candidate_email: data.candidate_email,
+          status: data.status,
+          expires_at: data.expires_at,
+          metadata: data.metadata,
+        });
+      } catch (e: any) {
+        console.error(e);
+        setError(e.message || 'Nepodařilo se ověřit pozvánku');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, []);
+
+  const handleStart = async () => {
+    if (!invitation) return;
+    setError(null);
+    setStartedAt(Date.now());
+
+    // Use metadata to generate assessment; fallback to simple defaults
+    const role = invitation.metadata?.role || invitation.metadata?.job_title || 'Kandidát';
+    const skills: string[] = invitation.metadata?.skills || (invitation.metadata?.skill_list || '').split(',').map((s: string) => s.trim()).filter(Boolean) || ['obecné'];
+    const difficulty = invitation.metadata?.difficulty || 'Senior';
+    const questionCount = invitation.metadata?.question_count || 5;
+
+    try {
+      const gen = await generateAssessment(role, skills, difficulty, questionCount);
+      setAssessment(gen);
+    } catch (e: any) {
+      console.error(e);
+      setError('Nepodařilo se vygenerovat assessment');
+    }
+  };
+
+  const handleAnswerChange = (idx: number, value: string) => {
+    setAnswers(prev => ({ ...prev, [idx]: value }));
+  };
+
+  const handleSubmit = async () => {
+    if (!invitation || !assessment) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      const now = Date.now();
+      const timeSpent = startedAt ? Math.floor((now - startedAt) / 1000) : 0;
+
+      // Naive scoring: mark all as answered -> correctCount = answers provided
+      const questionsTotal = assessment.questions?.length || 0;
+      const questionsCorrect = Object.keys(answers).length; // placeholder
+      const score = questionsTotal ? Math.round((questionsCorrect / questionsTotal) * 100) : 0;
+
+      const payload = {
+        invitation_id: invitation.invitation_id,
+        assessment_id: invitation.assessment_id,
+        role: assessment.role || 'Candidate',
+        difficulty: assessment.difficulty || 'Senior',
+        questions_total: questionsTotal,
+        questions_correct: questionsCorrect,
+        score,
+        time_spent_seconds: timeSpent,
+        answers,
+        feedback: ''
+      };
+
+      // Read token from URL again
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('token') || '';
+
+      const res = await fetch(`${BACKEND_URL}/assessments/invitations/${invitation.invitation_id}/submit?token=${encodeURIComponent(token)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.detail || `Chyba API: ${res.status}`);
+      }
+
+      const data = await res.json();
+      // Success page
+      setAssessment(null);
+      setInvitation({ ...invitation, status: 'completed' });
+      alert('Děkujeme! Assessment odeslán.');
+    } catch (e: any) {
+      console.error(e);
+      setError(e.message || 'Nepodařilo se odeslat výsledek');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) return <div className="p-6">Načítám pozvánku…</div>;
+  if (error) return <div className="p-6 text-rose-600">{error}</div>;
+  if (!invitation) return <div className="p-6">Pozvánka nebyla nalezena.</div>;
+
+  return (
+    <div className="max-w-3xl mx-auto p-6">
+      <div className="bg-white dark:bg-slate-900 p-6 rounded-lg border">
+        <h2 className="text-xl font-bold mb-2">Pozvánka na assessment od {invitation.company_name}</h2>
+        <p className="text-sm text-slate-500 mb-3">Pozice: {invitation.metadata?.job_title || invitation.assessment_id}</p>
+        <p className="text-sm text-slate-500 mb-4">Platí do: {new Date(invitation.expires_at).toLocaleString()}</p>
+
+        {!assessment && invitation.status !== 'completed' && (
+          <div className="space-y-3">
+            <p className="text-sm text-slate-600">Klikněte pro spuštění assessmentu. Připravte si odpovědi — po dokončení bude výsledek odeslán společnosti.</p>
+            <div className="flex gap-2">
+              <button onClick={handleStart} className="px-4 py-2 bg-cyan-600 text-white rounded">Spustit assessment</button>
+            </div>
+          </div>
+        )}
+
+        {assessment && (
+          <div className="mt-6 space-y-4">
+            <h3 className="font-bold">{assessment.title || 'Assessment'}</h3>
+            <div className="space-y-4">
+              {assessment.questions.map((q: any, idx: number) => (
+                <div key={idx} className="p-3 border rounded">
+                  <div className="text-sm font-medium">Otázka {idx + 1}</div>
+                  <div className="text-sm text-slate-700 my-2">{q.text}</div>
+                  <textarea value={answers[idx] || ''} onChange={e => handleAnswerChange(idx, e.target.value)} className="w-full p-2 border rounded" rows={4} />
+                </div>
+              ))}
+
+              <div className="flex justify-end gap-2">
+                <button onClick={() => { setAssessment(null); }} className="px-3 py-2 border rounded">Zrušit</button>
+                <button onClick={handleSubmit} disabled={submitting} className="px-3 py-2 bg-cyan-600 text-white rounded">{submitting ? 'Odesílám…' : 'Odeslat výsledky'}</button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {invitation.status === 'completed' && (
+          <div className="mt-4 text-sm text-green-600">Tento assessment byl již dokončen.</div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default InvitationLanding;

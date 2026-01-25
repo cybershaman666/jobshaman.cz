@@ -20,7 +20,7 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ userId, isCompact
       alert('Prosím přihlaste se nejdříve');
       return;
     }
-    redirectToCheckout('basic', userId);
+    redirectToCheckout('premium', userId);
   };
 
   if (isCompact) {

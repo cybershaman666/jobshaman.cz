@@ -6,7 +6,6 @@ import stripe
 import resend
 from supabase import create_client, Client
 from dotenv import load_dotenv
-from fastapi.middleware.cors import CORSMiddleware
 import jwt
 import re
 from datetime import datetime, timedelta
@@ -25,6 +24,29 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi.exceptions import RequestValidationError
 from starlette.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+
+"""
+JobShaman Backend API
+
+ASSESSMENT CENTER SYSTEM:
+- Assessment center replaces traditional interviews
+- Only companies can create assessments (requires Business/Assessment Bundle tier)
+- Candidates can ONLY take assessments after being explicitly invited by a company
+- Companies must send invitation link to candidates (not auto-available)
+- Assessment limits:
+  * Premium tier (candidates): 0 assessments (cannot create)
+  * Business tier (companies): Unlimited assessment creation, 10 assessment checks per month
+  * Assessment Bundle: 10 one-time assessment checks
+  * Single Assessment: 1 one-time assessment check
+
+PRICING:
+- Free: 0 assessments, 3 job postings
+- Premium (99 CZK/month, future 199): B2C for candidates - AI CV analysis, AI cover letter, course recommendations
+- Business (4990 CZK/month): B2B for companies - unlimited assessment creation, 10 checks/month
+- Assessment Bundle (990 CZK): 10 one-time assessment checks
+- Single Assessment (99 CZK): 1 one-time assessment check
+"""
 
 # Ensure we can import from the sibling scraper package
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -1179,10 +1201,11 @@ async def get_subscription_status(
 
         # Tier limits configuration
         tier_limits = {
-            "free": {"assessments": 0, "job_postings": 0, "name": "Free"},
-            "basic": {"assessments": 20, "job_postings": 50, "name": "Basic"},
-            "business": {"assessments": 999, "job_postings": 999, "name": "Business"},
-            "assessment_bundle": {"assessments": 50, "job_postings": 0, "name": "Assessment Bundle"},
+            "free": {"assessments": 0, "job_postings": 3, "name": "Free"},
+            "premium": {"assessments": 0, "job_postings": 10, "name": "Premium"},
+            "business": {"assessments": 999, "job_postings": 10, "name": "Business"},
+            "assessment_bundle": {"assessments": 10, "job_postings": 0, "name": "Assessment Bundle (10 checks)"},
+            "single_assessment": {"assessments": 1, "job_postings": 0, "name": "Single Assessment"},
         }
 
         # Check if this is a company admin or a personal user
@@ -1264,12 +1287,12 @@ async def get_subscription_status(
 async def create_checkout_session(req: CheckoutRequest):
     try:
         # Map frontend tier names to backend/Stripe tier names
-        # Frontend uses 'premium' for personal users, backend uses 'basic'
         tier_mapping = {
-            "premium": "basic",  # Frontend 'premium' maps to backend 'basic'
-            "basic": "basic",    # Also accept 'basic' directly
+            "premium": "premium",  # Personal users
+            "basic": "premium",    # Backwards compatibility
             "business": "business",
             "assessment_bundle": "assessment_bundle",
+            "single_assessment": "single_assessment",
         }
         
         backend_tier = tier_mapping.get(req.tier)
@@ -1278,16 +1301,18 @@ async def create_checkout_session(req: CheckoutRequest):
         
         # Live Stripe Price IDs
         prices = {
-            "basic": "price_1StDJuG2Aezsy59eqi584FWl",  # Was premium
-            "business": "price_1StDKmG2Aezsy59e1eiG9bny",
-            "assessment_bundle": "price_1StDTGG2Aezsy59esZLgocHw",
+            "premium": "price_1StDJuG2Aezsy59eqi584FWl",  # 99 CZK/month for personal users
+            "business": "price_1StDKmG2Aezsy59e1eiG9bny",  # 4990 CZK/month for companies
+            "assessment_bundle": "price_1StDTGG2Aezsy59esZLgocHw",  # 990 CZK for 10 assessments (one-time)
+            "single_assessment": "price_1Q...",  # 99 CZK for 1 assessment (one-time) - TODO: Update with real Stripe ID
         }
 
         price_id = prices.get(backend_tier)
         if not price_id:
             raise HTTPException(status_code=400, detail=f"Invalid tier: {backend_tier}")
 
-        # 'basic' and 'business' are subscriptions, 'assessment_bundle' is also a subscription
+        # 'basic', 'business', and 'assessment_bundle' are subscriptions
+        # 'single_assessment' is a one-time payment
         mode = (
             "subscription"
             if backend_tier in ["basic", "business", "assessment_bundle"]
@@ -1347,9 +1372,10 @@ async def stripe_webhook(request: Request):
 
         # SECURITY: Verify payment amount matches expected tier pricing
         expected_amounts = {
-            "basic": 99000,  # 990 CZK in cents
-            "business": 499000,  # 4 990 CZK in cents
-            "assessment_bundle": 99000,  # 990 CZK in cents
+            "premium": 9900,  # 99 CZK in cents/month (subscription)
+            "business": 499000,  # 4990 CZK in cents/month (subscription)
+            "assessment_bundle": 99000,  # 990 CZK in cents (one-time)
+            "single_assessment": 9900,  # 99 CZK in cents (one-time)
         }
 
         expected_amount = expected_amounts.get(tier)
@@ -1461,6 +1487,40 @@ async def stripe_webhook(request: Request):
                             "stripe_subscription_id": session.get("subscription"),
                             "current_period_start": session.get("current_period_start"),
                             "current_period_end": session.get("current_period_end"),
+                        }
+                    ).execute()
+
+            elif tier == "single_assessment":
+                # For single assessment: one-time purchase, update user's assessment credits
+                # Try to find existing subscription or create one
+                existing = (
+                    supabase.table("subscriptions")
+                    .select("id")
+                    .eq("user_id", user_id)
+                    .execute()
+                )
+                
+                # Get current assessment usage
+                current_used = 0
+                if existing.data:
+                    current_used = existing.data[0].get("ai_assessments_used", 0)
+                
+                if existing.data:
+                    supabase.table("subscriptions").update(
+                        {
+                            "tier": "single_assessment",
+                            "status": "active",
+                            "stripe_subscription_id": session.get("subscription"),
+                            "updated_at": now_iso(),
+                        }
+                    ).eq("user_id", user_id).execute()
+                else:
+                    supabase.table("subscriptions").insert(
+                        {
+                            "user_id": user_id,
+                            "tier": "single_assessment",
+                            "status": "active",
+                            "stripe_subscription_id": session.get("subscription"),
                         }
                     ).execute()
 
@@ -1615,6 +1675,470 @@ async def stripe_webhook(request: Request):
             # Don't fail the webhook if we can't mark it
 
     return {"status": "success"}
+
+
+# --- ASSESSMENT INVITATION ENDPOINTS ---
+
+
+def generate_invitation_token():
+    """Generate a unique token for assessment invitation"""
+    import secrets
+    return secrets.token_urlsafe(32)
+
+
+class AssessmentInvitationRequest(BaseModel):
+    """Request to send assessment invitation to candidate"""
+    assessment_id: str
+    candidate_email: str
+    candidate_id: Optional[str] = None
+    expires_in_days: int = 30  # Default 30 days to complete assessment
+    metadata: Optional[dict] = None  # Job title, assessment name, etc
+
+
+class AssessmentResultRequest(BaseModel):
+    """Request to submit assessment result"""
+    invitation_id: str
+    assessment_id: str
+    role: str
+    difficulty: str
+    questions_total: int
+    questions_correct: int
+    score: float  # 0-100
+    time_spent_seconds: int
+    answers: dict  # Detailed answer data
+    feedback: Optional[str] = None
+
+
+@app.post("/assessments/invitations/create")
+@limiter.limit("100/minute")
+async def create_assessment_invitation(
+    request: Request,
+    invitation_req: AssessmentInvitationRequest,
+    user: dict = Depends(get_current_user),
+):
+    """
+    Create and send assessment invitation to a candidate
+    Only company admins (business/assessment_bundle tier) can send invitations
+    """
+    try:
+        company_id = user.get("id")
+        if not user.get("company_name"):
+            raise HTTPException(
+                status_code=403,
+                detail="Only company admins can send assessment invitations"
+            )
+        
+        # Check company has assessment tier
+        tier_check = (
+            supabase.table("subscriptions")
+            .select("tier")
+            .eq("company_id", company_id)
+            .eq("status", "active")
+            .execute()
+        )
+        
+        if not tier_check.data:
+            raise HTTPException(
+                status_code=403,
+                detail="Company must have active assessment bundle or business subscription"
+            )
+        
+        tier = tier_check.data[0].get("tier")
+        if tier not in ["business", "assessment_bundle"]:
+            raise HTTPException(
+                status_code=403,
+                detail=f"Tier '{tier}' cannot send assessment invitations"
+            )
+        
+        # Create invitation token
+        invitation_token = generate_invitation_token()
+        
+        # Calculate expiry date
+        from datetime import datetime, timedelta, timezone
+        expires_at = datetime.now(timezone.utc) + timedelta(days=invitation_req.expires_in_days)
+        
+        # Get candidate_id if not provided
+        candidate_id = invitation_req.candidate_id
+        if not candidate_id and invitation_req.candidate_email:
+            candidate_response = (
+                supabase.table("profiles")
+                .select("id")
+                .eq("email", invitation_req.candidate_email)
+                .execute()
+            )
+            if candidate_response.data:
+                candidate_id = candidate_response.data[0]["id"]
+        
+        # Create invitation in database
+        invitation_response = (
+            supabase.table("assessment_invitations").insert({
+                "company_id": company_id,
+                "assessment_id": invitation_req.assessment_id,
+                "candidate_id": candidate_id,
+                "candidate_email": invitation_req.candidate_email,
+                "status": "pending",
+                "invitation_token": invitation_token,
+                "expires_at": expires_at.isoformat(),
+                "metadata": invitation_req.metadata or {}
+            }).execute()
+        )
+        
+        if not invitation_response.data:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to create invitation"
+            )
+        
+        invitation_id = invitation_response.data[0]["id"]
+        
+        # Send invitation email to candidate
+        try:
+            invitation_link = f"https://jobshaman.cz/assessment/{invitation_id}?token={invitation_token}"
+            
+            company_name = user.get("company_name", "A Company")
+            assessment_name = invitation_req.metadata.get("assessment_name", "Assessment") if invitation_req.metadata else "Assessment"
+            job_title = invitation_req.metadata.get("job_title", "Position") if invitation_req.metadata else "Position"
+            
+            send_email(
+                to_email=invitation_req.candidate_email,
+                subject=f"🎯 Assessment Invitation from {company_name}",
+                html=f"""
+                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px; padding: 20px;">
+                    <h2 style="color: #1e40af;">🎯 Assessment Invitation</h2>
+                    <p>Hello,</p>
+                    
+                    <p><strong>{company_name}</strong> has invited you to take an assessment for the position of <strong>{job_title}</strong>.</p>
+                    
+                    <p><strong>Assessment Name:</strong> {assessment_name}</p>
+                    <p><strong>Valid Until:</strong> {expires_at.strftime('%B %d, %Y')}</p>
+                    
+                    <p>Click the link below to start the assessment:</p>
+                    
+                    <div style="margin: 30px 0; text-align: center;">
+                        <a href="{invitation_link}" style="background: #1e40af; color: white; padding: 12px 32px; border-radius: 6px; text-decoration: none; font-weight: bold; display: inline-block;">
+                            Start Assessment
+                        </a>
+                    </div>
+                    
+                    <p style="font-size: 0.9rem; color: #64748b;">
+                        This assessment is your opportunity to showcase your skills. You will have 30 minutes to complete it.
+                    </p>
+                    
+                    <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 30px;">
+                        If you have questions, please contact the company directly.
+                    </p>
+                </div>
+                """
+            )
+        except Exception as e:
+            print(f"⚠️ Warning: Could not send invitation email: {e}")
+            # Don't fail the API call if email fails
+        
+        # Log the invitation creation
+        try:
+            supabase.table("premium_access_logs").insert({
+                "user_id": company_id,
+                "feature": "ASSESSMENT_INVITATION_SENT",
+                "endpoint": "/assessments/invitations/create",
+                "ip_address": request.client.host if request.client else None,
+                "subscription_tier": tier,
+                "result": "created",
+                "reason": f"Assessment invitation sent to {invitation_req.candidate_email}",
+                "metadata": {
+                    "invitation_id": invitation_id,
+                    "candidate_email": invitation_req.candidate_email,
+                    "assessment_id": invitation_req.assessment_id
+                }
+            }).execute()
+        except Exception as e:
+            print(f"⚠️ Warning: Could not log invitation creation: {e}")
+        
+        return {
+            "status": "success",
+            "invitation_id": invitation_id,
+            "invitation_token": invitation_token,
+            "expires_at": expires_at.isoformat(),
+            "candidate_email": invitation_req.candidate_email,
+            "message": f"Invitation sent to {invitation_req.candidate_email}"
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Failed to create assessment invitation: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create invitation: {str(e)}"
+        )
+
+
+@app.get("/assessments/invitations/{invitation_id}")
+@limiter.limit("60/minute")
+async def get_invitation_details(
+    request: Request,
+    invitation_id: str,
+    token: str = Query(...),
+):
+    """
+    Get assessment invitation details (no auth required, token-based)
+    Used by candidates to view invitation before starting assessment
+    """
+    try:
+        # Get invitation from database
+        invitation_response = (
+            supabase.table("assessment_invitations")
+            .select("*")
+            .eq("id", invitation_id)
+            .execute()
+        )
+        
+        if not invitation_response.data:
+            raise HTTPException(
+                status_code=404,
+                detail="Invitation not found"
+            )
+        
+        invitation = invitation_response.data[0]
+        
+        # Verify token matches
+        if invitation["invitation_token"] != token:
+            raise HTTPException(
+                status_code=403,
+                detail="Invalid invitation token"
+            )
+        
+        # Check if invitation is still valid (not expired)
+        from datetime import datetime, timezone
+        expires_at = datetime.fromisoformat(invitation["expires_at"].replace("Z", "+00:00"))
+        if datetime.now(timezone.utc) > expires_at:
+            raise HTTPException(
+                status_code=410,
+                detail="Invitation has expired"
+            )
+        
+        # Check if invitation was already used
+        if invitation["status"] == "completed":
+            raise HTTPException(
+                status_code=410,
+                detail="Assessment has already been completed"
+            )
+        
+        if invitation["status"] == "revoked":
+            raise HTTPException(
+                status_code=410,
+                detail="Invitation has been revoked"
+            )
+        
+        # Get company details
+        company_response = (
+            supabase.table("companies")
+            .select("id, name")
+            .eq("id", invitation["company_id"])
+            .execute()
+        )
+        
+        company_name = company_response.data[0]["name"] if company_response.data else "Company"
+        
+        return {
+            "invitation_id": invitation_id,
+            "assessment_id": invitation["assessment_id"],
+            "company_id": invitation["company_id"],
+            "company_name": company_name,
+            "candidate_email": invitation["candidate_email"],
+            "status": invitation["status"],
+            "expires_at": invitation["expires_at"],
+            "metadata": invitation.get("metadata", {}),
+            "can_proceed": True  # Token is valid
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Failed to get invitation details: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to retrieve invitation: {str(e)}"
+        )
+
+
+@app.post("/assessments/invitations/{invitation_id}/submit")
+@limiter.limit("10/minute")
+async def submit_assessment_result(
+    request: Request,
+    invitation_id: str,
+    result_req: AssessmentResultRequest,
+    token: str = Query(...),
+):
+    """
+    Submit assessment result after candidate completes assessment
+    No auth required, token-based access
+    """
+    try:
+        # Get and verify invitation
+        invitation_response = (
+            supabase.table("assessment_invitations")
+            .select("*")
+            .eq("id", invitation_id)
+            .execute()
+        )
+        
+        if not invitation_response.data:
+            raise HTTPException(status_code=404, detail="Invitation not found")
+        
+        invitation = invitation_response.data[0]
+        
+        # Verify token
+        if invitation["invitation_token"] != token:
+            raise HTTPException(status_code=403, detail="Invalid token")
+        
+        # Check invitation is still valid
+        from datetime import datetime, timezone
+        expires_at = datetime.fromisoformat(invitation["expires_at"].replace("Z", "+00:00"))
+        if datetime.now(timezone.utc) > expires_at:
+            raise HTTPException(status_code=410, detail="Invitation has expired")
+        
+        if invitation["status"] in ["completed", "revoked"]:
+            raise HTTPException(status_code=410, detail="Invitation is no longer valid")
+        
+        # Create assessment result
+        result_response = (
+            supabase.table("assessment_results").insert({
+                "company_id": invitation["company_id"],
+                "candidate_id": invitation["candidate_id"],
+                "invitation_id": invitation_id,
+                "assessment_id": result_req.assessment_id,
+                "role": result_req.role,
+                "difficulty": result_req.difficulty,
+                "questions_total": result_req.questions_total,
+                "questions_correct": result_req.questions_correct,
+                "score": result_req.score,
+                "time_spent_seconds": result_req.time_spent_seconds,
+                "answers": result_req.answers,
+                "feedback": result_req.feedback,
+                "completed_at": datetime.now(timezone.utc).isoformat()
+            }).execute()
+        )
+        
+        if not result_response.data:
+            raise HTTPException(status_code=500, detail="Failed to save assessment result")
+        
+        # Update invitation status to completed
+        supabase.table("assessment_invitations").update({
+            "status": "completed",
+            "completed_at": datetime.now(timezone.utc).isoformat()
+        }).eq("id", invitation_id).execute()
+        
+        # Update company's assessment usage counter
+        supabase.table("subscriptions").update({
+            "ai_assessments_used": supabase.rpc("increment_assessment_usage", {
+                "company_id": invitation["company_id"]
+            }).execute()
+        }).eq("company_id", invitation["company_id"]).execute()
+        
+        return {
+            "status": "success",
+            "result_id": result_response.data[0]["id"],
+            "score": result_req.score,
+            "message": "Assessment result saved successfully"
+        }
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Failed to submit assessment result: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to save result: {str(e)}"
+        )
+
+
+@app.get("/assessments/invitations")
+@limiter.limit("30/minute")
+async def list_invitations(
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    """
+    List assessment invitations for current user
+    Shows invitations sent TO the user (as candidate) or sent BY the user (as company)
+    """
+    try:
+        user_id = user.get("id")
+        is_company = bool(user.get("company_name"))
+        
+        if is_company:
+            # Company: Get all invitations sent by this company
+            invitations_response = (
+                supabase.table("assessment_invitations")
+                .select("*")
+                .eq("company_id", user_id)
+                .order("created_at", desc=True)
+                .execute()
+            )
+        else:
+            # Candidate: Get all invitations sent to them
+            email = user.get("email")
+            invitations_response = (
+                supabase.table("assessment_invitations")
+                .select("*")
+                .eq("candidate_email", email)
+                .order("created_at", desc=True)
+                .execute()
+            )
+        
+        invitations = invitations_response.data or []
+        
+        # Filter out expired invitations
+        from datetime import datetime, timezone
+        active_invitations = []
+        
+        for inv in invitations:
+            expires_at = datetime.fromisoformat(inv["expires_at"].replace("Z", "+00:00"))
+            is_expired = datetime.now(timezone.utc) > expires_at
+            
+            inv_data = {
+                "id": inv["id"],
+                "assessment_id": inv["assessment_id"],
+                "status": inv["status"],
+                "created_at": inv["created_at"],
+                "expires_at": inv["expires_at"],
+                "is_expired": is_expired,
+                "metadata": inv.get("metadata", {})
+            }
+            
+            if is_company:
+                inv_data["candidate_email"] = inv["candidate_email"]
+            else:
+                inv_data["company_id"] = inv["company_id"]
+            
+            active_invitations.append(inv_data)
+        
+        return {
+            "invitations": active_invitations,
+            "total": len(active_invitations),
+            "user_type": "company" if is_company else "candidate"
+        }
+    
+    except Exception as e:
+        print(f"❌ Failed to list invitations: {e}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to list invitations: {str(e)}"
+        )
+
+
+def send_email(to_email: str, subject: str, html: str):
+    """Helper function to send emails via Resend"""
+    try:
+        return resend.Emails.send({
+            "from": "JobShaman <noreply@jobshaman.cz>",
+            "to": to_email,
+            "subject": subject,
+            "html": html
+        })
+    except Exception as e:
+        print(f"❌ Failed to send email to {to_email}: {e}")
+        raise
 
 
 if __name__ == "__main__":

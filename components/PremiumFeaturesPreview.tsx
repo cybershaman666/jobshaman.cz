@@ -28,43 +28,43 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
   
   const premiumFeatures = [
     {
-      icon: FileText,
-      title: 'CV Templates',
-      description: 'Profesionální šablony CV navržené personalisty',
+      icon: Wand2,
+      title: 'AI Analýza CV',
+      description: 'Hluboká analýza vašeho CV a doporučení zlepšení',
       benefits: [
-        'Předdefinované formáty',
-        'Optimalizace pro ATS',
-        'Exportovat do PDF/Word',
-        '10+ šablon k dispozici'
+        'Analýza relevance vašich zkušeností',
+        'Identifikace nedostatků na trhu',
+        'Konkrétní doporučení pro rozvoj',
+        'Porovnání s trhem'
       ],
       color: 'from-blue-500 to-cyan-500',
       bgColor: 'bg-blue-50 dark:bg-blue-900/20'
     },
     {
-      icon: Wand2,
-      title: 'AI CV Rewrite',
-      description: 'Inteligentní přepsání a optimalizace vašeho CV',
-      benefits: [
-        'Automatická optimalizace pro pozici',
-        'Zlepšení popis zkušeností',
-        'Zvýšení skóre relevance',
-        'Vícejazyčné opravy'
-      ],
-      color: 'from-purple-500 to-pink-500',
-      bgColor: 'bg-purple-50 dark:bg-purple-900/20'
-    },
-    {
       icon: Mail,
-      title: 'AI Cover Letter',
+      title: 'AI Motivační Dopis',
       description: 'Generování personalizovaných motivačních dopisů',
       benefits: [
         'Automatické vytvoření na míru',
         'Přizpůsobení pro konkrétní firmu',
-        'Profesionální tón',
-        'Uložení šablon'
+        'Zvýšení šancí na pohovor',
+        'Profesionální psaní'
       ],
       color: 'from-green-500 to-emerald-500',
       bgColor: 'bg-green-50 dark:bg-green-900/20'
+    },
+    {
+      icon: Zap,
+      title: 'Doporučení Kurzů',
+      description: 'AI doporučení kurzů na základě vašeho profilu',
+      benefits: [
+        'Personalizovaná na vaši kariéru',
+        'Zvyšují vaši hodnotu na trhu',
+        'Relevantní pro hledané pozice',
+        'Ověřené zdroje'
+      ],
+      color: 'from-amber-500 to-orange-500',
+      bgColor: 'bg-amber-50 dark:bg-amber-900/20'
     }
   ];
 
@@ -74,7 +74,7 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
       onUpgradeClick?.();
       return;
     }
-    redirectToCheckout('basic', userProfile.id);
+    redirectToCheckout('premium', userProfile.id);
   };
 
   if (isPremium) {

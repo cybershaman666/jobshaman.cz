@@ -24,6 +24,7 @@ import CookieBanner from './components/CookieBanner';
 import PodminkyUziti from './pages/PodminkyUziti';
 import OchranaSoukromi from './pages/OchranaSoukromi';
 import SubscriptionManagementPage from './pages/SubscriptionManagementPage';
+import InvitationLanding from './pages/InvitationLanding';
 import PremiumUpgradeModal from './components/PremiumUpgradeModal';
 import AppFooter from './components/AppFooter';
 import { analyzeJobDescription, estimateSalary } from './services/geminiService';
@@ -642,6 +643,13 @@ export default function App() {
     const renderContent = () => {
         // Handle static pages based on pathname
         const pathname = window.location.pathname;
+        if (pathname.startsWith('/assessment/')) {
+            return (
+                <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+                    <InvitationLanding />
+                </div>
+            );
+        }
         if (pathname === '/podminky-uziti') {
             return (
                 <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
