@@ -74,7 +74,7 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
       onUpgradeClick?.();
       return;
     }
-    redirectToCheckout('premium', userProfile.id);
+    redirectToCheckout('basic', userProfile.id);
   };
 
   if (isPremium) {
