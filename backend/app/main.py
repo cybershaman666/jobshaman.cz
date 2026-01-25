@@ -1169,14 +1169,13 @@ async def get_subscription_status(
     """
     Get detailed subscription status for dashboard display
     Returns tier, status, renewal date, and usage limits
+    Reads from subscriptions table (single source of truth) for both personal and company users
     """
     try:
         if user.get("id") != userId:
             raise HTTPException(
                 status_code=403, detail="Cannot access other users' subscription info"
             )
-
-        user_tier = user.get("subscription_tier", "free")
 
         # Tier limits configuration
         tier_limits = {
@@ -1186,23 +1185,35 @@ async def get_subscription_status(
             "assessment_bundle": {"assessments": 50, "job_postings": 0, "name": "Assessment Bundle"},
         }
 
-        limits = tier_limits.get(user_tier, tier_limits["free"])
-
-        # Get subscription details if not free tier
+        # Check if this is a company admin or a personal user
+        is_company_admin = bool(user.get("company_name"))
+        
+        # Get subscription details from subscriptions table (single source of truth)
         subscription_details = None
-        if user_tier != "free":
+        user_tier = "free"
+        
+        if is_company_admin:
+            # For company admins: query by company_id
             sub_response = (
                 supabase.table("subscriptions")
                 .select("*")
-                .eq(
-                    "company_id" if user.get("company_name") else "user_id",
-                    user.get("id"),
-                )
+                .eq("company_id", user.get("id"))
                 .execute()
             )
+        else:
+            # For personal users: query by user_id
+            sub_response = (
+                supabase.table("subscriptions")
+                .select("*")
+                .eq("user_id", user.get("id"))
+                .execute()
+            )
+        
+        if sub_response.data:
+            subscription_details = sub_response.data[0]
+            user_tier = subscription_details.get("tier", "free")
 
-            if sub_response.data:
-                subscription_details = sub_response.data[0]
+        limits = tier_limits.get(user_tier, tier_limits["free"])
 
         # Calculate days until renewal
         days_until_renewal = None

@@ -57,7 +57,7 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                             onClose();
                             return;
                         }
-                        redirectToCheckout('premium', userProfile.id);
+                        redirectToCheckout('basic', userProfile.id);
                     }}
                     className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl transition-all shadow-xl hover:scale-[1.02] active:scale-95 mb-4"
                 >
