@@ -1248,30 +1248,44 @@ async def get_subscription_status(
             now = datetime.now(timezone.utc)
             days_until_renewal = max(0, (renewal_date - now).days)
 
+        # Prefer period-scoped usage from `subscription_usage` table when available
+        assessments_used = 0
+        job_postings_used = 0
+        if subscription_details and supabase:
+            try:
+                usage_resp = (
+                    supabase.table("subscription_usage")
+                    .select("active_jobs_count, ai_assessments_used, ad_optimizations_used, period_start, period_end")
+                    .eq("subscription_id", subscription_details.get("id"))
+                    .order("period_end", {"ascending": False})
+                    .limit(1)
+                    .execute()
+                )
+                if usage_resp.data:
+                    usage = usage_resp.data[0]
+                    assessments_used = usage.get("ai_assessments_used", subscription_details.get("ai_assessments_used", 0) if subscription_details else 0)
+                    job_postings_used = usage.get("active_jobs_count", 0)
+                else:
+                    assessments_used = subscription_details.get("ai_assessments_used", 0) if subscription_details else 0
+            except Exception as e:
+                print(f"⚠️ Warning: could not read subscription_usage: {e}")
+                assessments_used = subscription_details.get("ai_assessments_used", 0) if subscription_details else 0
+        else:
+            assessments_used = subscription_details.get("ai_assessments_used", 0) if subscription_details else 0
+
         return {
             "tier": user_tier,
             "tierName": limits["name"],
-            "status": subscription_details.get("status", "active")
-            if subscription_details
-            else "inactive",
-            "expiresAt": subscription_details.get("current_period_end")
-            if subscription_details
-            else None,
+            "status": subscription_details.get("status", "active") if subscription_details else "inactive",
+            "expiresAt": subscription_details.get("current_period_end") if subscription_details else None,
             "daysUntilRenewal": days_until_renewal,
-            "currentPeriodStart": subscription_details.get("current_period_start")
-            if subscription_details
-            else None,
+            "currentPeriodStart": subscription_details.get("current_period_start") if subscription_details else None,
             "assessmentsAvailable": limits["assessments"],
-            "assessmentsUsed": subscription_details.get("ai_assessments_used", 0)
-            if subscription_details
-            else 0,
+            "assessmentsUsed": assessments_used,
             "jobPostingsAvailable": limits["job_postings"],
-            "stripeSubscriptionId": subscription_details.get("stripe_subscription_id")
-            if subscription_details
-            else None,
-            "canceledAt": subscription_details.get("canceled_at")
-            if subscription_details
-            else None,
+            "jobPostingsUsed": job_postings_used,
+            "stripeSubscriptionId": subscription_details.get("stripe_subscription_id") if subscription_details else None,
+            "canceledAt": subscription_details.get("canceled_at") if subscription_details else None,
         }
 
     except Exception as e:
@@ -1300,19 +1314,24 @@ async def create_checkout_session(req: CheckoutRequest):
             raise HTTPException(status_code=400, detail=f"Invalid tier: {req.tier}")
         
         # Live Stripe Price IDs
+        # Note: assessment_bundle is a recurring subscription (990 CZK/month for 10 assessments/month)
+        # single_assessment one-time purchase is not yet configured in Stripe - use assessment_bundle instead
         prices = {
-            "premium": "price_1StDJuG2Aezsy59eqi584FWl",  # 99 CZK/month for personal users
-            "business": "price_1StDKmG2Aezsy59e1eiG9bny",  # 4990 CZK/month for companies
-            "assessment_bundle": "price_1StDTGG2Aezsy59esZLgocHw",  # 990 CZK for 10 assessments (one-time)
-            "single_assessment": "price_1Q...",  # 99 CZK for 1 assessment (one-time) - TODO: Update with real Stripe ID
+            "premium": "price_1StDJuG2Aezsy59eqi584FWl",  # 99 CZK/month
+            "business": "price_1StDKmG2Aezsy59e1eiG9bny",  # 4990 CZK/month
+            "assessment_bundle": "price_1StDTGG2Aezsy59esZLgocHw",  # 990 CZK/month for 10 assessments/month (recurring)
+            "single_assessment": None,  # TODO: Create one-time price in Stripe and update this field
         }
 
         price_id = prices.get(backend_tier)
-        if not price_id:
-            raise HTTPException(status_code=400, detail=f"Invalid tier: {backend_tier}")
+        if not price_id or price_id is None:
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Stripe price not configured for tier '{backend_tier}'. Please use 'premium' or 'business' tier, or contact support."
+            )
 
-        # 'basic', 'business', and 'assessment_bundle' are subscriptions
-        # 'single_assessment' is a one-time payment
+        # Subscriptions: basic, business, assessment_bundle (recurring)
+        # One-time: single_assessment (when price is configured)
         mode = (
             "subscription"
             if backend_tier in ["basic", "business", "assessment_bundle"]
@@ -2028,12 +2047,14 @@ async def submit_assessment_result(
             "completed_at": datetime.now(timezone.utc).isoformat()
         }).eq("id", invitation_id).execute()
         
-        # Update company's assessment usage counter
-        supabase.table("subscriptions").update({
-            "ai_assessments_used": supabase.rpc("increment_assessment_usage", {
-                "company_id": invitation["company_id"]
-            }).execute()
-        }).eq("company_id", invitation["company_id"]).execute()
+        # Atomically increment company's assessment usage via RPC (do not write RPC object into subscriptions row)
+        try:
+            rpc_resp = supabase.rpc("increment_assessment_usage", {"company_id": invitation["company_id"]}).execute()
+            # rpc_resp.data may include the updated usage row or the new counter depending on RPC implementation
+            if rpc_resp and getattr(rpc_resp, 'data', None):
+                print(f"✅ increment_assessment_usage RPC result: {rpc_resp.data}")
+        except Exception as e:
+            print(f"⚠️ Warning: failed to increment assessment usage via RPC: {e}")
         
         return {
             "status": "success",

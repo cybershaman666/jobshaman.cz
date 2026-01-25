@@ -9,6 +9,7 @@ This guide explains how to deploy the JobShaman backend services to Render.io.
    - Supabase (URL and Key)
    - Google Gemini (for legality checks)
    - Resend (for email notifications)
+   - Stripe (Secret Key for payment processing)
 
 ## Deployment Steps
 
@@ -24,6 +25,7 @@ The project includes a `render.yaml` file that defines all services.
    - `SUPABASE_KEY`
    - `GEMINI_API_KEY`
    - `RESEND_API_KEY`
+   - `STRIPE_SECRET_KEY` (Your Stripe Secret Key, starting with `sk_`)
    - `SECRET_KEY` (Any random string for one-click tokens)
    - `API_BASE_URL` (Your Render URL, e.g., `https://jobshaman-backend.onrender.com`)
 6. Click **Apply**.
@@ -63,6 +65,7 @@ Ensure these are set in Render -> Settings -> Environment Variables:
 - `SUPABASE_KEY`
 - `GEMINI_API_KEY`
 - `RESEND_API_KEY`
+- `STRIPE_SECRET_KEY` (Starts with `sk_`, get from Stripe Dashboard > API Keys)
 - `SECRET_KEY` (Can be anything)
 - `API_BASE_URL` (e.g. https://jobshaman-cz.onrender.com)
 
