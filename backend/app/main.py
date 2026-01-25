@@ -690,8 +690,8 @@ def calculate_candidate_match(candidate: dict, job: dict):
 @app.post("/match-candidates")
 @limiter.limit("10/minute")  # Stricter rate limiting for matching
 async def match_candidates_service(
+    request: Request,
     job_id: int = Query(...),
-    request: Request = None,
     user: dict = Depends(verify_subscription),
 ):
     """
@@ -1143,8 +1143,8 @@ async def get_subscription_status(
     request: Request, userId: str = Query(...), user: dict = Depends(get_current_user)
 ):
     """
-    Get subscription status for UI display purposes only
-    Does NOT grant access to features
+    Get detailed subscription status for dashboard display
+    Returns tier, status, renewal date, and usage limits
     """
     try:
         if user.get("id") != userId:
@@ -1154,10 +1154,19 @@ async def get_subscription_status(
 
         user_tier = user.get("subscription_tier", "free")
 
+        # Tier limits configuration
+        tier_limits = {
+            "free": {"assessments": 0, "job_postings": 0, "name": "Free"},
+            "basic": {"assessments": 20, "job_postings": 50, "name": "Basic"},
+            "business": {"assessments": 999, "job_postings": 999, "name": "Business"},
+            "assessment_bundle": {"assessments": 50, "job_postings": 0, "name": "Assessment Bundle"},
+        }
+
+        limits = tier_limits.get(user_tier, tier_limits["free"])
+
         # Get subscription details if not free tier
         subscription_details = None
         if user_tier != "free":
-            table_name = "companies" if user.get("company_name") else "profiles"
             sub_response = (
                 supabase.table("subscriptions")
                 .select("*")
@@ -1171,12 +1180,38 @@ async def get_subscription_status(
             if sub_response.data:
                 subscription_details = sub_response.data[0]
 
+        # Calculate days until renewal
+        days_until_renewal = None
+        if subscription_details and subscription_details.get("current_period_end"):
+            from datetime import datetime, timezone
+            renewal_date = datetime.fromisoformat(
+                subscription_details["current_period_end"].replace("Z", "+00:00")
+            )
+            now = datetime.now(timezone.utc)
+            days_until_renewal = max(0, (renewal_date - now).days)
+
         return {
             "tier": user_tier,
+            "tierName": limits["name"],
             "status": subscription_details.get("status", "active")
             if subscription_details
             else "inactive",
             "expiresAt": subscription_details.get("current_period_end")
+            if subscription_details
+            else None,
+            "daysUntilRenewal": days_until_renewal,
+            "currentPeriodStart": subscription_details.get("current_period_start")
+            if subscription_details
+            else None,
+            "assessmentsAvailable": limits["assessments"],
+            "assessmentsUsed": subscription_details.get("ai_assessments_used", 0)
+            if subscription_details
+            else 0,
+            "jobPostingsAvailable": limits["job_postings"],
+            "stripeSubscriptionId": subscription_details.get("stripe_subscription_id")
+            if subscription_details
+            else None,
+            "canceledAt": subscription_details.get("canceled_at")
             if subscription_details
             else None,
         }
