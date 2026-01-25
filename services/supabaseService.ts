@@ -146,7 +146,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
     }
     
     // Fetch from candidate_profiles table
-    const { data: candidateData, error: candidateError } = await supabase
+    const { data: candidateData, error: _candidateError } = await supabase
         .from('candidate_profiles')
         .select('*')
         .eq('id', userId)
@@ -993,17 +993,6 @@ export const createCVDocument = async (documentData: any): Promise<string> => {
     return data.id;
 };
 
-export const deleteCVDocument = async (documentId: string): Promise<void> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { error } = await supabase
-        .from('cv_documents')
-        .delete()
-        .eq('id', documentId);
-    
-    if (error) throw error;
-};
-
 export const getJobCandidateMatches = async (jobId?: number, candidateId?: string): Promise<any[]> => {
     if (!supabase) return [];
     
@@ -1272,58 +1261,6 @@ export const uploadCVFile = async (_userId: string, file: File): Promise<string>
     return data.path;
 };
 
-export const uploadCVDocument = async (userId: string, documentData: any): Promise<string> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    const { data, error } = await supabase
-        .from('cv_documents')
-        .insert({
-            ...documentData,
-            uploaded_at: new Date().toISOString(),
-        })
-        .select('id')
-        .single();
-    
-    if (error) throw error;
-    
-    return data.id;
-};
-
-export const getUserCVDocuments = async (userId: string) => {
-    if (!supabase) return [];
-    
-    const { data, error } = await supabase
-        .from('cv_documents')
-        .select('*')
-        .eq('user_id', userId)
-        .order('uploaded_at', { ascending: false });
-    
-    if (error) {
-        console.error('CV documents fetch error:', error);
-        return [];
-    }
-    
-    return data || [];
-};
-
-export const updateUserCVSelection = async (userId: string, cvId: string): Promise<void> => {
-    if (!supabase) throw new Error("Supabase not configured");
-    
-    // Deactivate all CVs first
-    await supabase
-        .from('cv_documents')
-        .update({ is_active: false })
-        .eq('user_id', userId);
-    
-    // Activate selected CV
-    const { error } = await supabase
-        .from('cv_documents')
-        .update({ is_active: true })
-        .eq('id', cvId);
-    
-    if (error) throw error;
-};
-
 export const uploadProfilePhoto = async (userId: string, file: File): Promise<string> => {
     if (!supabase) throw new Error("Supabase not configured");
     
@@ -1387,4 +1324,173 @@ export const fetchBenefitValuations = async () => {
         .order('monthly_value_czk', { ascending: false });
     
     return data || [];
+};
+
+// ========================================
+// CV DOCUMENT MANAGEMENT
+// ========================================
+
+export const getUserCVDocuments = async (userId: string): Promise<CVDocument[]> => {
+    if (!supabase) return [];
+    
+    const { data, error } = await supabase
+        .from('cv_documents')
+        .select('*')
+        .eq('user_id', userId)
+        .order('uploaded_at', { ascending: false });
+    
+    if (error) {
+        console.error('Error fetching CV documents:', error);
+        return [];
+    }
+    
+    return (data || []).map(doc => ({
+        id: doc.id,
+        userId: doc.user_id,
+        fileName: doc.file_name,
+        originalName: doc.original_name,
+        fileUrl: doc.file_url,
+        fileSize: doc.file_size,
+        contentType: doc.content_type,
+        isActive: doc.is_active || false,
+        parsedData: doc.parsed_data,
+        uploadedAt: doc.uploaded_at,
+        lastUsed: doc.last_used
+    }));
+};
+
+export const uploadCVDocument = async (userId: string, file: File): Promise<CVDocument | null> => {
+    if (!supabase) return null;
+    
+    try {
+        // First, upload the file to Supabase Storage
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${userId}/${Date.now()}.${fileExt}`;
+        
+        const { data: uploadData, error: uploadError } = await supabase.storage
+            .from('cv-documents')
+            .upload(fileName, file);
+        
+        if (uploadError) {
+            console.error('File upload error:', uploadError);
+            throw uploadError;
+        }
+        
+        // Get the public URL
+        const { data: urlData } = supabase.storage
+            .from('cv-documents')
+            .getPublicUrl(fileName);
+        
+        // Insert record into cv_documents table
+        const { data, error } = await supabase
+            .from('cv_documents')
+            .insert({
+                user_id: userId,
+                file_name: fileName,
+                original_name: file.name,
+                file_url: urlData.publicUrl,
+                file_size: file.size,
+                content_type: file.type,
+                is_active: false
+            })
+            .select()
+            .single();
+        
+        if (error) {
+            console.error('Database insert error:', error);
+            throw error;
+        }
+        
+        return {
+            id: data.id,
+            userId: data.user_id,
+            fileName: data.file_name,
+            originalName: data.original_name,
+            fileUrl: data.file_url,
+            fileSize: data.file_size,
+            contentType: data.content_type,
+            isActive: data.is_active || false,
+            parsedData: data.parsed_data,
+            uploadedAt: data.uploaded_at,
+            lastUsed: data.last_used
+        };
+    } catch (error) {
+        console.error('CV upload failed:', error);
+        return null;
+    }
+};
+
+export const updateUserCVSelection = async (userId: string, cvId: string): Promise<boolean> => {
+    if (!supabase) return false;
+    
+    try {
+        // First, set all CVs for this user to inactive
+        await supabase
+            .from('cv_documents')
+            .update({ is_active: false })
+            .eq('user_id', userId);
+        
+        // Then set the selected CV to active
+        const { error } = await supabase
+            .from('cv_documents')
+            .update({ 
+                is_active: true,
+                last_used: new Date().toISOString()
+            })
+            .eq('id', cvId)
+            .eq('user_id', userId);
+        
+        if (error) {
+            console.error('CV selection update error:', error);
+            return false;
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('CV selection failed:', error);
+        return false;
+    }
+};
+
+export const deleteCVDocument = async (userId: string, cvId: string): Promise<boolean> => {
+    if (!supabase) return false;
+    
+    try {
+        // First, get the file name to delete from storage
+        const { data: cvData, error: fetchError } = await supabase
+            .from('cv_documents')
+            .select('file_name')
+            .eq('id', cvId)
+            .eq('user_id', userId)
+            .single();
+        
+        if (fetchError) {
+            console.error('CV fetch error:', fetchError);
+            return false;
+        }
+        
+        // Delete from storage
+        if (cvData?.file_name) {
+            await supabase.storage
+                .from('cv-documents')
+                .remove([cvData.file_name]);
+        }
+        
+        // Delete from database
+        const { error } = await supabase
+            .from('cv_documents')
+            .delete()
+            .eq('id', cvId)
+            .eq('user_id', userId);
+        
+        if (error) {
+            console.error('CV deletion error:', error);
+            return false;
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('CV deletion failed:', error);
+        return false;
+    }
 };

@@ -122,8 +122,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
     
         // Transform subscription_tier to subscription object for compatibility
     const subscription = data.subscription_tier ? {
-        tier: data.subscription_tier,
-        // New fields will be populated after migration
+        tier: data.subscription_tier as CandidateSubscriptionTier,
         usage: null,
         expiresAt: null
     } : null;
@@ -131,7 +130,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
     return {
         ...data,
         subscription,
-        isPremium: (data as any).subscription_tier === 'premium',
+        isPremium: subscription?.tier === 'premium',
         isLoggedIn: true
     };
 };
@@ -142,20 +141,20 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     const updateData: any = { ...updates };
     
     // Handle subscription tier updates separately
-    if (updates.subscription_tier) {
+    if (updates.subscription?.tier) {
         // Update subscription table
         const { error: subError } = await supabase
             .from('subscriptions')
             .update({ 
-                tier: updates.subscription_tier,
+                tier: updates.subscription.tier,
                 updated_at: new Date().toISOString()
             })
             .eq('company_id', userId); // Note: This assumes user = company for simplicity
             
         if (subError) console.error('Subscription update error:', subError);
         
-        // Don't include subscription_tier in profile update
-        delete updateData.subscription_tier;
+        // Don't include subscription in profile update
+        delete updateData.subscription;
     }
     
     const { error } = await supabase
@@ -217,9 +216,8 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
             const isExpired = new Date(subData.current_period_end) < new Date();
             
             subscription = {
-                tier: subData.tier,
-                expiresAt: subData.current_period_end,
-                status: isExpired ? 'expired' : subData.status
+                tier: subData.tier as CompanyServiceTier,
+                expiresAt: subData.current_period_end
             };
 
             // Fetch current usage
@@ -289,7 +287,8 @@ export const incrementAssessmentUsage = async (companyId: string): Promise<void>
         const { error } = await supabase
             .from('subscription_usage')
             .update({ ai_assessments_used: newUsage })
-            .eq('id', currentUsage.id);
+            .eq('subscription_id', company.subscription_id)
+            .eq('period_end', '(SELECT MAX(period_end) FROM subscription_usage WHERE subscription_id = ' + company.subscription_id + ')');
             
         if (error) {
             console.error('Failed to increment assessment usage:', error);
@@ -337,7 +336,8 @@ export const incrementAdOptimizationUsage = async (companyId: string): Promise<v
         const { error } = await supabase
             .from('subscription_usage')
             .update({ ad_optimizations_used: newUsage })
-            .eq('id', currentUsage.id);
+            .eq('subscription_id', company.subscription_id)
+            .eq('period_end', '(SELECT MAX(period_end) FROM subscription_usage WHERE subscription_id = ' + company.subscription_id + ')');
             
         if (error) {
             console.error('Failed to increment ad optimization usage:', error);
@@ -385,7 +385,8 @@ export const incrementJobPosting = async (companyId: string): Promise<void> => {
         const { error } = await supabase
             .from('subscription_usage')
             .update({ active_jobs_count: newUsage })
-            .eq('id', currentUsage.id);
+            .eq('subscription_id', company.subscription_id)
+            .eq('period_end', '(SELECT MAX(period_end) FROM subscription_usage WHERE subscription_id = ' + company.subscription_id + ')');
             
         if (error) {
             console.error('Failed to increment job posting usage:', error);
