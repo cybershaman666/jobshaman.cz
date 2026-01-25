@@ -273,6 +273,9 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
               <div className="bg-purple-600 h-2 rounded-full w-full"></div>
             </div>
             <p className="text-xs text-gray-600 mt-2">Unlimited monthly postings</p>
+            {typeof (subscription as any).jobPostingsUsed !== 'undefined' && (
+              <p className="text-xs text-gray-500 mt-1">Used: {(subscription as any).jobPostingsUsed}</p>
+            )}
           </div>
         )}
 
