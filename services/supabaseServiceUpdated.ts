@@ -130,7 +130,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
     return {
         ...data,
         subscription,
-        isPremium: subscription?.tier === 'premium',
+        transportMode: data.transport_mode || 'car',
         isLoggedIn: true
     };
 };
@@ -237,12 +237,15 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
                     adOptimizationsUsed: usageData.ad_optimizations_used || 0
                 };
             }
-            }
         }
     }
     
     return {
         ...data,
+        industry: 'Technology',
+        tone: 'Professional but friendly',
+        values: ['Innovation', 'Growth'],
+        philosophy: 'Building great products together',
         subscription
     };
 };
