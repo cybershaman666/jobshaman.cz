@@ -1871,34 +1871,82 @@ async def create_assessment_invitation(
     Only company admins (business/assessment_bundle tier) can send invitations
     """
     try:
+        # Validate Supabase connection
+        if not supabase:
+            print("❌ Supabase connection unavailable")
+            raise HTTPException(status_code=503, detail="Database unavailable")
+        
+        # Validate user context
         company_id = user.get("id")
+        if not company_id:
+            print("❌ User ID missing")
+            raise HTTPException(status_code=401, detail="User not authenticated")
+        
         if not user.get("company_name"):
+            print(f"❌ Non-company user {company_id} attempted to create invitation")
             raise HTTPException(
                 status_code=403,
                 detail="Only company admins can send assessment invitations"
             )
         
+        # Validate email format
+        from pydantic import EmailStr
+        try:
+            EmailStr.validate(invitation_req.candidate_email)
+            print(f"✅ Email validated: {invitation_req.candidate_email}")
+        except Exception as e:
+            print(f"❌ Invalid email format: {invitation_req.candidate_email} - {e}")
+            raise HTTPException(status_code=400, detail="Invalid candidate email format")
+        
+        # Validate assessment_id exists
+        try:
+            assessment_check = (
+                supabase.table("assessments")
+                .select("id")
+                .eq("id", invitation_req.assessment_id)
+                .single()
+                .execute()
+            )
+            if not assessment_check.data:
+                print(f"❌ Assessment not found: {invitation_req.assessment_id}")
+                raise HTTPException(status_code=404, detail="Assessment not found")
+            print(f"✅ Assessment verified: {invitation_req.assessment_id}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"❌ Assessment lookup failed: {e}")
+            raise HTTPException(status_code=500, detail="Failed to verify assessment")
+        
         # Check company has assessment tier
-        tier_check = (
-            supabase.table("subscriptions")
-            .select("tier")
-            .eq("company_id", company_id)
-            .eq("status", "active")
-            .execute()
-        )
-        
-        if not tier_check.data:
-            raise HTTPException(
-                status_code=403,
-                detail="Company must have active assessment bundle or business subscription"
+        try:
+            tier_check = (
+                supabase.table("subscriptions")
+                .select("tier")
+                .eq("company_id", company_id)
+                .eq("status", "active")
+                .execute()
             )
-        
-        tier = tier_check.data[0].get("tier")
-        if tier not in ["business", "assessment_bundle"]:
-            raise HTTPException(
-                status_code=403,
-                detail=f"Tier '{tier}' cannot send assessment invitations"
-            )
+            
+            if not tier_check.data:
+                print(f"❌ No active subscription for company {company_id}")
+                raise HTTPException(
+                    status_code=403,
+                    detail="Company must have active assessment bundle or business subscription"
+                )
+            
+            tier = tier_check.data[0].get("tier")
+            if tier not in ["business", "assessment_bundle"]:
+                print(f"❌ Tier '{tier}' cannot send invitations (company {company_id})")
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Tier '{tier}' cannot send assessment invitations"
+                )
+            print(f"✅ Company {company_id} tier verified: {tier}")
+        except HTTPException:
+            raise
+        except Exception as e:
+            print(f"❌ Subscription check failed: {e}")
+            raise HTTPException(status_code=500, detail="Failed to verify subscription")
         
         # Create invitation token
         invitation_token = generate_invitation_token()
@@ -2034,15 +2082,36 @@ async def get_invitation_details(
     Used by candidates to view invitation before starting assessment
     """
     try:
+        # Validate inputs
+        if not invitation_id or len(invitation_id) > 100:
+            print(f"❌ Invalid invitation_id: {invitation_id}")
+            raise HTTPException(status_code=400, detail="Invalid invitation ID format")
+        
+        if not token or len(token) < 20:
+            print(f"❌ Invalid token format")
+            raise HTTPException(status_code=400, detail="Invalid token format")
+        
+        # Check database connection
+        if not supabase:
+            print("❌ Supabase connection unavailable")
+            raise HTTPException(status_code=503, detail="Database unavailable")
+        
+        print(f"🔍 Fetching invitation {invitation_id}")
+        
         # Get invitation from database
-        invitation_response = (
-            supabase.table("assessment_invitations")
-            .select("*")
-            .eq("id", invitation_id)
-            .execute()
-        )
+        try:
+            invitation_response = (
+                supabase.table("assessment_invitations")
+                .select("*")
+                .eq("id", invitation_id)
+                .execute()
+            )
+        except Exception as e:
+            print(f"❌ Failed to fetch invitation: {e}")
+            raise HTTPException(status_code=500, detail="Failed to fetch invitation")
         
         if not invitation_response.data:
+            print(f"⚠️ Invitation not found: {invitation_id}")
             raise HTTPException(
                 status_code=404,
                 detail="Invitation not found"
@@ -2050,12 +2119,15 @@ async def get_invitation_details(
         
         invitation = invitation_response.data[0]
         
-        # Verify token matches
-        if invitation["invitation_token"] != token:
+        # Verify token matches (case-sensitive)
+        if not invitation.get("invitation_token") or invitation["invitation_token"] != token:
+            print(f"❌ Token mismatch for invitation {invitation_id}")
             raise HTTPException(
                 status_code=403,
                 detail="Invalid invitation token"
             )
+        
+        print(f"✅ Token verified for invitation {invitation_id}")
         
         # Check if invitation is still valid (not expired)
         from datetime import datetime, timezone
