@@ -91,9 +91,15 @@ export async function getSubscriptionStatus(userId: string): Promise<{
   canceledAt?: string;
 }> {
   try {
-    const response = await fetch(`${BACKEND_URL}/subscription-status?userId=${userId}`);
+    const response = await authenticatedFetch(`${BACKEND_URL}/subscription-status?userId=${userId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
     if (!response.ok) {
-      throw new Error('Failed to get subscription status');
+      throw new Error(`Failed to get subscription status: ${response.status}`);
     }
     return await response.json();
   } catch (error) {
