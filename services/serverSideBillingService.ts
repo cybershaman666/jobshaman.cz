@@ -72,13 +72,22 @@ export async function verifyServerSideBilling(
 }
 
 /**
- * CLIENT-SIDE: Get subscription status for display purposes only
+ * CLIENT-SIDE: Get detailed subscription status for display purposes only
  * This does NOT grant access - it's just for UI display
+ * Returns comprehensive billing information including usage limits and renewal dates
  */
 export async function getSubscriptionStatus(userId: string): Promise<{
   tier: string;
+  tierName: string;
   status: string;
   expiresAt?: string;
+  daysUntilRenewal?: number;
+  currentPeriodStart?: string;
+  assessmentsAvailable: number;
+  assessmentsUsed: number;
+  jobPostingsAvailable: number;
+  stripeSubscriptionId?: string;
+  canceledAt?: string;
 }> {
   try {
     const response = await fetch(`/api/subscription-status?userId=${userId}`);
@@ -90,7 +99,11 @@ export async function getSubscriptionStatus(userId: string): Promise<{
     console.error('Error getting subscription status:', error);
     return {
       tier: 'free',
-      status: 'inactive'
+      tierName: 'Free',
+      status: 'inactive',
+      assessmentsAvailable: 0,
+      assessmentsUsed: 0,
+      jobPostingsAvailable: 0
     };
   }
 }
