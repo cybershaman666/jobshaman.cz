@@ -1252,6 +1252,19 @@ async def get_subscription_status(
 @app.post("/create-checkout-session")
 async def create_checkout_session(req: CheckoutRequest):
     try:
+        # Map frontend tier names to backend/Stripe tier names
+        # Frontend uses 'premium' for personal users, backend uses 'basic'
+        tier_mapping = {
+            "premium": "basic",  # Frontend 'premium' maps to backend 'basic'
+            "basic": "basic",    # Also accept 'basic' directly
+            "business": "business",
+            "assessment_bundle": "assessment_bundle",
+        }
+        
+        backend_tier = tier_mapping.get(req.tier)
+        if not backend_tier:
+            raise HTTPException(status_code=400, detail=f"Invalid tier: {req.tier}")
+        
         # Live Stripe Price IDs
         prices = {
             "basic": "price_1StDJuG2Aezsy59eqi584FWl",  # Was premium
@@ -1259,14 +1272,14 @@ async def create_checkout_session(req: CheckoutRequest):
             "assessment_bundle": "price_1StDTGG2Aezsy59esZLgocHw",
         }
 
-        price_id = prices.get(req.tier)
+        price_id = prices.get(backend_tier)
         if not price_id:
-            raise HTTPException(status_code=400, detail="Invalid tier")
+            raise HTTPException(status_code=400, detail=f"Invalid tier: {backend_tier}")
 
         # 'basic' and 'business' are subscriptions, 'assessment_bundle' is also a subscription
         mode = (
             "subscription"
-            if req.tier in ["basic", "business", "assessment_bundle"]
+            if backend_tier in ["basic", "business", "assessment_bundle"]
             else "payment"
         )
 
@@ -1280,7 +1293,7 @@ async def create_checkout_session(req: CheckoutRequest):
             mode=mode,
             success_url=req.successUrl,
             cancel_url=req.cancelUrl,
-            metadata={"userId": req.userId, "tier": req.tier},
+            metadata={"userId": req.userId, "tier": backend_tier},
         )
         return {"url": checkout_session.url}
     except Exception as e:
