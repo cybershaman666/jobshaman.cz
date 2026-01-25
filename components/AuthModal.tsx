@@ -44,7 +44,6 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
         // CSRF: Fetch CSRF token after successful authentication
         if (userData) {
             try {
-                const authToken = userData.id; // Use user ID as token for now, real token from Supabase session
                 // Get the actual session token
                 const session = await (await import('../services/supabaseClient')).supabase?.auth.getSession();
                 const accessToken = session?.data?.session?.access_token;
