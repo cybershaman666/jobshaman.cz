@@ -710,7 +710,7 @@ export default function App() {
         if (viewState === ViewState.SUBSCRIPTION) {
             return (
                 <div className="col-span-1 lg:col-span-12 max-w-4xl mx-auto w-full h-full overflow-y-auto custom-scrollbar pb-6 px-1">
-                    <SubscriptionManagementPage />
+                    <SubscriptionManagementPage userProfile={userProfile} companyProfile={companyProfile} />
                 </div>
             );
         }

@@ -1,5 +1,5 @@
 import React from 'react';
-import { useUserProfile } from '../hooks/useUserProfile';
+import { UserProfile, CompanyProfile } from '../types';
 import SubscriptionDashboard from '../components/SubscriptionDashboard';
 import PlanUpgradeModal from '../components/PlanUpgradeModal';
 import PremiumUpsellCard from '../components/PremiumUpsellCard';
@@ -12,9 +12,15 @@ import PremiumUpsellCard from '../components/PremiumUpsellCard';
  * - Individual users: Shows their personal subscription
  * - Company admins: Can view and manage their company subscription
  */
-export const SubscriptionManagementPage = () => {
-  const { userProfile: user, companyProfile: company } = useUserProfile();
-  
+interface SubscriptionManagementPageProps {
+  userProfile: UserProfile;
+  companyProfile: CompanyProfile | null;
+}
+
+export const SubscriptionManagementPage: React.FC<SubscriptionManagementPageProps> = ({ 
+  userProfile: user, 
+  companyProfile: company 
+}) => {
   // Check if user is still loading (not yet logged in and no id)
   const isLoading = !user?.isLoggedIn || !user?.id;
   const [showUpgradeModal, setShowUpgradeModal] = React.useState(false);
