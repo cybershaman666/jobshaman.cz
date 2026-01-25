@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Body, Request
+from fastapi import FastAPI, HTTPException, Body, Request, Query
 from pydantic import BaseModel
 from typing import List, Optional
 import stripe
@@ -241,7 +241,7 @@ def calculate_candidate_match(candidate: dict, job: dict):
     return score, reasons
 
 @app.post("/match-candidates")
-async def match_candidates_service(job_id: int):
+async def match_candidates_service(job_id: int = Query(...)):
     """
     Endpoint to find best matches for a job in the database.
     """
@@ -407,6 +407,26 @@ async def stripe_webhook(request: Request):
                 supabase.table("companies").update({
                     "subscription_tier": "business"
                 }).eq("id", user_id).execute()
+                # Also create/update subscriptions table entry
+                existing = supabase.table("subscriptions").select("id").eq("company_id", user_id).execute()
+                if existing.data:
+                    supabase.table("subscriptions").update({
+                        "tier": "business",
+                        "status": "active",
+                        "stripe_subscription_id": session.get("subscription"),
+                        "current_period_start": session.get("current_period_start"),
+                        "current_period_end": session.get("current_period_end"),
+                        "updated_at": now_iso()
+                    }).eq("company_id", user_id).execute()
+                else:
+                    supabase.table("subscriptions").insert({
+                        "company_id": user_id,
+                        "tier": "business",
+                        "status": "active",
+                        "stripe_subscription_id": session.get("subscription"),
+                        "current_period_start": session.get("current_period_start"),
+                        "current_period_end": session.get("current_period_end")
+                    }).execute()
             elif tier == "assessment":
                 # Update Candidate Profile for one-time assessment
                 supabase.table("profiles").update({

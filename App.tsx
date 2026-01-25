@@ -15,6 +15,7 @@ import ProfileEditor from './components/ProfileEditor';
 import AuthModal from './components/AuthModal';
 import CompanyRegistrationModal from './components/CompanyRegistrationModal';
 import MarketplacePage from './components/MarketplacePage';
+import EnterpriseSignup from './components/EnterpriseSignup';
 import CompanyLandingPage from './components/CompanyLandingPage';
 import ContextualRelevance from './components/ContextualRelevance';
 import ApplicationModal from './components/ApplicationModal';
@@ -185,11 +186,15 @@ export default function App() {
                     await updateUserProfile(userId, { role: 'recruiter' });
                     // Force update local state
                     setUserProfile(prev => ({ ...prev, role: 'recruiter' }));
-                    // Reload window to ensure fresh state or just let the effect handle it?
-                    // Effect might not re-run immediately, but setUserProfile should trigger re-render.
-                    // However, we also need to route to company dashboard.
-                    setViewState(ViewState.COMPANY_DASHBOARD);
-                    setIsOnboardingCompany(true); // Assuming they need to create a company if they don't have one
+                    // Check if admin already has a company
+                    const company = await getRecruiterCompany(userId);
+                    if (company) {
+                        setCompanyProfile(company);
+                        setViewState(ViewState.COMPANY_DASHBOARD);
+                    } else {
+                        // Don't automatically show onboarding - let them click to create company
+                        setViewState(ViewState.LIST);
+                    }
                 }
 
                 // Auto-enable commute filter on restore if address exists
@@ -200,9 +205,13 @@ export default function App() {
 
                 if (profile.role === 'recruiter') {
                     const company = await getRecruiterCompany(userId);
-                    if (company) setCompanyProfile(company);
-                    else setIsOnboardingCompany(true);
-                    setViewState(ViewState.COMPANY_DASHBOARD);
+                    if (company) {
+                        setCompanyProfile(company);
+                        setViewState(ViewState.COMPANY_DASHBOARD);
+                    } else {
+                        // Don't automatically show onboarding - user can click to create company
+                        setViewState(ViewState.LIST);
+                    }
                 }
             }
         } catch (error) {
@@ -995,6 +1004,14 @@ export default function App() {
             );
         }
 
+        if (pathname === '/enterprise') {
+            return (
+                <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+                    <EnterpriseSignup />
+                </div>
+            );
+        }
+
         if (pathname === '/ochrana-osobnich-udaju') {
             return (
                 <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
@@ -1300,7 +1317,7 @@ export default function App() {
                                                             setIsAuthModalOpen(true);
                                                             return;
                                                         }
-                                                        redirectToCheckout('assessment', userProfile.id);
+                                                        redirectToCheckout('assessment_bundle', userProfile.id);
                                                     }}
                                                 >
                                                     <Zap size={16} className="text-amber-500" />

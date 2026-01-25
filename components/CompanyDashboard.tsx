@@ -6,7 +6,8 @@ import { MOCK_COMPANY_PROFILE } from '../constants';
 import { optimizeJobDescription } from '../services/geminiService';
 import { publishJob } from '../services/jobPublishService';
 import { canCompanyUseFeature, canCompanyPostJob } from '../services/billingService';
-import { supabase } from '../services/supabaseService';
+import { supabase, incrementAdOptimizationUsage } from '../services/supabaseService';
+import AnalyticsService from '../services/analyticsService';
 import BullshitMeter from './BullshitMeter';
 import CompanySettings from './CompanySettings';
 import AssessmentCreator from './AssessmentCreator';
@@ -136,9 +137,17 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         }
 
         // Job Limit Check
-        const { allowed } = canCompanyPostJob(companyProfile, userEmail);
+        const { allowed, reason } = canCompanyPostJob(companyProfile, userEmail);
 
         if (!allowed) {
+            // Track upgrade trigger
+            AnalyticsService.trackUpgradeTrigger({
+                companyId: companyProfile?.id,
+                feature: 'JOB_POSTING',
+                currentTier: companyProfile?.subscription?.tier || 'basic',
+                reason: reason || 'Job posting limit exceeded'
+            });
+
             setShowUpgradeModal({ open: true, feature: 'Více než 5 inzerátů' });
             return;
         }
@@ -167,6 +176,14 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     const handleOptimize = async () => {
         // Feature Gating
         if (!canCompanyUseFeature(companyProfile, 'COMPANY_AI_AD', userEmail)) {
+            // Track upgrade trigger
+            AnalyticsService.trackUpgradeTrigger({
+                companyId: companyProfile?.id,
+                feature: 'COMPANY_AI_AD',
+                currentTier: companyProfile?.subscription?.tier || 'basic',
+                reason: 'AI ad optimization feature access denied'
+            });
+
             setShowUpgradeModal({ open: true, feature: 'AI Optimalizace Inzerátů' });
             return;
         }
@@ -185,10 +202,22 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         }
     };
 
-    const applyOptimization = () => {
+    const applyOptimization = async () => {
         if (optimizationResult) {
             setAdDraft(optimizationResult.rewrittenText);
             setOptimizationResult(null);
+            
+            // Track usage for companies
+            if (companyProfile?.id) {
+                await incrementAdOptimizationUsage(companyProfile.id);
+                
+                // Track feature usage analytics
+                AnalyticsService.trackFeatureUsage({
+                    companyId: companyProfile.id,
+                    feature: 'AI_AD_OPTIMIZATION',
+                    tier: companyProfile.subscription?.tier || 'basic'
+                });
+            }
         }
     };
 
@@ -975,7 +1004,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 {activeTab === 'overview' && renderOverview()}
                 {activeTab === 'settings' && <CompanySettings profile={companyProfile} onSave={setCompanyProfile} />}
                 {activeTab === 'create-ad' && renderCreateAd()}
-                {activeTab === 'assessments' && <AssessmentCreator />}
+                {activeTab === 'assessments' && <AssessmentCreator companyProfile={companyProfile} />}
                 {activeTab === 'candidates' && renderCandidates()}
                 {/* {activeTab === 'marketplace' && <CompanyMarketplace />} */}
             </div>

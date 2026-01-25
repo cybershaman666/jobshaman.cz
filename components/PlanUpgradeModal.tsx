@@ -3,6 +3,8 @@ import React from 'react';
 import { Briefcase, BrainCircuit, Sparkles, Crown, CheckCircle } from 'lucide-react';
 import { CompanyProfile } from '../types';
 import { redirectToCheckout } from '../services/stripeService';
+import AnalyticsService from '../services/analyticsService';
+import ABTestService from '../services/abTestService';
 
 interface PlanUpgradeModalProps {
     isOpen: boolean;
@@ -13,6 +15,8 @@ interface PlanUpgradeModalProps {
 
 const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, feature, companyProfile }) => {
     if (!isOpen) return null;
+
+
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300">
@@ -65,7 +69,7 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                 </div>
                                 <div className="text-right">
                                     <div className="font-black text-indigo-600 dark:text-indigo-400 text-xl">990 Kč</div>
-                                    <div className="text-[10px] text-slate-400">bez DPH</div>
+                                    <div className="text-[10px] text-slate-400">jednorázový balíček</div>
                                 </div>
                             </div>
                             <div className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300 mb-4 bg-slate-50 dark:bg-slate-950 p-3 rounded-lg">
@@ -73,7 +77,22 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                 <span><strong>10 AI Assessmentů</strong> pro vaše kandidáty. Ideální pro nárazové nábory. Neomezená platnost.</span>
                             </div>
                             <button
-                                onClick={() => companyProfile?.id && redirectToCheckout('assessment_bundle', companyProfile.id)}
+                                onClick={() => {
+                                    if (companyProfile?.id) {
+                                        // Track upgrade attempt
+                                        AnalyticsService.trackUpgradeTrigger({
+                                            companyId: companyProfile.id,
+                                            feature: 'ASSESSMENT_BUNDLE',
+                                            currentTier: companyProfile.subscription?.tier || 'basic',
+                                            reason: 'User clicked assessment bundle purchase'
+                                        });
+                                        
+                                        // Track A/B test conversion
+                                        ABTestService.trackConversion('pricing_display_test', 'assessment_bundle_clicked', 990);
+                                        
+                                        redirectToCheckout('assessment_bundle', companyProfile.id);
+                                    }
+                                }}
                                 className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg transition-colors shadow-sm"
                             >
                                 Koupit Balíček
@@ -96,6 +115,9 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                 <div className="text-right">
                                     <div className="font-black text-cyan-600 dark:text-cyan-400 text-xl">4 990 Kč</div>
                                     <div className="text-[10px] text-slate-400">/ měsíc</div>
+                                    {false && (
+                                        <div className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">Ušetřete 10% ročně</div>
+                                    )}
                                 </div>
                             </div>
                             <ul className="grid grid-cols-2 gap-2 mb-4">
@@ -105,7 +127,22 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                 <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> Prioritní podpora</li>
                             </ul>
                             <button
-                                onClick={() => companyProfile?.id && redirectToCheckout('business', companyProfile.id)}
+                                onClick={() => {
+                                    if (companyProfile?.id) {
+                                        // Track upgrade attempt
+                                        AnalyticsService.trackUpgradeTrigger({
+                                            companyId: companyProfile.id,
+                                            feature: 'BUSINESS_SUBSCRIPTION',
+                                            currentTier: companyProfile.subscription?.tier || 'basic',
+                                            reason: 'User clicked business subscription'
+                                        });
+                                        
+                                        // Track A/B test conversion
+                                        ABTestService.trackConversion('pricing_display_test', 'business_clicked', 4990);
+                                        
+                                        redirectToCheckout('business', companyProfile.id);
+                                    }
+                                }}
                                 className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition-colors shadow-lg shadow-cyan-900/20"
                             >
                                 Aktivovat Business

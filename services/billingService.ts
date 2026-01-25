@@ -12,7 +12,8 @@ export type PremiumFeature =
  * Checks if a user is an administrative tester.
  */
 export const isAdminTester = (email?: string): boolean => {
-    return email === 'misahlavacu@gmail.com';
+    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL || 'misahlavacu@gmail.com';
+    return email === adminEmail;
 };
 
 /**
@@ -31,10 +32,26 @@ export const canCandidateUseFeature = (user: UserProfile, feature: PremiumFeatur
 };
 
 /**
+ * Checks if a company's subscription is expired.
+ */
+export const isSubscriptionExpired = (company: CompanyProfile): boolean => {
+    if (!company.subscription?.expiresAt) return false;
+    
+    const expiryDate = new Date(company.subscription.expiresAt);
+    const now = new Date();
+    return expiryDate < now;
+};
+
+/**
  * Checks if a company has access to a specific service level feature.
  */
 export const canCompanyUseFeature = (company: CompanyProfile, feature: PremiumFeature, userEmail?: string): boolean => {
     if (isAdminTester(userEmail)) return true;
+
+    // Check subscription expiry first
+    if (isSubscriptionExpired(company)) {
+        return false;
+    }
 
     const tier = company.subscription?.tier || 'basic';
 
@@ -60,6 +77,14 @@ export const canCompanyUseFeature = (company: CompanyProfile, feature: PremiumFe
 export const canCompanyPostJob = (company: CompanyProfile, userEmail?: string): { allowed: boolean; reason?: string } => {
     if (isAdminTester(userEmail)) return { allowed: true };
 
+    // Check subscription expiry first
+    if (isSubscriptionExpired(company)) {
+        return {
+            allowed: false,
+            reason: 'Vaše předplatné vypršelo. Prosím, obnovte předplatné pro pokračování v používání služeb.'
+        };
+    }
+
     const tier = company.subscription?.tier || 'basic';
     const activeJobsCount = company.subscription?.usage?.activeJobsCount || 0;
 
@@ -76,9 +101,14 @@ export const canCompanyPostJob = (company: CompanyProfile, userEmail?: string): 
 };
 
 /**
- * Get the count of remaining AI assessments for the company.
+ * Get count of remaining AI assessments for company.
  */
 export const getRemainingAssessments = (company: CompanyProfile): number => {
+    // Check subscription expiry first
+    if (isSubscriptionExpired(company)) {
+        return 0;
+    }
+
     const tier = company.subscription?.tier || 'basic';
     const used = company.subscription?.usage?.aiAssessmentsUsed || 0;
 

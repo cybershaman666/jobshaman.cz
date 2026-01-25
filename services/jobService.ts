@@ -215,11 +215,10 @@ export const fetchRealJobs = async (): Promise<Job[]> => {
     try {
         console.log("Fetching jobs from Supabase with parallel pagination...");
 
-        // 1. Get total count of valid jobs
+        // 1. Get total count of jobs (including those with missing descriptions for completeness)
         const { count, error: countError } = await supabase
             .from('jobs')
-            .select('*', { count: 'exact', head: true })
-            .neq('description', 'Popis nenalezen');
+            .select('*', { count: 'exact', head: true });
 
         if (countError) {
             console.error("Error fetching job count:", countError);
@@ -231,22 +230,22 @@ export const fetchRealJobs = async (): Promise<Job[]> => {
 
         if (totalJobs === 0) return [];
 
-        // 2. Fetch in chunks (Parallel)
+        // 2. Fetch in chunks (Parallel) - limit to reasonable number for performance
+        const MAX_JOBS = 25000; // Increased limit to support database growth to 20,000+ jobs
         const PAGE_SIZE = 1000;
-        const totalPages = Math.ceil(totalJobs / PAGE_SIZE);
+        const totalPages = Math.min(Math.ceil(totalJobs / PAGE_SIZE), Math.ceil(MAX_JOBS / PAGE_SIZE));
         const promises = [];
 
-        console.log(`Starting fetch for ${totalPages} pages...`);
+        console.log(`Starting fetch for ${totalPages} pages (max ${MAX_JOBS} jobs)...`);
 
         for (let i = 0; i < totalPages; i++) {
             const from = i * PAGE_SIZE;
-            const to = from + PAGE_SIZE - 1;
+            const to = Math.min(from + PAGE_SIZE - 1, MAX_JOBS - 1);
 
             promises.push(
                 supabase
                     .from('jobs')
                     .select('*')
-                    .neq('description', 'Popis nenalezen')
                     .range(from, to)
                     .order('scraped_at', { ascending: false })
             );

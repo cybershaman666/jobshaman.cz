@@ -1,11 +1,18 @@
 
 import React, { useState } from 'react';
-import { Assessment } from '../types';
+import { Assessment, CompanyProfile } from '../types';
 import { generateAssessment } from '../services/geminiService';
 import { redirectToCheckout } from '../services/stripeService';
-import { BrainCircuit, Loader2, Code, FileText, CheckCircle, Copy, Zap } from 'lucide-react';
+import { incrementAssessmentUsage } from '../services/supabaseService';
+import { getRemainingAssessments } from '../services/billingService';
+import AnalyticsService from '../services/analyticsService';
+import { BrainCircuit, Loader2, Code, FileText, CheckCircle, Copy, Zap, BarChart3 } from 'lucide-react';
 
-const AssessmentCreator: React.FC = () => {
+interface AssessmentCreatorProps {
+    companyProfile?: CompanyProfile | null;
+}
+
+const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile }) => {
     const [role, setRole] = useState('');
     const [skills, setSkills] = useState('');
     const [difficulty, setDifficulty] = useState('Senior');
@@ -16,17 +23,35 @@ const AssessmentCreator: React.FC = () => {
     const handleGenerate = async () => {
         if (!role || !skills) return;
 
-        // Premium Check
-        if (questionCount > 5) {
-            if (confirm(`Generování ${questionCount} otázek je prémiová funkce za 99 Kč. Chcete pokračovat k platbě?`)) {
-                // Assuming we have userId available (In real app, props would pass userId)
-                // For now, using a placeholder or context if available, else alert
-                // Since this component is inside CompanyDashboard (which has userEmail), we ideally need userId passed down.
-                // But for this quick impl, we'll try to get it from session or just trigger general checkout.
-                await redirectToCheckout('assessment_bundle', 'current_user');
+        // Check assessment limits for companies
+        if (companyProfile) {
+            const tier = companyProfile.subscription?.tier || 'basic';
+            const used = companyProfile.subscription?.usage?.aiAssessmentsUsed || 0;
+            const limit = tier === 'enterprise' ? 999999 : tier === 'business' || tier === 'assessment_bundle' ? 10 : 0;
+            
+            if (used >= limit) {
+                alert(`Dosáhli jste limitu ${limit} assessmentů pro aktuální tarif. Upgradujte pro další assessmenty.`);
                 return;
-            } else {
-                return;
+            }
+            
+            // Premium check for extended assessments
+            if (questionCount > 5 && tier === 'basic') {
+                if (confirm(`Generování ${questionCount} otázek je prémiová funkce. Chcete upgradovat na Assessment Bundle za 990 Kč?`)) {
+                    await redirectToCheckout('assessment_bundle', companyProfile.id || '');
+                    return;
+                } else {
+                    return;
+                }
+            }
+        } else {
+            // Individual user logic (not implemented in this component yet)
+            if (questionCount > 5) {
+                if (confirm(`Generování ${questionCount} otázek je prémiová funkce za 99 Kč. Chcete pokračovat k platbě?`)) {
+                    await redirectToCheckout('assessment_bundle', 'current_user');
+                    return;
+                } else {
+                    return;
+                }
             }
         }
 
@@ -34,6 +59,18 @@ const AssessmentCreator: React.FC = () => {
         try {
             const result = await generateAssessment(role, skills.split(','), difficulty, questionCount);
             setAssessment(result);
+            
+            // Track usage for companies
+            if (companyProfile?.id) {
+                await incrementAssessmentUsage(companyProfile.id);
+                
+                // Track feature usage analytics
+                AnalyticsService.trackFeatureUsage({
+                    companyId: companyProfile.id,
+                    feature: 'ASSESSMENT_GENERATION',
+                    tier: companyProfile.subscription?.tier || 'basic'
+                });
+            }
         } catch (e) {
             console.error(e);
         } finally {
@@ -41,8 +78,41 @@ const AssessmentCreator: React.FC = () => {
         }
     };
 
+    // Calculate remaining assessments
+    const remainingAssessments = companyProfile ? getRemainingAssessments(companyProfile) : 0;
+    const tier = companyProfile?.subscription?.tier || 'basic';
+
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in">
+            {/* Usage Display */}
+            {companyProfile && (
+                <div className="lg:col-span-2 mb-4">
+                    <div className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-950/20 dark:to-blue-950/20 border border-cyan-200 dark:border-cyan-700 rounded-xl p-4 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-lg">
+                                <BarChart3 size={20} />
+                            </div>
+                            <div>
+                                <div className="font-bold text-slate-900 dark:text-white">
+                                    Zbývající Assessmenty: <span className="text-cyan-600 dark:text-cyan-400">{remainingAssessments}</span>
+                                </div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                    Tarif: <span className="font-medium">{tier === 'basic' ? 'Základní' : tier === 'business' ? 'Business' : 'Assessment Bundle'}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {remainingAssessments <= 2 && (
+                            <button
+                                onClick={() => companyProfile.id && redirectToCheckout('assessment_bundle', companyProfile.id)}
+                                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg transition-colors shadow-sm"
+                            >
+                                Další Kredit
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
+            
             {/* Input Side */}
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 transition-colors duration-300">
                 <div className="flex items-center gap-3 mb-6">

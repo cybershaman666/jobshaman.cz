@@ -6,10 +6,10 @@ const BACKEND_URL = 'https://jobshaman-cz.onrender.com';
 
 /**
  * Initiates a Stripe Checkout session for a specific subscription tier.
- * @param tier 'premium' for candidates, 'business' for companies, 'assessment' for AI Assessment Center
+ * @param tier 'premium' for candidates, 'business' for companies, 'assessment_bundle' for AI Assessment Center
  * @param userId The ID of the user or company to associate with the payment
  */
-export const redirectToCheckout = async (tier: 'premium' | 'business' | 'assessment' | 'assessment_bundle', userId: string) => {
+export const redirectToCheckout = async (tier: 'premium' | 'business' | 'assessment_bundle', userId: string) => {
     try {
         const response = await fetch(`${BACKEND_URL}/create-checkout-session`, {
             method: 'POST',
@@ -30,11 +30,24 @@ export const redirectToCheckout = async (tier: 'premium' | 'business' | 'assessm
             window.location.href = session.url;
         } else {
             console.error('Failed to create checkout session:', session);
-            alert('Chyba při inicializaci platby. Zkuste to prosím později.');
+            const errorMessage = session.error || 'Platba se nezdařila. Zkuste to prosím později.';
+            alert(errorMessage);
         }
     } catch (error) {
         console.error('Stripe error:', error);
-        alert('Nepodařilo se spojit s platebním serverem.');
+        
+        // More specific error messages
+        if (error instanceof Error) {
+            if (error.message.includes('fetch')) {
+                alert('Nelze se připojit k platební bráně. Zkontrolujte připojení k internetu a zkuste to znovu.');
+            } else if (error.message.includes('timeout')) {
+                alert('Platební server neodpovídá. Zkuste to prosím za chvíli znovu.');
+            } else {
+                alert(`Došlo k chybě: ${error.message}. Zkuste to prosím později.`);
+            }
+        } else {
+            alert('Došlo k nečekané chybě. Zkuste to prosím později nebo kontaktujte podporu.');
+        }
     }
 };
 
