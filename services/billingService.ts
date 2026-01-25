@@ -13,7 +13,7 @@ export type PremiumFeature =
  * SECURITY: This function should only be used for display purposes.
  * All authorization checks MUST happen on the server.
  */
-export const isAdminUser = async (email?: string): Promise<boolean> => {
+export const isAdminUser = async (_email?: string): Promise<boolean> => {
     // Always false on client-side - admin verification happens server-side only
     return false;
 };
@@ -22,7 +22,7 @@ export const isAdminUser = async (email?: string): Promise<boolean> => {
  * DEPRECATED: This function is client-side only and insecure.
  * All billing verification must happen on the server.
  */
-export const canCandidateUseFeature = (user: UserProfile, feature: PremiumFeature): boolean => {
+export const canCandidateUseFeature = (_user: UserProfile, _feature: PremiumFeature): boolean => {
     console.warn('⚠️  SECURITY WARNING: canCandidateUseFeature is deprecated and insecure. Use server-side verification instead.');
     // Always return false to force server-side verification
     return false;
@@ -43,7 +43,7 @@ export const isSubscriptionExpired = (company: CompanyProfile): boolean => {
  * DEPRECATED: This function is client-side only and insecure.
  * All billing verification must happen on the server.
  */
-export const canCompanyUseFeature = (company: CompanyProfile, feature: PremiumFeature, userEmail?: string): boolean => {
+export const canCompanyUseFeature = (_company: CompanyProfile, _feature: PremiumFeature, _userEmail?: string): boolean => {
     console.warn('⚠️  SECURITY WARNING: canCompanyUseFeature is deprecated and insecure. Use server-side verification instead.');
     // Always return false to force server-side verification
     return false;
@@ -53,7 +53,7 @@ export const canCompanyUseFeature = (company: CompanyProfile, feature: PremiumFe
  * DEPRECATED: This function is client-side only and insecure.
  * All billing verification must happen on the server.
  */
-export const canCompanyPostJob = (company: CompanyProfile, userEmail?: string): { allowed: boolean; reason?: string } => {
+export const canCompanyPostJob = (_company: CompanyProfile, _userEmail?: string): { allowed: boolean; reason?: string } => {
     console.warn('⚠️  SECURITY WARNING: canCompanyPostJob is deprecated and insecure. Use server-side verification instead.');
     // Always require server-side verification
     return { 

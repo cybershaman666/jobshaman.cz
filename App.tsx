@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect } from 'react';
 import Markdown from 'markdown-to-jsx';
 import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, CompanyProfile, JHI, CareerPathfinderResult } from './types';
 
 import { Analytics } from '@vercel/analytics/react';
 import AppHeader from './components/AppHeader';
 import { generateSEOMetadata, updatePageMeta } from './utils/seo';
-import { removeAccents } from './utils/benefits';
 import JobCard from './components/JobCard';
 import JHIChart from './components/JHIChart';
 import BullshitMeter from './components/BullshitMeter';
@@ -29,7 +28,7 @@ import AppFooter from './components/AppFooter';
 import { analyzeJobDescription, estimateSalary } from './services/geminiService';
 import { calculateCommuteReality } from './services/commuteService';
 import { fetchRealJobs } from './services/jobService';
-import { supabase, signOut, getUserProfile, getRecruiterCompany, updateUserProfile } from './services/supabaseService';
+import { supabase, getUserProfile, updateUserProfile } from './services/supabaseService';
 import { canCandidateUseFeature } from './services/billingService';
 import { analyzeJobForPathfinder } from './services/careerPathfinderService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
@@ -40,8 +39,6 @@ import {
     Search,
     Filter,
     ArrowUpRight,
-    UserCircle,
-    LogOut,
     MapPin,
     Clock,
     Home,
@@ -55,23 +52,18 @@ import {
     Sparkles,
     Zap,
     Activity,
-    Sun,
-    Moon,
     ChevronDown,
     ChevronUp,
     ThumbsUp,
     CheckCircle,
     Gift,
     Globe,
-
     Map,
     ShieldCheck,
     Info,
-    Briefcase,
     RefreshCw,
     Lock,
     Navigation,
-    ShoppingBag,
     Dog,
     AlertTriangle
 } from 'lucide-react';
@@ -93,21 +85,7 @@ const DEFAULT_USER_PROFILE: UserProfile = {
 
 
 
-// HELPER: Benefit keyword mapping for smart filtering
-const BENEFIT_KEYWORDS: Record<string, string[]> = {
-    'Remote First': ['remote', 'home office', 'home-office', 'z domova', 'práce na dálku'],
-    'Flexibilní doba': ['flexibilní', 'pružná', 'volná pracovní doba', 'flexibilita'],
-    '5 týdnů dovolené': ['5 týdnů', '25 dnů', 'týden dovolené navíc', 'dovolená 5 týdnů', '25 dní'],
-    'Dog Friendly': ['dog', 'pes', 'psa', 'pet friendly'],
-    'Auto pro osobní použití': ['auto', 'firemní auto', 'služební auto', 'firemní vůz', 'company car', 'car benefit'],
-    'Přátelské k dětem': ['děti', 'dětmi', 'child friendly', 'kids', 'rodina s dětmi', 'family'],
-    'Flexibilní hodiny': ['flexibilní hodiny', 'pružná doba', 'flextime', 'flexi čas', 'svobodná pracovní doba'],
-    'Vzdělávací kurzy': ['školení', 'kurzy', 'vzdělávání', 'training', 'education', 'courses'],
-    'Multisport karta': ['multisport', 'sport', 'fitko', 'posilovna', 'gym', 'fitness'],
-    'Příspěvek na stravu': ['stravenky', 'stravování', 'jídlo', 'meal voucher', 'příspěvek jídlo'],
-    'Home Office': ['home office', 'home-office', 'z domova', 'práce na dálku', 'remote'],
-    'Zaměstnanecké akcie': ['esop', 'akcie', 'podíl', 'equity', 'stock', 'zaměstnanecké akcie']
-};
+
 
 export default function App() {
     // --- STATE ---
@@ -147,8 +125,6 @@ export default function App() {
 
     const {
         filteredJobs,
-        totalJobCount,
-        filteredJobCount,
         searchTerm,
         filterCity,
         filterMaxDistance,
@@ -162,14 +138,11 @@ export default function App() {
         setFilterCity,
         setFilterMaxDistance,
         setEnableCommuteFilter,
-        setFilterBenefits,
-        setFilterContractType,
         setSavedJobIds,
         setShowFilters,
         setExpandedSections,
         toggleBenefitFilter,
-        toggleContractTypeFilter,
-        clearAllFilters
+        toggleContractTypeFilter
     } = useJobFilters(jobs);
 
     const selectedJob = filteredJobs.find(j => j.id === selectedJobId);
@@ -241,13 +214,13 @@ export default function App() {
 
         // AUTH LISTENER
         if (supabase) {
-            supabase.auth.getSession().then(({ data }) => {
+            supabase.auth.getSession().then(({ data }: { data: any }) => {
                 if (data?.session) {
                     handleSessionRestoration(data.session.user.id);
                 }
             });
 
-            const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
                 if (session) {
                     handleSessionRestoration(session.user.id);
                 } else {
@@ -347,10 +320,6 @@ export default function App() {
 
     // --- HANDLERS ---
 
-    const toggleTheme = () => {
-        setTheme(prev => prev === 'dark' ? 'light' : 'dark');
-    };
-
     const handleAuthAction = async () => {
         if (userProfile.isLoggedIn && userProfile.id) {
             await signOut();
@@ -428,65 +397,7 @@ export default function App() {
         }
     };
 
-    const PremiumUpgradeModal = () => {
-        if (!showPremiumUpgrade.open) return null;
 
-        return (
-            <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300">
-                <div
-                    className="absolute inset-0 bg-slate-900/80 backdrop-blur-md"
-                    onClick={() => setShowPremiumUpgrade({ open: false })}
-                ></div>
-                <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-300 p-10 text-center">
-                    <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-cyan-600 to-blue-600"></div>
-
-                    <div className="w-20 h-20 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                        <Sparkles size={40} />
-                    </div>
-
-                    <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">Odemkněte JobShaman Premium</h2>
-                    <p className="text-slate-500 dark:text-slate-400 mb-8 leading-relaxed">
-                        Funkce <span className="font-bold text-cyan-600 dark:text-cyan-400">"{showPremiumUpgrade.feature}"</span> a další AI nástroje jsou dostupné pouze pro prémiové členy.
-                    </p>
-
-                    <div className="grid grid-cols-1 gap-3 mb-8 text-left">
-                        {[
-                            'Neomezená AI analýza inzerátů (ATC Hack)',
-                            'Automatické generování motivačních dopisů',
-                            'Inteligentní optimalizace CV na míru pozici',
-                            'Prioritní zobrazení pro náboraře'
-                        ].map((f, i) => (
-                            <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
-                                <CheckCircle size={16} className="text-emerald-500 flex-shrink-0" />
-                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{f}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    <button
-                        onClick={() => {
-                            if (!userProfile.isLoggedIn || !userProfile.id) {
-                                setIsAuthModalOpen(true);
-                                setShowPremiumUpgrade({ open: false });
-                                return;
-                            }
-                            redirectToCheckout('premium', userProfile.id);
-                        }}
-                        className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl transition-all shadow-xl hover:scale-[1.02] active:scale-95 mb-4"
-                    >
-                        Upgradovat na Premium za 199 Kč/měsíc
-                    </button>
-
-                    <button
-                        onClick={() => setShowPremiumUpgrade({ open: false })}
-                        className="text-sm font-bold text-slate-400 hover:text-slate-600 transition-colors"
-                    >
-                        Možná později
-                    </button>
-                </div>
-            </div>
-        );
-    };
 
     const handlePathfinderAnalysis = async (job: Job) => {
         if (!userProfile) {
@@ -532,120 +443,7 @@ export default function App() {
         }
     };
 
-    // HEADER COMPONENT
-    const Header = () => (
-        <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md">
-            <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 max-w-[1920px] mx-auto">
-                {/* Logo */}
-                <div
-                    className="flex items-center gap-2 cursor-pointer group"
-                    onClick={() => { setViewState(ViewState.LIST); setSelectedJobId(null); }}
-                >
-                    <img
-                        src="/logo.png"
-                        alt="JobShaman"
-                        className="w-8 h-8 rounded-lg transition-transform group-hover:scale-105"
-                    />
-                    <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight hidden sm:block">Job<span className="text-cyan-600 dark:text-cyan-400">Shaman</span></span>
-                </div>
 
-                {/* Navigation */}
-                <nav className="flex items-center gap-1 bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700/50 overflow-x-auto">
-                    {!showCompanyLanding && (
-                        <>
-                            <button
-                                onClick={() => { setViewState(ViewState.LIST); setSelectedJobId(null); }}
-                                className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap ${viewState === ViewState.LIST ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                            >
-                                Nabídky
-                            </button>
-                            <button
-                                onClick={() => setViewState(ViewState.SAVED)}
-                                className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.SAVED ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                            >
-                                Uložené
-                                <span className={`text-[10px] px-1.5 rounded-full ${savedJobIds.length > 0 ? 'bg-slate-200 dark:bg-slate-900 text-slate-700 dark:text-slate-300' : 'bg-slate-200/50 dark:bg-slate-800/50'}`}>{savedJobIds.length}</span>
-                            </button>
-                            <button
-                                onClick={() => userProfile.isLoggedIn ? setViewState(ViewState.PROFILE) : handleAuthAction()}
-                                className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap ${viewState === ViewState.PROFILE ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                            >
-                                Profil
-                            </button>
-                            <button
-                                onClick={() => setViewState(ViewState.MARKETPLACE)}
-                                className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.MARKETPLACE ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                            >
-                                <ShoppingBag className="w-4 h-4" />
-                                Kurzy & Rekvalifikace
-                            </button>
-                        </>
-                    )}
-                    <button
-                        onClick={() => {
-                            if (showCompanyLanding) {
-                                setShowCompanyLanding(false);
-                                setViewState(ViewState.LIST);
-                            } else if (userProfile.isLoggedIn) {
-                                if (userProfile.role === 'recruiter') {
-                                    setViewState(ViewState.COMPANY_DASHBOARD);
-                                } else {
-                                    setShowCompanyLanding(true);
-                                }
-                            } else {
-                                setShowCompanyLanding(true);
-                            }
-                        }}
-                        className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                    >
-                        <Briefcase size={14} /> {showCompanyLanding ? 'Zpět' : 'Pro Firmy'}
-                    </button>
-                </nav>
-
-                {/* Right Actions */}
-                {!showCompanyLanding && (
-                    <div className="flex items-center gap-3">
-                        <button
-                            onClick={toggleTheme}
-                            className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
-                            title="Změnit režim"
-                        >
-                            {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
-                        </button>
-
-                        <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
-
-                        {userProfile.isLoggedIn ? (
-                            <div className="flex items-center gap-3 pl-2">
-                                <div className="text-right hidden md:block">
-                                    <div className="text-sm font-bold text-slate-900 dark:text-white leading-none mb-1">{userProfile.name}</div>
-                                    <div className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded uppercase tracking-wider inline-block">JHI Aktivní</div>
-                                </div>
-                                <button
-                                    onClick={handleAuthAction}
-                                    className="text-slate-400 hover:text-rose-500 transition-colors"
-                                    title="Odhlásit se"
-                                >
-                                    <LogOut size={20} />
-                                </button>
-                            </div>
-                        ) : (
-                            <button
-                                onClick={handleAuthAction}
-                                className="flex items-center gap-2 text-sm font-bold text-white bg-slate-900 dark:bg-white dark:text-slate-900 px-4 py-2 rounded-lg hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
-                            >
-                                <UserCircle size={18} />
-                                Přihlásit
-                            </button>
-                        )}
-                    </div>
-                )}
-
-                {/* Legal Links - Desktop */}
-
-            </div>
-        </header>
-    );
 
     const renderWelcomeGuide = () => {
         // ... [No changes here] ...
@@ -1524,7 +1322,7 @@ export default function App() {
                 />
             )}
 
-            <AppFooter theme={theme} />
+            <AppFooter />
         </div>
     );
 }

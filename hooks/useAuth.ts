@@ -75,13 +75,13 @@ export const useAuth = (setViewState: (view: ViewState) => void) => {
 
     useEffect(() => {
         if (supabase) {
-            supabase.auth.getSession().then(({ data }) => {
+            supabase.auth.getSession().then(({ data }: { data: any }) => {
                 if (data?.session) {
                     handleSessionRestoration(data.session.user.id);
                 }
             });
 
-            const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
                 if (session) {
                     handleSessionRestoration(session.user.id);
                 } else {

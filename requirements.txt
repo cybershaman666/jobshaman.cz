@@ -8,6 +8,9 @@ python-dotenv
 beautifulsoup4
 requests
 pydantic
+email-validator
 itsdangerous
 apscheduler
 stripe
+bleach
+slowapi

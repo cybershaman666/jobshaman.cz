@@ -1029,7 +1029,7 @@ function validateFileUpload(file: File): { isValid: boolean; extension?: string;
 }
 
 // SECURITY: Generate safe filename
-function generateSafeFileName(userId: string, originalName: string, extension: string): string {
+function generateSafeFileName(userId: string, _originalName: string, extension: string): string {
     const timestamp = Date.now();
     const randomId = Math.random().toString(36).substring(2, 15);
     const sanitizedUserId = userId.replace(/[^a-zA-Z0-9-_]/g, '');
