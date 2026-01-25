@@ -1,6 +1,7 @@
 import React from 'react';
 import { UserProfile, CompanyProfile } from '../types';
 import { useUserProfile } from '../hooks/useUserProfile';
+import { CreditCard } from 'lucide-react';
 import SubscriptionDashboard from '../components/SubscriptionDashboard';
 import PlanUpgradeModal from '../components/PlanUpgradeModal';
 import PremiumUpsellCard from '../components/PremiumUpsellCard';
@@ -82,21 +83,33 @@ export const SubscriptionManagementPage: React.FC<SubscriptionManagementPageProp
   const isCompanyAdmin = !!company;
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Subscription & Billing</h1>
-          <p className="text-gray-600">
-            Manage your {isCompanyAdmin ? 'company' : 'account'} subscription and view your usage limits.
-          </p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20">
+      {/* Header */}
+      <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur border-b border-blue-100 dark:border-blue-800">
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-gradient-to-br from-blue-500 to-cyan-600 rounded-xl">
+              <CreditCard className="w-8 h-8 text-white" />
+            </div>
+            <div className="flex-1">
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+                Předplatné a Fakturace
+              </h1>
+              <p className="text-lg text-blue-700 dark:text-blue-300 mt-2">
+                Spravujte své předplatné a limity využití
+              </p>
+            </div>
+          </div>
         </div>
+      </div>
 
+      {/* Content */}
+      <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Personal User Subscription */}
         {!isCompanyAdmin && (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Personal Subscription</h2>
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-8 shadow-lg border border-blue-100 dark:border-blue-800">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Vaše Osobní Předplatné</h2>
               <SubscriptionDashboard
                 userId={user.id || ''}
                 onUpgradeClick={() => {
@@ -109,10 +122,12 @@ export const SubscriptionManagementPage: React.FC<SubscriptionManagementPageProp
             <PremiumUpsellCard userId={user.id || ''} />
 
             {/* Additional Info */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <h3 className="font-medium text-blue-900 mb-2">💡 Pro Tip</h3>
-              <p className="text-sm text-blue-800">
-                Need more assessments? Consider upgrading to our Business plan for unlimited access to all features.
+            <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+              <h3 className="font-bold text-blue-900 dark:text-blue-300 mb-2 flex items-center gap-2">
+                <span>💡</span> Užitečný Tip
+              </h3>
+              <p className="text-sm text-blue-800 dark:text-blue-200">
+                Potřebujete více hodnocení? Zvažte upgrade na Business plán pro neomezený přístup ke všem funkcím.
               </p>
             </div>
           </div>
@@ -121,9 +136,9 @@ export const SubscriptionManagementPage: React.FC<SubscriptionManagementPageProp
         {/* Company Subscription (for company admins) */}
         {isCompanyAdmin && company && (
           <div className="space-y-6">
-            <div>
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">
-                {company.name} - Company Subscription
+            <div className="bg-white dark:bg-slate-800 rounded-xl p-8 shadow-lg border border-blue-100 dark:border-blue-800">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
+                {company.name} - Předplatné Společnosti
               </h2>
               <SubscriptionDashboard
                 userId={company.id || user.id || ''}
@@ -134,27 +149,31 @@ export const SubscriptionManagementPage: React.FC<SubscriptionManagementPageProp
             </div>
 
             {/* Company Benefits */}
-            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
-              <h3 className="font-medium text-purple-900 mb-2">🏢 Company Benefits</h3>
-              <ul className="text-sm text-purple-800 space-y-1">
-                <li>✓ Team management and multiple user accounts</li>
-                <li>✓ Shared assessment credits across your team</li>
-                <li>✓ Advanced analytics and custom reports</li>
-                <li>✓ Priority support and dedicated account manager</li>
-                <li>✓ API access for integrations</li>
+            <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 border border-purple-200 dark:border-purple-800 rounded-xl p-6">
+              <h3 className="font-bold text-purple-900 dark:text-purple-300 mb-4 flex items-center gap-2">
+                <span>🏢</span> Výhody Společnosti
+              </h3>
+              <ul className="text-sm text-purple-800 dark:text-purple-200 space-y-2">
+                <li>✓ Správa týmu a více uživatelských účtů</li>
+                <li>✓ Sdílené kredity hodnocení v celém týmu</li>
+                <li>✓ Pokročilá analytika a vlastní zprávy</li>
+                <li>✓ Prioritní podpora a vyhrazený správce účtu</li>
+                <li>✓ API přístup pro integrace</li>
               </ul>
             </div>
 
             {/* Personal Subscription (if they also have one) */}
             {user.subscription?.tier && user.subscription.tier !== 'free' && (
-              <div className="border-t pt-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">Your Personal Subscription</h2>
-                <SubscriptionDashboard
-                  userId={user.id || ''}
-                  onUpgradeClick={() => {
-                    setShowUpgradeModal(true);
-                  }}
-                />
+              <div className="border-t border-blue-200 dark:border-blue-800 pt-6">
+                <div className="bg-white dark:bg-slate-800 rounded-xl p-8 shadow-lg border border-blue-100 dark:border-blue-800">
+                  <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Vaše Osobní Předplatné</h2>
+                  <SubscriptionDashboard
+                    userId={user.id || ''}
+                    onUpgradeClick={() => {
+                      setShowUpgradeModal(true);
+                    }}
+                  />
+                </div>
               </div>
             )}
           </div>
@@ -162,54 +181,59 @@ export const SubscriptionManagementPage: React.FC<SubscriptionManagementPageProp
 
         {/* FAQ Section */}
         <div className="mt-12 space-y-6">
-          <h2 className="text-2xl font-bold text-gray-900">Frequently Asked Questions</h2>
+          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Často Kladené Otázky</h2>
 
           <div className="space-y-4">
-            <details className="bg-white rounded-lg border border-gray-200 p-4 hover:border-gray-300 cursor-pointer">
-              <summary className="font-medium text-gray-900">
-                What happens when my subscription renews?
+            <details className="bg-white dark:bg-slate-800 rounded-xl border border-blue-100 dark:border-blue-800 p-6 hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer group">
+              <summary className="font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                Co se stane, když se moje předplatné obnoví?
+                <span className="text-blue-600 dark:text-blue-400 group-open:rotate-180 transition-transform">▼</span>
               </summary>
-              <p className="mt-2 text-gray-600">
-                Your subscription will automatically renew on the date shown in your dashboard. We'll charge your payment method on file. If you want to pause or cancel, you can do so anytime.
+              <p className="mt-3 text-slate-600 dark:text-slate-300">
+                Vaše předplatné se automaticky obnoví v datu zobrazeném v panelu nástrojů. Budeme vám účtovat platební metodu v souboru. Pokud chcete pozastavit nebo zrušit, můžete to provést kdykoli.
               </p>
             </details>
 
-            <details className="bg-white rounded-lg border border-gray-200 p-4 hover:border-gray-300 cursor-pointer">
-              <summary className="font-medium text-gray-900">
-                Can I pause my subscription?
+            <details className="bg-white dark:bg-slate-800 rounded-xl border border-blue-100 dark:border-blue-800 p-6 hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer group">
+              <summary className="font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                Mohu si předplatné pozastavit?
+                <span className="text-blue-600 dark:text-blue-400 group-open:rotate-180 transition-transform">▼</span>
               </summary>
-              <p className="mt-2 text-gray-600">
-                Yes, you can pause your subscription to retain your data without being charged. Contact our support team to pause for up to 3 months.
+              <p className="mt-3 text-slate-600 dark:text-slate-300">
+                Ano, můžete si předplatné pozastavit, aby se uchovaly vaše data bez účtování. Kontaktujte náš tým podpory a pozastavte si ho až na 3 měsíce.
               </p>
             </details>
 
-            <details className="bg-white rounded-lg border border-gray-200 p-4 hover:border-gray-300 cursor-pointer">
-              <summary className="font-medium text-gray-900">
-                What's included in each plan?
+            <details className="bg-white dark:bg-slate-800 rounded-xl border border-blue-100 dark:border-blue-800 p-6 hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer group">
+              <summary className="font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                Co je součástí každého plánu?
+                <span className="text-blue-600 dark:text-blue-400 group-open:rotate-180 transition-transform">▼</span>
               </summary>
-              <div className="mt-2 text-gray-600 space-y-2">
-                <p><strong>Free:</strong> Limited job view, basic features</p>
-                <p><strong>Basic:</strong> 20 assessments/month, 50 job postings/month</p>
-                <p><strong>Business:</strong> Unlimited assessments, unlimited postings, priority support</p>
-                <p><strong>Assessment Bundle:</strong> 50 one-time assessments valid for 12 months</p>
+              <div className="mt-3 text-slate-600 dark:text-slate-300 space-y-2">
+                <p><strong>Zdarma:</strong> Omezený přístup k pracovním místům, základní funkce</p>
+                <p><strong>Základní:</strong> 20 hodnocení/měsíc, 50 pracovních nabídek/měsíc</p>
+                <p><strong>Business:</strong> Neomezená hodnocení, neomezené nabídky, prioritní podpora</p>
+                <p><strong>Balíček Hodnocení:</strong> 50 jednorázových hodnocení platných 12 měsíců</p>
               </div>
             </details>
 
-            <details className="bg-white rounded-lg border border-gray-200 p-4 hover:border-gray-300 cursor-pointer">
-              <summary className="font-medium text-gray-900">
-                Do unused credits roll over?
+            <details className="bg-white dark:bg-slate-800 rounded-xl border border-blue-100 dark:border-blue-800 p-6 hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer group">
+              <summary className="font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                Jsou nevyužité kredity převedeny?
+                <span className="text-blue-600 dark:text-blue-400 group-open:rotate-180 transition-transform">▼</span>
               </summary>
-              <p className="mt-2 text-gray-600">
-                No, monthly credits reset on your renewal date. However, assessment bundle purchases are valid for 12 months from purchase.
+              <p className="mt-3 text-slate-600 dark:text-slate-300">
+                Ne, měsíční kredity se resetují v den obnovení. Nákupy balíčků hodnocení jsou však platné 12 měsíců od nákupu.
               </p>
             </details>
 
-            <details className="bg-white rounded-lg border border-gray-200 p-4 hover:border-gray-300 cursor-pointer">
-              <summary className="font-medium text-gray-900">
-                How do I contact support?
+            <details className="bg-white dark:bg-slate-800 rounded-xl border border-blue-100 dark:border-blue-800 p-6 hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer group">
+              <summary className="font-bold text-slate-900 dark:text-white flex items-center justify-between">
+                Jak se kontaktuji podpora?
+                <span className="text-blue-600 dark:text-blue-400 group-open:rotate-180 transition-transform">▼</span>
               </summary>
-              <p className="mt-2 text-gray-600">
-                Email us at support@jobshaman.cz or use the chat widget in the app. Business plan users get priority 24/7 support.
+              <p className="mt-3 text-slate-600 dark:text-slate-300">
+                Napište nám na support@jobshaman.cz nebo použijte widget chatu v aplikaci. Uživatelé plánu Business získávají prioritní podporu 24/7.
               </p>
             </details>
           </div>

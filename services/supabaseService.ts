@@ -3,6 +3,20 @@ import { supabase } from './supabaseClient';
 export { supabase };
 import { UserProfile, CompanyProfile, CVDocument } from '../types';
 
+// Test account detection - gives premium access to test/demo accounts
+const getTestAccountTier = (email: string | undefined): 'premium' | null => {
+    if (!email) return null;
+    
+    const testEmails = [
+        'misahlavacu@gmail.com',  // Your test account
+        'test@jobshaman.cz',
+        'demo@jobshaman.cz',
+        'admin@jobshaman.cz'
+    ];
+    
+    return testEmails.includes(email.toLowerCase()) ? 'premium' : null;
+};
+
 export const isSupabaseConfigured = (): boolean => {
     return !!supabase;
 };
@@ -191,7 +205,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         currentCVId: undefined,
         cvs: [],
         subscription: {
-            tier: profileData.subscription_tier || 'free',
+            tier: getTestAccountTier(profileData.email) || profileData.subscription_tier || 'free',
             expiresAt: undefined,
             usage: {
                 cvOptimizationsUsed: (profileData.usage_stats as any)?.cvOptimizationsUsed || 0,
