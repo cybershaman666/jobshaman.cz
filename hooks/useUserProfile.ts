@@ -37,14 +37,23 @@ export const useUserProfile = () => {
 
                 // CSRF: Fetch CSRF token after successful session restoration
                 try {
+                    // Get the session and validate the access token
                     const session = await supabase?.auth.getSession();
-                    const accessToken = session?.data?.session?.access_token;
-                    if (accessToken) {
+                    let accessToken = session?.data?.session?.access_token;
+                    
+                    // If no token yet, that's okay - session might still be loading
+                    // The authenticatedFetch function will handle getting it when needed
+                    if (accessToken && typeof accessToken === 'string') {
+                        console.log('Fetching CSRF token for authenticated session...');
                         await fetchCsrfToken(accessToken);
+                    } else {
+                        console.log('Access token not yet available - skipping CSRF fetch');
+                        // This is not an error - the app will fetch CSRF token on first state-changing request
                     }
                 } catch (csrfError) {
                     console.warn('⚠️ Could not fetch CSRF token:', csrfError);
                     // Don't fail session restoration if CSRF fetch fails
+                    // The application can still work without CSRF token for GET requests
                 }
 
                 // Auto-Upgrade Logic for Admin Tester
