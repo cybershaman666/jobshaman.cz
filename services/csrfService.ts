@@ -219,15 +219,24 @@ export const authenticatedFetch = async (
         }
     }
 
-    const response = await fetch(url, {
-        ...options,
-        headers
-    });
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-    // Log authentication errors for debugging
-    if (response.status === 401) {
-        console.warn(`⚠️ Received 401 Unauthorized from ${url}. This may indicate an invalid or missing authentication token.`);
+    try {
+        const response = await fetch(url, {
+            ...options,
+            headers,
+            signal: controller.signal
+        });
+
+        // Log authentication errors for debugging
+        if (response.status === 401) {
+            console.warn(`⚠️ Received 401 Unauthorized from ${url}. This may indicate an invalid or missing authentication token.`);
+        }
+
+        return response;
+    } finally {
+        clearTimeout(timeoutId);
     }
-
-    return response;
 };

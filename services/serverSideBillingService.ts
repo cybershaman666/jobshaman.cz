@@ -91,6 +91,8 @@ export async function getSubscriptionStatus(userId: string): Promise<{
   canceledAt?: string;
 }> {
   try {
+    console.log('🔄 Calling subscription-status endpoint for userId:', userId);
+    
     const response = await authenticatedFetch(`${BACKEND_URL}/subscription-status?userId=${userId}`, {
       method: 'GET',
       headers: {
@@ -99,11 +101,15 @@ export async function getSubscriptionStatus(userId: string): Promise<{
     });
     
     if (!response.ok) {
+      console.warn(`⚠️ Subscription status returned ${response.status}:`, response.statusText);
       throw new Error(`Failed to get subscription status: ${response.status}`);
     }
-    return await response.json();
+    
+    const data = await response.json();
+    console.log('✅ Subscription status retrieved:', data);
+    return data;
   } catch (error) {
-    console.error('Error getting subscription status:', error);
+    console.warn('Error getting subscription status (falling back to free tier):', error);
     return {
       tier: 'free',
       tierName: 'Free',
