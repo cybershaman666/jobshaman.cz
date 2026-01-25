@@ -1,6 +1,6 @@
 // Updated Supabase service functions for new paywall schema
 import { createClient } from '@supabase/supabase-js';
-import { UserProfile, CompanyProfile, CandidateSubscriptionTier, CompanyServiceTier } from '../types';
+import { UserProfile, CompanyProfile, CandidateSubscriptionTier, CompanyServiceTier, CompanyUsageStats } from '../types';
 
 // Configuration provided by user
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -123,8 +123,8 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         // Transform subscription_tier to subscription object for compatibility
     const subscription = data.subscription_tier ? {
         tier: data.subscription_tier as CandidateSubscriptionTier,
-        usage: null,
-        expiresAt: null
+        usage: undefined,
+        expiresAt: undefined
     } : undefined;
 
     return {
@@ -191,8 +191,7 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
     }
 
     // Fetch subscription details
-    let subscription: { tier: CompanyServiceTier; expiresAt: string } | undefined = undefined;
-    let usage = null;
+    let subscription: { tier: CompanyServiceTier; expiresAt: string; usage?: CompanyUsageStats } | undefined = undefined;
     
     if (data.subscription_id) {
         const { data: subData, error: subError } = await supabase
@@ -212,9 +211,6 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
         if (subError) {
             console.error('Subscription fetch error:', subError);
         } else if (subData) {
-            // Check if expired
-            const _isExpired = new Date(subData.current_period_end) < new Date();
-            
             subscription = {
                 tier: subData.tier as CompanyServiceTier,
                 expiresAt: subData.current_period_end
@@ -234,16 +230,20 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
                 
             if (usageError) {
                 console.error('Usage fetch error:', usageError);
-            } else {
-                usage = usageData;
+            } else if (usageData) {
+                subscription.usage = {
+                    activeJobsCount: usageData.active_jobs_count || 0,
+                    aiAssessmentsUsed: usageData.ai_assessments_used || 0,
+                    adOptimizationsUsed: usageData.ad_optimizations_used || 0
+                };
+            }
             }
         }
     }
     
     return {
         ...data,
-        subscription,
-        usage
+        subscription
     };
 };
 
