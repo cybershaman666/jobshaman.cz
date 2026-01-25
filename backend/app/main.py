@@ -498,6 +498,49 @@ class JobCheckResponse(BaseModel):
 @app.get("/")
 @limiter.limit("100/minute")  # General rate limiting
 async def root(request: Request):
+    """Health check endpoint"""
+    return {
+        "status": "ok",
+        "service": "JobShaman API",
+        "timestamp": now_iso(),
+    }
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Validate critical dependencies on server startup"""
+    print("\n🚀 ===== JobShaman Backend Startup =====")
+    
+    # Check Supabase
+    if not supabase:
+        print("❌ CRITICAL: Supabase not initialized - database unavailable!")
+    else:
+        print("✅ Supabase connection OK")
+    
+    # Check Stripe
+    stripe_key = os.getenv("STRIPE_SECRET_KEY")
+    if not stripe_key:
+        print("⚠️  WARNING: STRIPE_SECRET_KEY not set - payment functionality disabled")
+    elif not stripe_key.startswith("sk_"):
+        print(f"⚠️  WARNING: STRIPE_SECRET_KEY has invalid format (expected 'sk_', got '{stripe_key[:5]}...')")
+    else:
+        print("✅ Stripe API key configured")
+    
+    # Check Resend (email)
+    if not os.getenv("RESEND_API_KEY"):
+        print("⚠️  WARNING: RESEND_API_KEY not set - email notifications disabled")
+    else:
+        print("✅ Resend (email) API key configured")
+    
+    # Check required env vars
+    required_vars = ["SUPABASE_URL", "SUPABASE_KEY", "SECRET_KEY"]
+    missing = [v for v in required_vars if not os.getenv(v)]
+    if missing:
+        print(f"❌ CRITICAL: Missing required env vars: {', '.join(missing)}")
+    else:
+        print("✅ All required environment variables set")
+    
+    print("✅ ===== Startup Complete =====\n")
     return {"status": "online", "service": "JobShaman Backend"}
 
 
@@ -743,22 +786,46 @@ async def match_candidates_service(
     """
     Endpoint to find best matches for a job in the database.
     """
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Supabase not configured")
-
     try:
+        # Validate dependencies
+        if not supabase:
+            print("❌ Supabase connection unavailable")
+            raise HTTPException(status_code=503, detail="Database service unavailable")
+        
+        # Validate input
+        if not job_id or job_id <= 0:
+            print(f"❌ Invalid job_id: {job_id}")
+            raise HTTPException(status_code=400, detail="Invalid job ID")
+        
+        if not user or not user.get("id"):
+            print("❌ User not properly authenticated")
+            raise HTTPException(status_code=401, detail="User not authenticated")
+        
+        print(f"📋 Matching candidates for job_id={job_id}, user={user.get('id')}")
+
         # 1. Fetch Job
-        job_res = supabase.table("jobs").select("*").eq("id", job_id).single().execute()
-        if not job_res.data:
-            raise HTTPException(status_code=404, detail="Job not found")
-        job = job_res.data
+        try:
+            job_res = supabase.table("jobs").select("*").eq("id", job_id).single().execute()
+            if not job_res.data:
+                raise HTTPException(status_code=404, detail="Job not found")
+            job = job_res.data
+        except Exception as e:
+            print(f"❌ Failed to fetch job {job_id}: {e}")
+            raise HTTPException(status_code=500, detail="Failed to fetch job")
 
         # 2. Fetch all candidates
-        cand_res = supabase.table("candidate_profiles").select("*").execute()
-        candidates = cand_res.data
+        try:
+            cand_res = supabase.table("candidate_profiles").select("*").execute()
+            candidates = cand_res.data or []
+            print(f"📊 Found {len(candidates)} candidates to match against")
+        except Exception as e:
+            print(f"❌ Failed to fetch candidates: {e}")
+            raise HTTPException(status_code=500, detail="Failed to fetch candidates")
 
         matches = []
         for cand in candidates:
+            if not cand or not cand.get("id"):
+                continue
             score, reasons = calculate_candidate_match(cand, job)
             if score > 15:  # Lower threshold for more results
                 match_obj = {
@@ -777,9 +844,9 @@ async def match_candidates_service(
         # Sort and take top 10
         matches.sort(key=lambda x: x["score"], reverse=True)
         top_matches = matches[:10]
+        print(f"✅ Found {len(top_matches)} top candidate matches")
 
-        # 3. Persist matches to Supabase (simplistic background task)
-        # We don't save the 'profile' nested object to the DB
+        # 3. Persist matches to Supabase
         db_matches = [
             {
                 "job_id": job_id,
@@ -796,8 +863,9 @@ async def match_candidates_service(
             ).execute()
             if db_matches:
                 supabase.table("job_candidate_matches").insert(db_matches).execute()
-        except Exception:
-            pass  # Silent fail if table not ready
+            print(f"💾 Persisted {len(db_matches)} matches to database")
+        except Exception as e:
+            print(f"⚠️ Warning: Could not persist matches to database: {e}")
 
         # Log premium feature access
         try:
@@ -811,13 +879,19 @@ async def match_candidates_service(
                     "subscription_tier": user.get("subscription_tier", "free"),
                 }
             ).execute()
-        except Exception:
-            pass  # Silent fail for logging
+        except Exception as e:
+            print(f"⚠️ Warning: Could not log access: {e}")
 
         return {"job_id": job_id, "matches": top_matches}
 
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = str(e)
+        print(f"❌ Match candidates failed: {error_msg}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=error_msg)
 
 
 def send_review_email(job: JobCheckRequest, result: JobCheckResponse):
@@ -2095,11 +2169,18 @@ async def list_invitations(
     Shows invitations sent TO the user (as candidate) or sent BY the user (as company)
     """
     try:
+        if not user:
+            print("❌ No user found in get_current_user")
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
         user_id = user.get("id")
         is_company = bool(user.get("company_name"))
         
+        print(f"📋 Listing invitations for user_id={user_id}, is_company={is_company}")
+        
         if is_company:
             # Company: Get all invitations sent by this company
+            print(f"🏢 Company query: finding invitations where company_id={user_id}")
             invitations_response = (
                 supabase.table("assessment_invitations")
                 .select("*")
@@ -2110,6 +2191,7 @@ async def list_invitations(
         else:
             # Candidate: Get all invitations sent to them
             email = user.get("email")
+            print(f"👤 Candidate query: finding invitations where candidate_email={email}")
             invitations_response = (
                 supabase.table("assessment_invitations")
                 .select("*")
@@ -2117,6 +2199,8 @@ async def list_invitations(
                 .order("created_at", desc=True)
                 .execute()
             )
+        
+        print(f"✅ Query returned {len(invitations_response.data or [])} invitations")
         
         invitations = invitations_response.data or []
         
@@ -2145,6 +2229,7 @@ async def list_invitations(
             
             active_invitations.append(inv_data)
         
+        print(f"📤 Returning {len(active_invitations)} active invitations")
         return {
             "invitations": active_invitations,
             "total": len(active_invitations),
@@ -2152,10 +2237,13 @@ async def list_invitations(
         }
     
     except Exception as e:
-        print(f"❌ Failed to list invitations: {e}")
+        error_msg = str(e)
+        print(f"❌ Failed to list invitations: {error_msg}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to list invitations: {str(e)}"
+            detail=f"Failed to list invitations: {error_msg}"
         )
 
 
