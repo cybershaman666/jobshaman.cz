@@ -1,5 +1,6 @@
 // CSRF Token Management Service
 import { BACKEND_URL } from '../constants';
+import { supabase } from './supabaseClient';
 
 const CSRF_TOKEN_KEY = 'csrf_token';
 const CSRF_TOKEN_EXPIRY_KEY = 'csrf_token_expiry';
@@ -9,6 +10,12 @@ const CSRF_TOKEN_EXPIRY_KEY = 'csrf_token_expiry';
  * Must be called after successful authentication
  */
 export const fetchCsrfToken = async (authToken: string): Promise<string | null> => {
+    // Validate authToken before attempting to fetch
+    if (!authToken || typeof authToken !== 'string' || authToken.length === 0) {
+        console.warn('⚠️ Invalid auth token provided to fetchCsrfToken - cannot fetch CSRF token');
+        return null;
+    }
+
     try {
         const response = await fetch(`${BACKEND_URL}/csrf-token`, {
             method: 'GET',
@@ -119,6 +126,59 @@ export const refreshCsrfTokenIfNeeded = async (authToken: string): Promise<strin
 };
 
 /**
+ * Get the current auth token from Supabase session
+ * This is the source of truth for the user's authentication token
+ */
+export const getCurrentAuthToken = async (): Promise<string | null> => {
+    try {
+        if (!supabase) {
+            console.warn('⚠️ Supabase not initialized');
+            return null;
+        }
+
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
+        if (error) {
+            console.warn('⚠️ Failed to get session:', error);
+            return null;
+        }
+
+        if (!session || !session.access_token) {
+            console.warn('⚠️ No active session or access token');
+            return null;
+        }
+
+        return session.access_token;
+    } catch (error) {
+        console.warn('⚠️ Error retrieving auth token:', error);
+        return null;
+    }
+};
+
+/**
+ * Wait for a session to be available (with timeout)
+ * Useful during page initialization when Supabase might still be loading
+ */
+export const waitForSession = async (maxWaitMs: number = 5000): Promise<string | null> => {
+    const startTime = Date.now();
+    const pollInterval = 100; // Check every 100ms
+    
+    while (Date.now() - startTime < maxWaitMs) {
+        const token = await getCurrentAuthToken();
+        if (token) {
+            return token;
+        }
+        
+        // Wait before trying again
+        await new Promise(resolve => setTimeout(resolve, pollInterval));
+    }
+    
+    // Timeout reached
+    console.warn(`⚠️ Session not available after ${maxWaitMs}ms`);
+    return null;
+};
+
+/**
  * Helper function for making authenticated requests with CSRF protection
  * Automatically includes CSRF token for POST/PUT/DELETE requests
  */
@@ -144,14 +204,30 @@ export const authenticatedFetch = async (
     if (authToken) {
         headers.set('Authorization', `Bearer ${authToken}`);
     } else {
-        const storedToken = localStorage.getItem('auth_token');
-        if (storedToken) {
-            headers.set('Authorization', `Bearer ${storedToken}`);
+        // First try to get token from Supabase session (the primary source)
+        let token = await getCurrentAuthToken();
+        
+        // Fallback to legacy localStorage key if Supabase doesn't have it
+        if (!token) {
+            token = localStorage.getItem('auth_token');
+        }
+        
+        if (token) {
+            headers.set('Authorization', `Bearer ${token}`);
+        } else {
+            console.warn('⚠️ No authentication token available for request to:', url);
         }
     }
 
-    return fetch(url, {
+    const response = await fetch(url, {
         ...options,
         headers
     });
+
+    // Log authentication errors for debugging
+    if (response.status === 401) {
+        console.warn(`⚠️ Received 401 Unauthorized from ${url}. This may indicate an invalid or missing authentication token.`);
+    }
+
+    return response;
 };
