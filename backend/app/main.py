@@ -565,28 +565,71 @@ async def trigger_scrape(request: Request):
 @limiter.limit("20/minute")  # Rate limiting for job actions
 async def perform_job_action(job_id: str, action: str, token: str, request: Request):
     try:
+        # Validate input parameters
+        if not action or action not in ["approve", "reject"]:
+            print(f"❌ Invalid action attempted: {action}")
+            return "<h1>❌ Chyba</h1><p>Neplatná akce. Musí být 'approve' nebo 'reject'.</p>", 400
+        
+        if not job_id or len(job_id) > 50:
+            print(f"❌ Invalid job_id: {job_id}")
+            return "<h1>❌ Chyba</h1><p>Neplatné ID inzerátu.</p>", 400
+        
+        if not token or len(token) < 20:
+            print(f"❌ Invalid token format")
+            return "<h1>❌ Chyba</h1><p>Neplatný token.</p>", 401
+        
+        # Verify database connection
+        if not supabase:
+            print("❌ Supabase connection unavailable")
+            return "<h1>❌ Chyba</h1><p>Databáze je nedostupná. Zkuste později.</p>", 503
+        
         # Verify token (valid for 48 hours) and check if user is admin
-        email = serializer.loads(token, salt="job-action", max_age=172800)
+        try:
+            email = serializer.loads(token, salt="job-action", max_age=172800)
+            print(f"✅ Token verified for email: {email}")
+        except Exception as e:
+            print(f"❌ Token verification failed: {e}")
+            return "<h1>❌ Chyba</h1><p>Neplatný nebo vypršelý token.</p>", 401
 
         # Check if user has admin role in database
-        if not supabase:
-            raise HTTPException(status_code=500, detail="Database not available")
-
-        admin_check = (
-            supabase.table("profiles").select("role").eq("email", email).execute()
-        )
-        if not admin_check.data or admin_check.data[0].get("role") != "admin":
-            raise HTTPException(
-                status_code=403, detail="Unauthorized - admin access required"
+        try:
+            admin_check = (
+                supabase.table("profiles").select("role").eq("email", email).execute()
             )
-
+            if not admin_check.data or admin_check.data[0].get("role") != "admin":
+                print(f"❌ Unauthorized access attempt by {email}")
+                return "<h1>❌ Chyba</h1><p>Nemáte oprávnění pro tuto akci.</p>", 403
+            print(f"✅ Admin authorization verified for {email}")
+        except Exception as e:
+            print(f"❌ Admin check failed: {e}")
+            return "<h1>❌ Chyba</h1><p>Ověření oprávnění selhalo.</p>", 500
+        
         status = "approved" if action == "approve" else "rejected"
-        supabase.table("jobs").update(
-            {
-                "legality_status": status,
-                "verification_notes": f"Ručně {status} uživatelem floki",
-            }
-        ).eq("id", job_id).execute()
+        
+        # Verify job exists before updating
+        try:
+            job_check = (
+                supabase.table("jobs").select("id").eq("id", job_id).single().execute()
+            )
+            if not job_check.data:
+                print(f"❌ Job not found: {job_id}")
+                return "<h1>❌ Chyba</h1><p>Inzerát nenalezen.</p>", 404
+        except Exception as e:
+            print(f"❌ Job lookup failed: {e}")
+            return "<h1>❌ Chyba</h1><p>Ověření inzerátu selhalo.</p>", 500
+        
+        # Update job status
+        try:
+            supabase.table("jobs").update(
+                {
+                    "legality_status": status,
+                    "verification_notes": f"Ručně {status} uživatelem {email}",
+                }
+            ).eq("id", job_id).execute()
+            print(f"✅ Job {job_id} marked as {status} by {email}")
+        except Exception as e:
+            print(f"❌ Failed to update job status: {e}")
+            return "<h1>❌ Chyba</h1><p>Aktualizace inzerátu selhala.</p>", 500
 
         return f"""
         <html>
@@ -600,7 +643,10 @@ async def perform_job_action(job_id: str, action: str, token: str, request: Requ
         </html>
         """
     except Exception as e:
-        return f"<h1>Chyba</h1><p>{str(e)}</p>", 400
+        print(f"❌ Unexpected error in job action: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"<h1>❌ Chyba</h1><p>Neočekávaná chyba: {str(e)[:100]}</p>", 500
 
 
 def check_legality_rules(title: str, company: str, description: str):
