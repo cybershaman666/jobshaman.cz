@@ -311,52 +311,75 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
 };
 
 export const getRecruiterCompany = async (userId: string): Promise<any> => {
-    if (!supabase) return null;
+    if (!supabase) {
+        console.warn('⚠️ Supabase not initialized');
+        return null;
+    }
     
     console.log('🔍 Looking for company for userId:', userId);
     
-    const { data, error } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('owner_id', userId)
-        .maybeSingle();
-    
-    console.log('📊 Company query result:', { data: data?.id || 'none', error: error || 'none' });
-    
-    if (error) {
-        console.error('Recruiter company fetch error:', error);
-        return null;
-    }
-    
-    if (!data) {
-        console.log('No company found for userId:', userId);
-        return null;
-    }
-
-    // Get subscription details using new structure
-    const subscriptionData = await getCompanySubscription(data.id);
-    const usageData = await getUsageSummary(data.id);
-
-    // Build the expected nested structure that components expect
-    const subscription = subscriptionData ? {
-        tier: subscriptionData.tier,
-        expiresAt: subscriptionData.current_period_end,
-        status: subscriptionData.status,
-        usage: usageData ? {
-            activeJobsCount: usageData.active_jobs_count || 0,
-            aiAssessmentsUsed: usageData.ai_assessments_used || 0,
-            adOptimizationsUsed: usageData.ad_optimizations_used || 0
-        } : {
-            activeJobsCount: 0,
-            aiAssessmentsUsed: 0,
-            adOptimizationsUsed: 0
+    try {
+        const { data, error } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('owner_id', userId)
+            .maybeSingle();
+        
+        console.log('📊 Company query result:', { data: data?.id || 'none', error: error || 'none' });
+        
+        if (error) {
+            console.error('Recruiter company fetch error:', error);
+            return null;
         }
-    } : null;
+        
+        if (!data) {
+            console.log('No company found for userId:', userId);
+            return null;
+        }
 
-    return {
-        ...data,
-        subscription
-    };
+        // Get subscription details using new structure
+        // Wrap in try-catch to handle network errors
+        let subscriptionData = null;
+        let usageData = null;
+        
+        try {
+            subscriptionData = await getCompanySubscription(data.id);
+        } catch (subError) {
+            console.warn('⚠️ Failed to fetch subscription data:', subError);
+            // Continue without subscription data
+        }
+        
+        try {
+            usageData = await getUsageSummary(data.id);
+        } catch (usageError) {
+            console.warn('⚠️ Failed to fetch usage data:', usageError);
+            // Continue without usage data
+        }
+
+        // Build the expected nested structure that components expect
+        const subscription = subscriptionData ? {
+            tier: subscriptionData.tier,
+            expiresAt: subscriptionData.current_period_end,
+            status: subscriptionData.status,
+            usage: usageData ? {
+                activeJobsCount: usageData.active_jobs_count || 0,
+                aiAssessmentsUsed: usageData.ai_assessments_used || 0,
+                adOptimizationsUsed: usageData.ad_optimizations_used || 0
+            } : {
+                activeJobsCount: 0,
+                aiAssessmentsUsed: 0,
+                adOptimizationsUsed: 0
+            }
+        } : null;
+
+        return {
+            ...data,
+            subscription
+        };
+    } catch (error) {
+        console.error('Error in getRecruiterCompany:', error);
+        return null;
+    }
 };
 
 // ========================================
@@ -620,26 +643,31 @@ export const createEnterpriseLead = async (leadData: {
 export const getCompanySubscription = async (companyId: string) => {
     if (!supabase) return null;
     
-    const { data, error } = await supabase
-        .from('subscriptions')
-        .select(`
-            tier,
-            status,
-            current_period_start,
-            current_period_end,
-            cancel_at_period_end,
-            stripe_subscription_id,
-            created_at
-        `)
-        .eq('company_id', companyId)
-        .single();
-    
-    if (error) {
-        console.error('Subscription fetch error:', error);
+    try {
+        const { data, error } = await supabase
+            .from('subscriptions')
+            .select(`
+                tier,
+                status,
+                current_period_start,
+                current_period_end,
+                cancel_at_period_end,
+                stripe_subscription_id,
+                created_at
+            `)
+            .eq('company_id', companyId)
+            .single();
+        
+        if (error) {
+            console.warn('⚠️ Subscription fetch error:', error);
+            return null;
+        }
+        
+        return data as any;
+    } catch (error) {
+        console.warn('⚠️ Exception fetching company subscription:', error);
         return null;
     }
-    
-    return data as any;
 };
 
 export const updateSubscriptionStatus = async (companyId: string, status: string) => {
@@ -670,30 +698,43 @@ export const updateSubscriptionStatus = async (companyId: string, status: string
 export const getUsageSummary = async (companyId: string) => {
     if (!supabase) return null;
     
-    const { data: company } = await supabase
-        .from('companies')
-        .select('subscription_id')
-        .eq('id', companyId)
-        .single();
+    try {
+        const { data: company, error: companyError } = await supabase
+            .from('companies')
+            .select('subscription_id')
+            .eq('id', companyId)
+            .single();
+            
+        if (companyError || !company?.subscription_id) {
+            console.warn('⚠️ Could not get company subscription_id:', companyError);
+            return null;
+        }
         
-    if (!company?.subscription_id) return null;
-    
-    const { data: usage } = await supabase
-        .from('subscription_usage')
-        .select(`
-            active_jobs_count,
-            ai_assessments_used,
-            ad_optimizations_used,
-            period_start,
-            period_end,
-            last_reset_at
-        `)
-        .eq('subscription_id', company.subscription_id)
-        .order('period_end', { ascending: false })
-        .limit(1)
-        .single();
-    
-    return usage as any;
+        const { data: usage, error: usageError } = await supabase
+            .from('subscription_usage')
+            .select(`
+                active_jobs_count,
+                ai_assessments_used,
+                ad_optimizations_used,
+                period_start,
+                period_end,
+                last_reset_at
+            `)
+            .eq('subscription_id', company.subscription_id)
+            .order('period_end', { ascending: false })
+            .limit(1)
+            .single();
+        
+        if (usageError) {
+            console.warn('⚠️ Usage summary fetch error:', usageError);
+            return null;
+        }
+        
+        return usage as any;
+    } catch (error) {
+        console.warn('⚠️ Exception fetching usage summary:', error);
+        return null;
+    }
 };
 
 

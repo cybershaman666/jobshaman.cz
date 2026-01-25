@@ -33,12 +33,34 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
     const fetchSubscription = async () => {
       try {
         setLoading(true);
-        const data = await getSubscriptionStatus(userId);
+        setError(null);
+        
+        console.log('🔄 Fetching subscription status for userId:', userId);
+        
+        // Add a timeout to prevent hanging requests
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Subscription fetch timeout')), 10000)
+        );
+        
+        const dataPromise = getSubscriptionStatus(userId);
+        const data = await Promise.race([dataPromise, timeoutPromise]);
+        
+        console.log('✅ Subscription status fetched:', data);
         setSubscription(data as SubscriptionData);
         setError(null);
       } catch (err) {
-        setError('Failed to load subscription information');
-        console.error('Subscription fetch error:', err);
+        const errorMsg = err instanceof Error ? err.message : 'Failed to load subscription information';
+        console.error('Subscription fetch error:', errorMsg, err);
+        setError(errorMsg);
+        // Set a default free tier so the component still renders
+        setSubscription({
+          tier: 'free',
+          tierName: 'Free',
+          status: 'inactive',
+          assessmentsAvailable: 0,
+          assessmentsUsed: 0,
+          jobPostingsAvailable: 0
+        });
       } finally {
         setLoading(false);
       }
@@ -46,6 +68,9 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
 
     if (userId) {
       fetchSubscription();
+    } else {
+      console.warn('⚠️ No userId provided to SubscriptionDashboard');
+      setLoading(false);
     }
   }, [userId]);
 
@@ -65,9 +90,12 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
         <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
-        <div>
+        <div className="flex-1">
           <h3 className="font-medium text-red-900">Unable to load subscription</h3>
-          <p className="text-sm text-red-700 mt-1">{error}</p>
+          <p className="text-sm text-red-700 mt-1">{error || 'Unknown error'}</p>
+          <p className="text-xs text-red-600 mt-2">
+            Showing default free tier. If you have an active subscription, please try refreshing the page.
+          </p>
         </div>
       </div>
     );
