@@ -420,12 +420,12 @@ class JobCheckRequest(BaseModel):
 class CheckoutRequest(BaseModel):
     tier: str = Field(
         ...,
-        regex=r"^(premium|business|assessment|assessment_bundle)$",
+        pattern=r"^(premium|business|assessment|assessment_bundle)$",
         description="Subscription tier",
     )
     userId: str = Field(..., min_length=1, max_length=100, description="User ID")
-    successUrl: str = Field(..., regex=r"^https?://.+", description="Success URL")
-    cancelUrl: str = Field(..., regex=r"^https?://.+", description="Cancel URL")
+    successUrl: str = Field(..., pattern=r"^https?://.+", description="Success URL")
+    cancelUrl: str = Field(..., pattern=r"^https?://.+", description="Cancel URL")
 
     @validator("successUrl", "cancelUrl")
     def validate_urls(cls, v):

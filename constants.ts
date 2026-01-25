@@ -1,6 +1,9 @@
 
 import { Job, Candidate, BenefitInsight, CompanyProfile } from './types';
 
+// Backend API Configuration
+export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000';
+
 // EMPTY - Using Live Supabase Data
 export const MOCK_JOBS: Job[] = [];
 
