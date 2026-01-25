@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { generateAssessment } from '../services/geminiService';
 import { BACKEND_URL } from '../constants';
-import { authenticatedFetch } from '../services/csrfService';
 
 interface InvitationDetail {
   invitation_id: string;
@@ -130,7 +129,7 @@ const InvitationLanding: React.FC = () => {
         throw new Error(data.detail || `Chyba API: ${res.status}`);
       }
 
-      const data = await res.json();
+      await res.json();
       // Success page
       setAssessment(null);
       setInvitation({ ...invitation, status: 'completed' });

@@ -33,6 +33,7 @@ const AssessmentInvitationModal: React.FC<Props> = ({ companyId, onClose, onSent
           assessment_id: assessmentId,
           candidate_email: candidateEmail,
           candidate_id: null,
+          company_id: companyId,
           expires_in_days: expiresInDays,
           metadata: { assessment_name: assessmentName, job_title: jobTitle }
         })

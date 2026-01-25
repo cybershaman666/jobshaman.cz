@@ -1024,6 +1024,14 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             </div>
                         )}
 
+                        {showInvitationModal && (
+                            <AssessmentInvitationModal
+                                companyId={companyProfile?.id || ''}
+                                onClose={() => setShowInvitationModal(false)}
+                                onSent={() => setShowInvitationsList(true)}
+                            />
+                        )}
+
                         <AssessmentCreator companyProfile={companyProfile} />
                     </div>
                 )}
