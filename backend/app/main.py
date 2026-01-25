@@ -297,6 +297,8 @@ allowed_origins = [
     "https://localhost:5173",
     "https://jobshaman-cz.onrender.com",
     "https://jobshaman.cz",
+    "https://www.jobshaman.com",
+    "https://jobshaman.com",
 ]
 
 # In production, you can override with environment variable
@@ -309,7 +311,7 @@ app.add_middleware(
     allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "User-Agent"],
+    allow_headers=["Authorization", "Content-Type", "Accept", "Origin", "User-Agent", "X-CSRF-Token"],
 )
 
 
