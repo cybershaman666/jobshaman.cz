@@ -44,6 +44,7 @@ export const MOCK_CANDIDATES: Candidate[] = [
 ];
 
 export const MOCK_COMPANY_PROFILE: CompanyProfile = {
+  id: 'mock_company_id',
   name: "Naše Firma s.r.o.",
   industry: "Technology",
   tone: "Professional but friendly",

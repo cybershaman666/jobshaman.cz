@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { UserProfile, CompanyProfile, ViewState } from '../types';
-import { signOut, getUserProfile, getRecruiterCompany, updateUserProfile as updateUserProfileService } from '../services/supabaseService';
+import { signOut, getUserProfile, getRecruiterCompany, updateUserProfile as updateUserProfileService, createCompany } from '../services/supabaseService';
 import { fetchCsrfToken, clearCsrfToken } from '../services/csrfService';
 import { supabase } from '../services/supabaseClient';
+import { MOCK_COMPANY_PROFILE } from '../constants';
 
 // Default user profile
 const DEFAULT_USER_PROFILE: UserProfile = {
@@ -31,7 +32,7 @@ export const useUserProfile = () => {
             console.log('🔄 handleSessionRestoration called with userId:', userId);
             const profile = await getUserProfile(userId);
             console.log('Profile returned from getUserProfile:', { id: profile?.id, email: profile?.email, isLoggedIn: profile?.isLoggedIn });
-            
+
             if (profile) {
                 console.log('Setting user profile with id:', profile.id);
                 setUserProfile(prev => {
@@ -49,7 +50,7 @@ export const useUserProfile = () => {
                     // Get the session and validate the access token
                     const session = await supabase?.auth.getSession();
                     let accessToken = session?.data?.session?.access_token;
-                    
+
                     // If no token yet, that's okay - session might still be loading
                     // The authenticatedFetch function will handle getting it when needed
                     if (accessToken && typeof accessToken === 'string') {
@@ -71,8 +72,22 @@ export const useUserProfile = () => {
                     await updateUserProfileService(userId, { role: 'recruiter' });
                     // Force update local state
                     setUserProfile(prev => ({ ...prev, role: 'recruiter' }));
+
                     // Check if admin already has a company
-                    const company = await getRecruiterCompany(userId);
+                    let company = await getRecruiterCompany(userId);
+
+                    if (!company) {
+                        console.log("Creating default company for admin tester...");
+                        try {
+                            // Create company using mock data as template (excluding ID to let DB generate UUID)
+                            const { id, ...companyData } = MOCK_COMPANY_PROFILE;
+                            company = await createCompany(companyData, userId);
+                            console.log("Company created successfully:", company?.id);
+                        } catch (err) {
+                            console.error("Failed to auto-create company:", err);
+                        }
+                    }
+
                     if (company) {
                         setCompanyProfile(company);
                         setViewState(ViewState.COMPANY_DASHBOARD);
