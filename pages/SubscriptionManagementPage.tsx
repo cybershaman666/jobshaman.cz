@@ -21,9 +21,9 @@ interface SubscriptionManagementPageProps {
   companyProfile?: CompanyProfile | null;
 }
 
-export const SubscriptionManagementPage: React.FC<SubscriptionManagementPageProps> = ({ 
-  userProfile: propsUser, 
-  companyProfile: propsCompany 
+export const SubscriptionManagementPage: React.FC<SubscriptionManagementPageProps> = ({
+  userProfile: propsUser,
+  companyProfile: propsCompany
 }) => {
   // Fall back to useUserProfile hook if props not provided
   const hookData = useUserProfile();
@@ -112,6 +112,7 @@ export const SubscriptionManagementPage: React.FC<SubscriptionManagementPageProp
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Vaše Osobní Předplatné</h2>
               <SubscriptionDashboard
                 userId={user.id || ''}
+                isCompany={false}
                 onUpgradeClick={() => {
                   setShowUpgradeModal(true);
                 }}
@@ -142,6 +143,7 @@ export const SubscriptionManagementPage: React.FC<SubscriptionManagementPageProp
               </h2>
               <SubscriptionDashboard
                 userId={company.id || user.id || ''}
+                isCompany={true}
                 onUpgradeClick={() => {
                   setShowUpgradeModal(true);
                 }}
@@ -169,6 +171,7 @@ export const SubscriptionManagementPage: React.FC<SubscriptionManagementPageProp
                   <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Vaše Osobní Předplatné</h2>
                   <SubscriptionDashboard
                     userId={user.id || ''}
+                    isCompany={false}
                     onUpgradeClick={() => {
                       setShowUpgradeModal(true);
                     }}

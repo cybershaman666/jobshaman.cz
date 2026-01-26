@@ -12,17 +12,25 @@ interface SubscriptionData {
   assessmentsAvailable: number;
   assessmentsUsed: number;
   jobPostingsAvailable: number;
+  cvRewritesAvailable?: number;
+  cvRewritesUsed?: number;
+  coverLettersAvailable?: number;
+  coverLettersUsed?: number;
+  careerRecommendationsAvailable?: number;
+  careerRecommendationsUsed?: number;
   stripeSubscriptionId?: string;
   canceledAt?: string;
 }
 
 interface SubscriptionDashboardProps {
   userId: string;
+  isCompany?: boolean;
   onUpgradeClick?: () => void;
 }
 
 export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
   userId,
+  isCompany = true,
   onUpgradeClick,
 }) => {
   const [subscription, setSubscription] = useState<SubscriptionData | null>(null);
@@ -34,17 +42,17 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
       try {
         setLoading(true);
         setError(null);
-        
+
         console.log('🔄 Fetching subscription status for userId:', userId);
-        
+
         // Add a timeout to prevent hanging requests
-        const timeoutPromise = new Promise((_, reject) => 
+        const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Subscription fetch timeout')), 10000)
         );
-        
+
         const dataPromise = getSubscriptionStatus(userId);
         const data = await Promise.race([dataPromise, timeoutPromise]);
-        
+
         console.log('✅ Subscription status fetched:', data);
         setSubscription(data as SubscriptionData);
         setError(null);
@@ -235,48 +243,127 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
 
       {/* Usage Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        {/* Assessments */}
-        {subscription.assessmentsAvailable > 0 && (
-          <div className="bg-white rounded-lg p-4 border border-gray-200">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <Zap className="w-5 h-5 text-blue-600" />
-                <span className="font-medium text-gray-900">AI Assessments</span>
+        {/* Company View: Assessments & Job Postings */}
+        {isCompany && (
+          <>
+            {/* Assessments */}
+            {subscription.assessmentsAvailable > 0 && (
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-blue-600" />
+                    <span className="font-medium text-gray-900">AI Assessments</span>
+                  </div>
+                  <span className="text-sm font-semibold text-blue-600">
+                    {subscription.assessmentsUsed}/{subscription.assessmentsAvailable}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all"
+                    style={{ width: `${assessmentPercentage}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-600 mt-2">
+                  {subscription.assessmentsAvailable - subscription.assessmentsUsed} remaining
+                </p>
               </div>
-              <span className="text-sm font-semibold text-blue-600">
-                {subscription.assessmentsUsed}/{subscription.assessmentsAvailable}
-              </span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-blue-600 h-2 rounded-full transition-all"
-                style={{ width: `${assessmentPercentage}%` }}
-              ></div>
-            </div>
-            <p className="text-xs text-gray-600 mt-2">
-              {subscription.assessmentsAvailable - subscription.assessmentsUsed} remaining
-            </p>
-          </div>
+            )}
+
+            {/* Job Postings */}
+            {subscription.jobPostingsAvailable > 0 && (
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-purple-600" />
+                    <span className="font-medium text-gray-900">Job Postings</span>
+                  </div>
+                  <span className="text-sm font-semibold text-purple-600">Unlimited</span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="bg-purple-600 h-2 rounded-full w-full"></div>
+                </div>
+                <p className="text-xs text-gray-600 mt-2">Unlimited monthly postings</p>
+                {typeof (subscription as any).jobPostingsUsed !== 'undefined' && (
+                  <p className="text-xs text-gray-500 mt-1">Used: {(subscription as any).jobPostingsUsed}</p>
+                )}
+              </div>
+            )}
+          </>
         )}
 
-        {/* Job Postings */}
-        {subscription.jobPostingsAvailable > 0 && (
-          <div className="bg-white rounded-lg p-4 border border-gray-200">
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-purple-600" />
-                <span className="font-medium text-gray-900">Job Postings</span>
+        {/* Candidate View: AI Features */}
+        {!isCompany && (
+          <>
+            {/* AI CV Rewrites */}
+            {(subscription.cvRewritesAvailable ?? 0) > 0 && (
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Zap className="w-5 h-5 text-blue-600" />
+                    <span className="font-medium text-gray-900">AI CV Rewrite</span>
+                  </div>
+                  <span className="text-sm font-semibold text-blue-600">
+                    {subscription.cvRewritesUsed ?? 0}/{subscription.cvRewritesAvailable}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-600 h-2 rounded-full transition-all"
+                    style={{ width: `${Math.min(100, ((subscription.cvRewritesUsed ?? 0) / (subscription.cvRewritesAvailable ?? 1)) * 100)}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-600 mt-2">
+                  {(subscription.cvRewritesAvailable ?? 0) - (subscription.cvRewritesUsed ?? 0)} remaining
+                </p>
               </div>
-              <span className="text-sm font-semibold text-purple-600">Unlimited</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-purple-600 h-2 rounded-full w-full"></div>
-            </div>
-            <p className="text-xs text-gray-600 mt-2">Unlimited monthly postings</p>
-            {typeof (subscription as any).jobPostingsUsed !== 'undefined' && (
-              <p className="text-xs text-gray-500 mt-1">Used: {(subscription as any).jobPostingsUsed}</p>
             )}
-          </div>
+
+            {/* AI Cover Letters */}
+            {(subscription.coverLettersAvailable ?? 0) > 0 && (
+              <div className="bg-white rounded-lg p-4 border border-gray-200">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-5 h-5 text-purple-600" />
+                    <span className="font-medium text-gray-900">AI Cover Letters</span>
+                  </div>
+                  <span className="text-sm font-semibold text-purple-600">
+                    {subscription.coverLettersUsed ?? 0}/{subscription.coverLettersAvailable}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-purple-600 h-2 rounded-full transition-all"
+                    style={{ width: `${Math.min(100, ((subscription.coverLettersUsed ?? 0) / (subscription.coverLettersAvailable ?? 1)) * 100)}%` }}
+                  ></div>
+                </div>
+                <p className="text-xs text-gray-600 mt-2">
+                  {(subscription.coverLettersAvailable ?? 0) - (subscription.coverLettersUsed ?? 0)} remaining
+                </p>
+              </div>
+            )}
+
+            {/* Career Recommendations */}
+            {(subscription.careerRecommendationsAvailable ?? 0) > 0 && (
+              <div className="bg-white rounded-lg p-4 border border-gray-200 md:col-span-2">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5 text-emerald-600" />
+                    <span className="font-medium text-gray-900">AI Career Recommendations</span>
+                  </div>
+                  <span className="text-sm font-semibold text-emerald-600">
+                    {subscription.careerRecommendationsUsed ?? 0}/{subscription.careerRecommendationsAvailable}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-emerald-600 h-2 rounded-full transition-all"
+                    style={{ width: `${Math.min(100, ((subscription.careerRecommendationsUsed ?? 0) / (subscription.careerRecommendationsAvailable ?? 1)) * 100)}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+          </>
         )}
 
         {subscription.tier === 'free' && (
@@ -321,14 +408,33 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
 
           {subscription.tier === 'basic' && (
             <>
-              <div className="flex items-center gap-2 text-blue-700">
-                <CheckCircle className="w-4 h-4" />
-                20 AI assessments/month
-              </div>
-              <div className="flex items-center gap-2 text-blue-700">
-                <CheckCircle className="w-4 h-4" />
-                50 job postings/month
-              </div>
+              {isCompany ? (
+                <>
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <CheckCircle className="w-4 h-4" />
+                    20 AI assessments/month
+                  </div>
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <CheckCircle className="w-4 h-4" />
+                    50 job postings/month
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <CheckCircle className="w-4 h-4" />
+                    5 AI CV Rewrites/month
+                  </div>
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <CheckCircle className="w-4 h-4" />
+                    5 AI Cover Letters/month
+                  </div>
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <CheckCircle className="w-4 h-4" />
+                    10 AI Recommendations/month
+                  </div>
+                </>
+              )}
               <div className="flex items-center gap-2 text-blue-700">
                 <CheckCircle className="w-4 h-4" />
                 Advanced analytics
