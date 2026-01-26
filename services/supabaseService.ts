@@ -4,16 +4,19 @@ export { supabase };
 import { UserProfile, CompanyProfile, CVDocument } from '../types';
 
 // Test account detection - gives premium access to test/demo accounts
+// SECURITY: Only use in development. Production should use proper subscriptions.
 const getTestAccountTier = (email: string | undefined): 'premium' | null => {
     if (!email) return null;
-    
-    const testEmails = [
-        'misahlavacu@gmail.com',  // Your test account
-        'test@jobshaman.cz',
-        'demo@jobshaman.cz',
-        'admin@jobshaman.cz'
-    ];
-    
+
+    // Only allow test accounts in development mode
+    if (import.meta.env.MODE !== 'development') {
+        return null;
+    }
+
+    // Read test emails from environment variable for better security
+    const testEmailsEnv = import.meta.env.VITE_TEST_PREMIUM_EMAILS || '';
+    const testEmails = testEmailsEnv.split(',').map((e: string) => e.trim().toLowerCase()).filter(Boolean);
+
     return testEmails.includes(email.toLowerCase()) ? 'premium' : null;
 };
 
@@ -73,19 +76,19 @@ export const signOut = async (): Promise<void> => {
 
 export const getCurrentUser = async () => {
     if (!supabase) return null;
-    
+
     try {
         // Try to get current user first
         const { data: { user }, error } = await supabase.auth.getUser();
-        
+
         if (error) {
             console.error('Error getting current user:', error);
-            
+
             // If it's a refresh token error, try to refresh the session
             if (error.message.includes('Invalid Refresh Token') || error.message.includes('Refresh Token Not Found')) {
                 console.log('Attempting to refresh session...');
                 const { refreshSession } = await import('./supabaseClient');
-                
+
                 const refreshedSession = await refreshSession();
                 if (refreshedSession) {
                     // Retry getting the user after refresh
@@ -95,10 +98,10 @@ export const getCurrentUser = async () => {
                     }
                 }
             }
-            
+
             return null;
         }
-        
+
         return user;
     } catch (error) {
         console.error('Current user fetch error:', error);
@@ -108,7 +111,7 @@ export const getCurrentUser = async () => {
 
 export const createBaseProfile = async (userId: string, email: string, name: string) => {
     if (!supabase) throw new Error("Supabase not configured");
-    
+
     const { error } = await supabase
         .from('profiles')
         .insert({
@@ -119,7 +122,7 @@ export const createBaseProfile = async (userId: string, email: string, name: str
             subscription_tier: 'free',
             created_at: new Date().toISOString(),
         });
-    
+
     if (error) throw error;
 
     // Also create candidate_profiles entry
@@ -129,7 +132,7 @@ export const createBaseProfile = async (userId: string, email: string, name: str
             id: userId,
             created_at: new Date().toISOString(),
         });
-    
+
     if (candidateError) {
         console.error('Failed to create candidate profile:', candidateError);
         // Don't throw here as profiles was created successfully
@@ -138,9 +141,9 @@ export const createBaseProfile = async (userId: string, email: string, name: str
 
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
     if (!supabase) return null;
-    
+
     console.log('📥 Fetching user profile for userId:', userId);
-    
+
     // Fetch from profiles table
     const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -158,7 +161,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         `)
         .eq('id', userId)
         .single();
-    
+
     if (profileError) {
         console.error('Profile fetch error:', profileError);
         return null;
@@ -168,16 +171,16 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         console.warn('⚠️ Profile data is null/undefined');
         return null;
     }
-    
+
     // Fetch from candidate_profiles table
     const { data: candidateData, error: _candidateError } = await supabase
         .from('candidate_profiles')
         .select('*')
         .eq('id', userId)
         .single();
-    
+
     // If candidate profile doesn't exist, that's ok, we'll use defaults
-    
+
     // Map to UserProfile structure - ENSURE id is always included
     const userProfile: UserProfile = {
         id: profileData.id,
@@ -223,7 +226,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
 
 export const updateUserProfile = async (userId: string, updates: Partial<UserProfile>): Promise<void> => {
     if (!supabase) throw new Error("Supabase not configured");
-    
+
     // Update profiles table
     const profileUpdates: any = {};
     if (updates.email !== undefined) profileUpdates.email = updates.email;
@@ -232,7 +235,7 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     if (updates.role !== undefined) profileUpdates.role = updates.role;
     if (updates.subscription?.tier !== undefined) profileUpdates.subscription_tier = updates.subscription.tier;
     if (updates.hasAssessment !== undefined) profileUpdates.has_assessment = updates.hasAssessment;
-    
+
     if (Object.keys(profileUpdates).length > 0) {
         const { error: profileError } = await supabase
             .from('profiles')
@@ -240,7 +243,7 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
             .eq('id', userId);
         if (profileError) throw profileError;
     }
-    
+
     // Update candidate_profiles table
     const candidateUpdates: any = {};
     if (updates.jobTitle !== undefined) candidateUpdates.job_title = updates.jobTitle;
@@ -257,7 +260,7 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     if (updates.workHistory !== undefined) candidateUpdates.work_history = updates.workHistory;
     if (updates.education !== undefined) candidateUpdates.education = updates.education;
     if (updates.preferences !== undefined) candidateUpdates.preferences = updates.preferences;
-    
+
     if (Object.keys(candidateUpdates).length > 0) {
         // First check if candidate profile exists
         const { data: existing } = await supabase
@@ -265,7 +268,7 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
             .select('id')
             .eq('id', userId)
             .single();
-        
+
         if (existing) {
             // Update existing
             const { error: candidateError } = await supabase
@@ -285,7 +288,7 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
 
 export const getCompanyProfile = async (userId: string): Promise<CompanyProfile | null> => {
     if (!supabase) return null;
-    
+
     const { data, error } = await supabase
         .from('companies')
         .select(`
@@ -313,7 +316,7 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
         `)
         .eq('id', userId)
         .single();
-    
+
     if (error) {
         console.error('Company profile fetch error:', error);
         return null;
@@ -339,23 +342,23 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
         console.warn('⚠️ Supabase not initialized');
         return null;
     }
-    
+
     console.log('🔍 Looking for company for userId:', userId);
-    
+
     try {
         const { data, error } = await supabase
             .from('companies')
             .select('*')
             .eq('owner_id', userId)
             .maybeSingle();
-        
+
         console.log('📊 Company query result:', { data: data?.id || 'none', error: error || 'none' });
-        
+
         if (error) {
             console.error('Recruiter company fetch error:', error);
             return null;
         }
-        
+
         if (!data) {
             console.log('No company found for userId:', userId);
             return null;
@@ -365,14 +368,14 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
         // Wrap in try-catch to handle network errors
         let subscriptionData = null;
         let usageData = null;
-        
+
         try {
             subscriptionData = await getCompanySubscription(data.id);
         } catch (subError) {
             console.warn('⚠️ Failed to fetch subscription data:', subError);
             // Continue without subscription data
         }
-        
+
         try {
             usageData = await getUsageSummary(data.id);
         } catch (usageError) {
@@ -412,7 +415,7 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
 
 export const incrementAssessmentUsage = async (companyId: string): Promise<void> => {
     if (!supabase) return;
-    
+
     try {
         // Get current subscription and usage
         const { data: company } = await supabase
@@ -420,7 +423,7 @@ export const incrementAssessmentUsage = async (companyId: string): Promise<void>
             .select('subscription_id')
             .eq('id', companyId)
             .single();
-            
+
         if (!company?.subscription_id) {
             console.warn('No subscription found for company:', companyId);
             return;
@@ -434,7 +437,7 @@ export const incrementAssessmentUsage = async (companyId: string): Promise<void>
             .order('period_end', { ascending: false })
             .limit(1)
             .single();
-            
+
         if (!currentUsage) {
             console.warn('No usage record found for company:', companyId);
             return;
@@ -442,13 +445,13 @@ export const incrementAssessmentUsage = async (companyId: string): Promise<void>
 
         // Increment usage
         const newUsage = (currentUsage.ai_assessments_used || 0) + 1;
-        
+
         // Update usage record
         const { error } = await supabase
             .from('subscription_usage')
             .update({ ai_assessments_used: newUsage })
             .eq('id', currentUsage.id);
-            
+
         if (error) {
             console.error('Failed to increment assessment usage:', error);
         } else {
@@ -461,7 +464,7 @@ export const incrementAssessmentUsage = async (companyId: string): Promise<void>
 
 export const incrementAdOptimizationUsage = async (companyId: string): Promise<void> => {
     if (!supabase) return;
-    
+
     try {
         // Get current subscription and usage
         const { data: company } = await supabase
@@ -469,7 +472,7 @@ export const incrementAdOptimizationUsage = async (companyId: string): Promise<v
             .select('subscription_id')
             .eq('id', companyId)
             .single();
-            
+
         if (!company?.subscription_id) {
             console.warn('No subscription found for company:', companyId);
             return;
@@ -483,7 +486,7 @@ export const incrementAdOptimizationUsage = async (companyId: string): Promise<v
             .order('period_end', { ascending: false })
             .limit(1)
             .single();
-            
+
         if (!currentUsage) {
             console.warn('No usage record found for company:', companyId);
             return;
@@ -491,13 +494,13 @@ export const incrementAdOptimizationUsage = async (companyId: string): Promise<v
 
         // Increment usage
         const newUsage = (currentUsage.ad_optimizations_used || 0) + 1;
-        
+
         // Update usage record
         const { error } = await supabase
             .from('subscription_usage')
             .update({ ad_optimizations_used: newUsage })
             .eq('id', currentUsage.id);
-            
+
         if (error) {
             console.error('Failed to increment ad optimization usage:', error);
         } else {
@@ -510,7 +513,7 @@ export const incrementAdOptimizationUsage = async (companyId: string): Promise<v
 
 export const incrementJobPosting = async (companyId: string): Promise<void> => {
     if (!supabase) return;
-    
+
     try {
         // Get current subscription and usage
         const { data: company } = await supabase
@@ -518,7 +521,7 @@ export const incrementJobPosting = async (companyId: string): Promise<void> => {
             .select('subscription_id')
             .eq('id', companyId)
             .single();
-            
+
         if (!company?.subscription_id) {
             console.warn('No subscription found for company:', companyId);
             return;
@@ -532,7 +535,7 @@ export const incrementJobPosting = async (companyId: string): Promise<void> => {
             .order('period_end', { ascending: false })
             .limit(1)
             .single();
-            
+
         if (!currentUsage) {
             console.warn('No usage record found for company:', companyId);
             return;
@@ -540,13 +543,13 @@ export const incrementJobPosting = async (companyId: string): Promise<void> => {
 
         // Increment usage
         const newUsage = (currentUsage.active_jobs_count || 0) + 1;
-        
+
         // Update usage record
         const { error } = await supabase
             .from('subscription_usage')
             .update({ active_jobs_count: newUsage })
             .eq('id', currentUsage.id);
-            
+
         if (error) {
             console.error('Failed to increment job posting usage:', error);
         } else {
@@ -570,7 +573,7 @@ export const trackAnalyticsEvent = async (event: {
     metadata?: any;
 }): Promise<void> => {
     if (!supabase) return;
-    
+
     try {
         const { error } = await supabase
             .from('analytics_events')
@@ -583,7 +586,7 @@ export const trackAnalyticsEvent = async (event: {
                 metadata: event.metadata || {},
                 created_at: new Date().toISOString()
             });
-            
+
         if (error) {
             console.error('Failed to track analytics event:', error);
         }
@@ -640,7 +643,7 @@ export const createEnterpriseLead = async (leadData: {
     timeline?: string;
 }): Promise<void> => {
     if (!supabase) return;
-    
+
     try {
         const { error } = await supabase
             .from('enterprise_leads')
@@ -649,7 +652,7 @@ export const createEnterpriseLead = async (leadData: {
                 status: 'new',
                 created_at: new Date().toISOString()
             });
-            
+
         if (error) {
             console.error('Failed to create enterprise lead:', error);
             throw error;
@@ -666,7 +669,7 @@ export const createEnterpriseLead = async (leadData: {
 
 export const getCompanySubscription = async (companyId: string) => {
     if (!supabase) return null;
-    
+
     try {
         const { data, error } = await supabase
             .from('subscriptions')
@@ -681,12 +684,12 @@ export const getCompanySubscription = async (companyId: string) => {
             `)
             .eq('company_id', companyId)
             .single();
-        
+
         if (error) {
             console.warn('⚠️ Subscription fetch error:', error);
             return null;
         }
-        
+
         return data as any;
     } catch (error) {
         console.warn('⚠️ Exception fetching company subscription:', error);
@@ -696,23 +699,23 @@ export const getCompanySubscription = async (companyId: string) => {
 
 export const updateSubscriptionStatus = async (companyId: string, status: string) => {
     if (!supabase) return;
-    
+
     const { data: company } = await supabase
         .from('companies')
         .select('subscription_id')
         .eq('id', companyId)
         .single();
-        
+
     if (!company?.subscription_id) return;
-    
+
     const { error } = await supabase
         .from('subscriptions')
-        .update({ 
+        .update({
             status,
             updated_at: new Date().toISOString()
         })
         .eq('id', company.subscription_id);
-        
+
     if (error) {
         console.error('Subscription status update error:', error);
         throw error;
@@ -721,19 +724,19 @@ export const updateSubscriptionStatus = async (companyId: string, status: string
 
 export const getUsageSummary = async (companyId: string) => {
     if (!supabase) return null;
-    
+
     try {
         const { data: company, error: companyError } = await supabase
             .from('companies')
             .select('subscription_id')
             .eq('id', companyId)
             .single();
-            
+
         if (companyError || !company?.subscription_id) {
             console.warn('⚠️ Could not get company subscription_id:', companyError);
             return null;
         }
-        
+
         const { data: usage, error: usageError } = await supabase
             .from('subscription_usage')
             .select(`
@@ -748,12 +751,12 @@ export const getUsageSummary = async (companyId: string) => {
             .order('period_end', { ascending: false })
             .limit(1)
             .single();
-        
+
         if (usageError) {
             console.warn('⚠️ Usage summary fetch error:', usageError);
             return null;
         }
-        
+
         return usage as any;
     } catch (error) {
         console.warn('⚠️ Exception fetching usage summary:', error);
@@ -765,7 +768,7 @@ export const getUsageSummary = async (companyId: string) => {
 
 export const createCompany = async (companyData: any, userId?: string): Promise<any> => {
     if (!supabase) throw new Error("Supabase not configured");
-    
+
     const { data, error } = await supabase
         .from('companies')
         .insert({
@@ -776,9 +779,9 @@ export const createCompany = async (companyData: any, userId?: string): Promise<
         })
         .select('*')
         .single();
-    
+
     if (error) throw error;
-    
+
     return data;
 };
 
@@ -792,26 +795,26 @@ export const createCompany = async (companyData: any, userId?: string): Promise<
 
 export const getCVDocuments = async (userId?: string): Promise<CVDocument[]> => {
     if (!supabase) return [];
-    
+
     let query = supabase.from('cv_documents').select('*');
-    
+
     if (userId) {
         query = query.eq('user_id', userId);
     }
-    
+
     const { data, error } = await query.order('uploaded_at', { ascending: false });
-    
+
     if (error) {
         console.error('CV documents fetch error:', error);
         return [];
     }
-    
+
     return data || [];
 };
 
 export const createCVDocument = async (documentData: any): Promise<string> => {
     if (!supabase) throw new Error("Supabase not configured");
-    
+
     const { data, error } = await supabase
         .from('cv_documents')
         .insert({
@@ -820,9 +823,9 @@ export const createCVDocument = async (documentData: any): Promise<string> => {
         })
         .select('id')
         .single();
-    
+
     if (error) throw error;
-    
+
     return data.id;
 };
 
@@ -835,7 +838,7 @@ export const createCVDocument = async (documentData: any): Promise<string> => {
 // Missing functions from imports
 export const inviteRecruiter = async (companyId: string, email: string, invitedBy: string): Promise<boolean> => {
     if (!supabase) return false;
-    
+
     try {
         // Check if user already exists
         const { data: existingUser } = await supabase
@@ -843,9 +846,9 @@ export const inviteRecruiter = async (companyId: string, email: string, invitedB
             .select('id')
             .eq('email', email)
             .single();
-        
+
         const userId = existingUser?.id;
-        
+
         const { error } = await supabase
             .from('company_members')
             .insert({
@@ -855,12 +858,12 @@ export const inviteRecruiter = async (companyId: string, email: string, invitedB
                 invited_by: invitedBy,
                 invited_at: new Date().toISOString()
             });
-        
+
         if (error) {
             console.error('Failed to invite recruiter:', error);
             return false;
         }
-        
+
         return true;
     } catch (error) {
         console.error('Invite recruiter error:', error);
@@ -870,79 +873,79 @@ export const inviteRecruiter = async (companyId: string, email: string, invitedB
 
 export const uploadCVFile = async (_userId: string, file: File): Promise<string> => {
     if (!supabase) throw new Error("Supabase not configured");
-    
+
     const fileName = `uploads/${Date.now()}-${file.name}`;
     const { data, error } = await supabase.storage
         .from('cvs')
         .upload(fileName, file);
-    
+
     if (error) throw error;
-    
+
     return data.path;
 };
 
 export const uploadProfilePhoto = async (userId: string, file: File): Promise<string> => {
     if (!supabase) throw new Error("Supabase not configured");
-    
+
     const fileName = `${userId}/${Date.now()}-${file.name}`;
     const { data: _uploadData, error } = await supabase.storage
         .from('profile_photos')
         .upload(fileName, file);
-    
+
     if (error) throw error;
-    
+
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
         .from('profile_photos')
         .getPublicUrl(fileName);
-    
+
     return publicUrl;
 };
 
 export const checkCompanyAssessment = async (companyId: string): Promise<boolean> => {
     if (!supabase) return false;
-    
+
     const { data, error } = await supabase
         .from('assessment_results')
         .select('id')
         .eq('company_id', companyId)
         .limit(1);
-    
+
     if (error) {
         console.error('Check company assessment error:', error);
         return false;
     }
-    
+
     return (data && data.length > 0);
 };
 
 export const fetchLearningResources = async (skillName?: string) => {
     if (!supabase) return [];
-    
+
     let query = supabase.from('learning_resources').select('*');
-    
+
     if (skillName) {
         query = query.contains('skill_name', [skillName]);
     }
-    
+
     const { data, error } = await query.order('relevance_score', { ascending: false });
-    
+
     if (error) {
         console.error('Learning resources fetch error:', error);
         return [];
     }
-    
+
     return data || [];
 };
 
 export const fetchBenefitValuations = async () => {
     if (!supabase) return [];
-    
+
     const { data } = await supabase
         .from('benefit_valuations')
         .select('*')
         .order('monthly_value_czk', { ascending: false });
-    
+
     return data || [];
 };
 
@@ -952,18 +955,18 @@ export const fetchBenefitValuations = async () => {
 
 export const getUserCVDocuments = async (userId: string): Promise<CVDocument[]> => {
     if (!supabase) return [];
-    
+
     const { data, error } = await supabase
         .from('cv_documents')
         .select('*')
         .eq('user_id', userId)
         .order('uploaded_at', { ascending: false });
-    
+
     if (error) {
         console.error('Error fetching CV documents:', error);
         return [];
     }
-    
+
     return (data || []).map((doc: any) => ({
         id: doc.id,
         userId: doc.user_id,
@@ -981,18 +984,18 @@ export const getUserCVDocuments = async (userId: string): Promise<CVDocument[]> 
 
 export const uploadCVDocument = async (userId: string, file: File): Promise<CVDocument | null> => {
     if (!supabase) return null;
-    
+
     try {
         // SECURITY: Validate file before upload
         const validation = validateFileUpload(file);
         if (!validation.isValid) {
             throw new Error(validation.error);
         }
-        
+
         // SECURITY: Generate safe filename
         const fileExt = validation.extension!;
         const safeFileName = generateSafeFileName(userId, file.name, fileExt);
-        
+
         // SECURITY: Upload with metadata validation
         const { data: _uploadData, error: uploadError } = await supabase.storage
             .from('cvs')
@@ -1001,17 +1004,17 @@ export const uploadCVDocument = async (userId: string, file: File): Promise<CVDo
                 cacheControl: '3600',
                 upsert: false
             });
-        
+
         if (uploadError) {
             console.error('File upload error:', uploadError);
             throw new Error(`Upload failed: ${uploadError.message}`);
         }
-        
+
         // SECURITY: Get public URL safely
         const { data: urlData } = supabase.storage
             .from('cvs')
             .getPublicUrl(safeFileName);
-        
+
         // SECURITY: Insert with additional security checks
         const { data, error } = await supabase
             .from('cv_documents')
@@ -1028,13 +1031,13 @@ export const uploadCVDocument = async (userId: string, file: File): Promise<CVDo
             })
             .select()
             .single();
-        
+
         if (error) {
             // SECURITY: Cleanup failed upload
             await supabase.storage.from('cvs').remove([safeFileName]);
             throw new Error(`Database error: ${error.message}`);
         }
-        
+
         return {
             id: data.id,
             userId: data.user_id,
@@ -1062,34 +1065,34 @@ function validateFileUpload(file: File): { isValid: boolean; extension?: string;
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
         'text/plain'
     ];
-    
+
     // SECURITY: File extension whitelist
     const allowedExtensions = ['pdf', 'doc', 'docx', 'txt'];
-    
+
     // SECURITY: File size limit (10MB max)
     const maxSizeBytes = 10 * 1024 * 1024;
-    
+
     // Check file size
     if (file.size > maxSizeBytes) {
         return { isValid: false, error: 'File size exceeds 10MB limit' };
     }
-    
+
     // Check MIME type
     if (!allowedTypes.includes(file.type)) {
         return { isValid: false, error: 'File type not allowed' };
     }
-    
+
     // Check extension
     const fileExt = file.name.split('.').pop()?.toLowerCase();
     if (!fileExt || !allowedExtensions.includes(fileExt)) {
         return { isValid: false, error: 'File extension not allowed' };
     }
-    
+
     // SECURITY: Additional filename checks
     if (file.name.includes('..') || file.name.includes('/') || file.name.includes('\\')) {
         return { isValid: false, error: 'Invalid filename' };
     }
-    
+
     return { isValid: true, extension: fileExt };
 }
 
@@ -1111,29 +1114,29 @@ function sanitizeFileName(fileName: string): string {
 
 export const updateUserCVSelection = async (userId: string, cvId: string): Promise<boolean> => {
     if (!supabase) return false;
-    
+
     try {
         // First, set all CVs for this user to inactive
         await supabase
             .from('cv_documents')
             .update({ is_active: false })
             .eq('user_id', userId);
-        
+
         // Then set the selected CV to active
         const { error } = await supabase
             .from('cv_documents')
-            .update({ 
+            .update({
                 is_active: true,
                 last_used: new Date().toISOString()
             })
             .eq('id', cvId)
             .eq('user_id', userId);
-        
+
         if (error) {
             console.error('CV selection update error:', error);
             return false;
         }
-        
+
         return true;
     } catch (error) {
         console.error('CV selection failed:', error);
@@ -1143,7 +1146,7 @@ export const updateUserCVSelection = async (userId: string, cvId: string): Promi
 
 export const deleteCVDocument = async (userId: string, cvId: string): Promise<boolean> => {
     if (!supabase) return false;
-    
+
     try {
         // First, get the file name to delete from storage
         const { data: cvData, error: fetchError } = await supabase
@@ -1152,31 +1155,31 @@ export const deleteCVDocument = async (userId: string, cvId: string): Promise<bo
             .eq('id', cvId)
             .eq('user_id', userId)
             .single();
-        
+
         if (fetchError) {
             console.error('CV fetch error:', fetchError);
             return false;
         }
-        
+
         // Delete from storage
         if (cvData?.file_name) {
             await supabase.storage
                 .from('cvs')
                 .remove([cvData.file_name]);
         }
-        
+
         // Delete from database
         const { error } = await supabase
             .from('cv_documents')
             .delete()
             .eq('id', cvId)
             .eq('user_id', userId);
-        
+
         if (error) {
             console.error('CV deletion error:', error);
             return false;
         }
-        
+
         return true;
     } catch (error) {
         console.error('CV deletion failed:', error);

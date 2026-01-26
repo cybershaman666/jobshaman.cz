@@ -511,7 +511,8 @@ scheduler.add_job(func=run_all_scrapers, trigger="interval", hours=12)
 scheduler.start()
 
 # Configure APIs
-SECRET_KEY = os.getenv("SECRET_KEY", "super-secret-shaman-key")
+# Support both JWT_SECRET (Render.io) and SECRET_KEY (legacy)
+SECRET_KEY = os.getenv("JWT_SECRET") or os.getenv("SECRET_KEY", "super-secret-shaman-key")
 resend.api_key = os.getenv("RESEND_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -568,7 +569,7 @@ class JobCheckRequest(BaseModel):
 class CheckoutRequest(BaseModel):
     tier: str = Field(
         ...,
-        pattern=r"^(premium|business|assessment|assessment_bundle)$",
+        pattern=r"^(premium|business|assessment|assessment_bundle|single_assessment)$",
         description="Subscription tier",
     )
     userId: str = Field(..., min_length=1, max_length=100, description="User ID")
@@ -1571,13 +1572,31 @@ async def get_subscription_status(
 
         # Tier limits configuration
         tier_limits = {
-            "free": {"assessments": 0, "job_postings": 3, "name": "Free"},
-            "premium": {"assessments": 0, "job_postings": 10, "name": "Premium"},
-            "business": {"assessments": 999, "job_postings": 10, "name": "Business"},
+            "free": {
+                "assessments": 0,
+                "job_postings": 3,
+                "name": "Free",
+                "cv_rewrites": 0,
+                "cover_letters": 0,
+                "career_recommendations": 0,
+            },
+            "premium": {
+                "assessments": 0,
+                "job_postings": 10,
+                "name": "Premium",
+                "cv_rewrites": 5,
+                "cover_letters": 5,
+                "career_recommendations": 10,
+            },
+            "business": {
+                "assessments": 999,
+                "job_postings": 999,
+                "name": "Business",
+            },
             "assessment_bundle": {
                 "assessments": 10,
                 "job_postings": 0,
-                "name": "Assessment Bundle (10 checks)",
+                "name": "Assessment Bundle",
             },
             "single_assessment": {
                 "assessments": 1,
@@ -1681,6 +1700,11 @@ async def get_subscription_status(
                 else 0
             )
 
+        # Candidate specific metrics (mock/default for now as these are new)
+        cv_rewrites_used = subscription_details.get("cv_rewrites_used", 0) if subscription_details else 0
+        cover_letters_used = subscription_details.get("cover_letters_used", 0) if subscription_details else 0
+        career_recommendations_used = subscription_details.get("career_recommendations_used", 0) if subscription_details else 0
+
         return {
             "tier": user_tier,
             "tierName": limits["name"],
@@ -1698,6 +1722,13 @@ async def get_subscription_status(
             "assessmentsUsed": assessments_used,
             "jobPostingsAvailable": limits["job_postings"],
             "jobPostingsUsed": job_postings_used,
+            # Candidate specific
+            "cvRewritesAvailable": limits.get("cv_rewrites", 0),
+            "cvRewritesUsed": cv_rewrites_used,
+            "coverLettersAvailable": limits.get("cover_letters", 0),
+            "coverLettersUsed": cover_letters_used,
+            "careerRecommendationsAvailable": limits.get("career_recommendations", 0),
+            "careerRecommendationsUsed": career_recommendations_used,
             "stripeSubscriptionId": subscription_details.get("stripe_subscription_id")
             if subscription_details
             else None,
@@ -1716,7 +1747,32 @@ async def get_subscription_status(
 
 
 @app.post("/create-checkout-session")
-async def create_checkout_session(req: CheckoutRequest):
+@limiter.limit("10/minute")  # Strict rate limiting for payment endpoints
+async def create_checkout_session(
+    req: CheckoutRequest,
+    request: Request,
+    user: dict = Depends(get_current_user)  # Require authentication
+):
+    """
+    Create a Stripe checkout session for subscription purchase
+    SECURITY: Requires authentication and CSRF token
+    """
+    try:
+        # CSRF Protection for financial operations
+        if not verify_csrf_token_header(request, user):
+            print(f"❌ CSRF validation failed for checkout session")
+            raise HTTPException(
+                status_code=403,
+                detail="CSRF token validation failed. Please refresh and try again."
+            )
+        
+        # Verify userId matches authenticated user
+        if user.get("id") != req.userId:
+            print(f"❌ User ID mismatch: {user.get('id')} vs {req.userId}")
+            raise HTTPException(
+                status_code=403,
+                detail="User ID mismatch"
+            )
     try:
         # Validate Stripe API key is set
         if not stripe.api_key:
@@ -1744,7 +1800,7 @@ async def create_checkout_session(req: CheckoutRequest):
             "premium": "price_1StDJuG2Aezsy59eqi584FWl",  # 99 CZK/month
             "business": "price_1StDKmG2Aezsy59e1eiG9bny",  # 4990 CZK/month
             "assessment_bundle": "price_1StDTGG2Aezsy59esZLgocHw",  # 990 CZK/month for 10 assessments/month (recurring)
-            "single_assessment": None,  # TODO: Create one-time price in Stripe and update this field
+            "single_assessment": "price_1StDTGG2Aezsy59esZLgocHw",  # TEMPORARY: Using bundle price until single price is created
         }
 
         price_id = prices.get(backend_tier)
