@@ -146,7 +146,7 @@ export default function App() {
         setExpandedSections,
         toggleBenefitFilter,
         toggleContractTypeFilter
-    } = useJobFilters(jobs);
+    } = useJobFilters(jobs, userProfile);
 
     const selectedJob = filteredJobs.find(j => j.id === selectedJobId);
 
@@ -431,7 +431,7 @@ export default function App() {
         }
     };
 
-    
+
 
     const toggleSection = (section: keyof typeof expandedSections) => {
         setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
@@ -630,7 +630,7 @@ export default function App() {
                                 </div>
 
                                 <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                                    Naše AI analyzuje relevantnost benefitů v kontextu pracovních podmínek. 
+                                    Naše AI analyzuje relevantnost benefitů v kontextu pracovních podmínek.
                                     Odhalíme nesrovnalosti a ušetříme čas čtením mezi řádky.
                                 </p>
                             </div>
@@ -716,7 +716,7 @@ export default function App() {
             );
         }
 
-        
+
 
         const dynamicJHI = selectedJob ? { ...selectedJob.jhi } : null;
         if (dynamicJHI && commuteAnalysis) {

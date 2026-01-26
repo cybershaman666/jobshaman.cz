@@ -2,7 +2,10 @@ import { useState, useMemo } from 'react';
 import { Job } from '../types';
 import { BENEFIT_KEYWORDS, removeAccents } from '../utils/benefits';
 
-export const useJobFilters = (jobs: Job[]) => {
+import { UserProfile } from '../types';
+import { getCoordinates, calculateDistanceKm } from '../services/commuteService';
+
+export const useJobFilters = (jobs: Job[], userProfile: UserProfile) => {
     // Filter State
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCity, setFilterCity] = useState('');
@@ -62,19 +65,45 @@ export const useJobFilters = (jobs: Job[]) => {
         }
 
         // Commute distance filter
-        if (enableCommuteFilter && filterMaxDistance) {
-            filtered = filtered.filter(() => {
-                // This would be calculated based on user's address and job location
-                // For now, assume all jobs pass the distance filter
-                return true;
+        if (enableCommuteFilter && filterMaxDistance && userProfile.coordinates) {
+            filtered = filtered.filter(job => {
+                const jobCoords = getCoordinates(job.location);
+                if (!jobCoords) return true; // Keep jobs where location is unknown (safe fallback)
+
+                const dist = calculateDistanceKm(
+                    userProfile.coordinates!.lat,
+                    userProfile.coordinates!.lon,
+                    jobCoords.lat,
+                    jobCoords.lon
+                );
+                return dist <= filterMaxDistance;
             });
         }
+
+        // Sort by distance if user has coordinates and no search term is active
+        // (If search term is active, relevance is more important contextually, but here we can prioritize distance too or keep as is)
+        if (userProfile.coordinates && !searchTerm) {
+            filtered = filtered.sort((a, b) => {
+                const coordsA = getCoordinates(a.location);
+                const coordsB = getCoordinates(b.location);
+
+                if (!coordsA && !coordsB) return 0;
+                if (!coordsA) return 1;
+                if (!coordsB) return -1;
+
+                const distA = calculateDistanceKm(userProfile.coordinates!.lat, userProfile.coordinates!.lon, coordsA.lat, coordsA.lon);
+                const distB = calculateDistanceKm(userProfile.coordinates!.lat, userProfile.coordinates!.lon, coordsB.lat, coordsB.lon);
+
+                return distA - distB;
+            });
+        }
+
 
         // Contract type filter (using type property)
         if (filterContractType.length > 0) {
             filtered = filtered.filter(job => {
                 const jobType = job.type || '';
-                return filterContractType.some(type => 
+                return filterContractType.some(type =>
                     jobType.toLowerCase().includes(type.toLowerCase())
                 );
             });
@@ -84,7 +113,7 @@ export const useJobFilters = (jobs: Job[]) => {
         if (filterBenefits.length > 0) {
             filtered = filtered.filter(job => {
                 const jobDescription = (job.description + ' ' + (job.tags || []).join(' ')).toLowerCase();
-                
+
                 return filterBenefits.every(benefit => {
                     const keywords = BENEFIT_KEYWORDS[benefit] || [];
                     return keywords.some(keyword => jobDescription.includes(keyword));
@@ -93,7 +122,7 @@ export const useJobFilters = (jobs: Job[]) => {
         }
 
         return filtered;
-    }, [jobs, searchTerm, filterCity, filterMaxDistance, enableCommuteFilter, filterBenefits, filterContractType]);
+    }, [jobs, searchTerm, filterCity, filterMaxDistance, enableCommuteFilter, filterBenefits, filterContractType, userProfile]);
 
     const totalJobCount = jobs.length;
     const filteredJobCount = filteredJobs.length;
@@ -109,12 +138,12 @@ export const useJobFilters = (jobs: Job[]) => {
         savedJobIds,
         showFilters,
         expandedSections,
-        
+
         // Computed
         filteredJobs,
         totalJobCount,
         filteredJobCount,
-        
+
         // Actions
         setSearchTerm,
         setFilterCity,
