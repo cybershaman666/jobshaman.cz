@@ -55,7 +55,7 @@ export async function verifyServerSideBilling(
           };
         }
       }
-      
+
       return {
         hasAccess: false,
         reason: 'Ověření poplatku selhalo'
@@ -92,19 +92,35 @@ export async function getSubscriptionStatus(userId: string): Promise<{
 }> {
   try {
     console.log('🔄 Calling subscription-status endpoint for userId:', userId);
-    
+
+    // MOCK DATA INTERCEPTION
+    if (userId === 'mock_company_id') {
+      console.log('⚠️ Mock Company ID detected - returning mock subscription data locally');
+      return {
+        tier: 'business', // Default to business for testing
+        tierName: 'Business Plan (Mock)',
+        status: 'active',
+        daysUntilRenewal: 30,
+        currentPeriodStart: new Date().toISOString(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        assessmentsAvailable: 10,
+        assessmentsUsed: 2,
+        jobPostingsAvailable: 999
+      };
+    }
+
     const response = await authenticatedFetch(`${BACKEND_URL}/subscription-status?userId=${userId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json'
       }
     });
-    
+
     if (!response.ok) {
       console.warn(`⚠️ Subscription status returned ${response.status}:`, response.statusText);
       throw new Error(`Failed to get subscription status: ${response.status}`);
     }
-    
+
     const data = await response.json();
     console.log('✅ Subscription status retrieved:', data);
     return data;
