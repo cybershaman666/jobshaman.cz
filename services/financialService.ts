@@ -5,33 +5,33 @@ import { Job, UserProfile, FinancialReality, BenefitValuation } from '../types';
 // Base is EUR, 1 EUR ~ 25 CZK
 const BENEFIT_VALUES: Record<string, number> = {
   // Food benefits - Stravenky/stravování: 2,200 Kč = 88 EUR
-  'Stravenky': 88, 
-  'Stravenkový paušál': 88, 
+  'Stravenky': 88,
+  'Stravenkový paušál': 88,
   'Příspěvek na stravování': 88,
   'Straveny': 88,
   'Obědy': 88,
   'Jídelny': 88,
-  
+
   // Pension - Penzijní: 1,000 Kč = 40 EUR  
   'Penzijní připojištění': 40,
   'Penzijní': 40,
   'Penzíjko': 40,
   'Doplňkové penzijní': 40,
   'Životní pojištění': 40,
-  
+
   // Phone - Mobilní telefon: 500 Kč = 20 EUR
   'Mobilní telefon': 20,
   'Telefon': 20,
   'Mobil': 20,
   'Služební telefon': 20,
-  
+
   // Sports - MultiSport: 500 Kč = 20 EUR
   'MultiSport': 20,
   'MultiSport Karta': 20,
   'Multisport': 20,
   'Sport': 20,
   'Sportovní karta': 20,
-  
+
   // Other benefits - Conservative estimates
   'Služební auto': 400, // ~10,000 Kč
   'Auto': 400,
@@ -69,33 +69,46 @@ export const detectCurrency = (text: string): string => {
 };
 
 export const detectCurrencyFromLocation = (location: string): string => {
-    const locLower = location.toLowerCase();
-    // Simple heuristic for CZ
-    if (locLower.includes('cz') || locLower.includes('czech') || locLower.includes('česk') || 
-        locLower.includes('praha') || locLower.includes('brno') || locLower.includes('ostrava') || 
-        locLower.includes('plzeň') || locLower.includes('olomouc') || locLower.includes('liberec') ||
-        locLower.includes('budějovice') || locLower.includes('hradec') || locLower.includes('pardubice')) {
-        return 'CZK';
-    }
-    // Default to EUR for Europe/Unknown
+  if (!location) return 'CZK'; // Default to CZK if location is missing
+  const locLower = location.toLowerCase();
+
+  // 1. Explicit Foreign Countries/Cities
+  if (locLower.includes('usa') || locLower.includes('spojené státy') || locLower.includes('new york') || locLower.includes('san francisco')) return '$';
+  if (locLower.includes('uk') || locLower.includes('británie') || locLower.includes('london') || locLower.includes('londýn') || locLower.includes('united kingdom')) return '£';
+  if (locLower.includes('švýcarsko') || locLower.includes('switzerland') || locLower.includes('zürich') || locLower.includes('geneva')) return 'CHF';
+
+  // 2. Eurozone keywords
+  if (locLower.includes('německo') || locLower.includes('germany') || locLower.includes('deutschland') ||
+    locLower.includes('rakousko') || locLower.includes('austria') ||
+    locLower.includes('slovensko') || locLower.includes('slovakia') || locLower.includes('bratislava') ||
+    locLower.includes('nizozemí') || locLower.includes('netherlands') ||
+    locLower.includes('irsko') || locLower.includes('ireland') ||
+    locLower.includes('francie') || locLower.includes('france') ||
+    locLower.includes('itálie') || locLower.includes('italy') ||
+    locLower.includes('španělsko') || locLower.includes('spain')) {
     return '€';
+  }
+
+  // 3. Default to CZK for this platform (JobShaman CZ)
+  // This covers all Czech cities, villages, "Remote" (usually means Czech remote in this context), etc.
+  return 'CZK';
 }
 
 export const parseMonthlySalary = (salaryRange: string | undefined): number => {
   if (!salaryRange) return 0;
-  
+
   // Remove commas and spaces
   const cleanString = salaryRange.replace(/,/g, '').replace(/\s/g, '');
-  
+
   // Extract first number found
   const match = cleanString.match(/(\d+)/);
   if (!match) return 0;
-  
+
   let value = parseInt(match[0], 10);
-  
+
   // Detect annual vs monthly
   const isAnnual = salaryRange.toLowerCase().includes('k') || value < 200; // e.g. 85k or 85
-  
+
   // Handle "k" suffix (e.g. 85k)
   if (salaryRange.toLowerCase().includes('k') && value < 1000) {
     value *= 1000;
@@ -103,12 +116,12 @@ export const parseMonthlySalary = (salaryRange: string | undefined): number => {
 
   // Convert annual to monthly
   if (isAnnual || value > 150000 && !salaryRange.includes('mo') && !salaryRange.includes('mth')) {
-     const currency = detectCurrency(salaryRange);
-     if (currency === 'Kč' || currency === 'CZK') {
-        if (value > 200000) return Math.round(value / 12);
-     } else {
-        if (value > 20000) return Math.round(value / 12);
-     }
+    const currency = detectCurrency(salaryRange);
+    if (currency === 'Kč' || currency === 'CZK') {
+      if (value > 200000) return Math.round(value / 12);
+    } else {
+      if (value > 20000) return Math.round(value / 12);
+    }
   }
 
   return value;
@@ -116,65 +129,65 @@ export const parseMonthlySalary = (salaryRange: string | undefined): number => {
 
 export const calculateBenefitsValue = (benefits: string[], currency: string, grossMonthlySalary?: number): number => {
   const multiplier = CURRENCY_MULTIPLIERS[currency] || 1;
-  
+
   if (!benefits || benefits.length === 0) return 0;
 
   // Use a Set to avoid double counting similar keywords (e.g. "Stravenky" and "Obědy")
   let totalValue = 0;
 
   for (const benefit of benefits) {
-      const benefitLower = benefit.toLowerCase();
-      
-      // Find matching key in values map
-      for (const key of Object.keys(BENEFIT_VALUES)) {
-          if (benefitLower.includes(key.toLowerCase())) {
-              totalValue += (BENEFIT_VALUES[key] * multiplier);
-              break; // Match first keyword in this benefit string and move to next benefit string
-          }
+    const benefitLower = benefit.toLowerCase();
+
+    // Find matching key in values map
+    for (const key of Object.keys(BENEFIT_VALUES)) {
+      if (benefitLower.includes(key.toLowerCase())) {
+        totalValue += (BENEFIT_VALUES[key] * multiplier);
+        break; // Match first keyword in this benefit string and move to next benefit string
       }
+    }
   }
-  
+
   // Add conservative bonus/prémie estimate based on salary (2,000 Kč = 80 EUR)
   if (grossMonthlySalary && grossMonthlySalary > 0) {
     totalValue += (80 * multiplier);
   }
-  
+
   return Math.round(totalValue);
 };
 
 // Simple estimator for Czech taxes
 export const estimateCzechNetSalary = (gross: number, isIco: boolean): { tax: number, net: number } => {
-    if (gross === 0) return { tax: 0, net: 0 };
+  if (gross === 0) return { tax: 0, net: 0 };
 
-    if (isIco) {
-        // IČO / Contractor
-        // Estimate: Flat tax (Paušální daň) or 60% expense lump sum.
-        // Assuming typical IT freelancer with lump sum expenses:
-        // Real tax burden is low.
-        // Approx 15% combined tax/social/health for simplicity on average earnings.
-        // Low earning (<50k) pays fixed tax (~7500 CZK).
-        let estimatedTax = 0;
-        if (gross < 60000) {
-            estimatedTax = 7500; // Minimum flat tax approx
-        } else {
-            estimatedTax = gross * 0.13; // Higher earnings
-        }
-        return { 
-            tax: Math.round(estimatedTax), 
-            net: Math.round(gross - estimatedTax) 
-        };
+  if (isIco) {
+    // IČO / Contractor
+    // Estimate: Flat tax (Paušální daň) or 60% expense lump sum.
+    // Assuming typical IT freelancer with lump sum expenses:
+    // Real tax burden is low.
+    // Approx 15% combined tax/social/health for simplicity on average earnings.
+    // Low earning (<50k) pays fixed tax (~7500 CZK).
+    let estimatedTax = 0;
+    if (gross < 60000) {
+      estimatedTax = 7500; // Minimum flat tax approx
     } else {
-        // Employee (HPP)
-        // 2024 Context:
-        // Social + Health paid by employee: ~11%
-        // Income Tax: 15% of Gross (minus deductions, but we simplify)
-        // Approx 21-23% deduction from Gross.
-        const estimatedDeductions = gross * 0.21;
-        return { 
-            tax: Math.round(estimatedDeductions), 
-            net: Math.round(gross - estimatedDeductions) 
-        };
+      estimatedTax = gross * 0.13; // Higher earnings
     }
+    return {
+      tax: Math.round(estimatedTax),
+      net: Math.round(gross - estimatedTax)
+    };
+  } else {
+    // Employee (HPP)
+    // 2024 Context:
+    // Social + Health paid by employee: ~11%
+    // Income Tax: 15% of Gross (minus deductions, but we simplify)
+    // Approx 21-23% deduction from Gross.
+    const estimatedDeductions = gross * 0.21;
+    return {
+      tax: Math.round(estimatedDeductions),
+      net: Math.round(gross - estimatedDeductions)
+    };
+  }
 };
 
 export const calculateFinancialScoreAdjustment = (
@@ -197,7 +210,7 @@ export const calculateFinancialScoreAdjustment = (
   // We compare: Net "Take Home + Benefits - Cost" vs just: Net Base.
   const realValue = netSalary + benefitsValue - commuteCost;
   const netDiff = realValue - netSalary;
-  
+
   // Percent improvement or loss over: base net salary
   const percentImpact = (netDiff / netSalary) * 100;
 
@@ -218,19 +231,19 @@ const COMMUTE_COSTS = {
 
 // Calculate distance between two GPS coordinates (Haversine formula)
 export const calculateDistance = (
-  lat1: number, 
-  lon1: number, 
-  lat2: number, 
+  lat1: number,
+  lon1: number,
+  lat2: number,
   lon2: number
 ): number => {
   const R = 6371; // Earth's radius in kilometers
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
-  const a = 
-    Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-    Math.sin(dLon/2) * Math.sin(dLon/2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 };
 
@@ -244,10 +257,10 @@ export const calculateCommuteCost = (
   const distance = calculateDistance(jobLat, jobLng, candidateLat, candidateLng);
   const dailyDistance = distance * 2; // Round trip
   const workingDaysPerMonth = 22; // Average working days
-  
+
   const coefficient = COMMUTE_COSTS[transportMode as keyof typeof COMMUTE_COSTS] || COMMUTE_COSTS.public;
   const monthlyCost = dailyDistance * coefficient * workingDaysPerMonth;
-  
+
   return {
     distance: Math.round(distance * 10) / 10, // Round to 1 decimal
     monthlyCost: Math.round(monthlyCost)
@@ -260,16 +273,16 @@ export const calculateBenefitsValueWithTable = async (
   currency: string = 'CZK'
 ): Promise<number> => {
   if (!benefits.length) return 0;
-  
+
   let totalValue = 0;
   const multiplier = CURRENCY_MULTIPLIERS[currency] || 25; // Default to CZK
-  
+
   for (const benefit of benefits) {
     const valuation = benefitValuations.find(
       bv => benefit.toLowerCase().includes(bv.benefit_name.toLowerCase()) ||
-             bv.benefit_name.toLowerCase().includes(benefit.toLowerCase())
+        bv.benefit_name.toLowerCase().includes(benefit.toLowerCase())
     );
-    
+
     if (valuation) {
       totalValue += (valuation.monetary_value / multiplier);
     } else {
@@ -282,7 +295,7 @@ export const calculateBenefitsValueWithTable = async (
       }
     }
   }
-  
+
   return Math.round(totalValue);
 };
 
@@ -292,50 +305,50 @@ export const calculateFinancialReality = async (
   benefitValuations: BenefitValuation[]
 ): Promise<(FinancialReality & { commuteDetails: { distance: number; monthlyCost: number } }) | null> => {
   // Extract salary information
-  const baseSalary = job.salary_from || 
+  const baseSalary = job.salary_from ||
     parseMonthlySalary(job.salaryRange) ||
     (job.aiEstimatedSalary ? job.aiEstimatedSalary.min : 0);
-  
+
   if (baseSalary === 0) {
     console.warn('No salary information available for job:', job.title);
     return null; // Return null instead of throwing error
   }
-  
+
   // Detect currency
   const currency = detectCurrency(job.salaryRange || '') || detectCurrencyFromLocation(job.location);
-  
+
   // Calculate benefits value
   const benefitsValue = await calculateBenefitsValueWithTable(
-    job.benefits || [], 
+    job.benefits || [],
     benefitValuations,
     currency
   );
-  
+
   // Calculate commute costs
   const commuteDetails = userProfile.coordinates && job.lat && job.lng
     ? calculateCommuteCost(
-        job.lat,
-        job.lng,
-        userProfile.coordinates.lat,
-        userProfile.coordinates.lon,
-        userProfile.transportMode
-      )
+      job.lat,
+      job.lng,
+      userProfile.coordinates.lat,
+      userProfile.coordinates.lon,
+      userProfile.transportMode
+    )
     : { distance: 0, monthlyCost: 0 };
-  
+
   // Convert commute cost to the same currency
-  const convertedCommuteCost = currency === 'CZK' || currency === 'Kč' 
-    ? commuteDetails.monthlyCost 
+  const convertedCommuteCost = currency === 'CZK' || currency === 'Kč'
+    ? commuteDetails.monthlyCost
     : Math.round(commuteDetails.monthlyCost / (CURRENCY_MULTIPLIERS[currency] || 25));
-  
+
   // Calculate net monthly (using existing tax estimation)
   const grossMonthly = baseSalary + (benefitsValue / 12);
   const { net: netMonthly } = estimateCzechNetSalary(grossMonthly, false);
   const netAfterCommute = netMonthly - convertedCommuteCost;
-  
 
-  
+
+
   const { tax: estimatedTaxAndInsurance, net: netBaseSalary } = estimateCzechNetSalary(grossMonthly, false);
-  
+
   return {
     currency: currency === 'CZK' || currency === 'Kč' ? 'CZK' : currency,
     grossMonthlySalary: grossMonthly,
