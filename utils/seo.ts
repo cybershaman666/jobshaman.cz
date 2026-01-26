@@ -10,15 +10,15 @@ export interface SEOMetadata {
 }
 
 // Dynamic SEO metadata based on page content
-export const generateSEOMetadata = (page: string, data?: any): SEOMetadata => {
-  const baseTitle = "JobShaman - Chytré nabídky práce v Česku";
+export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetadata => {
+  const baseTitle = t('seo.base_title');
   const baseUrl = "https://jobshaman.cz";
 
   switch (page) {
     case 'home':
       return {
         title: baseTitle,
-        description: "Najděte si ideální práci s AI analýzou. JobShaman nabízí transparentní nabídky práce s reálnými platy, benefity a JHI skóre. Filtrujte podle lokalit, benefitů a firem.",
+        description: t('seo.home_description'),
         keywords: ["nabídky práce", "jobs Česko", "AI analýza práce", "JHI skóre", "platy", "benefity", "práce Praha", "Brno", "Ostrava", "Plzeň"],
         canonical: baseUrl,
         ogImage: `${baseUrl}/og-image.jpg`
@@ -26,8 +26,14 @@ export const generateSEOMetadata = (page: string, data?: any): SEOMetadata => {
 
     case 'job-detail':
       return {
-        title: `${data?.title || 'Pracovní pozice'} | ${data?.company || ''} - JobShaman`,
-        description: `Detail pracovní pozice ${data?.title} ve firmě ${data?.company}. Plat: ${data?.salary || 'Neuveden'}. Lokalita: ${data?.location || 'Neuvedena'}. Benefity: ${data?.benefits?.join(', ') || 'Neuvedeny'}.`,
+        title: `${data?.title || t('marketplace.detail')} | ${data?.company || ''} - ${t('seo.job_detail_suffix')}`,
+        description: t('seo.job_detail_description', {
+          title: data?.title,
+          company: data?.company,
+          salary: data?.salary || (t('financial.gross_monthly') + ' ' + t('common.unknown')),
+          location: data?.location || t('common.unknown'),
+          benefits: data?.benefits?.join(', ') || t('common.none')
+        }),
         keywords: [data?.title, data?.company, data?.location, 'práce', 'nabídka', 'volné místo'],
         canonical: `${baseUrl}/job/${data?.id}`,
         ogImage: data?.logo || `${baseUrl}/og-image.jpg`,
@@ -36,24 +42,24 @@ export const generateSEOMetadata = (page: string, data?: any): SEOMetadata => {
 
     case 'company-dashboard':
       return {
-        title: "Pro Firmy - Publikujte nabídky | JobShaman",
-        description: "Publikujte pracovní nabídky a analyzujte kandidáty s AI. JobShaman pro firmy - moderní nábor s transparentností a daty.",
+        title: t('seo.company_dashboard_title'),
+        description: t('seo.company_dashboard_description'),
         keywords: ["nabídka práce", "nábor zaměstnanců", "HR software", "AI nábor", "práce Česko", "rekrutace"],
         canonical: `${baseUrl}/pro-firmy`
       };
 
     case 'marketplace':
       return {
-        title: "Kurzy & Rekvalifikace - JobShaman",
-        description: "Objevte kurzy a rekvalifikace pro vaši kariéru. Online školení, certifikace a vzdělávací programy v Česku.",
+        title: t('seo.marketplace_title'),
+        description: t('seo.marketplace_description'),
         keywords: ["kurzy", "rekvalifikace", "školení", "vzdělávání", "online kurzy", "certifikace", "kariérní růst"],
         canonical: `${baseUrl}/kurzy-a-rekvalifikace`
       };
 
     case 'profile':
       return {
-        title: "Můj Profil | JobShaman",
-        description: "Spravujte svůj profil, uložené pozice a preferenční nastavení na JobShaman. Personalizované doporučení pracovních nabídek.",
+        title: t('seo.profile_title'),
+        description: t('seo.profile_description'),
         keywords: ["profil", "moje účet", "uložené pozice", "personalizace", "kariéra"],
         canonical: `${baseUrl}/profil`
       };
@@ -61,7 +67,7 @@ export const generateSEOMetadata = (page: string, data?: any): SEOMetadata => {
     default:
       return {
         title: baseTitle,
-        description: "Najděte si ideální práci s AI analýzou v Česku. JobShaman nabízí transparentní nabídky práce s reálnými platy a benefity.",
+        description: t('seo.home_description'),
         canonical: baseUrl
       };
   }
@@ -113,7 +119,7 @@ export const generateJobPostingStructuredData = (job: any) => {
     "responsibilities": job.requirements,
     "qualifications": job.requirements,
     "skills": job.skills?.map((skill: string) => ({
-      "@type": "DefinedTerm", 
+      "@type": "DefinedTerm",
       "name": skill
     })),
     "workHours": job.workType,
@@ -136,7 +142,7 @@ export const generateFAQStructuredData = () => {
         }
       },
       {
-        "@type": "Question", 
+        "@type": "Question",
         "name": "Je JobShaman zdarma?",
         "acceptedAnswer": {
           "@type": "Answer",
@@ -147,7 +153,7 @@ export const generateFAQStructuredData = () => {
         "@type": "Question",
         "name": "Jaké benefity analyzujete?",
         "acceptedAnswer": {
-          "@type": "Answer", 
+          "@type": "Answer",
           "text": "Analyzujeme přes 40 typů benefitů včetně zaměstnaneckých akcií, firemních aut, příspěvků na stravu, multisport karet, kurzů a dalšího. Vše převedeme na peněžní hodnotu."
         }
       }
@@ -159,12 +165,12 @@ export const generateFAQStructuredData = () => {
 export const updatePageMeta = (metadata: SEOMetadata) => {
   // Update title
   document.title = metadata.title;
-  
+
   // Update or create meta tags
   const updateMeta = (name: string, content: string) => {
-    let meta = document.querySelector(`meta[name="${name}"]`) || 
-               document.querySelector(`meta[property="${name}"]`);
-    
+    let meta = document.querySelector(`meta[name="${name}"]`) ||
+      document.querySelector(`meta[property="${name}"]`);
+
     if (!meta) {
       meta = document.createElement('meta');
       meta.setAttribute(name.startsWith('og:') ? 'property' : 'name', name);
@@ -172,13 +178,29 @@ export const updatePageMeta = (metadata: SEOMetadata) => {
     }
     meta.setAttribute('content', content);
   };
-  
+
   // Basic meta tags
   updateMeta('description', metadata.description);
   if (metadata.keywords) {
     updateMeta('keywords', metadata.keywords.join(', '));
   }
-  
+
+  // hreflang alternate links
+  const languages = ['cs', 'en', 'de', 'pl', 'sk'];
+  const currentUrl = window.location.href.split('?')[0];
+
+  languages.forEach(lang => {
+    let link = document.querySelector(`link[hreflang="${lang}"]`) as HTMLLinkElement;
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'alternate';
+      link.hreflang = lang;
+      document.head.appendChild(link);
+    }
+    // Simple implementation: append lang as param
+    link.href = `${currentUrl}?lng=${lang}`;
+  });
+
   // Canonical URL
   if (metadata.canonical) {
     let canonical = document.querySelector('link[rel="canonical"]') as HTMLLinkElement;
@@ -189,18 +211,18 @@ export const updatePageMeta = (metadata: SEOMetadata) => {
     }
     canonical.href = metadata.canonical;
   }
-  
+
   // Open Graph
   updateMeta('og:title', metadata.title);
   updateMeta('og:description', metadata.description);
   updateMeta('og:image', metadata.ogImage || '');
-  
+
   // Twitter Card
   updateMeta('twitter:card', 'summary_large_image');
   updateMeta('twitter:title', metadata.title);
   updateMeta('twitter:description', metadata.description);
   updateMeta('twitter:image', metadata.ogImage || '');
-  
+
   // Structured data
   if (metadata.structuredData) {
     let structuredDataScript = document.querySelector('script[type="application/ld+json"]') as HTMLScriptElement;
@@ -217,7 +239,7 @@ export const updatePageMeta = (metadata: SEOMetadata) => {
 export const generateSearchSuggestions = (query: string): string[] => {
   const suggestions = [
     'práce Praha',
-    'práce Brno', 
+    'práce Brno',
     'práce Ostrava',
     'práce na dálku',
     'home office',
@@ -227,22 +249,28 @@ export const generateSearchSuggestions = (query: string): string[] => {
     'finance práce',
     'logistika práce'
   ];
-  
-  return suggestions.filter(suggestion => 
+
+  return suggestions.filter(suggestion =>
     suggestion.toLowerCase().includes(query.toLowerCase())
   );
 };
 
 // Generate AI-friendly page summary
-export const generateAISummary = (page: string, data?: any): string => {
+export const generateAISummary = (page: string, t: any, data?: any): string => {
   switch (page) {
     case 'home':
-      return "JobShaman je česká platforma pro hledání práce s AI analýzou. Nabízí transparentní pracovní nabídky s reálnými platy, benefity a unikátním JHI skóre. Umožňuje filtrování podle lokalit, benefitů a firemních hodnocení.";
+      return t('seo.ai_summary_home');
     case 'job-detail':
-      return `Detail pracovní pozice ${data?.title} ve firmě ${data?.company}. Nabídka ${data?.salary || 'plat neuveden'} v lokalitě ${data?.location || 'neuvedena'}. Benefity zahrnují: ${data?.benefits?.slice(0, 3).join(', ') || 'standardní balíček'}.`;
+      return t('seo.ai_summary_job', {
+        title: data?.title,
+        company: data?.company,
+        salary: data?.salary || t('common.unknown'),
+        location: data?.location || t('common.unknown'),
+        benefits: data?.benefits?.slice(0, 3).join(', ') || t('common.standard_package')
+      });
     case 'company-dashboard':
-      return "JobShaman pro firmy umožňuje publikování pracovních nabídek, analýzu kandidátů pomocí AI a transparentní náborové procesy. Cílí na český trh práce.";
+      return t('seo.ai_summary_company');
     default:
-      return "JobShaman - moderní platforma pro hledání práce v Česku s AI analýzou a transparentností.";
+      return t('seo.ai_summary_default');
   }
 };

@@ -293,7 +293,7 @@ export default function App() {
                     viewState === ViewState.MARKETPLACE ? 'marketplace' :
                         viewState === ViewState.COMPANY_DASHBOARD ? 'company-dashboard' : 'home';
 
-        const metadata = generateSEOMetadata(pageName, selectedJob);
+        const metadata = generateSEOMetadata(pageName, t, selectedJob);
         updatePageMeta(metadata);
 
         // LOAD REAL DATA
@@ -330,7 +330,7 @@ export default function App() {
                     viewState === ViewState.MARKETPLACE ? 'marketplace' :
                         viewState === ViewState.COMPANY_DASHBOARD ? 'company-dashboard' : 'home';
 
-        const metadata = generateSEOMetadata(pageName, selectedJob);
+        const metadata = generateSEOMetadata(pageName, t, selectedJob);
         updatePageMeta(metadata);
     }, [viewState, showCompanyLanding, selectedJob, userProfile]);
 

@@ -254,6 +254,27 @@
     "footer": {
         "rights_reserved": "© 2026 JobShaman. Alle Rechte vorbehalten.",
         "terms": "Nutzungsbedingungen",
-        "privacy": "Datenschutz"
+        "privacy": "Datenschutz",
+        "seo": {
+            "base_title": "JobShaman - Smarte Stellenangebote in Tschechien",
+            "home_description": "Finden Sie Ihren idealen Job mit KI-Analyse. JobShaman bietet transparente Stellenanzeigen mit realen Gehältern, Benefits und JHI-Score. Filtern Sie nach Standorten, Benefits und Unternehmen.",
+            "marketplace_title": "Kurse & Umschulung - JobShaman",
+            "marketplace_description": "Entdecken Sie Kurse und Umschulungen für Ihre Karriere. Online-Schulungen, Zertifizierungen und Bildungsprogramme in Tschechien.",
+            "profile_title": "Mein Profil | JobShaman",
+            "profile_description": "Verwalten Sie Ihr Profil, gespeicherte Positionen und Präferenzeinstellungen auf JobShaman. Personalisierte Jobempfehlungen.",
+            "company_dashboard_title": "Für Unternehmen - Angebote veröffentlichen | JobShaman",
+            "company_dashboard_description": "Veröffentlichen Sie Stellenangebote und analysieren Sie Kandidaten mit KI. JobShaman für Unternehmen - modernes Recruiting mit Transparenz und Daten.",
+            "job_detail_suffix": "JobShaman",
+            "job_detail_description": "Details zum Job {{title}} bei {{company}}. Gehalt: {{salary}}. Standort: {{location}}. Benefits: {{benefits}}.",
+            "ai_summary_home": "JobShaman ist eine tschechische Jobsuche-Plattform mit KI-Analyse. Sie bietet transparente Stellenanzeigen mit realen Gehältern, Benefits und einem einzigartigen JHI-Score.",
+            "ai_summary_job": "Details zum Job {{title}} bei {{company}}. Angebot {{salary}} am Standort {{location}}. Benefits beinhalten: {{benefits}}.",
+            "ai_summary_company": "JobShaman für Unternehmen ermöglicht die Veröffentlichung von Stellenangeboten, Kandidatenanalyse mittels KI und transparente Recruiting-Prozesse.",
+            "ai_summary_default": "JobShaman - moderne Jobsuche-Plattform in Tschechien mit KI-Analyse und Transparenz."
+        }
+    },
+    "common": {
+        "unknown": "Unbekannt",
+        "none": "Keine",
+        "standard_package": "Standardpaket"
     }
 }
