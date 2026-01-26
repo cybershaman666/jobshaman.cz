@@ -375,7 +375,9 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
               </div>
             </div>
             <p className="text-sm text-gray-600">
-              Upgrade to unlock AI assessments, job postings, and premium features
+              {isCompany
+                ? "Upgrade to unlock AI assessments, job postings, and premium features"
+                : "Upgrade to unlock AI CV rewrites, cover letters, and career recommendations"}
             </p>
           </div>
         )}

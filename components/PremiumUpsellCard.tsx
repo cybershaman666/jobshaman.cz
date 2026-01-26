@@ -1,8 +1,8 @@
 import React from 'react';
-import { 
-  FileText, 
-  Wand2, 
-  Mail, 
+import {
+  FileText,
+  Wand2,
+  Mail,
   ArrowRight,
   Star,
   Lock
@@ -37,12 +37,12 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ userId, isCompact
             </p>
           </div>
         </div>
-        
+
         <button
           onClick={handleUpgrade}
           className="w-full py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold rounded-lg transition-all hover:shadow-lg text-sm"
         >
-          Upgradovat za 199 Kč/měsíc
+          Upgradovat za 99 Kč/měsíc
         </button>
       </div>
     );
@@ -109,7 +109,7 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ userId, isCompact
 
         <div className="bg-white dark:bg-slate-800 rounded-lg p-4 mb-6 border border-slate-200 dark:border-slate-700">
           <p className="text-center">
-            <span className="text-3xl font-bold text-slate-900 dark:text-white">199 Kč</span>
+            <span className="text-3xl font-bold text-slate-900 dark:text-white">99 Kč</span>
             <span className="text-slate-600 dark:text-slate-400 ml-2">/měsíc</span>
           </p>
           <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-2">
