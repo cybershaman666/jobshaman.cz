@@ -61,7 +61,7 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                     }}
                     className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl transition-all shadow-xl hover:scale-[1.02] active:scale-95 mb-4"
                 >
-                    Upgradovat na Premium za 199 Kč/měsíc
+                    Upgradovat na Premium za 99 Kč/měsíc
                 </button>
 
                 <button

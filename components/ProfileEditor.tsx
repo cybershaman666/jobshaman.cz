@@ -19,6 +19,8 @@ import {
 import { uploadProfilePhoto, uploadCVFile } from '../services/supabaseService';
 import PremiumFeaturesPreview from './PremiumFeaturesPreview';
 import MyInvitations from './MyInvitations';
+import SubscriptionCard from './SubscriptionCard';
+import { useUserProfile } from '../hooks/useUserProfile';
 
 interface ProfileEditorProps {
   profile: UserProfile;
@@ -33,6 +35,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cvInputRef = useRef<HTMLInputElement>(null);
+  
+  // Get company profile for subscription card
+  const { companyProfile } = useUserProfile();
 
   // Form state for different sections
   const [formData, setFormData] = useState({
@@ -278,6 +283,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
           </button>
         </div>
       </div>
+
+      {/* Subscription Card */}
+      <SubscriptionCard userProfile={profile} companyProfile={companyProfile} />
 
       {/* Premium Features Preview */}
       <PremiumFeaturesPreview userProfile={profile} />

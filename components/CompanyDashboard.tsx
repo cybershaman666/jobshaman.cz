@@ -8,6 +8,7 @@ import { publishJob } from '../services/jobPublishService';
 import { canCompanyUseFeature, canCompanyPostJob } from '../services/billingService';
 import { supabase, incrementAdOptimizationUsage } from '../services/supabaseService';
 import AnalyticsService from '../services/analyticsService';
+import { getSubscriptionStatus } from '../services/serverSideBillingService';
 import BullshitMeter from './BullshitMeter';
 import CompanySettings from './CompanySettings';
 import AssessmentCreator from './AssessmentCreator';
@@ -79,6 +80,9 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     const [jobs, setJobs] = useState<Job[]>([]);
     const [candidates] = useState<Candidate[]>([]);
 
+    // Subscription state
+    const [subscription, setSubscription] = useState<any>(null);
+
     const [adDraft, setAdDraft] = useState('');
     const [jobTitle, setJobTitle] = useState('');
     const [optimizationResult, setOptimizationResult] = useState<AIAdOptimizationResult | null>(null);
@@ -101,6 +105,22 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         { id: 'all', name: 'Všichni náboraři', email: '', role: 'admin', joinedAt: '' },
         { id: '1', name: 'Floki Shaman', email: 'floki@jobshaman.cz', role: 'admin', joinedAt: '' }
     ];
+
+    // Load subscription data
+    useEffect(() => {
+        const loadSubscription = async () => {
+            if (!companyProfile?.id) return;
+            
+            try {
+                const subscriptionData = await getSubscriptionStatus(companyProfile.id);
+                setSubscription(subscriptionData);
+            } catch (error) {
+                console.error('Failed to load subscription:', error);
+            }
+        };
+
+        loadSubscription();
+    }, [companyProfile?.id]);
 
     // Load initial data for Real User
     useEffect(() => {
@@ -325,6 +345,106 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
         return (
             <div className="space-y-6 animate-in fade-in">
+                {/* Subscription Status Card */}
+                <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-6">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="text-lg font-bold text-indigo-900 dark:text-indigo-300 mb-1">Předplatné Společnosti</h3>
+                            <div className="flex items-center gap-4">
+                                <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                                    {subscription?.tier === 'business' ? 'Business' : subscription?.tier === 'basic' ? 'Základní' : 'Zdarma'} Plan
+                                </span>
+                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                    subscription?.tier === 'free' || !subscription?.status
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                                        : subscription?.status === 'active' 
+                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                                        : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
+                                }`}>
+                                    {subscription?.tier === 'free' || !subscription?.status ? 'Aktivní' : subscription?.status === 'active' ? 'Aktivní' : 'Neaktivní'}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="text-right">
+                            {subscription?.expiresAt && subscription?.tier !== 'free' && (
+                                <div className="text-sm text-indigo-700 dark:text-indigo-300">
+                                    <div className="font-medium">Další platba:</div>
+                                    <div className="font-mono">{new Date(subscription.expiresAt).toLocaleDateString('cs-CZ')}</div>
+                                    <div className="text-xs opacity-75">(za {subscription.daysUntilRenewal || 0} dní)</div>
+                                </div>
+                            )}
+                            <div className="mt-2">
+                                <button
+                                    onClick={() => setShowUpgradeModal({ open: true, feature: 'Změna plánu' })}
+                                    className="text-sm px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors font-medium"
+                                >
+                                    Spravovat Předplatné
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Credits and Usage */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-indigo-200 dark:border-indigo-800">
+                        <div className="bg-white dark:bg-slate-900 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Zap className="w-4 h-4 text-indigo-600" />
+                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">AI Assessmenty</span>
+                            </div>
+                            <div className="text-lg font-bold text-slate-900 dark:text-white">
+                                {subscription?.assessmentsAvailable || 0}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                                {subscription?.assessmentsUsed || 0} použito
+                            </div>
+                            {subscription?.tier === 'free' && (
+                                <div className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
+                                    <button 
+                                        onClick={() => setShowUpgradeModal({ open: true, feature: 'AI Assessmenty' })}
+                                        className="underline hover:no-underline"
+                                    >
+                                        Koupit kredity
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        <div className="bg-white dark:bg-slate-900 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Briefcase className="w-4 h-4 text-indigo-600" />
+                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Pracovní Inzeráty</span>
+                            </div>
+                            <div className="text-lg font-bold text-slate-900 dark:text-white">
+                                {subscription?.tier === 'business' ? 'Neomezeně' : subscription?.tier === 'basic' || subscription?.tier === 'free' ? '3' : '0'}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                                {subscription?.tier === 'business' ? 'Bez limitu' : 'Tento měsíc'}
+                            </div>
+                            {subscription?.tier === 'free' && (
+                                <div className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
+                                    <button 
+                                        onClick={() => setShowUpgradeModal({ open: true, feature: 'Více inzerátů' })}
+                                        className="underline hover:no-underline"
+                                    >
+                                        Upgrade na Premium
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                        <div className="bg-white dark:bg-slate-900 rounded-lg p-3">
+                            <div className="flex items-center gap-2 mb-1">
+                                <Users className="w-4 h-4 text-indigo-600" />
+                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Členové Týmu</span>
+                            </div>
+                            <div className="text-lg font-bold text-slate-900 dark:text-white">
+                                {companyProfile?.members?.length || 1}
+                            </div>
+                            <div className="text-xs text-slate-500">
+                                {subscription?.tier === 'business' ? 'Neomezeně' : 'Bez limitu'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 {/* Header & Actions */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
                     <div>

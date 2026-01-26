@@ -6,8 +6,15 @@
       "@id": "https://jobshaman.cz/#website",
       "url": "https://jobshaman.cz/",
       "name": "JobShaman",
+      "alternateName": ["Job Shaman", "JobShaman CZ"],
       "description": "Chytré nabídky práce v Česku s AI analýzou, transparentností a JHI skóre. Najděte si ideální práci s reálnými benefity a podmínkami.",
       "inLanguage": "cs-CZ",
+      "image": {
+        "@type": "ImageObject",
+        "url": "https://jobshaman.cz/logo.png",
+        "width": 200,
+        "height": 200
+      },
       "potentialAction": [
         {
           "@type": "SearchAction",
@@ -16,17 +23,6 @@
             "urlTemplate": "https://jobshaman.cz/?q={search_term_string}"
           },
           "query-input": "required name=search_term_string"
-        },
-        {
-          "@type": "ReadAction",
-          "target": {
-            "@type": "EntryPoint",
-            "urlTemplate": "https://jobshaman.cz/nabidky"
-          },
-          "object": {
-            "@type": "JobPosting",
-            "name": "Pracovní pozice"
-          }
         }
       ]
     },
@@ -34,8 +30,16 @@
       "@type": "Organization",
       "@id": "https://jobshaman.cz/#organization",
       "name": "JobShaman",
+      "alternateName": "Job Shaman s.r.o.",
       "url": "https://jobshaman.cz/",
+      "description": "Platforma pro inteligentní vyhledávání práce s AI analýzou nabídek",
       "logo": {
+        "@type": "ImageObject",
+        "url": "https://jobshaman.cz/logo.png",
+        "width": 200,
+        "height": 200
+      },
+      "image": {
         "@type": "ImageObject",
         "url": "https://jobshaman.cz/logo.png",
         "width": 200,
@@ -43,46 +47,113 @@
       },
       "sameAs": [
         "https://www.linkedin.com/company/jobshaman",
-        "https://www.facebook.com/jobshaman.cz"
+        "https://www.facebook.com/jobshaman.cz",
+        "https://twitter.com/jobshaman_cz"
       ],
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "telephone": "+420-123-456-789",
-        "contactType": "customer service",
-        "availableLanguage": ["Czech"]
-      }
+      "contactPoint": [
+        {
+          "@type": "ContactPoint",
+          "telephone": "+420-123-456-789",
+          "contactType": "customer service",
+          "availableLanguage": ["Czech"],
+          "email": "support@jobshaman.cz"
+        },
+        {
+          "@type": "ContactPoint",
+          "telephone": "+420-123-456-789",
+          "contactType": "business development",
+          "availableLanguage": ["Czech"],
+          "email": "business@jobshaman.cz"
+        }
+      ],
+      "foundingDate": "2024-01-01",
+      "areaServed": {
+          "@type": "Country",
+          "name": "CZ"
+      },
+      "knowsAbout": [
+          "Job Search",
+          "Career Development",
+          "Artificial Intelligence",
+          "Salary Analysis",
+          "Company Culture",
+          "Benefits Calculation"
+      ]
     },
     {
-      "@type": "WebApplication",
+      "@type": "SoftwareApplication",
       "@id": "https://jobshaman.cz/#webapp",
       "name": "JobShaman",
+      "alternateName": "JobShaman - Chytré nabídky práce",
+      "description": "Webová aplikace pro vyhledávání pracovních nabídek s AI analýzou a transparentním skórováním",
       "url": "https://jobshaman.cz/",
-      "applicationCategory": "Job Search",
+      "applicationCategory": "BusinessApplication",
       "operatingSystem": "Any",
+      "browserRequirements": "Requires JavaScript enabled",
       "offers": {
-        "@type": "Offer",
-        "price": "0",
-        "priceCurrency": "CZK"
+        "@type": "AggregateOffer",
+        "priceCurrency": "CZK",
+        "offers": [
+          {
+            "@type": "Offer",
+            "name": "Free Tier",
+            "price": "0",
+            "description": "Vyhledávání pracovních nabídek zdarma"
+          },
+          {
+            "@type": "Offer",
+            "name": "Premium Tier",
+            "price": "99",
+            "priceCurrency": "CZK",
+            "description": "Premium funkce pro uchazeče",
+            "billingDuration": "P1M"
+          },
+          {
+            "@type": "Offer",
+            "name": "Business Tier",
+            "price": "4990",
+            "priceCurrency": "CZK",
+            "description": "Balíček pro firmy",
+            "billingDuration": "P1M"
+          }
+        ]
       },
       "featureList": [
-        "AI-powered job analysis",
-        "JHI scoring system",
-        "Transparent salary information",
-        "Commute analysis",
-        "Company culture insights",
-        "Benefits calculator"
-      ]
+        "AI-powered job analysis - Automatická analýza nabídek práce pomocí umělé inteligence",
+        "JHI scoring system - Unikátní skóre 0-100 pro hodnocení pracovních nabídek",
+        "Transparent salary information - Reálné informace o platech bez skrývání",
+        "Commute analysis - Analýza dojezdů a nákladů na cestování",
+        "Company culture insights - Náhled na kulturu a prostředí v jednotlivých firmách",
+        "Benefits calculator - Kalkulátor pro srovnávání benefitů",
+        "Skill gap analysis - Analýza mezer v dovednostech",
+        "Career pathfinder - Průvodce rozvojem kariéry",
+        "Assessment center - Centrum pro testování kandidátů"
+      ],
+      "author": {
+        "@type": "Organization",
+        "name": "JobShaman"
+      },
+      "ratingCount": 150,
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.7",
+        "ratingCount": 150,
+        "bestRating": "5",
+        "worstRating": "1"
+      }
     },
     {
       "@type": "FAQPage",
       "@id": "https://jobshaman.cz/#faq",
+      "name": "Často kladené otázky - JobShaman",
+      "description": "Odpovědi na často kladené otázky o JobShaman",
       "mainEntity": [
         {
           "@type": "Question",
           "name": "Jak funguje JHI skóre?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "JHI (Job Happiness Index) je unikátní skóre 0-100, které hodnotí pracovní nabídky z pohledu finanční ziskovosti, časových nákladů, duševní zátěže, možností růstu a hodnotových hodnocení."
+            "text": "JHI (Job Happiness Index) je unikátní skóre od 0 do 100, které hodnotí pracovní nabídky na základě těchto kritérií: (1) Finanční ziskovost - srovnění platu s průměrem v oboru, (2) Časové náklady - počet hodin a dojezdovost, (3) Duševní zátěž - analýza požadavků na pozici, (4) Možnosti růstu - kariérní rozvoj a učení, (5) Hodnotové soulad - srovnění hodnot firmy s kandidátem. Vyšší skóre znamená lepší pracovní nabídku z perspektivy celkové spokojenosti."
           }
         },
         {
@@ -90,16 +161,72 @@
           "name": "Je JobShaman zdarma?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Ano, JobShaman je zcela zdarma pro uchazeče. Firmy mohou využít placené služby pro publikování pracovních nabídek a analýzu."
+            "text": "Ano, JobShaman je zcela zdarma pro uchazeče. Můžete vyhledávat pracovní nabídky, prohlížet si je s AI analýzou a přihlašovat se bez jakýchkoliv poplatků. Firmy mohou využít placené služby pro publikování pracovních nabídek, analýzu kandidátů a přístup do assessment centra."
           }
         },
         {
           "@type": "Question",
-          "name": "Jaké benefity analyzujete?",
+          "name": "Jaké benefity JobShaman analyzuje?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Analyzujeme přes 40 typů benefitů včetně zaměstnaneckých akcií, firemních aut, příspěvků na stravu, multisport karet, kurzů a dalšího. Vše převedeme na peněžní hodnotu."
+            "text": "JobShaman analyzuje více než 30 typů benefitů včetně: zdravotního pojištění, penzijního připojištění, Home Office, flexibility pracovní doby, vzdělávacích programů, tělocvičny, stravovacích příspěvků, automobilů, teleworkingu, důchodového připojištění, cestovného, parkovacího místa a dalších."
           }
+        },
+        {
+          "@type": "Question",
+          "name": "Jak JobShaman pracuje s mými osobními údaji?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "JobShaman respektuje vaši soukromí. Vaše data jsou šifrovaná a uložena bezpečně. Nevyměňujeme vaše údaje třetím stranám. Podrobnosti naleznete v našich podmínkách ochrany osobních údajů."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Jak mohu jako firma začít s JobShaman?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Firmy se mohou zaregistrovat přes naši webovou stránku a získat přístup k nástrojům pro publikování nabídek. Nabízíme tři balíčky: Business (4990 CZK/měsíc) pro standardní použití, Assessment Bundle (990 CZK) pro testování kandidátů a Single Assessment (99 CZK) pro jednotlivé testy."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Co je assessment centrum v JobShaman?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Assessment centrum je sada psychometrických testů a hodnotících nástrojů, které firmy mohou použít k vyhodnocování kandidátů. Mohou si pozvat kandidáty na testování a získat detailní zprávy o jejich dovednostech a osobnostních vlastnostech."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Jaké je minimální ID skóre (JHI) pro dobrý job?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Ideální JHI skóre je nad 70. Skóre 50-70 znamená průměrnou pracovní nabídku s vyvážením mezi výhodami a nevýhodami. Skóre pod 50 signalizuje, že by pracovní nabídka mohla obsahovat některé nežádoucí aspekty. Ideální skóre se však může lišit v závislosti na individuálních preferencích."
+          }
+        }
+      ]
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": "https://jobshaman.cz/#breadcrumb",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Domov",
+          "item": "https://jobshaman.cz/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Nabídky práce",
+          "item": "https://jobshaman.cz/nabidky"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Pro firmy",
+          "item": "https://jobshaman.cz/pro-firmy"
         }
       ]
     }

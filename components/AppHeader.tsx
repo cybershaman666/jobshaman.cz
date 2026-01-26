@@ -6,7 +6,7 @@ import {
   Moon, 
   LogOut, 
   UserCircle,
-  CreditCard
+  ShoppingBag
 } from 'lucide-react';
 import { ViewState, UserProfile } from '../types';
 import SubscriptionStatusBadge from './SubscriptionStatusBadge';
@@ -73,11 +73,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                       Profil
                   </button>
                   <button 
-                      onClick={() => userProfile.isLoggedIn ? setViewState(ViewState.SUBSCRIPTION) : handleAuthAction()}
-                      className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.SUBSCRIPTION ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                      onClick={() => setViewState(ViewState.MARKETPLACE)}
+                      className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.MARKETPLACE ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                   >
-                      <CreditCard className="w-4 h-4" />
-                      Předplatné
+                      <ShoppingBag className="w-4 h-4" />
+                      Kurzy a rekvalifikace
                   </button>
               </>
           )}
