@@ -14,9 +14,12 @@ load_dotenv()
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
+
 def get_supabase_client():
     if not SUPABASE_URL or not SUPABASE_KEY:
-        print("⚠️ VAROVÁNÍ: SUPABASE_URL nebo SUPABASE_KEY chybí. Scrapování bude fungovat, ale data se neuloží.")
+        print(
+            "⚠️ VAROVÁNÍ: SUPABASE_URL nebo SUPABASE_KEY chybí. Scrapování bude fungovat, ale data se neuloží."
+        )
         return None
     try:
         client = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -25,6 +28,7 @@ def get_supabase_client():
     except Exception as e:
         print(f"❌ Chyba při inicializaci Supabase klienta: {e}")
         return None
+
 
 supabase: Client = get_supabase_client()
 
@@ -403,12 +407,24 @@ def scrape_jenprace_cz(soup):
             sal_div = detail_soup.find("div", class_="label-reward")
             if sal_div:
                 stxt = sal_div.get_text(" ", strip=True)
+                # Fixed: Look for specific patterns like "27 000 - 50 000 Kč" but be more careful
+                # Try to find numbers with spaces but validate they're reasonable
                 nums = re.findall(r"\d[\d\s]*", stxt)
                 if nums:
-                    vals = [
-                        int(x.replace(" ", "").replace("\u00a0", "").replace(".", ""))
-                        for x in nums
-                    ]
+                    vals = []
+                    for x in nums:
+                        # Clean the number string
+                        cleaned = (
+                            x.replace(" ", "").replace("\u00a0", "").replace(".", "")
+                        )
+                        try:
+                            num = int(cleaned)
+                            # Filter out unrealistic values (over 200,000 for monthly salary)
+                            if num < 200000:  # Monthly salary shouldn't exceed 200k
+                                vals.append(num)
+                        except ValueError:
+                            continue
+
                     if len(vals) == 1:
                         salary_from = vals[0]
                     elif len(vals) >= 2:
@@ -479,7 +495,7 @@ def run_all_scrapers():
     if not supabase:
         print("❌ Supabase není dostupné. Scrapování zrušeno.")
         return 0
-        
+
     websites = [
         {
             "name": "jobs.cz",
@@ -497,7 +513,7 @@ def run_all_scrapers():
             "max_pages": 15,
         },
     ]
-    
+
     grand_total = 0
     print(f"🚀 Spouštím hromadné scrapování: {now_iso()}")
     for site in websites:
@@ -507,7 +523,7 @@ def run_all_scrapers():
             )
         except Exception as e:
             print(f"❌ Chyba při scrapování {site['name']}: {e}")
-            
+
     print(f"✅ Scrapování dokončeno. Celkem uloženo {grand_total} nabídek.")
     return grand_total
 

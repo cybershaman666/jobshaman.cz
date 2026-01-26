@@ -185,7 +185,19 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                                 </div>
                             </div>
                             <div className="text-right">
-                                <span className="text-sm font-medium text-slate-500">Licence: Business</span>
+                                <span className="text-sm font-medium text-slate-500">
+                                    Plán: {profile.subscription?.tier === 'business' ? 'Business' : profile.subscription?.tier === 'basic' ? 'Základní' : 'Zdarma'}
+                                </span>
+                                {profile.subscription?.expiresAt && (
+                                    <div className="text-xs text-emerald-600 dark:text-emerald-400">
+                                        Aktivní do {new Date(profile.subscription.expiresAt).toLocaleDateString('cs-CZ')}
+                                    </div>
+                                )}
+                                {profile.subscription?.usage && (
+                                    <div className="text-xs text-slate-500">
+                                        {profile.subscription.usage.aiAssessmentsUsed} AI hodnocení použito
+                                    </div>
+                                )}
                             </div>
                         </div>
 

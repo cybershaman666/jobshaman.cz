@@ -1,11 +1,19 @@
 User-agent: *
 Allow: /
 
-# Prioritize important pages
+# Crawl-delay settings
 Crawl-delay: 1
+Request-rate: 1/1s
 
-# Sitemap location
-Sitemap: https://jobshaman.cz/sitemap.xml
+# Important paths to crawl
+Allow: /nabidky
+Allow: /pro-firmy
+Allow: /kurzy-a-rekvalifikace
+Allow: /profil
+Allow: /public/
+Allow: *.json
+Allow: *.xml
+Allow: *.txt
 
 # Block admin/utility pages
 Disallow: /api/
@@ -13,8 +21,39 @@ Disallow: /admin/
 Disallow: /_next/
 Disallow: /static/
 Disallow: /.well-known/
+Disallow: /auth/
+Disallow: /settings/private
+Disallow: /internal/
 
-# Allow specific static assets
+# Allow specific static assets for crawling
 Allow: /static/css/
 Allow: /static/js/
 Allow: /assets/
+Allow: /public/
+
+# Specific rules for different crawlers
+User-agent: Googlebot
+Crawl-delay: 0
+Request-rate: unlimited
+
+User-agent: Bingbot
+Crawl-delay: 1
+
+User-agent: GPTBot
+Crawl-delay: 0
+Allow: /
+
+User-agent: PerplexityBot
+Crawl-delay: 0
+Allow: /
+
+User-agent: ClaudeBot
+Crawl-delay: 0
+Allow: /
+
+# Sitemap locations
+Sitemap: https://jobshaman.cz/sitemap.xml
+Sitemap: https://jobshaman.cz/sitemap-jobs.xml
+
+# Preferred URLs with www
+Prefer-this: https://jobshaman.cz/

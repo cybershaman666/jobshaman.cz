@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Briefcase, BrainCircuit, Sparkles, Crown, CheckCircle } from 'lucide-react';
 import { CompanyProfile } from '../types';
@@ -15,8 +14,6 @@ interface PlanUpgradeModalProps {
 
 const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, feature, companyProfile }) => {
     if (!isOpen) return null;
-
-
 
     return (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 animate-in fade-in duration-300">
@@ -55,89 +52,74 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                     <h3 className="font-bold text-lg mb-6 text-slate-900 dark:text-white">Vyberte si řešení</h3>
 
                     <div className="grid grid-cols-1 gap-4">
-                        {/* Option 1: Assessment Bundle */}
-                        <div className="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-indigo-500 dark:hover:border-indigo-500 transition-all cursor-pointer group relative overflow-hidden">
+                        {/* Option 1: Basic Plan (Free) */}
+                        <div className="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 transition-all cursor-pointer group relative overflow-hidden">
                             <div className="flex justify-between items-center mb-2">
                                 <div className="flex items-center gap-2">
-                                    <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
-                                        <BrainCircuit size={20} />
+                                    <div className="p-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
+                                        <Briefcase size={20} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white">Assessment Bundle</h4>
-                                        <p className="text-xs text-slate-500">Jednorázový balíček</p>
+                                        <h4 className="font-bold text-slate-900 dark:text-white">Základní Plán</h4>
+                                        <p className="text-xs text-slate-500">Ideální start</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="font-black text-indigo-600 dark:text-indigo-400 text-xl">990 Kč</div>
-                                    <div className="text-[10px] text-slate-400">jednorázový balíček</div>
+                                    <div className="font-black text-green-600 dark:text-green-400 text-xl">ZDARMA</div>
+                                    <div className="text-[10px] text-slate-400">navždy</div>
                                 </div>
                             </div>
-                            <div className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300 mb-4 bg-slate-50 dark:bg-slate-950 p-3 rounded-lg">
-                                <CheckCircle size={16} className="text-emerald-500 mt-0.5 shrink-0" />
-                                <span><strong>10 AI Assessmentů</strong> pro vaše kandidáty. Ideální pro nárazové nábory. Neomezená platnost.</span>
-                            </div>
+                            <ul className="grid grid-cols-2 gap-2 mb-4">
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-green-500" /> 3 inzeráty / měsíc</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-green-500" /> Základní dashboard</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-3 inline-block"></span> Bez AI funkcí</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-3 inline-block"></span> Bez assessmentů</li>
+                            </ul>
                             <button
-                                onClick={() => {
-                                    if (companyProfile?.id) {
-                                        // Track upgrade attempt
-                                        AnalyticsService.trackUpgradeTrigger({
-                                            companyId: companyProfile.id,
-                                            feature: 'ASSESSMENT_BUNDLE',
-                                            currentTier: companyProfile.subscription?.tier || 'basic',
-                                            reason: 'User clicked assessment bundle purchase'
-                                        });
-                                        
-                                        // Track A/B test conversion
-                                        ABTestService.trackConversion('pricing_display_test', 'assessment_bundle_clicked', 990);
-                                        
-                                        redirectToCheckout('assessment_bundle', companyProfile.id);
-                                    }
-                                }}
-                                className="w-full py-2 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-lg transition-colors shadow-sm"
+                                onClick={onClose}
+                                className="w-full py-2 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition-colors shadow-sm"
                             >
-                                Koupit Balíček
+                                Používat Zdarma
                             </button>
                         </div>
 
-                        {/* Option 2: Business Subscription */}
+                        {/* Option 2: Business Plan */}
                         <div className="p-4 rounded-xl border-2 border-cyan-500 bg-cyan-50/10 relative">
-                            <div className="absolute -top-3 right-4 bg-cyan-600 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Doporučeno</div>
+                            <div className="absolute -top-3 right-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Doporučeno</div>
                             <div className="flex justify-between items-center mb-2">
                                 <div className="flex items-center gap-2">
                                     <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-lg">
-                                        <RocketIcon size={20} />
+                                        <Crown size={20} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white">Business Tarif</h4>
-                                        <p className="text-xs text-slate-500">Měsíční předplatné</p>
+                                        <h4 className="font-bold text-slate-900 dark:text-white">Business Plán</h4>
+                                        <p className="text-xs text-slate-500">Pro rostoucí firmy</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
                                     <div className="font-black text-cyan-600 dark:text-cyan-400 text-xl">4 990 Kč</div>
-                                    <div className="text-[10px] text-slate-400">/ měsíc</div>
-                                    {false && (
-                                        <div className="text-xs text-emerald-600 dark:text-emerald-400 font-bold">Ušetřete 10% ročně</div>
-                                    )}
+                                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">/ měsíc (akce)</div>
+                                    <div className="text-[9px] text-slate-400 line-through">běžně 9 990 Kč</div>
                                 </div>
                             </div>
                             <ul className="grid grid-cols-2 gap-2 mb-4">
                                 <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> Neomezené inzeráty</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> 10 Assessmentů / měs</li>
                                 <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> AI Optimalizace</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> 10 Assessmentů / měsíc</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> Pokročilá analytics</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> Team management</li>
                                 <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> Prioritní podpora</li>
                             </ul>
                             <button
                                 onClick={() => {
                                     if (companyProfile?.id) {
-                                        // Track upgrade attempt
                                         AnalyticsService.trackUpgradeTrigger({
                                             companyId: companyProfile.id,
-                                            feature: 'BUSINESS_SUBSCRIPTION',
+                                            feature: 'BUSINESS_COMPANY_PLAN',
                                             currentTier: companyProfile.subscription?.tier || 'basic',
-                                            reason: 'User clicked business subscription'
+                                            reason: 'User clicked business company plan'
                                         });
                                         
-                                        // Track A/B test conversion
                                         ABTestService.trackConversion('pricing_display_test', 'business_clicked', 4990);
                                         
                                         redirectToCheckout('business', companyProfile.id);
@@ -146,6 +128,112 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                 className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition-colors shadow-lg shadow-cyan-900/20"
                             >
                                 Aktivovat Business
+                            </button>
+                        </div>
+
+                        {/* Option 3: Assessment Add-ons */}
+                        <div className="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-purple-500 dark:hover:border-purple-500 transition-all cursor-pointer group relative overflow-hidden">
+                            <div className="flex justify-between items-center mb-2">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
+                                        <BrainCircuit size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-slate-900 dark:text-white">Assessment Center</h4>
+                                        <p className="text-xs text-slate-500">Doplněk k jakémukoli plánu</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="space-y-3">
+                                {/* Single Assessment */}
+                                <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700">
+                                    <div>
+                                        <div className="font-bold text-sm text-slate-900 dark:text-white">1 Assessment</div>
+                                        <div className="text-xs text-slate-500">Jednorázový nákup</div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            if (companyProfile?.id) {
+                                                AnalyticsService.trackUpgradeTrigger({
+                                                    companyId: companyProfile.id,
+                                                    feature: 'SINGLE_ASSESSMENT',
+                                                    currentTier: companyProfile.subscription?.tier || 'basic',
+                                                    reason: 'User clicked single assessment'
+                                                });
+                                                
+                                                ABTestService.trackConversion('pricing_display_test', 'single_assessment_clicked', 99);
+                                                
+                                                redirectToCheckout('single_assessment', companyProfile.id);
+                                            }
+                                        }}
+                                        className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-sm transition-colors"
+                                    >
+                                        99 Kč
+                                    </button>
+                                </div>
+                                
+                                {/* Assessment Bundle */}
+                                <div className="flex justify-between items-center p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border-2 border-purple-200 dark:border-purple-800">
+                                    <div>
+                                        <div className="font-bold text-sm text-slate-900 dark:text-white">10 Assessmentů</div>
+                                        <div className="text-xs text-slate-500">Platnost 12 měsíců</div>
+                                    </div>
+                                    <button
+                                        onClick={() => {
+                                            if (companyProfile?.id) {
+                                                AnalyticsService.trackUpgradeTrigger({
+                                                    companyId: companyProfile.id,
+                                                    feature: 'ASSESSMENT_BUNDLE_10',
+                                                    currentTier: companyProfile.subscription?.tier || 'basic',
+                                                    reason: 'User clicked 10 assessment bundle'
+                                                });
+                                                
+                                                ABTestService.trackConversion('pricing_display_test', 'assessment_bundle_10_clicked', 990);
+                                                
+                                                redirectToCheckout('assessment_bundle', companyProfile.id);
+                                            }
+                                        }}
+                                        className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-sm transition-colors shadow-sm"
+                                    >
+                                        990 Kč
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Option 4: Enterprise Plan */}
+                        <div className="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-amber-500 dark:hover:border-amber-500 transition-all cursor-pointer group relative overflow-hidden">
+                            <div className="flex justify-between items-center mb-2">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg">
+                                        <Crown size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-slate-900 dark:text-white">Individuální Plán</h4>
+                                        <p className="text-xs text-slate-500">Pro velké společnosti</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="font-black text-amber-600 dark:text-amber-400 text-xl">Na míru</div>
+                                    <div className="text-[10px] text-slate-400">individuální cenotvorba</div>
+                                </div>
+                            </div>
+                            <ul className="grid grid-cols-2 gap-2 mb-4">
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> Všechny funkce Premium</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> Vlastní integrace</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> Dedicated support</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> API přístup</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> SLA garance</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> Trénink na míru</li>
+                            </ul>
+                            <button
+                                onClick={() => {
+                                    window.location.href = 'mailto:obchod@jobshaman.cz?subject=Poptávka individuálního plánu&body=Dobrý den,%0D%0A%0D%0Amám zájem o individuální plán pro naši společnost.%0D%0A%0D%0AS pozdravem,';
+                                }}
+                                className="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg transition-colors shadow-sm"
+                            >
+                                Kontaktovat Obchod
                             </button>
                         </div>
                     </div>
@@ -158,10 +246,5 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
         </div>
     );
 };
-
-// Helper icon
-const RocketIcon = ({ size }: { size: number }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z" /><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z" /><path d="M9 12H4s.55-3.03 2-4c1.62-1.1 2.75-2 2.75-2" /><path d="M12 15v5s3.03-.55 4-2c1.1-1.62 2-2.75 2-2.75" /></svg>
-);
 
 export default PlanUpgradeModal;

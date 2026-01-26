@@ -3,7 +3,7 @@
         xmlns:xhtml="http://www.w3.org/1999/xhtml"
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   
-  <!-- Homepage -->
+  <!-- Homepage - Highest Priority -->
   <url>
     <loc>https://jobshaman.cz/</loc>
     <lastmod>2026-01-23</lastmod>
@@ -17,7 +17,7 @@
     </image:image>
   </url>
 
-  <!-- Job Search Page -->
+  <!-- Job Search Page - Very Frequent Updates -->
   <url>
     <loc>https://jobshaman.cz/nabidky</loc>
     <lastmod>2026-01-23</lastmod>
@@ -31,29 +31,11 @@
     <loc>https://jobshaman.cz/pro-firmy</loc>
     <lastmod>2026-01-23</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.8</priority>
+    <priority>0.85</priority>
     <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/pro-firmy" />
   </url>
 
-  <!-- Saved Jobs -->
-  <url>
-    <loc>https://jobshaman.cz/ulozene</loc>
-    <lastmod>2026-01-23</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-    <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/ulozene" />
-  </url>
-
-  <!-- Profile/Settings -->
-  <url>
-    <loc>https://jobshaman.cz/profil</loc>
-    <lastmod>2026-01-23</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
-    <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/profil" />
-  </url>
-
-  <!-- Marketplace/Courses -->
+  <!-- Marketplace/Courses - Career Development Hub -->
   <url>
     <loc>https://jobshaman.cz/kurzy-a-rekvalifikace</loc>
     <lastmod>2026-01-23</lastmod>
@@ -62,20 +44,124 @@
     <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/kurzy-a-rekvalifikace" />
   </url>
 
-  <!-- Legal Pages -->
+  <!-- Saved Jobs -->
+  <url>
+    <loc>https://jobshaman.cz/ulozene</loc>
+    <lastmod>2026-01-23</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.75</priority>
+    <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/ulozene" />
+  </url>
+
+  <!-- User Profile/Dashboard -->
+  <url>
+    <loc>https://jobshaman.cz/profil</loc>
+    <lastmod>2026-01-23</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/profil" />
+  </url>
+
+  <!-- Subscription/Pricing -->
+  <url>
+    <loc>https://jobshaman.cz/pricing</loc>
+    <lastmod>2026-01-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/pricing" />
+  </url>
+
+  <!-- Career Tools & Insights -->
+  <url>
+    <loc>https://jobshaman.cz/jhi-skore</loc>
+    <lastmod>2026-01-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.75</priority>
+    <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/jhi-skore" />
+  </url>
+
+  <url>
+    <loc>https://jobshaman.cz/analyza-nabidky</loc>
+    <lastmod>2026-01-23</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/analyza-nabidky" />
+  </url>
+
+  <url>
+    <loc>https://jobshaman.cz/benefit-kalkulacka</loc>
+    <lastmod>2026-01-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/benefit-kalkulacka" />
+  </url>
+
+  <!-- Assessment Center -->
+  <url>
+    <loc>https://jobshaman.cz/assessment-centrum</loc>
+    <lastmod>2026-01-23</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.75</priority>
+    <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/assessment-centrum" />
+  </url>
+
+  <!-- Company Info Pages -->
+  <url>
+    <loc>https://jobshaman.cz/o-nas</loc>
+    <lastmod>2026-01-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/o-nas" />
+  </url>
+
+  <url>
+    <loc>https://jobshaman.cz/blog</loc>
+    <lastmod>2026-01-23</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.75</priority>
+    <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/blog" />
+  </url>
+
+  <!-- FAQ Pages -->
+  <url>
+    <loc>https://jobshaman.cz/faq</loc>
+    <lastmod>2026-01-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/faq" />
+  </url>
+
+  <!-- Legal/Policy Pages -->
   <url>
     <loc>https://jobshaman.cz/podminky-uziti</loc>
     <lastmod>2026-01-23</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.6</priority>
     <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/podminky-uziti" />
   </url>
   <url>
     <loc>https://jobshaman.cz/ochrana-soukromi</loc>
     <lastmod>2026-01-23</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.6</priority>
     <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/ochrana-soukromi" />
+  </url>
+
+  <url>
+    <loc>https://jobshaman.cz/cookies</loc>
+    <lastmod>2026-01-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+    <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/cookies" />
+  </url>
+
+  <!-- Contact & Support -->
+  <url>
+    <loc>https://jobshaman.cz/kontakt</loc>
+    <lastmod>2026-01-23</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/kontakt" />
   </url>
 
 </urlset>

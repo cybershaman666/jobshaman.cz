@@ -5,6 +5,7 @@ import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, Company
 import { Analytics } from '@vercel/analytics/react';
 import AppHeader from './components/AppHeader';
 import { generateSEOMetadata, updatePageMeta } from './utils/seo';
+
 import JobCard from './components/JobCard';
 import JHIChart from './components/JHIChart';
 import BullshitMeter from './components/BullshitMeter';
@@ -23,7 +24,7 @@ import ApplicationModal from './components/ApplicationModal';
 import CookieBanner from './components/CookieBanner';
 import PodminkyUziti from './pages/PodminkyUziti';
 import OchranaSoukromi from './pages/OchranaSoukromi';
-import SubscriptionManagementPage from './pages/SubscriptionManagementPage';
+
 import InvitationLanding from './pages/InvitationLanding';
 import PremiumUpgradeModal from './components/PremiumUpgradeModal';
 import AppFooter from './components/AppFooter';
@@ -34,7 +35,7 @@ import { supabase, getUserProfile, updateUserProfile } from './services/supabase
 import { canCandidateUseFeature } from './services/billingService';
 import { analyzeJobForPathfinder } from './services/careerPathfinderService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
-import { redirectToCheckout, checkPaymentStatus } from './services/stripeService';
+import { checkPaymentStatus } from './services/stripeService';
 import { useUserProfile } from './hooks/useUserProfile';
 import { useJobFilters } from './hooks/useJobFilters';
 import {
@@ -715,13 +716,7 @@ export default function App() {
             );
         }
 
-        if (viewState === ViewState.SUBSCRIPTION) {
-            return (
-                <div className="col-span-1 lg:col-span-12 max-w-4xl mx-auto w-full h-full overflow-y-auto custom-scrollbar pb-6 px-1">
-                    <SubscriptionManagementPage userProfile={userProfile} companyProfile={companyProfile} />
-                </div>
-            );
-        }
+        
 
         const dynamicJHI = selectedJob ? { ...selectedJob.jhi } : null;
         if (dynamicJHI && commuteAnalysis) {
@@ -957,39 +952,7 @@ export default function App() {
                                         <button onClick={() => handleToggleSave(selectedJob.id)} className={`p-2.5 rounded-lg border transition-all ${savedJobIds.includes(selectedJob.id) ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 text-indigo-600' : 'bg-slate-100 dark:bg-slate-800 border-slate-200'}`}>
                                             <Bookmark size={20} className={savedJobIds.includes(selectedJob.id) ? "fill-current" : ""} />
                                         </button>
-                                        {pathfinderAnalysis && !pathfinderAnalysis.isLoading && (
-                                            pathfinderAnalysis.hasAssessment ? (
-                                                <button
-                                                    className="px-3 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg border border-amber-600 transition-colors text-sm font-medium flex items-center gap-2"
-                                                    title="Spustit AI Assessment"
-                                                    onClick={() => {
-                                                        if (userProfile.isLoggedIn) {
-                                                            setViewState(ViewState.ASSESSMENT);
-                                                        } else {
-                                                            setIsAuthModalOpen(true);
-                                                        }
-                                                    }}
-                                                >
-                                                    <img src="/logo.png" alt="AI Test" className="w-4 h-4" />
-                                                    AI Test
-                                                </button>
-                                            ) : (
-                                                <button
-                                                    className="px-3 py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg border border-slate-200 dark:border-slate-700 transition-colors text-sm font-medium flex items-center gap-2"
-                                                    title="Koupit AI Assessment"
-                                                    onClick={() => {
-                                                        if (!userProfile.isLoggedIn || !userProfile.id) {
-                                                            setIsAuthModalOpen(true);
-                                                            return;
-                                                        }
-                                                        redirectToCheckout('assessment_bundle', userProfile.id);
-                                                    }}
-                                                >
-                                                    <Zap size={16} className="text-amber-500" />
-                                                    AI Test
-                                                </button>
-                                            )
-                                        )}
+
                                         {selectedJob.url ? (
                                             <a
                                                 href={selectedJob.url}
