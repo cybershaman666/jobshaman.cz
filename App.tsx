@@ -175,7 +175,7 @@ const calculateOverallScore = (jhi: {
 
 
 export default function App() {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     // --- STATE ---
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
     const [jobs, setJobs] = useState<Job[]>([]);
@@ -286,15 +286,7 @@ export default function App() {
             document.documentElement.classList.remove('dark');
         }
 
-        // Update SEO meta tags based on current view
-        const pageName = showCompanyLanding ? 'company-dashboard' :
-            viewState === ViewState.LIST ? 'home' :
-                viewState === ViewState.PROFILE ? 'profile' :
-                    viewState === ViewState.MARKETPLACE ? 'marketplace' :
-                        viewState === ViewState.COMPANY_DASHBOARD ? 'company-dashboard' : 'home';
 
-        const metadata = generateSEOMetadata(pageName, t, selectedJob);
-        updatePageMeta(metadata);
 
         // LOAD REAL DATA
         loadRealJobs();
@@ -330,9 +322,12 @@ export default function App() {
                     viewState === ViewState.MARKETPLACE ? 'marketplace' :
                         viewState === ViewState.COMPANY_DASHBOARD ? 'company-dashboard' : 'home';
 
+        // Wait until translations are ready to avoid raw keys in browser tab
+        if (t('seo.base_title') === 'seo.base_title') return;
+
         const metadata = generateSEOMetadata(pageName, t, selectedJob);
         updatePageMeta(metadata);
-    }, [viewState, showCompanyLanding, selectedJob, userProfile]);
+    }, [viewState, showCompanyLanding, selectedJob, userProfile, i18n.language, t]);
 
     useEffect(() => {
         if (theme === 'dark') {
