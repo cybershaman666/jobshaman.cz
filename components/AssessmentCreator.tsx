@@ -28,12 +28,12 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile })
             const tier = companyProfile.subscription?.tier || 'basic';
             const used = companyProfile.subscription?.usage?.aiAssessmentsUsed || 0;
             const limit = tier === 'enterprise' ? 999999 : tier === 'business' || tier === 'assessment_bundle' ? 10 : 0;
-            
+
             if (used >= limit) {
                 alert(`Dosáhli jste limitu ${limit} assessmentů pro aktuální tarif. Upgradujte pro další assessmenty.`);
                 return;
             }
-            
+
             // Premium check for extended assessments
             if (questionCount > 5 && tier === 'basic') {
                 if (confirm(`Generování ${questionCount} otázek je prémiová funkce. Chcete upgradovat na Assessment Bundle za 990 Kč?`)) {
@@ -59,11 +59,11 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile })
         try {
             const result = await generateAssessment(role, skills.split(','), difficulty, questionCount);
             setAssessment(result);
-            
+
             // Track usage for companies
             if (companyProfile?.id) {
                 await incrementAssessmentUsage(companyProfile.id);
-                
+
                 // Track feature usage analytics
                 AnalyticsService.trackFeatureUsage({
                     companyId: companyProfile.id,
@@ -101,18 +101,29 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile })
                                 </div>
                             </div>
                         </div>
-                        {remainingAssessments <= 2 && (
-                            <button
-                                onClick={() => companyProfile.id && redirectToCheckout('assessment_bundle', companyProfile.id)}
-                                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg transition-colors shadow-sm"
-                            >
-                                Další Kredit
-                            </button>
-                        )}
+                        <button
+                            onClick={async () => {
+                                if (companyProfile?.id) {
+                                    /* Track usage */
+                                    AnalyticsService.trackUpgradeTrigger({
+                                        companyId: companyProfile.id,
+                                        feature: 'ASSESSMENT_CREDITS_BUTTON',
+                                        currentTier: tier,
+                                        reason: 'User clicked buy credits button'
+                                    });
+                                    await redirectToCheckout('assessment_bundle', companyProfile.id);
+                                } else {
+                                    alert('Chyba: Nepodařilo se identifikovat společnost.');
+                                }
+                            }}
+                            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap"
+                        >
+                            Další Kredit
+                        </button>
                     </div>
                 </div>
             )}
-            
+
             {/* Input Side */}
             <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-6 transition-colors duration-300">
                 <div className="flex items-center gap-3 mb-6">
