@@ -41,7 +41,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
   // Address Verification State
   const [isVerifyingAddress, setIsVerifyingAddress] = useState(false);
   const [addressVerificationStatus, setAddressVerificationStatus] = useState<'idle' | 'success' | 'error'>('idle');
-  const [verifiedCoordinates, setVerifiedCoordinates] = useState<{ lat: number, lon: number } | null>(profile.coordinates || null);
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cvInputRef = useRef<HTMLInputElement>(null);
@@ -160,7 +159,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
     // Reset verification if address changes
     if (field === 'address') {
       setAddressVerificationStatus('idle');
-      setVerifiedCoordinates(null);
     }
   };
 
@@ -173,7 +171,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
     try {
       const coords = await resolveAddressToCoordinates(formData.personal.address);
       if (coords) {
-        setVerifiedCoordinates(coords);
         setAddressVerificationStatus('success');
         // Update profile with new coordinates
         onChange({
