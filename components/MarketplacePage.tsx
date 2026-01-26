@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
-import { 
-  ShoppingBag, 
-  Users, 
-  Star, 
-  Clock, 
+import {
+  ShoppingBag,
+  Users,
+  Star,
+  Clock,
   Target,
   Plus,
   Search,
@@ -16,6 +16,7 @@ import {
 import { UserProfile } from '../types';
 import PartnerOfferModal from './PartnerOfferModal';
 import CourseReviewModal from './CourseReviewModal';
+import { useTranslation } from 'react-i18next';
 
 interface Course {
   id: string;
@@ -53,9 +54,10 @@ interface MarketplacePageProps {
   userProfile: UserProfile;
 }
 
-const MarketplacePage: React.FC<MarketplacePageProps> = ({ 
+const MarketplacePage: React.FC<MarketplacePageProps> = ({
   userProfile
 }) => {
+  const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<'browse' | 'commercial' | 'government'>('browse');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -207,24 +209,24 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
   ];
 
   const categories = [
-    { id: 'all', name: 'Všechny kategorie' },
-    { id: 'driving', name: 'Řidičské průkazy' },
-    { id: 'technical', name: 'Technické kurzy' },
-    { id: 'it', name: 'IT a programování' },
-    { id: 'business', name: 'Business a management' },
-    { id: 'marketing', name: 'Marketing a sales' },
-    { id: 'languages', name: 'Jazyky' }
+    { id: 'all', name: t('marketplace.categories.all') },
+    { id: 'driving', name: t('marketplace.categories.driving') },
+    { id: 'technical', name: t('marketplace.categories.technical') },
+    { id: 'it', name: t('marketplace.categories.it') },
+    { id: 'business', name: t('marketplace.categories.business') },
+    { id: 'marketing', name: t('marketplace.categories.marketing') },
+    { id: 'languages', name: t('marketplace.categories.languages') }
   ];
 
   const formatDuration = (hours: number) => {
     if (hours < 1) return `${Math.round(hours * 60)} min`;
     if (hours < 24) return `${Math.round(hours)}h`;
-    return `${Math.round(hours / 24)} dní`;
+    return `${Math.round(hours / 24)} ${t('marketplace.days')}`;
   };
 
   const formatPrice = (price: number, currency: string) => {
-    if (price === 0) return 'Zdarma';
-    return `${price.toLocaleString('cs-CZ')} ${currency}`;
+    if (price === 0) return t('marketplace.free');
+    return `${price.toLocaleString()} ${currency}`;
   };
 
   const getDifficultyColor = (difficulty: string) => {
@@ -239,34 +241,34 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
   // Helper function to translate difficulty to Czech
   const getDifficultyText = (difficulty: string) => {
     switch (difficulty) {
-      case 'Beginner': return 'Začátečník';
-      case 'Intermediate': return 'Mírně pokročilý';
-      case 'Advanced': return 'Pokročilý';
+      case 'Beginner': return t('marketplace.beginner');
+      case 'Intermediate': return t('marketplace.intermediate');
+      case 'Advanced': return t('marketplace.advanced');
       default: return difficulty;
     }
   };
 
   const filteredCourses = allCourses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         course.skill_tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesCategory = selectedCategory === 'all' || course.skill_tags.some(tag => 
+      course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      course.skill_tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesCategory = selectedCategory === 'all' || course.skill_tags.some(tag =>
       categories.find(cat => cat.id === selectedCategory)?.name.toLowerCase().includes(tag.toLowerCase())
     );
-    
+
     const matchesDifficulty = selectedDifficulty === 'all' || course.difficulty === selectedDifficulty;
-    
+
     // Apply view mode filtering
-    const matchesViewMode = 
+    const matchesViewMode =
       viewMode === 'browse' ? true :
-      viewMode === 'government' ? course.is_government_funded :
-      viewMode === 'commercial' ? !course.is_government_funded : false;
-    
-    const matchesPrice = priceRange === 'all' || 
+        viewMode === 'government' ? course.is_government_funded :
+          viewMode === 'commercial' ? !course.is_government_funded : false;
+
+    const matchesPrice = priceRange === 'all' ||
       (priceRange === 'free' && course.is_government_funded) ||
       (priceRange === 'paid' && !course.is_government_funded);
-    
+
     return matchesSearch && matchesCategory && matchesDifficulty && matchesPrice && matchesViewMode;
   });
 
@@ -283,10 +285,10 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
             </div>
             <div className="flex-1">
               <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                Kurzy a Rekvalifikace
+                {t('marketplace.title')}
               </h1>
               <p className="text-slate-600 dark:text-slate-300 text-lg mt-2">
-                Investujte do své budoucnosti. Najděte si dokonalý kurz pro vaši kariéru.
+                {t('marketplace.subtitle')}
               </p>
               <div className="mt-3 p-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
                 <div className="flex items-center gap-2">
@@ -297,20 +299,20 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                   </div>
                   <div className="text-sm">
                     <span className="font-semibold text-slate-800 dark:text-slate-200">Demo data:</span>
-                    <span className="text-slate-700 dark:text-slate-300 ml-1">Toto jsou ukázkové kurzy pro demonstraci. Reálné kurzy budou dostupné brzy.</span>
+                    <span className="text-slate-700 dark:text-slate-300 ml-1">{t('marketplace.demo_data')}</span>
                   </div>
                 </div>
               </div>
             </div>
-            
+
             {userProfile.isLoggedIn && (
               <div className="text-right">
-                <button 
+                <button
                   onClick={() => setShowPartnerModal(true)}
                   className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl"
                 >
                   <Plus className="w-4 h-4" />
-                  Nabídnout kurz
+                  {t('marketplace.offer_course')}
                 </button>
               </div>
             )}
@@ -323,36 +325,33 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
         <div className="flex gap-2 p-1 bg-white/60 dark:bg-slate-800/60 backdrop-blur rounded-xl border border-cyan-100 dark:border-slate-700 shadow-lg">
           <button
             onClick={() => setViewMode('browse')}
-            className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-              viewMode === 'browse'
-                ? 'bg-gradient-to-r from-slate-500 to-blue-600 text-white shadow-md'
-                : 'text-slate-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/30'
-            }`}
+            className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${viewMode === 'browse'
+              ? 'bg-gradient-to-r from-slate-500 to-blue-600 text-white shadow-md'
+              : 'text-slate-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/30'
+              }`}
           >
             <Briefcase className="w-5 h-5" />
-            <span className="text-lg font-semibold">Všechny kurzy</span>
+            <span className="text-lg font-semibold">{t('marketplace.all_courses')}</span>
           </button>
           <button
             onClick={() => setViewMode('government')}
-            className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-              viewMode === 'government'
-                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md'
-                : 'text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
-            }`}
+            className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${viewMode === 'government'
+              ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md'
+              : 'text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
+              }`}
           >
             <Building className="w-5 h-5" />
-            <span className="text-lg font-semibold">Rekvalifikační kurzy</span>
+            <span className="text-lg font-semibold">{t('marketplace.retraining_courses')}</span>
           </button>
           <button
             onClick={() => setViewMode('commercial')}
-            className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-              viewMode === 'commercial'
-                ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md'
-                : 'text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30'
-            }`}
+            className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${viewMode === 'commercial'
+              ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md'
+              : 'text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30'
+              }`}
           >
             <ShoppingBag className="w-5 h-5" />
-            <span className="text-lg font-semibold">Komerční kurzy</span>
+            <span className="text-lg font-semibold">{t('marketplace.commercial_courses')}</span>
           </button>
         </div>
       </div>
@@ -367,10 +366,10 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
               </div>
               <div className="flex-1">
                 <h3 className="text-2xl font-bold text-emerald-900 dark:text-emerald-100 mb-2">
-                  Rekvalifikační kurzy od Úřadu práce
+                  {t('marketplace.funding_title')}
                 </h3>
                 <p className="text-emerald-700 dark:text-emerald-300 text-lg">
-                  Jako nezaměstnaný můžete získat <span className="font-bold">až 50 000 Kč</span> na rekvalifikační kurz!
+                  {t('marketplace.funding_desc')}
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                   <div className="bg-white/80 dark:bg-emerald-900/20 backdrop-blur rounded-lg p-4">
@@ -398,12 +397,12 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
             {/* Search */}
             <div className="lg:col-span-1">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Hledání</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('marketplace.search_placeholder').split('...')[0]}</label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
                 <input
                   type="text"
-                  placeholder="Hledat kurzy..."
+                  placeholder={t('marketplace.search_placeholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500"
@@ -413,7 +412,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
 
             {/* Category Filter */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Kategorie</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('marketplace.category')}</label>
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
@@ -427,30 +426,30 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
 
             {/* Difficulty Filter */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Obtížnost</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('marketplace.difficulty')}</label>
               <select
                 value={selectedDifficulty}
                 onChange={(e) => setSelectedDifficulty(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-500"
               >
-                <option value="all">Všechny</option>
-                <option value="Beginner">Začátečník</option>
-                <option value="Intermediate">Mírně pokročilý</option>
-                <option value="Advanced">Pokročilý</option>
+                <option value="all">{t('marketplace.all_diffs')}</option>
+                <option value="Beginner">{t('marketplace.beginner')}</option>
+                <option value="Intermediate">{t('marketplace.intermediate')}</option>
+                <option value="Advanced">{t('marketplace.advanced')}</option>
               </select>
             </div>
 
             {/* Price Filter */}
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Cena</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('marketplace.price')}</label>
               <select
                 value={priceRange}
                 onChange={(e) => setPriceRange(e.target.value as 'free' | 'paid' | 'all')}
                 className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-purple-200 dark:border-purple-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               >
-                <option value="all">Všechny</option>
-                <option value="free">Zdarma (rekvalifikační)</option>
-                <option value="paid">Placené</option>
+                <option value="all">{t('marketplace.all_courses')}</option>
+                <option value="free">{t('marketplace.free_retraining')}</option>
+                <option value="paid">{t('marketplace.commercial_courses')}</option>
               </select>
             </div>
           </div>
@@ -486,44 +485,44 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                         {course.title}
                       </h4>
                     </div>
-                    
+
                     {/* Funding Badges */}
                     <div className="flex flex-wrap gap-2 mb-3">
                       {course.is_government_funded && (
                         <span className="px-2 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-sm">
                           <CheckCircle className="w-3 h-3" />
-                          Hrazeno Úřadem práce
+                          {t('marketplace.retraining_courses')}
                         </span>
                       )}
                       {course.company_sponsored && (
                         <span className="px-2 py-1 bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 text-xs font-bold rounded-full">
-                          Firemní sleva
+                          {t('marketplace.sponsored_discount')}
                         </span>
                       )}
                       {userProfile.isLoggedIn && course.user_is_verified_graduate && (
                         <span className="px-2 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-sm">
                           <CheckCircle className="w-3 h-3" />
-                          Ověřený absolvent
+                          {t('marketplace.verified_graduate')}
                         </span>
                       )}
                     </div>
                   </div>
-                  
+
                   <p className="text-slate-600 dark:text-slate-300 text-sm mb-4 line-clamp-2 leading-relaxed flex-shrink-0">
                     {course.description}
                   </p>
-                  
+
                   {/* Course Features */}
                   <div className="flex flex-wrap gap-1.5 mb-4 flex-shrink-0">
                     {course.job_placement_assistance && (
                       <span className="px-2 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded text-xs font-medium flex items-center gap-1">
                         <Target className="w-3 h-3" />
-                        Záruka umístění
+                        {t('marketplace.placement_guarantee')}
                       </span>
                     )}
                     {course.flexible_payment && (
                       <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded text-xs font-medium">
-                        Flexibilní platba
+                        {t('marketplace.flexible_payment')}
                       </span>
                     )}
                     {course.location && (
@@ -546,7 +545,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                     ))}
                     {course.skill_tags.length > 3 && (
                       <span className="px-2 py-1 bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400 rounded text-xs">
-                        +{course.skill_tags.length - 3} další
+                        {t('marketplace.more_tags', { count: course.skill_tags.length - 3 })}
                       </span>
                     )}
                   </div>
@@ -578,11 +577,11 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                     {course.reviews_count > 0 && (
                       <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
                         <Star className="w-3 h-3" />
-                        {course.reviews_count} recenzí
+                        {course.reviews_count} {t('marketplace.reviews')}
                       </span>
                     )}
                   </div>
-                  
+
                   {/* Price and Action Row */}
                   <div className="px-6 py-4 flex items-center justify-between gap-3">
                     {/* Price Section */}
@@ -593,7 +592,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                             {formatPrice(course.price, course.currency)}
                           </div>
                           <div className="text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
-                            ZDARMA
+                            {t('marketplace.free').toUpperCase()}
                           </div>
                         </>
                       ) : (
@@ -602,7 +601,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                         </div>
                       )}
                     </div>
-                       
+
                     {/* Action Buttons */}
                     <div className="flex gap-2">
                       {course.reviews_count > 0 && (
@@ -614,22 +613,22 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                           className="px-3 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-all flex items-center gap-1 flex-shrink-0 border border-amber-200 dark:border-amber-700"
                         >
                           <Star className="w-3 h-3" />
-                          Recenze
+                          {t('marketplace.reviews_btn')}
                         </button>
                       )}
-                      
+
                       <button
                         onClick={() => {
                           // Handle course enrollment/Detail view
                           if (userProfile.isLoggedIn) {
-                            alert(`Registrace na kurz: ${course.title}`);
+                            alert(t('marketplace.enroll_alert', { title: course.title }));
                           } else {
-                            alert(`Pro registraci se nejprve přihlaste.`);
+                            alert(t('marketplace.login_to_enroll_alert'));
                           }
                         }}
                         className="px-6 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white text-sm font-medium rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-1.5 flex-shrink-0"
                       >
-                        {userProfile.isLoggedIn ? 'Přihlásit se' : 'Detail'}
+                        {userProfile.isLoggedIn ? t('marketplace.enroll') : t('marketplace.detail')}
                         <ChevronRight className="w-3 h-3" />
                       </button>
                     </div>
@@ -640,21 +639,21 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
           </div>
         ) : (
           <div className="text-center py-12">
-            <p className="text-slate-600 dark:text-slate-400 text-lg">Žádné kurzy nebyly nalezeny</p>
-            <p className="text-slate-500 dark:text-slate-500 text-sm mt-2">Zkuste upravit filtry nebo hledaný výraz</p>
+            <p className="text-slate-600 dark:text-slate-400 text-lg">{t('marketplace.no_courses')}</p>
+            <p className="text-slate-500 dark:text-slate-500 text-sm mt-2">{t('app.try_adjust_filters')}</p>
           </div>
         )}
       </div>
-      
+
       {/* Partner Offer Modal */}
-      <PartnerOfferModal 
+      <PartnerOfferModal
         isOpen={showPartnerModal}
         onClose={() => setShowPartnerModal(false)}
       />
-      
+
       {/* Course Review Modal */}
       {selectedReviewCourse && (
-        <CourseReviewModal 
+        <CourseReviewModal
           isOpen={showReviewModal}
           onClose={() => {
             setShowReviewModal(false);

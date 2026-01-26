@@ -135,7 +135,7 @@ const formatDescription = (desc: string | null | undefined): string => {
             .replace(/<br\s*\/?>/gi, '\n')
             .replace(/<\/p>/gi, '\n\n')
             .replace(/<\/li>/gi, '\n')
-            .replace(/<li>/gi, '• ')
+            .replace(/<li>/gi, '- ')
             .replace(/&nbsp;/g, ' ');
         // Strip remaining tags
         clean = clean.replace(/<[^>]*>/g, '');
