@@ -254,6 +254,27 @@
     "footer": {
         "rights_reserved": "© 2026 JobShaman. Wszelkie prawa zastrzeżone.",
         "terms": "Warunki użytkowania",
-        "privacy": "Polityka prywatności"
+        "privacy": "Polityka prywatności",
+        "seo": {
+            "base_title": "JobShaman - Inteligentne oferty pracy w Czechach",
+            "home_description": "Znajdź idealną pracę dzięki analizie AI. JobShaman oferuje przejrzyste oferty pracy z realnymi zarobkami, benefitami i wynikiem JHI. Filtruj według lokalizacji, benefitów i firm.",
+            "marketplace_title": "Kursy i przebranżowienie - JobShaman",
+            "marketplace_description": "Odkryj kursy i szkolenia dla swojej kariery. Szkolenia online, certyfikaty i programy edukacyjne w Czechach.",
+            "profile_title": "Mój Profil | JobShaman",
+            "profile_description": "Zarządzaj swoim profilem, zapisanymi ofertami i ustawieniami preferencji w JobShaman. Spersonalizowane rekomendacje ofert pracy.",
+            "company_dashboard_title": "Dla Firm - Publikuj oferty | JobShaman",
+            "company_dashboard_description": "Publikuj oferty pracy i analizuj kandydatów za pomocą AI. JobShaman dla firm - nowoczesna rekrutacja z przejrzystością i danymi.",
+            "job_detail_suffix": "JobShaman",
+            "job_detail_description": "Szczegóły oferty {{title}} w firmie {{company}}. Wynagrodzenie: {{salary}}. Lokalizacja: {{location}}. Benefity: {{benefits}}.",
+            "ai_summary_home": "JobShaman to czeska platforma wyszukiwania pracy z analizą AI. Oferuje przejrzyste oferty pracy z realnymi zarobkami, benefitami i unikalnym wynikiem JHI.",
+            "ai_summary_job": "Szczegóły oferty {{title}} w firmie {{company}}. Oferta {{salary}} w lokalizacji {{location}}. Benefity obejmują: {{benefits}}.",
+            "ai_summary_company": "JobShaman dla firm umożliwia publikowanie ofert pracy, analizę kandydatów przy użyciu AI oraz przejrzyste procesy rekrutacyjne.",
+            "ai_summary_default": "JobShaman - nowoczesna platforma wyszukiwania pracy w Czechach z analizą AI i przejrzystością."
+        }
+    },
+    "common": {
+        "unknown": "Nieznane",
+        "none": "Brak",
+        "standard_package": "Standardowy pakiet"
     }
 }

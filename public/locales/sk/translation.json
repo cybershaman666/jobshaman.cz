@@ -254,6 +254,27 @@
     "footer": {
         "rights_reserved": "© 2026 JobShaman. Všetky práva vyhradené.",
         "terms": "Podmienky používania",
-        "privacy": "Ochrana osobných údajov"
+        "privacy": "Ochrana osobných údajov",
+        "seo": {
+            "base_title": "JobShaman - Inteligentné ponuky práce v Česku",
+            "home_description": "Nájdite si ideálnu prácu s AI analýzou. JobShaman ponúka transparentné ponuky práce s reálnymi platmi, benefitmi a JHI skóre. Filtrujte podľa lokalít, benefitov a firiem.",
+            "marketplace_title": "Kurzy a rekvalifikácie - JobShaman",
+            "marketplace_description": "Objavte kurzy a rekvalifikácie pre vašu kariéru. Online školenia, certifikácie a vzdelávacie programy v Česku.",
+            "profile_title": "Môj Profil | JobShaman",
+            "profile_description": "Spravujte svoj profil, uložené pozície a preferenčné nastavenia na JobShaman. Personalizované odporúčania pracovných ponúk.",
+            "company_dashboard_title": "Pre Firmy - Publikujte ponuky | JobShaman",
+            "company_dashboard_description": "Publikujte pracovné ponuky a analyzujte kandidátov s AI. JobShaman pre firmy - moderný nábor s transparentnosťou a dátami.",
+            "job_detail_suffix": "JobShaman",
+            "job_detail_description": "Detail pracovnej pozície {{title}} vo firme {{company}}. Plat: {{salary}}. Lokalita: {{location}}. Benefity: {{benefits}}.",
+            "ai_summary_home": "JobShaman je česká platforma pre hľadanie práce s AI analýzou. Ponúka transparentné pracovné ponuky s reálnymi platmi, benefitmi a unikátnym JHI skóre.",
+            "ai_summary_job": "Detail pracovnej pozície {{title}} vo firme {{company}}. Ponuka {{salary}} v lokalite {{location}}. Benefity zahŕňajú: {{benefits}}.",
+            "ai_summary_company": "JobShaman pre firmy umožňuje publikovanie pracovných ponúk, analýzu kandidátov pomocou AI a transparentné náborové procesy.",
+            "ai_summary_default": "JobShaman - moderná platforma pre hľadanie práce v Česku s AI analýzou a transparentnosťou."
+        }
+    },
+    "common": {
+        "unknown": "Neznámy",
+        "none": "Žiadne",
+        "standard_package": "Standardný balíček"
     }
 }

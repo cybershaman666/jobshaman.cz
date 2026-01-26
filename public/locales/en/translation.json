@@ -250,6 +250,27 @@
     "footer": {
         "rights_reserved": "© 2026 JobShaman. All rights reserved.",
         "terms": "Terms of Use",
-        "privacy": "Privacy Policy"
+        "privacy": "Privacy Policy",
+        "seo": {
+            "base_title": "JobShaman - Smart Job Offers in Czechia",
+            "home_description": "Find your ideal job with AI analysis. JobShaman offers transparent job listings with real salaries, benefits, and JHI scores. Filter by location, perks, and companies.",
+            "marketplace_title": "Courses & Retraining - JobShaman",
+            "marketplace_description": "Discover courses and retraining for your career. Online training, certifications, and educational programs in Czechia.",
+            "profile_title": "My Profile | JobShaman",
+            "profile_description": "Manage your profile, saved positions, and preference settings on JobShaman. Personalized job recommendations.",
+            "company_dashboard_title": "For Companies - Publish Offers | JobShaman",
+            "company_dashboard_description": "Publish job offers and analyze candidates with AI. JobShaman for companies - modern recruitment with transparency and data.",
+            "job_detail_suffix": "JobShaman",
+            "job_detail_description": "Job details for {{title}} at {{company}}. Salary: {{salary}}. Location: {{location}}. Benefits: {{benefits}}.",
+            "ai_summary_home": "JobShaman is a Czech job search platform with AI analysis. It offers transparent job listings with real salaries, benefits, and a unique JHI score. It allows filtering by location, benefits, and companies.",
+            "ai_summary_job": "Job details for {{title}} at {{company}}. Offer {{salary}} in location {{location}}. Benefits include: {{benefits}}.",
+            "ai_summary_company": "JobShaman for companies enables publishing job offers, candidate analysis using AI, and transparent recruitment processes.",
+            "ai_summary_default": "JobShaman - modern job search platform in Czechia with AI analysis and transparency."
+        }
+    },
+    "common": {
+        "unknown": "Unknown",
+        "none": "None",
+        "standard_package": "Standard package"
     }
 }

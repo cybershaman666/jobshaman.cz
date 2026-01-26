@@ -236,6 +236,27 @@
     "footer": {
         "rights_reserved": "© 2026 JobShaman. Všechna práva vyhrazena.",
         "terms": "Podmínky použití",
-        "privacy": "Ochrana osobních údajů"
+        "privacy": "Ochrana osobních údajů",
+        "seo": {
+            "base_title": "JobShaman - Chytré nabídky práce v Česku",
+            "home_description": "Najděte si ideální práci s AI analýzou. JobShaman nabízí transparentní nabídky práce s reálnými platy, benefity a JHI skóre. Filtrujte podle lokalit, benefitů a firem.",
+            "marketplace_title": "Kurzy & Rekvalifikace - JobShaman",
+            "marketplace_description": "Objevte kurzy a rekvalifikace pro vaši kariéru. Online školení, certifikace a vzdělávací programy v Česku.",
+            "profile_title": "Můj Profil | JobShaman",
+            "profile_description": "Spravujte svůj profil, uložené pozice a preferenční nastavení na JobShaman. Personalizované doporučení pracovních nabídek.",
+            "company_dashboard_title": "Pro Firmy - Publikujte nabídky | JobShaman",
+            "company_dashboard_description": "Publikujte pracovní nabídky a analyzujte kandidáty s AI. JobShaman pro firmy - moderní nábor s transparentností a daty.",
+            "job_detail_suffix": "JobShaman",
+            "job_detail_description": "Detail pracovní pozice {{title}} ve firmě {{company}}. Plat: {{salary}}. Lokalita: {{location}}. Benefity: {{benefits}}.",
+            "ai_summary_home": "JobShaman je česká platforma pro hledání práce s AI analýzou. Nabízí transparentní pracovní nabídky s reálnými platy, benefity a unikátním JHI skóre. Umožňuje filtrování podle lokalit, benefitů a firem.",
+            "ai_summary_job": "Detail pracovní pozice {{title}} ve firmě {{company}}. Nabídka {{salary}} v lokalitě {{location}}. Benefity zahrnují: {{benefits}}.",
+            "ai_summary_company": "JobShaman pro firmy umožňuje publikování pracovních nabídek, analýzu kandidátů pomocí AI a transparentní náborové procesy.",
+            "ai_summary_default": "JobShaman - moderní platforma pro hledání práce v Česku s AI analýzou a transparentností."
+        }
+    },
+    "common": {
+        "unknown": "Neznámý",
+        "none": "Žádné",
+        "standard_package": "Standardní balíček"
     }
 }
