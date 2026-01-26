@@ -1757,22 +1757,22 @@ async def create_checkout_session(
     Create a Stripe checkout session for subscription purchase
     SECURITY: Requires authentication and CSRF token
     """
-    try:
-        # CSRF Protection for financial operations
-        if not verify_csrf_token_header(request, user):
-            print(f"❌ CSRF validation failed for checkout session")
-            raise HTTPException(
-                status_code=403,
-                detail="CSRF token validation failed. Please refresh and try again."
-            )
+    # CSRF Protection for financial operations
+    if not verify_csrf_token_header(request, user):
+        print(f"❌ CSRF validation failed for checkout session")
+        raise HTTPException(
+            status_code=403,
+            detail="CSRF token validation failed. Please refresh and try again."
+        )
         
-        # Verify userId matches authenticated user
-        if user.get("id") != req.userId:
-            print(f"❌ User ID mismatch: {user.get('id')} vs {req.userId}")
-            raise HTTPException(
-                status_code=403,
-                detail="User ID mismatch"
-            )
+    # Verify userId matches authenticated user
+    if user.get("id") != req.userId:
+        print(f"❌ User ID mismatch: {user.get('id')} vs {req.userId}")
+        raise HTTPException(
+            status_code=403,
+            detail="User ID mismatch"
+        )
+
     try:
         # Validate Stripe API key is set
         if not stripe.api_key:
