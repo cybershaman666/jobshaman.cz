@@ -419,21 +419,20 @@ allowed_origins = [
 # In production, you can override with environment variable
 production_origins = os.getenv("ALLOWED_ORIGINS")
 if production_origins:
-    allowed_origins = [origin.strip() for origin in production_origins.split(",")]
+    env_origins = [origin.strip() for origin in production_origins.split(",")]
+    allowed_origins.extend(env_origins)
+
+# Deduplicate
+allowed_origins = list(set(allowed_origins))
+
+print(f"🔒 Configured CORS for {len(allowed_origins)} origins: {allowed_origins}")
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=[
-        "Authorization",
-        "Content-Type",
-        "Accept",
-        "Origin",
-        "User-Agent",
-        "X-CSRF-Token",
-    ],
+    allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
     expose_headers=["Access-Control-Allow-Origin", "X-CSRF-Token"],
     max_age=600,
 )
