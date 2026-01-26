@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { UserProfile, WorkExperience, Education } from '../types';
+import { useTranslation } from 'react-i18next';
 import {
   User,
   Upload,
@@ -34,6 +35,7 @@ interface ProfileEditorProps {
 }
 
 const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave, onRefreshProfile }) => {
+  const { t } = useTranslation();
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isUploadingCV, setIsUploadingCV] = useState(false);
   const [editingSection, setEditingSection] = useState<string | null>(null);
@@ -320,7 +322,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
               className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium flex items-center gap-2 shadow-lg"
             >
               <Save size={18} />
-              Uložit profil
+              {t('profile.save_profile')}
             </button>
           </div>
         </div>
@@ -348,7 +350,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
                 <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
                   <User className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                 </div>
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Osobní údaje</h2>
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.personal_info')}</h2>
               </div>
               <button
                 onClick={() => setEditingSection(editingSection === 'personal' ? null : 'personal')}
@@ -362,7 +364,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Celé jméno</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.full_name')}</label>
                 <input
                   type="text"
                   value={formData.personal.name}
@@ -372,7 +374,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Pracovní pozice</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.job_title')}</label>
                 <input
                   type="text"
                   value={formData.personal.jobTitle}
@@ -384,7 +386,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.email')}</label>
                 <input
                   type="email"
                   value={formData.personal.email}
@@ -394,7 +396,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Telefon</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.phone')}</label>
                 <input
                   type="tel"
                   value={formData.personal.phone}
@@ -405,7 +407,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
             </div>
 
             <div className="mt-6">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Adresa</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.address')}</label>
               <input
                 type="text"
                 value={formData.personal.address}
@@ -414,7 +416,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
                   addressVerificationStatus === 'error' ? 'border-rose-500' :
                     'border-slate-300 dark:border-slate-600'
                   }`}
-                placeholder="Ulice, město, PSČ"
+                placeholder={t('profile.address_placeholder')}
               />
               <div className="flex items-center gap-2 mt-2">
                 <button
@@ -427,22 +429,22 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
                 >
                   {isVerifyingAddress ? (
                     <>
-                      <span className="animate-spin">⌛</span> Ověřuji...
+                      <span className="animate-spin">⌛</span> {t('profile.verifying')}
                     </>
                   ) : addressVerificationStatus === 'success' ? (
                     <>
-                      <CheckCircle size={14} /> Adresa ověřena
+                      <CheckCircle size={14} /> {t('profile.address_verified')}
                     </>
                   ) : (
                     <>
-                      <MapPin size={14} /> Ověřit adresu
+                      <MapPin size={14} /> {t('profile.verify_address')}
                     </>
                   )}
                 </button>
 
                 {addressVerificationStatus === 'error' && (
                   <span className="text-xs text-rose-500 flex items-center gap-1">
-                    <AlertCircle size={12} /> Nepodařilo se najít souřadnice
+                    <AlertCircle size={12} /> {t('profile.verification_failed')}
                   </span>
                 )}
               </div>
@@ -501,7 +503,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
               <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
                 <FileText className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
               </div>
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Životopis (CV)</h2>
+              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.cv_section')}</h2>
             </div>
           </div>
 
@@ -522,26 +524,26 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
                 {profile.cvUrl ? (
                   <div>
                     <p className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                      CV nahráno
+                      {t('profile.cv_uploaded')}
                     </p>
                     <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                      {profile.cvText || 'CV soubor je k dispozici pro analýzu'}
+                      {profile.cvText || t('profile.cv_analyze_ready')}
                     </p>
                     <button
                       onClick={() => cvInputRef.current?.click()}
                       disabled={isUploadingCV}
                       className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors text-sm"
                     >
-                      Nahradit CV
+                      {t('profile.replace_cv')}
                     </button>
                   </div>
                 ) : (
                   <div>
                     <p className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                      Nahrajte své CV
+                      {t('profile.upload_cv')}
                     </p>
                     <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                      Nahrajte PDF, DOC nebo DOCX soubor (max. 10MB) pro automatickou analýzu dovedností a zkušeností
+                      {t('profile.upload_cv_desc')}
                     </p>
                     <button
                       onClick={() => cvInputRef.current?.click()}
@@ -549,7 +551,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
                       className={`px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium ${isUploadingCV ? 'opacity-50 cursor-not-allowed' : ''
                         }`}
                     >
-                      {isUploadingCV ? 'Nahrávám...' : 'Vybrat soubor CV'}
+                      {isUploadingCV ? t('profile.uploading') : t('profile.select_cv_file')}
                     </button>
                   </div>
                 )}
@@ -558,9 +560,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
 
             {profile.cvUrl && (
               <div className="mt-4 p-4 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg">
-                <h4 className="font-medium text-cyan-900 dark:text-cyan-100 mb-2">Automatická analýza CV</h4>
+                <h4 className="font-medium text-cyan-900 dark:text-cyan-100 mb-2">{t('profile.cv_analysis_title')}</h4>
                 <p className="text-sm text-cyan-700 dark:text-cyan-300">
-                  Vaše CV bude automaticky zpracováno pro extrakci dovedností, zkušeností a vzdělání. Tato data nám pomohou lépe porovnat váš profil s požadavky pracovních pozic.
+                  {t('profile.cv_analysis_desc')}
                 </p>
               </div>
             )}
@@ -575,7 +577,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
                 <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
                   <Briefcase className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                 </div>
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Pracovní zkušenosti</h2>
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.experience')}</h2>
               </div>
               <button
                 onClick={handleAddExperience}
@@ -590,12 +592,12 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
             {formData.experience.length === 0 ? (
               <div className="text-center py-8 text-slate-500 dark:text-slate-400">
                 <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Zatím nemáte žádné pracovní zkušenosti</p>
+                <p>{t('profile.no_experience')}</p>
                 <button
                   onClick={handleAddExperience}
                   className="mt-4 text-cyan-600 hover:text-cyan-700 font-medium"
                 >
-                  Přidat první zkušenost
+                  {t('profile.add_first_experience')}
                 </button>
               </div>
             ) : (
@@ -673,7 +675,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
                 <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
                   <GraduationCap className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                 </div>
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Vzdělání</h2>
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.education')}</h2>
               </div>
               <button
                 onClick={handleAddEducation}
@@ -688,12 +690,12 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
             {formData.education.length === 0 ? (
               <div className="text-center py-8 text-slate-500 dark:text-slate-400">
                 <GraduationCap className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Zatím nemáte žádné vzdělání</p>
+                <p>{t('profile.no_education')}</p>
                 <button
                   onClick={handleAddEducation}
                   className="mt-4 text-cyan-600 hover:text-cyan-700 font-medium"
                 >
-                  Přidat první vzdělání
+                  {t('profile.add_first_education')}
                 </button>
               </div>
             ) : (
@@ -773,16 +775,17 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
                 <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
                   <Award className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                 </div>
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Dovednosti</h2>
+                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.skills')}</h2>
                 <span className="bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-sm px-2 py-1 rounded-full">
                   {formData.skills.length} dovedností
                 </span>
               </div>
               <button
                 onClick={handleAddSkill}
-                className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
+                className="flex items-center gap-2 px-4 py-2 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-lg text-slate-500 hover:border-cyan-500 hover:text-cyan-600 transition-all text-sm font-medium"
               >
                 <Plus size={16} />
+                {t('profile.add_skill')}
               </button>
             </div>
           </div>

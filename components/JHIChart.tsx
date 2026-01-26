@@ -1,5 +1,4 @@
-
-import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip } from 'recharts';
 import { JHI } from '../types';
 
@@ -10,21 +9,22 @@ interface JHIChartProps {
 }
 
 const JHIChart: React.FC<JHIChartProps> = ({ jhi, theme = 'light', highlightGrowth = false }) => {
+  const { t } = useTranslation();
   const isDark = theme === 'dark';
 
   const data = [
-    { subject: 'Finance', A: jhi.financial, fullMark: 100 },
-    { subject: 'Čas', A: jhi.timeCost, fullMark: 100 },
-    { subject: 'Psychika', A: jhi.mentalLoad, fullMark: 100 },
-    { subject: 'Růst', A: jhi.growth, fullMark: 100 },
-    { subject: 'Hodnoty', A: jhi.values, fullMark: 100 },
+    { subject: t('jhi.label_financial'), A: jhi.financial, fullMark: 100 },
+    { subject: t('jhi.label_time'), A: jhi.timeCost, fullMark: 100 },
+    { subject: t('jhi.label_mental'), A: jhi.mentalLoad, fullMark: 100 },
+    { subject: t('jhi.label_growth'), A: jhi.growth, fullMark: 100 },
+    { subject: t('jhi.label_values'), A: jhi.values, fullMark: 100 },
   ];
 
   // Custom tick component for highlighting
   const CustomTick = (props: any) => {
     const { x, y, payload } = props;
-    const isHighlighted = payload.value === 'Růst' && highlightGrowth;
-    
+    const isHighlighted = (payload.value === t('jhi.label_growth')) && highlightGrowth;
+
     return (
       <text
         x={x}
@@ -55,26 +55,26 @@ const JHIChart: React.FC<JHIChartProps> = ({ jhi, theme = 'light', highlightGrow
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data}>
           <PolarGrid stroke={colors.grid} />
-          <PolarAngleAxis 
-            dataKey="subject" 
+          <PolarAngleAxis
+            dataKey="subject"
             tick={<CustomTick />}
           />
           <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
           <Radar
-            name="Skóre"
+            name={t('jhi.series_score')}
             dataKey="A"
             stroke={colors.stroke}
             strokeWidth={2}
             fill={colors.fill}
             fillOpacity={isDark ? 0.3 : 0.4}
           />
-          <Tooltip 
-            contentStyle={{ 
-                backgroundColor: colors.tooltipBg, 
-                border: '1px solid #334155', 
-                borderRadius: '8px', 
-                color: colors.tooltipText,
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+          <Tooltip
+            contentStyle={{
+              backgroundColor: colors.tooltipBg,
+              border: '1px solid #334155',
+              borderRadius: '8px',
+              color: colors.tooltipText,
+              boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
             }}
             itemStyle={{ color: colors.stroke }}
           />
