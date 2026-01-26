@@ -112,17 +112,25 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                             </ul>
                             <button
                                 onClick={() => {
+                                    console.log('🔘 Business Plan clicked');
+                                    console.log('📊 Company Profile:', companyProfile);
+
                                     if (companyProfile?.id) {
+                                        console.log('✅ ID found, tracking analytics...');
                                         AnalyticsService.trackUpgradeTrigger({
                                             companyId: companyProfile.id,
                                             feature: 'BUSINESS_COMPANY_PLAN',
                                             currentTier: companyProfile.subscription?.tier || 'basic',
                                             reason: 'User clicked business company plan'
                                         });
-                                        
+
                                         ABTestService.trackConversion('pricing_display_test', 'business_clicked', 4990);
-                                        
+
+                                        console.log('🚀 Redirecting to checkout...');
                                         redirectToCheckout('business', companyProfile.id);
+                                    } else {
+                                        console.error('❌ Company ID missing in profile!', companyProfile);
+                                        alert('Chyba: Nepodařilo se načíst ID společnosti. Zkuste obnovit stránku.');
                                     }
                                 }}
                                 className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition-colors shadow-lg shadow-cyan-900/20"
@@ -144,7 +152,7 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                     </div>
                                 </div>
                             </div>
-                            
+
                             <div className="space-y-3">
                                 {/* Single Assessment */}
                                 <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700">
@@ -153,18 +161,27 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                         <div className="text-xs text-slate-500">Jednorázový nákup</div>
                                     </div>
                                     <button
-                                        onClick={() => {
-                                            if (companyProfile?.id) {
-                                                AnalyticsService.trackUpgradeTrigger({
-                                                    companyId: companyProfile.id,
-                                                    feature: 'SINGLE_ASSESSMENT',
-                                                    currentTier: companyProfile.subscription?.tier || 'basic',
-                                                    reason: 'User clicked single assessment'
-                                                });
-                                                
-                                                ABTestService.trackConversion('pricing_display_test', 'single_assessment_clicked', 99);
-                                                
-                                                redirectToCheckout('single_assessment', companyProfile.id);
+                                        onClick={async () => {
+                                            if (!companyProfile?.id) {
+                                                console.error('❌ Company ID missing!', companyProfile);
+                                                alert('Chyba: Nepodařilo se identifikovat společnost. Zkuste obnovit stránku.');
+                                                return;
+                                            }
+
+                                            AnalyticsService.trackUpgradeTrigger({
+                                                companyId: companyProfile.id,
+                                                feature: 'SINGLE_ASSESSMENT',
+                                                currentTier: companyProfile.subscription?.tier || 'basic',
+                                                reason: 'User clicked single assessment'
+                                            });
+
+                                            ABTestService.trackConversion('pricing_display_test', 'single_assessment_clicked', 99);
+
+                                            try {
+                                                await redirectToCheckout('single_assessment', companyProfile.id);
+                                            } catch (err) {
+                                                console.error('❌ Error during checkout redirect:', err);
+                                                alert('Nepodařilo se zahájit platbu: ' + (err instanceof Error ? err.message : String(err)));
                                             }
                                         }}
                                         className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-sm transition-colors"
@@ -172,7 +189,7 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                         99 Kč
                                     </button>
                                 </div>
-                                
+
                                 {/* Assessment Bundle */}
                                 <div className="flex justify-between items-center p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border-2 border-purple-200 dark:border-purple-800">
                                     <div>
@@ -180,18 +197,27 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                         <div className="text-xs text-slate-500">Platnost 12 měsíců</div>
                                     </div>
                                     <button
-                                        onClick={() => {
-                                            if (companyProfile?.id) {
+                                        onClick={async () => {
+                                            if (!companyProfile?.id) {
+                                                console.error('❌ Company ID missing!', companyProfile);
+                                                alert('Chyba: Nepodařilo se identifikovat společnost. Zkuste obnovit stránku.');
+                                                return;
+                                            }
+
+                                            try {
                                                 AnalyticsService.trackUpgradeTrigger({
                                                     companyId: companyProfile.id,
                                                     feature: 'ASSESSMENT_BUNDLE_10',
                                                     currentTier: companyProfile.subscription?.tier || 'basic',
                                                     reason: 'User clicked 10 assessment bundle'
                                                 });
-                                                
+
                                                 ABTestService.trackConversion('pricing_display_test', 'assessment_bundle_10_clicked', 990);
-                                                
-                                                redirectToCheckout('assessment_bundle', companyProfile.id);
+
+                                                await redirectToCheckout('assessment_bundle', companyProfile.id);
+                                            } catch (err) {
+                                                console.error('❌ Error during checkout redirect:', err);
+                                                alert('Nepodařilo se zahájit platbu: ' + (err instanceof Error ? err.message : String(err)));
                                             }
                                         }}
                                         className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-sm transition-colors shadow-sm"
@@ -229,7 +255,13 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                             </ul>
                             <button
                                 onClick={() => {
-                                    window.location.href = 'mailto:obchod@jobshaman.cz?subject=Poptávka individuálního plánu&body=Dobrý den,%0D%0A%0D%0Amám zájem o individuální plán pro naši společnost.%0D%0A%0D%0AS pozdravem,';
+                                    AnalyticsService.trackUpgradeTrigger({
+                                        companyId: companyProfile?.id || 'unknown',
+                                        feature: 'ENTERPRISE_PLAN',
+                                        currentTier: companyProfile?.subscription?.tier || 'basic',
+                                        reason: 'User clicked enterprise plan'
+                                    });
+                                    window.open('mailto:obchod@jobshaman.cz?subject=Poptávka individuálního plánu&body=Dobrý den,%0D%0A%0D%0Amám zájem o individuální plán pro naši společnost.%0D%0A%0D%0AS pozdravem,', '_blank');
                                 }}
                                 className="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg transition-colors shadow-sm"
                             >
@@ -243,7 +275,7 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                     </button>
                 </div>
             </div>
-        </div>
+        </div >
     );
 };
 
