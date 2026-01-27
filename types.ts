@@ -99,6 +99,28 @@ export interface Job {
   lng?: number;
   salary_from?: number;
   salary_to?: number;
+  distanceKm?: number; // Distance in km from user location (if user has coordinates)
+}
+
+// Database representation of a job row (used when reading directly from Supabase)
+export interface DatabaseJob {
+  id: number;
+  title?: string;
+  company?: string;
+  location?: string;
+  description?: string;
+  benefits?: string[] | string | null;
+  contract_type?: string;
+  salary_from?: number | string | null;
+  salary_to?: number | string | null;
+  work_type?: string;
+  scraped_at?: string;
+  source?: string;
+  education_level?: string;
+  url?: string;
+  lat?: number | null;
+  lng?: number | null;
+  [key: string]: any;
 }
 
 export interface Candidate {

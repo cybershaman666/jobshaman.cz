@@ -191,7 +191,8 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         photo: profileData.avatar_url,
         isLoggedIn: true,
         address: candidateData?.address || '',
-        coordinates: candidateData?.lat && candidateData?.lng ? { lat: candidateData.lat, lon: candidateData.lng } : undefined,
+        coordinates: candidateData?.lat && candidateData?.lng ? { lat: candidateData.lat, lon: candidateData.lng } : 
+                  profileData.lat && profileData.lng ? { lat: profileData.lat, lon: profileData.lng } : undefined,
         transportMode: (candidateData?.transport_mode as any) || 'public',
         cvText: candidateData?.cv_text || '',
         cvUrl: candidateData?.cv_url || '',

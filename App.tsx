@@ -32,6 +32,7 @@ import PremiumUpgradeModal from './components/PremiumUpgradeModal';
 import AppFooter from './components/AppFooter';
 import { analyzeJobDescription } from './services/geminiService';
 import { calculateCommuteReality } from './services/commuteService';
+import { clearJobCache } from './services/jobService';
 import { supabase, getUserProfile, updateUserProfile } from './services/supabaseService';
 import { canCandidateUseFeature } from './services/billingService';
 import { analyzeJobForPathfinder } from './services/careerPathfinderService';
@@ -350,6 +351,33 @@ export default function App() {
         }
     }, []);
 
+    // Auto-enable commute filter for existing users with address/coordinates
+    useEffect(() => {
+        console.log('🔍 Commute filter check:', {
+            hasAddress: !!userProfile.address,
+            hasCoordinates: !!userProfile.coordinates,
+            coordinates: userProfile.coordinates,
+            enableCommuteFilter,
+            address: userProfile.address
+        });
+        
+        if (userProfile.address && userProfile.coordinates && !enableCommuteFilter) {
+            console.log('🏠 User has address and coordinates, auto-enabling commute filter');
+            setEnableCommuteFilter(true);
+            setFilterMaxDistance(50);
+        }
+    }, [userProfile.address, userProfile.coordinates, enableCommuteFilter]);
+
+    // Reload jobs when user coordinates change (e.g., after profile update)
+    useEffect(() => {
+        if (userProfile.coordinates?.lat && userProfile.coordinates?.lon) {
+            console.log('📍 Coordinates updated:', userProfile.coordinates, '- Clearing cache and reloading jobs...');
+            // Clear the cache to ensure we get fresh results with proximity sorting
+            clearJobCache();
+            loadRealJobs();
+        }
+    }, [userProfile.coordinates?.lat, userProfile.coordinates?.lon]);
+
     // SEO Update Effect
     useEffect(() => {
         const pageName = showCompanyLanding ? 'company-dashboard' :
@@ -448,6 +476,15 @@ export default function App() {
             if (updatedProfile.id) {
                 await updateUserProfile(updatedProfile.id, updatedProfile);
                 console.log("Profile saved successfully");
+                
+                // 🔄 CRITICAL: Refetch profile to get updated coordinates from DB
+                console.log("🔄 Refetching profile to sync coordinates...");
+                const { getUserProfile } = await import('./services/supabaseService');
+                const freshProfile = await getUserProfile(updatedProfile.id);
+                if (freshProfile) {
+                    setUserProfile(freshProfile);
+                    console.log("✅ Profile refetched. New coordinates:", freshProfile.coordinates);
+                }
             } else {
                 console.log("Local profile updated (no ID yet)");
             }

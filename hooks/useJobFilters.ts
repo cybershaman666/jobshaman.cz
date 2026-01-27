@@ -64,10 +64,19 @@ export const useJobFilters = (jobs: Job[], userProfile: UserProfile) => {
             });
         }
 
-        // Commute distance filter
+        // Commute distance filter - prefer DB coords when available
         if (enableCommuteFilter && filterMaxDistance && userProfile.coordinates) {
             filtered = filtered.filter(job => {
-                const jobCoords = getCoordinates(job.location);
+                const jobLat = (job as any).lat;
+                const jobLng = (job as any).lng;
+                let jobCoords: { lat: number; lon: number } | null = null;
+
+                if (jobLat !== undefined && jobLng !== undefined && jobLat !== null && jobLng !== null) {
+                    jobCoords = { lat: jobLat, lon: jobLng };
+                } else {
+                    jobCoords = getCoordinates(job.location);
+                }
+
                 if (!jobCoords) return true; // Keep jobs where location is unknown (safe fallback)
 
                 const dist = calculateDistanceKm(
@@ -84,8 +93,18 @@ export const useJobFilters = (jobs: Job[], userProfile: UserProfile) => {
         // (If search term is active, relevance is more important contextually, but here we can prioritize distance too or keep as is)
         if (userProfile.coordinates && !searchTerm) {
             filtered = filtered.sort((a, b) => {
-                const coordsA = getCoordinates(a.location);
-                const coordsB = getCoordinates(b.location);
+                const aLat = (a as any).lat;
+                const aLng = (a as any).lng;
+                const bLat = (b as any).lat;
+                const bLng = (b as any).lng;
+
+                const coordsA = (aLat !== undefined && aLng !== undefined && aLat !== null && aLng !== null)
+                    ? { lat: aLat, lon: aLng }
+                    : getCoordinates(a.location);
+
+                const coordsB = (bLat !== undefined && bLng !== undefined && bLat !== null && bLng !== null)
+                    ? { lat: bLat, lon: bLng }
+                    : getCoordinates(b.location);
 
                 if (!coordsA && !coordsB) return 0;
                 if (!coordsA) return 1;

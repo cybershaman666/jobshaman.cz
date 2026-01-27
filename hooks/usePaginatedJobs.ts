@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { Job } from '../types';
 import { fetchJobsPaginated, searchJobs } from '../services/jobService';
 import { UserProfile } from '../types';
-import { calculateDistanceKm } from '../services/commuteService';
+import { calculateDistanceKm, getCoordinates } from '../services/commuteService';
 import { BENEFIT_KEYWORDS } from '../utils/benefits';
 
 interface UsePaginatedJobsProps {
@@ -41,7 +41,13 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const loadInitialJobs = useCallback(async () => {
         setLoading(true);
         try {
-            const result = await fetchJobsPaginated(0, initialPageSize);
+            const result = await fetchJobsPaginated(
+                0,
+                initialPageSize,
+                userProfile.coordinates?.lat,
+                userProfile.coordinates?.lon,
+                filterMaxDistance
+            );
             setJobs(result.jobs);
             setHasMore(result.hasMore);
             setTotalCount(result.totalCount);
@@ -51,7 +57,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         } finally {
             setLoading(false);
         }
-    }, [initialPageSize]);
+    }, [initialPageSize, userProfile.coordinates?.lat, userProfile.coordinates?.lon]);
 
     // Load more jobs
     const loadMoreJobs = useCallback(async () => {
@@ -60,7 +66,13 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setLoadingMore(true);
         try {
             const nextPage = currentPage + 1;
-            const result = await fetchJobsPaginated(nextPage, initialPageSize);
+            const result = await fetchJobsPaginated(
+                nextPage,
+                initialPageSize,
+                userProfile.coordinates?.lat,
+                userProfile.coordinates?.lon,
+                filterMaxDistance
+            );
             
             if (result.jobs.length > 0) {
                 setJobs(prev => [...prev, ...result.jobs]);
@@ -74,7 +86,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         } finally {
             setLoadingMore(false);
         }
-    }, [currentPage, hasMore, loadingMore, initialPageSize]);
+    }, [currentPage, hasMore, loadingMore, initialPageSize, userProfile.coordinates?.lat, userProfile.coordinates?.lon, filterMaxDistance]);
 
     // Search functionality
     const performSearch = useCallback(async (term: string) => {
@@ -97,6 +109,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, []);
 
     // Apply filters to jobs
+    let jobCounter = 0; // For debug logging
     let filteredJobs = (isSearching ? searchResults : jobs).filter(job => {
         // City filter
         if (filterCity) {
@@ -105,9 +118,18 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             if (!jobLocation.includes(cityLower)) return false;
         }
 
-        // Commute distance filter
+        // Commute distance filter - prefer DB coords when available
         if (enableCommuteFilter && filterMaxDistance && userProfile.coordinates) {
-            const jobCoords = getCoordinates(job.location);
+            const jobLat = (job as any).lat;
+            const jobLng = (job as any).lng;
+            let jobCoords: { lat: number; lon: number } | null = null;
+
+            if (jobLat !== undefined && jobLng !== undefined && jobLat !== null && jobLng !== null) {
+                jobCoords = { lat: jobLat, lon: jobLng };
+            } else {
+                jobCoords = getCoordinates(job.location);
+            }
+
             if (!jobCoords) return true; // Keep jobs where location is unknown
 
             const dist = calculateDistanceKm(
@@ -116,6 +138,14 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 jobCoords.lat,
                 jobCoords.lon
             );
+            
+            // Debug logging for first few jobs
+            if (jobCounter < 3) {
+                console.log(`📍 Job "${job.title}" in "${job.location}": ${dist.toFixed(1)}km (max: ${filterMaxDistance}km) - ${dist <= filterMaxDistance ? '✅ KEEP' : '❌ FILTER OUT'}`);
+            }
+            
+            jobCounter++;
+            
             if (dist > filterMaxDistance) return false;
         }
 
@@ -197,7 +227,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         });
     }
 
-    console.log('[usePaginatedJobs] Rendering - jobs:', jobs.length, 'filtered:', filteredJobs.length, 'final:', finalJobs.length, 'with coords:', finalJobs.filter(j => j.lat && j.lng).length);
+    console.log('[usePaginatedJobs] Rendering - jobs:', jobs.length, 'filtered:', filteredJobs.length, 'final:', finalJobs.length, 'with DB coords:', finalJobs.filter(j => j.lat && j.lng).length, 'fallback to address:', finalJobs.filter(j => !j.lat || !j.lng).length);
 
     return {
         // State
