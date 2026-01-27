@@ -18,33 +18,60 @@ interface ScrapedJob {
     source?: string;
     education_level?: string;
     url?: string;
+    lat?: number | string | null;
+    lng?: number | string | null;
 }
 
 // --- CONFIG ---
 
 // Patterns to detect benefits in description text if structured data is missing
 const BENEFIT_PATTERNS = [
-    { label: 'Stravenky', regex: /stravenk|příspěvek na stravování|jídeln|oběd/i },
-    { label: 'MultiSport', regex: /multisport|sportovn/i },
-    { label: '5 týdnů dovolené', regex: /5 týdnů|25 dnů|týden dovolené navíc/i },
-    { label: 'Služební auto', regex: /služební (auto|vůz|vozidlo)|auto i pro soukromé/i },
-    { label: 'Penzijní připojištění', regex: /penzijní|životní pojištění/i },
-    { label: 'Sick Days', regex: /sick\s*days|zdravotní volno/i },
-    { label: 'Flexibilní doba', regex: /flexibilní|pružná/i },
-    { label: 'Home Office', regex: /home\s*office|práce z domova|remote/i },
-    { label: 'Cafeteria', regex: /cafeteria|kafeterie|benefity na míru/i },
-    { label: 'Občerstvení', regex: /občerstvení|káva|ovoce/i },
-    { label: 'Hardware', regex: /macbook|notebook|telefon/i },
-    { label: 'Vzdělávání', regex: /školení|kurzy|konference|vzdělávání/i }
+    { label: 'Stravenky', regex: /stravenk|příspěvek na stravování|jídeln|oběd|stravné/i },
+    { label: 'MultiSport', regex: /multisport|sportovn|fitnes|posilovna/i },
+    { label: '5 týdnů dovolené', regex: /5 týdnů|25 dnů|týden dovolené navíc|extra dovolená/i },
+    { label: 'Služební auto', regex: /služební (auto|vůz|vozidlo)|auto i pro soukromé|firmovní vůz/i },
+    { label: 'Penzijní připojištění', regex: /penzijní|životní pojištění|důchodové/i },
+    { label: 'Sick Days', regex: /sick\s*days|zdravotní volno|nemocenské/i },
+    { label: 'Flexibilní doba', regex: /flexibilní|pružná|volná pracovní doba/i },
+    { label: 'Home Office', regex: /home\s*office|práce z domova|remote|práce odkudkoliv/i },
+    { label: 'Cafeteria', regex: /cafeteria|kafeterie|benefity na míru|benefit system/i },
+    { label: 'Občerstvení', regex: /občerstvení|káva|ovoce|snídaně|obědy zdarma/i },
+    { label: 'Hardware', regex: /macbook|notebook|telefon|laptop|iphone|vybavení/i },
+    { label: 'Vzdělávání', regex: /školení|kurzy|konference|vzdělávání|certifikace|rozvoj/i },
+
+    // NEW patterns
+    { label: '13. plat', regex: /13\.?\s*plat|třináctý plat|roční bonus/i },
+    { label: '14. plat', regex: /14\.?\s*plat|čtrnáctý plat/i },
+    { label: 'Bonusy', regex: /\bbonu|prémie|odměny|kvartální/i },
+    { label: 'RSU/Akcie', regex: /\brsu\b|stock options|akcie|podíl na zisku/i },
+    { label: 'Jazykové kurzy', regex: /jazykové?\s*kurzy?|anglick[ýá]\s*kurz|němčina/i },
+    { label: 'Teambuilding', regex: /teambuilding|firemní akce|výlety|party/i },
+    { label: 'Příspěvek na bydlení', regex: /příspěvek na bydlení|nájem|ubytování/i },
+    { label: 'Relokační balíček', regex: /relokac|přestěhování|relocation|moving/i },
+    { label: 'Rodičovská', regex: /rodičovská|mateřská|otcovská|péče o děti/i },
+    { label: 'Pes v kanceláři', regex: /dog\-?friendly|pes (v|do)?\s*kanceláři/i },
+    { label: '4denní týden', regex: /4\-?denní týden|kratší pracovní týden/i }
 ];
 
 // --- PARSING HELPERS ---
 
 const getRelativeTime = (dateString?: string | null): string => {
-    if (!dateString) return 'N/A';
+    if (!dateString) {
+        console.warn('⚠️ getRelativeTime called with:', dateString);
+        return 'N/A';
+    }
     try {
-        const date = new Date(dateString);
-        if (isNaN(date.getTime())) return 'N/A';
+        // Handle 'timestamp without time zone' format from Postgres: "2026-01-27 14:30:00"
+        // Replace space with 'T' to make it ISO 8601 compatible
+        let isoString = String(dateString).trim();
+        if (isoString.includes(' ') && !isoString.includes('T')) {
+            isoString = isoString.replace(' ', 'T');
+        }
+        const date = new Date(isoString);
+        if (isNaN(date.getTime())) {
+            console.warn('⚠️ getRelativeTime failed to parse:', dateString);
+            return 'N/A';
+        }
 
         const now = new Date();
         const diffTime = now.getTime() - date.getTime();
@@ -56,9 +83,59 @@ const getRelativeTime = (dateString?: string | null): string => {
         if (diffDays === 1) return 'Včera';
         return `před ${diffDays} dny`;
     } catch (e) {
+        console.warn('⚠️ getRelativeTime exception:', e, 'dateString:', dateString);
         return 'N/A';
     }
 };
+
+// --- SIMPLE IN-MEMORY CACHE FOR JOBS ---
+interface CacheEntry<T> {
+    data: T;
+    timestamp: number;
+    ttl: number;
+}
+
+class JobCache {
+    private cache: Map<string, CacheEntry<any>> = new Map();
+    private maxSize: number = 200;
+
+    set<T>(key: string, data: T, ttl: number = 60000): void {
+        if (this.cache.size >= this.maxSize) {
+            const firstKey = this.cache.keys().next().value;
+            if (firstKey !== undefined) {
+                this.cache.delete(firstKey);
+            }
+        }
+        this.cache.set(key, { data, timestamp: Date.now(), ttl });
+    }
+
+    get<T>(key: string): T | null {
+        const entry = this.cache.get(key);
+        if (!entry) return null;
+        if (Date.now() - entry.timestamp > entry.ttl) {
+            this.cache.delete(key);
+            return null;
+        }
+        return entry.data as T;
+    }
+
+    clear(): void {
+        this.cache.clear();
+    }
+}
+
+const jobCache = new JobCache();
+
+// Clear cache when user coordinates change to force fresh fetch
+export const clearJobCache = () => {
+    jobCache.clear();
+    console.log('🧹 Job cache cleared - will fetch fresh results with new coordinates');
+};
+
+// --- SALARY NORMALIZATION HELPERS ---
+// Note: Functions temporarily removed as they're not currently used
+// const detectSalaryCurrency = ...
+// const normalizeSalary = ...
 
 const safeParseInt = (val: string | number | null | undefined): number | null => {
     if (val === null || val === undefined) return null;
@@ -186,6 +263,18 @@ const estimateJHI = (job: ScrapedJob, salaryFrom: number | null): JHI => {
     };
 };
 
+// Helper: Haversine distance calculation
+const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+};
+
 const estimateNoise = (text: string): NoiseMetrics => {
     const flags = [];
     const lower = text.toLowerCase();
@@ -201,6 +290,66 @@ const estimateNoise = (text: string): NoiseMetrics => {
         score,
         flags,
         tone: score > 60 ? 'Hype-heavy' : score > 30 ? 'Casual' : 'Professional'
+    };
+};
+
+// Job transformation helper
+const transformJob = (scrapedJob: any): Job => {
+    const salaryFrom = safeParseInt(scrapedJob.salary_from);
+    const salaryTo = safeParseInt(scrapedJob.salary_to);
+    const salaryRange = salaryFrom && salaryTo ? `${salaryFrom.toLocaleString('cs-CZ')} - ${salaryTo.toLocaleString('cs-CZ')} Kč` :
+                       salaryFrom ? `od ${salaryFrom.toLocaleString('cs-CZ')} Kč` : 
+                       salaryTo ? `až ${salaryTo.toLocaleString('cs-CZ')} Kč` : 'Neuvedeno';
+    
+    // Extract contract type and work type from raw fields
+    const jobType = scrapedJob.contract_type || scrapedJob.type || 'Neuvedeno';
+    
+    // Parse benefits robustly
+    const benefits = parseBenefits(scrapedJob.benefits);
+    
+    // Extract location with fallback
+    const locationString = scrapedJob.location || 'Lokace neuvedena';
+    
+    // Generate tags based on benefits and keywords
+    const uniqueTags = benefits.length > 0 ? [...benefits] : [];
+    if (scrapedJob.work_type) uniqueTags.push(scrapedJob.work_type);
+    if (scrapedJob.education_level) uniqueTags.push(scrapedJob.education_level);
+
+    const fullDesc = scrapedJob.description || 'Popis pozice není k dispozici.';
+    
+    return {
+        id: String(scrapedJob.id),
+        title: scrapedJob.title || (scrapedJob.company ? `${scrapedJob.company} - Pozice` : 'Pozice bez názvu'),
+        company: scrapedJob.company || 'Neznámá společnost',
+        location: locationString,
+        type: jobType,
+        salaryRange,
+        description: fullDesc,
+        postedAt: getRelativeTime(scrapedJob.scraped_at),
+        scrapedAt: scrapedJob.scraped_at,
+        source: scrapedJob.source || 'Scraper',
+        url: scrapedJob.url,
+        lat: scrapedJob.lat ? parseFloat(String(scrapedJob.lat)) : undefined,
+        lng: scrapedJob.lng ? parseFloat(String(scrapedJob.lng)) : undefined,
+        jhi: estimateJHI(scrapedJob, salaryFrom),
+        noiseMetrics: estimateNoise(fullDesc),
+        transparency: {
+            turnoverRate: 15,
+            avgTenure: 2.5,
+            ghostingRate: 20,
+            hiringSpeed: "Neznámé",
+            redFlags: []
+        },
+        market: {
+            marketAvgSalary: salaryFrom || 0,
+            percentile: 50,
+            inDemandSkills: []
+        },
+        tags: uniqueTags,
+        benefits: benefits,
+        required_skills: [], // Initialize empty array
+        salary_from: salaryFrom || undefined,
+        salary_to: salaryTo || undefined
     };
 };
 
@@ -231,13 +380,96 @@ export const getJobCount = async (): Promise<number> => {
 
 export const fetchJobsPaginated = async (
     page: number = 0,
-    pageSize: number = 50
+    pageSize: number = 50,
+    userLat?: number,
+    userLng?: number,
+    radiusKm: number = 50
 ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
     if (!isSupabaseConfigured() || !supabase) {
         console.warn("Supabase not configured.");
         return { jobs: [], hasMore: false, totalCount: 0 };
     }
 
+    try {
+        // If user coordinates provided, use spatial query
+        if (userLat && userLng) {
+            console.log(`🗺️  Using spatial search for location: ${userLat}, ${userLng}, radius: ${radiusKm}km`);
+            
+            const { data, error } = await supabase
+                .rpc('search_jobs_minimal', {
+                    user_lat: userLat,
+                    user_lng: userLng,
+                    radius_km: radiusKm,
+                    limit_count: pageSize,
+                    offset_count: page * pageSize
+                });
+
+            if (error) {
+                console.error('Spatial query error:', error);
+                // Fallback to regular query if spatial function not ready
+                return fetchJobsPaginatedFallback(page, pageSize, userLat, userLng, radiusKm);
+            }
+
+            if (!data || data.length === 0) {
+                console.log('🔍 No jobs found within radius');
+                return { jobs: [], hasMore: false, totalCount: 0 };
+            }
+
+            // Process results with distance information
+            const processedJobs = data.map((row: any) => {
+                const job = transformJob({
+                    id: row.id,
+                    title: row.title,
+                    company: row.company,
+                    location: row.location,
+                    description: row.description,
+                    benefits: row.benefits,
+                    contract_type: row.contract_type,
+                    salary_from: row.salary_from,
+                    salary_to: row.salary_to,
+                    work_type: row.work_type,
+                    scraped_at: row.scraped_at,
+                    source: row.source,
+                    education_level: row.education_level,
+                    url: row.url,
+                    lat: row.lat,
+                    lng: row.lng
+                });
+                
+                // Add distance information
+                (job as any).distance_km = row.distance_km;
+                return job;
+            });
+
+            const totalCount = data[0]?.total_count || 0;
+            const hasMore = data[0]?.has_more || false;
+
+            console.log(`📍 Found ${processedJobs.length} jobs within ${radiusKm}km (total: ${totalCount})`);
+
+            return {
+                jobs: processedJobs,
+                hasMore,
+                totalCount
+            };
+        }
+
+        // Fallback: Regular pagination without location filter
+        return fetchJobsPaginatedFallback(page, pageSize);
+
+    } catch (e) {
+        console.error("Error in fetchJobsPaginated:", e);
+        return { jobs: [], hasMore: false, totalCount: 0 };
+    }
+};
+
+// Fallback function for regular pagination
+const fetchJobsPaginatedFallback = async (
+    page: number = 0,
+    pageSize: number = 50,
+    userLat?: number,
+    userLng?: number,
+    _radiusKm?: number // Not used in fallback
+): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
     try {
         // Get total count first
         const totalCount = await getJobCount();
@@ -260,13 +492,28 @@ export const fetchJobsPaginated = async (
             return { jobs: [], hasMore: false, totalCount };
         }
 
-        const jobs = mapJobs(data);
-        const hasMore = (from + pageSize) < totalCount;
+        console.log(`📋 Fallback: Fetched ${data.length} jobs (page ${page}, total: ${totalCount})`);
 
-        return { jobs, hasMore, totalCount };
+        const processedJobs = data.map((job: any) => {
+            const transformed = transformJob(job);
+            // Calculate distance if coordinates provided
+            if (userLat && userLng && job.lat && job.lng) {
+                (transformed as any).distance_km = calculateDistanceKm(
+                    userLat, userLng, 
+                    job.lat as number, job.lng as number
+                );
+            }
+            return transformed;
+        });
+
+        return {
+            jobs: processedJobs,
+            hasMore: (page + 1) * pageSize < totalCount,
+            totalCount
+        };
 
     } catch (e) {
-        console.error("Error in fetchJobsPaginated:", e);
+        console.error("Error in fetchJobsPaginatedFallback:", e);
         return { jobs: [], hasMore: false, totalCount: 0 };
     }
 };
@@ -389,7 +636,8 @@ export const fetchRealJobs = async (
     }
 };
 
-const mapJobs = (data: any[]): Job[] => {
+// Synchronous job mapper - simple and reliable like the original working version
+const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
     const mappedJobs = data.map((item: any): Job | null => {
         try {
             const scraped = item as ScrapedJob;
@@ -397,8 +645,7 @@ const mapJobs = (data: any[]): Job[] => {
             // 1. Description Processing
             const fullDesc = formatDescription(scraped.description);
 
-            if (fullDesc.length < 20) { // More permissive length check
-                console.log(`Skipping job ${scraped.id} due to short description: ${fullDesc.substring(0, 50)}...`);
+            if (fullDesc.length < 20) {
                 return null;
             }
 
@@ -436,7 +683,7 @@ const mapJobs = (data: any[]): Job[] => {
                 jobType = 'Hybrid';
             }
 
-            // 4. Tag Generation (Refined to prioritize Location)
+            // 4. Tag Generation
             const techTags: string[] = [];
             const otherTags: string[] = [];
             const locationTags: string[] = [];
@@ -496,6 +743,18 @@ const mapJobs = (data: any[]): Job[] => {
                 jobCategory
             );
 
+            // Calculate distance if user coordinates are available
+            let distanceKm: number | undefined = undefined;
+            if (typeof userLat === 'number' && typeof userLng === 'number' &&
+                scraped.lat !== undefined && scraped.lat !== null &&
+                scraped.lng !== undefined && scraped.lng !== null) {
+                const jobLat = parseFloat(String(scraped.lat));
+                const jobLng = parseFloat(String(scraped.lng));
+                if (!isNaN(jobLat) && !isNaN(jobLng)) {
+                    distanceKm = calculateDistanceKm(userLat, userLng, jobLat, jobLng);
+                }
+            }
+
             return {
                 id: `db-${scraped.id}`,
                 title: scraped.title || (scraped.company ? `${scraped.company} - Pozice` : 'Pozice bez názvu'),
@@ -505,11 +764,12 @@ const mapJobs = (data: any[]): Job[] => {
                 salaryRange: salaryRange,
                 description: fullDesc,
                 postedAt: getRelativeTime(scraped.scraped_at),
-                scrapedAt: scraped.scraped_at, // Safe mapping, even if undefined
+                scrapedAt: scraped.scraped_at,
                 source: scraped.source || 'Scraper',
                 url: scraped.url,
                 lat: scraped.lat ? parseFloat(String(scraped.lat)) : undefined,
                 lng: scraped.lng ? parseFloat(String(scraped.lng)) : undefined,
+                ...(distanceKm !== undefined && { distanceKm }),
                 jhi: estimateJHI(scraped, salaryFrom),
                 noiseMetrics: estimateNoise(fullDesc),
                 transparency: {

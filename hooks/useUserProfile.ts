@@ -97,6 +97,27 @@ export const useUserProfile = () => {
                     }
                 }
 
+                // Auto-initialize coordinates for test user if missing (Brno coordinates)
+                if (profile.email === 'misahlavacu@gmail.com' && !profile.coordinates) {
+                    console.log("🌍 Auto-initializing test user coordinates (Brno)...");
+                    const brnoCoords = { lat: 49.1922, lon: 16.6113 };
+                    try {
+                        await updateUserProfileService(userId, { 
+                            address: 'Brno, Česká republika',
+                            coordinates: brnoCoords 
+                        });
+                        // Update local state
+                        setUserProfile(prev => ({
+                            ...prev,
+                            address: 'Brno, Česká republika',
+                            coordinates: brnoCoords
+                        }));
+                        console.log("✅ Test user coordinates initialized:", brnoCoords);
+                    } catch (err) {
+                        console.error("❌ Failed to initialize coordinates:", err);
+                    }
+                }
+
                 // Auto-enable commute filter on restore if address exists
                 if (profile.address) {
                     // Note: This will be handled by the useAppFilters hook
