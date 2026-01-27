@@ -81,7 +81,8 @@ import {
     Check,
     Trophy,
     Target,
-    Users
+    Users,
+    Info
 } from 'lucide-react';
 
 // Default user profile
@@ -206,6 +207,7 @@ export default function App() {
     const [isCompanyRegistrationOpen, setIsCompanyRegistrationOpen] = useState(false);
     const [showCompanyLanding, setShowCompanyLanding] = useState(false);
     const [commuteAnalysis, setCommuteAnalysis] = useState<CommuteAnalysis | null>(null);
+    const [showFinancialMethodology, setShowFinancialMethodology] = useState(false);
 
     // Use custom hooks
     const {
@@ -1778,54 +1780,108 @@ export default function App() {
                                                         </>
                                                     )}
                                                 </div>
-                                                <div className="p-6 bg-slate-900/30">
-                                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2"><Calculator size={12} /> {t('financial.reality_vs_income')}</h4>
-                                                    <div className="space-y-1 text-sm font-mono">
-                                                        {/* AI Estimation Hint */}
-                                                        {selectedJob.aiEstimatedSalary && (
-                                                            <div className="text-xs text-purple-400 mb-2 flex items-center gap-1">
-                                                                <Sparkles size={10} />
-                                                                {t('financial.ai_estimation_hint')}
-                                                            </div>
-                                                        )}
+                                                <div className="p-6 bg-slate-900/30 flex flex-col">
+                                                    <div className="flex-1">
+                                                        <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2"><Calculator size={12} /> {t('financial.reality_vs_income')}</h4>
+                                                        <div className="space-y-1 text-sm font-mono">
+                                                            {/* AI Estimation Hint */}
+                                                            {selectedJob.aiEstimatedSalary && (
+                                                                <div className="text-xs text-purple-400 mb-2 flex items-center gap-1">
+                                                                    <Sparkles size={10} />
+                                                                    {t('financial.ai_estimation_hint')}
+                                                                </div>
+                                                            )}
 
-                                                        <div className="flex justify-between text-slate-300">
-                                                            <span>{t('financial.gross_monthly')}</span>
-                                                            <span>{commuteAnalysis.financialReality.grossMonthlySalary > 0 ? `${commuteAnalysis.financialReality.grossMonthlySalary.toLocaleString()} ${cur}` : (selectedJob.aiEstimatedSalary ? `${selectedJob.aiEstimatedSalary.min.toLocaleString()} - ${selectedJob.aiEstimatedSalary.max.toLocaleString()} ${selectedJob.aiEstimatedSalary.currency}` : "???")}</span>
-                                                        </div>
-                                                        <div className="flex justify-between text-rose-300 text-xs">
-                                                            <span>- {t('financial.tax_insurance')}</span>
-                                                            <span>{commuteAnalysis.financialReality.estimatedTaxAndInsurance.toLocaleString()} {cur}</span>
-                                                        </div>
-                                                        <div className="flex justify-between text-white font-bold pt-2 mt-1 border-t border-slate-700">
-                                                            <span>{t('financial.net_base')}</span>
-                                                            <span>{commuteAnalysis.financialReality.netBaseSalary.toLocaleString()} {cur}</span>
-                                                        </div>
-                                                        <div className="flex justify-between text-emerald-400">
-                                                            <span>+ {t('financial.benefit_value_label')}</span>
-                                                            <span>{commuteAnalysis.financialReality.benefitsValue.toLocaleString()} {cur}</span>
-                                                        </div>
-                                                        {commuteAnalysis.financialReality.benefitsValue > 0 && (
-                                                            <div className="text-xs text-slate-400 mt-2 italic">
-                                                                <div className="flex items-start gap-1">
-                                                                    <span className="text-blue-400">ℹ️</span>
-                                                                    <div>
-                                                                        <div>{t('financial.benefit_value_label')}: {commuteAnalysis.financialReality.benefitsValue.toLocaleString()} {cur}/{t('financial.per_month')}</div>
-                                                                        <div>{t('financial.benefit_info_desc')}</div>
+                                                            <div className="flex justify-between text-slate-300">
+                                                                <span>{t('financial.gross_monthly')}</span>
+                                                                <span>{commuteAnalysis.financialReality.grossMonthlySalary > 0 ? `${commuteAnalysis.financialReality.grossMonthlySalary.toLocaleString()} ${cur}` : (selectedJob.aiEstimatedSalary ? `${selectedJob.aiEstimatedSalary.min.toLocaleString()} - ${selectedJob.aiEstimatedSalary.max.toLocaleString()} ${selectedJob.aiEstimatedSalary.currency}` : "???")}</span>
+                                                            </div>
+                                                            <div className="flex justify-between text-rose-300 text-xs">
+                                                                <span>- {t('financial.tax_insurance')}</span>
+                                                                <span>{commuteAnalysis.financialReality.estimatedTaxAndInsurance.toLocaleString()} {cur}</span>
+                                                            </div>
+                                                            <div className="flex justify-between text-white font-bold pt-2 mt-1 border-t border-slate-700">
+                                                                <span>{t('financial.net_base')}</span>
+                                                                <span>{commuteAnalysis.financialReality.netBaseSalary.toLocaleString()} {cur}</span>
+                                                            </div>
+                                                            <div className="flex justify-between text-emerald-400">
+                                                                <span>+ {t('financial.benefit_value_label')}</span>
+                                                                <span>{commuteAnalysis.financialReality.benefitsValue.toLocaleString()} {cur}</span>
+                                                            </div>
+                                                            {commuteAnalysis.financialReality.benefitsValue > 0 && (
+                                                                <div className="text-xs text-slate-400 mt-2 italic">
+                                                                    <div className="flex items-start gap-1">
+                                                                        <span className="text-blue-400">ℹ️</span>
+                                                                        <div>
+                                                                            <div>{t('financial.benefit_value_label')}: {commuteAnalysis.financialReality.benefitsValue.toLocaleString()} {cur}/{t('financial.per_month')}</div>
+                                                                            <div>{t('financial.benefit_info_desc')}</div>
+                                                                        </div>
                                                                     </div>
+                                                                </div>
+                                                            )}
+                                                            {(
+                                                                <div className="flex justify-between text-rose-400">
+                                                                    <span>- {t('financial.commute_costs')}</span>
+                                                                    <span>{commuteAnalysis.isRelocation ? '???' : `${commuteAnalysis.financialReality.commuteCost.toLocaleString()} ${cur}`}</span>
+                                                                </div>
+                                                            )}
+                                                            <div className="flex justify-between text-xl font-bold text-white pt-3 mt-3 border-t border-slate-700">
+                                                                <span>{t('financial.reality_summary')}</span>
+                                                                <span>{commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString()} {cur}</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Information Box - How JHI and Transport are Calculated */}
+                                                    <div className="mt-6 pt-4 border-t border-slate-700">
+                                                        <button
+                                                            onClick={() => setShowFinancialMethodology(!showFinancialMethodology)}
+                                                            className="w-full flex items-center gap-2 px-3 py-2 rounded text-slate-300 hover:bg-slate-800/50 transition-colors text-xs font-semibold"
+                                                        >
+                                                            <Info size={14} className="text-blue-400 flex-shrink-0" />
+                                                            <span>Jak se počítá JHI a doprava?</span>
+                                                            {showFinancialMethodology ? (
+                                                                <ChevronUp size={12} className="ml-auto text-slate-500" />
+                                                            ) : (
+                                                                <ChevronDown size={12} className="ml-auto text-slate-500" />
+                                                            )}
+                                                        </button>
+
+                                                        {showFinancialMethodology && (
+                                                            <div className="mt-3 p-3 rounded bg-slate-800/30 border border-slate-700 space-y-3 text-[11px] text-slate-300">
+                                                                {/* JHI Explanation */}
+                                                                <div>
+                                                                    <div className="font-bold text-white mb-1 flex items-center gap-1">
+                                                                        <Zap size={11} className="text-yellow-400" /> JHI Impact Formula
+                                                                    </div>
+                                                                    <p className="text-slate-400">
+                                                                        Procent změny příjmu z dopravy × 1.5 = JHI body<br/>
+                                                                        <span className="text-[10px]">Příklad: Pokud doprava sníží příjem o 1%, JHI klesne o ~1.5 bodů</span>
+                                                                    </p>
+                                                                </div>
+
+                                                                {/* Transport Costs */}
+                                                                <div>
+                                                                    <div className="font-bold text-white mb-1 flex items-center gap-1">
+                                                                        <Bus size={11} className="text-blue-400" /> Výpočet Dopravy
+                                                                    </div>
+                                                                    <div className="space-y-1 text-slate-400 text-[10px]">
+                                                                        <div>🚗 Auto: 5 CZK/km × 2 × 22 dnů</div>
+                                                                        <div>🚌 MHD: Město letenka (Praha 1500 Kč) - nejlevnější</div>
+                                                                        <div>🚴 Kolo: 0.05 CZK/km × 2 × 22 dnů</div>
+                                                                        <div>🚶 Pěšky: 0 Kč (zdarma)</div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {/* Final Calculation */}
+                                                                <div>
+                                                                    <div className="font-bold text-white mb-1">Vzorec Čisté Reality</div>
+                                                                    <p className="text-slate-400 text-[10px]">
+                                                                        Čistý základ + Benefity - Doprava = Reálný Příjem
+                                                                    </p>
                                                                 </div>
                                                             </div>
                                                         )}
-                                                        {(
-                                                            <div className="flex justify-between text-rose-400">
-                                                                <span>- {t('financial.commute_costs')}</span>
-                                                                <span>{commuteAnalysis.isRelocation ? '???' : `${commuteAnalysis.financialReality.commuteCost.toLocaleString()} ${cur}`}</span>
-                                                            </div>
-                                                        )}
-                                                        <div className="flex justify-between text-xl font-bold text-white pt-3 mt-3 border-t border-slate-700">
-                                                            <span>{t('financial.reality_summary')}</span>
-                                                            <span>{commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString()} {cur}</span>
-                                                        </div>
                                                     </div>
                                                 </div>
                                             </div>

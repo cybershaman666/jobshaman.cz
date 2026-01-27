@@ -1,5 +1,5 @@
-import React from 'react';
-import { Euro, Car, Home, TrendingUp, Calculator } from 'lucide-react';
+import React, { useState } from 'react';
+import { Euro, Car, Home, TrendingUp, Calculator, Info, ChevronDown, ChevronUp, Bus, Bike, Footprints, Zap, TrendingDown } from 'lucide-react';
 import { FinancialReality } from '../types';
 
 interface FinancialRealityComponentProps {
@@ -16,6 +16,7 @@ const FinancialRealityComponent: React.FC<FinancialRealityComponentProps> = ({
   isLoading = false,
   error = null
 }) => {
+  const [showMethodology, setShowMethodology] = useState(false);
 
 
   if (isLoading) {
@@ -185,6 +186,170 @@ const FinancialRealityComponent: React.FC<FinancialRealityComponentProps> = ({
           </div>
         </div>
       )}
+
+      {/* Methodology Explanation Box */}
+      <div className="mt-6 border-t border-emerald-200 dark:border-emerald-700 pt-6">
+        <button
+          onClick={() => setShowMethodology(!showMethodology)}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+        >
+          <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+            Jak se počítají JHI a doprava?
+          </span>
+          {showMethodology ? (
+            <ChevronUp className="w-4 h-4 ml-auto text-slate-600 dark:text-slate-400 flex-shrink-0" />
+          ) : (
+            <ChevronDown className="w-4 h-4 ml-auto text-slate-600 dark:text-slate-400 flex-shrink-0" />
+          )}
+        </button>
+
+        {showMethodology && (
+          <div className="mt-4 space-y-6 px-4 py-4 bg-white dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700">
+            
+            {/* JHI Section */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                <h5 className="font-bold text-slate-900 dark:text-white">JHI Score - Job Health Index</h5>
+              </div>
+              <p className="text-sm text-slate-700 dark:text-slate-300 mb-3">
+                Číselný index který měří "zdraví" konkrétní pracovní nabídky. Počítá se z mnoha faktorů:
+              </p>
+              <div className="space-y-2 ml-4">
+                <div className="text-sm text-slate-700 dark:text-slate-300">
+                  <strong>Finanční dopad (Financial):</strong> Jak mzda + benefity - doprava ovlivní vaše celkové příjmy
+                </div>
+                <div className="text-sm text-slate-700 dark:text-slate-300">
+                  <strong>Čas:</strong> Jak se změny v dojížďce a typu práce (remote/hybrid/on-site) odrazí na vašem volném čase
+                </div>
+                <div className="text-sm text-slate-700 dark:text-slate-300">
+                  <strong>Psychická zátěž:</strong> Slova jako "dynamické prostředí", "na sobě závislý", "stres" snižují skóre
+                </div>
+                <div className="text-sm text-slate-700 dark:text-slate-300">
+                  <strong>Růst a rozvoj:</strong> Školení, kurzy a vzdělávání zvyšují skóre
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-800">
+                <p className="text-sm text-yellow-900 dark:text-yellow-200">
+                  <strong>Vzorec dopadu dopravy:</strong> Procent změny příjmu z dopravy × 1.5 = JHI body
+                </p>
+                <p className="text-xs text-yellow-800 dark:text-yellow-300 mt-2">
+                  Příklad: Pokud doprava sníží čistý příjem o 1%, JHI klesne o ~1.5 bodů. Kappován na -20 až +15 bodů.
+                </p>
+              </div>
+            </div>
+
+            {/* Transport Section */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Car className="w-5 h-5 text-red-600 dark:text-red-400" />
+                <h5 className="font-bold text-slate-900 dark:text-white">Výpočet Ceny Dopravy</h5>
+              </div>
+              <p className="text-sm text-slate-700 dark:text-slate-300 mb-3">
+                Systém počítá s vašou preferovanou dopravou a bezvýsledně sníží náklady:
+              </p>
+
+              <div className="space-y-3">
+                {/* Car */}
+                <div className="border-l-4 border-red-600 pl-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Car className="w-4 h-4 text-red-600" />
+                    <span className="font-semibold text-slate-900 dark:text-white text-sm">Autem</span>
+                  </div>
+                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                    5 CZK/km × vzdálenost × 2 (tam+zpět) × 22 pracovních dnů
+                  </p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                    Př: 10 km = 10 × 5 × 2 × 22 = 2200 Kč/měsíc
+                  </p>
+                </div>
+
+                {/* Public Transport */}
+                <div className="border-l-4 border-blue-600 pl-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Bus className="w-4 h-4 text-blue-600" />
+                    <span className="font-semibold text-slate-900 dark:text-white text-sm">Veřejná doprava (MHD)</span>
+                  </div>
+                  <p className="text-xs text-slate-700 dark:text-slate-300 mb-1">
+                    <strong>Město-specifická letenka (preferováno):</strong> Praha 1500 Kč, Brno 1300 Kč, Plzeň 1000 Kč...
+                  </p>
+                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                    <strong>Nebo lineární:</strong> 2.5 CZK/km × vzdálenost × 2 × 22 dnů
+                  </p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                    ✓ Systém automaticky vybere levnější variantu
+                  </p>
+                </div>
+
+                {/* Bike */}
+                <div className="border-l-4 border-green-600 pl-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Bike className="w-4 h-4 text-green-600" />
+                    <span className="font-semibold text-slate-900 dark:text-white text-sm">Kolo</span>
+                  </div>
+                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                    0.05 CZK/km × vzdálenost × 2 × 22 dnů (jen údržba, pneumatiky)
+                  </p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                    Př: 10 km = 10 × 0.05 × 2 × 22 = 22 Kč/měsíc
+                  </p>
+                </div>
+
+                {/* Walk */}
+                <div className="border-l-4 border-yellow-600 pl-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Footprints className="w-4 h-4 text-yellow-600" />
+                    <span className="font-semibold text-slate-900 dark:text-white text-sm">Pěšky</span>
+                  </div>
+                  <p className="text-xs text-slate-700 dark:text-slate-300">
+                    0 Kč (zdarma, ideálně do 5 km)
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded border border-blue-200 dark:border-blue-800">
+                <p className="text-sm text-blue-900 dark:text-blue-200 flex items-start gap-2">
+                  <Info className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>
+                    <strong>Inteligentní výpočet:</strong> Systém znám vaši preferenci (MHD) a město (Praha) a počítá s nejlevnější opcí - měsíční letenkou.
+                  </span>
+                </p>
+              </div>
+            </div>
+
+            {/* Impact Section */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <TrendingDown className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                <h5 className="font-bold text-slate-900 dark:text-white">Vliv na Vaši Nabídku</h5>
+              </div>
+              <p className="text-sm text-slate-700 dark:text-slate-300 mb-3">
+                Finální hodnota: <strong>Čistá mzda + Benefity - Doprava = Reálný Příjem</strong>
+              </p>
+              <div className="p-3 bg-slate-100 dark:bg-slate-700/50 rounded text-slate-700 dark:text-slate-300 space-y-1 font-mono text-xs">
+                <p>Příklad: 30 000 Kč netto</p>
+                <p>+ 392 Kč benefity (4700 Kč/rok)</p>
+                <p>- 1500 Kč doprava (MHD Praha)</p>
+                <p className="font-bold border-t border-slate-300 dark:border-slate-600 pt-1">
+                  = 28 892 Kč reálně měsíčně
+                </p>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">
+                Tento rozdíl (cca -3.6%) se přepočítá na JHI dopad: -3.6% × 1.5 = <strong>-5 bodů</strong>
+              </p>
+            </div>
+
+            {/* Note */}
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-200 dark:border-amber-800">
+              <p className="text-xs text-amber-900 dark:text-amber-200">
+                <strong>💡 Tip:</strong> Všechny výpočty jsou automatické a zohledňují vaše konkrétní preference, město a aktuální ceny MHD. Nic se nemusíte počítat ručně!
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
