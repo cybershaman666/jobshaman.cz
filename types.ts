@@ -354,6 +354,7 @@ export interface CommuteAnalysis {
   parkingWarning?: string; // New field for parking alerts
   isRelocation?: boolean; // TRUE if distance is huge or country differs
   financialReality: FinancialReality; // New detailed financial breakdown
+  jhi?: JHI; // Optional: detailed JHI breakdown by dimension
 }
 
 export interface BenefitInsight {
