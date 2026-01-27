@@ -223,10 +223,35 @@ export const calculateFinancialScoreAdjustment = (
 // New GPS-based functionality for Career Pathfinder AI
 // Commute cost coefficients (CZK per km)
 const COMMUTE_COSTS = {
-  car: 4.5,      // Average fuel + maintenance cost per km
-  public: 8,     // Average monthly public transport cost / average distance
-  bike: 1.5,     // Maintenance cost per km
+  car: 5.0,      // 5 CZK/km - fuel + maintenance + depreciation
+  public: 2.5,   // 2.5 CZK/km - average for Czech Republic (fallback for small cities)
+  bike: 0.05,    // 0.05 CZK/km - maintenance + wear
   walk: 0        // No cost
+};
+
+// Monthly public transport passes for major Czech cities
+// When MHD is cheaper than linear calculation, use the pass price
+const CITY_PUBLIC_TRANSPORT_PASSES: Record<string, number> = {
+  // Prague
+  'praha': 1500, 'prague': 1500, 'prag': 1500,
+  // Brno
+  'brno': 1300, 'brünn': 1300,
+  // Ostrava
+  'ostrava': 1100,
+  // Plzen
+  'plzeň': 1000, 'plzen': 1000,
+  // Liberec
+  'liberec': 850,
+  // Olomouc
+  'olomouc': 900,
+  // Ceske Budejovice
+  'české budějovice': 950, 'ceske budejovice': 950,
+  // Hradec Kralove
+  'hradec králové': 1050, 'hradec kralove': 1050,
+  // Pardubice
+  'pardubice': 950,
+  // Usti nad Labem
+  'ústí nad labem': 850, 'usti nad labem': 850
 };
 
 // Calculate distance between two GPS coordinates (Haversine formula)
@@ -252,18 +277,39 @@ export const calculateCommuteCost = (
   jobLng: number,
   candidateLat: number,
   candidateLng: number,
-  transportMode: string = 'public'
+  transportMode: string = 'public',
+  jobCity?: string
 ): { distance: number; monthlyCost: number } => {
   const distance = calculateDistance(jobLat, jobLng, candidateLat, candidateLng);
   const dailyDistance = distance * 2; // Round trip
   const workingDaysPerMonth = 22; // Average working days
 
   const coefficient = COMMUTE_COSTS[transportMode as keyof typeof COMMUTE_COSTS] || COMMUTE_COSTS.public;
-  const monthlyCost = dailyDistance * coefficient * workingDaysPerMonth;
+  const linearCost = dailyDistance * coefficient * workingDaysPerMonth;
+
+  // For public transport, check if city has a monthly pass that's cheaper than linear calculation
+  if (transportMode === 'public' && jobCity) {
+    const cityLower = jobCity.toLowerCase().trim();
+    
+    // Try exact match or partial match for cities
+    for (const [city, passPrice] of Object.entries(CITY_PUBLIC_TRANSPORT_PASSES)) {
+      if (cityLower.includes(city) || city.includes(cityLower)) {
+        // Use pass price if it's cheaper than linear calculation
+        // But only if distance is reasonable for using the pass (e.g., < 30 km)
+        if (distance < 30 && passPrice < linearCost) {
+          return {
+            distance: Math.round(distance * 10) / 10,
+            monthlyCost: passPrice
+          };
+        }
+        break;
+      }
+    }
+  }
 
   return {
     distance: Math.round(distance * 10) / 10, // Round to 1 decimal
-    monthlyCost: Math.round(monthlyCost)
+    monthlyCost: Math.round(linearCost)
   };
 };
 
@@ -331,7 +377,8 @@ export const calculateFinancialReality = async (
       job.lng,
       userProfile.coordinates.lat,
       userProfile.coordinates.lon,
-      userProfile.transportMode
+      userProfile.transportMode,
+      job.location // Pass job city for city-specific passes
     )
     : { distance: 0, monthlyCost: 0 };
 

@@ -60,7 +60,59 @@ export const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lo
 
 const deg2rad = (deg: number) => deg * (Math.PI / 180);
 
-// Simulation constants (Adjusted for CZK Reality)
+// Monthly public transport pass costs by CITY (2025 data) - Czech Republic specific
+// This is the actual monthly pass price for getting around the city
+const CITY_MONTHLY_PASSES_CZ: Record<string, number> = {
+    // Prague - Most expensive, unlimited zones
+    'praha': 1500, 'prague': 1500, 'prag': 1500,
+    // Brno - Second largest city
+    'brno': 1300, 'brünn': 1300,
+    // Ostrava
+    'ostrava': 1100,
+    // Plzen
+    'plzeň': 1000, 'plzen': 1000,
+    // Liberec
+    'liberec': 850,
+    // Olomouc
+    'olomouc': 900,
+    // Ceske Budejovice
+    'české budějovice': 950, 'ceske budejovice': 950,
+    // Hradec Kralove
+    'hradec králové': 1050, 'hradec kralove': 1050,
+    // Pardubice
+    'pardubice': 950,
+    // Usti nad Labem
+    'ústí nad labem': 850, 'usti nad labem': 850,
+    // Jihlava
+    'jihlava': 800,
+    // Kladno
+    'kladno': 900,
+    // Karlovy Vary
+    'karlovy vary': 850,
+    // Default for small cities
+    'default': 700 // Average for smaller Czech cities
+};
+
+// Monthly public transport pass costs by country (2025 data)
+const MONTHLY_PUBLIC_TRANSPORT_COSTS = {
+    // Czech Republic - Prague 1500 Kč, other cities 700-1300 Kč
+    CZ: 1500, // Prague as default (highest)
+    SK: 35, // Bratislava monthly pass (€35, 2025)
+    DE: 49, // Germany 49€ ticket (nationwide, 2025)
+    AT: 59, // Vienna monthly pass (€59, 2025)
+    CH: 87, // Zurich 1-2 zones monthly pass (CHF 87, 2025)
+    PL: 29, // Warsaw monthly pass (29€, estimated)
+};
+
+// Exchange rates to CZK (2025 averages)
+const EXCHANGE_RATES_TO_CZK = {
+    CZK: 1,
+    EUR: 25, // 1 EUR = 25 CZK
+    CHF: 27, // 1 CHF = 27 CZK
+    USD: 24, // 1 USD = 24 CZK
+};
+
+// Simulation constants (Adjusted for Reality)
 const COST_PER_KM_BASE = {
     car: 0.20, // ~5 CZK/km (Fuel ~2.1 CZK + Wear/Service ~2.9 CZK)
     public: 0.10, // ~2.5 CZK/km (General Train/Bus rate baseline)
@@ -77,6 +129,85 @@ const SPEED_KMPH = {
 };
 
 const PAID_PARKING_ZONES = ['praha 1', 'praha 2', 'praha 3', 'praha 7', 'brno-stred'];
+
+// Helper function to get country code from location and currency
+const getCountryCode = (location: string, currency: string): keyof typeof MONTHLY_PUBLIC_TRANSPORT_COSTS => {
+    const loc = location.toLowerCase();
+    
+    // Check location keywords first for better accuracy
+    if (loc.includes('praha') || loc.includes('brno') || loc.includes('ostrava') || 
+        loc.includes('česk') || loc.includes('czech') || currency === 'CZK') {
+        return 'CZ';
+    }
+    if (loc.includes('bratislava') || loc.includes('kosice') || loc.includes('slovak') || 
+        loc.includes('slovensk') || currency === '€' && loc.includes('sk')) {
+        return 'SK';
+    }
+    if (loc.includes('berlin') || loc.includes('münchen') || loc.includes('hamburg') || 
+        loc.includes('german') || loc.includes('deutsch')) {
+        return 'DE';
+    }
+    if (loc.includes('vídeň') || loc.includes('wien') || loc.includes('austria') || 
+        loc.includes('österreich') || loc.includes('raku')) {
+        return 'AT';
+    }
+    if (loc.includes('zurich') || loc.includes('zürich') || loc.includes('swiss') || 
+        loc.includes('schweiz') || loc.includes('švýc') || currency === 'CHF') {
+        return 'CH';
+    }
+    if (loc.includes('warsaw') || loc.includes('varšava') || loc.includes('krakow') || 
+        loc.includes('polsk') || loc.includes('polish')) {
+        return 'PL';
+    }
+    
+    // Default to Czech Republic if no country detected
+    return 'CZ';
+};
+
+// Helper function to get city-specific monthly pass cost for Czech Republic
+const getCityMonthlyPassCost = (location: string): number => {
+    if (!location) return CITY_MONTHLY_PASSES_CZ['default'];
+    
+    const locLower = location.toLowerCase().trim();
+    
+    // Try exact match first
+    for (const [city, cost] of Object.entries(CITY_MONTHLY_PASSES_CZ)) {
+        if (city === 'default') continue;
+        if (locLower === city || locLower.includes(city)) {
+            return cost;
+        }
+    }
+    
+    // If no match, return default
+    return CITY_MONTHLY_PASSES_CZ['default'];
+};
+
+// Helper function to get monthly public transport cost in the appropriate currency
+const getMonthlyPublicTransportCost = (countryCode: keyof typeof MONTHLY_PUBLIC_TRANSPORT_COSTS, targetCurrency: string, location?: string): number => {
+    // For Czech Republic, use city-specific prices
+    if (countryCode === 'CZ' && location) {
+        const cityPrice = getCityMonthlyPassCost(location);
+        return cityPrice;
+    }
+    
+    const baseCost = MONTHLY_PUBLIC_TRANSPORT_COSTS[countryCode];
+    
+    // Convert to target currency
+    if (targetCurrency === 'CZK') {
+        if (countryCode === 'CZ') return baseCost; // Already in CZK
+        if (countryCode === 'SK' || countryCode === 'DE' || countryCode === 'AT') return baseCost * EXCHANGE_RATES_TO_CZK.EUR;
+        if (countryCode === 'CH') return baseCost * EXCHANGE_RATES_TO_CZK.CHF;
+        if (countryCode === 'PL') return baseCost * EXCHANGE_RATES_TO_CZK.EUR; // PL uses EUR estimate
+    } else if (targetCurrency === '€') {
+        return baseCost; // Most European countries in EUR
+    } else if (targetCurrency === 'CHF') {
+        if (countryCode === 'CH') return baseCost; // Already in CHF
+        return baseCost * 0.9; // Approximate conversion from EUR to CHF
+    }
+    
+    // Default fallback
+    return baseCost * EXCHANGE_RATES_TO_CZK.EUR;
+};
 
 export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAnalysis | null => {
     if (!user.address) {
@@ -169,42 +300,49 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     }
 
     // --- PUBLIC TRANSPORT SPECIFIC LOGIC ---
-    if (!isRemote && !isRelocation && distanceKm !== -1 && mode === 'public' && currency === 'CZK') {
-        const jobLoc = job.location.toLowerCase();
-        const userLoc = user.address.toLowerCase();
-
-        const isJobInPrague = jobLoc.includes('praha') || jobLoc.includes('prague');
-        const isUserInPrague = userLoc.includes('praha') || userLoc.includes('prague');
-
-        // Cap public transport costs at realistic monthly pass prices
-        // Eg. Lítačka ~3650/year (305/mo) + Zones
-        // Eg. IDS JMK (Brno) ~4750/year + Zones
-        // Maximum realistic monthly cost for public transport (even inter-city) is around 3000-4000 CZK
-
-        if (isJobInPrague) {
-            // Base Prague (305) + Zones estimated by distance
-            const estimatedZonesCost = Math.ceil((distanceKm - 15) / 10) * 300;
-            const calculatedCost = isUserInPrague ? 305 : 305 + Math.max(0, estimatedZonesCost);
-            monthlyCost = Math.min(monthlyCost, Math.min(calculatedCost, 4000));
-        } else if (jobLoc.includes('brno') || jobLoc.includes('ostrava') || jobLoc.includes('plzen')) {
-            // Regional cities often cheaper or similar
-            // 400 CZK base + distance factor
-            const regionalCost = 400 + (distanceKm * 50); // Rough approximation of zone additions
-            monthlyCost = Math.min(monthlyCost, Math.min(regionalCost, 4000));
-        } else {
-            // General inter-city cap
-            monthlyCost = Math.min(monthlyCost, 4500);
+    if (!isRemote && !isRelocation && distanceKm !== -1 && mode === 'public') {
+        // Get country code and monthly pass cost (with city-specific prices for CZ)
+        const countryCode = getCountryCode(job.location, currency);
+        const monthlyPassCost = getMonthlyPublicTransportCost(countryCode, currency, job.location);
+        
+        // Convert distance-based cost to actual monthly cost comparison
+        // Base calculation: distance * rate * 2 trips * 20 days
+        const distanceBasedCost = distanceKm * costPerKm * 2 * 20;
+        
+        // Use the cheaper of distance-based cost or monthly pass cost
+        // This encourages use of monthly passes for regular commuting
+        monthlyCost = Math.min(distanceBasedCost, monthlyPassCost);
+        
+        // Additional zone supplements for cross-zone commuting (Czech Republic specific)
+        if (countryCode === 'CZ') {
+            const jobLoc = job.location.toLowerCase();
+            const userLoc = user.address.toLowerCase();
+            
+            const isJobInPrague = jobLoc.includes('praha') || jobLoc.includes('prague');
+            const isUserInPrague = userLoc.includes('praha') || userLoc.includes('prague');
+            
+            if (isJobInPrague && !isUserInPrague) {
+                // Additional zone cost for commuting to Prague from outside
+                const zoneSupplement = Math.ceil((distanceKm - 15) / 10) * 300; // ~300 CZK per additional zone
+                monthlyCost = Math.min(monthlyCost, monthlyPassCost + zoneSupplement);
+            }
         }
     }
 
     // Calculate Avoided Cost for Remote
     let avoidedCommuteCost = 0;
     if (isRemote) {
-        let potentialCost = Math.round(avoidedDistanceKm * costPerKm * 2 * 20);
-        if (mode === 'public' && currency === 'CZK') {
-            potentialCost = Math.min(potentialCost, 3600);
+        const distanceBasedCost = Math.round(avoidedDistanceKm * costPerKm * 2 * 20);
+        
+        if (mode === 'public') {
+            // For public transport, use monthly pass cost as avoided cost (with city-specific prices)
+            const countryCode = getCountryCode(job.location, currency);
+            const monthlyPassCost = getMonthlyPublicTransportCost(countryCode, currency, job.location);
+            avoidedCommuteCost = Math.min(distanceBasedCost, monthlyPassCost);
+        } else {
+            // For car, bike, walk - use distance-based calculation
+            avoidedCommuteCost = distanceBasedCost;
         }
-        avoidedCommuteCost = potentialCost;
     }
 
     // 3. Financial Analysis (NET Basis)

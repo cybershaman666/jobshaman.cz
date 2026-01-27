@@ -441,13 +441,16 @@ export const fetchJobsPaginated = async (
                 return job;
             });
 
+            // Filter by quality standards and remove duplicates
+            const filteredJobs = filterJobsByQuality(processedJobs);
+
             const totalCount = data[0]?.total_count || 0;
             const hasMore = data[0]?.has_more || false;
 
-            console.log(`📍 Found ${processedJobs.length} jobs within ${radiusKm}km (total: ${totalCount})`);
+            console.log(`📍 Found ${filteredJobs.length} valid jobs within ${radiusKm}km (total: ${totalCount}, filtered: ${processedJobs.length - filteredJobs.length})`);
 
             return {
-                jobs: processedJobs,
+                jobs: filteredJobs,
                 hasMore,
                 totalCount
             };
@@ -506,8 +509,11 @@ const fetchJobsPaginatedFallback = async (
             return transformed;
         });
 
+        // Filter by quality standards and remove duplicates
+        const filteredJobs = filterJobsByQuality(processedJobs);
+
         return {
-            jobs: processedJobs,
+            jobs: filteredJobs,
             hasMore: (page + 1) * pageSize < totalCount,
             totalCount
         };
@@ -544,7 +550,10 @@ export const searchJobs = async (
             return [];
         }
 
-        return mapJobs(data);
+        const allJobs = mapJobs(data);
+        const validJobs = filterJobsByQuality(allJobs);
+        
+        return validJobs;
 
     } catch (e) {
         console.error("Error in searchJobs:", e);
@@ -804,3 +813,73 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
 
     return validJobs;
 }
+
+/**
+ * Validates if a job posting meets quality standards
+ * Filters out:
+ * - Jobs with "Neznámá pozice" (Unknown position)
+ * - Jobs with "neznámá lokalita" (Unknown location)
+ * - Jobs without proper description
+ * - Jobs with description < 500 characters
+ * - Duplicate jobs (by title + company + location)
+ */
+export const isValidJobPosting = (job: Job): boolean => {
+    // Check title - filter out "Neznámá pozice" (Unknown position)
+    if (!job.title || 
+        job.title.toLowerCase().includes('neznámá pozice') ||
+        job.title.toLowerCase().includes('unknown position') ||
+        job.title.trim().length === 0) {
+        return false;
+    }
+
+    // Check location - filter out "neznámá lokalita" (Unknown location)
+    if (!job.location || 
+        job.location.toLowerCase().includes('neznámá lokalita') ||
+        job.location.toLowerCase().includes('unknown location') ||
+        job.location.toLowerCase().includes('nepřesná lokalita') ||
+        job.location.toLowerCase().includes('bez lokality') ||
+        job.location.trim().length === 0) {
+        return false;
+    }
+
+    // Check description exists and has minimum length (500 characters)
+    if (!job.description || 
+        typeof job.description !== 'string' ||
+        job.description.trim().length < 500) {
+        return false;
+    }
+
+    // Filter out if company is missing or generic
+    if (!job.company || job.company.trim().length === 0) {
+        return false;
+    }
+
+    return true;
+};
+
+/**
+ * Filters jobs to remove low-quality postings and duplicates
+ */
+export const filterJobsByQuality = (jobs: Job[]): Job[] => {
+    // First filter by quality standards
+    const validJobs = jobs.filter(isValidJobPosting);
+
+    // Then remove duplicates - keep first occurrence
+    const seen = new Set<string>();
+    const uniqueJobs = validJobs.filter(job => {
+        const key = `${job.title?.toLowerCase().trim()}|${job.company?.toLowerCase().trim()}|${job.location?.toLowerCase().trim()}`;
+        if (seen.has(key)) {
+            console.log(`⚠️  Filtered duplicate job: ${job.title} at ${job.company}`);
+            return false;
+        }
+        seen.add(key);
+        return true;
+    });
+
+    const filtered = jobs.length - uniqueJobs.length;
+    if (filtered > 0) {
+        console.log(`🧹 Quality filter: Removed ${filtered} low-quality/duplicate jobs. ${uniqueJobs.length} valid jobs remain.`);
+    }
+
+    return uniqueJobs;
+};
