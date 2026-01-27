@@ -1,5 +1,7 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n from '../src/i18n';
 import Markdown from 'markdown-to-jsx';
 import { Job, Candidate, AIAdOptimizationResult, CompanyProfile } from '../types';
 import { MOCK_COMPANY_PROFILE } from '../constants';
@@ -63,6 +65,7 @@ interface CompanyDashboardProps {
 }
 
 const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: propProfile, userEmail }) => {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<'overview' | 'create-ad' | 'candidates' | 'settings' | 'assessments' | 'marketplace'>('overview');
     const [showUpgradeModal, setShowUpgradeModal] = useState<{ open: boolean, feature?: string }>({ open: false });
     const [showInvitationModal, setShowInvitationModal] = useState(false);
@@ -102,7 +105,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     // Recruiter Handling
     const [selectedRecruiterId, setSelectedRecruiterId] = useState<string>('all');
     const recruiters = companyProfile.members || [
-        { id: 'all', name: 'Všichni náboraři', email: '', role: 'admin', joinedAt: '' },
+        { id: 'all', name: t('company.dashboard.all_recruiters'), email: '', role: 'admin', joinedAt: '' },
         { id: '1', name: 'Floki Shaman', email: 'floki@jobshaman.cz', role: 'admin', joinedAt: '' }
     ];
 
@@ -110,7 +113,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     useEffect(() => {
         const loadSubscription = async () => {
             if (!companyProfile?.id) return;
-            
+
             try {
                 const subscriptionData = await getSubscriptionStatus(companyProfile.id);
                 setSubscription(subscriptionData);
@@ -156,7 +159,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
     const handlePublish = async () => {
         if (!jobTitle.trim() || !adDraft.trim()) {
-            alert("Prosím vyplňte název pozice i popis.");
+            alert(t('company.ad_editor.fill_required'));
             return;
         }
 
@@ -184,14 +187,14 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 description: adDraft,
                 location: companyProfile.address || 'Česká republika',
             });
-            alert("Inzerát byl odeslán ke kontrole a bude brzy zveřejněn!");
+            alert(t('company.ad_editor.publish_success'));
             if (isRealUser) {
                 setAdDraft('');
                 setJobTitle('');
             }
         } catch (e) {
             console.error(e);
-            alert("Chyba při zveřejňování inzerátu.");
+            alert(t('company.ad_editor.publish_error'));
         } finally {
             setIsPublishing(false);
         }
@@ -230,11 +233,11 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         if (optimizationResult) {
             setAdDraft(optimizationResult.rewrittenText);
             setOptimizationResult(null);
-            
+
             // Track usage for companies
             if (companyProfile?.id) {
                 await incrementAdOptimizationUsage(companyProfile.id);
-                
+
                 // Track feature usage analytics
                 AnalyticsService.trackFeatureUsage({
                     companyId: companyProfile.id,
@@ -295,15 +298,15 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     };
 
     const handleDeleteJob = (jobId: string) => {
-        if (confirm('Opravdu chcete smazat tuto pozici?')) {
+        if (confirm(t('company.dashboard.actions.confirm_delete'))) {
             setJobs(jobs.filter(job => job.id !== jobId));
             setActiveDropdownJobId(null);
         }
     };
 
     const handleCloseJob = (jobId: string) => {
-        if (confirm('Opravdu chcete označit tuto pozici jako uzavřenou?')) {
-            setJobs(jobs.map(job => 
+        if (confirm(t('company.dashboard.actions.confirm_close'))) {
+            setJobs(jobs.map(job =>
                 job.id === jobId ? { ...job, status: 'closed' } : job
             ));
             setActiveDropdownJobId(null);
@@ -322,16 +325,16 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
                         <Briefcase size={40} className="text-slate-400" />
                     </div>
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Vítejte v JobShaman</h2>
+                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{t('company.dashboard.welcome_title')}</h2>
                     <p className="text-slate-500 dark:text-slate-400 max-w-md text-center mb-8">
-                        Zatím nemáte žádná data. Vytvořte svůj první inzerát a začněte nabírat.
+                        {t('company.dashboard.empty_state_desc')}
                     </p>
                     <button
                         onClick={() => setActiveTab('create-ad')}
                         className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-500 transition-colors flex items-center gap-2"
                     >
                         <PenTool size={20} />
-                        Vytvořit První Inzerát
+                        {t('company.dashboard.create_first_ad')}
                     </button>
                 </div>
             );
@@ -349,28 +352,27 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="text-lg font-bold text-indigo-900 dark:text-indigo-300 mb-1">Předplatné Společnosti</h3>
+                            <h3 className="text-lg font-bold text-indigo-900 dark:text-indigo-300 mb-1">{t('company.subscription.title')}</h3>
                             <div className="flex items-center gap-4">
                                 <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                                    {subscription?.tier === 'business' ? 'Business' : subscription?.tier === 'basic' ? 'Základní' : 'Zdarma'} Plan
+                                    {subscription?.tier === 'business' ? t('company.subscription.tiers.business') : subscription?.tier === 'basic' ? t('company.subscription.tiers.basic') : t('company.subscription.tiers.free')} Plan
                                 </span>
-                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                                    subscription?.tier === 'free' || !subscription?.status
-                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                                        : subscription?.status === 'active' 
-                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${subscription?.tier === 'free' || !subscription?.status
+                                    ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                                    : subscription?.status === 'active'
+                                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                                         : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
-                                }`}>
-                                    {subscription?.tier === 'free' || !subscription?.status ? 'Aktivní' : subscription?.status === 'active' ? 'Aktivní' : 'Neaktivní'}
+                                    }`}>
+                                    {subscription?.tier === 'free' || !subscription?.status ? t('company.subscription.active') : subscription?.status === 'active' ? t('company.subscription.active') : t('company.subscription.inactive')}
                                 </span>
                             </div>
                         </div>
                         <div className="text-right">
                             {subscription?.expiresAt && subscription?.tier !== 'free' && (
                                 <div className="text-sm text-indigo-700 dark:text-indigo-300">
-                                    <div className="font-medium">Další platba:</div>
-                                    <div className="font-mono">{new Date(subscription.expiresAt).toLocaleDateString('cs-CZ')}</div>
-                                    <div className="text-xs opacity-75">(za {subscription.daysUntilRenewal || 0} dní)</div>
+                                    <div className="font-medium">{t('company.subscription.next_payment')}</div>
+                                    <div className="font-mono">{new Date(subscription.expiresAt).toLocaleDateString(i18n.language === 'cs' ? 'cs-CZ' : 'en-US')}</div>
+                                    <div className="text-xs opacity-75">({t('company.subscription.days_left', { count: subscription.daysUntilRenewal || 0 })})</div>
                                 </div>
                             )}
                             <div className="mt-2">
@@ -378,32 +380,32 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                     onClick={() => setShowUpgradeModal({ open: true, feature: 'Změna plánu' })}
                                     className="text-sm px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors font-medium"
                                 >
-                                    Spravovat Předplatné
+                                    {t('company.subscription.manage')}
                                 </button>
                             </div>
                         </div>
                     </div>
-                    
+
                     {/* Credits and Usage */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-indigo-200 dark:border-indigo-800">
                         <div className="bg-white dark:bg-slate-900 rounded-lg p-3">
                             <div className="flex items-center gap-2 mb-1">
                                 <Zap className="w-4 h-4 text-indigo-600" />
-                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">AI Assessmenty</span>
+                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('company.subscription.ai_assessments')}</span>
                             </div>
                             <div className="text-lg font-bold text-slate-900 dark:text-white">
                                 {subscription?.assessmentsAvailable || 0}
                             </div>
                             <div className="text-xs text-slate-500">
-                                {subscription?.assessmentsUsed || 0} použito
+                                {subscription?.assessmentsUsed || 0} {t('company.subscription.used')}
                             </div>
                             {subscription?.tier === 'free' && (
                                 <div className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
-                                    <button 
+                                    <button
                                         onClick={() => setShowUpgradeModal({ open: true, feature: 'AI Assessmenty' })}
                                         className="underline hover:no-underline"
                                     >
-                                        Koupit kredity
+                                        {t('company.subscription.buy_credits')}
                                     </button>
                                 </div>
                             )}
@@ -411,21 +413,21 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         <div className="bg-white dark:bg-slate-900 rounded-lg p-3">
                             <div className="flex items-center gap-2 mb-1">
                                 <Briefcase className="w-4 h-4 text-indigo-600" />
-                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Pracovní Inzeráty</span>
+                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('company.subscription.job_ads')}</span>
                             </div>
                             <div className="text-lg font-bold text-slate-900 dark:text-white">
-                                {subscription?.tier === 'business' ? 'Neomezeně' : subscription?.tier === 'basic' || subscription?.tier === 'free' ? '3' : '0'}
+                                {subscription?.tier === 'business' ? t('company.subscription.unlimited') : subscription?.tier === 'basic' || subscription?.tier === 'free' ? '3' : '0'}
                             </div>
                             <div className="text-xs text-slate-500">
-                                {subscription?.tier === 'business' ? 'Bez limitu' : 'Tento měsíc'}
+                                {subscription?.tier === 'business' ? t('company.subscription.no_limit') : t('company.subscription.this_month')}
                             </div>
                             {subscription?.tier === 'free' && (
                                 <div className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
-                                    <button 
+                                    <button
                                         onClick={() => setShowUpgradeModal({ open: true, feature: 'Více inzerátů' })}
                                         className="underline hover:no-underline"
                                     >
-                                        Upgrade na Premium
+                                        {t('company.subscription.upgrade')}
                                     </button>
                                 </div>
                             )}
@@ -433,13 +435,13 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         <div className="bg-white dark:bg-slate-900 rounded-lg p-3">
                             <div className="flex items-center gap-2 mb-1">
                                 <Users className="w-4 h-4 text-indigo-600" />
-                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">Členové Týmu</span>
+                                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('company.subscription.team_members')}</span>
                             </div>
                             <div className="text-lg font-bold text-slate-900 dark:text-white">
                                 {companyProfile?.members?.length || 1}
                             </div>
                             <div className="text-xs text-slate-500">
-                                {subscription?.tier === 'business' ? 'Neomezeně' : 'Bez limitu'}
+                                {subscription?.tier === 'business' ? t('company.subscription.unlimited') : t('company.subscription.no_limit')}
                             </div>
                         </div>
                     </div>
@@ -448,8 +450,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 {/* Header & Actions */}
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
                     <div>
-                        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Přehled Náboru</h2>
-                        <p className="text-sm text-slate-500">Statistiky pro celou společnost a jednotlivé náboraře.</p>
+                        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{t('company.dashboard.title')}</h2>
+                        <p className="text-sm text-slate-500">{t('company.dashboard.subtitle')}</p>
                     </div>
                     <div className="flex items-center gap-3">
                         <button
@@ -457,7 +459,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow-sm hover:bg-indigo-500 transition-colors flex items-center gap-2"
                         >
                             <PenTool size={18} />
-                            Vytvořit Inzerát
+                            {t('company.dashboard.create_ad_btn')}
                         </button>
                         <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
                             <Users size={16} className="ml-2 text-slate-400" />
@@ -466,7 +468,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 onChange={(e) => setSelectedRecruiterId(e.target.value)}
                                 className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 dark:text-slate-300 pr-8 cursor-pointer"
                             >
-                                <option value="all">Všichni náboraři</option>
+                                <option value="all">{t('company.dashboard.all_recruiters')}</option>
                                 {recruiters.filter(r => r.id !== 'all').map(r => (
                                     <option key={r.id} value={r.id}>{r.name}</option>
                                 ))}
@@ -481,7 +483,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
                         <div className="flex justify-between items-start mb-4">
                             <div>
-                                <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">Pipeline</div>
+                                <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.pipeline')}</div>
                                 <div className="text-3xl font-bold text-slate-900 dark:text-white">1,240</div>
                             </div>
                             <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
@@ -508,7 +510,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
                         <div className="flex justify-between items-start mb-2">
                             <div>
-                                <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">Match Score</div>
+                                <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.match_score')}</div>
                                 <div className="text-3xl font-bold text-slate-900 dark:text-white">68<span className="text-lg text-slate-400 font-normal">/100</span></div>
                             </div>
                             <div className="p-2 bg-cyan-50 dark:bg-cyan-500/10 rounded-lg text-cyan-600 dark:text-cyan-400">
@@ -527,8 +529,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
                         <div className="flex justify-between items-start mb-2">
                             <div>
-                                <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">Time to Hire</div>
-                                <div className="text-3xl font-bold text-slate-900 dark:text-white">24 <span className="text-lg font-normal text-slate-500">dní</span></div>
+                                <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.time_to_hire')}</div>
+                                <div className="text-3xl font-bold text-slate-900 dark:text-white">24 <span className="text-lg font-normal text-slate-500">{t('company.dashboard.stats.days')}</span></div>
                             </div>
                             <div className="p-2 bg-amber-50 dark:bg-amber-500/10 rounded-lg text-amber-600 dark:text-amber-400">
                                 <Clock size={20} />
@@ -536,9 +538,9 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         </div>
                         <div className="flex items-center gap-2 mt-3 text-sm border-t border-slate-100 dark:border-slate-800 pt-2">
                             <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                <TrendingDown size={14} /> -8 dní
+                                <TrendingDown size={14} /> -8 {t('company.dashboard.stats.days')}
                             </span>
-                            <span className="text-slate-400">vs CZ Průměr (32)</span>
+                            <span className="text-slate-400">{t('company.dashboard.stats.vs_avg')}</span>
                         </div>
                         <div className="mt-2 text-xs text-slate-500 space-y-0.5">
                             <div className="flex justify-between">
@@ -556,7 +558,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
                         <div className="flex justify-between items-start mb-2">
                             <div>
-                                <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">Ušetřeno</div>
+                                <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.saved')}</div>
                                 <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
                                     {(agencySavings / 1000).toFixed(0)}k <span className="text-lg font-normal text-slate-500 dark:text-slate-400">CZK</span>
                                 </div>
@@ -572,8 +574,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             ></div>
                         </div>
                         <div className="flex justify-between text-xs text-slate-400 mb-2">
-                            <span>Vyčerpáno: {(percentSpent).toFixed(0)}%</span>
-                            <span>Proj: {(projectedSpend / 1000000).toFixed(1)}M</span>
+                            <span>{t('company.dashboard.stats.spent')}: {(percentSpent).toFixed(0)}%</span>
+                            <span>{t('company.dashboard.stats.projected')}: {(projectedSpend / 1000000).toFixed(1)}M</span>
                         </div>
                         <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
                             <div className="flex justify-between items-center text-xs">
@@ -596,15 +598,15 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         <Sparkles size={20} />
                     </div>
                     <div className="flex-1 z-10">
-                        <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-200 mb-1">AI Strategický Vhled</h3>
+                        <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-200 mb-1">{t('company.dashboard.ai_insights.title')}</h3>
                         <div className="flex flex-col md:flex-row gap-4 text-sm text-indigo-800 dark:text-indigo-300">
                             <div className="flex items-center gap-2">
                                 <CheckCircle size={14} className="text-emerald-500" />
-                                <span><strong>React Senior:</strong> Na základě historie budete mít hired do 21 dnů (45 kandidátů v pipeline). Jste v plánu.</span>
+                                <span>{t('company.dashboard.ai_insights.hired_prediction', { days: 21, count: 45 })}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <ArrowRight size={14} className="text-amber-500" />
-                                <span><strong>Store Assistant:</strong> Nízká AI shoda (22% avg). Doporučujeme upravit popis pracovní doby v inzerátu.</span>
+                                <span>{t('company.dashboard.ai_insights.low_match_warning', { avg: 22 })}</span>
                             </div>
                         </div>
                     </div>
@@ -615,7 +617,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     <div className="xl:col-span-2 space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <Briefcase size={20} className="text-cyan-600" /> Aktivní Inzerce
+                                <Briefcase size={20} className="text-cyan-600" /> {t('company.dashboard.active_postings')}
                             </h3>
                             <div className="flex gap-2">
                                 <button className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
@@ -632,11 +634,11 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 <table className="w-full text-left">
                                     <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 uppercase font-mono text-xs">
                                         <tr>
-                                            <th className="px-4 py-3">Pozice</th>
-                                            <th className="px-4 py-3">Pipeline Health</th>
-                                            <th className="px-4 py-3 text-center">AI Shoda</th>
-                                            <th className="px-4 py-3 text-center">Výkon</th>
-                                            <th className="px-4 py-3 text-right">Akce</th>
+                                            <th className="px-4 py-3">{t('company.dashboard.table.position')}</th>
+                                            <th className="px-4 py-3">{t('company.dashboard.table.pipeline')}</th>
+                                            <th className="px-4 py-3 text-center">{t('company.dashboard.table.ai_match')}</th>
+                                            <th className="px-4 py-3 text-center">{t('company.dashboard.table.performance')}</th>
+                                            <th className="px-4 py-3 text-right">{t('company.dashboard.table.actions')}</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
@@ -659,13 +661,13 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                                         <div className="font-bold text-slate-900 dark:text-white text-sm">{job.title}</div>
                                                         <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
                                                             {job.location} • {job.postedAt}
-                                                            {isLowPerf && <span className="text-rose-500 font-bold ml-1 flex items-center gap-0.5"><TrendingDown size={12} /> Slabý výkon</span>}
+                                                            {isLowPerf && <span className="text-rose-500 font-bold ml-1 flex items-center gap-0.5"><TrendingDown size={12} /> {t('company.dashboard.stats.low_perf')}</span>}
                                                         </div>
                                                     </td>
                                                     <td className="px-4 py-3">
                                                         <div className="flex items-center gap-2 mb-1">
                                                             <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{applied}</span>
-                                                            <span className="text-xs text-slate-400">uchazečů</span>
+                                                            <span className="text-xs text-slate-400">{t('company.dashboard.stats.candidates_count')}</span>
                                                         </div>
                                                         <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
                                                             <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(100, (applied / 50) * 100)}%` }}></div>
@@ -686,13 +688,13 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                                     </td>
                                                     <td className="px-4 py-3 text-right">
                                                         <div className="relative">
-                                                            <button 
+                                                            <button
                                                                 onClick={() => toggleDropdown(job.id)}
                                                                 className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-1"
                                                             >
                                                                 <MoreVertical size={16} />
                                                             </button>
-                                                            
+
                                                             {activeDropdownJobId === job.id && (
                                                                 <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-lg z-50">
                                                                     <button
@@ -700,14 +702,14 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                                                         className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
                                                                     >
                                                                         <Edit size={14} />
-                                                                        Upravit pozici
+                                                                        {t('company.dashboard.actions.edit')}
                                                                     </button>
                                                                     <button
                                                                         onClick={() => handleCloseJob(job.id)}
                                                                         className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
                                                                     >
                                                                         <X size={14} />
-                                                                        Označit jako uzavřenou
+                                                                        {t('company.dashboard.actions.close')}
                                                                     </button>
                                                                     <div className="border-t border-slate-200 dark:border-slate-700"></div>
                                                                     <button
@@ -715,7 +717,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                                                         className="w-full text-left px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors flex items-center gap-2"
                                                                     >
                                                                         <Trash2 size={14} />
-                                                                        Smazat pozici
+                                                                        {t('company.dashboard.actions.delete')}
                                                                     </button>
                                                                 </div>
                                                             )}
@@ -735,7 +737,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
                             <div className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-700 dark:text-slate-200">
                                 <Zap size={16} className="text-amber-500" />
-                                Aktivita Týmu
+                                {t('company.dashboard.team_activity')}
                             </div>
                             <div className="space-y-4">
                                 <div className="flex gap-3 relative pb-4 border-l-2 border-slate-100 dark:border-slate-800 pl-4 ml-2">
@@ -761,7 +763,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
                             <div className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-700 dark:text-slate-200">
                                 <Crown size={16} className="text-indigo-500" />
-                                Leaderboard
+                                {t('company.dashboard.leaderboard')}
                             </div>
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between">
@@ -790,13 +792,13 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             <div className="lg:col-span-8 flex flex-col h-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden order-2 lg:order-1">
                 <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50">
                     <h3 className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                        <PenTool size={16} /> Editor Inzerátu
+                        <PenTool size={16} /> {t('company.ad_editor.title')}
                     </h3>
-                    <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Aplikuji tón: <span className="font-semibold text-slate-700 dark:text-slate-300">{companyProfile.tone}</span></span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">{t('company.ad_editor.tone_prefix')} <span className="font-semibold text-slate-700 dark:text-slate-300">{companyProfile.tone}</span></span>
                 </div>
 
                 <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">Název Pozice</label>
+                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.position_name')}</label>
                     <input
                         type="text"
                         value={jobTitle}

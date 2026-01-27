@@ -17,11 +17,12 @@ export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetada
   switch (page) {
     case 'home':
       return {
-        title: baseTitle,
-        description: t('seo.home_description'),
-        keywords: ["nabídky práce", "jobs Česko", "AI analýza práce", "JHI skóre", "platy", "benefity", "práce Praha", "Brno", "Ostrava", "Plzeň"],
+        title: `${baseTitle} | ${t('welcome.title_accent')}`,
+        description: t('welcome.subtitle'),
+        keywords: ["nabídky práce", "jobs Česko", "AI analýza práce", "JHI skóre", "platy", "benefity", "práce Praha", "Brno", "Ostrava", "Plzeň", "transparentní mzda", "čistý příjem", "bullshit detektor", "gap analysis"],
         canonical: baseUrl,
-        ogImage: `${baseUrl}/og-image.jpg`
+        ogImage: `${baseUrl}/og-image.jpg`,
+        structuredData: generateFAQStructuredData(t)
       };
 
     case 'job-detail':
@@ -128,33 +129,49 @@ export const generateJobPostingStructuredData = (job: any) => {
 };
 
 // Generate FAQ structured data
-export const generateFAQStructuredData = () => {
+export const generateFAQStructuredData = (t: any) => {
   return {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     "mainEntity": [
       {
         "@type": "Question",
-        "name": "Jak funguje JHI skóre?",
+        "name": t('welcome.faq.q1'),
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "JHI (Job Happiness Index) je unikátní skóre 0-100, které hodnotí pracovní nabídky z pohledu finanční ziskovosti, časových nákladů, duševní zátěže, možností růstu a hodnotových hodnocení."
+          "text": t('welcome.faq.a1')
         }
       },
       {
         "@type": "Question",
-        "name": "Je JobShaman zdarma?",
+        "name": t('welcome.faq.q2'),
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Ano, JobShaman je zcela zdarma pro uchazeče. Firmy mohou využít placené služby pro publikování pracovních nabídek a analýzu."
+          "text": t('welcome.faq.a2')
         }
       },
       {
         "@type": "Question",
-        "name": "Jaké benefity analyzujete?",
+        "name": t('welcome.faq.q3'),
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "Analyzujeme přes 40 typů benefitů včetně zaměstnaneckých akcií, firemních aut, příspěvků na stravu, multisport karet, kurzů a dalšího. Vše převedeme na peněžní hodnotu."
+          "text": t('welcome.faq.a3')
+        }
+      },
+      {
+        "@type": "Question",
+        "name": t('welcome.faq.q4'),
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": t('welcome.faq.a4')
+        }
+      },
+      {
+        "@type": "Question",
+        "name": t('welcome.faq.q5'),
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": t('welcome.faq.a5')
         }
       }
     ]

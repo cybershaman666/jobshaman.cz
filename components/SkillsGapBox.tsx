@@ -13,6 +13,8 @@ interface SkillsGapBoxProps {
     hasCV: boolean;
     name?: string;
   };
+  onShowMarketplace?: () => void;
+  onShowProfile?: () => void;
 }
 
 interface MarketplaceCourse extends LearningResource {
@@ -33,7 +35,9 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
   isLoading = false,
   error = null,
   onResourceClick,
-  userProfile = { isLoggedIn: false, hasCV: false }
+  userProfile = { isLoggedIn: false, hasCV: false },
+  onShowMarketplace,
+  onShowProfile
 }) => {
   const [selectedTab, setSelectedTab] = useState<'courses' | 'marketplace'>('courses');
 
@@ -182,62 +186,62 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
             <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-slate-200 dark:border-slate-700">
               <Target className="w-6 h-6 text-slate-600 dark:text-slate-400 mb-2" />
-              <h4 className="font-semibold text-slate-900 dark:text-slate-600 dark:text-slate-400 mb-1">Cílený rozvoj</h4>
+              <h4 className="font-semibold text-slate-900 dark:text-slate-400 mb-1">Cílený rozvoj</h4>
               <p className="text-xs text-slate-600 dark:text-slate-300">Kurzy na míru podle vašeho CV a požadavků trhu</p>
             </div>
             <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-slate-200 dark:border-slate-700">
               <TrendingUp className="w-6 h-6 text-slate-600 dark:text-slate-400 mb-2" />
-              <h4 className="font-semibold text-slate-900 dark:text-slate-600 dark:text-slate-400 mb-1">Kariérní růst</h4>
+              <h4 className="font-semibold text-slate-900 dark:text-slate-400 mb-1">Kariérní růst</h4>
               <p className="text-xs text-slate-600 dark:text-slate-300">Zvyšte si mzdu až o 40% novými dovednostmi</p>
             </div>
             <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-slate-200 dark:border-slate-700">
               <Users className="w-6 h-6 text-slate-600 dark:text-slate-400 mb-2" />
-              <h4 className="font-semibold text-slate-900 dark:text-slate-600 dark:text-slate-400 mb-1">Ověřeno zaměstnavateli</h4>
+              <h4 className="font-semibold text-slate-900 dark:text-slate-400 mb-1">Ověřeno zaměstnavateli</h4>
               <p className="text-xs text-slate-600 dark:text-slate-300">Certifikace, které skutečně hledají</p>
             </div>
           </div>
 
-      {/* Government Funding Info */}
-      <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl p-6 text-slate-600 dark:text-slate-400">
-        <h4 className="text-lg font-bold mb-2 flex items-center gap-2">
-          <CheckCircle className="w-5 h-5" />
-          Rekvalifikační kurzy od Úřadu práce
-        </h4>
-        <p className="text-sm opacity-90 mb-4">
-          Jako nezaměstnaný můžete získat <span className="font-bold">až 50 000 Kč</span> na rekvalifikační kurz! 
-          Řidičské průkazy, svářečské certifikace, a další kurzy mohou být hrazeny státem.
-        </p>
-        <div className="bg-white/20 backdrop-blur rounded-lg p-4 space-y-2">
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-200" />
-            <span className="text-sm font-medium">Řidičské průkazy (B, C, C+E)</span>
+          {/* Government Funding Info */}
+          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl p-6 text-slate-600 dark:text-slate-400">
+            <h4 className="text-lg font-bold mb-2 flex items-center gap-2">
+              <CheckCircle className="w-5 h-5" />
+              Rekvalifikační kurzy od Úřadu práce
+            </h4>
+            <p className="text-sm opacity-90 mb-4">
+              Jako nezaměstnaný můžete získat <span className="font-bold">až 50 000 Kč</span> na rekvalifikační kurz!
+              Řidičské průkazy, svářečské certifikace, a další kurzy mohou být hrazeny státem.
+            </p>
+            <div className="bg-white/20 backdrop-blur rounded-lg p-4 space-y-2">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-200" />
+                <span className="text-sm font-medium">Řidičské průkazy (B, C, C+E)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-200" />
+                <span className="text-sm font-medium">Svářečské a průmyslové certifikace</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-200" />
+                <span className="text-sm font-medium">IT kurzy a jazykové vzdělání</span>
+              </div>
+            </div>
+            <div className="mt-4 text-center">
+              <span className="text-xs opacity-75">Pro výběr rekvalifikačního kurzu se přihlaste na Úřadu práce</span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-200" />
-            <span className="text-sm font-medium">Svářečské a průmyslové certifikace</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <CheckCircle className="w-4 h-4 text-emerald-200" />
-            <span className="text-sm font-medium">IT kurzy a jazykové vzdělání</span>
-          </div>
-        </div>
-        <div className="mt-4 text-center">
-          <span className="text-xs opacity-75">Pro výběr rekvalifikačního kurzu se přihlaste na Úřadu práce</span>
-        </div>
-      </div>
 
-      {/* CTA */}
-      <div className="bg-gradient-to-r slate-600 rounded-xl p-6 text-slate-600 dark:text-slate-400">
-        <h4 className="text-lg font-bold mb-2">Přihlaste se a vyplňte své CV</h4>
-        <p className="text-sm opacity-90 mb-4">
-          Získáte personalizovanou analýzu dovednostních mezer a doporučení na kurzy, 
-          které vám pomohou získat vysněnou práci.
-        </p>
-        <div className="flex items-center justify-center gap-2">
-          <Lock className="w-4 h-4" />
-          <span className="text-sm font-medium">Po přihlášení se odemkne pokročilá analýza</span>
-        </div>
-      </div>
+          {/* CTA */}
+          <div className="bg-gradient-to-r slate-600 rounded-xl p-6 text-slate-600 dark:text-slate-400">
+            <h4 className="text-lg font-bold mb-2">Přihlaste se a vyplňte své CV</h4>
+            <p className="text-sm opacity-90 mb-4">
+              Získáte personalizovanou analýzu dovednostních mezer a doporučení na kurzy,
+              které vám pomohou získat vysněnou práci.
+            </p>
+            <div className="flex items-center justify-center gap-2">
+              <Lock className="w-4 h-4" />
+              <span className="text-sm font-medium">Po přihlášení se odemkne pokročilá analýza</span>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -287,14 +291,14 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                 {!userProfile.hasCV ? "Doplňte své CV" : "Probíhá analýza"}
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-300">
-                {!userProfile.hasCV 
+                {!userProfile.hasCV
                   ? "Pro získání personalizovaných doporučení kurzy vyplňte své CV"
                   : "Analyzujeme vaše dovednosti a připravujeme doporučení"
                 }
               </p>
             </div>
           </div>
-          
+
           {/* Demo Warning */}
           <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-lg">
             <div className="flex items-center gap-2">
@@ -309,12 +313,15 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
               </div>
             </div>
           </div>
-          
+
           <div className="flex justify-center">
             <button
               onClick={() => {
-                // This would navigate to profile/CV editor
-                alert("Přesměrování na editor CV...");
+                if (!userProfile.hasCV) {
+                  onShowProfile?.();
+                } else {
+                  onShowMarketplace?.();
+                }
               }}
               className="px-6 py-3 bg-gradient-to-r slate-600 hover:slate-700 text-slate-600 dark:text-slate-400 font-medium rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2"
             >
@@ -330,8 +337,8 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
   const { recommended_resources = [], match_percentage = 0, missing_skills = [] } = skillsGapAnalysis || {};
 
   return (
-      <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-      
+    <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
+
       {/* Header with Tabs */}
       <div className="mb-6">
         <div className="flex items-center gap-3 mb-4">
@@ -367,22 +374,20 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
         <div className="flex gap-2 p-1 bg-white/60 dark:bg-slate-800/60 backdrop-blur rounded-lg border border-slate-200 dark:border-slate-700">
           <button
             onClick={() => setSelectedTab('courses')}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              selectedTab === 'courses'
-                ? 'bg-gradient-to-r slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 shadow-md'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/30'
-            }`}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${selectedTab === 'courses'
+              ? 'bg-gradient-to-r slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 shadow-md'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/30'
+              }`}
           >
             <BookOpen className="w-4 h-4" />
             Doporučené kurzy
           </button>
           <button
             onClick={() => setSelectedTab('marketplace')}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-              selectedTab === 'marketplace'
-                ? 'bg-gradient-to-r slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 shadow-md'
-                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/30'
-            }`}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${selectedTab === 'marketplace'
+              ? 'bg-gradient-to-r slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 shadow-md'
+              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/30'
+              }`}
           >
             <ShoppingBag className="w-4 h-4" />
             Marketplace
@@ -392,7 +397,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
 
       {/* Skills Gap Overview */}
       <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-slate-200 dark:border-slate-700 mb-6">
-        <h4 className="text-sm font-bold text-slate-900 dark:text-slate-600 dark:text-slate-400 mb-3 flex items-center gap-2">
+        <h4 className="text-sm font-bold text-slate-900 dark:text-slate-400 mb-3 flex items-center gap-2">
           <Target className="w-4 h-4 text-slate-600 dark:text-slate-400" />
           Chybějící dovednosti ({missing_skills.length})
         </h4>
@@ -412,11 +417,11 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
       <div className="space-y-4">
         {selectedTab === 'courses' && recommended_resources.length > 0 && (
           <>
-              <h4 className="text-sm font-bold text-slate-900 dark:text-slate-600 dark:text-slate-400 flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                Kurzy pro váš růst
-              </h4>
-            
+            <h4 className="text-sm font-bold text-slate-900 dark:text-slate-400 flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+              Kurzy pro váš růst
+            </h4>
+
             <div className="grid gap-4">
               {recommended_resources.map((resource: LearningResource) => (
                 <div
@@ -425,13 +430,13 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
-                      <h5 className="font-semibold text-slate-900 dark:text-slate-600 dark:text-slate-400 mb-1">
+                      <h5 className="font-semibold text-slate-900 dark:text-slate-400 mb-1">
                         {resource.title}
                       </h5>
                       <p className="text-sm text-slate-600 dark:text-slate-300 mb-2 line-clamp-2">
                         {resource.description}
                       </p>
-                      
+
                       <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
                         <span className="font-medium">{resource.provider}</span>
                         <span className="flex items-center gap-1">
@@ -444,7 +449,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="ml-4 text-right">
                       <div className="text-lg font-bold text-slate-600 dark:text-slate-400">
                         {formatPrice(resource.price, resource.currency)}
@@ -454,7 +459,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Skill Tags */}
                   <div className="flex flex-wrap gap-1 mt-3">
                     {resource.skill_tags.slice(0, 3).map((tag: string, index: number) => (
@@ -471,7 +476,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                       </span>
                     )}
                   </div>
-                  
+
                   {/* Action Button */}
                   <div className="mt-3 flex justify-end">
                     <button
@@ -490,11 +495,11 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
 
         {selectedTab === 'marketplace' && (
           <>
-              <h4 className="text-sm font-bold text-slate-900 dark:text-slate-600 dark:text-slate-400 flex items-center gap-2">
-                <ShoppingBag className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                Kurzy od prověřených poskytovatelů
-              </h4>
-            
+            <h4 className="text-sm font-bold text-slate-900 dark:text-slate-400 flex items-center gap-2">
+              <ShoppingBag className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+              Kurzy od prověřených poskytovatelů
+            </h4>
+
             <div className="grid gap-4">
               {marketplaceCourses.map((course) => (
                 <div
@@ -505,7 +510,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                     {/* Course Info */}
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2">
-                        <h5 className="font-semibold text-slate-900 dark:text-slate-600 dark:text-slate-400">
+                        <h5 className="font-semibold text-slate-900 dark:text-slate-400">
                           {course.title}
                         </h5>
                         {course.isPremium && (
@@ -514,42 +519,42 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                           </span>
                         )}
                       </div>
-                      
+
                       <p className="text-sm text-slate-600 dark:text-slate-300 mb-3 line-clamp-2">
                         {course.description}
                       </p>
-                      
+
                       {/* Course Features */}
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {course.is_government_funded && (
-                        <span className="px-2 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-600 dark:text-slate-400 text-xs font-bold rounded-full flex items-center gap-1 shadow-sm">
-                          <CheckCircle className="w-3 h-3" />
-                          Hrazeno Úřadem práce
-                          {course.funding_amount_czk && (
-                            <span className="bg-white/20 px-1 rounded text-xs">
-                              -{course.funding_amount_czk.toLocaleString('cs-CZ')} Kč
-                            </span>
-                          )}
-                        </span>
-                      )}
-                      {course.job_placement_assistance && (
-                        <span className="px-2 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded text-xs font-medium flex items-center gap-1">
-                          <Target className="w-3 h-3" />
-                          Záruka umístění
-                        </span>
-                      )}
-                      {course.flexible_payment && (
-                        <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded text-xs font-medium">
-                          Flexibilní platba
-                        </span>
-                      )}
-                      {course.company_sponsored && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {course.is_government_funded && (
+                          <span className="px-2 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-600 dark:text-slate-400 text-xs font-bold rounded-full flex items-center gap-1 shadow-sm">
+                            <CheckCircle className="w-3 h-3" />
+                            Hrazeno Úřadem práce
+                            {course.funding_amount_czk && (
+                              <span className="bg-white/20 px-1 rounded text-xs">
+                                -{course.funding_amount_czk.toLocaleString('cs-CZ')} Kč
+                              </span>
+                            )}
+                          </span>
+                        )}
+                        {course.job_placement_assistance && (
+                          <span className="px-2 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded text-xs font-medium flex items-center gap-1">
+                            <Target className="w-3 h-3" />
+                            Záruka umístění
+                          </span>
+                        )}
+                        {course.flexible_payment && (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded text-xs font-medium">
+                            Flexibilní platba
+                          </span>
+                        )}
+                        {course.company_sponsored && (
                           <span className="px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400 rounded text-xs font-medium">
                             Firemní sponsoring
                           </span>
-                      )}
-                    </div>
-                      
+                        )}
+                      </div>
+
                       <div className="flex items-center gap-4 text-xs text-slate-500 dark:text-slate-400">
                         <span className="font-medium">{course.provider}</span>
                         {course.instructor && <span>Lektor: {course.instructor}</span>}
@@ -574,7 +579,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                         )}
                       </div>
                     </div>
-                    
+
                     {/* Price Section */}
                     <div className="text-right">
                       <div className="flex flex-col items-end">
@@ -591,9 +596,9 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                             </div>
                           </>
                         ) : (
-                            <div className="text-2xl font-bold bg-gradient-to-r slate-600 bg-clip-text text-transparent">
-                              {formatPrice(course.price, course.currency)}
-                            </div>
+                          <div className="text-2xl font-bold bg-gradient-to-r slate-600 bg-clip-text text-transparent">
+                            {formatPrice(course.price, course.currency)}
+                          </div>
                         )}
                       </div>
                       <div className={`inline-block px-2 py-1 rounded text-xs font-medium mt-1 ${getDifficultyColor(course.difficulty)}`}>
@@ -601,7 +606,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Skill Tags */}
                   <div className="flex flex-wrap gap-1 mt-3">
                     {course.skill_tags.map((tag: string, index: number) => (
@@ -613,7 +618,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
                       </span>
                     ))}
                   </div>
-                  
+
                   {/* Action Button */}
                   <div className="mt-4 flex justify-between items-center">
                     <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">

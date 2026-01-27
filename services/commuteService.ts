@@ -1,4 +1,3 @@
-
 import { Job, UserProfile, CommuteAnalysis } from '../types';
 import {
     parseMonthlySalary,
@@ -8,67 +7,20 @@ import {
     estimateCzechNetSalary,
     detectCurrencyFromLocation
 } from './financialService';
-
-// --- GEOLOCATION DATA (Expanded for CZ + SK) ---
-
-const CITIES_DB: Record<string, { lat: number, lon: number }> = {
-    // --- Major Czech Cities ---
-    'praha': { lat: 50.0755, lon: 14.4378 },
-    'prague': { lat: 50.0755, lon: 14.4378 },
-    'brno': { lat: 49.1951, lon: 16.6068 },
-    'ostrava': { lat: 49.8209, lon: 18.2625 },
-    'plzen': { lat: 49.7384, lon: 13.3736 },
-    'plzeň': { lat: 49.7384, lon: 13.3736 },
-    'liberec': { lat: 50.7663, lon: 15.0543 },
-    'olomouc': { lat: 49.5938, lon: 17.2509 },
-    'ceske budejovice': { lat: 48.9745, lon: 14.4743 },
-    'české budějovice': { lat: 48.9745, lon: 14.4743 },
-    'hradec kralove': { lat: 50.2104, lon: 15.8252 },
-    'hradec králové': { lat: 50.2104, lon: 15.8252 },
-    'ustinad labem': { lat: 50.6611, lon: 14.0520 },
-    'ústí nad labem': { lat: 50.6611, lon: 14.0520 },
-    'pardubice': { lat: 50.0343, lon: 15.7812 },
-    'zlin': { lat: 49.2242, lon: 17.6627 },
-    'zlín': { lat: 49.2242, lon: 17.6627 },
-    'havirov': { lat: 49.7798, lon: 18.4369 },
-    'havířov': { lat: 49.7798, lon: 18.4369 },
-    'kladno': { lat: 50.1473, lon: 14.1029 },
-    'most': { lat: 50.5030, lon: 13.6362 },
-    'opava': { lat: 49.9387, lon: 17.9026 },
-    'frydek mistek': { lat: 49.6819, lon: 18.3673 },
-    'frýdek-místek': { lat: 49.6819, lon: 18.3673 },
-    'karvina': { lat: 49.8540, lon: 18.5417 },
-    'karviná': { lat: 49.8540, lon: 18.5417 },
-    'jihlava': { lat: 49.3961, lon: 15.5912 },
-    'teplice': { lat: 50.6611, lon: 13.8245 },
-    'decin': { lat: 50.7822, lon: 14.2148 },
-    'děčín': { lat: 50.7822, lon: 14.2148 },
-    'karlovy vary': { lat: 50.2319, lon: 12.8720 },
-    'chomutov': { lat: 50.4605, lon: 13.4178 },
-    'jablonec nad nisou': { lat: 50.7243, lon: 15.1710 },
-    'mlada boleslav': { lat: 50.4124, lon: 14.9056 },
-    'mladá boleslav': { lat: 50.4124, lon: 14.9056 },
-    'prostejov': { lat: 49.4719, lon: 17.1128 },
-    'prostějov': { lat: 49.4719, lon: 17.1128 },
-
-    // --- Specific Villages/Towns requested by users ---
-    'popice': { lat: 48.9284, lon: 16.6664 },
-    'hustopece': { lat: 48.9408, lon: 16.7378 },
-    'hustopeče': { lat: 48.9408, lon: 16.7378 },
-    'mikulov': { lat: 48.8056, lon: 16.6378 },
-    'breclav': { lat: 48.7590, lon: 16.8820 },
-    'břeclav': { lat: 48.7590, lon: 16.8820 },
-};
+import { geocodeWithCaching, getStaticCoordinates } from './geocodingService';
 
 // --- UTILITIES ---
 
+/**
+ * @deprecated Use normalizeAddress from geocodingService for consistent hashing.
+ */
 const removeAccents = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
 // Helper to check if location implies foreign country
 const isLocationAbroad = (location: string): boolean => {
     const loc = removeAccents(location);
     const foreignKeywords = [
-        'nemecko', 'nemecko', 'germany', 'deutschland',
+        'nemecko', 'germany', 'deutschland',
         'rakousko', 'austria', 'osterreich',
         'usa', 'spojene staty',
         'uk', 'britanie', 'london', 'londyn',
@@ -82,56 +34,14 @@ const isLocationAbroad = (location: string): boolean => {
 
 // EXPORTED FOR ASYNC USE IN PROFILE
 export const resolveAddressToCoordinates = async (address: string): Promise<{ lat: number, lon: number } | null> => {
-    if (!address) return null;
-
-    // 1. Try Local DB first (Instant)
-    const localResult = getCoordinates(address);
-    if (localResult) return localResult;
-
-    // 2. Try Nominatim (OpenStreetMap) - Rate Limited
-    try {
-        const query = encodeURIComponent(address);
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${query}&limit=1`, {
-            headers: {
-                'User-Agent': 'JobShaman-App/1.0' // Polite user agent
-            }
-        });
-
-        if (response.ok) {
-            const data = await response.json();
-            if (data && data.length > 0) {
-                return {
-                    lat: parseFloat(data[0].lat),
-                    lon: parseFloat(data[0].lon)
-                };
-            }
-        }
-    } catch (e) {
-        console.warn("Geocoding failed for", address, e);
-    }
-
-    return null;
+    return geocodeWithCaching(address);
 };
 
+// Kept for backward compatibility where sync lookup is expected (fallbacks to geocode cache if possible)
+// But ideally components should await resolveAddressToCoordinates
 export const getCoordinates = (address: string): { lat: number, lon: number } | null => {
-    if (!address) return null;
-    const normalized = removeAccents(address);
-
-    // Exact or contains match in DB
-    // 1. Exact match keys
-    if (CITIES_DB[normalized]) return CITIES_DB[normalized];
-
-    // 2. Check for city name inside the string (e.g., "Hlavní 99, Popice" -> contains "Popice")
-    // We sort keys by length descending to match "Mladá Boleslav" before "Boleslav"
-    const keys = Object.keys(CITIES_DB).sort((a, b) => b.length - a.length);
-    for (const key of keys) {
-        // We use word boundary check or simple includes
-        if (normalized.includes(key)) {
-            return CITIES_DB[key];
-        }
-    }
-
-    return null;
+    // Note: This sync lookup only works for static cities moved to geocodingService.
+    return getStaticCoordinates(address);
 };
 
 // Haversine formula for distance in km
