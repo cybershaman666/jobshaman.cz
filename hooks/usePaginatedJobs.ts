@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { Job } from '../types';
 import { fetchJobsPaginated, searchJobs } from '../services/jobService';
 import { UserProfile } from '../types';
-import { getCoordinates, calculateDistanceKm } from '../services/commuteService';
+import { calculateDistanceKm } from '../services/commuteService';
 import { BENEFIT_KEYWORDS } from '../utils/benefits';
 
 interface UsePaginatedJobsProps {
@@ -164,36 +164,40 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setIsSearching(false);
     };
 
-    // Apply proximity sorting if user has coordinates and jobs can be geocoded
+    // Apply proximity sorting if user has coordinates and jobs have pre-geocoded coordinates
     let finalJobs = filteredJobs;
     if (userProfile.coordinates && !searchTerm && !isSearching && filteredJobs.length > 0) {
         finalJobs = [...filteredJobs].sort((a, b) => {
-            const coordsA = getCoordinates(a.location);
-            const coordsB = getCoordinates(b.location);
+            // Use pre-geocoded lat/lng from database
+            const hasLngA = a.lng !== undefined && a.lat !== undefined;
+            const hasLngB = b.lng !== undefined && b.lat !== undefined;
 
-            // If no cached coordinates, leave as-is (keep all jobs in list)
-            if (!coordsA && !coordsB) return 0;
-            if (!coordsA) return 1; // Unknown locations go to end
-            if (!coordsB) return -1;
+            // If neither job has coordinates, keep original order
+            if (!hasLngA && !hasLngB) return 0;
+            
+            // Jobs with coordinates come first, sorted by distance
+            if (!hasLngA) return 1;
+            if (!hasLngB) return -1;
 
+            // Both have coordinates, calculate distance
             const distA = calculateDistanceKm(
                 userProfile.coordinates!.lat,
                 userProfile.coordinates!.lon,
-                coordsA.lat,
-                coordsA.lon
+                a.lat!,
+                a.lng!
             );
             const distB = calculateDistanceKm(
                 userProfile.coordinates!.lat,
                 userProfile.coordinates!.lon,
-                coordsB.lat,
-                coordsB.lon
+                b.lat!,
+                b.lng!
             );
 
             return distA - distB;
         });
     }
 
-    console.log('[usePaginatedJobs] Rendering - jobs:', jobs.length, 'filtered:', filteredJobs.length, 'final:', finalJobs.length);
+    console.log('[usePaginatedJobs] Rendering - jobs:', jobs.length, 'filtered:', filteredJobs.length, 'final:', finalJobs.length, 'with coords:', finalJobs.filter(j => j.lat && j.lng).length);
 
     return {
         // State

@@ -8,6 +8,11 @@ import os
 from urllib.parse import urljoin, urlparse
 import re
 from datetime import datetime
+import sys
+
+# Add parent directory to path to import geocoding module
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from geocoding import geocode_location
 
 # --- 1. Načtení přístupů a inicializace klienta ---
 load_dotenv()
@@ -63,6 +68,21 @@ def save_job_to_supabase(job_data):
     parsed_url = urlparse(job_data["url"])
     job_data["source"] = parsed_url.netloc.replace("www.", "")
     job_data.setdefault("scraped_at", now_iso())
+    
+    # GEOCODE LOCATION: Convert location string to lat/lon
+    if "location" in job_data and job_data["location"]:
+        location_str = job_data["location"]
+        print(f"    🌍 Geocodování lokality: {location_str}")
+        
+        geo_result = geocode_location(location_str)
+        if geo_result:
+            job_data["lat"] = geo_result["lat"]
+            job_data["lng"] = geo_result["lon"]
+            print(f"       ✅ Nalezeno: ({geo_result['lat']:.4f}, {geo_result['lon']:.4f}) [{geo_result['source']}]")
+        else:
+            print(f"       ⚠️ Geolokace selhala, ulož sem bez souřadnic")
+            job_data["lat"] = None
+            job_data["lng"] = None
 
     try:
         response = supabase.table("jobs").insert(job_data).execute()
