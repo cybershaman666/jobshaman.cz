@@ -8,8 +8,7 @@ import {
   compareAllTransportModes,
   getBestTransportMode,
   findCityPass,
-  getCitiesForCountry,
-  TransportMode
+  getCitiesForCountry
 } from '../services/transportService';
 
 describe('TransportService', () => {

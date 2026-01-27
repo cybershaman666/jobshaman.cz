@@ -323,7 +323,6 @@ export const calculateGrowthScore = (job: Job, salary: number): number => {
  */
 export const calculateTimeScore = (
     job: Job,
-    distanceKm: number,
     timeMinutesPerDay: number,
     isRemote: boolean
 ): number => {
@@ -621,7 +620,7 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     // Calculate individual JHI dimensions
     const mentalScore = calculateMentalHealthScore(job, distanceForJhi, timeMinutes);
     const growthScore = calculateGrowthScore(job, grossMonthlySalary);
-    const timeScore = calculateTimeScore(job, distanceForJhi, timeMinutes, isRemote);
+    const timeScore = calculateTimeScore(job, timeMinutes, isRemote);
     const valuesScore = calculateValuesScore(job, job.benefits);
     
     // Financial score (already calculated above as completeJhiScore)
