@@ -1986,7 +1986,7 @@ export default function App() {
     };
 
     return (
-        <div className={`min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-sans transition-colors duration-300 selection:bg-cyan-500/30 selection:text-cyan-900 dark:selection:text-cyan-100`}>
+        <div className={`flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-sans transition-colors duration-300 selection:bg-cyan-500/30 selection:text-cyan-900 dark:selection:text-cyan-100`}>
             <AppHeader
                 viewState={viewState}
                 setViewState={setViewState}
@@ -2000,7 +2000,7 @@ export default function App() {
                 theme={theme}
             />
 
-            <main className="max-w-[1920px] mx-auto px-4 sm:px-6 lg:px-8 py-6 h-[calc(100vh-64px)] overflow-hidden">
+            <main className="flex-1 max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 overflow-hidden">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
                     {renderContent()}
                 </div>

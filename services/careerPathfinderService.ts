@@ -151,7 +151,7 @@ export class CareerPathfinderService {
   }
 
   static hasTransparentSalary(job: Job): boolean {
-    return !!(job.salaryRange && job.salaryRange !== "Mzda neuvedena") || 
+    return !!(job.salaryRange && job.salaryRange !== "Mzda neuvedena" && job.salaryRange !== "Salary not specified") || 
               !!(job.salary_from && job.salary_to);
   }
 

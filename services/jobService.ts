@@ -211,6 +211,11 @@ const formatDescription = (desc: string | null | undefined): string => {
         clean = clean
             .replace(/<br\s*\/?>/gi, '\n')
             .replace(/<\/p>/gi, '\n\n')
+            // Handle lists with proper line breaks
+            .replace(/<ul>/gi, '\n')
+            .replace(/<\/ul>/gi, '\n')
+            .replace(/<ol>/gi, '\n')
+            .replace(/<\/ol>/gi, '\n')
             .replace(/<\/li>/gi, '\n')
             .replace(/<li>/gi, '- ')
             .replace(/&nbsp;/g, ' ');
@@ -218,8 +223,10 @@ const formatDescription = (desc: string | null | undefined): string => {
         clean = clean.replace(/<[^>]*>/g, '');
     }
 
-    // Normalize newlines
-    clean = clean.replace(/\n\s*\n\s*\n/g, '\n\n');
+    // Normalize whitespace and newlines - clean up excessive blank lines
+    clean = clean.replace(/\n\s*\n\s*\n/g, '\n\n')
+                 .replace(/^ *\n+/, '')  // Remove leading newlines
+                 .replace(/\n+ *$/, ''); // Remove trailing newlines
 
     return clean.trim();
 };
@@ -299,7 +306,7 @@ const transformJob = (scrapedJob: any): Job => {
     const salaryTo = safeParseInt(scrapedJob.salary_to);
     const salaryRange = salaryFrom && salaryTo ? `${salaryFrom.toLocaleString('cs-CZ')} - ${salaryTo.toLocaleString('cs-CZ')} Kč` :
                        salaryFrom ? `od ${salaryFrom.toLocaleString('cs-CZ')} Kč` : 
-                       salaryTo ? `až ${salaryTo.toLocaleString('cs-CZ')} Kč` : 'Neuvedeno';
+                       salaryTo ? `až ${salaryTo.toLocaleString('cs-CZ')} Kč` : 'Mzda neuvedena';
     
     // Extract contract type and work type from raw fields
     const jobType = scrapedJob.contract_type || scrapedJob.type || 'Neuvedeno';

@@ -173,13 +173,39 @@ def scrape_jobs_cz(soup):
 
         if detail_soup:
             try:
-                # Popis
+                # Popis - extract both paragraphs AND list items
                 desc_ps = detail_soup.find_all(
                     "p", class_="typography-body-large-text-regular"
                 )
-                parts = [norm_text(p.text) for p in desc_ps if norm_text(p.text)]
+                parts = [norm_text(p.get_text()) for p in desc_ps if norm_text(p.get_text())]
+                
+                # Collect list items separately to wrap in <ul>
+                list_items = []
+                
+                # Also look for list items in the description area
+                desc_lis = detail_soup.find_all(
+                    "li", class_="typography-body-large-text-regular"
+                )
+                for li in desc_lis:
+                    li_text = norm_text(li.get_text())
+                    if li_text:
+                        list_items.append(f"<li>{li_text}</li>")
+                
+                # Also check for ul/ol lists anywhere in the description
+                for ul in detail_soup.find_all(["ul", "ol"]):
+                    # Make sure it's not benefits or other metadata
+                    if "benefit" not in ul.get("class", []) if ul.get("class") else True:
+                        for li in ul.find_all("li", recursive=False):
+                            li_text = norm_text(li.get_text())
+                            if li_text and len(li_text) > 3:
+                                list_items.append(f"<li>{li_text}</li>")
+                
+                # Wrap list items in <ul> if any were found
+                if list_items:
+                    parts.append(f"<ul>{''.join(list_items)}</ul>")
+                
                 if parts:
-                    description = "\n\n".join(parts)
+                    description = "\n".join(parts)
 
                 # Benefity
                 btitle = detail_soup.find(
