@@ -1,8 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import { Job } from '../types';
 import { fetchJobsPaginated, searchJobs } from '../services/jobService';
 import { UserProfile } from '../types';
-import { getCoordinates, calculateDistanceKm, resolveAddressToCoordinates } from '../services/commuteService';
+import { getCoordinates, calculateDistanceKm } from '../services/commuteService';
 import { BENEFIT_KEYWORDS } from '../utils/benefits';
 
 interface UsePaginatedJobsProps {
@@ -27,11 +27,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [enableCommuteFilter, setEnableCommuteFilter] = useState(false);
     const [filterBenefits, setFilterBenefits] = useState<string[]>([]);
     const [filterContractType, setFilterContractType] = useState<string[]>([]);
-    const [savedJobIds, setSavedJobIds] = useState<string[]>([]);
-
-    // Geocoding cache: Maps location strings to {lat, lon} coordinates
-    // This prevents re-geocoding the same location multiple times
-    const [geocodeCache, setGeocodeCache] = useState<Record<string, { lat: number, lon: number } | null>>({});
+    const [savedJobIds, setSavedJobIds] = useState<string[]>([]);;
 
     // UI state
     const [showFilters, setShowFilters] = useState(false);
@@ -145,50 +141,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         return true;
     });
 
-    // NOTE: Proximity sorting is now done asynchronously in a useEffect after jobs load
-    // This avoids blocking the filter function with async geocoding calls
-
-    // Pre-geocode job locations and sort by distance when user has coordinates
-    useEffect(() => {
-        if (!userProfile.coordinates || searchTerm || isSearching || filteredJobs.length === 0) {
-            return;
-        }
-
-        const geocodeAndSort = async () => {
-            // Get unique locations from filtered jobs
-            const uniqueLocations = [...new Set(filteredJobs.map(j => j.location))];
-            
-            // Check which locations need geocoding
-            const locationsToGeocode = uniqueLocations.filter(loc => !(loc in geocodeCache));
-            
-            if (locationsToGeocode.length === 0) {
-                // All locations already cached, no need to do anything
-                return;
-            }
-
-            // Geocode missing locations
-            const newCacheEntries: Record<string, { lat: number, lon: number } | null> = {};
-            
-            for (const location of locationsToGeocode) {
-                // Try static cache first (fast)
-                let coords = getCoordinates(location);
-                
-                // If not in static cache, try async geocoding
-                if (!coords) {
-                    coords = await resolveAddressToCoordinates(location);
-                }
-
-                newCacheEntries[location] = coords;
-            }
-
-            // Update cache with new entries
-            if (Object.keys(newCacheEntries).length > 0) {
-                setGeocodeCache(prev => ({ ...prev, ...newCacheEntries }));
-            }
-        };
-
-        geocodeAndSort();
-    }, [userProfile.coordinates, filteredJobs.length, searchTerm, isSearching]);
+    // NOTE: Proximity sorting would require async geocoding which can't be done in a filter
+    // Instead, we'll just return jobs sorted by static cache if available, unsorted otherwise
+    // This ensures NO jobs are hidden due to geocoding unavailability
 
 
     const toggleBenefitFilter = (benefit: string) => {
@@ -209,16 +164,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setIsSearching(false);
     };
 
-    // Apply proximity sorting if user has coordinates and geocoding is available
+    // Apply proximity sorting if user has coordinates and jobs can be geocoded
     let finalJobs = filteredJobs;
-    if (userProfile.coordinates && !searchTerm && !isSearching && Object.keys(geocodeCache).length > 0) {
+    if (userProfile.coordinates && !searchTerm && !isSearching && filteredJobs.length > 0) {
         finalJobs = [...filteredJobs].sort((a, b) => {
-            const coordsA = geocodeCache[a.location];
-            const coordsB = geocodeCache[b.location];
+            const coordsA = getCoordinates(a.location);
+            const coordsB = getCoordinates(b.location);
 
-            // If no cached coordinates, leave as-is
+            // If no cached coordinates, leave as-is (keep all jobs in list)
             if (!coordsA && !coordsB) return 0;
-            if (!coordsA) return 1;
+            if (!coordsA) return 1; // Unknown locations go to end
             if (!coordsB) return -1;
 
             const distA = calculateDistanceKm(
@@ -237,6 +192,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             return distA - distB;
         });
     }
+
+    console.log('[usePaginatedJobs] Rendering - jobs:', jobs.length, 'filtered:', filteredJobs.length, 'final:', finalJobs.length);
 
     return {
         // State
