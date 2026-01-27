@@ -482,7 +482,7 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     let currency = '€';
 
     // Priority 1: Real Salary Range
-    if (job.salaryRange && job.salaryRange !== "Mzda neuvedena") {
+    if (job.salaryRange && job.salaryRange !== "Mzda neuvedena" && job.salaryRange !== "Salary not specified") {
         currency = detectCurrency(job.salaryRange);
         grossMonthlySalary = parseMonthlySalary(job.salaryRange);
     }

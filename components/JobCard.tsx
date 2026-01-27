@@ -37,7 +37,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
   };
 
   // Check if job has transparent salary information (salary range or both salary_from and salary_to)
-  const hasTransparentSalary = !!(job.salaryRange && job.salaryRange !== "Mzda neuvedena") ||
+  const hasTransparentSalary = !!(job.salaryRange && job.salaryRange !== "Mzda neuvedena" && job.salaryRange !== "Salary not specified") ||
     !!(job.salary_from && job.salary_to);
 
   // Calculate quick distance if user profile is available
@@ -122,7 +122,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
         </div>
 
         {/* Salary Display Logic */}
-        {job.salaryRange && job.salaryRange !== "Mzda neuvedena" ? (
+        {job.salaryRange && job.salaryRange !== "Mzda neuvedena" && job.salaryRange !== "Salary not specified" ? (
           <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
             <Banknote size={16} className="text-emerald-600 dark:text-emerald-500" />
             <span className="truncate">{job.salaryRange}</span>
