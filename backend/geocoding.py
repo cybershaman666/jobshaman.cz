@@ -14,50 +14,66 @@ load_dotenv()
 
 # Static cache for major EU cities - instant fallback (no API calls)
 MAJOR_CITIES_CACHE: Dict[str, Tuple[float, float]] = {
-    # Czech Republic - Major Cities
+    # Czech Republic - Major Cities and Prague districts
     'praha': (50.0755, 14.4378),
     'prague': (50.0755, 14.4378),
+    # Prague districts (approximate centroids)
+    'praha 1': (50.0875, 14.4208),
+    'praha 2': (50.0766, 14.4378),
+    'praha 3': (50.0833, 14.4514),
+    'praha 4': (50.0379, 14.4506),
+    'praha 5': (50.0535, 14.3977),
+    'praha 6': (50.0981, 14.3899),
+    'praha 7': (50.1046, 14.4502),
+    'praha 8': (50.1115, 14.4741),
+    'praha 9': (50.1097, 14.5022),
+    'praha 10': (50.0707, 14.4924),
+    # Prague neighborhoods
+    'vršovice': (50.0676, 14.4632),
+    'žižkov': (50.0870, 14.4500),
+    'nové město': (50.0789, 14.4265),
+    'karlín': (50.0922, 14.4487),
+    'holešovice': (50.1076, 14.4506),
+    'vysočany': (50.1092, 14.5017),
+    'letná': (50.0997, 14.4242),
+    'smíchov': (50.0652, 14.4087),
+    'dejvice': (50.1025, 14.3897),
+    'strašnice': (50.0722, 14.4972),
+    'vinohrady': (50.0772, 14.4412),
+    # Brno districts
     'brno': (49.1951, 16.6068),
+    'brno střed': (49.1951, 16.6068),
+    'brno bystrc': (49.2231, 16.5081),
+    'brno královo pole': (49.2236, 16.5947),
+    'brno židenice': (49.2022, 16.6406),
+    'brno líšeň': (49.2106, 16.6842),
+    'brno sever': (49.2267, 16.6247),
+    # Ostrava districts
     'ostrava': (49.8209, 18.2625),
+    'ostrava poruba': (49.8300, 18.1800),
+    'ostrava jih': (49.7872, 18.2511),
+    'ostrava mariánské hory': (49.8200, 18.2550),
+    # Plzeň districts
     'plzen': (49.7384, 13.3736),
     'plzeň': (49.7384, 13.3736),
-    'liberec': (50.7663, 15.0543),
-    'olomouc': (49.5938, 17.2509),
-    'ceske budejovice': (48.9745, 14.4743),
-    'ceské budějovice': (48.9745, 14.4743),
-    'hradec kralove': (50.2104, 15.8252),
-    'hradec králové': (50.2104, 15.8252),
-    'ustinad labem': (50.6611, 14.0520),
-    'ústí nad labem': (50.6611, 14.0520),
-    'pardubice': (50.0343, 15.7812),
-    'zlin': (49.2242, 17.6627),
-    'zlín': (49.2242, 17.6627),
-    'havirov': (49.7798, 18.4369),
-    'kladno': (50.1473, 14.1029),
-    'most': (50.5030, 13.6362),
-    'opava': (49.9387, 17.9026),
-    'frydek mistek': (49.6819, 18.3673),
-    'frýdek místek': (49.6819, 18.3673),
-    'karvina': (49.8540, 18.5417),
-    'karviná': (49.8540, 18.5417),
-    'jihlava': (49.3961, 15.5912),
-    'teplice': (50.6611, 13.8245),
-    'decin': (50.7822, 14.2148),
-    'děčín': (50.7822, 14.2148),
-    'karlovy vary': (50.2319, 12.8720),
-    'chomutov': (50.4605, 13.4178),
-    'jablonec nad nisou': (50.7243, 15.1710),
-    'mlada boleslav': (50.4124, 14.9056),
-    'mladá boleslav': (50.4124, 14.9056),
-    'prostejov': (49.4719, 17.1128),
-    'prostějov': (49.4719, 17.1128),
-    'popice': (48.9284, 16.6664),
-    'hustopece': (48.9408, 16.7378),
-    'hustopeče': (48.9408, 16.7378),
-    'mikulov': (48.8056, 16.6378),
-    'breclav': (48.7590, 16.8820),
-    'břeclav': (48.7590, 16.8820),
-    'south moravia': (49.3, 16.8),
+    'plzeň severní předměstí': (49.7570, 13.3770),
+    'plzeň doubravka': (49.7575, 13.4175),
+    # Bratislava districts
+    'bratislava': (48.1486, 17.1077),
+    'bratislava staré mesto': (48.1446, 17.1097),
+    'bratislava petržalka': (48.1197, 17.1067),
+    'bratislava ružinov': (48.1631, 17.1606),
+    # Vienna districts
+    'vienna': (48.2082, 16.3738),
+    'wien': (48.2082, 16.3738),
+    'wien leopoldstadt': (48.2167, 16.4000),
+    'wien favoriten': (48.1722, 16.3725),
+    # Berlin districts
+    'berlin': (52.5200, 13.4050),
+    'berlin mitte': (52.5200, 13.3889),
+    'berlin kreuzberg': (52.4986, 13.4033),
+    'berlin charlottenburg': (52.5167, 13.3044),
+    # ...existing code...
     'mora': (49.3, 16.8),
     'moravskoslezsko': (49.8, 18.0),
     'moravský-slezský': (49.8, 18.0),
@@ -157,7 +173,7 @@ def geocode_location(location: str) -> Optional[Dict]:
     
     normalized = normalize_address(location)
     
-    # 1. Check static cache first (instant, no API call)
+    # 1. Check static cache for exact match (districts/neighborhoods first)
     if normalized in MAJOR_CITIES_CACHE:
         lat, lon = MAJOR_CITIES_CACHE[normalized]
         return {
@@ -166,9 +182,8 @@ def geocode_location(location: str) -> Optional[Dict]:
             'country': 'CZ' if lat > 47 and lat < 51.5 and lon > 12 and lon < 19 else 'EU',
             'source': 'static_cache'
         }
-    
-    # 2. Check for partial matches in static cache
-    # e.g., "Brno, South Moravia" -> "Brno"
+
+    # 2. Try to match any district/neighborhood in the normalized string (longest keys first)
     cache_keys = sorted(MAJOR_CITIES_CACHE.keys(), key=len, reverse=True)
     for key in cache_keys:
         if key in normalized:

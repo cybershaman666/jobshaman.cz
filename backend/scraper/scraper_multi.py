@@ -15,20 +15,38 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from geocoding import geocode_location
 
 # --- 1. Načtení přístupů a inicializace klienta ---
-load_dotenv()
+
+# Explicitly load .env from backend directory (fix for local development)
+backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+env_path = os.path.join(backend_dir, '.env')
+print(f"🔍 Hledám .env soubor v: {env_path}")
+if os.path.exists(env_path):
+    print(f"✅ .env soubor nalezen, načítám...")
+    load_dotenv(dotenv_path=env_path)
+else:
+    print(f"⚠️ .env soubor nenalezen v {env_path}, zkouším výchozí umístění...")
+    load_dotenv()
+
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+# Use SERVICE_KEY instead of ANON_KEY to bypass RLS policies
+# The service role key has full access to all tables and ignores row-level security
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+
+# Debug output
+print(f"   SUPABASE_URL: {'✅ NAČTENO' if SUPABASE_URL else '❌ CHYBÍ'}")
+print(f"   SUPABASE_SERVICE_KEY: {'✅ NAČTENO' if SUPABASE_SERVICE_KEY else '❌ CHYBÍ'}")
 
 
 def get_supabase_client():
-    if not SUPABASE_URL or not SUPABASE_KEY:
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
         print(
-            "⚠️ VAROVÁNÍ: SUPABASE_URL nebo SUPABASE_KEY chybí. Scrapování bude fungovat, ale data se neuloží."
+            "⚠️ VAROVÁNÍ: SUPABASE_URL nebo SUPABASE_SERVICE_KEY chybí. Scrapování bude fungovat, ale data se neuloží."
         )
         return None
     try:
-        client = create_client(SUPABASE_URL, SUPABASE_KEY)
-        print("✅ Úspěšně vytvořen klient Supabase.")
+        # Create client with service role key (bypasses RLS policies)
+        client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+        print("✅ Úspěšně vytvořen klient Supabase (s právy service role).")
         return client
     except Exception as e:
         print(f"❌ Chyba při inicializaci Supabase klienta: {e}")
@@ -36,7 +54,6 @@ def get_supabase_client():
 
 
 supabase: Client = get_supabase_client()
-
 
 # --- Pomocné funkce ---
 def now_iso():
