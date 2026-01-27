@@ -1,5 +1,7 @@
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import i18n from '../src/i18n';
 import { CompanyProfile, RecruiterMember } from '../types';
 import { inviteRecruiter } from '../services/supabaseService';
 import { Save, Sparkles, MessageSquare, Heart, Target, Users, Mail, UserPlus, Shield, X } from 'lucide-react';
@@ -10,6 +12,7 @@ interface CompanySettingsProps {
 }
 
 const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) => {
+    const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<'dna' | 'team'>('dna');
     const [localProfile, setLocalProfile] = useState(profile);
     const [newValue, setNewValue] = useState('');
@@ -51,7 +54,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
             const result = await inviteRecruiter(profile.id, inviteEmail, (profile as any).created_by || 'system');
 
             if (result) {
-                alert(`Pozvánka pro ${inviteEmail} byla odeslána!`);
+                alert(t('company.settings.invite_success', { email: inviteEmail }));
                 // For immediate feedback in demo, we'll manually add to local list if successful
                 const newMember: RecruiterMember = {
                     id: Math.random().toString(36).substr(2, 9),
@@ -62,7 +65,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                 };
                 setMembers(prev => [...prev, newMember]);
             } else {
-                alert('Nepodařilo se odeslat pozvánku.');
+                alert(t('company.settings.invite_failed'));
             }
             setInviteEmail('');
         } catch (e) {
@@ -85,14 +88,14 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'dna' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                 >
                     <Sparkles size={18} />
-                    Firemní DNA
+                    {t('company.settings.dna')}
                 </button>
                 <button
                     onClick={() => setActiveTab('team')}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'team' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                 >
                     <Users size={18} />
-                    Tým & Přístupy
+                    {t('company.settings.team')}
                 </button>
             </div>
 
@@ -105,8 +108,8 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                                 <Target size={24} />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">Firemní Kultura & Hodnoty</h3>
-                                <p className="text-sm text-slate-500">Definujte, kdo jste, aby AI našla lidi, kteří k vám zapadnou.</p>
+                                <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('company.settings.culture_title')}</h3>
+                                <p className="text-sm text-slate-500">{t('company.settings.culture_desc')}</p>
                             </div>
                         </div>
 
@@ -114,13 +117,13 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                             {/* Mission / Philosophy */}
                             <div>
                                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
-                                    <MessageSquare size={16} /> Mise & Filozofie
+                                    <MessageSquare size={16} /> {t('company.settings.mission')}
                                 </label>
                                 <textarea
                                     className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 dark:text-slate-300 min-h-[100px]"
                                     value={localProfile.philosophy}
                                     onChange={(e) => setLocalProfile({ ...localProfile, philosophy: e.target.value })}
-                                    placeholder="Proč vaše firma existuje? Jaký máte dopad na svět?"
+                                    placeholder={t('company.settings.mission_placeholder')}
                                 />
                             </div>
 
@@ -128,24 +131,24 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
                                     <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
-                                        <Heart size={16} /> Tón Komunikace
+                                        <Heart size={16} /> {t('company.settings.tone')}
                                     </label>
                                     <select
                                         className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 dark:text-slate-300"
                                         value={localProfile.tone}
                                         onChange={(e) => setLocalProfile({ ...localProfile, tone: e.target.value })}
                                     >
-                                        <option value="Professional but friendly">Profesionální, ale přátelský</option>
-                                        <option value="Technical and geeky">Technický a "geeky"</option>
-                                        <option value="Corporate and formal">Korporátní a formální</option>
-                                        <option value="Startup hustle">Startup drive & energie</option>
+                                        <option value="Professional but friendly">{t('company.settings.tones.friendly')}</option>
+                                        <option value="Technical and geeky">{t('company.settings.tones.geeky')}</option>
+                                        <option value="Corporate and formal">{t('company.settings.tones.formal')}</option>
+                                        <option value="Startup hustle">{t('company.settings.tones.startup')}</option>
                                     </select>
                                 </div>
                             </div>
 
                             {/* Values Tags */}
                             <div>
-                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Hodnoty (max 5)</label>
+                                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('company.settings.values')}</label>
                                 <div className="flex flex-wrap gap-2 mb-3">
                                     {localProfile.values.map((val, idx) => (
                                         <span key={idx} className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2">
@@ -158,13 +161,13 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                                     <input
                                         type="text"
                                         className="flex-1 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none"
-                                        placeholder="Přidat hodnotu (např. 'Transparence')"
+                                        placeholder={t('company.settings.add_value_placeholder')}
                                         value={newValue}
                                         onChange={(e) => setNewValue(e.target.value)}
                                         onKeyDown={(e) => e.key === 'Enter' && addValue()}
                                     />
                                     <button onClick={addValue} className="px-4 py-2 bg-slate-200 dark:bg-slate-800 rounded-xl font-medium hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">
-                                        Přidat
+                                        {t('company.settings.add_btn')}
                                     </button>
                                 </div>
                             </div>
@@ -180,22 +183,22 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                                     <Users size={24} />
                                 </div>
                                 <div>
-                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Správa Týmu</h3>
-                                    <p className="text-sm text-slate-500">Kdo má přístup k náboru?</p>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('company.settings.team_mgmt')}</h3>
+                                    <p className="text-sm text-slate-500">{t('company.settings.team_mgmt_desc')}</p>
                                 </div>
                             </div>
                             <div className="text-right">
                                 <span className="text-sm font-medium text-slate-500">
-                                    Plán: {profile.subscription?.tier === 'business' ? 'Business' : profile.subscription?.tier === 'basic' ? 'Základní' : 'Zdarma'}
+                                    {t('company.settings.plan_label')} {profile.subscription?.tier === 'business' ? t('company.subscription.tiers.business') : profile.subscription?.tier === 'basic' ? t('company.subscription.tiers.basic') : t('company.subscription.tiers.free')}
                                 </span>
                                 {profile.subscription?.expiresAt && (
                                     <div className="text-xs text-emerald-600 dark:text-emerald-400">
-                                        Aktivní do {new Date(profile.subscription.expiresAt).toLocaleDateString('cs-CZ')}
+                                        {t('company.settings.active_until')} {new Date(profile.subscription.expiresAt).toLocaleDateString(i18n.language === 'cs' ? 'cs-CZ' : 'en-US')}
                                     </div>
                                 )}
                                 {profile.subscription?.usage && (
                                     <div className="text-xs text-slate-500">
-                                        {profile.subscription.usage.aiAssessmentsUsed} AI hodnocení použito
+                                        {profile.subscription.usage.aiAssessmentsUsed} {t('company.settings.ai_usage')}
                                     </div>
                                 )}
                             </div>
@@ -203,13 +206,13 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
 
                         {/* Invite Form */}
                         <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 mb-6">
-                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Pozvat kolegu</label>
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">{t('company.settings.invite_colleague')}</label>
                             <div className="flex gap-2">
                                 <div className="relative flex-1">
                                     <Mail size={16} className="absolute left-3 top-3.5 text-slate-400" />
                                     <input
                                         type="email"
-                                        placeholder="email@firma.cz"
+                                        placeholder={t('company.settings.invite_placeholder')}
                                         className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
                                         value={inviteEmail}
                                         onChange={(e) => setInviteEmail(e.target.value)}
@@ -221,7 +224,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                                     className="px-6 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                 >
                                     {isInviting ? <Sparkles className="animate-spin" size={18} /> : <UserPlus size={18} />}
-                                    Pozvat
+                                    {t('company.settings.invite_btn')}
                                 </button>
                             </div>
                         </div>
@@ -237,7 +240,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                                         <div>
                                             <div className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                                 {member.name}
-                                                {member.role === 'admin' && <span className="text-[10px] bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 font-medium flex items-center gap-1"><Shield size={10} /> Admin</span>}
+                                                {member.role === 'admin' && <span className="text-[10px] bg-slate-200 dark:bg-slate-700 px-1.5 py-0.5 rounded text-slate-600 dark:text-slate-300 font-medium flex items-center gap-1"><Shield size={10} /> {t('company.settings.admin_label')}</span>}
                                             </div>
                                             <div className="text-xs text-slate-500">{member.email}</div>
                                         </div>
@@ -263,7 +266,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                         className="px-8 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-900/20 flex items-center gap-2"
                     >
                         <Save size={18} />
-                        Uložit Změny
+                        {t('company.settings.save_changes')}
                     </button>
                 </div>
             </div>

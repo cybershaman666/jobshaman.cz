@@ -206,16 +206,118 @@ const estimateNoise = (text: string): NoiseMetrics => {
 
 // --- API ---
 
-export const fetchRealJobs = async (): Promise<Job[]> => {
+export const getJobCount = async (): Promise<number> => {
+    if (!isSupabaseConfigured() || !supabase) {
+        console.warn("Supabase not configured.");
+        return 0;
+    }
+
+    try {
+        const { count, error } = await supabase
+            .from('jobs')
+            .select('*', { count: 'exact', head: true });
+
+        if (error) {
+            console.error("Error fetching job count:", error);
+            return 0;
+        }
+
+        return count || 0;
+    } catch (e) {
+        console.error("Error in getJobCount:", e);
+        return 0;
+    }
+};
+
+export const fetchJobsPaginated = async (
+    page: number = 0,
+    pageSize: number = 50
+): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
+    if (!isSupabaseConfigured() || !supabase) {
+        console.warn("Supabase not configured.");
+        return { jobs: [], hasMore: false, totalCount: 0 };
+    }
+
+    try {
+        // Get total count first
+        const totalCount = await getJobCount();
+        
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+
+        const { data, error } = await supabase
+            .from('jobs')
+            .select('*')
+            .range(from, to)
+            .order('scraped_at', { ascending: false });
+
+        if (error) {
+            console.error(`Error fetching page ${page}:`, error);
+            return { jobs: [], hasMore: false, totalCount };
+        }
+
+        if (!data || data.length === 0) {
+            return { jobs: [], hasMore: false, totalCount };
+        }
+
+        const jobs = mapJobs(data);
+        const hasMore = (from + pageSize) < totalCount;
+
+        return { jobs, hasMore, totalCount };
+
+    } catch (e) {
+        console.error("Error in fetchJobsPaginated:", e);
+        return { jobs: [], hasMore: false, totalCount: 0 };
+    }
+};
+
+export const searchJobs = async (
+    searchTerm: string,
+    limit: number = 100
+): Promise<Job[]> => {
+    if (!isSupabaseConfigured() || !supabase || !searchTerm.trim()) {
+        return [];
+    }
+
+    try {
+        // Use text search for better performance
+        const { data, error } = await supabase
+            .from('jobs')
+            .select('*')
+            .or(`title.ilike.%${searchTerm}%,company.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%`)
+            .order('scraped_at', { ascending: false })
+            .limit(limit);
+
+        if (error) {
+            console.error("Error searching jobs:", error);
+            return [];
+        }
+
+        if (!data || data.length === 0) {
+            return [];
+        }
+
+        return mapJobs(data);
+
+    } catch (e) {
+        console.error("Error in searchJobs:", e);
+        return [];
+    }
+};
+
+// Legacy function - kept for compatibility
+export const fetchRealJobs = async (
+    onProgress?: (jobs: Job[]) => void
+): Promise<Job[]> => {
     if (!isSupabaseConfigured() || !supabase) {
         console.warn("Supabase not configured.");
         return [];
     }
 
     try {
-        console.log("Fetching jobs from Supabase with parallel pagination...");
+        console.log("Fetching jobs from Supabase...");
 
-        // 1. Get total count of jobs (including those with missing descriptions for completeness)
+        // 1. Get total count
         const { count, error: countError } = await supabase
             .from('jobs')
             .select('*', { count: 'exact', head: true });
@@ -230,67 +332,56 @@ export const fetchRealJobs = async (): Promise<Job[]> => {
 
         if (totalJobs === 0) return [];
 
-        // 2. Fetch in chunks (Parallel) - limit to reasonable number for performance
-        const MAX_JOBS = 25000; // Increased limit to support database growth to 20,000+ jobs
-        const PAGE_SIZE = 1000;
-        const totalPages = Math.min(Math.ceil(totalJobs / PAGE_SIZE), Math.ceil(MAX_JOBS / PAGE_SIZE));
-        const promises = [];
+        const MAX_JOBS = 25000;
+        const PAGE_SIZE = 500; // Smaller chunks for smoother UI
+        const totalToFetch = Math.min(totalJobs, MAX_JOBS);
+        let allJobs: Job[] = [];
 
-        console.log(`Starting fetch for ${totalPages} pages (max ${MAX_JOBS} jobs)...`);
+        // 2. Linear Fetch with Callbacks (to enable "silent" loading)
+        for (let i = 0; i < totalToFetch; i += PAGE_SIZE) {
+            const from = i;
+            const to = Math.min(i + PAGE_SIZE - 1, totalToFetch - 1);
 
-        for (let i = 0; i < totalPages; i++) {
-            const from = i * PAGE_SIZE;
-            const to = Math.min(from + PAGE_SIZE - 1, MAX_JOBS - 1);
+            const { data, error } = await supabase
+                .from('jobs')
+                .select('*')
+                .range(from, to)
+                .order('scraped_at', { ascending: false });
 
-            promises.push(
-                supabase
-                    .from('jobs')
-                    .select('*')
-                    .range(from, to)
-                    .order('scraped_at', { ascending: false })
-            );
+            if (error) {
+                console.error(`Error fetching sequence ${i}:`, error);
+                continue;
+            }
+
+            if (data && data.length > 0) {
+                // Process mapping in "idle" time to prevent thread lock
+                const chunk = mapJobs(data);
+
+                // Sort chunk newest first
+                chunk.sort((a, b) => {
+                    const getTime = (dateStr?: string) => {
+                        if (!dateStr) return 0;
+                        const cleanStr = dateStr.replace(' ', 'T');
+                        const d = new Date(cleanStr);
+                        return isNaN(d.getTime()) ? 0 : d.getTime();
+                    };
+                    return getTime(b.scrapedAt) - getTime(a.scrapedAt);
+                });
+
+                allJobs = [...allJobs, ...chunk];
+
+                if (onProgress) {
+                    // Send update to UI
+                    onProgress([...allJobs]);
+                }
+
+                // Yield to main thread
+                await new Promise(resolve => setTimeout(resolve, 0));
+            }
         }
 
-        const results = await Promise.all(promises);
-
-        // 3. Aggregate Results
-        let allRows: any[] = [];
-        results.forEach((result, index) => {
-            if (result.error) {
-                console.error(`Error fetching page ${index}:`, result.error);
-            } else if (result.data) {
-                allRows.push(...result.data);
-            }
-        });
-
-        // 4. Deduplicate (though ranges should be unique, safety first)
-        const seenIds = new Set();
-        const uniqueRows = [];
-        for (const row of allRows) {
-            if (!seenIds.has(row.id)) {
-                seenIds.add(row.id);
-                uniqueRows.push(row);
-            }
-        }
-
-        console.log(`Fetched ${allRows.length} total rows, ${uniqueRows.length} unique after deduplication.`);
-
-        // 5. Map to Domain Objects
-        const mapped = mapJobs(uniqueRows);
-
-        // 6. Final Sort (Newest first)
-        mapped.sort((a, b) => {
-            const getTime = (dateStr?: string) => {
-                if (!dateStr) return 0;
-                const cleanStr = dateStr.replace(' ', 'T');
-                const d = new Date(cleanStr);
-                return isNaN(d.getTime()) ? 0 : d.getTime();
-            };
-            return getTime(b.scrapedAt) - getTime(a.scrapedAt);
-        });
-
-        console.log(`Valid jobs after processing: ${mapped.length}`);
-        return mapped;
+        console.log(`Finished loading ${allJobs.length} jobs.`);
+        return allJobs;
 
     } catch (e) {
         console.error("Critical error in fetchRealJobs:", e);

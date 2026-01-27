@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import './src/i18n'; // Initialize i18n
 import { useTranslation } from 'react-i18next';
 import Markdown from 'markdown-to-jsx';
@@ -30,16 +30,15 @@ import OchranaSoukromi from './pages/OchranaSoukromi';
 import InvitationLanding from './pages/InvitationLanding';
 import PremiumUpgradeModal from './components/PremiumUpgradeModal';
 import AppFooter from './components/AppFooter';
-import { analyzeJobDescription, estimateSalary } from './services/geminiService';
+import { analyzeJobDescription } from './services/geminiService';
 import { calculateCommuteReality } from './services/commuteService';
-import { fetchRealJobs } from './services/jobService';
 import { supabase, getUserProfile, updateUserProfile } from './services/supabaseService';
 import { canCandidateUseFeature } from './services/billingService';
 import { analyzeJobForPathfinder } from './services/careerPathfinderService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
 import { checkPaymentStatus } from './services/stripeService';
 import { useUserProfile } from './hooks/useUserProfile';
-import { useJobFilters } from './hooks/useJobFilters';
+import { usePaginatedJobs } from './hooks/usePaginatedJobs';
 import {
     Search,
     Filter,
@@ -59,18 +58,29 @@ import {
     Activity,
     ChevronDown,
     ChevronUp,
-    ThumbsUp,
     CheckCircle,
     Gift,
     Globe,
     Map,
-    ShieldCheck,
-    Info,
     RefreshCw,
     Lock,
     Navigation,
     Dog,
-    AlertTriangle
+    AlertTriangle,
+    XCircle,
+    Compass,
+    BarChart3,
+    BookOpen,
+    FileText,
+    Mail,
+    GraduationCap,
+    Briefcase,
+    Quote,
+    HelpCircle,
+    Check,
+    Trophy,
+    Target,
+    Users
 } from 'lucide-react';
 
 // Default user profile
@@ -176,14 +186,11 @@ const calculateOverallScore = (jhi: {
 
 export default function App() {
     const { t, i18n } = useTranslation();
-    // --- STATE ---
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
-    const [jobs, setJobs] = useState<Job[]>([]);
     const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
     const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
     const [analyzing, setAnalyzing] = useState(false);
     const [isLoadingJobs, setIsLoadingJobs] = useState(true);
-    const [isEstimatingSalary, setIsEstimatingSalary] = useState(false);
 
     // Career Pathfinder State
     const [pathfinderAnalysis, setPathfinderAnalysis] = useState<CareerPathfinderResult | null>(null);
@@ -212,8 +219,17 @@ export default function App() {
     } = useUserProfile();
 
     const {
-        filteredJobs,
+        jobs: filteredJobs,
+        loadingMore,
+        hasMore,
+        totalCount,
         searchTerm,
+        isSearching,
+        searchResults,
+        setSearchResults,
+        loadInitialJobs,
+        loadMoreJobs,
+        performSearch,
         filterCity,
         filterMaxDistance,
         enableCommuteFilter,
@@ -231,8 +247,9 @@ export default function App() {
         setExpandedSections,
         toggleBenefitFilter,
         toggleContractTypeFilter
-    } = useJobFilters(jobs, userProfile);
+    } = usePaginatedJobs({ userProfile });
 
+    const totalJobs = totalCount;
     const selectedJob = filteredJobs.find(j => j.id === selectedJobId);
 
     // --- EFFECTS ---
@@ -258,16 +275,35 @@ export default function App() {
     const loadRealJobs = async () => {
         setIsLoadingJobs(true);
         try {
-            console.log("Fetching jobs...");
-            const realJobs = await fetchRealJobs();
-            console.log(`Fetched ${realJobs.length} jobs.`);
-            setJobs(realJobs);
+            await loadInitialJobs();
         } catch (e) {
             console.error("Failed to load jobs", e);
         } finally {
             setIsLoadingJobs(false);
         }
     };
+
+    // Infinite scroll detection
+    const jobListRef = useRef<HTMLDivElement>(null);
+    
+    useEffect(() => {
+        const handleScroll = () => {
+            if (!jobListRef.current || loadingMore || !hasMore || isSearching) return;
+            
+            const { scrollTop, scrollHeight, clientHeight } = jobListRef.current;
+            const threshold = 200; // Load more when 200px from bottom
+            
+            if (scrollTop + clientHeight >= scrollHeight - threshold) {
+                loadMoreJobs();
+            }
+        };
+
+        const element = jobListRef.current;
+        if (element) {
+            element.addEventListener('scroll', handleScroll);
+            return () => element.removeEventListener('scroll', handleScroll);
+        }
+    }, [loadingMore, hasMore, isSearching, loadMoreJobs]);
 
     useEffect(() => {
         // Initial Theme Setup
@@ -357,20 +393,8 @@ export default function App() {
 
 
 
-            // Salary Estimation Logic (New)
-            if ((!selectedJob.salaryRange || selectedJob.salaryRange === "Mzda neuvedena") && !selectedJob.aiEstimatedSalary && !isEstimatingSalary) {
-                setIsEstimatingSalary(true);
-                estimateSalary(selectedJob.title, selectedJob.company, selectedJob.location, selectedJob.description)
-                    .then(estimate => {
-                        if (estimate) {
-                            setJobs(prevJobs => prevJobs.map(j =>
-                                j.id === selectedJob.id ? { ...j, aiEstimatedSalary: estimate } : j
-                            ));
-                        }
-                    })
-                    .catch(err => console.error("Salary estimation error", err))
-                    .finally(() => setIsEstimatingSalary(false));
-            }
+            // Salary Estimation Logic - Disabled for pagination compatibility
+            // TODO: Implement in paginated version
         }
     }, [selectedJobId, userProfile]);
 
@@ -529,189 +553,710 @@ export default function App() {
 
 
     const renderWelcomeGuide = () => {
-        // ... [No changes here] ...
         const demoJHI: JHI = { score: 70, financial: 75, timeCost: 65, mentalLoad: 70, growth: 75, values: 60 };
+
         return (
             <div className="h-full flex flex-col overflow-y-auto custom-scrollbar relative w-full bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
                 <div className="relative z-10 flex-1 flex flex-col items-center justify-start p-8 lg:p-16 w-full">
                     <div className="my-auto w-full max-w-5xl">
-                        <div className="text-center mb-16">
-                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-200/50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold mb-6 border border-slate-300/50 dark:border-slate-700">
+                        {/* HERO SECTION */}
+                        <header className="text-center mb-16">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 text-xs font-semibold mb-6 border border-cyan-200 dark:border-cyan-800">
                                 <Sparkles size={12} />
                                 {t('welcome.next_gen_tag')}
                             </div>
-                            <h1 className="text-4xl md:text-6xl font-bold text-black dark:text-white mb-6 tracking-tight">
+                            <h1 className="text-4xl md:text-6xl font-bold text-slate-900 dark:text-white mb-6 tracking-tight">
                                 {t('welcome.title_main')} <span className="text-cyan-600 dark:text-cyan-400">{t('welcome.title_accent')}</span>
                             </h1>
-                            <p className="text-slate-600 dark:text-slate-300 text-lg md:text-xl leading-relaxed max-w-3xl mx-auto">
+                            <p className="text-slate-600 dark:text-slate-300 text-lg md:text-xl leading-relaxed max-w-3xl mx-auto mb-10">
                                 {t('welcome.subtitle')}
                             </p>
-                        </div>
-                        {/* Demo components here */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left mb-12">
-                            <div className="bg-white dark:bg-slate-900 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative">
-                                <div className="flex items-center justify-between mb-6">
-                                    <div className="flex items-center gap-2">
-                                        <Zap size={24} className="text-emerald-500" />
-                                        <h3 className="text-slate-900 dark:text-white font-bold text-lg">{t('welcome.jhi_score')}</h3>
-                                    </div>
-                                    <button className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded border border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                                        {t('welcome.how_it_works')} <Info size={14} />
-                                    </button>
+
+                            {/* VALUE PROPS */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+                                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-transform hover:-translate-y-1">
+                                    <div className="text-2xl mb-3">💰</div>
+                                    <h2 className="font-bold text-slate-900 dark:text-white mb-2">{t('welcome.value_props.finance_title')}</h2>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('welcome.value_props.finance_desc')}</p>
                                 </div>
-                                <div className="flex flex-col sm:flex-row gap-8">
-                                    <div className="h-56 w-full sm:w-1/2">
+                                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-transform hover:-translate-y-1">
+                                    <div className="text-2xl mb-3">🎭</div>
+                                    <h2 className="font-bold text-slate-900 dark:text-white mb-2">{t('welcome.value_props.bullshit_title')}</h2>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('welcome.value_props.bullshit_desc')}</p>
+                                </div>
+                                <div className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm transition-transform hover:-translate-y-1">
+                                    <div className="text-2xl mb-3">📊</div>
+                                    <h2 className="font-bold text-slate-900 dark:text-white mb-2">{t('welcome.value_props.jhi_title')}</h2>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400">{t('welcome.value_props.jhi_desc')}</p>
+                                </div>
+                            </div>
+
+                            {/* MAIN CTAs */}
+                            <div className="flex flex-wrap justify-center gap-4">
+                                <button
+                                    onClick={() => userProfile.isLoggedIn ? setViewState(ViewState.LIST) : setIsAuthModalOpen(true)}
+                                    className="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white rounded-lg font-bold shadow-lg shadow-cyan-600/20 transition-all active:scale-95"
+                                >
+                                    {t('welcome.cta.try_free')}
+                                </button>
+                                <button
+                                    onClick={() => setViewState(ViewState.LIST)}
+                                    className="px-8 py-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-slate-700 rounded-lg font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95"
+                                >
+                                    {t('welcome.cta.browse_offers', { count: totalJobs })}
+                                </button>
+                            </div>
+                        </header>
+
+                        {/* SECTION 1: PROČ JOBSHAMAN */}
+                        <section className="mb-20">
+                            <div className="text-center mb-10">
+                                <h2 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center justify-center gap-3">
+                                    <Search className="text-cyan-500" /> {t('welcome.section_why.title')}
+                                </h2>
+                                <p className="text-slate-500 dark:text-slate-400 mt-2 text-xl italic font-serif">
+                                    {t('welcome.section_why.headline')}
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                <div className="bg-rose-50/50 dark:bg-rose-950/10 p-8 rounded-2xl border border-rose-100 dark:border-rose-900/30">
+                                    <h3 className="font-bold text-rose-700 dark:text-rose-400 mb-6 flex items-center gap-2 uppercase tracking-wider text-sm">
+                                        <XCircle size={18} /> {t('welcome.section_why.typical_title')}
+                                    </h3>
+                                    <ul className="space-y-4">
+                                        <li className="flex items-start gap-3 text-slate-700 dark:text-slate-300">
+                                            <span className="text-rose-500 font-bold">❌</span>
+                                            <div>
+                                                <span className="font-bold">{t('welcome.section_why.typical_salary')}</span>
+                                                <p className="text-xs opacity-70">{t('welcome.section_why.typical_salary_sub')}</p>
+                                            </div>
+                                        </li>
+                                        <li className="flex items-start gap-3 text-slate-700 dark:text-slate-300">
+                                            <span className="text-rose-500 font-bold">❌</span>
+                                            <div>
+                                                <span className="font-bold">{t('welcome.section_why.typical_family')}</span>
+                                                <p className="text-xs opacity-70">{t('welcome.section_why.typical_family_sub')}</p>
+                                            </div>
+                                        </li>
+                                        <li className="flex items-start gap-3 text-slate-700 dark:text-slate-300">
+                                            <span className="text-rose-500 font-bold">❌</span>
+                                            <div>
+                                                <span className="font-bold">{t('welcome.section_why.typical_team')}</span>
+                                                <p className="text-xs opacity-70">{t('welcome.section_why.typical_team_sub')}</p>
+                                            </div>
+                                        </li>
+                                        <li className="flex items-start gap-3 text-slate-700 dark:text-slate-300">
+                                            <span className="text-rose-500 font-bold">❌</span>
+                                            <div>
+                                                <span className="font-bold">{t('welcome.section_why.typical_dog')}</span>
+                                                <p className="text-xs opacity-70">{t('welcome.section_why.typical_dog_sub')}</p>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+
+                                <div className="bg-emerald-50/50 dark:bg-emerald-950/10 p-8 rounded-2xl border border-emerald-100 dark:border-emerald-900/30">
+                                    <h3 className="font-bold text-emerald-700 dark:text-emerald-400 mb-6 flex items-center gap-2 uppercase tracking-wider text-sm">
+                                        <CheckCircle size={18} /> {t('welcome.section_why.shaman_title')}
+                                    </h3>
+                                    <ul className="space-y-4">
+                                        <li className="flex items-start gap-3 text-slate-700 dark:text-slate-300">
+                                            <span className="text-emerald-500 font-bold">✅</span>
+                                            <div>
+                                                <span className="font-bold font-mono">{t('welcome.section_why.shaman_tax')}</span>
+                                                <p className="text-xs opacity-70 italic text-emerald-600">{t('welcome.section_why.shaman_tax_sub')}</p>
+                                            </div>
+                                        </li>
+                                        <li className="flex items-start gap-3 text-slate-700 dark:text-slate-300">
+                                            <span className="text-emerald-500 font-bold">✅</span>
+                                            <div>
+                                                <span className="font-bold font-mono">{t('welcome.section_why.shaman_ai')}</span>
+                                                <p className="text-xs opacity-70 italic text-emerald-600">{t('welcome.section_why.shaman_ai_sub')}</p>
+                                            </div>
+                                        </li>
+                                        <li className="flex items-start gap-3 text-slate-700 dark:text-slate-300">
+                                            <span className="text-emerald-500 font-bold">✅</span>
+                                            <div>
+                                                <span className="font-bold font-mono">{t('welcome.section_why.shaman_happiness')}</span>
+                                                <p className="text-xs opacity-70 italic text-emerald-600">{t('welcome.section_why.shaman_happiness_sub')}</p>
+                                            </div>
+                                        </li>
+                                        <li className="flex items-start gap-3 text-slate-700 dark:text-slate-300">
+                                            <span className="text-emerald-500 font-bold">✅</span>
+                                            <div>
+                                                <span className="font-bold font-mono">{t('welcome.section_why.shaman_benefits')}</span>
+                                                <p className="text-xs opacity-70 italic text-emerald-600">{t('welcome.section_why.shaman_benefits_sub')}</p>
+                                            </div>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* SECTION 2: CO JOBSHAMAN UMÍ (Features) */}
+                        <div className="mb-20 space-y-32">
+                            {/* Feature 1: JHI Skóre */}
+                            <section className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                                <div className="order-2 lg:order-1 space-y-6">
+                                    <div className="flex flex-wrap justify-center gap-2 mb-2">
+                                        {['Finance', 'Čas', 'Psychika', 'Růst', 'Hodnoty'].map((dim, i) => (
+                                            <span key={i} className="px-3 py-1 bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest rounded-full border border-slate-200 dark:border-slate-800 shadow-sm">
+                                                {dim}
+                                            </span>
+                                        ))}
+                                    </div>
+                                    <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-2xl shadow-cyan-500/10 border border-slate-200 dark:border-slate-800 relative ring-1 ring-slate-200 dark:ring-slate-800 h-[400px] flex items-center justify-center overflow-hidden">
                                         <JHIChart jhi={demoJHI} theme={theme} />
                                     </div>
-                                    <div className="flex-1 flex flex-col justify-center gap-4 text-sm text-slate-600 dark:text-slate-300">
-                                        <p className="leading-relaxed">{t('welcome.jhi_desc')}</p>
-                                        <div className="flex gap-2">
-                                            <span className="px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-bold rounded">{t('welcome.finance_stat')}</span>
-                                            <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold rounded">{t('welcome.growth_stat')}</span>
-                                        </div>
-                                    </div>
                                 </div>
-                            </div>
-                            {/* More visual components */}
-                            <div className="bg-white dark:bg-slate-900 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative">
-                                <div className="flex items-center justify-between mb-6">
-                                    <div className="flex items-center gap-2">
-                                        <Activity size={24} className="text-rose-500" />
-                                        <h3 className="text-slate-900 dark:text-white font-bold text-lg">{t('welcome.signal_noise')}</h3>
-                                        <span className="text-xs text-slate-400">{t('welcome.cliche_detector')}</span>
-                                    </div>
-                                </div>
-                                <div className="space-y-6">
-                                    <div>
-                                        <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
-                                            <span>{t('welcome.cliche_detector')}</span>
-                                            <span className="text-emerald-500"><ThumbsUp size={12} className="inline mr-1" /> {t('welcome.clean_signal')}</span>
-                                        </div>
-                                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-3 rounded-full overflow-hidden">
-                                            <div className="bg-emerald-500 h-full w-[15%]"></div>
-                                        </div>
-                                    </div>
-                                    <div className="flex justify-between items-center text-sm border-t border-slate-100 dark:border-slate-800 pt-4">
-                                        <span className="text-slate-500">{t('welcome.cliche_tone')}</span>
-                                        <span className="font-bold text-slate-800 dark:text-slate-200">{t('welcome.tone_professional')}</span>
-                                    </div>
-                                    <p className="text-xs text-slate-400 italic">
-                                        {t('welcome.cliche_desc')}
+                                <div className="order-1 lg:order-2">
+                                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4 uppercase tracking-tight leading-none">{t('welcome.features.jhi.title')}</h2>
+                                    <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-8">
+                                        {t('welcome.features.jhi.desc')}
                                     </p>
-                                </div>
-                            </div>
-                        </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left">
-                            <div className="bg-white dark:bg-slate-900 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800">
-                                <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4 text-lg">
-                                    <Wallet size={20} className="text-indigo-500" /> {t('financial.reality_title')}
-                                </h3>
-                                <div className="space-y-3 text-sm font-mono">
-                                    <div className="flex justify-between text-slate-500 dark:text-slate-400"><span>{t('financial.gross_monthly')}</span><span>100 000 Kč</span></div>
-                                    <div className="flex justify-between text-rose-600 dark:text-rose-400 border-l-2 border-rose-600 dark:border-rose-400 pl-3"><span>- {t('financial.tax_insurance')}</span><span>23 000 Kč</span></div>
-                                    <div className="flex justify-between text-rose-600 dark:text-rose-400 border-l-2 border-rose-600 dark:border-rose-400 pl-3"><span>- {t('financial.commute_costs')}</span><span>2 500 Kč</span></div>
-                                    <div className="flex justify-between text-emerald-600 dark:text-emerald-400 font-bold border-t border-slate-100 dark:border-slate-800 pt-3 mt-3 text-lg"><span>{t('financial.net_income')}</span><span>74 500 Kč</span></div>
-                                </div>
-                                <p className="text-xs text-slate-400 mt-4">{t('financial.calculation_hint')}</p>
-                            </div>
-
-                            <div className="bg-white dark:bg-slate-900 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800">
-                                <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2 mb-4 text-lg">
-                                    <ShieldCheck size={20} className="text-amber-500" /> {t('welcome.transparency_title')}
-                                </h3>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="text-center p-4 border border-slate-100 dark:border-slate-800 rounded-lg">
-                                        <div className="text-xs text-slate-500 uppercase mb-1">{t('welcome.fluctuation')}</div>
-                                        <div className="text-emerald-500 font-bold text-xl">{t('welcome.fluctuation_val')}</div>
-                                    </div>
-                                    <div className="text-center p-4 border border-slate-100 dark:border-slate-800 rounded-lg">
-                                        <div className="text-xs text-slate-500 uppercase mb-1">{t('welcome.ghosting')}</div>
-                                        <div className="text-amber-500 font-bold text-xl">{t('welcome.ghosting_val')}</div>
-                                    </div>
-                                </div>
-                                <p className="text-xs text-slate-500 mt-4 leading-relaxed">
-                                    {t('welcome.transparency_desc')}
-                                </p>
-
-                                {/* EU Transparent Badge Explanation */}
-                                <div className="mt-4 p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800 rounded-lg">
-                                    <div className="flex items-start gap-2">
-                                        <div className="flex items-center gap-1.5 mb-1">
-                                            <div className="w-4 h-4 bg-emerald-600 dark:bg-emerald-500 rounded flex items-center justify-center">
-                                                <span className="text-white text-[10px] font-bold">€</span>
+                                    <div className="space-y-4 relative">
+                                        <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between group hover:border-rose-200 transition-colors">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-full bg-rose-50 dark:bg-rose-950/30 flex items-center justify-center text-rose-500 font-bold">A</div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-slate-900 dark:text-white">{t('welcome.features.jhi.example_a_desc')}</p>
+                                                    <p className="text-[10px] text-slate-400 uppercase font-bold">{t('welcome.features.jhi.example_a_title')}</p>
+                                                </div>
                                             </div>
-                                            <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400">{t('welcome.eu_transparent_title')}</h4>
+                                            <div className="text-right">
+                                                <p className="text-lg font-mono font-bold text-rose-500 tracking-tighter">64/100</p>
+                                                <p className="text-[10px] text-slate-400 font-bold uppercase">Varování ⚠️</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="absolute left-1/2 -translate-x-1/2 -translate-y-1/2 top-1/2 z-10 w-8 h-8 bg-slate-50 dark:bg-slate-950 rounded-full border-2 border-slate-200 dark:border-slate-800 flex items-center justify-center text-[10px] font-black text-slate-400 italic">VS</div>
+
+                                        <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border-2 border-emerald-500/30 shadow-xl shadow-emerald-500/5 flex items-center justify-between group">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold shadow-lg shadow-emerald-500/20">B</div>
+                                                <div>
+                                                    <p className="text-sm font-bold text-slate-900 dark:text-white">{t('welcome.features.jhi.example_b_desc')}</p>
+                                                    <p className="text-[10px] text-emerald-500 uppercase font-bold">{t('welcome.features.jhi.example_b_title')}</p>
+                                                </div>
+                                            </div>
+                                            <div className="text-right">
+                                                <p className="text-2xl font-mono font-bold text-emerald-500 tracking-tighter">88/100</p>
+                                                <p className="text-[10px] text-emerald-600 font-bold uppercase">Ideál ✅</p>
+                                            </div>
                                         </div>
                                     </div>
-                                    <p className="text-xs leading-relaxed text-emerald-700 dark:text-emerald-300 mt-2">
-                                        {t('welcome.eu_transparent_desc')}
+
+                                    <div className="mt-8 flex items-center gap-3 p-4 bg-cyan-50 dark:bg-cyan-950/20 rounded-xl border border-cyan-100 dark:border-cyan-900/30">
+                                        <div className="w-8 h-8 rounded-lg bg-cyan-600 flex items-center justify-center text-white"><Zap size={16} /></div>
+                                        <p className="text-sm font-medium text-cyan-800 dark:text-cyan-300 italic">{t('welcome.features.jhi.footer')}</p>
+                                    </div>
+                                </div>
+                            </section>
+
+                            {/* Feature 2: Finanční Realita */}
+                            <section className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                                <div>
+                                    <div className="inline-flex p-3 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-2xl mb-6">
+                                        <Wallet size={24} />
+                                    </div>
+                                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-tight">{t('welcome.features.finance.title')}</h2>
+                                    <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-8">
+                                        {t('welcome.features.finance.desc')}
                                     </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Benefit Validation Example */}
-                        <div className="mt-16 bg-white dark:bg-slate-900 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800">
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="p-2 bg-amber-100 dark:bg-amber-900/30 rounded-lg text-amber-600 dark:text-amber-400">
-                                    <AlertTriangle size={20} />
-                                </div>
-                                <h3 className="text-xl font-bold text-slate-900 dark:text-white">{t('welcome.benefit_validation_title')}</h3>
-                                <span className="text-xs text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">{t('welcome.ai_analysis_label')}</span>
-                            </div>
-
-                            <div className="space-y-6">
-                                <div className="border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20 p-4 rounded-r-lg">
-                                    <div className="flex items-center gap-2 mb-2">
-                                        <Dog size={16} className="text-amber-600 dark:text-amber-400" />
-                                        <span className="text-sm font-bold text-amber-800 dark:text-amber-200">{t('welcome.case_study')}</span>
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-sm text-left">
+                                            <thead>
+                                                <tr className="border-b border-slate-200 dark:border-slate-800">
+                                                    <th className="pb-3 font-bold text-slate-400 uppercase tracking-widest text-xs">{t('welcome.features.finance.table_param')}</th>
+                                                    <th className="pb-3 font-bold text-slate-400 uppercase tracking-widest text-xs text-center">{t('welcome.features.finance.table_jobs')}</th>
+                                                    <th className="pb-3 font-bold text-cyan-500 uppercase tracking-widest text-xs text-center">{t('welcome.features.finance.table_shaman')}</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                                {[
+                                                    { p: t('welcome.features.finance.gross_wage'), j: '100,000 Kč', s: '100,000 Kč' },
+                                                    { p: t('welcome.features.finance.net_wage_shown'), j: '❌ No', s: '✅ 71,500 Kč' },
+                                                    { p: t('welcome.features.finance.commute_included'), j: '❌ No', s: '✅ -2,500 Kč' },
+                                                    { p: t('welcome.features.finance.reality_check'), j: '❌ No', s: '✅ Yes' }
+                                                ].map((row, i) => (
+                                                    <tr key={i} className="group">
+                                                        <td className="py-3 text-slate-600 dark:text-slate-400">{row.p}</td>
+                                                        <td className="py-3 text-center text-slate-500">{row.j}</td>
+                                                        <td className="py-3 text-center font-bold text-slate-900 dark:text-white">{row.s}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
                                     </div>
-                                    <div className="text-slate-700 dark:text-slate-300 text-sm">
-                                        <p className="font-medium mb-2">{t('welcome.remote_job_example')}</p>
-                                        <div className="bg-white dark:bg-slate-800 p-3 rounded border border-amber-200 dark:border-amber-700">
-                                            <div className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-2">{t('welcome.not_applicable')} (1)</div>
-                                            <div className="flex items-center gap-2 text-rose-600 dark:text-rose-400">
-                                                <span>•</span>
-                                                <span className="font-medium">{t('welcome.dog_friendly_office')}</span>
+                                </div>
+                                <div>
+                                    <div className="bg-slate-900 rounded-3xl p-8 shadow-2xl border border-slate-800 text-slate-300 font-mono">
+                                        <div className="flex items-center gap-2 mb-8 text-white">
+                                            <Calculator size={20} className="text-emerald-400" />
+                                            <span className="font-bold tracking-tight uppercase text-sm">{t('welcome.features.finance.calc_title')}</span>
+                                        </div>
+                                        <div className="space-y-4 text-sm">
+                                            <div className="flex justify-between"><span>{t('welcome.features.finance.calc_gross')}</span><span className="text-white">100,000 Kč</span></div>
+                                            <div className="flex justify-between text-rose-400"><span>{t('welcome.features.finance.calc_taxes')}</span><span>-15,000 Kč</span></div>
+                                            <div className="flex justify-between text-rose-400"><span>{t('welcome.features.finance.calc_ins')}</span><span>-11,000 Kč</span></div>
+                                            <div className="flex justify-between text-rose-400 border-b border-slate-800 pb-4"><span>{t('welcome.features.finance.calc_commute')}</span><span>-2,500 Kč</span></div>
+                                            <div className="flex justify-between text-xl font-bold text-emerald-400 pt-2"><span>{t('welcome.features.finance.calc_net')}</span><span>71,500 Kč</span></div>
+                                        </div>
+                                        <div className="mt-8 pt-8 border-t border-slate-800 text-[10px] space-y-2 opacity-60 uppercase tracking-widest">
+                                            <div className="flex items-center gap-2 leading-none"><MapPin size={10} /> {t('welcome.features.finance.calc_commute_info')}</div>
+                                            <div className="flex items-center gap-2 leading-none"><Activity size={10} /> {t('welcome.features.finance.calc_costs_info')}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+
+
+                            {/* Feature 4: Gap Analysis */}
+                            <section className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                                <div>
+                                    <div className="inline-flex p-3 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-2xl mb-6">
+                                        <Compass size={24} />
+                                    </div>
+                                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-tight">{t('welcome.features.gap.title')}</h2>
+                                    <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-6">
+                                        {t('welcome.features.gap.desc')}
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-4 mb-8">
+                                        <div className="p-4 bg-slate-100 dark:bg-slate-800/50 rounded-xl">
+                                            <p className="text-xl font-bold text-slate-700 dark:text-white uppercase tracking-tight">{t('welcome.features.gap.courses_db')}</p>
+                                            <p className="text-[10px] text-slate-400 font-bold mt-1 uppercase">Již brzy ⏳</p>
+                                        </div>
+                                        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-xl border border-emerald-500/10">
+                                            <p className="text-xl font-bold text-emerald-600 uppercase tracking-tight">{t('welcome.features.gap.courses_free')}</p>
+                                            <p className="text-[10px] text-emerald-500 font-bold mt-1 uppercase">V přípravě 📅</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                                        <CheckCircle size={16} /> {t('welcome.features.gap.success_rate')}
+                                    </div>
+                                </div>
+                                <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 shadow-xl border border-slate-200 dark:border-slate-800">
+                                    <div className="space-y-6">
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500">1</div>
+                                            <div>
+                                                <p className="text-sm font-bold text-slate-900 dark:text-white">{t('welcome.features.gap.step_1')}</p>
+                                                <p className="text-xs text-rose-500 font-bold">❌ ({t('welcome.features.gap.step_1_sub')})</p>
                                             </div>
-                                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-3 italic leading-relaxed">
-                                                {t('welcome.dog_joke')}
-                                            </p>
+                                        </div>
+                                        <div className="ml-4 pl-4 border-l-2 border-slate-100 dark:border-slate-800 py-2">
+                                            <div className="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center text-center">
+                                                <div className="w-10 h-10 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-3">
+                                                    <BookOpen size={18} className="text-slate-400" />
+                                                </div>
+                                                <p className="text-xs font-bold text-slate-700 dark:text-slate-200 mb-1">Kurzy se připravují</p>
+                                                <p className="text-[10px] text-slate-500 italic leading-relaxed">Právě pro vás integrujeme nabídky od Khan Academy, Coursera a Úřadu Práce.</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-8 h-8 rounded-full bg-cyan-500 flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-cyan-500/50">2</div>
+                                            <p className="text-sm font-bold text-slate-900 dark:text-white pt-1">{t('welcome.features.gap.step_2')}</p>
                                         </div>
                                     </div>
                                 </div>
+                            </section>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                                    <div className="bg-emerald-50 dark:bg-emerald-950/20 p-4 rounded-lg border border-emerald-200 dark:border-emerald-700">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <ThumbsUp size={16} className="text-emerald-600 dark:text-emerald-400" />
-                                            <span className="font-bold text-emerald-800 dark:text-emerald-200">{t('welcome.relevant_benefits')}</span>
+                            {/* Feature 5: Transparentnost */}
+                            <section className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                                <div className="order-2 lg:order-1">
+                                    <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-2xl border border-slate-200 dark:border-slate-800 font-sans">
+                                        <div className="flex items-center justify-between mb-8">
+                                            <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                                <BarChart3 size={20} className="text-indigo-500" /> {t('welcome.features.transparency.card_title')}
+                                            </h4>
+                                            <div className="px-3 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-full text-[10px] font-bold tracking-tight">{t('welcome.features.transparency.badge_ready')}</div>
                                         </div>
-                                        <ul className="text-emerald-700 dark:text-emerald-300 space-y-1 text-xs">
-                                            <li>• {t('welcome.flexible_hours')}</li>
-                                            <li>• {t('welcome.ho_equipment')}</li>
-                                            <li>• {t('welcome.virtual_teambuilding')}</li>
-                                        </ul>
-                                    </div>
-                                    <div className="bg-rose-50 dark:bg-rose-950/20 p-4 rounded-lg border border-rose-200 dark:border-rose-700">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <AlertTriangle size={16} className="text-rose-600 dark:text-rose-400" />
-                                            <span className="font-bold text-rose-800 dark:text-rose-200">{t('welcome.warning_signals')}</span>
+                                        <div className="space-y-4">
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm text-slate-500">{t('welcome.features.transparency.salary_shown')}</span>
+                                                <span className="text-sm font-bold text-emerald-500">✅ Ano (40-60k)</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm text-slate-500">{t('welcome.features.transparency.fluctuation')}</span>
+                                                <span className="text-sm font-bold text-amber-500 font-mono">⚠️ 35% / rok</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm text-slate-500">{t('welcome.features.transparency.avg_stay')}</span>
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono">1.8 roku</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm text-slate-500">{t('welcome.features.transparency.ghosting_rate')}</span>
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono">22%</span>
+                                            </div>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-sm text-slate-500">{t('welcome.features.transparency.response_time')}</span>
+                                                <span className="text-sm font-bold text-slate-700 dark:text-slate-200 font-mono">14 dní</span>
+                                            </div>
                                         </div>
-                                        <ul className="text-rose-700 dark:text-rose-300 space-y-1 text-xs">
-                                            <li>• {t('welcome.office_dog_remote')}</li>
-                                            <li>• {t('welcome.great_atmosphere')}</li>
-                                            <li>• {t('welcome.canteen')}</li>
-                                        </ul>
+                                        <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-cyan-600 flex items-center justify-center text-white font-bold">€</div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-slate-900 dark:text-white">{t('welcome.features.transparency.eu_badge_title')}</p>
+                                                    <p className="text-[10px] text-slate-400 leading-tight">{t('welcome.features.transparency.eu_badge_desc')}</p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-
-                                <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-                                    {t('welcome.ai_analysis_desc')}
-                                </p>
-                            </div>
+                                <div className="order-1 lg:order-2">
+                                    <div className="inline-flex p-3 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-2xl mb-6">
+                                        <BarChart3 size={24} />
+                                    </div>
+                                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-6 uppercase tracking-tight">{t('welcome.features.transparency.title')}</h2>
+                                    <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-8">
+                                        {t('welcome.features.transparency.desc')}
+                                    </p>
+                                    <ul className="grid grid-cols-2 gap-y-4 gap-x-8 text-sm font-medium text-slate-700 dark:text-slate-300">
+                                        <li className="flex items-center gap-2"><Check size={16} className="text-cyan-500" /> {t('welcome.features.transparency.list_fluctuation')}</li>
+                                        <li className="flex items-center gap-2"><Check size={16} className="text-cyan-500" /> {t('welcome.features.transparency.list_ghosting')}</li>
+                                        <li className="flex items-center gap-2"><Check size={16} className="text-cyan-500" /> {t('welcome.features.transparency.list_response')}</li>
+                                        <li className="flex items-center gap-2"><Check size={16} className="text-cyan-500" /> {t('welcome.features.transparency.list_salary')}</li>
+                                    </ul>
+                                </div>
+                            </section>
                         </div>
+
+                        {/* SECTION 3: REAL EXAMPLES */}
+                        <section className="mb-20">
+                            <div className="text-center mb-12">
+                                <h2 className="text-3xl font-bold text-slate-900 dark:text-white">{t('welcome.examples.title')}</h2>
+                                <p className="text-slate-500 mt-2">{t('welcome.examples.subtitle')}</p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {[
+                                    {
+                                        title: t('welcome.examples.dog.title'),
+                                        icon: <Dog className="text-amber-500" />,
+                                        offer: t('welcome.examples.dog.offer'),
+                                        ai: t('welcome.examples.dog.ai'),
+                                        score: t('welcome.examples.dog.score')
+                                    },
+                                    {
+                                        title: t('welcome.examples.salary.title'),
+                                        icon: <Wallet className="text-rose-500" />,
+                                        offer: t('welcome.examples.salary.offer'),
+                                        ai: t('welcome.examples.salary.ai'),
+                                        score: t('welcome.examples.salary.score')
+                                    },
+                                    {
+                                        title: t('welcome.examples.team.title'),
+                                        icon: <Users className="text-indigo-500" />,
+                                        offer: t('welcome.examples.team.offer'),
+                                        ai: t('welcome.examples.team.ai'),
+                                        score: t('welcome.examples.team.score')
+                                    }
+                                ].map((ex, i) => (
+                                    <article key={i} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm flex flex-col h-full hover:shadow-md transition-shadow">
+                                        <div className="flex items-center gap-3 mb-4">
+                                            {ex.icon}
+                                            <h3 className="font-bold text-slate-900 dark:text-white text-sm">{ex.title}</h3>
+                                        </div>
+                                        <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-lg text-xs font-bold mb-4 border border-slate-100 dark:border-slate-800">
+                                            {ex.offer}
+                                        </div>
+                                        <div className="flex-1 text-xs text-slate-500 dark:text-slate-400 italic mb-4 leading-relaxed">
+                                            <span className="text-cyan-600 dark:text-cyan-400 font-bold not-italic">🤖 AI: </span>
+                                            {ex.ai}
+                                        </div>
+                                        <footer className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">
+                                            {ex.score}
+                                        </footer>
+                                    </article>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* SECTION 4: PRO KANDIDÁTY */}
+                        <section className="mb-20">
+                            <header className="text-center mb-12">
+                                <h2 className="text-3xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">{t('welcome.candidates.title')}</h2>
+                                <p className="text-slate-500 mt-2">{t('welcome.candidates.subtitle')}</p>
+                            </header>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+                                {[
+                                    { title: t('welcome.candidates.jhi'), desc: t('welcome.candidates.jhi_sub'), icon: <Target className="text-cyan-500" /> },
+                                    { title: t('welcome.candidates.finance'), desc: t('welcome.candidates.finance_sub'), icon: <Wallet className="text-emerald-500" /> },
+                                    { title: t('welcome.candidates.bullshit'), desc: t('welcome.candidates.bullshit_sub'), icon: <Activity className="text-rose-500" /> },
+                                    { title: t('welcome.candidates.gap'), desc: t('welcome.candidates.gap_sub'), icon: <Compass className="text-amber-500" /> },
+                                    { title: t('welcome.candidates.transparency'), desc: t('welcome.candidates.transparency_sub'), icon: <BarChart3 className="text-indigo-500" /> },
+                                    { title: t('welcome.candidates.courses_free'), desc: t('welcome.candidates.courses_free_sub'), icon: <GraduationCap className="text-purple-500" /> },
+                                    { title: t('welcome.candidates.cv'), desc: t('welcome.candidates.cv_sub'), icon: <FileText className="text-blue-500" /> },
+                                    { title: t('welcome.candidates.mail'), desc: t('welcome.candidates.mail_sub'), icon: <Mail className="text-cyan-500" /> },
+                                    { title: t('welcome.candidates.coach'), desc: t('welcome.candidates.coach_sub'), icon: <Trophy className="text-emerald-500" /> }
+                                ].map((b, i) => (
+                                    <div key={i} className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl flex items-start gap-4 hover:shadow-lg transition-all group">
+                                        <div className="p-3 bg-slate-50 dark:bg-slate-950 rounded-xl group-hover:scale-110 transition-transform">{b.icon}</div>
+                                        <div>
+                                            <h3 className="font-bold text-slate-900 dark:text-white text-sm">{b.title}</h3>
+                                            <p className="text-xs text-slate-400 mt-1">{b.desc}</p>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+                                <section className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden shadow-sm">
+                                    <header className="p-8 border-b border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950">
+                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white uppercase tracking-wider">{t('welcome.candidates.free_forever')}</h3>
+                                        <p className="text-slate-500 text-sm mt-1">{t('welcome.candidates.free_sub')}</p>
+                                    </header>
+                                    <div className="p-8 space-y-4">
+                                        {[t('welcome.candidates.jhi'), t('welcome.candidates.finance'), t('welcome.candidates.bullshit'), t('welcome.candidates.gap'), t('marketplace.all_courses'), '3 inzeráty uložené'].map((f, i) => (
+                                            <div key={i} className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+                                                <CheckCircle size={16} className="text-emerald-500" /> {f}
+                                            </div>
+                                        ))}
+                                        <button onClick={() => userProfile.isLoggedIn ? setViewState(ViewState.LIST) : setIsAuthModalOpen(true)} className="w-full py-4 mt-4 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold hover:opacity-90 transition-opacity uppercase tracking-widest text-xs">
+                                            {t('welcome.cta.get_started')}
+                                        </button>
+                                    </div>
+                                </section>
+
+                                <section className="bg-white dark:bg-slate-900 border-2 border-cyan-500 rounded-3xl overflow-hidden shadow-2xl relative">
+                                    <div className="absolute top-4 right-4 px-3 py-1 bg-cyan-500 text-white text-[10px] font-bold rounded-full uppercase tracking-widest">{t('welcome.candidates.recommended')}</div>
+                                    <header className="p-8 border-b border-slate-100 dark:border-slate-800 bg-cyan-50 dark:bg-cyan-950/20">
+                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white uppercase tracking-wider">{t('welcome.candidates.premium')}</h3>
+                                        <p className="text-cyan-600 font-bold text-2xl mt-1">{t('welcome.candidates.premium_price')}<span className="text-xs text-slate-400 font-normal"> {t('welcome.candidates.premium_sub')}</span></p>
+                                    </header>
+                                    <div className="p-8 space-y-4">
+                                        {['Vše ze Free', t('welcome.candidates.cv') + ' (neomezeno)', t('welcome.candidates.mail'), 'Neomezené uložené nabídky', 'Email upozornění (nové)', 'Prioritní podpora'].map((f, i) => (
+                                            <div key={i} className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+                                                <CheckCircle size={16} className="text-cyan-500" /> {f}
+                                            </div>
+                                        ))}
+                                        <button onClick={() => userProfile.isLoggedIn ? setViewState(ViewState.LIST) : setIsAuthModalOpen(true)} className="w-full py-4 mt-4 bg-cyan-600 text-white rounded-xl font-bold hover:shadow-lg shadow-cyan-600/20 transition-all uppercase tracking-widest text-xs">
+                                            {t('welcome.candidates.try_premium')}
+                                        </button>
+                                    </div>
+                                </section>
+                            </div>
+                        </section>
+
+                        {/* SECTION 5: PRO FIRMY */}
+                        <section className="mb-20 bg-slate-900 rounded-[3rem] p-10 lg:p-16 border border-slate-800 overflow-hidden relative group">
+                            <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 blur-[100px] rounded-full -mr-48 -mt-48 transition-all group-hover:bg-cyan-500/20"></div>
+                            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+                                <div>
+                                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-800 text-slate-300 text-xs font-semibold mb-6 border border-slate-700 uppercase tracking-widest">
+                                        <Briefcase size={12} /> {t('welcome.companies.tag')}
+                                    </div>
+                                    <h2 className="text-3xl lg:text-4xl font-bold text-white mb-6 uppercase tracking-tight">{t('welcome.companies.title')}</h2>
+                                    <p className="text-slate-400 text-lg mb-10">
+                                        {t('welcome.companies.desc')}
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-6 text-sm text-slate-300 mb-10">
+                                        <div className="flex items-center gap-2"><Check size={16} className="text-cyan-500" /> Detektor Klišé</div>
+                                        <div className="flex items-center gap-2"><Check size={16} className="text-cyan-500" /> Market Insights</div>
+                                        <div className="flex items-center gap-2"><Check size={16} className="text-cyan-500" /> Assessment Center</div>
+                                        <div className="flex items-center gap-2"><Check size={16} className="text-cyan-500" /> Tone Analyzer</div>
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <button onClick={() => setShowCompanyLanding(true)} className="px-8 py-3 bg-white text-slate-900 rounded-xl font-bold hover:bg-slate-100 transition-colors">{t('welcome.companies.test_free')}</button>
+                                        <button onClick={() => setShowCompanyLanding(true)} className="px-8 py-3 bg-slate-800 text-white rounded-xl font-bold border border-slate-700 hover:bg-slate-700 transition-colors">{t('welcome.companies.learn_more')}</button>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div className="bg-slate-800 rounded-2xl border border-slate-700 p-6 font-mono text-xs overflow-hidden">
+                                        <header className="flex items-center gap-2 mb-6 text-white border-b border-slate-700 pb-4 uppercase tracking-widest">
+                                            <Zap size={14} className="text-cyan-400" /> {t('welcome.companies.optimizer_title')}
+                                        </header>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <p className="text-slate-500 mb-2 uppercase text-[10px]">{t('welcome.companies.your_ad')}</p>
+                                                <p className="text-slate-400 italic">{t('welcome.companies.your_ad_content')}</p>
+                                            </div>
+                                            <div className="p-4 bg-rose-500/10 border border-rose-500/30 rounded-lg">
+                                                <p className="text-rose-400 font-bold mb-2 flex items-center gap-2 uppercase tracking-widest"><AlertTriangle size={12} /> {t('welcome.companies.detector_found')}</p>
+                                                <ul className="space-y-1 text-rose-300">
+                                                    <li>🔴 "mladého" - Age discrimination</li>
+                                                    <li>🔴 "dynamického" - Vague, meaningless</li>
+                                                    <li>🔴 "konkurenceschopným" - No range</li>
+                                                    <li>🟠 "teamu" - Spell check: týmu</li>
+                                                </ul>
+                                            </div>
+                                            <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-lg">
+                                                <p className="text-emerald-400 font-bold mb-2 flex items-center gap-2 uppercase tracking-widest"><Check size={12} /> {t('welcome.companies.ai_rec')}</p>
+                                                <p className="text-emerald-300 font-bold italic">{t('welcome.companies.ai_rec_content')}</p>
+                                            </div>
+                                            <div className="flex justify-between items-center pt-2">
+                                                <span className="text-slate-500 uppercase tracking-widest">{t('welcome.companies.improvement')}</span>
+                                                <span className="font-bold text-emerald-400">🔴 20% → 🟢 95%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* SECTION 6: DATA & STATS */}
+                        <section className="mb-20">
+                            <header className="text-center mb-12">
+                                <h2 className="text-3xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">{t('welcome.stats.title')}</h2>
+                                <p className="text-slate-500 mt-2">{t('welcome.stats.subtitle')}</p>
+                            </header>
+
+                            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-16">
+                                {[
+                                    { v: totalJobs.toLocaleString(), l: t('welcome.stats.offers'), c: 'text-cyan-500' },
+                                    { v: '847', l: t('welcome.stats.cliches'), c: 'text-rose-500' },
+                                    { v: '⏳', l: t('welcome.stats.courses'), c: 'text-amber-500' },
+                                    { v: '98%', l: t('welcome.stats.remote'), c: 'text-emerald-500' },
+                                    { v: '35%', l: t('welcome.stats.fluctuation'), c: 'text-indigo-500' },
+                                    { v: '⏳', l: t('welcome.stats.free_courses'), c: 'text-purple-500' }
+                                ].map((s, i) => (
+                                    <div key={i} className="p-6 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl text-center shadow-sm">
+                                        <p className={`text-2xl font-bold ${s.c} mb-1`}>{s.v}</p>
+                                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest leading-none">{s.l}</p>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-10 shadow-sm">
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-8 flex items-center gap-2 uppercase tracking-wider">
+                                    <BarChart3 size={20} className="text-cyan-500" /> {t('welcome.stats.data_show')}
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-12 text-sm">
+                                    <section>
+                                        <h4 className="font-bold text-slate-800 dark:text-white mb-4 border-l-4 border-cyan-500 pl-3 uppercase tracking-widest">{t('welcome.stats.salary_title')}</h4>
+                                        <ul className="space-y-3 text-slate-600 dark:text-slate-400">
+                                            <li className="flex justify-between"><span>❌ {t('welcome.stats.no_salary')}</span><span className="font-bold">67%</span></li>
+                                            <li className="flex justify-between"><span>🤔 {t('welcome.stats.bs_salary')}</span><span className="font-bold">23%</span></li>
+                                            <li className="flex justify-between"><span>✅ {t('welcome.stats.exact_range')}</span><span className="font-bold">10%</span></li>
+                                        </ul>
+                                    </section>
+                                    <section>
+                                        <h4 className="font-bold text-slate-800 dark:text-white mb-4 border-l-4 border-emerald-500 pl-3 uppercase tracking-widest">{t('welcome.stats.remote_title')}</h4>
+                                        <ul className="space-y-3 text-slate-600 dark:text-slate-400">
+                                            <li className="flex justify-between"><span>🏠 {t('welcome.stats.wants_remote')}</span><span className="font-bold">98%</span></li>
+                                            <li className="flex justify-between"><span>🏢 {t('welcome.stats.only_office')}</span><span className="font-bold">45%</span></li>
+                                            <li className="flex justify-between"><span>🤯 {t('welcome.stats.conflicting')}</span><span className="font-bold">30%</span></li>
+                                        </ul>
+                                    </section>
+                                    <section>
+                                        <h4 className="font-bold text-slate-800 dark:text-white mb-4 border-l-4 border-indigo-500 pl-3 uppercase tracking-widest">{t('welcome.stats.benefits_title')}</h4>
+                                        <ul className="space-y-3 text-slate-600 dark:text-slate-400">
+                                            <li className="flex justify-between"><span>🤡 {t('welcome.stats.absurd_benefits')}</span><span className="font-bold">15%</span></li>
+                                            <li className="flex justify-between"><span>🍎 {t('welcome.stats.generic_benefits')}</span><span className="font-bold">40%</span></li>
+                                            <li className="flex justify-between"><span>👯 {t('welcome.stats.same_benefits')}</span><span className="font-bold">78%</span></li>
+                                        </ul>
+                                    </section>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* SECTION 7: HOW IT WORKS */}
+                        <section className="mb-20">
+                            <header className="text-center mb-12">
+                                <h2 className="text-3xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">{t('welcome.how_it_works.title')}</h2>
+                                <p className="text-slate-500 mt-2">{t('welcome.how_it_works.subtitle')}</p>
+                            </header>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-12 max-w-4xl mx-auto relative">
+                                <div className="hidden md:block absolute top-12 left-0 right-0 h-0.5 bg-slate-100 dark:bg-slate-800"></div>
+                                {[
+                                    { t: t('welcome.how_it_works.step_1_title'), d: t('welcome.how_it_works.step_1_desc', { count: totalJobs }), n: '1️⃣' },
+                                    { t: t('welcome.how_it_works.step_2_title'), d: t('welcome.how_it_works.step_2_desc'), n: '2️⃣' },
+                                    { t: t('welcome.how_it_works.step_3_title'), d: t('welcome.how_it_works.step_3_desc'), n: '3️⃣' }
+                                ].map((s, i) => (
+                                    <article key={i} className="relative z-10 text-center">
+                                        <div className="w-16 h-16 bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-6 shadow-sm">{s.n}</div>
+                                        <h3 className="font-bold text-slate-900 dark:text-white text-sm mb-3 uppercase tracking-wider">{s.t}</h3>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">{s.d}</p>
+                                    </article>
+                                ))}
+                            </div>
+                            <div className="text-center mt-12">
+                                <button onClick={() => userProfile.isLoggedIn ? setViewState(ViewState.LIST) : setIsAuthModalOpen(true)} className="px-8 py-3 bg-cyan-600 text-white rounded-xl font-bold hover:shadow-lg shadow-cyan-600/20 transition-all active:scale-95 uppercase tracking-widest text-xs">{t('welcome.cta.try_free')}</button>
+                            </div>
+                        </section>
+
+                        {/* SECTION 8: TESTIMONIALS */}
+                        <section className="mb-20">
+                            <header className="text-center mb-12">
+                                <h2 className="text-3xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">{t('welcome.testimonials.title')}</h2>
+                            </header>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {[
+                                    { q: '"JHI skóre mi ukázalo, že vyšší plat = nižší štěstí. Vzal jsem práci za 20k méně a jsem 2× šťastnější. AI měla pravdu."', u: 'Martin K.', r: 'Senior Developer' },
+                                    { q: '"Bullshit detektor našel \'dog-friendly office\' u 100% remote pozice. Smál jsem se 10 minut. Pak jsem nenašel tu firmu vůbec."', u: 'Jana P.', r: 'UX Designer' },
+                                    { q: '"Gap analysis mi ukázal 3 kurzy ZDARMA od ÚP. Za 2 měsíce jsem měl Docker, za 4 jsem měl práci. JobShaman = game changer."', u: 'Petr S.', r: 'Junior DevOps' }
+                                ].map((t, i) => (
+                                    <figure key={i} className="bg-white dark:bg-slate-900 p-8 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow">
+                                        <div className="mb-6"><Quote size={32} className="text-cyan-500/20" /></div>
+                                        <blockquote className="text-sm text-slate-600 dark:text-slate-300 italic mb-6 leading-relaxed">{t.q}</blockquote>
+                                        <figcaption className="flex items-center gap-3 border-t border-slate-50 dark:border-slate-800 pt-4">
+                                            <div className="w-10 h-10 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center font-bold text-cyan-600">{t.u[0]}</div>
+                                            <div>
+                                                <cite className="text-xs font-bold text-slate-900 dark:text-white not-italic">{t.u}</cite>
+                                                <p className="text-[10px] text-slate-500">{t.r}</p>
+                                            </div>
+                                        </figcaption>
+                                    </figure>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* SECTION 9: FAQ */}
+                        <section className="mb-20">
+                            <header className="text-center mb-12">
+                                <h2 className="text-3xl font-bold text-slate-900 dark:text-white flex items-center justify-center gap-3 uppercase tracking-tight">
+                                    <HelpCircle className="text-cyan-500" /> {t('welcome.faq.title')}
+                                </h2>
+                                <p className="text-slate-500 mt-2">{t('welcome.faq.subtitle')}</p>
+                            </header>
+
+                            <div className="max-w-3xl mx-auto space-y-4">
+                                {[
+                                    { q: t('welcome.faq.q1'), a: t('welcome.faq.a1') },
+                                    { q: t('welcome.faq.q2'), a: t('welcome.faq.a2') },
+                                    { q: t('welcome.faq.q3'), a: t('welcome.faq.a3') },
+                                    { q: t('welcome.faq.q4'), a: t('welcome.faq.a4') },
+                                    { q: t('welcome.faq.q5'), a: t('welcome.faq.a5') },
+                                    { q: t('welcome.faq.q6'), a: t('welcome.faq.a6') }
+                                ].map((f, i) => (
+                                    <details key={i} className="group bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden [&_summary::-webkit-details-marker]:hidden">
+                                        <summary className="flex items-center justify-between p-6 cursor-pointer list-none">
+                                            <h3 className="text-sm font-bold text-slate-900 dark:text-white group-open:text-cyan-600 transition-colors uppercase tracking-wider">{f.q}</h3>
+                                            <ChevronDown size={18} className="text-slate-400 group-open:rotate-180 transition-transform" />
+                                        </summary>
+                                        <div className="px-6 pb-6 text-sm text-slate-500 dark:text-slate-400 leading-relaxed border-t border-slate-50 dark:border-slate-800 pt-4">
+                                            {f.a}
+                                        </div>
+                                    </details>
+                                ))}
+                            </div>
+                        </section>
+
+                        {/* SECTION 10: FINAL CTA */}
+                        <footer className="text-center bg-cyan-600 rounded-[3rem] p-12 lg:p-20 text-white relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 w-96 h-96 bg-white/10 blur-[100px] rounded-full -mr-48 -mt-48 transition-all group-hover:bg-white/20"></div>
+                            <h2 className="text-3xl lg:text-5xl font-bold mb-6 relative z-10 uppercase tracking-tight">{t('welcome.final_cta.title')}</h2>
+                            <p className="text-cyan-50 text-lg lg:text-xl mb-12 max-w-2xl mx-auto opacity-90 relative z-10">
+                                {t('welcome.final_cta.desc')}
+                            </p>
+                            <div className="flex flex-col sm:flex-row justify-center gap-6 relative z-10">
+                                <button onClick={() => userProfile.isLoggedIn ? setViewState(ViewState.LIST) : setIsAuthModalOpen(true)} className="px-10 py-5 bg-white text-cyan-700 rounded-2xl font-bold text-lg hover:scale-105 transition-transform shadow-2xl uppercase tracking-widest animate-pulse hover:animate-none">
+                                    {t('welcome.final_cta.main_btn')}
+                                    <p className="text-[10px] font-normal mt-1 opacity-70 normal-case">{t('welcome.final_cta.btn_sub', { count: totalJobs })}</p>
+                                </button>
+                                <button className="px-10 py-5 bg-cyan-700/50 text-white border border-cyan-400/30 rounded-2xl font-bold text-lg hover:bg-cyan-700/70 transition-colors uppercase tracking-widest">
+                                    {t('welcome.final_cta.news_btn')}
+                                    <p className="text-[10px] font-normal mt-1 opacity-70 normal-case">{t('welcome.final_cta.news_sub')}</p>
+                                </button>
+                            </div>
+                        </footer>
                     </div>
                 </div>
             </div>
@@ -858,7 +1403,16 @@ export default function App() {
                                     <input
                                         type="text"
                                         value={searchTerm}
-                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        onChange={(e) => {
+                                            const term = e.target.value;
+                                            setSearchTerm(term);
+                                            if (term.trim()) {
+                                                performSearch(term);
+                                            } else {
+                                                // Clear search results when term is empty
+                                                setSearchResults([]);
+                                            }
+                                        }}
                                         onFocus={() => setShowFilters(true)}
                                         placeholder={viewState === ViewState.SAVED ? t('app.search_saved_placeholder') : t('app.search_placeholder')}
                                         className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none text-sm font-medium text-slate-900 dark:text-slate-200 placeholder:text-slate-500 transition-all"
@@ -912,8 +1466,16 @@ export default function App() {
                                                         </div>
                                                         <input type="range" min="5" max="100" step="5" value={filterMaxDistance} onChange={(e) => setFilterMaxDistance(parseInt(e.target.value))} disabled={!userProfile.isLoggedIn || !userProfile.address} className="w-full accent-cyan-500 cursor-pointer disabled:cursor-not-allowed bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full appearance-none" />
                                                     </div>
-                                                )}
-                                            </div>
+                                )}
+                                
+                                {/* Load More Indicator */}
+                                {loadingMore && hasMore && (
+                                    <div className="py-6 flex flex-col items-center justify-center text-slate-400">
+                                        <Activity className="animate-spin mb-2 text-cyan-500" size={20} />
+                                        <p className="text-sm">Načítám další nabídky...</p>
+                                    </div>
+                                )}
+                            </div>
                                         )}
                                     </div>
 
@@ -967,22 +1529,36 @@ export default function App() {
                         </div>
 
                         {/* Job List Container (Scrolls independently below fixed header) */}
-                        <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
-                            <div className="mb-4 flex items-center justify-between">
-                                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest">Nalezené pozice ({filteredJobs.length})</h3>
-                                {showFilters && (
-                                    <button onClick={() => setShowFilters(false)} className="text-xs text-cyan-500 hover:underline lg:hidden">
-                                        Skrýt filtry
-                                    </button>
-                                )}
-                            </div>
-
+                        <div ref={jobListRef} className="flex-1 overflow-y-auto custom-scrollbar p-4">
                             <div className="space-y-3">
                                 {isLoadingJobs ? (
                                     <div className="py-12 flex flex-col items-center justify-center text-slate-400">
                                         <Activity className="animate-spin mb-2 text-cyan-500" size={24} />
                                         <p className="text-sm">{t('app.searching')}</p>
                                     </div>
+                                ) : isSearching ? (
+                                    searchResults.length > 0 ? (
+                                        searchResults.map(job => (
+                                            <JobCard
+                                                key={job.id}
+                                                job={job}
+                                                isSelected={selectedJobId === job.id}
+                                                isSaved={savedJobIds.includes(job.id)}
+                                                onToggleSave={() => handleToggleSave(job.id)}
+                                                onClick={() => handleJobSelect(job.id)}
+                                                variant={theme}
+                                                userProfile={userProfile}
+                                            />
+                                        ))
+                                    ) : (
+                                        <div className="py-12 px-4 text-center text-slate-400 dark:text-slate-500 flex flex-col items-center">
+                                            <Search size={32} className="mb-4 opacity-50" />
+                                            <p className="font-bold mb-2">Žádné výsledky pro "{searchTerm}"</p>
+                                            <p className="text-xs opacity-75 max-w-[200px] mb-4">
+                                                Zkuste jiná klíčová slova
+                                            </p>
+                                        </div>
+                                    )
                                 ) : filteredJobs.length > 0 ? (
                                     filteredJobs.map(job => (
                                         <JobCard
@@ -1003,7 +1579,7 @@ export default function App() {
                                         <p className="text-xs opacity-75 max-w-[200px] mb-4">
                                             {t('app.try_adjust_filters')}
                                         </p>
-                                        {jobs.length === 0 && (
+                                        {totalCount === 0 && (
                                             <button
                                                 onClick={loadRealJobs}
                                                 className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
@@ -1292,6 +1868,14 @@ export default function App() {
                                                 }}
                                                 onResourceClick={(resource) => {
                                                     window.open(resource.url, '_blank');
+                                                }}
+                                                onShowMarketplace={() => {
+                                                    setViewState(ViewState.MARKETPLACE);
+                                                    setSelectedJobId(null);
+                                                }}
+                                                onShowProfile={() => {
+                                                    setViewState(ViewState.PROFILE);
+                                                    setSelectedJobId(null);
                                                 }}
                                             />
                                             <BullshitMeter metrics={selectedJob.noiseMetrics} variant={theme} />
