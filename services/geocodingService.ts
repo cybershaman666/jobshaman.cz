@@ -1,18 +1,6 @@
 
 import { supabase } from './supabaseClient';
 
-// Geocoding cache in database
-interface GeocodeCacheEntry {
-    id?: number;
-    address_normalized: string;
-    address_original: string;
-    lat: number;
-    lon: number;
-    country?: string;
-    cached_at: string;
-    created_at?: string;
-}
-
 // Static fallback cache for major cities (fastest entry point)
 const EU_CITIES_CACHE: Record<string, { lat: number, lon: number }> = {
     'praha': { lat: 50.0755, lon: 14.4378 },
