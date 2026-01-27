@@ -416,7 +416,70 @@ export function getCitiesForCountry(country: string): CityPassInfo[] {
   return CITY_PASSES.filter(p => p.country === country);
 }
 /**
- * Calculate JHI impact from transport costs
+ * Calculate complete JHI score accounting for salary, benefits, commute time and costs
+ * New formula is more balanced and accounts for work-life balance (commute time) too
+ * 
+ * Baseline JHI = 50 (average job)
+ * Adjustments:
+ * - Salary vs average (35000 CZK): (salary - 35000) / 35000 × 20 points
+ * - Benefits value: min(benefits / salary, 0.15) × 15 points
+ * - Commute time: -((minutes_per_week / 500) × 10) points
+ * - Transport costs: -(yearly_cost / salary × 10) points
+ * 
+ * @param monthlySalaryGross - Gross monthly salary in CZK
+ * @param monthlyBenefitsValue - Monthly value of benefits in CZK (stravenky, vzdělávání, etc)
+ * @param commutingDistanceKm - One-way commute distance in kilometers
+ * @param transportMode - User's preferred transport mode
+ * @param city - City for public transport pass lookup
+ * @param country - Country code for cost calculation
+ * @returns Complete JHI score (0-100, baseline 50)
+ */
+export function calculateCompleteJHIScore(
+  monthlySalaryGross: number,
+  monthlyBenefitsValue: number,
+  commutingDistanceKm: number,
+  transportMode: TransportMode,
+  city?: string,
+  country?: string
+): number {
+  const AVERAGE_SALARY = 35000; // CZK - baseline for comparison
+  const baselineJHI = 50;
+
+  // Get transport cost calculation
+  const transportCalc = calculateTransportCost(commutingDistanceKm, transportMode, city, country);
+  
+  // Calculate weekly commute time (round trip, 5 days/week)
+  const dailyCommuteMinutes = transportCalc.dailyTime;
+  const weeklyCommuteMinutes = dailyCommuteMinutes * 5;
+  const yearlyTransportCost = transportCalc.yearlyAnnualCost;
+
+  // 1. Salary adjustment (compared to average 35000 CZK)
+  const salaryRatio = monthlySalaryGross / AVERAGE_SALARY;
+  const salaryAdjustment = Math.round((salaryRatio - 1) * 20); // Max ±20 points
+  
+  // 2. Benefits adjustment (capped at 15% of salary, gives max 15 points)
+  const benefitsRatio = Math.min(monthlyBenefitsValue / monthlySalaryGross, 0.15);
+  const benefitsAdjustment = Math.round(benefitsRatio * 15); // Max 15 points
+  
+  // 3. Commute time adjustment (work-life balance impact)
+  // 500 minutes/week = 100 min/day = about 1.5 hours round trip (reference point = 0 impact)
+  // Less time = positive impact, more time = negative impact
+  const timeAdjustment = -Math.round((weeklyCommuteMinutes / 500) * 10); // Max ±10 points
+  
+  // 4. Transport cost adjustment
+  // Calculate as percent of annual salary
+  const costAsPercentOfSalary = (yearlyTransportCost / (monthlySalaryGross * 12)) * 100;
+  const costAdjustment = -Math.round(costAsPercentOfSalary * 0.1); // Reduced weight - Max ±10 points
+  
+  // Final JHI score
+  let totalJHI = baselineJHI + salaryAdjustment + benefitsAdjustment + timeAdjustment + costAdjustment;
+  
+  // Cap between 0 and 100
+  return Math.min(100, Math.max(0, Math.round(totalJHI)));
+}
+
+/**
+ * Calculate JHI impact from transport costs specifically
  * Properly accounts for actual user's preferred transport mode and benefits
  * 
  * @param monthlySalaryNet - Net monthly salary in CZK

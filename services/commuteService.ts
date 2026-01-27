@@ -8,6 +8,7 @@ import {
     detectCurrencyFromLocation
 } from './financialService';
 import { geocodeWithCaching, getStaticCoordinates } from './geocodingService';
+import { calculateCompleteJHIScore } from './transportService';
 
 // --- UTILITIES ---
 
@@ -209,6 +210,234 @@ const getMonthlyPublicTransportCost = (countryCode: keyof typeof MONTHLY_PUBLIC_
     return baseCost * EXCHANGE_RATES_TO_CZK.EUR;
 };
 
+/**
+ * Calculate PSYCHIKA (Mental Health) dimension of JHI
+ * Accounts for: commute stress, shift work, overtime risk, work intensity
+ * Baseline = 50, range 0-100
+ */
+export const calculateMentalHealthScore = (job: Job, distanceKm: number, timeMinutesPerDay: number): number => {
+    let score = 50; // Baseline
+    const desc = (job.description || "").toLowerCase();
+
+    // 1. Commute stress penalty
+    if (distanceKm > 50) {
+        score -= 15; // Long commute is very stressful
+    } else if (distanceKm > 30) {
+        score -= 10;
+    } else if (distanceKm > 15) {
+        score -= 5;
+    }
+    
+    // 2. Daily time penalty
+    if (timeMinutesPerDay > 180) {
+        score -= 8; // Over 3 hours daily
+    } else if (timeMinutesPerDay > 120) {
+        score -= 5; // Over 2 hours daily
+    }
+
+    // 3. Shift work penalties
+    if (desc.includes('3-směnný') || desc.includes('třísměnný') || desc.includes('24/7')) {
+        score -= 15; // Very stressful
+    } else if (desc.includes('směny') || desc.includes('nočn') || desc.includes('víkend')) {
+        score -= 10; // Weekend/night work
+    }
+
+    // 4. Overtime risk
+    if (desc.includes('přesčas') || desc.includes('nadčas') || desc.includes('podle potřeb')) {
+        score -= 8;
+    }
+
+    // 5. Intensity & stress indicators
+    if (desc.includes('dynamick') || desc.includes('nástupný') || desc.includes('ambiciózn')) {
+        score -= 5; // High intensity
+    }
+
+    // 6. Positive indicators
+    if (desc.includes('home office') || desc.includes('práce z domu') || desc.includes('remote')) {
+        score += 12; // Very positive for mental health
+    }
+    if (desc.includes('flexibiln') || desc.includes('volné chvíle')) {
+        score += 8;
+    }
+    if (desc.includes('přátelský') || desc.includes('rodinná atmosféra') || desc.includes('tým')) {
+        score += 5;
+    }
+
+    return Math.max(0, Math.min(100, Math.round(score)));
+};
+
+/**
+ * Calculate GROWTH (Career Development) dimension of JHI
+ * Accounts for: position level, learning opportunities, advancement potential
+ * Baseline = 50, range 0-100
+ */
+export const calculateGrowthScore = (job: Job, salary: number): number => {
+    let score = 50; // Baseline
+    const title = (job.title || "").toLowerCase();
+    const desc = (job.description || "").toLowerCase();
+
+    // 1. Position level & growth potential
+    if (title.includes('junior') || title.includes('asistent') || title.includes('trainee')) {
+        score += 15; // High growth potential for junior positions
+    } else if (title.includes('vedoucí') || title.includes('vedúci') || title.includes('manager') || title.includes('vedení')) {
+        score -= 5; // Management has less upside (harder to go higher)
+    } else if (title.includes('generální ředitel') || title.includes('generální manažer') || title.includes('ceo')) {
+        score -= 15; // C-level has minimal growth potential
+    } else if (title.includes('senior') || title.includes('specialista')) {
+        score += 5; // Some growth potential to management
+    }
+
+    // 2. Learning & development
+    if (desc.includes('školení') || desc.includes('kurz') || desc.includes('vzdělávání') || desc.includes('rozvoj')) {
+        score += 12;
+    }
+    if (desc.includes('mentoring') || desc.includes('coaching') || desc.includes('mentoren')) {
+        score += 8;
+    }
+
+    // 3. Skill progression
+    if (desc.includes('nové technologi') || desc.includes('inovativn') || desc.includes('moderní')) {
+        score += 8; // Exposure to new technologies = growth
+    }
+    if (desc.includes('mezinárodnìexperiential')) {
+        score += 5; // International exposure
+    }
+
+    // 4. Role stability & predictability (opposite of growth)
+    if (desc.includes('jednoduchá práce') || desc.includes('rutinní') || title.includes('uklizečka') || title.includes('údržba')) {
+        score -= 12; // Limited growth potential
+    }
+
+    // 5. Salary as proxy for growth (higher salary often = more competitive/demanding)
+    if (salary > 100000) {
+        score += 5; // More advanced role
+    }
+
+    return Math.max(0, Math.min(100, Math.round(score)));
+};
+
+/**
+ * Calculate TIME (Work-Life Balance) dimension of JHI
+ * Accounts for: commute time, work hours, schedule flexibility, remote options
+ * Baseline = 50, range 0-100
+ */
+export const calculateTimeScore = (
+    job: Job,
+    distanceKm: number,
+    timeMinutesPerDay: number,
+    isRemote: boolean
+): number => {
+    let score = 50; // Baseline
+
+    // 1. Remote work bonus (biggest positive factor for time)
+    if (isRemote) {
+        score += 20; // Huge time savings
+    }
+
+    // 2. Commute time penalty (inverse - less is better)
+    const commuteHours = timeMinutesPerDay / 60;
+    if (commuteHours < 0.5) {
+        score += 8; // < 30 min = great
+    } else if (commuteHours < 1) {
+        score += 4; // < 60 min = ok
+    } else if (commuteHours > 2) {
+        score -= 15; // > 120 min = terrible
+    } else if (commuteHours > 1.5) {
+        score -= 10; // > 90 min = bad
+    }
+
+    // 3. Work hour expectations
+    const desc = (job.description || "").toLowerCase();
+    
+    if (desc.includes('8 hodin') || desc.includes('standardní') || desc.includes('9-17')) {
+        // Standard 8-hour day - neutral, already in baseline
+    } else if (desc.includes('12 hodin') || desc.includes('12h')) {
+        score -= 12; // Long shifts
+    } else if (desc.includes('10 hodin') || desc.includes('10h')) {
+        score -= 8; // Longer shifts
+    }
+
+    // 4. Schedule flexibility
+    if (desc.includes('flexibilní úprava') || desc.includes('gliding time') || desc.includes('flexibilní')) {
+        score += 10;
+    }
+    if (desc.includes('pružný rozvrh')) {
+        score += 8;
+    }
+
+    // 5. Vacation/time off
+    if (desc.includes('dovolená') && (desc.includes('25') || desc.includes('30') || desc.includes('více'))) {
+        score += 8; // Good vacation allowance
+    }
+
+    // 6. Negative time factors
+    if (desc.includes('na požádání') || desc.includes('podle potřeb')) {
+        score -= 8; // Unpredictable schedule
+    }
+
+    return Math.max(0, Math.min(100, Math.round(score)));
+};
+
+/**
+ * Calculate VALUES (Personal Values & Work-Life Integration) dimension of JHI
+ * Accounts for: work-life balance, family-friendly, meaning/purpose, industry alignment
+ * Baseline = 50, range 0-100
+ */
+export const calculateValuesScore = (job: Job, benefits: string[]): number => {
+    let score = 50; // Baseline
+    const desc = (job.description || "").toLowerCase();
+    const benefitStr = benefits.join(' ').toLowerCase();
+
+    // 1. Family-friendly indicators
+    if (desc.includes('rodina') || desc.includes('mateřství') || desc.includes('otcovství') || desc.includes('péče')) {
+        score += 12; // Family-focused
+    }
+    if (desc.includes('home office') || desc.includes('práce z domu')) {
+        score += 10; // Enables family time
+    }
+    if (desc.includes('flexibilní') || desc.includes('work-life')) {
+        score += 8;
+    }
+
+    // 2. Personal benefits supporting life balance
+    if (benefitStr.includes('pojiští') || benefitStr.includes('zdraví')) {
+        score += 5; // Health insurance
+    }
+    if (benefitStr.includes('penzij') || benefitStr.includes('spoření')) {
+        score += 5; // Retirement benefits
+    }
+    if (benefitStr.includes('pension') || benefitStr.includes('volný čas')) {
+        score += 5;
+    }
+    if (benefitStr.includes('příspěv') && (benefitStr.includes('sport') || benefitStr.includes('relax'))) {
+        score += 5; // Wellness benefits
+    }
+
+    // 3. Meaningful work (purpose-driven)
+    if (desc.includes('sociální') || desc.includes('zdravotnick') || desc.includes('charitativní') || 
+        desc.includes('vzdělávání') || desc.includes('věd') || desc.includes('životní prostředí')) {
+        score += 10; // Purpose-driven sectors
+    }
+
+    // 4. Negative indicators
+    if (desc.includes('vyžaduje') && desc.includes('víkend')) {
+        score -= 10; // Weekend work kills family time
+    }
+    if (desc.includes('nonstop') || desc.includes('24/7')) {
+        score -= 10;
+    }
+
+    // 5. Company culture indicators
+    if (desc.includes('startup') || desc.includes('startupová')) {
+        score -= 5; // Often means long hours, no work-life balance
+    }
+    if (desc.includes('stabiln') || desc.includes('zavedená')) {
+        score += 5; // Stable = better work-life balance
+    }
+
+    return Math.max(0, Math.min(100, Math.round(score)));
+};
+
 export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAnalysis | null => {
     if (!user.address) {
         return null;
@@ -356,31 +585,53 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
 
     const scoreAdjustment = calculateFinancialScoreAdjustment(net, grossMonthlySalary, benefitsValue, realMonthlyCost);
 
-    // 4. JHI Time Impact
-    let timePenalty = 0;
-    let remoteBonus = 0;
-
-    if (isRemote) {
-        // Positive impact for home office - saves time and money
-        remoteBonus = 5; // Base bonus for remote work
-        // Additional bonus based on potential commute savings
-        const potentialDailyCommute = (avoidedDistanceKm / SPEED_KMPH[mode]) * 2; // Round trip in hours
-        if (potentialDailyCommute > 1) {
-            remoteBonus += Math.min(3, Math.round(potentialDailyCommute * 2)); // Up to 3 extra points
-        }
-    } else if (distanceKm === -1 || isRelocation) {
-        timePenalty = 0;
-    } else {
-        timePenalty = Math.max(0, timeMinutes - user.preferences.commuteTolerance) * 1;
+    // 4. Calculate Complete JHI Score
+    // New formula accounts for: salary vs average, benefits, commute time, transport costs
+    // Baseline = 50 (average job)
+    let completeJhiScore = 50; // Default if cannot calculate
+    
+    // Convert monthly to gross salary for JHI calculation (approximate)
+    // We use the gross salary directly as passed in
+    const monthlyBenefitsForJhi = benefitsValue > 0 ? benefitsValue : 0;
+    const distanceForJhi = (isRemote || isRelocation || distanceKm === -1) ? 0 : distanceKm;
+    
+    try {
+        completeJhiScore = calculateCompleteJHIScore(
+            grossMonthlySalary || 35000, // Use average if no salary info
+            monthlyBenefitsForJhi,
+            distanceForJhi,
+            mode,
+            job.location,
+            getCountryCode(job.location, currency)
+        );
+    } catch (error) {
+        // Fallback to basic calculation if new formula fails
+        console.warn('JHI calculation failed, using fallback:', error);
+        completeJhiScore = 50 + scoreAdjustment;
     }
+    
+    // Bonus for remote work (work-life balance)
+    if (isRemote && completeJhiScore < 85) {
+        completeJhiScore = Math.min(85, completeJhiScore + 8);
+    }
+    
+    // Convert absolute score to impact (delta from baseline 50)
+    const jhiImpactDelta = completeJhiScore - 50;
 
-    const totalJhiImpact = Math.round(remoteBonus - timePenalty);
+    // Calculate individual JHI dimensions
+    const mentalScore = calculateMentalHealthScore(job, distanceForJhi, timeMinutes);
+    const growthScore = calculateGrowthScore(job, grossMonthlySalary);
+    const timeScore = calculateTimeScore(job, distanceForJhi, timeMinutes, isRemote);
+    const valuesScore = calculateValuesScore(job, job.benefits);
+    
+    // Financial score (already calculated above as completeJhiScore)
+    const financialScore = completeJhiScore;
 
     return {
         distanceKm,
         timeMinutes,
         monthlyCost: realMonthlyCost,
-        jhiImpact: totalJhiImpact,
+        jhiImpact: jhiImpactDelta,
         parkingWarning,
         isRelocation,
         financialReality: {
@@ -394,6 +645,15 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
             finalRealMonthlyValue,
             scoreAdjustment,
             isIco
+        },
+        // Add complete JHI breakdown with individual dimensions
+        jhi: {
+            score: Math.round((financialScore + timeScore + mentalScore + growthScore + valuesScore) / 5),
+            financial: financialScore,
+            timeCost: timeScore,
+            mentalLoad: mentalScore,
+            growth: growthScore,
+            values: valuesScore
         }
     };
 };
