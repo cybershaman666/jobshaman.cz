@@ -618,6 +618,14 @@ async def startup_event():
         print("❌ CRITICAL: Supabase not initialized - database unavailable!")
     else:
         print("✅ Supabase connection OK")
+        
+        # Check if CSRF sessions table exists
+        try:
+            supabase.table("csrf_sessions").select("id", count="exact").limit(1).execute()
+            print("✅ CSRF sessions table exists")
+        except Exception as e:
+            print(f"⚠️  WARNING: CSRF sessions table not found or not accessible: {e}")
+            print("   👉 Run this SQL in Supabase SQL Editor: database/CSRF_SESSIONS_TABLE.sql")
 
     # Check Stripe
     stripe_key = os.getenv("STRIPE_SECRET_KEY")

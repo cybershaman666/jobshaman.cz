@@ -459,7 +459,7 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
             // Apply road factor (usually ~1.3x air distance)
             distanceKm = Math.round(airDistance * 1.3);
 
-            if (distanceKm > 200) {
+            if (distanceKm > 150) {
                 isRelocation = true;
             }
         } else {
