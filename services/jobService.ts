@@ -508,6 +508,8 @@ const mapJobs = (data: any[]): Job[] => {
                 scrapedAt: scraped.scraped_at, // Safe mapping, even if undefined
                 source: scraped.source || 'Scraper',
                 url: scraped.url,
+                lat: scraped.lat ? parseFloat(String(scraped.lat)) : undefined,
+                lng: scraped.lng ? parseFloat(String(scraped.lng)) : undefined,
                 jhi: estimateJHI(scraped, salaryFrom),
                 noiseMetrics: estimateNoise(fullDesc),
                 transparency: {
