@@ -11,6 +11,24 @@ This guide explains how to deploy the JobShaman backend services to Render.io.
    - Resend (for email notifications)
    - Stripe (Secret Key for payment processing)
 
+## ⚠️ Critical: Initialize Supabase Database Schema
+
+**Before deploying to Render**, you MUST initialize the Supabase database schema:
+
+### 1. Create CSRF Sessions Table
+1. Go to [Supabase Dashboard](https://app.supabase.com)
+2. Select your project
+3. Click **SQL Editor** → **New Query**
+4. Copy and paste the contents of `database/CSRF_SESSIONS_TABLE.sql`
+5. Click **Run** ✅
+
+This creates the `csrf_sessions` table needed for CSRF token storage across multiple server instances.
+
+### 2. Create Other Required Tables (Optional but Recommended)
+If you haven't already, also run these in the SQL Editor:
+- `database/CRITICAL_FIXES_PHASE1.sql` - Payment webhook tracking and premium access logs
+- `database/ASSESSMENT_INVITATIONS.sql` - Assessment system tables
+
 ## Deployment Steps
 
 ### Option 1: Using Blueprint (Recommended)
