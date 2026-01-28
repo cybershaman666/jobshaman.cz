@@ -228,7 +228,45 @@ const formatDescription = (desc: string | null | undefined): string => {
                  .replace(/^ *\n+/, '')  // Remove leading newlines
                  .replace(/\n+ *$/, ''); // Remove trailing newlines
 
-    return clean.trim();
+    // Remove common footer/navigation noise aggressively but conservatively
+    const FOOTER_TOKENS = [
+        'nástup možný ihned', 'nabídky práce', 'zaměstnavatelé', 'brigády', 'absolventi', 'hledání dle firem',
+        'zkrácené úvazky', 'pro neziskovky', 'práce v zahraničí', 'inspirace', 'nové příležitosti', 'rozjezd podnikání',
+        'rozvoj kariéry', 'rady', 'jak napsat cv', 'porovnání platů', 'kalkulačky', 'přehled', 'uložené nabídky',
+        'upozornění na nabídky', 'historie odpovědí', 'vytvořit si životopis', 'hledám zaměstnance', 'vložit brigádu',
+        'ceník inzerce', 'napište nám', 'pro média', 'jobs.cz', 'profesia.sk', 'profesia.cz', 'prace.cz', 'práce za rohom',
+        'atmoskop', 'nelisa.com', 'teamio', 'seduo.cz', 'seduo.sk', 'platy.cz', 'platy.sk', 'paylab.com', 'cvonline.lt',
+        'cv.lv', 'cv.ee', 'dirbam.it', 'visidarbi.lv', 'otsintood.ee', 'personaloatrankos.lt', 'recruitment.lv',
+        'varbamisteenused.ee', 'mojposao', 'vrabotuvanje', 'hercul.hr', 'virtual valley', 'pulser', 'jobly.fi'
+    ].map(s => s.toLowerCase());
+
+    const lines = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    const filteredLines = lines.filter(line => {
+        const low = line.toLowerCase();
+
+        // Remove exact token matches or lines that contain known tokens
+        for (const tok of FOOTER_TOKENS) {
+            if (low === tok) return false;
+            if (low.includes(tok)) return false;
+        }
+
+        // Remove short domain-only or domain-heavy lines (likely footer links)
+        if (/\b[a-z0-9.-]+\.(cz|sk|com|pl|lt|lv|ee|it|hr|ba|fi)\b/i.test(line) && line.length < 80) {
+            return false;
+        }
+
+        // Remove lines that look like navigation lists (many short capitalized items)
+        const parts = line.split(/[\|,·•–-]/).map(p => p.trim()).filter(Boolean);
+        if (parts.length >= 4 && parts.every(p => p.length < 30)) return false;
+
+        // Remove very short lines that are likely UI labels
+        if (line.length < 30 && /^[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9].*/.test(line)) return false;
+
+        return true;
+    });
+
+    const final = filteredLines.join('\n\n').trim();
+    return final.length > 0 ? final : 'Popis není k dispozici.';
 };
 
 // --- ESTIMATORS ---
