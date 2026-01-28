@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Building, TrendingUp, Shield, Users, BrainCircuit, Target, Eye, Star, CheckCircle, Crown, Sparkles, BarChart, MessageSquare, Info, LogIn } from 'lucide-react';
 
 interface CompanyLandingPageProps {
@@ -19,49 +20,49 @@ interface PricingPlan {
 }
 
 const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onRequestDemo, onLogin }) => {
+  const { t } = useTranslation();
   const plans: PricingPlan[] = [
     {
-      name: 'Základní',
-      price: 'Zdarma',
+      name: t('company_landing.pricing.plans.basic.name'),
+      price: t('company_landing.pricing.always_free'),
       period: '',
-      description: 'Pro malé týmy a začátečníky',
+      description: t('company_landing.pricing.plans.basic.desc'),
       features: [
-        'Až 5 inzerátů měsíčně',
-        'Základní správa inzerátů',
-        'Emailová podpora',
-        'Základní statistiky',
-        'Žádné AI funkce'
+        t('company_landing.pricing.plans.basic.f1'),
+        t('company_landing.pricing.plans.basic.f2'),
+        t('company_landing.pricing.plans.basic.f3'),
+        t('company_landing.pricing.plans.basic.f4'),
+        t('company_landing.pricing.plans.basic.f5')
       ],
       highlighted: false
     },
     {
-      name: 'Business',
+      name: t('company_landing.pricing.plans.business.name'),
       price: '4 990 Kč',
       originalPrice: '9 990 Kč',
-      period: 'měsíc',
-      description: 'Pro rostoucí společnosti',
+      period: t('company_landing.pricing.period'),
+      description: t('company_landing.pricing.plans.business.desc'),
       features: [
-        'Neomezený počet inzerátů',
-        '10 AI assessmentů měsíčně',
-        'Doporučení vhodných kandidátů',
-        'AI optimalizace inzerátů',
-        'Prioritní podpora',
-        'Pokročilé statistiky',
-        'Branding firemního profilu'
+        t('company_landing.pricing.plans.business.f1'),
+        t('company_landing.pricing.plans.business.f2'),
+        t('company_landing.pricing.plans.business.f3'),
+        t('company_landing.pricing.plans.business.f4'),
+        t('company_landing.pricing.plans.business.f5')
       ],
       highlighted: true,
       isPromotional: true
     },
     {
-      name: 'Enterprise',
-      price: 'Na míru',
+      name: t('company_landing.pricing.plans.enterprise.name'),
+      price: t('company_landing.pricing.price_custom'),
       period: '',
-      description: 'Pro velké korporace',
+      description: t('company_landing.pricing.plans.enterprise.desc'),
       features: [
-        'Všechny Business funkce',
-        'Neomezené AI assessmenty',
-        'Integrace s ATS systémy',
-        'Dedikovaný account manager',
+        t('company_landing.pricing.plans.enterprise.f1'),
+        t('company_landing.pricing.plans.enterprise.f2'),
+        t('company_landing.pricing.plans.enterprise.f3'),
+        t('company_landing.pricing.plans.enterprise.f4'),
+        'Dedicated account manager',
         'SLA garance',
         'Vlastní branding',
         'API přístupy'
@@ -70,50 +71,44 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     }
   ];
 
-  const features = [
+  const featuresList = [
     {
       icon: BrainCircuit,
-      title: 'AI Assessment Center',
-      description: 'Inteligentní hodnocení kandidátů pomocí AI analýzy odpovědí, dovedností a kulturního fitu',
+      title: t('company_landing.features.assessment.title'),
+      description: t('company_landing.features.assessment.desc'),
       color: 'bg-blue-100 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400'
     },
     {
       icon: Target,
-      title: 'Analýza Kandidátů',
-      description: 'Detailní profiling kandidátů včetně analýzy rizik odchodu a kompatibilita s týmem',
+      title: t('company_landing.features.analysis.title'),
+      description: t('company_landing.features.analysis.desc'),
       color: 'bg-green-100 text-green-600 dark:bg-green-950/30 dark:text-green-400'
     },
     {
       icon: Sparkles,
-      title: 'AI Optimalizace Inzerátů',
-      description: 'Automatické vylepšení textu inzerátů pro maximální atraktivitu a dosažení kvalitnějších kandidátů',
+      title: t('company_landing.features.optimization.title'),
+      description: t('company_landing.features.optimization.desc'),
       color: 'bg-purple-100 text-purple-600 dark:bg-purple-950/30 dark:text-purple-400'
     },
     {
       icon: BarChart,
-      title: 'Pokročilá Analytics',
-      description: 'Detailní přehledy o efektivitě inzerátů, demografice kandidátů a náklady na nábor',
+      title: t('company_landing.features.analytics.title'),
+      description: t('company_landing.features.analytics.desc'),
       color: 'bg-orange-100 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400'
     },
     {
-      icon: BrainCircuit,
-      title: 'AI Assessment Centrum',
-      description: 'Podrobná analýza kandidátových schopností a dovedností. Ušetří až 2 kola pohovorů. Na míru pozici a zábavnou formou.',
-      color: 'bg-pink-100 text-pink-600 dark:bg-pink-950/30 dark:text-pink-400'
-    },
-    {
       icon: Shield,
-      title: 'Transparentnost a Fair Play',
-      description: 'Ověřování informací v inzerátech a eliminace klamavých praxí v náboru',
+      title: t('company_landing.features.transparent.title'),
+      description: t('company_landing.features.transparent.desc'),
       color: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400'
     }
   ];
 
-  const stats = [
-    { value: '75%', label: 'Méně času na screening' },
-    { value: '40%', label: 'Nižší náklady na nábor' },
-    { value: '3x', label: 'Rychlejší obsazení pozic' },
-    { value: '89%', label: 'Spokojenost firem' }
+  const statsList = [
+    { value: '75%', label: t('company_landing.stats.screening') },
+    { value: '40%', label: t('company_landing.stats.costs') },
+    { value: '3x', label: t('company_landing.stats.filling') },
+    { value: '89%', label: t('company_landing.stats.satisfaction') }
   ];
 
   const testimonials = [
@@ -149,7 +144,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
           className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-cyan-600 dark:hover:text-cyan-400 bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors shadow-sm"
         >
           <LogIn size={16} />
-          Přihlásit se
+          {t('company_landing.hero.login')}
         </button>
       </div>
       <div className="relative z-10 flex-1 flex flex-col items-center justify-start p-8 lg:p-16 w-full">
@@ -157,13 +152,13 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
           <div className="text-center mb-16">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-200/50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold mb-6 border border-slate-300/50 dark:border-slate-700">
               <Building size={12} />
-              AI-Powered Recruitment Platform
+              {t('company_landing.hero.badge')}
             </div>
             <h1 className="text-4xl md:text-6xl font-bold text-slate-900 dark:text-white mb-6 tracking-tight">
-              Najímejte nejlepší <span className="text-cyan-600 dark:text-cyan-400">Talenty</span> s AI
+              {t('company_landing.hero.title_start')} <span className="text-cyan-600 dark:text-cyan-400">{t('company_landing.hero.title_highlight')}</span> {t('company_landing.hero.title_end')}
             </h1>
             <p className="text-slate-600 dark:text-slate-300 text-lg md:text-xl leading-relaxed max-w-3xl mx-auto">
-              Moderní náborový platforma s AI analýzou kandidátů, Assessment Centrem a inteligentní optimalizací inzerátů. Přestaňte ztrácet čas s nevhodnými uchazeči.
+              {t('company_landing.hero.subtitle')}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button
@@ -171,21 +166,21 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                 className="flex items-center gap-2 text-sm font-bold text-white dark:text-slate-900 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-200 px-6 py-2.5 rounded-lg transition-colors"
               >
                 <Building size={18} />
-                Začít zdarma
+                {t('company_landing.hero.start_free')}
               </button>
               <button
                 onClick={onLogin}
                 className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-6 py-2.5 rounded-lg transition-colors border border-slate-300 dark:border-slate-600"
               >
                 <LogIn size={18} />
-                Přihlásit se
+                {t('company_landing.hero.login')}
               </button>
               <button
                 onClick={onRequestDemo}
                 className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-6 py-2.5 rounded-lg transition-colors border border-slate-300 dark:border-slate-600"
               >
                 <Eye size={18} />
-                Prohlédnout demo
+                {t('company_landing.hero.view_demo')}
               </button>
             </div>
           </div>
@@ -196,15 +191,15 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <TrendingUp size={24} className="text-emerald-500" />
-                  <h3 className="text-slate-900 dark:text-white font-bold text-lg">Výsledky v Číslech</h3>
+                  <h3 className="text-slate-900 dark:text-white font-bold text-lg">{t('company_landing.stats.title')}</h3>
                 </div>
                 <button className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded border border-slate-200 dark:border-slate-700 flex items-center gap-2">
                   <Info size={14} />
-                  Statistiky
+                  {t('company_landing.stats.badge')}
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-4">
-                {stats.map((stat, index) => (
+                {statsList.map((stat, index) => (
                   <div key={index} className="text-center p-4 bg-slate-50 dark:bg-slate-950 rounded-lg">
                     <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400 mb-1">
                       {stat.value}
@@ -221,11 +216,11 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-2">
                   <BrainCircuit size={24} className="text-purple-500" />
-                  <h3 className="text-slate-900 dark:text-white font-bold text-lg">AI Nástroje</h3>
+                  <h3 className="text-slate-900 dark:text-white font-bold text-lg">{t('company_landing.features.title')}</h3>
                 </div>
               </div>
               <div className="grid grid-cols-1 gap-4">
-                {features.slice(0, 3).map((feature, index) => (
+                {featuresList.slice(0, 3).map((feature, index) => (
                   <div key={index} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg">
                     <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${feature.color}`}>
                       <feature.icon className="w-5 h-5" />
@@ -249,11 +244,11 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <Shield size={24} className="text-indigo-500" />
-                <h3 className="text-slate-900 dark:text-white font-bold text-lg">Další Funkce</h3>
+                <h3 className="text-slate-900 dark:text-white font-bold text-lg">{t('company_landing.features.more_title')}</h3>
               </div>
             </div>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {features.slice(3).map((feature, index) => (
+              {featuresList.slice(3).map((feature, index) => (
                 <div key={index} className="p-4 bg-slate-50 dark:bg-slate-950 rounded-lg">
                   <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${feature.color}`}>
                     <feature.icon className="w-5 h-5" />
@@ -274,11 +269,11 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <Crown size={24} className="text-amber-500" />
-                <h3 className="text-slate-900 dark:text-white font-bold text-lg">Cenové Plány</h3>
+                <h3 className="text-slate-900 dark:text-white font-bold text-lg">{t('company_landing.pricing.title')}</h3>
               </div>
               <button className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded border border-slate-200 dark:border-slate-700 flex items-center gap-2">
                 <Info size={14} />
-                Cena
+                {t('company_landing.pricing.badge')}
               </button>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
@@ -289,11 +284,11 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                     ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 hover:border-emerald-300 dark:hover:border-emerald-700'
                     : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                   }`}>
-                  {plan.price === 'Zdarma' && (
+                  {plan.price === t('company_landing.pricing.always_free') && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       <div className="flex items-center gap-1 bg-emerald-600 text-white px-3 py-1 rounded-full text-xs font-bold">
                         <Star className="w-3 h-3" />
-                        Vždy zdarma
+                        {t('company_landing.pricing.always_free')}
                       </div>
                     </div>
                   )}
@@ -301,7 +296,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       <div className="flex items-center gap-1 bg-cyan-600 text-white px-3 py-1 rounded-full text-xs font-bold">
                         <Star className="w-3 h-3" />
-                        {plan.isPromotional ? 'Akční nabídka' : 'Nejlepší volba'}
+                        {plan.isPromotional ? t('company_landing.pricing.offer') : t('company_landing.pricing.best_choice')}
                       </div>
                     </div>
                   )}
@@ -316,7 +311,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                       {plan.isPromotional && (
                         <div className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-xs font-semibold mb-2">
                           <Sparkles size={12} />
-                          Zaváděcí sleva
+                          {t('company_landing.pricing.promo_discount')}
                         </div>
                       )}
                       <div className="space-y-1">
@@ -333,7 +328,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                           </div>
                         )}
                         <div className="flex items-baseline gap-2">
-                          <span className={`text-2xl font-bold ${plan.price === 'Zdarma'
+                          <span className={`text-2xl font-bold ${plan.price === t('company_landing.pricing.always_free')
                             ? 'text-emerald-600 dark:text-emerald-400'
                             : 'text-cyan-600 dark:text-cyan-400'
                             }`}>
@@ -348,12 +343,12 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                       </div>
                       {plan.isPromotional && (
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          * Startovací cena pro začátek projektu
+                          {t('company_landing.pricing.promo_hint')}
                         </p>
                       )}
-                      {plan.name === 'Business' && (
+                      {plan.name === t('company_landing.pricing.plans.business.name') && (
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          Každý další AI assessment: 99 Kč
+                          {t('company_landing.pricing.extra_assessment')}
                         </p>
                       )}
                     </div>
@@ -369,20 +364,20 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                     ))}
                     {plan.features.length > 4 && (
                       <li className="text-xs text-slate-500 dark:text-slate-400 text-center pt-1">
-                        +{plan.features.length - 4} dalších funkcí
+                        {t('company_landing.pricing.more_features', { count: plan.features.length - 4 })}
                       </li>
                     )}
                   </ul>
                   <button
-                    onClick={plan.name === 'Enterprise' ? onRequestDemo : onRegister}
-                    className={`w-full py-2.5 rounded-lg font-semibold transition-all text-sm ${plan.price === 'Zdarma'
+                    onClick={plan.name === t('company_landing.pricing.plans.enterprise.name') ? onRequestDemo : onRegister}
+                    className={`w-full py-2.5 rounded-lg font-semibold transition-all text-sm ${plan.price === t('company_landing.pricing.always_free')
                       ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
                       : plan.highlighted
                         ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
                         : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white'
                       }`}
                   >
-                    {plan.name === 'Enterprise' ? 'Kontakt' : plan.price === 'Zdarma' ? 'Začít zdarma' : 'Začít'}
+                    {plan.name === t('company_landing.pricing.plans.enterprise.name') ? t('company_landing.pricing.cta_contact') : plan.price === t('company_landing.pricing.always_free') ? t('company_landing.pricing.cta_start_free') : t('company_landing.pricing.cta_start')}
                   </button>
                 </div>
               ))}
@@ -394,7 +389,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <Users size={24} className="text-blue-500" />
-                <h3 className="text-slate-900 dark:text-white font-bold text-lg">Reference Firem</h3>
+                <h3 className="text-slate-900 dark:text-white font-bold text-lg">{t('company_landing.testimonials.title')}</h3>
               </div>
             </div>
             <div className="grid md:grid-cols-3 gap-6">
@@ -426,13 +421,13 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             <div className="text-center">
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-600/10 text-cyan-600 dark:text-cyan-400 text-xs font-semibold mb-4">
                 <Building size={12} />
-                Začněte hned
+                {t('company_landing.cta.badge')}
               </div>
               <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-                Připraveni <span className="text-cyan-600 dark:text-cyan-400">zlepšit</span> nábor?
+                {t('company_landing.cta.title_start')} <span className="text-cyan-600 dark:text-cyan-400">{t('company_landing.cta.title_highlight')}</span> {t('company_landing.cta.title_end')}
               </h3>
               <p className="text-slate-600 dark:text-slate-300 mb-6">
-                Přidejte se ke stovkám spokojených firem a najděte ty nejlepší talenty efektivněji.
+                {t('company_landing.cta.subtitle')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
@@ -440,21 +435,21 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                   className="flex items-center gap-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 px-6 py-2.5 rounded-lg transition-colors"
                 >
                   <Building size={18} />
-                  Registrovat firmu
+                  {t('company_landing.cta.register')}
                 </button>
                 <button
                   onClick={onLogin}
                   className="flex items-center gap-2 text-sm font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-6 py-2.5 rounded-lg transition-colors border border-slate-700"
                 >
                   <LogIn size={18} />
-                  Přihlásit se
+                  {t('company_landing.cta.login')}
                 </button>
                 <button
                   onClick={onRequestDemo}
                   className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-6 py-2.5 rounded-lg transition-colors border border-slate-300 dark:border-slate-600"
                 >
                   <MessageSquare size={18} />
-                  Domluvit demo
+                  {t('company_landing.cta.demo')}
                 </button>
               </div>
             </div>

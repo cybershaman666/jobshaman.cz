@@ -119,13 +119,13 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                 <span className="font-bold text-xs uppercase tracking-wider">JobShaman AI Node</span>
               </div>
               <p className="text-sm text-slate-700 dark:text-slate-200 font-medium mb-2">
-                Zpracovávám shodu kompetencí...
+                {t('apply.ai_processing')}
               </p>
               <div className="w-full bg-indigo-100 dark:bg-indigo-900/50 h-1.5 rounded-full mb-3 overflow-hidden">
                 <div className="h-full bg-indigo-500 w-2/3 animate-pulse shadow-[0_0_10px_#6366f1]"></div>
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-400">
-                Vyhodnocujeme vaši vhodnost na základě dovedností a hodnot, nejen klíčových slov. Pomáháme vám přeskočit první kolo pohovorů.
+                {t('apply.ai_evaluation_desc')}
               </p>
             </div>
           )}
@@ -222,7 +222,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
 
         {/* 2. Documents */}
         <div className="space-y-4">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">Životopis / CV</h3>
+          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">{t('apply.cv_section')}</h3>
           <div className={`
             border-2 border-dashed rounded-xl p-6 text-center transition-colors
             ${cvFile ? 'border-cyan-500/50 bg-cyan-50 dark:bg-cyan-500/5' : 'border-slate-300 dark:border-slate-700 hover:border-slate-500'}
@@ -257,7 +257,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
         {/* 3. Cover Letter */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">Motivační dopis</h3>
+            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">{t('apply.cover_letter')}</h3>
             <button
               onClick={() => setShowAiInput(!showAiInput)}
               className="text-xs flex items-center gap-1 text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 font-medium"
@@ -270,11 +270,11 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
           {/* AI Assistant Input */}
           {showAiInput && (
             <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg border border-purple-200 dark:border-purple-500/20 animate-in slide-in-from-top-2 mb-2">
-              <p className="text-xs text-purple-700 dark:text-purple-300 mb-2 font-semibold">Řekněte AI o svých zkušenostech:</p>
+              <p className="text-xs text-purple-700 dark:text-purple-300 mb-2 font-semibold">{t('apply.ai_prompt_label')}:</p>
               <textarea
                 value={aiPrompt}
                 onChange={(e) => setAiPrompt(e.target.value)}
-                placeholder="např. 5 let React, miluji migrace legacy systémů, zkušenost z medicínského SW..."
+                placeholder={t('apply.ai_prompt_placeholder')}
                 className="w-full p-2 text-sm border border-purple-300 dark:border-purple-500/30 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 mb-2 h-20 bg-white dark:bg-slate-900/80 text-slate-900 dark:text-white placeholder:text-slate-500"
               />
               <button
@@ -292,7 +292,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
             value={coverLetter}
             onChange={(e) => setCoverLetter(e.target.value)}
             className="w-full h-40 p-3 bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none text-sm leading-relaxed text-slate-800 dark:text-slate-200 placeholder:text-slate-500"
-            placeholder="Napište svůj motivační dopis sem..."
+            placeholder={t('apply.cover_letter_placeholder')}
           />
         </div>
 
@@ -304,15 +304,15 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h4 className="font-bold text-indigo-700 dark:text-indigo-300 text-sm">JobShaman AI Ověření Kompetencí</h4>
+                <h4 className="font-bold text-indigo-700 dark:text-indigo-300 text-sm">{t('apply.ai_assessment_title')}</h4>
                 <span className="px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 text-[10px] rounded font-bold uppercase border border-indigo-200 dark:border-indigo-500/30">Beta</span>
               </div>
               <p className="text-xs text-indigo-800 dark:text-indigo-200 mb-3 leading-relaxed opacity-80">
-                Tato společnost akceptuje ověřené hodnocení dovedností. Propojte svůj JobShaman profil a přeskočte úvodní technické kolo.
+                {t('apply.ai_assessment_desc')}
               </p>
               <button className="flex items-center gap-2 text-xs font-bold text-white bg-indigo-600 px-3 py-2 rounded-lg hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-900/50">
                 <LinkIcon size={12} />
-                Propojit profil hodnocení
+                {t('apply.connect_profile')}
               </button>
             </div>
           </div>

@@ -225,8 +225,8 @@ const formatDescription = (desc: string | null | undefined): string => {
 
     // Normalize whitespace and newlines - clean up excessive blank lines
     clean = clean.replace(/\n\s*\n\s*\n/g, '\n\n')
-                 .replace(/^ *\n+/, '')  // Remove leading newlines
-                 .replace(/\n+ *$/, ''); // Remove trailing newlines
+        .replace(/^ *\n+/, '')  // Remove leading newlines
+        .replace(/\n+ *$/, ''); // Remove trailing newlines
 
     // Remove common footer/navigation noise aggressively but conservatively
     const FOOTER_TOKENS = [
@@ -237,7 +237,10 @@ const formatDescription = (desc: string | null | undefined): string => {
         'ceník inzerce', 'napište nám', 'pro média', 'jobs.cz', 'profesia.sk', 'profesia.cz', 'prace.cz', 'práce za rohom',
         'atmoskop', 'nelisa.com', 'teamio', 'seduo.cz', 'seduo.sk', 'platy.cz', 'platy.sk', 'paylab.com', 'cvonline.lt',
         'cv.lv', 'cv.ee', 'dirbam.it', 'visidarbi.lv', 'otsintood.ee', 'personaloatrankos.lt', 'recruitment.lv',
-        'varbamisteenused.ee', 'mojposao', 'vrabotuvanje', 'hercul.hr', 'virtual valley', 'pulser', 'jobly.fi'
+        'varbamisteenused.ee', 'mojposao', 'vrabotuvanje', 'hercul.hr', 'virtual valley', 'pulser', 'jobly.fi',
+        // Specifické tokeny z footeru "jen práce" portálu
+        'about eaton', 'awards', 'eaton\'s sustainability 2030 targets', 'nahlásit nezákonný obsah',
+        'nastavení cookies', 'transparentnost', 'reklama na portálech alma career'
     ].map(s => s.toLowerCase());
 
     const lines = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
@@ -343,25 +346,25 @@ const transformJob = (scrapedJob: any): Job => {
     const salaryFrom = safeParseInt(scrapedJob.salary_from);
     const salaryTo = safeParseInt(scrapedJob.salary_to);
     const salaryRange = salaryFrom && salaryTo ? `${salaryFrom.toLocaleString('cs-CZ')} - ${salaryTo.toLocaleString('cs-CZ')} Kč` :
-                       salaryFrom ? `od ${salaryFrom.toLocaleString('cs-CZ')} Kč` : 
-                       salaryTo ? `až ${salaryTo.toLocaleString('cs-CZ')} Kč` : 'Mzda neuvedena';
-    
+        salaryFrom ? `od ${salaryFrom.toLocaleString('cs-CZ')} Kč` :
+            salaryTo ? `až ${salaryTo.toLocaleString('cs-CZ')} Kč` : 'Mzda neuvedena';
+
     // Extract contract type and work type from raw fields
     const jobType = scrapedJob.contract_type || scrapedJob.type || 'Neuvedeno';
-    
+
     // Parse benefits robustly
     const benefits = parseBenefits(scrapedJob.benefits);
-    
+
     // Extract location with fallback
     const locationString = scrapedJob.location || 'Lokace neuvedena';
-    
+
     // Generate tags based on benefits and keywords
     const uniqueTags = benefits.length > 0 ? [...benefits] : [];
     if (scrapedJob.work_type) uniqueTags.push(scrapedJob.work_type);
     if (scrapedJob.education_level) uniqueTags.push(scrapedJob.education_level);
 
     const fullDesc = scrapedJob.description || 'Popis pozice není k dispozici.';
-    
+
     return {
         id: String(scrapedJob.id),
         title: scrapedJob.title || (scrapedJob.company ? `${scrapedJob.company} - Pozice` : 'Pozice bez názvu'),
@@ -439,7 +442,7 @@ export const fetchJobsPaginated = async (
         // If user coordinates provided AND both lat/lng are defined, use spatial query
         if (userLat !== undefined && userLng !== undefined && userLat !== null && userLng !== null) {
             console.log(`🗺️  Using spatial search for location: ${userLat}, ${userLng}, radius: ${radiusKm}km`);
-            
+
             const { data, error } = await supabase
                 .rpc('search_jobs_minimal', {
                     user_lat: userLat,
@@ -480,7 +483,7 @@ export const fetchJobsPaginated = async (
                     lat: row.lat,
                     lng: row.lng
                 });
-                
+
                 // Add distance information
                 (job as any).distance_km = row.distance_km;
                 return job;
@@ -521,7 +524,7 @@ const fetchJobsPaginatedFallback = async (
     try {
         // Get total count first
         const totalCount = await getJobCount();
-        
+
         const from = page * pageSize;
         const to = from + pageSize - 1;
 
@@ -547,7 +550,7 @@ const fetchJobsPaginatedFallback = async (
             // Calculate distance if coordinates provided
             if (userLat && userLng && job.lat && job.lng) {
                 (transformed as any).distance_km = calculateDistanceKm(
-                    userLat, userLng, 
+                    userLat, userLng,
                     job.lat as number, job.lng as number
                 );
             }
@@ -571,42 +574,40 @@ const fetchJobsPaginatedFallback = async (
 
 export const searchJobs = async (
     searchTerm: string,
-    limit: number = 100
-): Promise<Job[]> => {
+    page: number = 0,
+    pageSize: number = 20
+): Promise<{ jobs: Job[], hasMore: boolean }> => {
     if (!isSupabaseConfigured() || !supabase || !searchTerm.trim()) {
-        return [];
+        return { jobs: [], hasMore: false };
     }
 
     try {
-        // Use text search for better performance
-        console.log(`🔍 Searching for: "${searchTerm}"`);
+        console.log(`🔍 Searching for: "${searchTerm}" (page ${page})`);
+        const from = page * pageSize;
+        const to = from + pageSize;
+
         const { data, error } = await supabase
             .from('jobs')
             .select('*')
             .or(`title.ilike.%${searchTerm}%,company.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%`)
             .order('scraped_at', { ascending: false })
-            .limit(limit);
+            .range(from, to);
 
         if (error) {
             console.error("❌ Error searching jobs:", error);
-            return [];
+            return { jobs: [], hasMore: false };
         }
 
-        if (!data || data.length === 0) {
-            console.log(`❌ No jobs found for "${searchTerm}"`);
-            return [];
-        }
+        const hasMore = data.length > pageSize;
+        const rawJobs = hasMore ? data.slice(0, pageSize) : data;
 
-        console.log(`✅ Found ${data.length} raw results for "${searchTerm}"`);
-        const allJobs = mapJobs(data);
+        const allJobs = mapJobs(rawJobs);
         const validJobs = filterJobsByQuality(allJobs);
-        console.log(`✅ After quality filter: ${validJobs.length} valid jobs`);
-        
-        return validJobs;
 
+        return { jobs: validJobs, hasMore };
     } catch (e) {
         console.error("Error in searchJobs:", e);
-        return [];
+        return { jobs: [], hasMore: false };
     }
 };
 
@@ -626,7 +627,7 @@ export const searchJobsByLocation = async (
 
     try {
         console.log(`🏙️  Searching jobs by location text: "${locationText}"`);
-        
+
         const from = page * pageSize;
         const to = from + pageSize - 1;
 
@@ -942,7 +943,7 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
  */
 export const isValidJobPosting = (job: Job): boolean => {
     // Check title - filter out "Neznámá pozice" (Unknown position)
-    if (!job.title || 
+    if (!job.title ||
         job.title.toLowerCase().includes('neznámá pozice') ||
         job.title.toLowerCase().includes('unknown position') ||
         job.title.trim().length === 0) {
@@ -950,7 +951,7 @@ export const isValidJobPosting = (job: Job): boolean => {
     }
 
     // Check location - filter out "neznámá lokalita" (Unknown location)
-    if (!job.location || 
+    if (!job.location ||
         job.location.toLowerCase().includes('neznámá lokalita') ||
         job.location.toLowerCase().includes('unknown location') ||
         job.location.toLowerCase().includes('nepřesná lokalita') ||
@@ -960,7 +961,7 @@ export const isValidJobPosting = (job: Job): boolean => {
     }
 
     // Check description exists and has minimum length (500 characters)
-    if (!job.description || 
+    if (!job.description ||
         typeof job.description !== 'string' ||
         job.description.trim().length < 500) {
         return false;

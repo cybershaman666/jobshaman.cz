@@ -28,6 +28,7 @@ import MyInvitations from './MyInvitations';
 import TransportModeSelector from './TransportModeSelector';
 import SavedJobsPage from './SavedJobsPage';
 
+import { useTranslation } from 'react-i18next';
 
 interface ProfileEditorProps {
   profile: UserProfile;
@@ -41,10 +42,10 @@ interface ProfileEditorProps {
   selectedJobId?: string | null;
 }
 
-const ProfileEditor: React.FC<ProfileEditorProps> = ({ 
-  profile, 
-  onChange, 
-  onSave, 
+const ProfileEditor: React.FC<ProfileEditorProps> = ({
+  profile,
+  onChange,
+  onSave,
   onRefreshProfile,
   savedJobs = [],
   savedJobIds = [],
@@ -52,6 +53,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   onJobSelect,
   selectedJobId
 }) => {
+  const { t } = useTranslation();
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isUploadingCV, setIsUploadingCV] = useState(false);
   const [editingSection, setEditingSection] = useState<string | null>(null);
@@ -91,12 +93,12 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     if (isUploadingPhoto) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Prosím nahrávejte pouze obrázky.');
+      alert(t('profile.photo_type_error'));
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('Obrázek je příliš velký. Maximální velikost je 5MB.');
+      alert(t('profile.photo_size_error'));
       return;
     }
 
@@ -107,11 +109,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
       if (photoUrl) {
         onChange({ ...profile, photo: photoUrl });
-        alert('Fotka úspěšně nahrána!');
+        alert(t('profile.photo_upload_success'));
       }
     } catch (error) {
       console.error('Photo upload failed:', error);
-      alert('Nepodařilo se nahrát fotku. Zkuste to znovu.');
+      alert(t('profile.photo_upload_error'));
     } finally {
       setIsUploadingPhoto(false);
       if (photoInputRef.current) {
@@ -128,12 +130,12 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     if (isUploadingCV) return;
 
     if (!file.type.match(/(pdf|doc|docx)/)) {
-      alert('Prosím nahrávejte pouze PDF, DOC nebo DOCX soubory.');
+      alert(t('profile.cv_type_error'));
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) {
-      alert('Soubor je příliš velký. Maximální velikost je 10MB.');
+      alert(t('profile.cv_size_error'));
       return;
     }
 
@@ -152,11 +154,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           }
         }, 2000);
 
-        alert('CV úspěšně nahráno a zpracováno!');
+        alert(t('profile.cv_upload_success'));
       }
     } catch (error) {
       console.error('CV upload failed:', error);
-      alert('Nepodařilo se nahrát CV. Zkuste to znovu.');
+      alert(t('profile.cv_upload_error'));
     } finally {
       setIsUploadingCV(false);
       if (cvInputRef.current) {
@@ -275,7 +277,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
   // Skills handlers
   const handleAddSkill = () => {
-    const newSkill = prompt('Přidejte novou dovednost:');
+    const newSkill = prompt(t('profile.add_skill_prompt'));
     if (newSkill && newSkill.trim()) {
       const updatedSkills = [...formData.skills, newSkill.trim()];
       const newFormData = { ...formData, skills: updatedSkills };
@@ -325,10 +327,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
               <div>
                 <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {profile.name || 'Vaše jméno'}
+                  {profile.name || t('profile.placeholder_name')}
                 </h1>
                 <p className="text-slate-600 dark:text-slate-400">
-                  {profile.jobTitle || 'Vaše pracovní pozice'}
+                  {profile.jobTitle || t('profile.placeholder_job')}
                 </p>
               </div>
             </div>
@@ -338,7 +340,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium flex items-center gap-2 shadow-lg"
             >
               <Save size={18} />
-              Uložit profil
+              {t('profile.save_profile')}
             </button>
           </div>
         </div>
@@ -348,25 +350,23 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           <div className="flex gap-1">
             <button
               onClick={() => setActiveTab('profile')}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
-                activeTab === 'profile'
-                  ? 'bg-cyan-600 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
-              }`}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${activeTab === 'profile'
+                ? 'bg-cyan-600 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
             >
               <User className="w-4 h-4" />
-              <span>Profil</span>
+              <span>{t('profile.title')}</span>
             </button>
             <button
               onClick={() => setActiveTab('saved')}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
-                activeTab === 'saved'
-                  ? 'bg-cyan-600 text-white shadow-md'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
-              }`}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${activeTab === 'saved'
+                ? 'bg-cyan-600 text-white shadow-md'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
             >
               <Bookmark className="w-4 h-4" />
-              <span>Uložené ({savedJobs.length})</span>
+              <span>{t('profile.saved_jobs', { count: savedJobs.length })}</span>
             </button>
           </div>
         </div>
@@ -387,535 +387,535 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             )}
 
             {/* Personal Information Section */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                  <User className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                      <User className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.personal_info')}</h2>
+                  </div>
+                  <button
+                    onClick={() => setEditingSection(editingSection === 'personal' ? null : 'personal')}
+                    className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
+                  >
+                    <Edit size={16} />
+                  </button>
                 </div>
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Osobní údaje</h2>
               </div>
-              <button
-                onClick={() => setEditingSection(editingSection === 'personal' ? null : 'personal')}
-                className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
-              >
-                <Edit size={16} />
-              </button>
+
+              <div className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.full_name')}</label>
+                    <input
+                      type="text"
+                      value={formData.personal.name}
+                      onChange={(e) => handlePersonalInfoChange('name', e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.job_title')}</label>
+                    <input
+                      type="text"
+                      value={formData.personal.jobTitle}
+                      onChange={(e) => handlePersonalInfoChange('jobTitle', e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.email')}</label>
+                    <input
+                      type="email"
+                      value={formData.personal.email}
+                      onChange={(e) => handlePersonalInfoChange('email', e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.phone')}</label>
+                    <input
+                      type="tel"
+                      value={formData.personal.phone}
+                      onChange={(e) => handlePersonalInfoChange('phone', e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-6">
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.address')}</label>
+                  <input
+                    type="text"
+                    value={formData.personal.address}
+                    onChange={(e) => handlePersonalInfoChange('address', e.target.value)}
+                    className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white ${addressVerificationStatus === 'success' ? 'border-emerald-500 pr-12' :
+                      addressVerificationStatus === 'error' ? 'border-rose-500' :
+                        'border-slate-300 dark:border-slate-600'
+                      }`}
+                    placeholder={t('profile.address_placeholder')}
+                  />
+                  <div className="flex items-center gap-2 mt-2">
+                    <button
+                      onClick={handleVerifyAddress}
+                      disabled={isVerifyingAddress || !formData.personal.address}
+                      className={`text-xs px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${addressVerificationStatus === 'success'
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                        }`}
+                    >
+                      {isVerifyingAddress ? (
+                        <>
+                          <span className="animate-spin">⌛</span> {t('profile.verifying')}
+                        </>
+                      ) : addressVerificationStatus === 'success' ? (
+                        <>
+                          <CheckCircle size={14} /> {t('profile.address_verified')}
+                        </>
+                      ) : (
+                        <>
+                          <MapPin size={14} /> {t('profile.verify_address')}
+                        </>
+                      )}
+                    </button>
+
+                    {addressVerificationStatus === 'error' && (
+                      <span className="text-xs text-rose-500 flex items-center gap-1">
+                        <AlertCircle size={12} /> {t('profile.verification_failed')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.linkedin')}</label>
+                    <div className="relative">
+                      <Link className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                      <input
+                        type="url"
+                        value={formData.personal.linkedIn}
+                        onChange={(e) => handlePersonalInfoChange('linkedIn', e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                        placeholder={t('profile.linkedin_placeholder')}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.portfolio')}</label>
+                    <div className="relative">
+                      <ExternalLink className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                      <input
+                        type="url"
+                        value={formData.personal.portfolio}
+                        onChange={(e) => handlePersonalInfoChange('portfolio', e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                        placeholder={t('profile.portfolio_placeholder')}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.github')}</label>
+                    <div className="relative">
+                      <Link className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                      <input
+                        type="url"
+                        value={formData.personal.github}
+                        onChange={(e) => handlePersonalInfoChange('github', e.target.value)}
+                        className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                        placeholder={t('profile.github_placeholder')}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
 
-          <div className="p-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Celé jméno</label>
-                <input
-                  type="text"
-                  value={formData.personal.name}
-                  onChange={(e) => handlePersonalInfoChange('name', e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                />
+            {/* Transport Mode Section */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                      <MapPin className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.transport_pref')}</h2>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Pracovní pozice</label>
-                <input
-                  type="text"
-                  value={formData.personal.jobTitle}
-                  onChange={(e) => handlePersonalInfoChange('jobTitle', e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                />
-              </div>
-            </div>
+              <div className="p-6">
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  {t('profile.transport_desc')}
+                </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Email</label>
-                <input
-                  type="email"
-                  value={formData.personal.email}
-                  onChange={(e) => handlePersonalInfoChange('email', e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Telefon</label>
-                <input
-                  type="tel"
-                  value={formData.personal.phone}
-                  onChange={(e) => handlePersonalInfoChange('phone', e.target.value)}
-                  className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                <TransportModeSelector
+                  selectedMode={profile.transportMode || 'public'}
+                  onModeChange={(mode: TransportMode) => onChange({ ...profile, transportMode: mode })}
+                  compact={true}
                 />
               </div>
             </div>
 
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Adresa</label>
-              <input
-                type="text"
-                value={formData.personal.address}
-                onChange={(e) => handlePersonalInfoChange('address', e.target.value)}
-                className={`w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white ${addressVerificationStatus === 'success' ? 'border-emerald-500 pr-12' :
-                  addressVerificationStatus === 'error' ? 'border-rose-500' :
-                    'border-slate-300 dark:border-slate-600'
-                  }`}
-                placeholder="Ulice, město, PSČ"
-              />
-              <div className="flex items-center gap-2 mt-2">
-                <button
-                  onClick={handleVerifyAddress}
-                  disabled={isVerifyingAddress || !formData.personal.address}
-                  className={`text-xs px-3 py-1.5 rounded-md flex items-center gap-1.5 transition-colors ${addressVerificationStatus === 'success'
-                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-                    }`}
-                >
-                  {isVerifyingAddress ? (
-                    <>
-                      <span className="animate-spin">⌛</span> Ověřuji...
-                    </>
-                  ) : addressVerificationStatus === 'success' ? (
-                    <>
-                      <CheckCircle size={14} /> Adresa ověřena
-                    </>
-                  ) : (
-                    <>
-                      <MapPin size={14} /> Ověřit adresu
-                    </>
-                  )}
-                </button>
+            {/* CV Upload Section */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                    <FileText className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.cv_section')}</h2>
+                </div>
+              </div>
 
-                {addressVerificationStatus === 'error' && (
-                  <span className="text-xs text-rose-500 flex items-center gap-1">
-                    <AlertCircle size={12} /> Nepodařilo se najít souřadnice
-                  </span>
+              <div className="p-6">
+                <input
+                  ref={cvInputRef}
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={handleCVUpload}
+                  className="hidden"
+                />
+
+                <div className={`w-full p-8 border-2 border-dashed rounded-lg transition-colors ${profile.cvUrl ? 'border-cyan-600 bg-cyan-50 dark:bg-cyan-900/20' : 'border-slate-300 hover:border-cyan-400'
+                  }`}>
+                  <div className="text-center">
+                    <FileText className={`w-12 h-12 mx-auto mb-4 ${profile.cvUrl ? 'text-cyan-600' : 'text-slate-400'}`} />
+
+                    {profile.cvUrl ? (
+                      <div>
+                        <p className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                          {t('profile.cv_uploaded')}
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                          {profile.cvText || t('profile.cv_analyze_ready')}
+                        </p>
+                        <button
+                          onClick={() => cvInputRef.current?.click()}
+                          disabled={isUploadingCV}
+                          className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors text-sm"
+                        >
+                          {t('profile.replace_cv')}
+                        </button>
+                      </div>
+                    ) : (
+                      <div>
+                        <p className="text-lg font-medium text-slate-900 dark:text-white mb-2">
+                          {t('profile.upload_cv')}
+                        </p>
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                          {t('profile.upload_cv_desc')}
+                        </p>
+                        <button
+                          onClick={() => cvInputRef.current?.click()}
+                          disabled={isUploadingCV}
+                          className={`px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium ${isUploadingCV ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                        >
+                          {isUploadingCV ? t('profile.uploading') : t('profile.select_cv_file')}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {profile.cvUrl && (
+                  <div className="mt-4 p-4 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg">
+                    <h4 className="font-medium text-cyan-900 dark:text-cyan-100 mb-2">{t('profile.cv_analysis_title')}</h4>
+                    <p className="text-sm text-cyan-700 dark:text-cyan-300">
+                      {t('profile.cv_analysis_desc')}
+                    </p>
+                  </div>
                 )}
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">LinkedIn</label>
-                <div className="relative">
-                  <Link className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <input
-                    type="url"
-                    value={formData.personal.linkedIn}
-                    onChange={(e) => handlePersonalInfoChange('linkedIn', e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                    placeholder="linkedin.com/in/jmeno-prijmeni"
-                  />
+            {/* Work Experience Section */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                      <Briefcase className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.experience')}</h2>
+                  </div>
+                  <button
+                    onClick={handleAddExperience}
+                    className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
+                  >
+                    <Plus size={16} />
+                  </button>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Portfolio</label>
-                <div className="relative">
-                  <ExternalLink className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <input
-                    type="url"
-                    value={formData.personal.portfolio}
-                    onChange={(e) => handlePersonalInfoChange('portfolio', e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                    placeholder="vasewebova.cz"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">GitHub</label>
-                <div className="relative">
-                  <Link className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <input
-                    type="url"
-                    value={formData.personal.github}
-                    onChange={(e) => handlePersonalInfoChange('github', e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                    placeholder="github.com/jmeno"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Transport Mode Section */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                  <MapPin className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-                </div>
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Preferovaná doprava</h2>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-6">
-            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-              Jak se radši dopravujete do práce? Tuto informaci budeme používat v "Finanční a dojezdové realitě" u každé pozice.
-            </p>
-
-            <TransportModeSelector
-              selectedMode={profile.transportMode || 'public'}
-              onModeChange={(mode: TransportMode) => onChange({ ...profile, transportMode: mode })}
-              compact={true}
-            />
-          </div>
-        </div>
-
-        {/* CV Upload Section */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                <FileText className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-              </div>
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Životopis (CV)</h2>
-            </div>
-          </div>
-
-          <div className="p-6">
-            <input
-              ref={cvInputRef}
-              type="file"
-              accept=".pdf,.doc,.docx"
-              onChange={handleCVUpload}
-              className="hidden"
-            />
-
-            <div className={`w-full p-8 border-2 border-dashed rounded-lg transition-colors ${profile.cvUrl ? 'border-cyan-600 bg-cyan-50 dark:bg-cyan-900/20' : 'border-slate-300 hover:border-cyan-400'
-              }`}>
-              <div className="text-center">
-                <FileText className={`w-12 h-12 mx-auto mb-4 ${profile.cvUrl ? 'text-cyan-600' : 'text-slate-400'}`} />
-
-                {profile.cvUrl ? (
-                  <div>
-                    <p className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                      CV nahráno
-                    </p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                      {profile.cvText || 'CV soubor je k dispozici pro analýzu'}
-                    </p>
+              <div className="p-6 space-y-4">
+                {formData.experience.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                    <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>{t('profile.no_experience')}</p>
                     <button
-                      onClick={() => cvInputRef.current?.click()}
-                      disabled={isUploadingCV}
-                      className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors text-sm"
+                      onClick={handleAddExperience}
+                      className="mt-4 text-cyan-600 hover:text-cyan-700 font-medium"
                     >
-                      Nahradit CV
+                      {t('profile.add_first_experience')}
+                    </button>
+                  </div>
+                ) : (
+                  formData.experience.map((experience) => (
+                    <div key={experience.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold text-slate-900 dark:text-white">
+                          {experience.role || t('profile.new_role')} {experience.company && `@ ${experience.company}`}
+                        </h3>
+                        <button
+                          onClick={() => handleRemoveExperience(experience.id)}
+                          className="text-red-500 hover:text-red-600 transition-colors"
+                          title={t('app.delete')}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.company')}</label>
+                          <input
+                            type="text"
+                            value={experience.company}
+                            onChange={(e) => handleUpdateExperience(experience.id, 'company', e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                            placeholder={t('profile.company_placeholder')}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.role')}</label>
+                          <input
+                            type="text"
+                            value={experience.role}
+                            onChange={(e) => handleUpdateExperience(experience.id, 'role', e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                            placeholder={t('profile.role_placeholder')}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.duration')}</label>
+                        <input
+                          type="text"
+                          value={experience.duration}
+                          onChange={(e) => handleUpdateExperience(experience.id, 'duration', e.target.value)}
+                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                          placeholder={t('profile.duration_placeholder')}
+                        />
+                      </div>
+
+                      <div className="mt-4">
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.description')}</label>
+                        <textarea
+                          value={experience.description}
+                          onChange={(e) => handleUpdateExperience(experience.id, 'description', e.target.value)}
+                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                          rows={3}
+                          placeholder={t('profile.description_placeholder')}
+                        />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Education Section */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                      <GraduationCap className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.education')}</h2>
+                  </div>
+                  <button
+                    onClick={handleAddEducation}
+                    className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {formData.education.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                    <GraduationCap className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>{t('profile.no_education')}</p>
+                    <button
+                      onClick={handleAddEducation}
+                      className="mt-4 text-cyan-600 hover:text-cyan-700 font-medium"
+                    >
+                      {t('profile.add_first_education')}
+                    </button>
+                  </div>
+                ) : (
+                  formData.education.map((edu) => (
+                    <div key={edu.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="font-semibold text-slate-900 dark:text-white">
+                          {edu.degree || t('profile.new_education')} {edu.school && `@ ${edu.school}`}
+                        </h3>
+                        <button
+                          onClick={() => handleRemoveEducation(edu.id)}
+                          className="text-red-500 hover:text-red-600 transition-colors"
+                          title={t('app.delete')}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.school')}</label>
+                          <input
+                            type="text"
+                            value={edu.school}
+                            onChange={(e) => handleUpdateEducation(edu.id, 'school', e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                            placeholder={t('profile.school_placeholder')}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.degree')}</label>
+                          <input
+                            type="text"
+                            value={edu.degree}
+                            onChange={(e) => handleUpdateEducation(edu.id, 'degree', e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                            placeholder={t('profile.degree_placeholder')}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.field')}</label>
+                          <input
+                            type="text"
+                            value={edu.field}
+                            onChange={(e) => handleUpdateEducation(edu.id, 'field', e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                            placeholder={t('profile.field_placeholder')}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.year')}</label>
+                          <input
+                            type="text"
+                            value={edu.year}
+                            onChange={(e) => handleUpdateEducation(edu.id, 'year', e.target.value)}
+                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                            placeholder={t('profile.year_placeholder')}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Skills Section */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                      <Award className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.skills')}</h2>
+                    <span className="bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-sm px-2 py-1 rounded-full">
+                      {t('profile.skills_count', { count: formData.skills.length })}
+                    </span>
+                  </div>
+                  <button
+                    onClick={handleAddSkill}
+                    className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6">
+                {formData.skills.length === 0 ? (
+                  <div className="text-center py-8 text-slate-500 dark:text-slate-400">
+                    <Award className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>{t('profile.no_skills')}</p>
+                    <p className="text-sm mt-2 mb-4">{t('profile.skills_key_desc')}</p>
+                    <button
+                      onClick={handleAddSkill}
+                      className="text-cyan-600 hover:text-cyan-700 font-medium"
+                    >
+                      {t('profile.add_first_skill')}
                     </button>
                   </div>
                 ) : (
                   <div>
-                    <p className="text-lg font-medium text-slate-900 dark:text-white mb-2">
-                      Nahrajte své CV
-                    </p>
-                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                      Nahrajte PDF, DOC nebo DOCX soubor (max. 10MB) pro automatickou analýzu dovedností a zkušeností
-                    </p>
-                    <button
-                      onClick={() => cvInputRef.current?.click()}
-                      disabled={isUploadingCV}
-                      className={`px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium ${isUploadingCV ? 'opacity-50 cursor-not-allowed' : ''
-                        }`}
-                    >
-                      {isUploadingCV ? 'Nahrávám...' : 'Vybrat soubor CV'}
-                    </button>
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {formData.skills.map((skill, index) => (
+                        <div key={index} className="group relative">
+                          <span className="inline-flex items-center px-3 py-1 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-300 text-sm rounded-full border border-cyan-200 dark:border-cyan-700">
+                            {skill}
+                            <button
+                              onClick={() => handleRemoveSkill(skill)}
+                              className="ml-2 text-cyan-600 hover:text-red-500 transition-colors"
+                              title={t('app.delete')}
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4">
+                      <h4 className="font-medium text-cyan-900 dark:text-cyan-100 mb-2">{t('profile.skills_importance_title')}</h4>
+                      <ul className="text-sm text-cyan-700 dark:text-cyan-300 space-y-1">
+                        <li>• {t('profile.skills_importance_1')}</li>
+                        <li>• {t('profile.skills_importance_2')}</li>
+                        <li>• {t('profile.skills_importance_3')}</li>
+                        <li>• {t('profile.skills_importance_4')}</li>
+                      </ul>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
-
-            {profile.cvUrl && (
-              <div className="mt-4 p-4 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg">
-                <h4 className="font-medium text-cyan-900 dark:text-cyan-100 mb-2">Automatická analýza CV</h4>
-                <p className="text-sm text-cyan-700 dark:text-cyan-300">
-                  Vaše CV bude automaticky zpracováno pro extrakci dovedností, zkušeností a vzdělání. Tato data nám pomohou lépe porovnat váš profil s požadavky pracovních pozic.
-                </p>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Work Experience Section */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                  <Briefcase className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-                </div>
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Pracovní zkušenosti</h2>
-              </div>
-              <button
-                onClick={handleAddExperience}
-                className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-          </div>
-
-          <div className="p-6 space-y-4">
-            {formData.experience.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                <Briefcase className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Zatím nemáte žádné pracovní zkušenosti</p>
-                <button
-                  onClick={handleAddExperience}
-                  className="mt-4 text-cyan-600 hover:text-cyan-700 font-medium"
-                >
-                  Přidat první zkušenost
-                </button>
-              </div>
-            ) : (
-              formData.experience.map((experience) => (
-                <div key={experience.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-slate-900 dark:text-white">
-                      {experience.role || 'Nová pozice'} {experience.company && `@ ${experience.company}`}
-                    </h3>
-                    <button
-                      onClick={() => handleRemoveExperience(experience.id)}
-                      className="text-red-500 hover:text-red-600 transition-colors"
-                      title="Smazat"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Společnost</label>
-                      <input
-                        type="text"
-                        value={experience.company}
-                        onChange={(e) => handleUpdateExperience(experience.id, 'company', e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                        placeholder="Název společnosti"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Pozice</label>
-                      <input
-                        type="text"
-                        value={experience.role}
-                        onChange={(e) => handleUpdateExperience(experience.id, 'role', e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                        placeholder="Název pozice"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Doba působení</label>
-                    <input
-                      type="text"
-                      value={experience.duration}
-                      onChange={(e) => handleUpdateExperience(experience.id, 'duration', e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                      placeholder="např. 2020 - 2022 (2 roky)"
-                    />
-                  </div>
-
-                  <div className="mt-4">
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Popis práce a úspěchy</label>
-                    <textarea
-                      value={experience.description}
-                      onChange={(e) => handleUpdateExperience(experience.id, 'description', e.target.value)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                      rows={3}
-                      placeholder="Popište své hlavní odpovědnosti a úspěchy..."
-                    />
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Education Section */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                  <GraduationCap className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-                </div>
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Vzdělání</h2>
-              </div>
-              <button
-                onClick={handleAddEducation}
-                className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-          </div>
-
-          <div className="p-6 space-y-4">
-            {formData.education.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                <GraduationCap className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Zatím nemáte žádné vzdělání</p>
-                <button
-                  onClick={handleAddEducation}
-                  className="mt-4 text-cyan-600 hover:text-cyan-700 font-medium"
-                >
-                  Přidat první vzdělání
-                </button>
-              </div>
-            ) : (
-              formData.education.map((edu) => (
-                <div key={edu.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-slate-900 dark:text-white">
-                      {edu.degree || 'Nové vzdělání'} {edu.school && `@ ${edu.school}`}
-                    </h3>
-                    <button
-                      onClick={() => handleRemoveEducation(edu.id)}
-                      className="text-red-500 hover:text-red-600 transition-colors"
-                      title="Smazat"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Škola / Univerzita</label>
-                      <input
-                        type="text"
-                        value={edu.school}
-                        onChange={(e) => handleUpdateEducation(edu.id, 'school', e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                        placeholder="Název instituce"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Stupeň / Titul</label>
-                      <input
-                        type="text"
-                        value={edu.degree}
-                        onChange={(e) => handleUpdateEducation(edu.id, 'degree', e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                        placeholder="např. Ing., Bc., Mgr."
-                      />
-                    </div>
-                  </div>
-
-                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Obor</label>
-                      <input
-                        type="text"
-                        value={edu.field}
-                        onChange={(e) => handleUpdateEducation(edu.id, 'field', e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                        placeholder="např. Informační technologie"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Rok ukončení</label>
-                      <input
-                        type="text"
-                        value={edu.year}
-                        onChange={(e) => handleUpdateEducation(edu.id, 'year', e.target.value)}
-                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                        placeholder="např. 2020"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Skills Section */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                  <Award className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-                </div>
-                <h2 className="text-xl font-semibold text-slate-900 dark:text-white">Dovednosti</h2>
-                <span className="bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 text-sm px-2 py-1 rounded-full">
-                  {formData.skills.length} dovedností
-                </span>
-              </div>
-              <button
-                onClick={handleAddSkill}
-                className="text-slate-500 hover:text-cyan-600 dark:text-slate-400 dark:hover:text-cyan-400 p-2 rounded-lg transition-colors"
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-          </div>
-
-          <div className="p-6">
-            {formData.skills.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 dark:text-slate-400">
-                <Award className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                <p>Zatím nemáte žádné dovednosti</p>
-                <p className="text-sm mt-2 mb-4">Dovednosti jsou klíčové pro porovnání s požadavky pracovních pozic</p>
-                <button
-                  onClick={handleAddSkill}
-                  className="text-cyan-600 hover:text-cyan-700 font-medium"
-                >
-                  Přidat první dovednost
-                </button>
-              </div>
-            ) : (
-              <div>
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {formData.skills.map((skill, index) => (
-                    <div key={index} className="group relative">
-                      <span className="inline-flex items-center px-3 py-1 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-800 dark:text-cyan-300 text-sm rounded-full border border-cyan-200 dark:border-cyan-700">
-                        {skill}
-                        <button
-                          onClick={() => handleRemoveSkill(skill)}
-                          className="ml-2 text-cyan-600 hover:text-red-500 transition-colors"
-                          title="Smazat"
-                        >
-                          <X size={14} />
-                        </button>
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4">
-                  <h4 className="font-medium text-cyan-900 dark:text-cyan-100 mb-2">Proč jsou dovednosti důležité?</h4>
-                  <ul className="text-sm text-cyan-700 dark:text-cyan-300 space-y-1">
-                    <li>• Umožňují automatické porovnání s požadavky pracovních pozic</li>
-                    <li>• Pomáhají doporučit relevantní kurzy pro váš rozvoj</li>
-                    <li>• Zvyšují vaši viditelnost pro personalisty</li>
-                    <li>• Umožňují personalizovaná doporučení</li>
-                  </ul>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
           </>
         ) : (
           <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
             <SavedJobsPage
               savedJobs={savedJobs}
               savedJobIds={savedJobIds}
-              onToggleSave={onToggleSave || (() => {})}
-              onJobSelect={onJobSelect || (() => {})}
+              onToggleSave={onToggleSave || (() => { })}
+              onJobSelect={onJobSelect || (() => { })}
               selectedJobId={selectedJobId || null}
               userProfile={profile}
               searchTerm=""
-              onSearchChange={() => {}}
+              onSearchChange={() => { }}
             />
           </div>
         )}

@@ -64,7 +64,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                             className="w-6 h-6 bg-transparent"
                         />
                     </div>
-                    <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight hidden sm:block">Job<span className="text-cyan-600 dark:text-cyan-400">Shaman</span></span>
+                    <span className="text-xl font-bold tracking-tight hidden sm:block"><span className="text-cyan-600 dark:text-cyan-400">JobShaman</span></span>
                 </div>
 
                 {/* Navigation */}
@@ -142,8 +142,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         </select>
                         <button
                             onClick={toggleTheme}
-                            className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors"
-                            title="Změnit režim"
+                            className="p-2 text-slate-500 hover:text-slate-900 dark:hover:white transition-colors"
+                            title={t('header.toggle_theme')}
                         >
                             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
                         </button>
@@ -161,7 +161,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 <button
                                     onClick={handleAuthAction}
                                     className="text-slate-400 hover:text-rose-500 transition-colors"
-                                    title="Odhlásit se"
+                                    title={t('header.logout')}
                                 >
                                     <LogOut size={20} />
                                 </button>

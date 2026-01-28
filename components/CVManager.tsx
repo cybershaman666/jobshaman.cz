@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { CVDocument } from '../types';
 import { getUserCVDocuments, updateUserCVSelection, deleteCVDocument, uploadCVDocument } from '../services/supabaseService';
 import { FileText, Download, Trash2, Check, Upload, Calendar } from 'lucide-react';
@@ -9,6 +10,7 @@ interface CVManagerProps {
 }
 
 const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
+  const { t } = useTranslation();
   const [cvs, setCvs] = useState<CVDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -35,12 +37,12 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
 
     // Validate file type
     if (!file.type.includes('pdf') && !file.name.toLowerCase().endsWith('.docx')) {
-      alert('Prosím nahrajte pouze PDF nebo DOCX soubory.');
+      alert(t('profile.cv_type_error'));
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      alert('Soubor je příliš velký. Maximální velikost je 10MB.');
+      alert(t('profile.cv_size_error'));
       return;
     }
 
@@ -52,11 +54,11 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
         if (onCVSelected) {
           onCVSelected(newCV);
         }
-        alert('CV úspěšně nahráno a nastaveno jako aktivní!');
+        alert(t('cv_manager.upload_success'));
       }
     } catch (error) {
       console.error('CV upload failed:', error);
-      alert('Nepodařilo se nahrát CV. Zkuste to znovu.');
+      alert(t('profile.cv_upload_error'));
     } finally {
       setUploading(false);
       if (event.target) {
@@ -81,7 +83,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
       }
     } catch (error) {
       console.error('Failed to select CV:', error);
-      alert('Nepodařilo se vybrat CV. Zkuste to znovu.');
+      alert(t('cv_manager.select_error'));
     }
   };
 
@@ -89,7 +91,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
     const cv = cvs.find(c => c.id === cvId);
     if (!cv) return;
 
-    if (!confirm(`Opravdu chcete smazat CV "${cv.originalName}"?`)) {
+    if (!confirm(t('cv_manager.delete_confirm', { name: cv.originalName }))) {
       return;
     }
 
@@ -97,11 +99,11 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
       const success = await deleteCVDocument(userId, cvId);
       if (success) {
         await loadCVs(); // Refresh list
-        alert('CV úspěšně smazáno.');
+        alert(t('cv_manager.delete_success'));
       }
     } catch (error) {
       console.error('Failed to delete CV:', error);
-      alert('Nepodařilo se smazat CV. Zkuste to znovu.');
+      alert(t('cv_manager.delete_error'));
     }
   };
 
@@ -128,7 +130,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
       <div className="p-6 bg-gray-50 rounded-lg">
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-3 text-gray-600">Načítání CV...</span>
+          <span className="ml-3 text-gray-600">{t('app.loading')}</span>
         </div>
       </div>
     );
@@ -137,10 +139,10 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
   return (
     <div className="p-6 bg-gray-50 rounded-lg">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">Správa životopisů</h3>
+        <h3 className="text-lg font-semibold text-gray-900">{t('cv_manager.title')}</h3>
         <label className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors">
           <Upload size={16} />
-          <span>Nahrát nové CV</span>
+          <span>{t('cv_manager.upload_new')}</span>
           <input
             type="file"
             accept=".pdf,.docx"
@@ -155,7 +157,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
         <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
           <div className="flex items-center">
             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-3"></div>
-            <span className="text-blue-700">Nahrávání CV...</span>
+            <span className="text-blue-700">{t('profile.uploading')}</span>
           </div>
         </div>
       )}
@@ -164,18 +166,17 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
         {cvs.length === 0 ? (
           <div className="text-center py-8 text-gray-500">
             <FileText size={48} className="mx-auto mb-4 text-gray-300" />
-            <p>Ještě nemáte nahrané žádné CV.</p>
-            <p className="text-sm">Nahrajte své první CV a začněte s hledáním práce.</p>
+            <p>{t('cv_manager.no_cvs')}</p>
+            <p className="text-sm">{t('cv_manager.first_cv_desc')}</p>
           </div>
         ) : (
           cvs.map((cv) => (
             <div
               key={cv.id}
-              className={`p-4 border rounded-lg transition-all ${
-                cv.isActive
-                  ? 'border-blue-500 bg-blue-50 shadow-sm'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
-              }`}
+              className={`p-4 border rounded-lg transition-all ${cv.isActive
+                ? 'border-blue-500 bg-blue-50 shadow-sm'
+                : 'border-gray-200 bg-white hover:border-gray-300'
+                }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
@@ -192,20 +193,22 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
                         {cv.isActive && (
                           <span className="flex items-center gap-1 text-green-600 font-medium">
                             <Check size={14} />
-                            Aktivní
+                            {t('cv_manager.active')}
                           </span>
                         )}
                       </div>
                     </div>
                   </div>
-                  
+
                   {cv.parsedData && (
                     <div className="mt-3 pt-3 border-t border-gray-200">
                       <div className="text-sm text-gray-600">
                         <span className="font-medium">
-                          {cv.parsedData.skills?.length || 0} dovedností,
-                          {cv.parsedData.workHistory?.length || 0} zkušeností,
-                          {cv.parsedData.education?.length || 0} vzdělání
+                          {t('cv_manager.stats', {
+                            skills: cv.parsedData.skills?.length || 0,
+                            exp: cv.parsedData.workHistory?.length || 0,
+                            edu: cv.parsedData.education?.length || 0
+                          })}
                         </span>
                       </div>
                     </div>
@@ -218,25 +221,25 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    title="Stáhnout CV"
+                    title={t('cv_manager.download')}
                   >
                     <Download size={16} />
                   </a>
-                  
+
                   {!cv.isActive && (
                     <button
                       onClick={() => handleSelectCV(cv.id)}
                       className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                      title="Nastavit jako aktivní"
+                      title={t('cv_manager.set_active')}
                     >
                       <Check size={16} />
                     </button>
                   )}
-                  
+
                   <button
                     onClick={() => handleDeleteCV(cv.id)}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                    title="Smazat CV"
+                    title={t('cv_manager.delete')}
                   >
                     <Trash2 size={16} />
                   </button>
@@ -250,8 +253,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
       {cvs.length > 0 && (
         <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
           <p className="text-sm text-yellow-800">
-            <strong>Tip:</strong> Aktivní CV bude použit při odpovídání na pracovní pozice. 
-            Můžete kdykoliv přepnout na jiné CV nebo smazat nepoužívané.
+            <strong>{t('cv_manager.tip_title')}</strong> {t('cv_manager.tip_desc')}
           </p>
         </div>
       )}

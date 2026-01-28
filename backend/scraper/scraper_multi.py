@@ -128,6 +128,47 @@ def scrape_page(url):
         return None
 
 
+# --- Filtrování footeru ---
+def filter_jenprace_footer(text):
+    """Filtruje znafitované prvky z footeru jen práce portálu"""
+    if not text:
+        return text
+    
+    # Specifické tokeny z footeru jen práce
+    footer_tokens = [
+        "about eaton",
+        "jobs",
+        "benefits",
+        "awards",
+        "eaton's sustainability 2030 targets",
+        "nahlásit nezákonný obsah",
+        "nastavení cookies",
+        "transparentnost",
+        "reklama na portálech alma career",
+        "zásady ochrany soukromí",
+        "podmínky používání",
+    ]
+    
+    lines = text.split("\n\n")
+    filtered_lines = []
+    
+    for line in lines:
+        low = line.lower().strip()
+        # Přeskočí řádky, které obsahují specifické tokeny footeru
+        if any(tok in low for tok in footer_tokens):
+            continue
+        # Přeskočí řádky, které vypadají na navigační seznamy
+        if len(line) < 100 and "\n" not in line:
+            # Pokud řádek obsahuje 4+ oddělené položky
+            parts = [p.strip() for p in line.replace("|", "\n").replace("-", "\n").split("\n")]
+            if len(parts) >= 3 and all(5 < len(p) < 50 for p in parts):
+                continue
+        filtered_lines.append(line)
+    
+    result = "\n\n".join(filtered_lines).strip()
+    return result if result else "Popis není dostupný"
+
+
 # --- Jobs.cz ---
 def scrape_jobs_cz(soup):
     jobs_saved = 0
@@ -448,6 +489,9 @@ def scrape_jenprace_cz(soup):
                 ]
                 if parts:
                     description = "\n\n".join(parts)
+            
+            # Filtrování footeru - odstranění znafitovaných prvků z footeru "jen práce"
+            description = filter_jenprace_footer(description)
             # Benefity
             blist = detail_soup.find("ul", {"data-cy": "offer-benefit-list"})
             if blist:

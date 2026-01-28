@@ -31,7 +31,7 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
         }
 
         const data = await response.json();
-        
+
         if (!data.csrf_token) {
             console.warn('No CSRF token in response');
             return null;
@@ -40,7 +40,7 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
         // Store token with expiry time
         setCsrfToken(data.csrf_token, data.expiry || 3600);
         console.log('✅ CSRF token obtained successfully');
-        
+
         return data.csrf_token;
     } catch (error) {
         console.error('Error fetching CSRF token:', error);
@@ -53,7 +53,7 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
  */
 export const setCsrfToken = (token: string, expiryInSeconds: number = 3600): void => {
     sessionStorage.setItem(CSRF_TOKEN_KEY, token);
-    
+
     // Store expiry time
     const expiryTime = Date.now() + (expiryInSeconds * 1000);
     sessionStorage.setItem(CSRF_TOKEN_EXPIRY_KEY, expiryTime.toString());
@@ -66,7 +66,7 @@ export const setCsrfToken = (token: string, expiryInSeconds: number = 3600): voi
 export const getCsrfToken = (): string | null => {
     const token = sessionStorage.getItem(CSRF_TOKEN_KEY);
     const expiryStr = sessionStorage.getItem(CSRF_TOKEN_EXPIRY_KEY);
-    
+
     if (!token || !expiryStr) {
         return null;
     }
@@ -106,7 +106,7 @@ export const getCsrfTokenTimeRemaining = (): number => {
 
     const expiryTime = parseInt(expiryStr, 10);
     const remaining = Math.max(0, (expiryTime - Date.now()) / 1000);
-    
+
     return Math.floor(remaining);
 };
 
@@ -115,7 +115,7 @@ export const getCsrfTokenTimeRemaining = (): number => {
  */
 export const refreshCsrfTokenIfNeeded = async (authToken: string): Promise<string | null> => {
     const timeRemaining = getCsrfTokenTimeRemaining();
-    
+
     // If less than 10 minutes remaining, refresh
     if (timeRemaining < 600) {
         console.log('🔄 Refreshing CSRF token...');
@@ -137,7 +137,7 @@ export const getCurrentAuthToken = async (): Promise<string | null> => {
         }
 
         const { data: { session }, error } = await supabase.auth.getSession();
-        
+
         if (error) {
             console.warn('⚠️ Failed to get session:', error);
             return null;
@@ -162,17 +162,17 @@ export const getCurrentAuthToken = async (): Promise<string | null> => {
 export const waitForSession = async (maxWaitMs: number = 5000): Promise<string | null> => {
     const startTime = Date.now();
     const pollInterval = 100; // Check every 100ms
-    
+
     while (Date.now() - startTime < maxWaitMs) {
         const token = await getCurrentAuthToken();
         if (token) {
             return token;
         }
-        
+
         // Wait before trying again
         await new Promise(resolve => setTimeout(resolve, pollInterval));
     }
-    
+
     // Timeout reached
     console.warn(`⚠️ Session not available after ${maxWaitMs}ms`);
     return null;
@@ -206,12 +206,12 @@ export const authenticatedFetch = async (
     } else {
         // First try to get token from Supabase session (the primary source)
         let token = await getCurrentAuthToken();
-        
+
         // Fallback to legacy localStorage key if Supabase doesn't have it
         if (!token) {
             token = localStorage.getItem('auth_token');
         }
-        
+
         if (token) {
             headers.set('Authorization', `Bearer ${token}`);
         } else {
@@ -221,7 +221,7 @@ export const authenticatedFetch = async (
 
     // Create abort controller for timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
 
     try {
         const response = await fetch(url, {

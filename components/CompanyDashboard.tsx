@@ -175,7 +175,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 reason: reason || 'Job posting limit exceeded'
             });
 
-            setShowUpgradeModal({ open: true, feature: 'Více než 5 inzerátů' });
+            setShowUpgradeModal({ open: true, feature: t('company_extra.features.more_than_5') });
             return;
         }
 
@@ -211,7 +211,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 reason: 'AI ad optimization feature access denied'
             });
 
-            setShowUpgradeModal({ open: true, feature: 'AI Optimalizace Inzerátů' });
+            setShowUpgradeModal({ open: true, feature: t('company_extra.features.ai_optimization') });
             return;
         }
 
@@ -545,11 +545,11 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         <div className="mt-2 text-xs text-slate-500 space-y-0.5">
                             <div className="flex justify-between">
                                 <span>IT / Tech</span>
-                                <span className="font-mono text-slate-700 dark:text-slate-300">18 dní</span>
+                                <span className="font-mono text-slate-700 dark:text-slate-300">18 {t('company_extra.stats.days_unit')}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span>Marketing</span>
-                                <span className="font-mono text-slate-700 dark:text-slate-300">31 dní</span>
+                                <span className="font-mono text-slate-700 dark:text-slate-300">31 {t('company_extra.stats.days_unit')}</span>
                             </div>
                         </div>
                     </div>
@@ -743,18 +743,18 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 <div className="flex gap-3 relative pb-4 border-l-2 border-slate-100 dark:border-slate-800 pl-4 ml-2">
                                     <div className="absolute -left-[5px] top-0 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-4 ring-white dark:ring-slate-900"></div>
                                     <div className="text-xs">
-                                        <p className="text-slate-900 dark:text-white"><span className="font-bold">Floki</span> přidal komentář k <span className="font-bold">Jan Novák</span></p>
-                                        <p className="text-slate-500 mt-0.5">před 20 min</p>
+                                        <p className="text-slate-900 dark:text-white" dangerouslySetInnerHTML={{ __html: t('company_extra.activity.added_comment', { name: 'Floki', target: 'Jan Novák' }) }} />
+                                        <p className="text-slate-500 mt-0.5">{t('company_extra.activity.time_ago', { count: 20 })}</p>
                                         <div className="mt-1 p-2 bg-slate-50 dark:bg-slate-950 rounded text-slate-600 dark:text-slate-400 italic">
-                                            "Vypadá slibně, ale chybí mu zkušenosti s Reduxem."
+                                            "{t('company_extra.activity.no_redux')}"
                                         </div>
                                     </div>
                                 </div>
                                 <div className="flex gap-3 relative pl-4 ml-2">
                                     <div className="absolute -left-[5px] top-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-white dark:ring-slate-900"></div>
                                     <div className="text-xs">
-                                        <p className="text-slate-900 dark:text-white"><span className="font-bold">AI Asistent</span> zamítl 15 spamů</p>
-                                        <p className="text-slate-500 mt-0.5">před 1 hod</p>
+                                        <p className="text-slate-900 dark:text-white" dangerouslySetInnerHTML={{ __html: t('company_extra.activity.rejected_spam', { count: 15 }) }} />
+                                        <p className="text-slate-500 mt-0.5">{t('company_extra.activity.hour_ago', { count: 1 })}</p>
                                     </div>
                                 </div>
                             </div>
@@ -770,13 +770,13 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                     <div className="flex items-center gap-2">
                                         <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300">P</div>
                                         <div className="text-xs">
-                                            <div className="font-bold dark:text-white">Petra N.</div>
-                                            <div className="text-slate-500">8 Hires</div>
+                                            <div className="font-bold dark:text-white">Petra N..</div>
+                                            <div className="text-slate-500">8 {t('company_extra.stats.hires')}</div>
                                         </div>
                                     </div>
                                     <div className="text-right text-xs">
-                                        <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400">19 dní</div>
-                                        <div className="text-slate-400">Avg TTH</div>
+                                        <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400">19 {t('company_extra.stats.days_unit')}</div>
+                                        <div className="text-slate-400">{t('company_extra.stats.avg_tth')}</div>
                                     </div>
                                 </div>
                             </div>
@@ -803,32 +803,32 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         type="text"
                         value={jobTitle}
                         onChange={(e) => setJobTitle(e.target.value)}
-                        placeholder="Napište název pracovní pozice..."
+                        placeholder={t('company.ad_editor.placeholder_title')}
                         className="w-full text-xl font-bold bg-transparent border-none focus:ring-0 p-0 text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700"
                     />
                 </div>
 
                 <div className="flex items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10">
-                    <button onClick={() => setViewMode(viewMode === 'write' ? 'preview' : 'write')} className={`p-1.5 rounded transition-colors flex items-center gap-2 px-3 text-xs font-bold ${viewMode === 'preview' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'}`} title="Přepnout náhled">
+                    <button onClick={() => setViewMode(viewMode === 'write' ? 'preview' : 'write')} className={`p-1.5 rounded transition-colors flex items-center gap-2 px-3 text-xs font-bold ${viewMode === 'preview' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'}`} title={t('company.ad_editor.switch_preview')}>
                         {viewMode === 'preview' ? <Eye size={16} /> : <LayoutTemplate size={16} />}
-                        {viewMode === 'preview' ? 'Náhled' : 'Editor'}
+                        {viewMode === 'preview' ? t('company.ad_editor.preview') : t('company.ad_editor.editor')}
                     </button>
                     <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
 
-                    <button onClick={() => insertFormat('**', '**')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title="Tučně">
+                    <button onClick={() => insertFormat('**', '**')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.bold')}>
                         <Bold size={16} />
                     </button>
-                    <button onClick={() => insertFormat('*', '*')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title="Kurzíva">
+                    <button onClick={() => insertFormat('*', '*')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.italic')}>
                         <Italic size={16} />
                     </button>
                     <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
-                    <button onClick={() => insertFormat('\n### ', '\n')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title="Nadpis">
+                    <button onClick={() => insertFormat('\n### ', '\n')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.heading')}>
                         <Heading size={16} />
                     </button>
-                    <button onClick={() => insertFormat('\n- ', '')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title="Seznam">
+                    <button onClick={() => insertFormat('\n- ', '')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.list')}>
                         <List size={16} />
                     </button>
-                    <button onClick={() => insertFormat('\n> ', '\n')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title="Citace">
+                    <button onClick={() => insertFormat('\n> ', '\n')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.quote')}>
                         <Quote size={16} />
                     </button>
                     <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
@@ -837,7 +837,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         <button
                             onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                             className={`p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors ${showEmojiPicker ? 'bg-slate-100 dark:bg-slate-800 text-indigo-500' : ''}`}
-                            title="Vložit Emoji"
+                            title={t('company.ad_editor.emoji')}
                         >
                             <Smile size={16} />
                         </button>
@@ -858,10 +858,10 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     </div>
 
                     <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
-                    <button onClick={() => insertFormat('[', '](url)')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title="Odkaz">
+                    <button onClick={() => insertFormat('[', '](url)')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.link')}>
                         <LinkIcon size={16} />
                     </button>
-                    <button onClick={() => insertFormat('`', '`')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title="Kód">
+                    <button onClick={() => insertFormat('`', '`')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.code')}>
                         <Code size={16} />
                     </button>
                 </div>
@@ -872,7 +872,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         className="flex-1 w-full p-6 resize-none focus:outline-none text-slate-800 dark:text-slate-200 font-mono text-base leading-relaxed bg-white dark:bg-slate-900 placeholder:text-slate-400 dark:placeholder:text-slate-600"
                         value={adDraft}
                         onChange={(e) => setAdDraft(e.target.value)}
-                        placeholder="Začněte psát popis pozice..."
+                        placeholder={t('company.ad_editor.placeholder_description')}
                     />
                 ) : (
                     <div className="flex-1 w-full p-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950/30">
@@ -893,7 +893,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-400 font-medium hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors border border-slate-200 dark:border-slate-800 shadow-sm disabled:opacity-50"
                     >
                         {isOptimizing ? <Sparkles className="animate-spin" size={18} /> : <Sparkles size={18} />}
-                        {isOptimizing ? 'Analyzuji...' : 'Odstranit Šum (AI)'}
+                        {isOptimizing ? t('company.ad_editor.analyzing') : t('company.ad_editor.ai_noise_btn')}
                     </button>
 
                     <button
@@ -902,7 +902,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50"
                     >
                         {isPublishing ? <RefreshCw className="animate-spin" size={18} /> : <Zap size={18} />}
-                        {isPublishing ? 'Zveřejňuji...' : 'Zveřejnit Inzerát'}
+                        {isPublishing ? t('company.ad_editor.publishing') : t('company.ad_editor.publish_btn')}
                     </button>
                 </div>
             </div>
@@ -912,12 +912,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-xl p-6 animate-in zoom-in-95 shadow-sm">
                         <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-4">
                             <CheckCircle size={20} />
-                            <h3 className="font-bold">Návrh Optimalizace</h3>
+                            <h3 className="font-bold">{t('company.ad_editor.optimization_title')}</h3>
                         </div>
 
                         <div className="space-y-4">
                             <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                                <span className="text-xs font-bold text-rose-500 dark:text-rose-400 uppercase block mb-1">Co jsme vyhodili</span>
+                                <span className="text-xs font-bold text-rose-500 dark:text-rose-400 uppercase block mb-1">{t('company.ad_editor.what_removed')}</span>
                                 <div className="flex flex-wrap gap-1">
                                     {optimizationResult.removedCliches.map((w, i) => (
                                         <span key={i} className="text-xs bg-rose-500/10 text-rose-500 dark:text-rose-400 px-2 py-0.5 rounded border border-rose-500/20 line-through">
@@ -928,7 +928,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             </div>
 
                             <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase block mb-1">Proč je to lepší</span>
+                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase block mb-1">{t('company.ad_editor.why_better')}</span>
                                 <p className="text-sm text-slate-600 dark:text-slate-300">{optimizationResult.improvedClarity}</p>
                             </div>
 
@@ -937,7 +937,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                     onClick={applyOptimization}
                                     className="w-full py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-500 transition-colors shadow-sm"
                                 >
-                                    Použít tento text
+                                    {t('company.ad_editor.use_text_btn')}
                                 </button>
                             </div>
                         </div>
@@ -962,9 +962,9 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
                         <Users size={32} className="text-slate-400" />
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Žádní kandidáti</h2>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('company.candidates.no_candidates_title')}</h2>
                     <p className="text-slate-500 dark:text-slate-400 max-w-sm">
-                        Jakmile zveřejníte nabídku, zde se začnou objevovat profily uchazečů s vypočítaným skóre shody.
+                        {t('company.candidates.no_candidates_desc')}
                     </p>
                 </div>
             );
@@ -995,7 +995,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             className="w-full md:w-auto px-6 py-2 bg-cyan-600 text-white rounded-lg font-medium hover:bg-cyan-500 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
                         >
                             {isMatching ? <Sparkles className="animate-spin" size={16} /> : <Search size={16} />}
-                            {isMatching ? 'Analyzuji shodu...' : 'Najít nejlepší shodu'}
+                            {isMatching ? t('company.candidates.matching_analysing') : t('company.candidates.match_btn')}
                         </button>
                         <span className="text-xs text-slate-500 dark:text-slate-400 font-medium italic pr-1">
                             AI doporučuje. Rozhoduje člověk.
