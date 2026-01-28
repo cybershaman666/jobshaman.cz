@@ -203,6 +203,7 @@ export default function App() {
 
     // Track if we've already auto-enabled commute filter to avoid re-enabling after user disables it
     const hasAutoEnabledCommuteFilter = useRef(false);
+    const deferredAutoEnableRef = useRef(false);
 
     // UI State
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -255,6 +256,10 @@ export default function App() {
         toggleBenefitFilter,
         toggleContractTypeFilter
     } = usePaginatedJobs({ userProfile });
+
+    // Prevent layout flash on first render by waiting for client mount
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => { setMounted(true); }, []);
 
     const totalJobs = totalCount;
     const selectedJob = filteredJobs.find(j => j.id === selectedJobId);
@@ -358,6 +363,19 @@ export default function App() {
         }
     }, []);
 
+    // If user session is restored after initial mount, reload jobs to avoid empty list due to race.
+    const lastReloadUserIdRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (userProfile && userProfile.isLoggedIn && userProfile.id) {
+            // Only reload once per user id to avoid repeated concurrent reloads
+            if (lastReloadUserIdRef.current === userProfile.id) return;
+            lastReloadUserIdRef.current = userProfile.id;
+            console.log('🔁 userProfile became available — reloading jobs to avoid race conditions');
+            loadRealJobs();
+        }
+    }, [userProfile?.id]);
+
     // Auto-enable commute filter for existing users with address/coordinates (only once)
     useEffect(() => {
         console.log('🔍 Commute filter check:', {
@@ -371,12 +389,31 @@ export default function App() {
         
         // Only auto-enable once, and only if user hasn't manually disabled it
         if (userProfile.address && userProfile.coordinates && !enableCommuteFilter && !hasAutoEnabledCommuteFilter.current) {
+            // If we don't yet have jobs loaded, defer enabling commute filter to avoid hiding everything
+            if (filteredJobs && filteredJobs.length === 0) {
+                console.log('🏠 Deferring auto-enable of commute filter until jobs load');
+                deferredAutoEnableRef.current = true;
+                return;
+            }
+
             console.log('🏠 User has address and coordinates, auto-enabling commute filter for the first time');
             setEnableCommuteFilter(true);
             setFilterMaxDistance(50);
             hasAutoEnabledCommuteFilter.current = true;
+            deferredAutoEnableRef.current = false;
         }
     }, [userProfile.address, userProfile.coordinates]);
+
+    // If we queued auto-enable because jobs weren't loaded yet, enable when jobs arrive
+    useEffect(() => {
+        if (deferredAutoEnableRef.current && filteredJobs && filteredJobs.length > 0 && !hasAutoEnabledCommuteFilter.current) {
+            console.log('🏠 Jobs loaded — applying deferred auto-enable of commute filter');
+            setEnableCommuteFilter(true);
+            setFilterMaxDistance(50);
+            hasAutoEnabledCommuteFilter.current = true;
+            deferredAutoEnableRef.current = false;
+        }
+    }, [filteredJobs?.length]);
 
     // Reload jobs when user coordinates change (e.g., after profile update)
     useEffect(() => {
@@ -1665,7 +1702,10 @@ const handleJobSelect = (jobId: string) => {
                 </section>
 
                 {/* RIGHT COLUMN: Detail View (or Welcome Guide) */}
-                <section className={`lg:col-span-8 xl:col-span-9 flex flex-col min-h-0 h-full ${!selectedJobId ? 'hidden lg:flex' : 'flex'}`}>
+                {
+                    // Avoid flicker on refresh/hydration by defaulting to visible until mounted
+                }
+                <section className={`lg:col-span-8 xl:col-span-9 flex flex-col min-h-0 h-full ${!mounted ? 'flex' : (!selectedJobId ? 'hidden lg:flex' : 'flex')}`}>
                     {selectedJob && dynamicJHI ? (
                         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg flex flex-col h-full overflow-hidden">
                             <div className="p-6 sm:p-8 border-b border-slate-200 dark:border-slate-800 flex-none bg-white dark:bg-slate-900 z-10">
