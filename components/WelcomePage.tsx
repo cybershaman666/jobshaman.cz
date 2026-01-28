@@ -30,7 +30,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onTryFree, onBrowseOffers }) 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
       {/* HERO / ABOVE THE FOLD */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-24 lg:py-32">
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-10 lg:py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-center">
           {/* Left column: Text */}
           <div>
@@ -107,12 +107,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onTryFree, onBrowseOffers }) 
       </section>
 
       {/* DIVIDER */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 my-20">
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 my-6">
         <div className="h-px bg-slate-200 dark:bg-slate-800"></div>
       </div>
 
       {/* SECTION: CO JOBSHAMAN JE (A NENÍ) */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-20">
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Left: Text */}
           <div>
@@ -177,12 +177,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onTryFree, onBrowseOffers }) 
       </section>
 
       {/* DIVIDER */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 my-20">
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 my-6">
         <div className="h-px bg-slate-200 dark:bg-slate-800"></div>
       </div>
 
       {/* SECTION: JAK TO POČÍTÁME */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-20">
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
         <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-16">
           {t('welcome_extra.how_it_works.title')}
         </h2>
@@ -274,12 +274,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onTryFree, onBrowseOffers }) 
       </section>
 
       {/* DIVIDER */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 my-20">
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 my-6">
         <div className="h-px bg-slate-200 dark:bg-slate-800"></div>
       </div>
 
       {/* SECTION: PROČ TO VZNIKLO */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-20">
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Left: Text */}
           <div>
@@ -328,12 +328,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onTryFree, onBrowseOffers }) 
       </section>
 
       {/* DIVIDER */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 my-20">
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 my-6">
         <div className="h-px bg-slate-200 dark:bg-slate-800"></div>
       </div>
 
       {/* SECTION: KDY POUŽÍVÁME AI (A KDY NE) */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-20">
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
         <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-12">
           {t('welcome.page_ai.title')}
         </h2>
@@ -394,7 +394,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onTryFree, onBrowseOffers }) 
       </section>
 
       {/* SECTION: ZÁVĚR / CTA */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-24 text-center">
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-10 text-center">
         <div className="mb-8 flex justify-center">
           <div className="w-20 h-20 bg-gradient-to-br from-cyan-100 to-cyan-50 dark:from-cyan-900/30 dark:to-cyan-900/10 rounded-full flex items-center justify-center">
             <Brain className="w-10 h-10 text-cyan-600 dark:text-cyan-400" />
