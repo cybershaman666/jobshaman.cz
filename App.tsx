@@ -507,24 +507,17 @@ export default function App() {
         setSavedJobIds(prev => prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]);
     };
 
-    const handleJobSelect = (jobId: string) => {
+const handleJobSelect = (jobId: string) => {
         setSelectedJobId(jobId);
 
-        // Scroll ONLY the right column detail view to top using ref
-        // This ensures left column maintains its scroll position
+        // Scroll ONLY the right column using setTimeout to ensure DOM is ready
         setTimeout(() => {
             if (detailScrollRef.current) {
+                // Force immediate scroll to top with no animation
                 detailScrollRef.current.scrollTop = 0;
-                console.log('✅ Scrolled right column to top, left column unchanged');
-            } else {
-                // Fallback to querySelector if ref is not available
-                const detailScrollElement = document.querySelector('[data-detail-scroll="true"]') as HTMLElement;
-                if (detailScrollElement) {
-                    detailScrollElement.scrollTop = 0;
-                    console.log('✅ Scrolled right column to top (fallback), left column unchanged');
-                }
+                console.log('✅ Right column scrolled to top');
             }
-        }, 100);
+        }, 0); // Use 0 timeout to run after current execution stack
     };
 
     const [showPremiumUpgrade, setShowPremiumUpgrade] = useState<{ open: boolean, feature?: string }>({ open: false });
@@ -1574,7 +1567,7 @@ export default function App() {
                         </div>
 
                         {/* Job List Container (Scrolls independently below fixed header) */}
-                        <div ref={jobListRef} className="flex-1 overflow-y-auto custom-scrollbar p-4">
+                        <div ref={jobListRef} className="flex-1 overflow-y-auto custom-scrollbar p-4" style={{ overscrollBehavior: 'contain' }}>
                             <div className="space-y-3">
                                 {isLoadingJobs ? (
                                     <div className="py-12 flex flex-col items-center justify-center text-slate-400">
@@ -1640,7 +1633,7 @@ export default function App() {
                 </section>
 
                 {/* RIGHT COLUMN: Detail View (or Welcome Guide) */}
-                <section className={`lg:col-span-8 xl:col-span-9 flex flex-col min-h-0 ${!selectedJobId ? 'hidden lg:flex' : 'flex'}`}>
+                <section className={`lg:col-span-8 xl:col-span-9 flex flex-col min-h-0 h-full ${!selectedJobId ? 'hidden lg:flex' : 'flex'}`}>
                     {selectedJob && dynamicJHI ? (
                         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg flex flex-col h-full overflow-hidden">
                             <div className="p-6 sm:p-8 border-b border-slate-200 dark:border-slate-800 flex-none bg-white dark:bg-slate-900 z-10">
@@ -1676,7 +1669,7 @@ export default function App() {
                                     </div>
                                 </div>
                             </div>
-                            <div ref={detailScrollRef} className="flex-1 overflow-y-auto custom-scrollbar" data-detail-scroll="true">
+                            <div ref={detailScrollRef} className="flex-1 overflow-y-auto custom-scrollbar" data-detail-scroll="true" style={{ overscrollBehavior: 'contain' }}>
                                 {/* Detail Content */}
                                 <div className="p-6 sm:p-8 space-y-8">
 
@@ -2007,7 +2000,7 @@ export default function App() {
             />
 
             <main className="flex-1 max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 overflow-hidden">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-120px)]">
                     {renderContent()}
                 </div>
             </main>
