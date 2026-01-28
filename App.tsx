@@ -26,6 +26,7 @@ import ApplicationModal from './components/ApplicationModal';
 import CookieBanner from './components/CookieBanner';
 import PodminkyUziti from './pages/PodminkyUziti';
 import OchranaSoukromi from './pages/OchranaSoukromi';
+import SavedJobsPage from './components/SavedJobsPage';
 
 import InvitationLanding from './pages/InvitationLanding';
 import PremiumUpgradeModal from './components/PremiumUpgradeModal';
@@ -1363,6 +1364,11 @@ const handleJobSelect = (jobId: string) => {
                         onChange={handleProfileUpdate}
                         onSave={() => setViewState(ViewState.LIST)}
                         onRefreshProfile={refreshUserProfile}
+                        savedJobs={filteredJobs.filter(job => savedJobIds.includes(job.id))}
+                        savedJobIds={savedJobIds}
+                        onToggleSave={handleToggleSave}
+                        onJobSelect={handleJobSelect}
+                        selectedJobId={selectedJobId}
                     />
                 </div>
             );
@@ -1372,6 +1378,24 @@ const handleJobSelect = (jobId: string) => {
             return (
                 <div className="col-span-1 lg:col-span-12 max-w-7xl mx-auto w-full h-full overflow-y-auto custom-scrollbar pb-6 px-1">
                     <MarketplacePage theme={theme} userProfile={userProfile} />
+                </div>
+            );
+        }
+
+        if (viewState === ViewState.SAVED) {
+            const savedJobs = filteredJobs.filter(job => savedJobIds.includes(job.id));
+            return (
+                <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
+                    <SavedJobsPage
+                        savedJobs={savedJobs}
+                        savedJobIds={savedJobIds}
+                        onToggleSave={handleToggleSave}
+                        onJobSelect={handleJobSelect}
+                        selectedJobId={selectedJobId}
+                        userProfile={userProfile}
+                        searchTerm={searchTerm}
+                        onSearchChange={setSearchTerm}
+                    />
                 </div>
             );
         }
@@ -1452,7 +1476,7 @@ const handleJobSelect = (jobId: string) => {
                                             }
                                         }}
                                         onFocus={() => setShowFilters(true)}
-                                        placeholder={viewState === ViewState.SAVED ? t('app.search_saved_placeholder') : t('app.search_placeholder')}
+                                        placeholder={t('app.search_placeholder')}
                                         className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none text-sm font-medium text-slate-900 dark:text-slate-200 placeholder:text-slate-500 transition-all"
                                     />
                                     <button
@@ -1992,7 +2016,6 @@ const handleJobSelect = (jobId: string) => {
                 setSelectedJobId={setSelectedJobId}
                 showCompanyLanding={showCompanyLanding}
                 setShowCompanyLanding={setShowCompanyLanding}
-                savedJobIds={savedJobIds}
                 userProfile={userProfile}
                 handleAuthAction={() => setIsAuthModalOpen(true)}
                 toggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}

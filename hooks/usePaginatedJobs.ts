@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Job } from '../types';
 import { fetchJobsPaginated, searchJobs } from '../services/jobService';
 import { UserProfile } from '../types';
@@ -27,7 +27,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [enableCommuteFilter, setEnableCommuteFilter] = useState(false);
     const [filterBenefits, setFilterBenefits] = useState<string[]>([]);
     const [filterContractType, setFilterContractType] = useState<string[]>([]);
-    const [savedJobIds, setSavedJobIds] = useState<string[]>([]);;
+        // Load saved job IDs from localStorage on mount
+    const [savedJobIds, setSavedJobIds] = useState<string[]>(() => {
+        try {
+            const saved = localStorage.getItem('savedJobIds');
+            return saved ? JSON.parse(saved) : [];
+        } catch (error) {
+            console.error('Error loading saved jobs from localStorage:', error);
+            return [];
+        }
+    });
 
     // UI state
     const [showFilters, setShowFilters] = useState(false);
@@ -58,6 +67,15 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             setLoading(false);
         }
     }, [initialPageSize, userProfile.coordinates?.lat, userProfile.coordinates?.lon]);
+
+    // Save savedJobIds to localStorage whenever they change
+    useEffect(() => {
+        try {
+            localStorage.setItem('savedJobIds', JSON.stringify(savedJobIds));
+        } catch (error) {
+            console.error('Error saving jobs to localStorage:', error);
+        }
+    }, [savedJobIds]);
 
     // Load more jobs
     const loadMoreJobs = useCallback(async () => {
