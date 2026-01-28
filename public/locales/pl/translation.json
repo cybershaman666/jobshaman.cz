@@ -17,6 +17,8 @@
         "city_placeholder": "Miasto (np. Warszawa)",
         "limit_by_commute": "Ogranicz dojazdem",
         "max_distance": "Maks. odległość",
+        "search_nearby": "📍 Bliskie oferty",
+        "search_everywhere": "🌍 Szukaj wszędzie",
         "contract_type": "Typ umowy",
         "benefits": "Benefity"
     },
@@ -630,6 +632,7 @@
     "common": {
         "unknown": "Nieznane",
         "none": "Brak",
-        "standard_package": "Standardowy pakiet"
+        "standard_package": "Standardowy pakiet",
+        "search": "Szukaj"
     }
 }

@@ -17,6 +17,8 @@
         "city_placeholder": "City (e.g. Prague)",
         "limit_by_commute": "Limit by commute",
         "max_distance": "Max Distance",
+        "search_nearby": "📍 Nearby jobs",
+        "search_everywhere": "🌍 Search everywhere",
         "contract_type": "Contract Type",
         "benefits": "Benefits"
     },
@@ -630,6 +632,7 @@
     "common": {
         "unknown": "Unknown",
         "none": "None",
-        "standard_package": "Standard package"
+        "standard_package": "Standard package",
+        "search": "Search"
     }
 }

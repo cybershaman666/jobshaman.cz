@@ -17,6 +17,8 @@
         "city_placeholder": "Město (např. Praha)",
         "limit_by_commute": "Limitovat dojezdem",
         "max_distance": "Max Vzdálenost",
+        "search_nearby": "📍 Blízké nabídky",
+        "search_everywhere": "🌍 Vyhledáváme všude",
         "contract_type": "Typ Úvazku",
         "benefits": "Benefity"
     },
@@ -628,6 +630,7 @@
     "common": {
         "unknown": "Neznámý",
         "none": "Žádné",
-        "standard_package": "Standardní balíček"
+        "standard_package": "Standardní balíček",
+        "search": "Hledat"
     }
 }

@@ -17,6 +17,8 @@
         "city_placeholder": "Stadt (z.B. Berlin)",
         "limit_by_commute": "Nach Arbeitsweg begrenzen",
         "max_distance": "Max. Entfernung",
+        "search_nearby": "📍 Nahegelegene Angebote",
+        "search_everywhere": "🌍 Überall suchen",
         "contract_type": "Vertragsart",
         "benefits": "Vorteile"
     },
@@ -630,6 +632,7 @@
     "common": {
         "unknown": "Unbekannt",
         "none": "Keine",
-        "standard_package": "Standardpaket"
+        "standard_package": "Standardpaket",
+        "search": "Suchen"
     }
 }

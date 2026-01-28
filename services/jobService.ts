@@ -398,8 +398,8 @@ export const fetchJobsPaginated = async (
     }
 
     try {
-        // If user coordinates provided, use spatial query
-        if (userLat && userLng) {
+        // If user coordinates provided AND both lat/lng are defined, use spatial query
+        if (userLat !== undefined && userLng !== undefined && userLat !== null && userLng !== null) {
             console.log(`🗺️  Using spatial search for location: ${userLat}, ${userLng}, radius: ${radiusKm}km`);
             
             const { data, error } = await supabase
@@ -541,6 +541,7 @@ export const searchJobs = async (
 
     try {
         // Use text search for better performance
+        console.log(`🔍 Searching for: "${searchTerm}"`);
         const { data, error } = await supabase
             .from('jobs')
             .select('*')
@@ -549,22 +550,93 @@ export const searchJobs = async (
             .limit(limit);
 
         if (error) {
-            console.error("Error searching jobs:", error);
+            console.error("❌ Error searching jobs:", error);
             return [];
         }
 
         if (!data || data.length === 0) {
+            console.log(`❌ No jobs found for "${searchTerm}"`);
             return [];
         }
 
+        console.log(`✅ Found ${data.length} raw results for "${searchTerm}"`);
         const allJobs = mapJobs(data);
         const validJobs = filterJobsByQuality(allJobs);
+        console.log(`✅ After quality filter: ${validJobs.length} valid jobs`);
         
         return validJobs;
 
     } catch (e) {
         console.error("Error in searchJobs:", e);
         return [];
+    }
+};
+
+/**
+ * Search jobs by location text in the database.
+ * Used as fallback when geocoding fails or returns no results.
+ * Searches the location column for partial/exact matches.
+ */
+export const searchJobsByLocation = async (
+    locationText: string,
+    page: number = 0,
+    pageSize: number = 50
+): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
+    if (!isSupabaseConfigured() || !supabase || !locationText.trim()) {
+        return { jobs: [], hasMore: false, totalCount: 0 };
+    }
+
+    try {
+        console.log(`🏙️  Searching jobs by location text: "${locationText}"`);
+        
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+
+        // First, get the total count of matching jobs
+        const { count, error: countError } = await supabase
+            .from('jobs')
+            .select('*', { count: 'exact', head: true })
+            .ilike('location', `%${locationText}%`);
+
+        if (countError) {
+            console.error("Error getting location search count:", countError);
+            return { jobs: [], hasMore: false, totalCount: 0 };
+        }
+
+        const totalCount = count || 0;
+
+        // Then fetch the paginated results
+        const { data, error } = await supabase
+            .from('jobs')
+            .select('*')
+            .ilike('location', `%${locationText}%`)
+            .order('scraped_at', { ascending: false })
+            .range(from, to);
+
+        if (error) {
+            console.error("Error searching jobs by location:", error);
+            return { jobs: [], hasMore: false, totalCount };
+        }
+
+        if (!data || data.length === 0) {
+            console.log(`🏙️  No jobs found with location matching "${locationText}"`);
+            return { jobs: [], hasMore: false, totalCount };
+        }
+
+        const processedJobs = mapJobs(data);
+        const filteredJobs = filterJobsByQuality(processedJobs);
+
+        console.log(`🏙️  Found ${filteredJobs.length} jobs with location containing "${locationText}" (total: ${totalCount})`);
+
+        return {
+            jobs: filteredJobs,
+            hasMore: (page + 1) * pageSize < totalCount,
+            totalCount
+        };
+
+    } catch (e) {
+        console.error("Error in searchJobsByLocation:", e);
+        return { jobs: [], hasMore: false, totalCount: 0 };
     }
 };
 
