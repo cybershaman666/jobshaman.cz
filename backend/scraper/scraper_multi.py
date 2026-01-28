@@ -129,44 +129,67 @@ def scrape_page(url):
 
 
 # --- Filtrování footeru ---
-def filter_jenprace_footer(text):
-    """Filtruje znafitované prvky z footeru jen práce portálu"""
+def filter_out_junk(text):
+    """Odstraní navigaci, patičky a obecný balast z popisů pozic."""
     if not text:
-        return text
+        return ""
     
-    # Specifické tokeny z footeru jen práce
-    footer_tokens = [
-        "about eaton",
-        "jobs",
-        "benefits",
-        "awards",
-        "eaton's sustainability 2030 targets",
-        "nahlásit nezákonný obsah",
-        "nastavení cookies",
-        "transparentnost",
-        "reklama na portálech alma career",
-        "zásady ochrany soukromí",
-        "podmínky používání",
+    # Rozsáhlý seznam "junk" tokenů, které se často objevují v navigaci nebo patičkách
+    junk_tokens = [
+        "nabídky práce", "vytvořit si životopis", "jobs.cz", "prace.cz", "atmoskop",
+        "profesia.sk", "profesia.cz", "práca za rohom", "práce za rohem", "nelisa.com",
+        "arnold", "teamio", "seduo.cz", "seduo.sk", "platy.cz", "platy.sk", "paylab.com",
+        "mojposao", "historie odpovědí", "uložené nabídky", "upozornění na nabídky",
+        "hledám zaměstnance", "vložit brigádu", "ceník inzerce", "napište nám",
+        "pro média", "zásady ochrany soukromí", "podmínky používání", "nastavení cookies",
+        "reklama na portálech", "transparentnost", "nahlásit nezákonný obsah",
+        "vzdělávací kurzy", "středoškolské nebo odborné", "typ pracovního poměru",
+        "kontaktní údaje", "zadavatel", "časté pracovní cesty", "foto v medailonku",
+        "the pulse of beauty", "nadnárodní struktury", "vlastní organizace",
+        "vyhrazený čas na inovace", "kafetérie", "příspěvek na vzdělání",
+        "stravenky/příspěvek na stravování", "zdravotní volno/sickdays",
+        "možnost občasné práce z domova", "občerstvení na pracovišti",
+        "příspěvek na sport/kulturu", "firemní akce", "bonusy/prémie",
+        "flexibilní začátek/konec pracovní doby", "notebook", "sleva na firemní výrobky",
+        "nabídky práce", "brigády", "inspirace", "zaměstnavatelé", "skvělý životopis",
+        "můžete si ho uložit", "vytisknout nebo poslat do světa"
     ]
     
-    lines = text.split("\n\n")
+    lines = text.split("\n")
     filtered_lines = []
     
     for line in lines:
-        low = line.lower().strip()
-        # Přeskočí řádky, které obsahují specifické tokeny footeru
-        if any(tok in low for tok in footer_tokens):
+        stripped = line.strip()
+        if not stripped:
+            filtered_lines.append("")
             continue
-        # Přeskočí řádky, které vypadají na navigační seznamy
-        if len(line) < 100 and "\n" not in line:
-            # Pokud řádek obsahuje 4+ oddělené položky
-            parts = [p.strip() for p in line.replace("|", "\n").replace("-", "\n").split("\n")]
-            if len(parts) >= 3 and all(5 < len(p) < 50 for p in parts):
+            
+        low = stripped.lower()
+        
+        # Pokud je řádek příliš krátký (navigační odkaz) a obsahuje junk token
+        if len(stripped) < 100:
+            if any(tok in low for tok in junk_tokens):
                 continue
-        filtered_lines.append(line)
+        
+        # Specifické pro Jobs.cz navigaci (často dlouhé seznamy s krátkými řádky)
+        if any(tok == low for tok in junk_tokens):
+            continue
+            
+        filtered_lines.append(stripped)
     
-    result = "\n\n".join(filtered_lines).strip()
+    # Zpětné spojení a vyčištění prázdných řádků na začátku/konci
+    result = "\n".join(filtered_lines).strip()
+    
+    # Odstranění vícenásobných prázdných řádků
+    result = re.sub(r'\n{3,}', '\n\n', result)
+    
     return result if result else "Popis není dostupný"
+
+
+# Ponecháváme filter_jenprace_footer pro zpětnou kompatibilitu, 
+# ale interně volá filter_out_junk
+def filter_jenprace_footer(text):
+    return filter_out_junk(text)
 
 
 # --- Jobs.cz ---
@@ -214,39 +237,33 @@ def scrape_jobs_cz(soup):
 
         if detail_soup:
             try:
-                # Popis - extract both paragraphs AND list items
-                desc_ps = detail_soup.find_all(
-                    "p", class_="typography-body-large-text-regular"
-                )
-                parts = [norm_text(p.get_text()) for p in desc_ps if norm_text(p.get_text())]
+                # Popis - Zachování pořadí a formátování (stejně jako u ostatních portálů)
+                # Na Jobs.cz jsou klíčové prvky v typrografických třídách, ale musíme je brát v pořadí
+                main_content = detail_soup.find("div", class_="JobDescriptionSection") or detail_soup
                 
-                # Collect list items separately to wrap in <ul>
-                list_items = []
+                parts = []
+                # Hledáme odstavce a položky seznamu v rámci hlavního obsahu
+                for elem in main_content.find_all(["p", "li"], class_=lambda x: x and "typography-body-large" in x):
+                    txt = norm_text(elem.get_text())
+                    if not txt:
+                        continue
+                    
+                    if elem.name == "li":
+                        parts.append(f"- {txt}")
+                    else:
+                        parts.append(txt)
                 
-                # Also look for list items in the description area
-                desc_lis = detail_soup.find_all(
-                    "li", class_="typography-body-large-text-regular"
-                )
-                for li in desc_lis:
-                    li_text = norm_text(li.get_text())
-                    if li_text:
-                        list_items.append(f"<li>{li_text}</li>")
-                
-                # Also check for ul/ol lists anywhere in the description
-                for ul in detail_soup.find_all(["ul", "ol"]):
-                    # Make sure it's not benefits or other metadata
-                    if "benefit" not in ul.get("class", []) if ul.get("class") else True:
-                        for li in ul.find_all("li", recursive=False):
-                            li_text = norm_text(li.get_text())
-                            if li_text and len(li_text) > 3:
-                                list_items.append(f"<li>{li_text}</li>")
-                
-                # Wrap list items in <ul> if any were found
-                if list_items:
-                    parts.append(f"<ul>{''.join(list_items)}</ul>")
-                
+                # Pokud jsme nic nenašli přes třídy, zkusíme obecnější přístup
+                if not parts:
+                    desc_div = detail_soup.find("div", class_="JobDescription")
+                    if desc_div:
+                        for elem in desc_div.find_all(["p", "li"]):
+                            txt = norm_text(elem.get_text())
+                            if txt:
+                                parts.append(f"- {txt}" if elem.name == "li" else txt)
+
                 if parts:
-                    description = "\n".join(parts)
+                    description = filter_out_junk("\n\n".join(parts))
 
                 # Benefity
                 btitle = detail_soup.find(
@@ -399,13 +416,20 @@ def scrape_prace_cz(soup):
                 # Popis
                 desc_el = detail_soup.find("div", class_="advert__richtext")
                 if desc_el:
-                    parts = [
-                        norm_text(t.get_text())
-                        for t in desc_el.find_all(["p", "li"])
-                        if norm_text(t.get_text())
-                    ]
+                    parts = []
+                    for child in desc_el.find_all(["p", "li", "h2", "h3"], recursive=True):
+                        txt = norm_text(child.get_text())
+                        if not txt:
+                            continue
+                        if child.name == "li":
+                            parts.append(f"- {txt}")
+                        elif child.name in ["h2", "h3"]:
+                            parts.append(f"### {txt}")
+                        else:
+                            parts.append(txt)
+                    
                     if parts:
-                        description = "\n\n".join(parts)
+                        description = filter_out_junk("\n\n".join(parts))
             except Exception as e:
                 print(f"    ❌ Chyba detailu {odkaz}: {e}")
 
@@ -482,16 +506,18 @@ def scrape_jenprace_cz(soup):
             # Popis
             desc = detail_soup.find("div", class_="offer-content")
             if desc:
-                parts = [
-                    norm_text(e.get_text())
-                    for e in desc.find_all(["p", "li"])
-                    if norm_text(e.get_text())
-                ]
+                parts = []
+                for child in desc.find_all(["p", "li"], recursive=True):
+                    txt = norm_text(child.get_text())
+                    if not txt:
+                        continue
+                    if child.name == "li":
+                        parts.append(f"- {txt}")
+                    else:
+                        parts.append(txt)
+                
                 if parts:
-                    description = "\n\n".join(parts)
-            
-            # Filtrování footeru - odstranění znafitovaných prvků z footeru "jen práce"
-            description = filter_jenprace_footer(description)
+                    description = filter_out_junk("\n\n".join(parts))
             # Benefity
             blist = detail_soup.find("ul", {"data-cy": "offer-benefit-list"})
             if blist:

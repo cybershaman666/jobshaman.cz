@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import './src/i18n'; // Initialize i18n
 import { useTranslation } from 'react-i18next';
 import Markdown from 'markdown-to-jsx';
-import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, CompanyProfile, JHI, CareerPathfinderResult } from './types';
+import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, CompanyProfile, CareerPathfinderResult } from './types';
 
 import { Analytics } from '@vercel/analytics/react';
 import AppHeader from './components/AppHeader';
@@ -68,22 +68,6 @@ import {
     RefreshCw,
     Lock,
     Navigation,
-    Dog,
-    AlertTriangle,
-    XCircle,
-    Compass,
-    BarChart3,
-    BookOpen,
-    FileText,
-    Mail,
-    GraduationCap,
-    Briefcase,
-    Quote,
-    HelpCircle,
-    Check,
-    Trophy,
-    Target,
-    Users,
     Info
 } from 'lucide-react';
 
@@ -188,6 +172,25 @@ const calculateOverallScore = (jhi: {
 
 
 
+const formatJobDescription = (description: string): string => {
+    if (!description) return '';
+
+    // Convert common bullet point characters to Markdown hyphens
+    // This helps with older scraped data or direct database entries
+    let formatted = description
+        .replace(/[•◦▪▫∙‣⁃]/g, '-')
+        // Ensure there's a space after the hyphen if it's missing (e.g., "-Requirement" -> "- Requirement")
+        .replace(/^-\s*([^\s-].*)/gm, '- $1');
+
+    // Convert potential HTML <li> tags to Markdown if any slipped through
+    formatted = formatted
+        .replace(/<li>(.*?)<\/li>/gi, '- $1\n')
+        .replace(/<\/?ul>/gi, '')
+        .replace(/<\/?ol>/gi, '');
+
+    return formatted;
+};
+
 export default function App() {
     const { t, i18n } = useTranslation();
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
@@ -262,7 +265,6 @@ export default function App() {
     const [mounted, setMounted] = useState(false);
     useEffect(() => { setMounted(true); }, []);
 
-    const totalJobs = totalCount;
     const selectedJob = filteredJobs.find(j => j.id === selectedJobId);
 
     // --- EFFECTS ---
@@ -1367,8 +1369,8 @@ export default function App() {
                                         </div>
                                     )}
 
-                                    <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-200 break-words whitespace-pre-wrap">
-                                        <Markdown options={{ forceBlock: true }}>{selectedJob.description}</Markdown>
+                                    <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-200 break-words">
+                                        <Markdown options={{ forceBlock: true }}>{formatJobDescription(selectedJob.description)}</Markdown>
                                     </div>
                                 </div>
                                 <div className="bg-slate-50 dark:bg-slate-950/30 border-t border-slate-200 dark:border-slate-800 p-6 sm:p-8">
