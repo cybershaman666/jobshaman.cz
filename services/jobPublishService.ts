@@ -42,7 +42,8 @@ export const publishJob = async (jobData: PublishJobRequest) => {
                 id: data.id,
                 title: data.title,
                 company: data.company,
-                description: data.description
+                description: data.description,
+                location: data.location
             }),
         }).catch(err => console.error("Legality check trigger failed:", err));
 
