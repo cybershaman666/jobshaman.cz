@@ -365,6 +365,7 @@ export default function App() {
 
     // If user session is restored after initial mount, reload jobs to avoid empty list due to race.
     const lastReloadUserIdRef = useRef<string | null>(null);
+    const reloadLockRef = useRef(false);
 
     useEffect(() => {
         if (userProfile && userProfile.isLoggedIn && userProfile.id) {
@@ -418,12 +419,92 @@ export default function App() {
     // Reload jobs when user coordinates change (e.g., after profile update)
     useEffect(() => {
         if (userProfile.coordinates?.lat && userProfile.coordinates?.lon) {
-            console.log('📍 Coordinates updated:', userProfile.coordinates, '- Clearing cache and reloading jobs...');
-            // Clear the cache to ensure we get fresh results with proximity sorting
-            clearJobCache();
-            loadRealJobs();
+            (async () => {
+                if (reloadLockRef.current) {
+                    console.log('Coordinate reload already in progress — skipping');
+                    return;
+                }
+
+                reloadLockRef.current = true;
+                console.log('📍 Coordinates updated:', userProfile.coordinates, '- Clearing cache and reloading jobs...');
+                try {
+                    // Clear the cache to ensure we get fresh results with proximity sorting
+                    await Promise.resolve(clearJobCache());
+                    await loadRealJobs();
+                } catch (e) {
+                    console.error('Error during coordinate-triggered reload:', e);
+                } finally {
+                    reloadLockRef.current = false;
+                }
+            })();
         }
     }, [userProfile.coordinates?.lat, userProfile.coordinates?.lon]);
+
+    // Backend cold-start retry: if we have no jobs after initial load, poll the backend
+    const backendWakeRetryRef = useRef(false);
+    const backendRetryCountRef = useRef(0);
+    const backendRetryTimerRef = useRef<number | null>(null);
+    const BACKEND_RETRY_MAX = 8; // total tries
+    const BACKEND_RETRY_DELAY_MS = 3000; // 3s between tries
+
+    // UI state for showing the waiting hint
+    const [backendPolling, setBackendPolling] = useState(false);
+
+    // Keep a ref to filteredJobs so async retry closure can access latest value
+    const filteredJobsRef = useRef(filteredJobs);
+    useEffect(() => { filteredJobsRef.current = filteredJobs; }, [filteredJobs]);
+
+    useEffect(() => {
+        // Start polling only when not currently loading and we have zero jobs
+        if (isLoadingJobs) return;
+        if (filteredJobsRef.current && filteredJobsRef.current.length > 0) return;
+        if (backendWakeRetryRef.current) return; // already polling
+
+        // Start polling
+        backendWakeRetryRef.current = true;
+        backendRetryCountRef.current = 0;
+        setBackendPolling(true);
+
+        console.log('Backend wake retry: starting polling to wait for backend wake-up');
+
+        const attempt = async () => {
+            backendRetryCountRef.current += 1;
+            console.log(`Backend wake retry: attempt ${backendRetryCountRef.current}/${BACKEND_RETRY_MAX}`);
+            try {
+                await loadRealJobs();
+            } catch (e) {
+                console.error('Backend wake retry: loadRealJobs error', e);
+            }
+
+            // If jobs arrived, stop
+            if (filteredJobsRef.current && filteredJobsRef.current.length > 0) {
+                console.log('Backend wake retry: jobs appeared, stopping polling');
+                backendWakeRetryRef.current = false;
+                setBackendPolling(false);
+                if (backendRetryTimerRef.current) { clearTimeout(backendRetryTimerRef.current); backendRetryTimerRef.current = null; }
+                return;
+            }
+
+            if (backendRetryCountRef.current >= BACKEND_RETRY_MAX) {
+                console.log('Backend wake retry: reached max attempts, stopping');
+                backendWakeRetryRef.current = false;
+                setBackendPolling(false);
+                return;
+            }
+
+            // Schedule next attempt
+            backendRetryTimerRef.current = window.setTimeout(attempt, BACKEND_RETRY_DELAY_MS);
+        };
+
+        // First immediate attempt
+        attempt();
+
+        return () => {
+            backendWakeRetryRef.current = false;
+            setBackendPolling(false);
+            if (backendRetryTimerRef.current) { clearTimeout(backendRetryTimerRef.current); backendRetryTimerRef.current = null; }
+        };
+    }, [isLoadingJobs]);
 
     // SEO Update Effect
     useEffect(() => {
@@ -1682,17 +1763,31 @@ const handleJobSelect = (jobId: string) => {
                                 ) : (
                                     <div className="py-12 px-4 text-center text-slate-400 dark:text-slate-500 flex flex-col items-center">
                                         <Search size={32} className="mb-4 opacity-50" />
-                                        <p className="font-bold mb-2">{t('app.no_jobs_found')}</p>
-                                        <p className="text-xs opacity-75 max-w-[200px] mb-4">
-                                            {t('app.try_adjust_filters')}
-                                        </p>
-                                        {totalCount === 0 && (
-                                            <button
-                                                onClick={loadRealJobs}
-                                                className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
-                                            >
-                                                <RefreshCw size={14} /> {t('app.try_again')}
-                                            </button>
+                                        {backendPolling ? (
+                                            <div className="flex flex-col items-center">
+                                                <p className="font-bold mb-2">Probouzím backend… ☕🔮</p>
+                                                <p className="text-xs opacity-75 max-w-[260px] mb-4">Chvíli to trvá — kontroluji, jestli server vylezl z postele. Zkusím to znovu automaticky.</p>
+                                                <div className="mt-2 text-sm text-slate-500 flex items-center gap-2">
+                                                    <Activity className="animate-spin text-cyan-500" size={18} />
+                                                    <span>Čekám na backend…</span>
+                                                </div>
+                                                <button onClick={loadRealJobs} className="mt-4 flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">
+                                                    <RefreshCw size={14} /> {t('app.try_again')}
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div>
+                                                <p className="font-bold mb-2">{t('app.no_jobs_found')}</p>
+                                                <p className="text-xs opacity-75 max-w-[200px] mb-4">{t('app.try_adjust_filters')}</p>
+                                                {totalCount === 0 && (
+                                                    <button
+                                                        onClick={loadRealJobs}
+                                                        className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
+                                                    >
+                                                        <RefreshCw size={14} /> {t('app.try_again')}
+                                                    </button>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 )}
