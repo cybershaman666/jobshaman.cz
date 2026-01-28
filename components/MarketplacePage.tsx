@@ -72,8 +72,8 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
     // Government funded courses
     {
       id: 'gov-1',
-      title: 'Elektrikář - Montážní elektrikářská činnost',
-      description: 'Kurz pro získání osvědčení o odborné způsobilosti pro montážní elektrikářské činnosti. Vysoká poptávka na trhu práce.',
+      title: t('marketplace_extra.courses.gov_1.title'),
+      description: t('marketplace_extra.courses.gov_1.desc'),
       skill_tags: ['Elektroinstalace', 'Montáže', 'Revize', 'Bezpečnost práce'],
       provider: 'ELEKTRO Institut Praha',
       instructor: 'Ing. Horák',
@@ -91,8 +91,8 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
     },
     {
       id: 'gov-2',
-      title: 'Řidičský průkaz skupiny C+E',
-      description: 'Profesionální řidičský průkaz pro nákladní dopravu. Rekvalifikační kurz s garancí umístění.',
+      title: t('marketplace_extra.courses.gov_2.title'),
+      description: t('marketplace_extra.courses.gov_2.desc'),
       skill_tags: ['Řidičský průkaz', 'Nákladní doprava', 'C+E'],
       provider: 'Autoškola Profesional',
       instructor: 'Mgr. Dvořák',
@@ -130,8 +130,8 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
     // Commercial courses
     {
       id: 'com-1',
-      title: 'Java Backend Developer Certificate',
-      description: 'Kompletní kurz vývoje backend aplikací v Jave s certifikací. Garance pracovního umístění.',
+      title: t('marketplace_extra.courses.com_1.title'),
+      description: t('marketplace_extra.courses.com_1.desc'),
       skill_tags: ['Java', 'Backend', 'Spring Boot', 'Microservices', 'Programming'],
       provider: 'IT Academy Prague',
       instructor: 'PhD. Dvořák',
@@ -149,8 +149,8 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
     },
     {
       id: 'com-2',
-      title: 'Python pro datovou vědu',
-      description: 'Moderní kurz Pythonu zaměřený na analýzu dat, strojové učení a AI. Ideální pro kariérní růst.',
+      title: t('marketplace_extra.courses.com_2.title'),
+      description: t('marketplace_extra.courses.com_2.desc'),
       skill_tags: ['Python', 'Data Science', 'Machine Learning', 'AI', 'Analytics'],
       provider: 'DataScience Academy',
       instructor: 'Dr. Černý',
@@ -375,16 +375,16 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                 </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                   <div className="bg-white/80 dark:bg-emerald-900/20 backdrop-blur rounded-lg p-4">
-                    <h4 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">Technické profese</h4>
-                    <p className="text-emerald-700 dark:text-emerald-300 text-sm">Elektrikář, Svářeč, Instalatér</p>
+                    <h4 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">{t('marketplace_extra.funding_categories.technical_professions')}</h4>
+                    <p className="text-emerald-700 dark:text-emerald-300 text-sm">{t('marketplace_extra.funding_categories.technical_professions_desc')}</p>
                   </div>
                   <div className="bg-white/80 dark:bg-emerald-900/20 backdrop-blur rounded-lg p-4">
-                    <h4 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">Technické kurzy</h4>
-                    <p className="text-emerald-700 dark:text-emerald-300 text-sm">Svářečství, IT certifikace</p>
+                    <h4 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">{t('marketplace_extra.funding_categories.technical_courses')}</h4>
+                    <p className="text-emerald-700 dark:text-emerald-300 text-sm">{t('marketplace_extra.funding_categories.technical_courses_desc')}</p>
                   </div>
                   <div className="bg-white/80 dark:bg-emerald-900/20 backdrop-blur rounded-lg p-4">
-                    <h4 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">Jazykové kurzy</h4>
-                    <p className="text-emerald-700 dark:text-emerald-300 text-sm">Angličtina, Němčina a další</p>
+                    <h4 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">{t('marketplace_extra.funding_categories.language_courses')}</h4>
+                    <p className="text-emerald-700 dark:text-emerald-300 text-sm">{t('marketplace_extra.funding_categories.language_courses_desc')}</p>
                   </div>
                 </div>
               </div>
