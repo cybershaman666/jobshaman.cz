@@ -305,9 +305,21 @@
         "contact": "Contact"
     },
     "company": {
+        "portal": {
+            "title": "Company Portal",
+            "subtitle": "Recruitment without the gloss, data without bias."
+        },
         "dashboard": {
             "title": "Recruitment Overview",
             "subtitle": "Statistics for the whole company and individual recruiters.",
+            "tabs": {
+                "overview": "Overview",
+                "dna_culture": "DNA & Culture",
+                "ai_editor": "AI Editor",
+                "assessments": "Assessments",
+                "candidates": "Candidates",
+                "marketplace": "Course Marketplace"
+            },
             "all_recruiters": "All Recruiters",
             "create_ad_btn": "Create Job Ad",
             "welcome_title": "Welcome to JobShaman",

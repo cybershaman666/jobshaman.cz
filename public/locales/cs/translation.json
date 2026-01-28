@@ -437,9 +437,21 @@
         "contact": "Kontakt"
     },
     "company": {
+        "portal": {
+            "title": "Firemní Portál",
+            "subtitle": "Nábor bez pozlátka, data bez zkreslení."
+        },
         "dashboard": {
             "title": "Přehled Náboru",
             "subtitle": "Statistiky pro celou firmu a jednotlivé náboráře.",
+            "tabs": {
+                "overview": "Přehled",
+                "dna_culture": "DNA & Kultura",
+                "ai_editor": "AI Editor",
+                "assessments": "Assessmenty",
+                "candidates": "Kandidáti",
+                "marketplace": "Marketplace kurzů"
+            },
             "all_recruiters": "Všichni Náboráři",
             "create_ad_btn": "Vytvořit Pracovní Inzerát",
             "welcome_title": "Vítejte v JobShaman",
