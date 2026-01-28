@@ -48,9 +48,9 @@ PRICING:
 - Single Assessment (99 CZK): 1 one-time assessment check
 """
 
-# Ensure we can import from the sibling scraper package
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from scraper.scraper_multi import run_all_scrapers
+from geocoding import geocode_location
 
 load_dotenv()
 
@@ -542,6 +542,7 @@ class JobCheckRequest(BaseModel):
     id: str = Field(..., min_length=1, max_length=100, description="Job ID")
     title: str = Field(..., min_length=1, max_length=200, description="Job title")
     company: str = Field(..., min_length=1, max_length=200, description="Company name")
+    location: Optional[str] = Field(None, max_length=200, description="Job location")
     description: str = Field(
         ..., min_length=10, max_length=5000, description="Job description"
     )
@@ -905,12 +906,25 @@ async def check_job_legality(
                 if result.needs_manual_review
                 else "rejected"
             )
+            # Perform geocoding
+            lat = None
+            lng = None
+            if job.location:
+                print(f"🌍 Geocoding portal job location: {job.location}")
+                geo_result = geocode_location(job.location)
+                if geo_result:
+                    lat = geo_result["lat"]
+                    lng = geo_result["lon"]
+                    print(f"   ✅ Found: ({lat}, {lng})")
+
             supabase.table("jobs").update(
                 {
                     "legality_status": status,
                     "risk_score": result.risk_score,
                     "verification_notes": ", ".join(result.reasons)
                     or "Zkontrolováno pravidly",
+                    "lat": lat,
+                    "lng": lng
                 }
             ).eq("id", job.id).execute()
 
