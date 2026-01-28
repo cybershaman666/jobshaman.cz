@@ -288,6 +288,7 @@ export default function App() {
 
     // Infinite scroll detection
     const jobListRef = useRef<HTMLDivElement>(null);
+    const detailScrollRef = useRef<HTMLDivElement>(null);
     
     useEffect(() => {
         const handleScroll = () => {
@@ -509,24 +510,21 @@ export default function App() {
     const handleJobSelect = (jobId: string) => {
         setSelectedJobId(jobId);
 
-        // Scroll detail view to top with multiple attempts for reliability
-        const scrollToTop = (attempts = 0) => {
-            if (attempts >= 5) return; // Max 5 attempts
-            
-            const detailScrollElement = document.querySelector('[data-detail-scroll="true"]');
-            if (detailScrollElement) {
-                detailScrollElement.scrollTo({
-                    top: 0,
-                    behavior: 'smooth'
-                });
-            } else if (attempts < 4) {
-                // Try again after a short delay
-                setTimeout(() => scrollToTop(attempts + 1), 100);
+        // Scroll ONLY the right column detail view to top using ref
+        // This ensures left column maintains its scroll position
+        setTimeout(() => {
+            if (detailScrollRef.current) {
+                detailScrollRef.current.scrollTop = 0;
+                console.log('✅ Scrolled right column to top, left column unchanged');
+            } else {
+                // Fallback to querySelector if ref is not available
+                const detailScrollElement = document.querySelector('[data-detail-scroll="true"]') as HTMLElement;
+                if (detailScrollElement) {
+                    detailScrollElement.scrollTop = 0;
+                    console.log('✅ Scrolled right column to top (fallback), left column unchanged');
+                }
             }
-        };
-
-        // Initial attempt after content starts rendering
-        setTimeout(() => scrollToTop(), 100);
+        }, 100);
     };
 
     const [showPremiumUpgrade, setShowPremiumUpgrade] = useState<{ open: boolean, feature?: string }>({ open: false });
@@ -1678,7 +1676,7 @@ export default function App() {
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex-1 overflow-y-auto custom-scrollbar" data-detail-scroll="true">
+                            <div ref={detailScrollRef} className="flex-1 overflow-y-auto custom-scrollbar" data-detail-scroll="true">
                                 {/* Detail Content */}
                                 <div className="p-6 sm:p-8 space-y-8">
 
