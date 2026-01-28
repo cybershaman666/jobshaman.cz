@@ -1081,8 +1081,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             {/* Company Header */}
             <div className="mb-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Firemní Portál</h1>
-                    <p className="text-slate-500 dark:text-slate-400">Nábor bez pozlátka, data bez zkreslení.</p>
+                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('company.portal.title')}</h1>
+                    <p className="text-slate-500 dark:text-slate-400">{t('company.portal.subtitle')}</p>
                 </div>
 
                 <div className="flex flex-wrap bg-white dark:bg-slate-900 p-1 rounded-lg border border-slate-200 dark:border-slate-800 overflow-x-auto">
@@ -1090,37 +1090,37 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         onClick={() => setActiveTab('overview')}
                         className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'overview' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
                     >
-                        Přehled
+                        {t('company.dashboard.tabs.overview')}
                     </button>
                     <button
                         onClick={() => setActiveTab('settings')}
                         className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'settings' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
                     >
-                        DNA & Kultura
+                        {t('company.dashboard.tabs.dna_culture')}
                     </button>
                     <button
                         onClick={() => setActiveTab('create-ad')}
                         className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'create-ad' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
                     >
-                        AI Editor
+                        {t('company.dashboard.tabs.ai_editor')}
                     </button>
                     <button
                         onClick={() => setActiveTab('assessments')}
                         className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'assessments' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
                     >
-                        Assessmenty
+                        {t('company.dashboard.tabs.assessments')}
                     </button>
                     <button
                         onClick={() => setActiveTab('candidates')}
                         className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'candidates' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
                     >
-                        Kandidáti
+                        {t('company.dashboard.tabs.candidates')}
                     </button>
                     <button
                         onClick={() => setActiveTab('marketplace')}
                         className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'marketplace' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
                     >
-                        Marketplace kurzů
+                        {t('company.dashboard.tabs.marketplace')}
                     </button>
                 </div>
             </div>

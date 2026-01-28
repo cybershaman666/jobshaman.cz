@@ -305,9 +305,21 @@
     "contact": "Kontakt"
   },
   "company": {
+    "portal": {
+      "title": "Unternehmensportal",
+      "subtitle": "Personalbeschaffung ohne Schnörkel, Daten bez Verzerrung."
+    },
     "dashboard": {
       "title": "Recruiting-Übersicht",
       "subtitle": "Statistiken für das gesamte Unternehmen und einzelne Recruiter.",
+      "tabs": {
+        "overview": "Übersicht",
+        "dna_culture": "DNA & Kultur",
+        "ai_editor": "AI-Editor",
+        "assessments": "Assessments",
+        "candidates": "Kandidaten",
+        "marketplace": "Kurs-Marktplatz"
+      },
       "all_recruiters": "Alle Recruiter",
       "create_ad_btn": "Stellenanzeige erstellen",
       "welcome_title": "Willkommen bei JobShaman",

@@ -305,9 +305,21 @@
     "contact": "Kontakt"
   },
   "company": {
+    "portal": {
+      "title": "Portal Firmowy",
+      "subtitle": "Rekrutacja bez upiększeń, dane bez zniekształceń."
+    },
     "dashboard": {
       "title": "Przegląd rekrutacji",
       "subtitle": "Statystyki dla całej firmy i poszczególnych rekruterów.",
+      "tabs": {
+        "overview": "Przegląd",
+        "dna_culture": "DNA i Kultura",
+        "ai_editor": "Edytor AI",
+        "assessments": "Oceny",
+        "candidates": "Kandydaci",
+        "marketplace": "Marketplace kursów"
+      },
       "all_recruiters": "Wszyscy rekruterzy",
       "create_ad_btn": "Utwórz ogłoszenie o pracę",
       "welcome_title": "Witaj v JobShaman",
