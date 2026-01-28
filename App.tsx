@@ -1429,7 +1429,7 @@ export default function App() {
                 {/* Vercel Analytics */}
                 <Analytics />
                 {/* LEFT COLUMN: Sidebar (Fixed Filters + Scrollable List) */}
-                <section className={`lg:col-span-4 xl:col-span-3 flex flex-col gap-4 min-h-0 ${selectedJobId ? 'hidden lg:flex' : 'flex'} sticky top-20 max-h-[calc(100vh-100px)]`}>
+                <section className={`lg:col-span-4 xl:col-span-3 flex flex-col gap-4 min-h-0 ${selectedJobId ? 'hidden lg:flex' : 'flex'} h-full`}>
                     <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col h-full overflow-hidden">
 
                         {/* Fixed Header Section (Search & Filters) */}
