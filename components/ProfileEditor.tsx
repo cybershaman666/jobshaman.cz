@@ -23,9 +23,9 @@ import { uploadProfilePhoto, uploadCVFile } from '../services/supabaseService';
 import { resolveAddressToCoordinates } from '../services/commuteService';
 import PremiumFeaturesPreview from './PremiumFeaturesPreview';
 import MyInvitations from './MyInvitations';
-import SubscriptionCard from './SubscriptionCard';
+
 import TransportModeSelector from './TransportModeSelector';
-import { useUserProfile } from '../hooks/useUserProfile';
+
 
 interface ProfileEditorProps {
   profile: UserProfile;
@@ -46,8 +46,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cvInputRef = useRef<HTMLInputElement>(null);
 
-  // Get company profile for subscription card
-  const { companyProfile } = useUserProfile();
+
 
   // Form state for different sections
   const [formData, setFormData] = useState({
@@ -326,8 +325,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
           </div>
         </div>
 
-        {/* Subscription Card */}
-        <SubscriptionCard userProfile={profile} companyProfile={companyProfile} />
+
 
         {/* Premium Features Preview */}
         <PremiumFeaturesPreview userProfile={profile} />
