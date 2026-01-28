@@ -17,6 +17,8 @@
         "city_placeholder": "Mesto (napr. Bratislava)",
         "limit_by_commute": "Limitovať dojazdom",
         "max_distance": "Max Vzdialenosť",
+        "search_nearby": "📍 Ponuky v blízkosti",
+        "search_everywhere": "🌍 Hľadať všade",
         "contract_type": "Typ úväzku",
         "benefits": "Benefity"
     },
@@ -630,6 +632,7 @@
     "common": {
         "unknown": "Neznámy",
         "none": "Žiadne",
-        "standard_package": "Štandardný balíček"
+        "standard_package": "Štandardný balík",
+        "search": "Hľadať"
     }
 }

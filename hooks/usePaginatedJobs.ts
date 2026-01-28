@@ -27,6 +27,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [enableCommuteFilter, setEnableCommuteFilter] = useState(false);
     const [filterBenefits, setFilterBenefits] = useState<string[]>([]);
     const [filterContractType, setFilterContractType] = useState<string[]>([]);
+    const [globalSearch, setGlobalSearch] = useState(false); // Toggle for searching entire database
         // Load saved job IDs from localStorage on mount
     const [savedJobIds, setSavedJobIds] = useState<string[]>(() => {
         try {
@@ -53,8 +54,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             const result = await fetchJobsPaginated(
                 0,
                 initialPageSize,
-                userProfile.coordinates?.lat,
-                userProfile.coordinates?.lon,
+                globalSearch ? undefined : userProfile.coordinates?.lat,
+                globalSearch ? undefined : userProfile.coordinates?.lon,
                 filterMaxDistance
             );
             setJobs(result.jobs);
@@ -66,7 +67,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         } finally {
             setLoading(false);
         }
-    }, [initialPageSize, userProfile.coordinates?.lat, userProfile.coordinates?.lon]);
+    }, [initialPageSize, userProfile.coordinates?.lat, userProfile.coordinates?.lon, filterMaxDistance, globalSearch]);
 
     // Save savedJobIds to localStorage whenever they change
     useEffect(() => {
@@ -76,6 +77,76 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             console.error('Error saving jobs to localStorage:', error);
         }
     }, [savedJobIds]);
+
+    // Reload jobs when globalSearch mode changes
+    useEffect(() => {
+        loadInitialJobs();
+    }, [globalSearch]);
+
+    // Handle city filter changes - geocode city and reload jobs with that location
+    useEffect(() => {
+        if (!filterCity || !filterCity.trim()) {
+            return; // Don't do anything if filter is empty
+        }
+
+        console.log(`🏙️  City filter changed to: "${filterCity}", geocoding and reloading jobs...`);
+        
+        // Debounce to avoid too many requests while typing
+        const timeoutId = setTimeout(async () => {
+            try {
+                const { geocodeWithCaching } = await import('../services/geocodingService');
+                const { searchJobsByLocation } = await import('../services/jobService');
+                
+                const coords = await geocodeWithCaching(filterCity);
+                
+                if (coords) {
+                    console.log(`🏙️  Geocoded "${filterCity}" to: ${coords.lat}, ${coords.lon}`);
+                    setLoading(true);
+                    const result = await fetchJobsPaginated(
+                        0,
+                        initialPageSize,
+                        coords.lat,
+                        coords.lon,
+                        100 // Use wider radius for city search (100km)
+                    );
+                    
+                    // If geocoding worked but returned no results, try location text search
+                    if (result.jobs.length === 0) {
+                        console.log(`🏙️  No geocoded jobs found, trying location text search...`);
+                        const locationResult = await searchJobsByLocation(filterCity, 0, initialPageSize);
+                        setJobs(locationResult.jobs);
+                        setHasMore(locationResult.hasMore);
+                        setTotalCount(locationResult.totalCount);
+                    } else {
+                        setJobs(result.jobs);
+                        setHasMore(result.hasMore);
+                        setTotalCount(result.totalCount);
+                    }
+                    setCurrentPage(0);
+                } else {
+                    // Geocoding failed, try location text search as fallback
+                    console.log(`🏙️  Could not geocode "${filterCity}", trying location text search...`);
+                    setLoading(true);
+                    const locationResult = await searchJobsByLocation(filterCity, 0, initialPageSize);
+                    setJobs(locationResult.jobs);
+                    setHasMore(locationResult.hasMore);
+                    setTotalCount(locationResult.totalCount);
+                    setCurrentPage(0);
+                }
+            } catch (error) {
+                console.error('Error with city search:', error);
+                // Clear jobs on error
+                setJobs([]);
+                setHasMore(false);
+                setTotalCount(0);
+                setCurrentPage(0);
+            } finally {
+                setLoading(false);
+            }
+        }, 500); // Wait 500ms after user stops typing
+
+        return () => clearTimeout(timeoutId); // Cleanup timeout if filter changes again
+    }, [filterCity, initialPageSize]);
 
     // Load more jobs
     const loadMoreJobs = useCallback(async () => {
@@ -87,8 +158,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             const result = await fetchJobsPaginated(
                 nextPage,
                 initialPageSize,
-                userProfile.coordinates?.lat,
-                userProfile.coordinates?.lon,
+                globalSearch ? undefined : userProfile.coordinates?.lat,
+                globalSearch ? undefined : userProfile.coordinates?.lon,
                 filterMaxDistance
             );
             
@@ -104,11 +175,13 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         } finally {
             setLoadingMore(false);
         }
-    }, [currentPage, hasMore, loadingMore, initialPageSize, userProfile.coordinates?.lat, userProfile.coordinates?.lon, filterMaxDistance]);
+    }, [currentPage, hasMore, loadingMore, initialPageSize, userProfile.coordinates?.lat, userProfile.coordinates?.lon, filterMaxDistance, globalSearch]);
 
     // Search functionality
     const performSearch = useCallback(async (term: string) => {
+        console.log(`🔎 performSearch called with term: "${term}"`);
         if (!term.trim()) {
+            console.log(`🔎 Term is empty, clearing search results`);
             setSearchResults([]);
             setIsSearching(false);
             return;
@@ -116,7 +189,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
         setIsSearching(true);
         try {
+            console.log(`🔎 About to call searchJobs with: "${term}"`);
             const results = await searchJobs(term);
+            console.log(`🔎 searchJobs returned ${results.length} results for "${term}"`);
+
             setSearchResults(results);
         } catch (error) {
             console.error('Error searching jobs:', error);
@@ -128,12 +204,33 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
     // Apply filters to jobs
     let jobCounter = 0; // For debug logging
-    let filteredJobs = (isSearching ? searchResults : jobs).filter(job => {
-        // City filter
-        if (filterCity) {
-            const cityLower = filterCity.toLowerCase();
+    
+    // Determine which jobs to filter: use searchResults if we have active search, otherwise use main jobs list
+    const jobsToFilter = (searchResults.length > 0 && searchTerm.trim()) ? searchResults : jobs;
+    console.log(`[Filter] Using ${jobsToFilter.length === searchResults.length ? 'searchResults' : 'jobs'} array. searchTerm: "${searchTerm}", searchResults.length: ${searchResults.length}, filterCity: "${filterCity}"`);
+    
+    let filteredJobs = jobsToFilter.filter(job => {
+        // When we have active search results, bypass all other filters - search results should show everything that matches the query
+        if (searchResults.length > 0 && searchTerm.trim()) {
+            return true;
+        }
+
+        // City filter - only apply when NOT searching
+        // Note: If geocoding succeeded, the jobs are already filtered by proximity to the city
+        // This is a fallback/refinement for additional safety
+        if (filterCity && filterCity.trim() && !enableCommuteFilter && !userProfile.coordinates) {
+            const cityLower = filterCity.toLowerCase().trim();
             const jobLocation = job.location.toLowerCase();
-            if (!jobLocation.includes(cityLower)) return false;
+            
+            // Split location by common delimiters to check each part
+            const locationParts = jobLocation.split(/[,\-]/);
+            const matchesCity = locationParts.some(part => 
+                part.trim().includes(cityLower) || cityLower.includes(part.trim())
+            );
+            
+            if (!matchesCity) {
+                return false;
+            }
         }
 
         // Commute distance filter - prefer DB coords when available
@@ -267,6 +364,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         savedJobIds,
         showFilters,
         expandedSections,
+        globalSearch,
 
         // Actions
         loadInitialJobs,
@@ -282,6 +380,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setSavedJobIds,
         setShowFilters,
         setExpandedSections,
+        setGlobalSearch,
         toggleBenefitFilter,
         toggleContractTypeFilter,
         clearAllFilters

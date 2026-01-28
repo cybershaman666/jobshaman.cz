@@ -201,6 +201,9 @@ export default function App() {
     // Cookie Consent State
     const [showCookieBanner, setShowCookieBanner] = useState(false);
 
+    // Track if we've already auto-enabled commute filter to avoid re-enabling after user disables it
+    const hasAutoEnabledCommuteFilter = useRef(false);
+
     // UI State
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isOnboardingCompany, setIsOnboardingCompany] = useState(false);
@@ -355,22 +358,25 @@ export default function App() {
         }
     }, []);
 
-    // Auto-enable commute filter for existing users with address/coordinates
+    // Auto-enable commute filter for existing users with address/coordinates (only once)
     useEffect(() => {
         console.log('🔍 Commute filter check:', {
             hasAddress: !!userProfile.address,
             hasCoordinates: !!userProfile.coordinates,
             coordinates: userProfile.coordinates,
             enableCommuteFilter,
-            address: userProfile.address
+            address: userProfile.address,
+            alreadyAutoEnabled: hasAutoEnabledCommuteFilter.current
         });
         
-        if (userProfile.address && userProfile.coordinates && !enableCommuteFilter) {
-            console.log('🏠 User has address and coordinates, auto-enabling commute filter');
+        // Only auto-enable once, and only if user hasn't manually disabled it
+        if (userProfile.address && userProfile.coordinates && !enableCommuteFilter && !hasAutoEnabledCommuteFilter.current) {
+            console.log('🏠 User has address and coordinates, auto-enabling commute filter for the first time');
             setEnableCommuteFilter(true);
             setFilterMaxDistance(50);
+            hasAutoEnabledCommuteFilter.current = true;
         }
-    }, [userProfile.address, userProfile.coordinates, enableCommuteFilter]);
+    }, [userProfile.address, userProfile.coordinates]);
 
     // Reload jobs when user coordinates change (e.g., after profile update)
     useEffect(() => {
@@ -470,10 +476,12 @@ export default function App() {
     const handleProfileUpdate = async (updatedProfile: UserProfile) => {
         try {
             setUserProfile(updatedProfile);
-            // Auto-enable commute filter if address is added and filter wasn't on
-            if (updatedProfile.address && !enableCommuteFilter) {
+            // Auto-enable commute filter if address is added and filter wasn't on (only once)
+            if (updatedProfile.address && !enableCommuteFilter && !hasAutoEnabledCommuteFilter.current) {
+                console.log('🏠 Profile updated with address, auto-enabling commute filter');
                 setEnableCommuteFilter(true);
                 setFilterMaxDistance(50);
+                hasAutoEnabledCommuteFilter.current = true;
             }
 
             // Save to Supabase if we have a user ID

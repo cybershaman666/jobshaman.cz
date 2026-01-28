@@ -33,6 +33,10 @@ const EU_CITIES_CACHE: Record<string, { lat: number, lon: number }> = {
     'hustopece': { lat: 48.9408, lon: 16.7378 },
     'mikulov': { lat: 48.8056, lon: 16.6378 },
     'breclav': { lat: 48.7590, lon: 16.8820 },
+    'znojmo': { lat: 48.5567, lon: 16.0499 },
+    'trebic': { lat: 49.2162, lon: 15.8717 },
+    'telc': { lat: 49.1918, lon: 15.4539 },
+    'dolni vltavice': { lat: 48.8978, lon: 14.2458 },
 };
 
 /**
