@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { UserProfile, WorkExperience, Education, TransportMode } from '../types';
+import { UserProfile, WorkExperience, Education, TransportMode, Job } from '../types';
 import {
   User,
   Upload,
@@ -17,7 +17,8 @@ import {
   FileText,
   MapPin,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  Bookmark
 } from 'lucide-react';
 import { uploadProfilePhoto, uploadCVFile } from '../services/supabaseService';
 import { resolveAddressToCoordinates } from '../services/commuteService';
@@ -25,6 +26,7 @@ import PremiumFeaturesPreview from './PremiumFeaturesPreview';
 import MyInvitations from './MyInvitations';
 
 import TransportModeSelector from './TransportModeSelector';
+import SavedJobsPage from './SavedJobsPage';
 
 
 interface ProfileEditorProps {
@@ -32,12 +34,28 @@ interface ProfileEditorProps {
   onChange: (profile: UserProfile) => void;
   onSave: () => void;
   onRefreshProfile?: () => void;
+  savedJobs?: Job[];
+  savedJobIds?: string[];
+  onToggleSave?: (jobId: string) => void;
+  onJobSelect?: (jobId: string) => void;
+  selectedJobId?: string | null;
 }
 
-const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave, onRefreshProfile }) => {
+const ProfileEditor: React.FC<ProfileEditorProps> = ({ 
+  profile, 
+  onChange, 
+  onSave, 
+  onRefreshProfile,
+  savedJobs = [],
+  savedJobIds = [],
+  onToggleSave,
+  onJobSelect,
+  selectedJobId
+}) => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [isUploadingCV, setIsUploadingCV] = useState(false);
   const [editingSection, setEditingSection] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'profile' | 'saved'>('profile');
 
   // Address Verification State
   const [isVerifyingAddress, setIsVerifyingAddress] = useState(false);
@@ -325,21 +343,50 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
           </div>
         </div>
 
-
-
-        {/* Premium Features Preview */}
-        <PremiumFeaturesPreview userProfile={profile} />
-
-        {/* Candidate Invitations (if logged in) */}
-        {profile.isLoggedIn && (
-          <div className="max-w-6xl mx-auto py-4">
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-              <MyInvitations />
-            </div>
+        {/* Tabs */}
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-1">
+          <div className="flex gap-1">
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
+                activeTab === 'profile'
+                  ? 'bg-cyan-600 text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              <User className="w-4 h-4" />
+              <span>Profil</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('saved')}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${
+                activeTab === 'saved'
+                  ? 'bg-cyan-600 text-white shadow-md'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
+              }`}
+            >
+              <Bookmark className="w-4 h-4" />
+              <span>Uložené ({savedJobs.length})</span>
+            </button>
           </div>
-        )}
+        </div>
 
-        {/* Personal Information Section */}
+        {/* Tab Content */}
+        {activeTab === 'profile' ? (
+          <>
+            {/* Premium Features Preview */}
+            <PremiumFeaturesPreview userProfile={profile} />
+
+            {/* Candidate Invitations (if logged in) */}
+            {profile.isLoggedIn && (
+              <div className="max-w-6xl mx-auto py-4">
+                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
+                  <MyInvitations />
+                </div>
+              </div>
+            )}
+
+            {/* Personal Information Section */}
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
           <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
             <div className="flex items-center justify-between">
@@ -857,6 +904,21 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({ profile, onChange, onSave
             )}
           </div>
         </div>
+          </>
+        ) : (
+          <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
+            <SavedJobsPage
+              savedJobs={savedJobs}
+              savedJobIds={savedJobIds}
+              onToggleSave={onToggleSave || (() => {})}
+              onJobSelect={onJobSelect || (() => {})}
+              selectedJobId={selectedJobId || null}
+              userProfile={profile}
+              searchTerm=""
+              onSearchChange={() => {}}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

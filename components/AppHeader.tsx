@@ -19,7 +19,6 @@ interface AppHeaderProps {
     setSelectedJobId: (id: string | null) => void;
     showCompanyLanding: boolean;
     setShowCompanyLanding: (show: boolean) => void;
-    savedJobIds: string[];
     userProfile: UserProfile;
     handleAuthAction: () => void;
     toggleTheme: () => void;
@@ -32,7 +31,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     setSelectedJobId,
     showCompanyLanding,
     setShowCompanyLanding,
-    savedJobIds,
     userProfile,
     handleAuthAction,
     toggleTheme,
@@ -75,13 +73,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap ${viewState === ViewState.LIST ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                             >
                                 {t('nav.offers')}
-                            </button>
-                            <button
-                                onClick={() => setViewState(ViewState.SAVED)}
-                                className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.SAVED ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                            >
-                                {t('nav.saved')}
-                                <span className={`text-[10px] px-1.5 rounded-full ${savedJobIds.length > 0 ? 'bg-slate-200 dark:bg-slate-900 text-slate-700 dark:text-slate-300' : 'bg-slate-200/50 dark:bg-slate-800/50'}`}>{savedJobIds.length}</span>
                             </button>
                             <button
                                 onClick={() => userProfile.isLoggedIn ? setViewState(ViewState.PROFILE) : handleAuthAction()}
