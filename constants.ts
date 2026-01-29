@@ -1,5 +1,5 @@
 
-import { Job, Candidate, BenefitInsight, CompanyProfile } from './types';
+import { Job, Candidate, BenefitInsight, CompanyProfile, UserProfile } from './types';
 
 // Backend API Configuration
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://jobshaman-cz.onrender.com';
@@ -115,4 +115,19 @@ export const JHI_COLORS = {
   high: '#059669', // Emerald 600
   medium: '#d97706', // Amber 600
   low: '#dc2626' // Red 600
+};
+
+// Default user profile
+export const DEFAULT_USER_PROFILE: UserProfile = {
+  isLoggedIn: false,
+  name: '',
+  email: '',
+  address: '',
+  transportMode: 'public',
+  preferences: {
+    workLifeBalance: 50,
+    financialGoals: 50,
+    commuteTolerance: 45,
+    priorities: []
+  }
 };
