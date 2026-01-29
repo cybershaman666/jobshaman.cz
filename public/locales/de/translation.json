@@ -17,7 +17,9 @@
     "close": "Schließen",
     "save": "Speichern",
     "cancel": "Abbrechen",
-    "delete": "Löschen"
+    "delete": "Löschen",
+    "beta_badge": "BETA",
+    "beta_description": "Beta-Version - kann Fehler enthalten"
   },
   "filters": {
     "location_commute": "Standort und Arbeitsweg",
@@ -27,7 +29,19 @@
     "search_nearby": "📍 Angebote in der Nähe",
     "search_everywhere": "🌍 Überall suchen",
     "contract_type": "Vertragsart",
-    "benefits": "Benefits"
+    "benefits": "Benefits",
+    "date_posted": "Veröffentlichungsdatum",
+    "any_time": "Jederzeit",
+    "last_24h": "Letzte 24 Stunden",
+    "last_3d": "Letzte 3 Tage",
+    "last_7d": "Letzte Woche",
+    "last_14d": "Letzte 2 Wochen",
+    "min_salary": "Min. monatliches Gehalt",
+    "experience_level": "Erfahrungsgrad (Seniorität)",
+    "junior": "Junior",
+    "medior": "Medior",
+    "senior": "Senior",
+    "lead": "Teamlead / Management"
   },
   "financial": {
     "reality_title": "Finanzielle Realität",
