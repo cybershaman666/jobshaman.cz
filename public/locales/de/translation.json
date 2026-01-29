@@ -246,6 +246,9 @@
     "series_score": "Score"
   },
   "job": {
+    "jhi_score": "JHI-Score",
+    "description": "Stellenbeschreibung",
+    "benefits": "Benefits und Vorteile",
     "salary_not_specified": "Gehalt nicht angegeben",
     "salary_estimate": "Schätzung",
     "relocation": "Umzug",

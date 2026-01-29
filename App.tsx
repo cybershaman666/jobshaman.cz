@@ -57,14 +57,11 @@ export default function App() {
     const { t, i18n } = useTranslation();
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
     const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
-    // @ts-expect-error - Set via setAiAnalysis, read logic extracted to JobDetailView
     const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
-    // @ts-expect-error - Set via setAnalyzing, read logic extracted to JobDetailView
     const [analyzing, setAnalyzing] = useState(false);
     const [isLoadingJobs, setIsLoadingJobs] = useState(true);
 
     // Career Pathfinder State
-    // @ts-expect-error - Set via setPathfinderAnalysis, read logic extracted to JobDetailView
     const [pathfinderAnalysis, setPathfinderAnalysis] = useState<CareerPathfinderResult | null>(null);
 
     // Cookie Consent State
@@ -523,7 +520,6 @@ export default function App() {
 
     const [showPremiumUpgrade, setShowPremiumUpgrade] = useState<{ open: boolean, feature?: string }>({ open: false });
 
-    // @ts-expect-error - Function is called, but was in extracted code section
     const handleAnalyzeJob = async () => {
         if (!selectedJob) return;
 
@@ -803,6 +799,11 @@ export default function App() {
                     setShowFinancialMethodology={setShowFinancialMethodology}
                     getTransportIcon={getTransportIcon}
                     formatJobDescription={formatJobDescription}
+                    theme={theme}
+                    pathfinderAnalysis={pathfinderAnalysis}
+                    aiAnalysis={aiAnalysis}
+                    analyzing={analyzing}
+                    handleAnalyzeJob={handleAnalyzeJob}
                 />
             </>
         );

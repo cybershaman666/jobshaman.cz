@@ -246,6 +246,9 @@
     "series_score": "Wynik"
   },
   "job": {
+    "jhi_score": "Wynik JHI",
+    "description": "Opis stanowiska",
+    "benefits": "Benefity i zalety",
     "salary_not_specified": "Wynagrodzenie niepodane",
     "salary_estimate": "Szacunek",
     "relocation": "Przeprowadzka",

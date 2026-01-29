@@ -260,6 +260,9 @@
         "series_score": "Skóre"
     },
     "job": {
+        "jhi_score": "JHI Skóre",
+        "description": "Popis pozice",
+        "benefits": "Benefity a výhody",
         "salary_not_specified": "Mzda neuvedena",
         "salary_estimate": "Odhad",
         "relocation": "Stěhování",
