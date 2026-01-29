@@ -17,7 +17,9 @@
         "close": "Zavřít",
         "save": "Uložit",
         "cancel": "Zrušit",
-        "delete": "Odstranit"
+        "delete": "Odstranit",
+        "beta_badge": "BETA",
+        "beta_description": "Beta verze - může obsahovat chyby"
     },
     "filters": {
         "location_commute": "Lokalita a Dojezd",
@@ -27,7 +29,19 @@
         "search_nearby": "📍 Nabídky v okolí",
         "search_everywhere": "🌍 Hledat všude",
         "contract_type": "Typ úvazku",
-        "benefits": "Benefity"
+        "benefits": "Benefity",
+        "date_posted": "Datum zveřejnění",
+        "any_time": "Kdykoliv",
+        "last_24h": "Posledních 24 hodin",
+        "last_3d": "Poslední 3 dny",
+        "last_7d": "Poslední týden",
+        "last_14d": "Poslední 2 týdny",
+        "min_salary": "Min. měsíční mzda",
+        "experience_level": "Úroveň (Seniorita)",
+        "junior": "Junior",
+        "medior": "Medior",
+        "senior": "Senior",
+        "lead": "Lead / Management"
     },
     "financial": {
         "reality_title": "Finanční Realita",

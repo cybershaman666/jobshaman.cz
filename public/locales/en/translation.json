@@ -17,7 +17,9 @@
         "close": "Close",
         "save": "Save",
         "cancel": "Cancel",
-        "delete": "Delete"
+        "delete": "Delete",
+        "beta_badge": "BETA",
+        "beta_description": "Beta version - may contain mistakes"
     },
     "filters": {
         "location_commute": "Location and Commute",
@@ -27,7 +29,19 @@
         "search_nearby": "📍 Nearby offers",
         "search_everywhere": "🌍 Search everywhere",
         "contract_type": "Contract Type",
-        "benefits": "Benefits"
+        "benefits": "Benefits",
+        "date_posted": "Date Posted",
+        "any_time": "Any time",
+        "last_24h": "Last 24 hours",
+        "last_3d": "Last 3 days",
+        "last_7d": "Last 7 days",
+        "last_14d": "Last 14 days",
+        "min_salary": "Min Monthly Salary",
+        "experience_level": "Experience Level",
+        "junior": "Junior",
+        "medior": "Medior",
+        "senior": "Senior",
+        "lead": "Lead / Manager"
     },
     "financial": {
         "reality_title": "Financial Reality",
