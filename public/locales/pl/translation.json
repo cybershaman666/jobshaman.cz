@@ -188,7 +188,7 @@
       "title_end": "oblicza, czy praca naprawdę Ci się opłaca.",
       "subtitle": "Skup się na tym, co ważne. JobShaman zadba o matematykę. Rzeczywisty dochód, dojazdy, czas i wpływ na Twoje samopoczucie — wszystko w jednym miejscu.",
       "try_free_btn": "Wypróbuj za darmo",
-      "browse_offers_btn": "Przeglądaj oferty"
+      "browse_offers_btn": "Przeglądaj {{count}} ofert"
     },
     "page_what_is": {
       "title_job": "Czym jest ",

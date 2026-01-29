@@ -179,7 +179,7 @@
             "title_end": "spočítá, či sa vám práca naozaj oplatí.",
             "subtitle": "Zamerajte sa na to, čo je dôležité. JobShaman sa postará o matematiku. Skutočný príjem, dochádzanie, čas a vplyv na vašu pohodu — všetko na jednom mieste.",
             "try_free_btn": "Skúsiť zadarmo",
-            "browse_offers_btn": "Prehliadať ponuky",
+            "browse_offers_btn": "Prezerať {{count}} ponúk",
             "label_home": "Domov",
             "label_commute": "Dojazd",
             "label_job": "Práca"

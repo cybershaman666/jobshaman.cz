@@ -188,7 +188,7 @@
             "title_end": "calculates if the job is really worth it.",
             "subtitle": "Focus on what matters. JobShaman takes care of the math. Real income, commute, time and impact on your well-being — all in one place.",
             "try_free_btn": "Try for Free",
-            "browse_offers_btn": "Browse Offers"
+            "browse_offers_btn": "Browse {{count}} offers"
         },
         "page_what_is": {
             "title_job": "What ",

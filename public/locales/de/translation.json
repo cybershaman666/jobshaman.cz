@@ -188,7 +188,7 @@
       "title_end": "berechnet, ob sich die Arbeit wirklich für Sie lohnt.",
       "subtitle": "Konzentrieren Sie sich auf das Wesentliche. JobShaman kümmert sich um die Mathematik. Reales Einkommen, Arbeitsweg, Zeit und Auswirkungen auf Ihr Wohlbefinden – alles an einem Ort.",
       "try_free_btn": "Kostenlos testen",
-      "browse_offers_btn": "Angebote durchsuchen"
+      "browse_offers_btn": "{{count}} Angebote durchsuchen"
     },
     "page_what_is": {
       "title_job": "Was ",

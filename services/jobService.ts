@@ -204,14 +204,13 @@ const formatDescription = (desc: string | null | undefined): string => {
     let clean = String(desc).trim();
     if (clean === "Popis nenalezen") return "Detailní popis pozice se nepodařilo stáhnout. Navštivte původní zdroj.";
 
-    // Basic cleanup only - preserve content!
+    // Basic cleanup - preserve list structures!
     const hasHtmlTags = /<[a-z][\s\S]*>/i.test(clean);
 
     if (hasHtmlTags) {
         clean = clean
             .replace(/<br\s*\/?>/gi, '\n')
             .replace(/<\/p>/gi, '\n\n')
-            // Handle lists with proper line breaks
             .replace(/<ul>/gi, '\n')
             .replace(/<\/ul>/gi, '\n')
             .replace(/<ol>/gi, '\n')
@@ -219,14 +218,31 @@ const formatDescription = (desc: string | null | undefined): string => {
             .replace(/<\/li>/gi, '\n')
             .replace(/<li>/gi, '- ')
             .replace(/&nbsp;/g, ' ');
-        // Strip remaining tags
         clean = clean.replace(/<[^>]*>/g, '');
     }
 
-    // Normalize whitespace and newlines - clean up excessive blank lines
-    clean = clean.replace(/\n\s*\n\s*\n/g, '\n\n')
-        .replace(/^ *\n+/, '')  // Remove leading newlines
-        .replace(/\n+ *$/, ''); // Remove trailing newlines
+    // Split into lines and handle bullet points before aggressive noise filtering
+    const lines = clean.split(/\r?\n/);
+    const processedLines = lines.map(line => {
+        const trimmed = line.trim();
+        if (!trimmed) return null;
+
+        // If it starts with a common bullet char, convert to standard markdown dash
+        if (/^[•◦▪▫∙‣⁃\-\*]/.test(trimmed)) {
+            return '- ' + trimmed.replace(/^[•◦▪▫∙‣⁃\-\*]\s*/, '');
+        }
+
+        // If line has significant leading indentation (3+ spaces), it's likely a bullet
+        const match = line.match(/^(\s+)/);
+        if (match && match[1].length >= 3) {
+            return '- ' + trimmed;
+        }
+
+        return trimmed;
+    }).filter(Boolean);
+
+    // Normalize whitespace and newlines
+    clean = (processedLines as string[]).join('\n');
 
     // Remove common footer/navigation noise aggressively but conservatively
     const FOOTER_TOKENS = [
@@ -238,33 +254,19 @@ const formatDescription = (desc: string | null | undefined): string => {
         'atmoskop', 'nelisa.com', 'teamio', 'seduo.cz', 'seduo.sk', 'platy.cz', 'platy.sk', 'paylab.com', 'cvonline.lt',
         'cv.lv', 'cv.ee', 'dirbam.it', 'visidarbi.lv', 'otsintood.ee', 'personaloatrankos.lt', 'recruitment.lv',
         'varbamisteenused.ee', 'mojposao', 'vrabotuvanje', 'hercul.hr', 'virtual valley', 'pulser', 'jobly.fi',
-        // Specifické tokeny z footeru "jen práce" portálu
         'about eaton', 'awards', 'eaton\'s sustainability 2030 targets', 'nahlásit nezákonný obsah',
         'nastavení cookies', 'transparentnost', 'reklama na portálech alma career'
     ].map(s => s.toLowerCase());
 
-    const lines = clean.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-    const filteredLines = lines.filter(line => {
+    const filteredLines = (processedLines as string[]).filter(line => {
         const low = line.toLowerCase();
-
-        // Remove exact token matches or lines that contain known tokens
         for (const tok of FOOTER_TOKENS) {
-            if (low === tok) return false;
-            if (low.includes(tok)) return false;
+            if (low === tok || low.includes(tok)) return false;
         }
-
-        // Remove short domain-only or domain-heavy lines (likely footer links)
-        if (/\b[a-z0-9.-]+\.(cz|sk|com|pl|lt|lv|ee|it|hr|ba|fi)\b/i.test(line) && line.length < 80) {
-            return false;
-        }
-
-        // Remove lines that look like navigation lists (many short capitalized items)
+        if (/\b[a-z0-9.-]+\.(cz|sk|com|pl|lt|lv|ee|it|hr|ba|fi)\b/i.test(line) && line.length < 80) return false;
         const parts = line.split(/[\|,·•–-]/).map(p => p.trim()).filter(Boolean);
         if (parts.length >= 4 && parts.every(p => p.length < 30)) return false;
-
-        // Remove very short lines that are likely UI labels
         if (line.length < 30 && /^[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9].*/.test(line)) return false;
-
         return true;
     });
 

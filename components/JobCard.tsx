@@ -117,8 +117,8 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
         <div className="flex items-center gap-1.5">
           <MapPin size={16} className="text-slate-400 dark:text-slate-500" /> <span className="truncate">{job.location}</span>
         </div>
-        <div className="flex items-center gap-1.5">
-          <Briefcase size={16} className="text-slate-400 dark:text-slate-500" /> <span className="truncate">{job.type}</span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Briefcase size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{job.type}</span>
         </div>
 
         {/* Salary Display Logic */}
