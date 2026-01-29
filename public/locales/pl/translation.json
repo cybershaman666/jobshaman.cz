@@ -17,7 +17,9 @@
     "close": "Zamknij",
     "save": "Zapisz",
     "cancel": "Anuluj",
-    "delete": "Usuń"
+    "delete": "Usuń",
+    "beta_badge": "BETA",
+    "beta_description": "Wersja beta - może zawierać błędy"
   },
   "filters": {
     "location_commute": "Lokalizacja i dojazd",
@@ -27,7 +29,19 @@
     "search_nearby": "📍 Oferty w pobliżu",
     "search_everywhere": "🌍 Szukaj wszędzie",
     "contract_type": "Typ umowy",
-    "benefits": "Benefity"
+    "benefits": "Benefity",
+    "date_posted": "Data publikacji",
+    "any_time": "Kiedykolwiek",
+    "last_24h": "Ostatnie 24 godziny",
+    "last_3d": "Ostatnie 3 dni",
+    "last_7d": "Ostatni tydzień",
+    "last_14d": "Ostatnie 2 tygodnie",
+    "min_salary": "Min. miesięczne wynagrodzenie",
+    "experience_level": "Poziom (Seniorat)",
+    "junior": "Junior",
+    "medior": "Medior",
+    "senior": "Senior",
+    "lead": "Lead / Zarządzanie"
   },
   "financial": {
     "reality_title": "Rzeczywistość finansowa",

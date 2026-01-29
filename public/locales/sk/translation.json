@@ -19,7 +19,9 @@
         "cancel": "Zrušiť",
         "delete": "Odstrániť",
         "saving": "Ukladám...",
-        "demo_alert": "Demo prístup: Táto funkcia bude dostupná čoskoro."
+        "demo_alert": "Demo prístup: Táto funkcia bude dostupná čoskoro.",
+        "beta_badge": "BETA",
+        "beta_description": "Beta verzia - môže obsahovať chyby"
     },
     "filters": {
         "location_commute": "Lokalita a Dojazd",
@@ -29,7 +31,19 @@
         "search_nearby": "📍 Ponuky v blízkosti",
         "search_everywhere": "🌍 Hľadať všade",
         "contract_type": "Typ úväzku",
-        "benefits": "Benefity"
+        "benefits": "Benefity",
+        "date_posted": "Dátum zverejnenia",
+        "any_time": "Kedykoľvek",
+        "last_24h": "Posledných 24 hodín",
+        "last_3d": "Posledné 3 dni",
+        "last_7d": "Posledný týždeň",
+        "last_14d": "Posledné 2 týždne",
+        "min_salary": "Min. mesačná mzda",
+        "experience_level": "Úroveň (Seniorita)",
+        "junior": "Junior",
+        "medior": "Medior",
+        "senior": "Senior",
+        "lead": "Lead / Management"
     },
     "financial": {
         "reality_title": "Finančná Realita",
