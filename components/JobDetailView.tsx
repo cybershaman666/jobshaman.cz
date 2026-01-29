@@ -1,8 +1,13 @@
 import React, { RefObject } from 'react';
-import { Job, UserProfile, CommuteAnalysis, ViewState } from '../types';
+import { Job, UserProfile, CommuteAnalysis, ViewState, CareerPathfinderResult, AIAnalysisResult } from '../types';
 import FinancialCard from './FinancialCard';
 import WelcomePage from './WelcomePage';
-import { ArrowUpRight, Bookmark, Gift } from 'lucide-react';
+import JHIChart from './JHIChart';
+import SkillsGapBox from './SkillsGapBox';
+import BullshitMeter from './BullshitMeter';
+import TransparencyCard from './TransparencyCard';
+import ContextualRelevance from './ContextualRelevance';
+import { ArrowUpRight, Bookmark, Gift, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Markdown from 'markdown-to-jsx';
 
@@ -27,6 +32,12 @@ interface JobDetailViewProps {
     setShowFinancialMethodology: (show: boolean) => void;
     getTransportIcon: (mode: string) => React.ComponentType<any>;
     formatJobDescription: (description: string) => string;
+    // New props for full functionality
+    theme: 'light' | 'dark';
+    pathfinderAnalysis: CareerPathfinderResult | null;
+    aiAnalysis: AIAnalysisResult | null;
+    analyzing: boolean;
+    handleAnalyzeJob: () => void;
 }
 
 const JobDetailView: React.FC<JobDetailViewProps> = ({
@@ -49,7 +60,12 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     showFinancialMethodology,
     setShowFinancialMethodology,
     getTransportIcon,
-    formatJobDescription
+    formatJobDescription,
+    theme,
+    pathfinderAnalysis,
+    aiAnalysis,
+    analyzing,
+    handleAnalyzeJob
 }) => {
     const { t } = useTranslation();
 
@@ -125,23 +141,88 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                 </div>
                             )}
 
-                            {/* JHI Chart - Simple display */}
-                            {dynamicJHI && (
-                                <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
-                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">{t('job.jhi_score')}</h3>
-                                    <div className="text-4xl font-bold text-emerald-600 dark:text-emerald-400">{dynamicJHI.score}</div>
+                            {/* Contextual Relevance Section */}
+                            {selectedJob.contextualRelevance && (
+                                <div className="mb-8">
+                                    <ContextualRelevance contextualRelevance={selectedJob.contextualRelevance} compact={false} />
                                 </div>
                             )}
 
                             {/* Job Description */}
                             {selectedJob.description && (
-                                <div className="prose dark:prose-invert max-w-none">
-                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-4">{t('job.description')}</h3>
-                                    <Markdown className="text-slate-600 dark:text-slate-300 leading-relaxed">
-                                        {formatJobDescription(selectedJob.description)}
-                                    </Markdown>
+                                <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-200 break-words whitespace-pre-wrap">
+                                    <Markdown options={{ forceBlock: true }}>{formatJobDescription(selectedJob.description)}</Markdown>
                                 </div>
                             )}
+                        </div>
+
+                        {/* Bottom section with JHI Chart and Analysis */}
+                        <div className="bg-slate-50 dark:bg-slate-950/30 border-t border-slate-200 dark:border-slate-800 p-6 sm:p-8">
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                                {/* Left Column - JHI Chart and AI Analysis */}
+                                <div className="space-y-6">
+                                    {/* JHI Chart with Spider Graph */}
+                                    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+                                        <div className="flex items-center justify-between mb-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 bg-emerald-100 dark:bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20"><Zap size={20} /></div>
+                                                <div><h3 className="text-slate-900 dark:text-slate-100 font-bold">{t('job_detail.jhi_title')}</h3><p className="text-slate-500 dark:text-slate-400 text-xs">{t('job_detail.jhi_desc')}</p></div>
+                                            </div>
+                                            <span className={`text-3xl font-mono font-bold ${commuteAnalysis ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-300'}`}>{dynamicJHI.score}</span>
+                                        </div>
+                                        <JHIChart
+                                            jhi={dynamicJHI}
+                                            theme={theme}
+                                            highlightGrowth={!!(pathfinderAnalysis?.skillsGapAnalysis?.recommended_resources?.length)}
+                                        />
+                                    </div>
+
+                                    {/* AI Analysis Section */}
+                                    {aiAnalysis ? (
+                                        <div className="bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-500/30 rounded-xl p-6 shadow-sm">
+                                            <h3 className="font-bold text-cyan-600 dark:text-cyan-400 mb-2">{t('job_detail.ai_analysis')}</h3>
+                                            <p className="text-sm text-slate-700 dark:text-slate-200">{aiAnalysis.summary}</p>
+                                        </div>
+                                    ) : (
+                                        <button onClick={handleAnalyzeJob} disabled={analyzing} className="w-full py-4 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-cyan-600 dark:text-cyan-400 border border-slate-200 dark:border-slate-700 hover:border-cyan-300 rounded-xl flex items-center justify-center gap-3 text-sm font-bold shadow-sm">
+                                            {analyzing ? t('job_detail.analyzing') : t('job_detail.run_ai_analysis')}
+                                        </button>
+                                    )}
+
+                                    {/* Transparency Card */}
+                                    <TransparencyCard data={selectedJob.transparency} variant={theme} />
+                                </div>
+
+                                {/* Right Column - Skills Gap Analysis & BullshitMeter */}
+                                <div className="space-y-6">
+                                    {/* Career Pathfinder - Skills Gap Analysis */}
+                                    <SkillsGapBox
+                                        skillsGapAnalysis={pathfinderAnalysis?.skillsGapAnalysis || null}
+                                        isLoading={pathfinderAnalysis?.isLoading || false}
+                                        error={pathfinderAnalysis?.error || null}
+                                        theme={theme}
+                                        userProfile={{
+                                            isLoggedIn: userProfile.isLoggedIn,
+                                            hasCV: !!userProfile.cvText || !!userProfile.cvUrl,
+                                            name: userProfile.name
+                                        }}
+                                        onResourceClick={(resource) => {
+                                            window.open(resource.url, '_blank');
+                                        }}
+                                        onShowMarketplace={() => {
+                                            setViewState(ViewState.MARKETPLACE);
+                                            setSelectedJobId(null);
+                                        }}
+                                        onShowProfile={() => {
+                                            setViewState(ViewState.PROFILE);
+                                            setSelectedJobId(null);
+                                        }}
+                                    />
+
+                                    {/* BullshitMeter */}
+                                    <BullshitMeter metrics={selectedJob.noiseMetrics} variant={theme} />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
