@@ -74,9 +74,12 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
     setStep('submitting');
 
     try {
+      // Use environment variable for recipient email, with fallback
+      const recipientEmail = import.meta.env.VITE_CONTACT_EMAIL || 'floki@jobshaman.cz';
+
       // Send email notification
       const emailResult = await sendEmail({
-        to: 'floki@jobshaman.cz',
+        to: recipientEmail,
         ...EmailTemplates.jobApplication(formData, job)
       });
 
