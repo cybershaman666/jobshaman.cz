@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Home, MapPin, Briefcase, Clock, TrendingUp, Eye, CheckCircle, AlertCircle, Target, Brain, BarChart3, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { getJobCount } from '../services/jobService';
 
 interface WelcomePageProps {
   onTryFree?: () => void;
@@ -10,6 +11,19 @@ interface WelcomePageProps {
 const WelcomePage: React.FC<WelcomePageProps> = ({ onTryFree, onBrowseOffers }) => {
   const { t } = useTranslation();
   const [activeMetric, setActiveMetric] = useState(0);
+  const [jobCount, setJobCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchCount = async () => {
+      try {
+        const count = await getJobCount();
+        setJobCount(count);
+      } catch (error) {
+        console.error("Error fetching job count:", error);
+      }
+    };
+    fetchCount();
+  }, []);
 
   // Demo metrics that rotate
   const metrics = [
@@ -57,7 +71,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onTryFree, onBrowseOffers }) 
                 onClick={onBrowseOffers}
                 className="px-8 py-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-lg font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95"
               >
-                {t('welcome.page_hero.browse_offers_btn')}
+                {t('welcome.page_hero.browse_offers_btn', { count: jobCount ?? 0 })}
               </button>
             </div>
           </div>
