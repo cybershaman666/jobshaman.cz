@@ -247,6 +247,9 @@ export default function App() {
         enableCommuteFilter,
         filterBenefits,
         filterContractType,
+        filterDate,
+        filterMinSalary,
+        filterExperience,
         savedJobIds,
         showFilters,
         expandedSections,
@@ -254,11 +257,14 @@ export default function App() {
         setFilterCity,
         setFilterMaxDistance,
         setEnableCommuteFilter,
+        setFilterDate,
+        setFilterMinSalary,
         setSavedJobIds,
         setShowFilters,
         setExpandedSections,
         toggleBenefitFilter,
-        toggleContractTypeFilter
+        toggleContractTypeFilter,
+        toggleExperienceFilter
     } = usePaginatedJobs({ userProfile });
 
     // Prevent layout flash on first render by waiting for client mount
@@ -974,6 +980,105 @@ export default function App() {
                                                         className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${filterContractType.includes(type) ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}
                                                     >
                                                         {type}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <hr className="border-slate-100 dark:border-slate-800 my-3" />
+
+                                    {/* FILTER: Date Posted */}
+                                    <div className="space-y-3">
+                                        <button onClick={() => toggleSection('date')} className="flex items-center justify-between w-full text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                                            <span>{t('filters.date_posted')}</span>
+                                            {expandedSections.date ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                        </button>
+                                        {expandedSections.date && (
+                                            <div className="flex flex-col gap-1.5 animate-in slide-in-from-top-1">
+                                                {[
+                                                    { id: 'all', label: t('filters.any_time') },
+                                                    { id: '24h', label: t('filters.last_24h') },
+                                                    { id: '3d', label: t('filters.last_3d') },
+                                                    { id: '7d', label: t('filters.last_7d') },
+                                                    { id: '14d', label: t('filters.last_14d') }
+                                                ].map(opt => (
+                                                    <button
+                                                        key={opt.id}
+                                                        onClick={() => setFilterDate(opt.id)}
+                                                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${filterDate === opt.id ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800'}`}
+                                                    >
+                                                        <div className={`w-3 h-3 rounded-full border-2 border-current flex items-center justify-center`}>
+                                                            {filterDate === opt.id && <div className="w-1.5 h-1.5 rounded-full bg-current" />}
+                                                        </div>
+                                                        {opt.label}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <hr className="border-slate-100 dark:border-slate-800 my-3" />
+
+                                    {/* FILTER: Salary */}
+                                    <div className="space-y-3">
+                                        <button onClick={() => toggleSection('salary')} className="flex items-center justify-between w-full text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                                            <span>{t('filters.min_salary')}</span>
+                                            {expandedSections.salary ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                        </button>
+                                        {expandedSections.salary && (
+                                            <div className="space-y-3 animate-in slide-in-from-top-1">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="relative flex-1">
+                                                        <input
+                                                            type="number"
+                                                            value={filterMinSalary || ''}
+                                                            onChange={(e) => setFilterMinSalary(parseInt(e.target.value) || 0)}
+                                                            placeholder="0"
+                                                            className="w-full pl-3 pr-8 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500"
+                                                        />
+                                                        <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium">Kč</span>
+                                                    </div>
+                                                </div>
+                                                <input
+                                                    type="range"
+                                                    min="0"
+                                                    max="150000"
+                                                    step="5000"
+                                                    value={filterMinSalary}
+                                                    onChange={(e) => setFilterMinSalary(parseInt(e.target.value))}
+                                                    className="w-full accent-cyan-500 cursor-pointer bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full appearance-none"
+                                                />
+                                                <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                                                    <span>0 Kč</span>
+                                                    <span>150k Kč</span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    <hr className="border-slate-100 dark:border-slate-800 my-3" />
+
+                                    {/* FILTER: Experience Level */}
+                                    <div className="space-y-3">
+                                        <button onClick={() => toggleSection('experience')} className="flex items-center justify-between w-full text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
+                                            <span>{t('filters.experience_level')}</span>
+                                            {expandedSections.experience ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                                        </button>
+                                        {expandedSections.experience && (
+                                            <div className="flex flex-wrap gap-2 animate-in slide-in-from-top-1">
+                                                {[
+                                                    { id: 'Junior', label: t('filters.junior') },
+                                                    { id: 'Medior', label: t('filters.medior') },
+                                                    { id: 'Senior', label: t('filters.senior') },
+                                                    { id: 'Lead', label: t('filters.lead') }
+                                                ].map(level => (
+                                                    <button
+                                                        key={level.id}
+                                                        onClick={() => toggleExperienceFilter(level.id)}
+                                                        className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${filterExperience.includes(level.id) ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}
+                                                    >
+                                                        {level.label}
                                                     </button>
                                                 ))}
                                             </div>

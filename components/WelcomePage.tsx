@@ -34,6 +34,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onTryFree, onBrowseOffers }) 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-center">
           {/* Left column: Text */}
           <div>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 mb-6 text-amber-700 dark:text-amber-400">
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-white px-1.5 py-0.5 rounded">{t('app.beta_badge')}</span>
+              <span className="text-xs font-medium">{t('app.beta_description')}</span>
+            </div>
             <h1 className="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
               <span className="text-slate-900 dark:text-white">{t('welcome.page_hero.title_job')}</span><span className="text-cyan-600 dark:text-cyan-400">{t('welcome.page_hero.title_shaman')}</span> <span className="text-slate-900 dark:text-white">{t('welcome.page_hero.title_end')}</span>
             </h1>

@@ -95,6 +95,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [enableCommuteFilter, setEnableCommuteFilter] = useState(false);
     const [filterBenefits, setFilterBenefits] = useState<string[]>([]);
     const [filterContractType, setFilterContractType] = useState<string[]>([]);
+    const [filterDate, setFilterDate] = useState<string>('all'); // all, 24h, 3d, 7d, 14d
+    const [filterMinSalary, setFilterMinSalary] = useState<number>(0);
+    const [filterExperience, setFilterExperience] = useState<string[]>([]); // Junior, Medior, Senior, Lead
     const [globalSearch, setGlobalSearch] = useState(false); // Toggle for searching entire database
     // Load saved job IDs from localStorage on mount
     const [savedJobIds, setSavedJobIds] = useState<string[]>(() => {
@@ -112,7 +115,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [expandedSections, setExpandedSections] = useState({
         location: true,
         contract: true,
-        benefits: true
+        benefits: true,
+        date: true,
+        salary: true,
+        experience: true
     });
 
     // Initial load
@@ -566,6 +572,56 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             }
         }
 
+        // Date filter
+        if (filterDate !== 'all' && job.scrapedAt) {
+            try {
+                // Handle different date formats (Postgres vs ISO)
+                let dateStr = job.scrapedAt;
+                if (dateStr.includes(' ') && !dateStr.includes('T')) {
+                    dateStr = dateStr.replace(' ', 'T');
+                }
+                const postedDate = new Date(dateStr);
+                const now = new Date();
+                const diffMs = now.getTime() - postedDate.getTime();
+                const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+                if (filterDate === '24h' && diffDays > 1) return false;
+                if (filterDate === '3d' && diffDays > 3) return false;
+                if (filterDate === '7d' && diffDays > 7) return false;
+                if (filterDate === '14d' && diffDays > 14) return false;
+            } catch (e) {
+                console.warn('Error parsing date for filter:', e);
+            }
+        }
+
+        // Salary filter
+        if (filterMinSalary > 0) {
+            const jobSalary = job.salary_from || 0;
+            if (jobSalary < filterMinSalary) return false;
+        }
+
+        // Experience filter
+        if (filterExperience.length > 0) {
+            const content = (job.title + ' ' + job.description).toLowerCase();
+            const hasExperienceMatch = filterExperience.some(level => {
+                if (level === 'Junior') {
+                    return content.includes('junior') || content.includes('absolvent') || content.includes('entry level') || content.includes('juniorní');
+                }
+                if (level === 'Senior') {
+                    return content.includes('senior') || content.includes('seniorní') || content.includes('zkušený') || content.includes('expert');
+                }
+                if (level === 'Medior') {
+                    // For medior, we look for absence of junior/senior or explicit "medior"
+                    return content.includes('medior') || (!content.includes('junior') && !content.includes('senior') && !content.includes('absolvent') && !content.includes('expert'));
+                }
+                if (level === 'Lead') {
+                    return content.includes('lead') || content.includes('vedoucí') || content.includes('manager') || content.includes('manažer') || content.includes('team-lead') || content.includes('architekt') || content.includes('architect');
+                }
+                return false;
+            });
+            if (!hasExperienceMatch) return false;
+        }
+
         return true;
     });
 
@@ -582,11 +638,18 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setFilterContractType(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
     };
 
+    const toggleExperienceFilter = (level: string) => {
+        setFilterExperience(prev => prev.includes(level) ? prev.filter(l => l !== level) : [...prev, level]);
+    };
+
     const clearAllFilters = () => {
         setSearchTerm('');
         setFilterCity('');
         setFilterBenefits([]);
         setFilterContractType([]);
+        setFilterDate('all');
+        setFilterMinSalary(0);
+        setFilterExperience([]);
         setFilterMaxDistance(50);
         setSearchResults([]);
         setIsSearching(false);
@@ -644,6 +707,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         enableCommuteFilter,
         filterBenefits,
         filterContractType,
+        filterDate,
+        filterMinSalary,
+        filterExperience,
         savedJobIds,
         showFilters,
         expandedSections,
@@ -660,12 +726,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setEnableCommuteFilter,
         setFilterBenefits,
         setFilterContractType,
+        setFilterDate,
+        setFilterMinSalary,
+        setFilterExperience,
         setSavedJobIds,
         setShowFilters,
         setExpandedSections,
         setGlobalSearch,
         toggleBenefitFilter,
         toggleContractTypeFilter,
+        toggleExperienceFilter,
         clearAllFilters
     };
 };
