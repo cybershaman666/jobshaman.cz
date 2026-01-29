@@ -246,57 +246,6 @@ def verify_supabase_token(token: str) -> dict:
                 result["email"] = getattr(user_data, "email", "")
                 return result
 
-        # Try companies table
-        company_response = (
-            supabase.table("companies").select("*").eq("id", user_data.id).execute()
-        )
-        if company_response.data:
-            result = company_response.data[0].copy()
-            result["user_type"] = "company"
-            result["auth_id"] = user_data.id
-            result["email"] = getattr(user_data, "email", "")
-            return result
-
-        # Try companies table
-        company_response = (
-            supabase.table("companies").select("*").eq("id", user_data.id).execute()
-        )
-        if company_response.data:
-            result = {"user_type": "company"}
-            # Add auth user data
-            if hasattr(user_data, "model_dump"):
-                for key, value in user_data.model_dump().items():
-                    result[key] = value
-            # Add company data
-            for key, value in company_response.data[0].items():
-                result[key] = value
-            return result
-
-        # Try companies table
-        company_response = (
-            supabase.table("companies").select("*").eq("id", user_data.id).execute()
-        )
-        if company_response.data:
-            user_dict = (
-                user_data.model_dump() if hasattr(user_data, "model_dump") else {}
-            )
-            company_dict = company_response.data[0]
-            result = {**user_dict, **company_dict, "user_type": "company"}
-            return result
-
-        # Try companies table
-        company_response = (
-            supabase.table("companies").select("*").eq("id", user_data.id).execute()
-        )
-        if company_response.data:
-            user_dict = (
-                user_data.model_dump()
-                if hasattr(user_data, "model_dump")
-                else vars(user_data)
-            )
-            result = {**user_dict, **company_response.data[0], "user_type": "company"}
-            return result
-
         raise HTTPException(status_code=401, detail="User profile not found")
 
     except Exception as e:
@@ -511,7 +460,17 @@ scheduler.start()
 
 # Configure APIs
 # Support both JWT_SECRET (Render.io) and SECRET_KEY (legacy)
-SECRET_KEY = os.getenv("JWT_SECRET") or os.getenv("SECRET_KEY", "super-secret-shaman-key")
+SECRET_KEY = os.getenv("JWT_SECRET") or os.getenv("SECRET_KEY")
+
+# SECURITY: Ensure SECRET_KEY is set in production
+if not SECRET_KEY:
+    if os.getenv("ENVIRONMENT", "development") == "production":
+        print("❌ CRITICAL: SECRET_KEY or JWT_SECRET must be set in production!")
+        raise RuntimeError("SECRET_KEY or JWT_SECRET environment variable is required in production")
+    else:
+        print("⚠️ WARNING: Using default SECRET_KEY for development. Set JWT_SECRET in production!")
+        SECRET_KEY = "dev-only-secret-key-not-for-production"
+
 resend.api_key = os.getenv("RESEND_API_KEY")
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
