@@ -1224,26 +1224,6 @@ async def verify_billing(
                 except Exception as e:
                     print(f"⚠️ Warning: Could not log access: {e}")
 
-        # Define feature access by tier
-        feature_access = {
-            "basic": {
-                "features": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS"],
-                "assessments": 0,
-            },
-            "business": {
-                "features": [
-                    "COMPANY_AI_AD",
-                    "COMPANY_RECOMMENDATIONS",
-                    "COMPANY_UNLIMITED_JOBS",
-                ],
-                "assessments": 10,
-            },
-            "assessment_bundle": {
-                "features": ["COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS"],
-                "assessments": 10,
-            },
-        }
-
         print(f"📋 Verifying billing access for feature: {billing_request.feature}")
 
         # Define feature access by tier
