@@ -134,33 +134,33 @@ const PAID_PARKING_ZONES = ['praha 1', 'praha 2', 'praha 3', 'praha 7', 'brno-st
 // Helper function to get country code from location and currency
 const getCountryCode = (location: string, currency: string): keyof typeof MONTHLY_PUBLIC_TRANSPORT_COSTS => {
     const loc = location.toLowerCase();
-    
+
     // Check location keywords first for better accuracy
-    if (loc.includes('praha') || loc.includes('brno') || loc.includes('ostrava') || 
+    if (loc.includes('praha') || loc.includes('brno') || loc.includes('ostrava') ||
         loc.includes('česk') || loc.includes('czech') || currency === 'CZK') {
         return 'CZ';
     }
-    if (loc.includes('bratislava') || loc.includes('kosice') || loc.includes('slovak') || 
+    if (loc.includes('bratislava') || loc.includes('kosice') || loc.includes('slovak') ||
         loc.includes('slovensk') || currency === '€' && loc.includes('sk')) {
         return 'SK';
     }
-    if (loc.includes('berlin') || loc.includes('münchen') || loc.includes('hamburg') || 
+    if (loc.includes('berlin') || loc.includes('münchen') || loc.includes('hamburg') ||
         loc.includes('german') || loc.includes('deutsch')) {
         return 'DE';
     }
-    if (loc.includes('vídeň') || loc.includes('wien') || loc.includes('austria') || 
+    if (loc.includes('vídeň') || loc.includes('wien') || loc.includes('austria') ||
         loc.includes('österreich') || loc.includes('raku')) {
         return 'AT';
     }
-    if (loc.includes('zurich') || loc.includes('zürich') || loc.includes('swiss') || 
+    if (loc.includes('zurich') || loc.includes('zürich') || loc.includes('swiss') ||
         loc.includes('schweiz') || loc.includes('švýc') || currency === 'CHF') {
         return 'CH';
     }
-    if (loc.includes('warsaw') || loc.includes('varšava') || loc.includes('krakow') || 
+    if (loc.includes('warsaw') || loc.includes('varšava') || loc.includes('krakow') ||
         loc.includes('polsk') || loc.includes('polish')) {
         return 'PL';
     }
-    
+
     // Default to Czech Republic if no country detected
     return 'CZ';
 };
@@ -168,9 +168,9 @@ const getCountryCode = (location: string, currency: string): keyof typeof MONTHL
 // Helper function to get city-specific monthly pass cost for Czech Republic
 const getCityMonthlyPassCost = (location: string): number => {
     if (!location) return CITY_MONTHLY_PASSES_CZ['default'];
-    
+
     const locLower = location.toLowerCase().trim();
-    
+
     // Try exact match first
     for (const [city, cost] of Object.entries(CITY_MONTHLY_PASSES_CZ)) {
         if (city === 'default') continue;
@@ -178,7 +178,7 @@ const getCityMonthlyPassCost = (location: string): number => {
             return cost;
         }
     }
-    
+
     // If no match, return default
     return CITY_MONTHLY_PASSES_CZ['default'];
 };
@@ -190,9 +190,9 @@ const getMonthlyPublicTransportCost = (countryCode: keyof typeof MONTHLY_PUBLIC_
         const cityPrice = getCityMonthlyPassCost(location);
         return cityPrice;
     }
-    
+
     const baseCost = MONTHLY_PUBLIC_TRANSPORT_COSTS[countryCode];
-    
+
     // Convert to target currency
     if (targetCurrency === 'CZK') {
         if (countryCode === 'CZ') return baseCost; // Already in CZK
@@ -205,7 +205,7 @@ const getMonthlyPublicTransportCost = (countryCode: keyof typeof MONTHLY_PUBLIC_
         if (countryCode === 'CH') return baseCost; // Already in CHF
         return baseCost * 0.9; // Approximate conversion from EUR to CHF
     }
-    
+
     // Default fallback
     return baseCost * EXCHANGE_RATES_TO_CZK.EUR;
 };
@@ -227,7 +227,7 @@ export const calculateMentalHealthScore = (job: Job, distanceKm: number, timeMin
     } else if (distanceKm > 15) {
         score -= 5;
     }
-    
+
     // 2. Daily time penalty
     if (timeMinutesPerDay > 180) {
         score -= 8; // Over 3 hours daily
@@ -347,7 +347,7 @@ export const calculateTimeScore = (
 
     // 3. Work hour expectations
     const desc = (job.description || "").toLowerCase();
-    
+
     if (desc.includes('8 hodin') || desc.includes('standardní') || desc.includes('9-17')) {
         // Standard 8-hour day - neutral, already in baseline
     } else if (desc.includes('12 hodin') || desc.includes('12h')) {
@@ -413,7 +413,7 @@ export const calculateValuesScore = (job: Job, benefits: string[]): number => {
     }
 
     // 3. Meaningful work (purpose-driven)
-    if (desc.includes('sociální') || desc.includes('zdravotnick') || desc.includes('charitativní') || 
+    if (desc.includes('sociální') || desc.includes('zdravotnick') || desc.includes('charitativní') ||
         desc.includes('vzdělávání') || desc.includes('věd') || desc.includes('životní prostředí')) {
         score += 10; // Purpose-driven sectors
     }
@@ -449,9 +449,16 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     let isRelocation = isAbroad;
 
     if (!isRemote) {
-        // Priority: Use stored coordinates if available, otherwise fallback to text lookup
         const userCoords = user.coordinates || getCoordinates(user.address);
-        const jobCoords = getCoordinates(job.location);
+
+        // Priority: Use existing job coordinates if available
+        let jobCoords: { lat: number, lon: number } | null = null;
+        if (job.lat !== undefined && job.lng !== undefined && job.lat !== null && job.lng !== null) {
+            jobCoords = { lat: job.lat, lon: job.lng };
+        } else {
+            // Fallback to static cache lookup
+            jobCoords = getCoordinates(job.location);
+        }
 
         if (userCoords && jobCoords) {
             // Calculate real air distance
@@ -532,23 +539,23 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
         // Get country code and monthly pass cost (with city-specific prices for CZ)
         const countryCode = getCountryCode(job.location, currency);
         const monthlyPassCost = getMonthlyPublicTransportCost(countryCode, currency, job.location);
-        
+
         // Convert distance-based cost to actual monthly cost comparison
         // Base calculation: distance * rate * 2 trips * 20 days
         const distanceBasedCost = distanceKm * costPerKm * 2 * 20;
-        
+
         // Use the cheaper of distance-based cost or monthly pass cost
         // This encourages use of monthly passes for regular commuting
         monthlyCost = Math.min(distanceBasedCost, monthlyPassCost);
-        
+
         // Additional zone supplements for cross-zone commuting (Czech Republic specific)
         if (countryCode === 'CZ') {
             const jobLoc = job.location.toLowerCase();
             const userLoc = user.address.toLowerCase();
-            
+
             const isJobInPrague = jobLoc.includes('praha') || jobLoc.includes('prague');
             const isUserInPrague = userLoc.includes('praha') || userLoc.includes('prague');
-            
+
             if (isJobInPrague && !isUserInPrague) {
                 // Additional zone cost for commuting to Prague from outside
                 const zoneSupplement = Math.ceil((distanceKm - 15) / 10) * 300; // ~300 CZK per additional zone
@@ -561,7 +568,7 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     let avoidedCommuteCost = 0;
     if (isRemote) {
         const distanceBasedCost = Math.round(avoidedDistanceKm * costPerKm * 2 * 20);
-        
+
         if (mode === 'public') {
             // For public transport, use monthly pass cost as avoided cost (with city-specific prices)
             const countryCode = getCountryCode(job.location, currency);
@@ -588,12 +595,12 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     // New formula accounts for: salary vs average, benefits, commute time, transport costs
     // Baseline = 50 (average job)
     let completeJhiScore = 50; // Default if cannot calculate
-    
+
     // Convert monthly to gross salary for JHI calculation (approximate)
     // We use the gross salary directly as passed in
     const monthlyBenefitsForJhi = benefitsValue > 0 ? benefitsValue : 0;
     const distanceForJhi = (isRemote || isRelocation || distanceKm === -1) ? 0 : distanceKm;
-    
+
     try {
         completeJhiScore = calculateCompleteJHIScore(
             grossMonthlySalary || 35000, // Use average if no salary info
@@ -608,12 +615,12 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
         console.warn('JHI calculation failed, using fallback:', error);
         completeJhiScore = 50 + scoreAdjustment;
     }
-    
+
     // Bonus for remote work (work-life balance)
     if (isRemote && completeJhiScore < 85) {
         completeJhiScore = Math.min(85, completeJhiScore + 8);
     }
-    
+
     // Convert absolute score to impact (delta from baseline 50)
     const jhiImpactDelta = completeJhiScore - 50;
 
@@ -622,7 +629,7 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     const growthScore = calculateGrowthScore(job, grossMonthlySalary);
     const timeScore = calculateTimeScore(job, timeMinutes, isRemote);
     const valuesScore = calculateValuesScore(job, job.benefits);
-    
+
     // Financial score (already calculated above as completeJhiScore)
     const financialScore = completeJhiScore;
 
