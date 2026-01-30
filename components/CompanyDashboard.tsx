@@ -50,7 +50,8 @@ import {
     LayoutTemplate,
     RefreshCw,
     Crown,
-    MoreVertical
+    MoreVertical,
+    Info
 } from 'lucide-react';
 
 // Curated Emojis for Job Ads

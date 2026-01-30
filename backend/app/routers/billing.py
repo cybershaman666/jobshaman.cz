@@ -38,8 +38,10 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
                 trial_data = {
                     "company_id": userId,
                     "tier": "business",
-                    "status": "active",
+                    "status": "trialing",
                     "current_period_end": trial_end,
+                    "stripe_customer_id": "trial_cust",
+                    "stripe_price_id": "trial_price",
                     "stripe_subscription_id": f"trial_{userId[:8]}"
                 }
                 sub_response = supabase.table("subscriptions").insert(trial_data).execute()

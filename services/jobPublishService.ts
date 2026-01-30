@@ -77,30 +77,34 @@ export const publishJob = async (jobData: PublishJobRequest) => {
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData?.session?.access_token;
 
-        console.log(`🚀 Triggering legality check for job ${data.id}...`);
-        fetch(`${BACKEND_URL}/check-legality`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': token ? `Bearer ${token}` : ''
-            },
-            body: JSON.stringify({
-                id: data.id,
-                title: data.title,
-                company: data.company,
-                description: data.description,
-                location: data.location
-            }),
-        })
-            .then(async response => {
-                const result = await response.json();
-                if (response.ok) {
-                    console.log("✅ Legality check completed:", result);
-                } else {
-                    console.error(`❌ Legality check failed with status ${response.status}:`, result);
-                }
-            })
-            .catch(err => console.error("❌ Legality check trigger network error:", err));
+        console.log(`🚀 [DEBUG] Triggering legality check for job ${data.id}...`);
+        console.log(`📡 [DEBUG] Backend URL: ${BACKEND_URL}`);
+
+        try {
+            const response = await fetch(`${BACKEND_URL}/check-legality`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token ? `Bearer ${token}` : ''
+                },
+                body: JSON.stringify({
+                    id: data.id,
+                    title: data.title,
+                    company: data.company,
+                    description: data.description,
+                    location: data.location
+                }),
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                console.log("✅ [DEBUG] Legality check completed:", result);
+            } else {
+                console.error(`❌ [DEBUG] Legality check failed with status ${response.status}:`, result);
+            }
+        } catch (err) {
+            console.error("❌ [DEBUG] Legality check trigger network error:", err);
+        }
 
         return data;
     } catch (error) {
