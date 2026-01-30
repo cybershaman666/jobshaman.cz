@@ -140,7 +140,10 @@ export const useUserProfile = () => {
 
                         if (company) {
                             setCompanyProfile(company);
-                            setViewState(ViewState.COMPANY_DASHBOARD);
+                            const pathname = window.location.pathname;
+                            if (!pathname.startsWith('/jobs/') && pathname !== '/podminky-uziti' && pathname !== '/ochrana-osobnich-udaju' && pathname !== '/enterprise' && !pathname.startsWith('/assessment/')) {
+                                setViewState(ViewState.COMPANY_DASHBOARD);
+                            }
                         }
                     }
                 }
@@ -183,10 +186,19 @@ export const useUserProfile = () => {
                     if (company) {
                         setCompanyProfile(company);
                         // Force view state to dashboard if they are a recruiter logging in
-                        // unless they are on a specific page that allows otherwise (like settings)
-                        setViewState(ViewState.COMPANY_DASHBOARD);
-                        console.log("✅ Recruiter logged in, dashboard loaded.");
-                    } else {
+                        // unless they are on a specific page that allows otherwise (like job detail or marketplace)
+                        const pathname = window.location.pathname;
+                        const isJobDetail = pathname.startsWith('/jobs/');
+                        const isExternalPage = pathname === '/podminky-uziti' || pathname === '/ochrana-osobnich-udaju' || pathname === '/enterprise' || pathname.startsWith('/assessment/');
+
+                        if (!isJobDetail && !isExternalPage) {
+                            setViewState(ViewState.COMPANY_DASHBOARD);
+                            console.log("✅ Recruiter logged in, dashboard loaded.");
+                        } else {
+                            console.log("🔗 Recruiter logged in on deep link/external page, maintaining current view.");
+                        }
+                    }
+                    else {
                         // Recruiter without company? They might need to finish onboarding
                         console.log("⚠️ Recruiter role but no company found.");
                     }

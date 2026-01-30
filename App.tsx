@@ -57,7 +57,13 @@ import {
 export default function App() {
     const { t, i18n } = useTranslation();
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
-    const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+    const [selectedJobId, setSelectedJobId] = useState<string | null>(() => {
+        const path = window.location.pathname;
+        if (path.startsWith('/jobs/')) {
+            return path.split('/jobs/')[1] || null;
+        }
+        return null;
+    });
     const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
     const [analyzing, setAnalyzing] = useState(false);
     const [isLoadingJobs, setIsLoadingJobs] = useState(true);
@@ -234,6 +240,18 @@ export default function App() {
                     clearCsrfToken();
                 }
             });
+
+            // Deep Link Handling for /jobs/:id
+            const path = window.location.pathname;
+            if (path.startsWith('/jobs/')) {
+                const jobId = path.split('/jobs/')[1];
+                if (jobId) {
+                    setViewState(ViewState.LIST);
+                    setShowCompanyLanding(false);
+                    setSelectedJobId(jobId);
+                    console.log('🔗 Deep link detected for job:', jobId);
+                }
+            }
 
             return () => subscription.unsubscribe();
         }

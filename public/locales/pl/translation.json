@@ -352,10 +352,17 @@
       "active_postings": "Aktywne ogłoszenia",
       "table": {
         "position": "Stanowisko",
+        "status": "Status",
         "pipeline": "Stan pipeline",
         "ai_match": "Dopasowanie AI",
         "performance": "Wydajność",
         "actions": "Akcje"
+      },
+      "status": {
+        "pending": "Oczekiwanie na recenzję",
+        "approved": "Zatwierdzone",
+        "flagged": "Wymaga recenzji",
+        "refused": "Odrzucone"
       },
       "stats": {
         "pipeline": "Pipeline",
@@ -375,6 +382,7 @@
         "low_match_warning": "Niskie dopasowanie AI (średnio {{avg}}%). Zalecamy dostosowanie opisu czasu pracy w ogłoszeniu."
       },
       "actions": {
+        "view_as_user": "Zobacz jako użytkownik",
         "edit": "Edytuj stanowisko",
         "close": "Oznacz jako zamknięte",
         "delete": "Usuń stanowisko",

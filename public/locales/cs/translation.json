@@ -483,10 +483,17 @@
             "active_postings": "Aktivní Inzeráty",
             "table": {
                 "position": "Pozice",
+                "status": "Stav",
                 "pipeline": "Zdraví Pipeline",
                 "ai_match": "AI Shoda",
                 "performance": "Výkon",
                 "actions": "Akce"
+            },
+            "status": {
+                "pending": "Čeká na kontrolu",
+                "approved": "Schváleno",
+                "flagged": "Vyžaduje revizi",
+                "refused": "Zamítnuto"
             },
             "stats": {
                 "pipeline": "Pipeline",
@@ -506,6 +513,7 @@
                 "low_match_warning": "Nízká AI shoda ({{avg}}% průměr). Doporučujeme upravit popis pracovní doby v inzerátu."
             },
             "actions": {
+                "view_as_user": "Zobrazit jako uživatel",
                 "edit": "Upravit Pozici",
                 "close": "Označit jako Uzavřenou",
                 "delete": "Smazat Pozici",
