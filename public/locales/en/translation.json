@@ -185,10 +185,13 @@
         "page_hero": {
             "title_job": "Job",
             "title_shaman": "Shaman",
-            "title_end": "calculates if the job is really worth it.",
-            "subtitle": "Focus on what matters. JobShaman takes care of the math. Real income, commute, time and impact on your well-being — all in one place.",
+            "title_end": "calculates if the job is really worth it for you.",
+            "subtitle": "Focus on what matters. JobShaman handles the math. Real income, commute, time and impact on your well-being — all in one place.",
             "try_free_btn": "Try for Free",
-            "browse_offers_btn": "Browse {{count}} offers"
+            "browse_offers_btn": "Browse {{count}} offers",
+            "label_home": "Home",
+            "label_commute": "Commute",
+            "label_job": "Job"
         },
         "page_what_is": {
             "title_job": "What ",
@@ -202,7 +205,8 @@
             "card_2_title": "Transparency as Standard",
             "card_2_desc": "You see all calculations. Nothing happens in a black box.",
             "card_3_title": "No Artificial AI Claims",
-            "card_3_desc": "Algorithms where data exists. AI where there is no other solution."
+            "card_3_desc": "Algorithms where data exists. AI where there is no other solution.",
+            "desc_4": "We are the only portal that analyzes a user's profile based on skills and can offer a suitable course to improve their position in the labor market or to get their dream job."
         },
         "page_why": {
             "title_job": "Why ",
@@ -211,7 +215,10 @@
             "desc_1": "Companies promise \"attractive salary\", \"flexibility\" and \"growth\". Job ads are written to please you. But what is the reality?",
             "desc_2": "When I was designing JHI (Job Happiness Index), I didn't look for inspiration in corporate tables, but in Bhutan. Their \"Gross National Happiness\" index taught me that prosperity without inner comfort and meaning is empty. So I took their approach and applied it to the labor market — I measure what really affects people.",
             "time_title": "Time",
-            "time_desc": "Commuting isn't just distance. It's 5 hours a week that you'll never see again."
+            "time_desc": "Commuting isn't just distance. It's 5 hours a week that you'll never see again.",
+            "money_title": "Money",
+            "money_desc": "Commuting isn't just about time. Every kilometer costs money that you could use better.",
+            "reason": "The difference is essential: where reality can be calculated, we don't estimate it."
         },
         "page_ai": {
             "title": "When we use AI – and when we don't",
@@ -622,6 +629,18 @@
             "transparent": {
                 "title": "Transparency and Fair Play",
                 "desc": "Verification of information in ads and elimination of deceptive practices in recruitment"
+            },
+            "posting": {
+                "title": "Ad Management",
+                "desc": "Simple creation and publishing of job ads with formatting, emojis, and benefit selection."
+            },
+            "insights": {
+                "title": "Benefit Insights",
+                "desc": "Find out which benefits candidates value most and tailor your offer."
+            },
+            "dashboard": {
+                "title": "Usage Overview",
+                "desc": "Track the usage of AI optimizations and assessments within your subscription."
             }
         },
         "pricing": {

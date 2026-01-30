@@ -321,10 +321,10 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                 <Building size={12} />
                 {t('company_landing.cta.badge')}
               </div>
-              <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
-                {t('company_landing.cta.title_start')} <span className="text-cyan-600 dark:text-cyan-400">{t('company_landing.cta.title_highlight')}</span> {t('company_landing.cta.title_end')}
+              <h3 className="text-2xl font-bold text-white mb-4">
+                {t('company_landing.cta.title_start')} <span className="text-cyan-400">{t('company_landing.cta.title_highlight')}</span> {t('company_landing.cta.title_end')}
               </h3>
-              <p className="text-slate-600 dark:text-slate-300 mb-6">
+              <p className="text-slate-300 mb-6">
                 {t('company_landing.cta.subtitle')}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -337,7 +337,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                 </button>
                 <button
                   onClick={onLogin}
-                  className="flex items-center gap-2 text-sm font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-8 py-3 rounded-lg transition-colors border border-slate-700"
+                  className="flex items-center gap-2 text-sm font-bold text-white hover:text-cyan-400 bg-transparent hover:bg-slate-800 px-8 py-3 rounded-lg transition-colors border border-slate-700"
                 >
                   <LogIn size={18} />
                   {t('company_landing.cta.login')}
