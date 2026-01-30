@@ -221,11 +221,18 @@ export const useUserProfile = () => {
     };
 
     const signOutUser = async () => {
-        await signOut();
+        console.log('🚪 signing out user...');
+        try {
+            await signOut();
+            console.log('✅ Supabase signout successful');
+        } catch (error) {
+            console.error('❌ Supabase signout failed:', error);
+        }
         clearCsrfToken();  // Clear CSRF token on logout
         setUserProfile(DEFAULT_USER_PROFILE);
         setCompanyProfile(null);
         setViewState(ViewState.LIST);
+        console.log('🧹 Local auth state cleared');
     };
 
     return {

@@ -848,7 +848,7 @@ export default function App() {
                 showCompanyLanding={showCompanyLanding}
                 setShowCompanyLanding={setShowCompanyLanding}
                 userProfile={userProfile}
-                handleAuthAction={() => setIsAuthModalOpen(true)}
+                handleAuthAction={handleAuthAction}
                 toggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
                 theme={theme}
             />
