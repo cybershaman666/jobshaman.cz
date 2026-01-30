@@ -1560,7 +1560,7 @@ async def get_subscription_status(
 
         user_id = user.get("id")
         user_type = user.get("user_type", "candidate")
-        company_id = user.get("id") if user_type == "company" else user.get("company_id")
+        company_id = user.get("company_id")
 
         # Validate authorization
         # A user can access if:
