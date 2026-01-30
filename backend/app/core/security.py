@@ -101,6 +101,7 @@ def verify_supabase_token(token: str) -> dict:
         raise HTTPException(status_code=401, detail=str(e))
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    print(f"🔑 [AUTH] Verifying token: {credentials.credentials[:10]}...")
     return verify_supabase_token(credentials.credentials)
 
 def verify_subscription(user: dict = Depends(get_current_user), request: Request = None):

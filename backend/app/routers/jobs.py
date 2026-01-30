@@ -18,7 +18,8 @@ async def root(request: Request):
 @router.post("/check-legality", response_model=JobCheckResponse)
 @limiter.limit("5/minute")
 async def check_job_legality(job: JobCheckRequest, request: Request, user: dict = Depends(verify_subscription)):
-    print(f"🧐 [DEBUG] Received legality check request for job: {job.id}")
+    print(f"🔥 [CRITICAL] check_job_legality REACHED for job {job.id}")
+    print(f"   Auth User: {user.get('email', 'unknown')}")
     print(f"   Payload: title={job.title}, company={job.company}")
     risk_score, is_legal, reasons, needs_review = check_legality_rules(job.title, job.company, job.description)
     print(f"   [RESULT] Risk Score: {risk_score}, Is Legal: {is_legal}, Needs Review: {needs_review}")
@@ -81,6 +82,8 @@ async def update_job_status(job_id: str, update: JobStatusUpdateRequest, request
 
 @router.delete("/{job_id}")
 async def delete_job(job_id: str, request: Request, user: dict = Depends(get_current_user)):
+    print(f"🗑️ [REQUEST] Delete job {job_id} by user {user.get('email', 'unknown')}")
+    print(f"🔑 [AUTH] Verifying CSRF token for user {user.get('email', 'unknown')}")
     if not verify_csrf_token_header(request, user):
         raise HTTPException(status_code=403, detail="CSRF validation failed")
     supabase.table("jobs").delete().eq("id", job_id).execute()
