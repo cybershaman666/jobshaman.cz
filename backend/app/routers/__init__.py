@@ -1,1 +1,1 @@
-from . import jobs, billing, stripe, assessments, scraper
+from . import jobs, billing, stripe, assessments, scraper, auth

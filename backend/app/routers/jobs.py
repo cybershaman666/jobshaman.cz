@@ -41,7 +41,7 @@ async def delete_job(job_id: str, request: Request, user: dict = Depends(get_cur
 
 @router.post("/match-candidates")
 @limiter.limit("10/minute")
-async def match_candidates_service(request: Request, job_id: int = Query(...), user: dict = Depends(verify_subscription)):
+async def match_candidates_service(request: Request, job_id: str = Query(...), user: dict = Depends(verify_subscription)):
     job_res = supabase.table("jobs").select("*").eq("id", job_id).single().execute()
     if not job_res.data: raise HTTPException(status_code=404, detail="Job not found")
     job = job_res.data

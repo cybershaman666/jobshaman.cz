@@ -1,7 +1,7 @@
 import { supabase } from './supabaseService';
 import { geocodeWithCaching } from './geocodingService';
 
-const BACKEND_URL = 'https://jobshaman-cz.onrender.com';
+import { BACKEND_URL } from '../constants';
 
 export interface PublishJobRequest {
     title: string;

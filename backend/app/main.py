@@ -6,7 +6,7 @@ from slowapi import _rate_limit_exceeded_handler
 from starlette.responses import JSONResponse
 
 from .core.limiter import limiter
-from .routers import jobs, billing, stripe, assessments, scraper
+from .routers import jobs, billing, stripe, assessments, scraper, auth
 from .core.security import add_security_headers
 
 app = FastAPI(title="JobShaman Backend Services")
@@ -31,6 +31,7 @@ app.include_router(jobs.router, tags=["Jobs"])
 app.include_router(billing.router, tags=["Billing"])
 app.include_router(stripe.router, tags=["Stripe"])
 app.include_router(assessments.router, prefix="/assessments", tags=["Assessments"])
+app.include_router(auth.router, tags=["Auth"])
 app.include_router(scraper.router, tags=["Scraper"])
 
 # Scheduler
