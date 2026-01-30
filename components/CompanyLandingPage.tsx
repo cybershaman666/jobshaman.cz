@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { Building, TrendingUp, Shield, Users, BrainCircuit, Target, Eye, Star, CheckCircle, Crown, Sparkles, BarChart, MessageSquare, Info, LogIn } from 'lucide-react';
+import { Building, TrendingUp, Shield, BrainCircuit, Target, Star, CheckCircle, Crown, Sparkles, BarChart, Info, LogIn } from 'lucide-react';
 
 interface CompanyLandingPageProps {
   onRegister?: () => void;
