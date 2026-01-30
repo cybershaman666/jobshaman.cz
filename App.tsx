@@ -33,7 +33,7 @@ import { canCandidateUseFeature } from './services/billingService';
 import { analyzeJobForPathfinder } from './services/careerPathfinderService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
 import { checkPaymentStatus } from './services/stripeService';
-import { fetchCsrfToken, clearCsrfToken } from './services/csrfService';
+import { clearCsrfToken } from './services/csrfService';
 import { useUserProfile } from './hooks/useUserProfile';
 import { usePaginatedJobs } from './hooks/usePaginatedJobs';
 import { DEFAULT_USER_PROFILE } from './constants';
@@ -218,16 +218,14 @@ export default function App() {
             supabase.auth.getSession().then(({ data }: { data: any }) => {
                 if (data?.session) {
                     handleSessionRestoration(data.session.user.id);
-                    // Fetch CSRF token on initial load if logged in
-                    fetchCsrfToken(data.session.access_token);
+                    // CSRF token is fetched inside handleSessionRestoration
                 }
             });
 
             const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
                 if (session) {
                     handleSessionRestoration(session.user.id);
-                    // Fetch/Refresh CSRF token on auth change
-                    fetchCsrfToken(session.access_token);
+                    // CSRF token is fetched inside handleSessionRestoration
                 } else {
                     setUserProfile({ ...DEFAULT_USER_PROFILE, isLoggedIn: false });
                     setViewState(ViewState.LIST);
