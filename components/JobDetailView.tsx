@@ -89,7 +89,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                     <Bookmark size={20} className={savedJobIds.includes(selectedJob.id) ? "fill-current" : ""} />
                                 </button>
 
-                                {selectedJob.url ? (
+                                {selectedJob.source !== 'jobshaman.cz' && selectedJob.url ? (
                                     <a
                                         href={selectedJob.url}
                                         target="_blank"
