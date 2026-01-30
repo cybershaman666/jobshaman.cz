@@ -138,11 +138,11 @@ def validate_csrf_token(token: str, user_id: str) -> bool:
                     print(f"❌ CSRF token expired")
                     return False
 
-                print(f"✅ CSRF token validated from Supabase")
+                print(f"✅ CSRF token validated from Supabase for user {user_id}")
                 return True
             else:
                 # Token not found in Supabase
-                print(f"❌ CSRF token not found in Supabase")
+                print(f"❌ CSRF token {token[:10]}... not found in Supabase for user {user_id}")
                 # Fall through to in-memory check
         except Exception as e:
             print(f"⚠️ Error validating CSRF token in Supabase: {e}")
@@ -166,7 +166,7 @@ def validate_csrf_token(token: str, user_id: str) -> bool:
         print(f"❌ CSRF token user_id mismatch")
         return False
 
-    print(f"✅ CSRF token validated from in-memory cache")
+    print(f"✅ CSRF token validated from in-memory cache for user {user_id}")
     return True
 
 
@@ -245,9 +245,11 @@ def verify_supabase_token(token: str) -> dict:
                     
                     if company_response.data and len(company_response.data) > 0:
                         company_data = company_response.data[0]
+                        # CRITICAL: Ensure 'company' type is set for owners
                         result["user_type"] = "company"
                         result["company_id"] = company_data["id"]
                         result["company_name"] = company_data.get("name")
+                        print(f"✅ Identified user {user_id} as company owner: {result['company_name']}")
                         return result
                     
                     # 2. Try to find if they are a member
@@ -349,17 +351,20 @@ async def verify_subscription(
 
     if user_id:
         try:
-            # Check for company subscription (business)
-            if user.get("company_name"):
+            # Use company_id if available (for recruiters/owners)
+            comp_id = user.get("company_id")
+            if comp_id:
+                print(f"🔍 Checking company subscription for company_id: {comp_id}")
                 subscription_check = (
                     supabase.table("subscriptions")
                     .select("tier, status")
-                    .eq("company_id", user_id)
+                    .eq("company_id", comp_id)
                     .eq("status", "active")
                     .execute()
                 )
             else:
-                # Check for user subscription (basic)
+                # Fallback to user_id (for personal premium)
+                print(f"🔍 Checking personal subscription for user_id: {user_id}")
                 subscription_check = (
                     supabase.table("subscriptions")
                     .select("tier, status")
@@ -532,6 +537,10 @@ def get_supabase_client():
 
 supabase: Client = get_supabase_client()
 serializer = URLSafeTimedSerializer(SECRET_KEY)
+
+
+class JobStatusUpdateRequest(BaseModel):
+    status: str
 
 
 class JobCheckRequest(BaseModel):
@@ -935,6 +944,73 @@ async def check_job_legality(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.patch("/jobs/{job_id}/status")
+@limiter.limit("30/minute")
+async def update_job_status(
+    job_id: str,
+    status_update: JobStatusUpdateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Update job status (open, closed, etc.)
+    SECURITY: Requires CSRF and being owner/member of the job's company
+    """
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+    try:
+        # 1. Verify job belongs to user's company
+        comp_id = user.get("company_id")
+        if not comp_id:
+            raise HTTPException(status_code=403, detail="Company portal access required")
+            
+        job_check = supabase.table("jobs").select("id, company_id").eq("id", job_id).single().execute()
+        if not job_check.data or job_check.data.get("company_id") != comp_id:
+            raise HTTPException(status_code=403, detail="Unauthorized to update this job")
+
+        # 2. Update status
+        supabase.table("jobs").update({"status": status_update.status}).eq("id", job_id).execute()
+        
+        return {"success": True, "message": f"Job status updated to {status_update.status}"}
+    except Exception as e:
+        print(f"❌ Error updating job {job_id} status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.delete("/jobs/{job_id}")
+@limiter.limit("10/minute")
+async def delete_job(
+    job_id: str,
+    request: Request,
+    user: dict = Depends(get_current_user)
+):
+    """
+    Delete a job posting
+    SECURITY: Requires CSRF and being owner/member of the job's company
+    """
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+    try:
+        # 1. Verify job belongs to user's company
+        comp_id = user.get("company_id")
+        if not comp_id:
+            raise HTTPException(status_code=403, detail="Company portal access required")
+            
+        job_check = supabase.table("jobs").select("id, company_id").eq("id", job_id).single().execute()
+        if not job_check.data or job_check.data.get("company_id") != comp_id:
+            raise HTTPException(status_code=403, detail="Unauthorized to delete this job")
+
+        # 2. Delete job
+        supabase.table("jobs").delete().eq("id", job_id).execute()
+        
+        return {"success": True, "message": "Job deleted successfully"}
+    except Exception as e:
+        print(f"❌ Error deleting job {job_id}: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 def calculate_candidate_match(candidate: dict, job: dict):
     """
     Heuristic-based matching between a candidate and a job.
@@ -1186,6 +1262,7 @@ def verify_csrf_token_header(request: Request, user: dict) -> bool:
     csrf_token = request.headers.get("X-CSRF-Token")
 
     if not csrf_token:
+        print(f"❌ CSRF Header 'X-CSRF-Token' missing")
         return False
 
     user_id = user.get("id")
@@ -1816,12 +1893,15 @@ async def create_checkout_session(
             detail="CSRF token validation failed. Please refresh and try again."
         )
         
-    # Verify userId matches authenticated user
-    if user.get("id") != req.userId:
-        print(f"❌ User ID mismatch: {user.get('id')} vs {req.userId}")
+    # Verify userId matches authenticated user OR their company
+    is_valid_user = (user.get("id") == req.userId)
+    is_valid_company = (user.get("company_id") == req.userId)
+    
+    if not (is_valid_user or is_valid_company):
+        print(f"❌ User ID mismatch: User {user.get('id')} / Comp {user.get('company_id')} vs Target {req.userId}")
         raise HTTPException(
             status_code=403,
-            detail="User ID mismatch"
+            detail="User ID mismatch - you do not have permission for this ID"
         )
 
     try:

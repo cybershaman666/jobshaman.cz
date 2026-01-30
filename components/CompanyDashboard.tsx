@@ -615,11 +615,11 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 <div className="flex flex-col md:flex-row gap-4 text-sm text-indigo-800 dark:text-indigo-300">
                                     <div className="flex items-center gap-2">
                                         <CheckCircle size={14} className="text-emerald-500" />
-                                        <span>{t('company.dashboard.ai_insights.hired_prediction', { days: 21, count: 45 })}</span>
+                                        <span>{jobs.length > 0 ? t('company.dashboard.ai_insights.hired_prediction', { days: 21, count: Math.max(1, Math.floor(jobs.length * 1.5)) }) : 'Analysing market trends for your first posting...'}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <ArrowRight size={14} className="text-amber-500" />
-                                        <span>{t('company.dashboard.ai_insights.low_match_warning', { avg: 22 })}</span>
+                                        <span>{jobs.length > 0 ? t('company.dashboard.ai_insights.low_match_warning', { avg: 22 }) : 'Awaiting data to provide optimization tips.'}</span>
                                     </div>
                                 </div>
                             </div>
@@ -642,8 +642,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                     </div>
                                 </div>
 
-                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                                    <div className="overflow-x-auto">
+                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+                                    <div className="overflow-x-visible min-h-[300px]">
                                         <table className="w-full text-left">
                                             <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 uppercase font-mono text-xs">
                                                 <tr>
@@ -656,17 +656,11 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                             </thead>
                                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                                                 {jobs.slice(0, 5).map((job) => {
-                                                    let baseViews = 200;
-                                                    let conversionRate = 0.08;
-                                                    if (job.title.includes('React')) { baseViews = 450; conversionRate = 0.12; }
-                                                    if (job.title.includes('Crypto')) { baseViews = 800; conversionRate = 0.02; }
-                                                    if (job.title.includes('Store')) { baseViews = 600; conversionRate = 0.18; }
-
-                                                    const views = Math.floor(baseViews * (0.8 + Math.random() * 0.4));
-                                                    const applied = Math.floor(views * (conversionRate * (0.9 + Math.random() * 0.2)));
-                                                    const realConversion = (applied / views) * 100;
-                                                    const avgMatch = Math.floor(Math.random() * 30) + 60;
-                                                    const isLowPerf = realConversion < 4;
+                                                    const views = 0;
+                                                    const applied = 0;
+                                                    const realConversion = 0;
+                                                    const avgMatch = 0;
+                                                    const isLowPerf = false;
 
                                                     return (
                                                         <tr key={job.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
@@ -688,7 +682,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                                             </td>
                                                             <td className="px-4 py-3 text-center">
                                                                 <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold ${avgMatch > 75 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
-                                                                    {avgMatch}%
+                                                                    {avgMatch > 0 ? `${avgMatch}%` : '--'}
                                                                 </div>
                                                             </td>
                                                             <td className="px-4 py-3 text-center">
@@ -747,51 +741,28 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
                             {/* Right Column: Feed & Team */}
                             <div className="space-y-6">
-                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-                                    <div className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-700 dark:text-slate-200">
-                                        <Zap size={16} className="text-amber-500" />
-                                        {t('company.dashboard.team_activity')}
-                                    </div>
-                                    <div className="space-y-4">
-                                        <div className="flex gap-3 relative pb-4 border-l-2 border-slate-100 dark:border-slate-800 pl-4 ml-2">
-                                            <div className="absolute -left-[5px] top-0 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-4 ring-white dark:ring-slate-900"></div>
-                                            <div className="text-xs">
-                                                <p className="text-slate-900 dark:text-white" dangerouslySetInnerHTML={{ __html: t('company_extra.activity.added_comment', { name: 'Floki', target: 'Jan Novák' }) }} />
-                                                <p className="text-slate-500 mt-0.5">{t('company_extra.activity.time_ago', { count: 20 })}</p>
-                                                <div className="mt-1 p-2 bg-slate-50 dark:bg-slate-950 rounded text-slate-600 dark:text-slate-400 italic">
-                                                    "{t('company_extra.activity.no_redux')}"
-                                                </div>
+                                {/* Only show activity if there are jobs or it's not a brand new company */}
+                                {jobs.length > 0 && (
+                                    <>
+                                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                                            <div className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-700 dark:text-slate-200">
+                                                <Zap size={16} className="text-amber-500" />
+                                                {t('company.dashboard.team_activity')}
+                                            </div>
+                                            <div className="space-y-4 text-xs text-slate-500 text-center py-4">
+                                                {t('company.dashboard.empty_state_desc')}
                                             </div>
                                         </div>
-                                        <div className="flex gap-3 relative pl-4 ml-2">
-                                            <div className="absolute -left-[5px] top-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-white dark:ring-slate-900"></div>
-                                            <div className="text-xs">
-                                                <p className="text-slate-900 dark:text-white" dangerouslySetInnerHTML={{ __html: t('company_extra.activity.rejected_spam', { count: 15 }) }} />
-                                                <p className="text-slate-500 mt-0.5">{t('company_extra.activity.hour_ago', { count: 1 })}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
+                                    </>
+                                )}
 
                                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
                                     <div className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-700 dark:text-slate-200">
                                         <Crown size={16} className="text-indigo-500" />
                                         {t('company.dashboard.leaderboard')}
                                     </div>
-                                    <div className="space-y-3">
-                                        <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300">P</div>
-                                                <div className="text-xs">
-                                                    <div className="font-bold dark:text-white">Petra N..</div>
-                                                    <div className="text-slate-500">8 {t('company_extra.stats.hires')}</div>
-                                                </div>
-                                            </div>
-                                            <div className="text-right text-xs">
-                                                <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400">19 {t('company_extra.stats.days_unit')}</div>
-                                                <div className="text-slate-400">{t('company_extra.stats.avg_tth')}</div>
-                                            </div>
-                                        </div>
+                                    <div className="space-y-3 text-xs text-slate-500 text-center py-4">
+                                        No hires tracked yet.
                                     </div>
                                 </div>
                             </div>
