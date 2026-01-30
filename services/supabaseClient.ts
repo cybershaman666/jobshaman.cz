@@ -30,7 +30,7 @@ export const getSupabaseClient = () => {
         });
 
         // Set up auth state change listener to handle token refresh
-        supabaseInstance.auth.onAuthStateChange((event: any, session: any) => {
+        supabaseInstance.auth.onAuthStateChange((event: any, _session: any) => {
             if (event === 'TOKEN_REFRESHED') {
                 console.log('Token refreshed successfully');
             }
