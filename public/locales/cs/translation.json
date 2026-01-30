@@ -118,7 +118,11 @@
         "cover_letter_placeholder": "Sem napište svůj motivační dopis...",
         "ai_assessment_title": "JobShaman AI Ověření Kompetencí",
         "ai_assessment_desc": "Tato společnost akceptuje ověřené hodnocení dovedností. Propojte svůj JobShaman profil a přeskočte úvodní technické kolo.",
-        "connect_profile": "Propojit profil hodnocení"
+        "connect_profile": "Propojit profil hodnocení",
+        "upload_instead": "Nahrát jiný soubor",
+        "use_saved_cv": "Použít uložené CV z profilu",
+        "saved_cv_ready": "Uložené CV připraveno",
+        "cv_from_profile": "Životopis z vašeho profilu"
     },
     "marketplace": {
         "title": "Kurzy a Rekvalifikace",

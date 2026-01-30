@@ -22,10 +22,12 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
   const [formData, setFormData] = useState({
     firstName: user.name ? user.name.split(' ')[0] : '',
     lastName: user.name ? user.name.split(' ').slice(1).join(' ') : '',
-    email: '',
-    phone: '',
-    linkedin: ''
+    email: user.email || '',
+    phone: user.phone || '',
+    linkedin: '' // LinkedIn not in profile yet
   });
+
+  const [useSavedCv, setUseSavedCv] = useState(!!user.cvText || !!user.cvUrl);
 
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [coverLetter, setCoverLetter] = useState('');
@@ -225,49 +227,84 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
 
         {/* 2. Documents */}
         <div className="space-y-4">
-          <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">{t('apply.cv_section')}</h3>
-          <div className={`
-            border-2 border-dashed rounded-xl p-6 text-center transition-colors
-            ${cvFile ? 'border-cyan-500/50 bg-cyan-50 dark:bg-cyan-500/5' : 'border-slate-300 dark:border-slate-700 hover:border-slate-500'}
-          `}>
-            {cvFile ? (
-              <div className="flex items-center justify-center gap-3 text-cyan-600 dark:text-cyan-400">
-                <FileText size={24} />
-                <span className="font-medium truncate max-w-[200px]">{cvFile.name}</span>
-                <button
-                  onClick={() => setCvFile(null)}
-                  className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            ) : (
-              <div className="relative">
-                <Upload size={24} className="mx-auto text-slate-400 mb-2" />
-                <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">{t('apply.upload_prompt')}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">PDF, DOCX (Max 5MB)</p>
-                <input
-                  type="file"
-                  accept=".pdf,.doc,.docx"
-                  onChange={handleFileChange}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                />
-              </div>
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">{t('apply.cv_section')}</h3>
+            {(user.cvText || user.cvUrl) && (
+              <button
+                onClick={() => setUseSavedCv(!useSavedCv)}
+                className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+              >
+                {useSavedCv ? t('apply.upload_instead') : t('apply.use_saved_cv')}
+              </button>
             )}
           </div>
+
+          {useSavedCv ? (
+            <div className="bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 rounded-xl p-4 flex items-center gap-3">
+              <div className="p-2 bg-indigo-100 dark:bg-indigo-500/20 rounded-lg text-indigo-600 dark:text-indigo-400">
+                <FileText size={20} />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-bold text-slate-900 dark:text-white">{t('apply.saved_cv_ready')}</p>
+                <p className="text-xs text-slate-500">{user.cvUrl ? 'CV_Document.pdf' : t('apply.cv_from_profile')}</p>
+              </div>
+              <CheckCircle className="text-emerald-500" size={20} />
+            </div>
+          ) : (
+            <div className={`
+              border-2 border-dashed rounded-xl p-6 text-center transition-colors
+              ${cvFile ? 'border-cyan-500/50 bg-cyan-50 dark:bg-cyan-500/5' : 'border-slate-300 dark:border-slate-700 hover:border-slate-500'}
+            `}>
+              {cvFile ? (
+                <div className="flex items-center justify-center gap-3 text-cyan-600 dark:text-cyan-400">
+                  <FileText size={24} />
+                  <span className="font-medium truncate max-w-[200px]">{cvFile.name}</span>
+                  <button
+                    onClick={() => setCvFile(null)}
+                    className="p-1 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <Upload size={24} className="mx-auto text-slate-400 mb-2" />
+                  <p className="text-sm text-slate-600 dark:text-slate-300 font-medium">{t('apply.upload_prompt')}</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">PDF, DOCX (Max 5MB)</p>
+                  <input
+                    type="file"
+                    accept=".pdf,.doc,.docx"
+                    onChange={handleFileChange}
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 3. Cover Letter */}
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">{t('apply.cover_letter')}</h3>
-            <button
-              onClick={() => setShowAiInput(!showAiInput)}
-              className="text-xs flex items-center gap-1 text-purple-600 dark:text-purple-400 hover:text-purple-500 dark:hover:text-purple-300 font-medium"
-            >
-              <Wand2 size={12} />
-              {showAiInput ? t('apply.ai_hide') : t('apply.ai_write')}
-            </button>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-bold uppercase rounded border border-amber-200 dark:border-amber-800/50">
+                <Crown size={10} /> Premium
+              </div>
+              <button
+                onClick={() => {
+                  if (user.subscription?.tier === 'premium') {
+                    setShowAiInput(!showAiInput);
+                  } else {
+                    alert('Tato funkce je dostupná pouze pro Premium uživatele.');
+                  }
+                }}
+                className={`text-xs flex items-center gap-1 font-medium ${user.subscription?.tier === 'premium' ? 'text-purple-600 dark:text-purple-400 hover:text-purple-50' : 'text-slate-400 cursor-not-allowed'}`}
+              >
+                <Wand2 size={12} />
+                {showAiInput ? t('apply.ai_hide') : t('apply.ai_write')}
+              </button>
+            </div>
           </div>
 
           {/* AI Assistant Input */}
@@ -331,7 +368,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
           </button>
           <button
             onClick={handleSubmit}
-            disabled={!cvFile || !formData.email || !formData.firstName}
+            disabled={(!cvFile && !useSavedCv) || !formData.email || !formData.firstName}
             className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-cyan-600 text-white font-bold rounded-xl hover:bg-cyan-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed shadow-[0_0_20px_rgba(8,145,178,0.4)]"
           >
             <Send size={18} />
