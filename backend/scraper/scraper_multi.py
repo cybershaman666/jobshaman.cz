@@ -66,6 +66,59 @@ def norm_text(s):
     return re.sub(r"\s+", " ", s).strip()
 
 
+def extract_salary_range(stxt):
+    """
+    Centralizovaná funkce pro extrakci platu z textu.
+    Podporuje formáty: '35 000', '35.000', '35,000', '35-45 tis.' atd.
+    """
+    if not stxt:
+        return None, None
+    
+    # Krok 1: Extrakce číselných segmentů včetně oddělovačů (tečka, čárka, mezera)
+    nums = re.findall(r"\d[\d\s\.,]*", stxt)
+    vals = []
+    
+    for x in nums:
+        # Odstranění mezer a teček (často tisícové oddělovače v ČR)
+        cleaned = x.replace(" ", "").replace("\u00a0", "").replace(".", "")
+        
+        # Ošetření čárky - pokud je za ní přesně 2 cifry na konci segmentu, jde o haléře
+        if "," in cleaned:
+            parts = cleaned.split(",")
+            if len(parts) > 1 and len(parts[-1]) == 2:
+                cleaned = parts[0] # Zahodíme haléře
+            else:
+                cleaned = cleaned.replace(",", "") # Jinak čárka jako oddělovač tisíců
+        
+        if cleaned:
+            try:
+                val = int(cleaned)
+                # Filtrujeme nesmyslné hodnoty (např. '2024' z data nebo '1' z '1. patro')
+                if val > 100:
+                    vals.append(val)
+            except ValueError:
+                continue
+
+    # Krok 2: Multiplikátor "tisíc"
+    low_txt = stxt.lower()
+    if "tis" in low_txt or "tisíc" in low_txt:
+        # Pokud jsou hodnoty podezřele malé (např. 35 místo 35000), vynásobíme je
+        vals = [v * 1000 if v < 1000 else v for v in vals]
+
+    # Krok 3: Určení From/To
+    salary_from = None
+    salary_to = None
+    
+    if len(vals) == 1:
+        salary_from = vals[0]
+    elif len(vals) >= 2:
+        # Seřadíme, aby from < to (pokud by byly v opačném pořadí v textu)
+        salary_from = min(vals[0], vals[1])
+        salary_to = max(vals[0], vals[1])
+        
+    return salary_from, salary_to
+
+
 # --- Uložení do Supabase ---
 def save_job_to_supabase(job_data):
     if not supabase:
@@ -285,20 +338,7 @@ def scrape_jobs_cz(soup):
                     p = sal_div.find("p")
                     if p:
                         stxt = p.get_text(" ", strip=True)
-                        nums = re.findall(r"\d[\d\s]*", stxt)
-                        if nums:
-                            vals = [
-                                int(
-                                    x.replace(" ", "")
-                                    .replace("\u00a0", "")
-                                    .replace(".", "")
-                                )
-                                for x in nums
-                            ]
-                            if len(vals) == 1:
-                                salary_from = vals[0]
-                            elif len(vals) >= 2:
-                                salary_from, salary_to = vals[0], vals[1]
+                        salary_from, salary_to = extract_salary_range(stxt)
 
                 # Typ smluvního vztahu
                 info_items = detail_soup.find_all("div", {"data-test": "jd-info-item"})
@@ -399,20 +439,7 @@ def scrape_prace_cz(soup):
                 sal_h3 = detail_soup.find("h3", class_="advert__salary")
                 if sal_h3:
                     stxt = sal_h3.get_text(" ", strip=True)
-                    nums = re.findall(r"\d[\d\s]*", stxt)
-                    if nums:
-                        vals = [
-                            int(
-                                x.replace(" ", "")
-                                .replace("\u00a0", "")
-                                .replace(".", "")
-                            )
-                            for x in nums
-                        ]
-                        if len(vals) == 1:
-                            salary_from = vals[0]
-                        elif len(vals) >= 2:
-                            salary_from, salary_to = vals[0], vals[1]
+                    salary_from, salary_to = extract_salary_range(stxt)
 
                 # Popis
                 desc_el = detail_soup.find("div", class_="advert__richtext")
@@ -541,28 +568,7 @@ def scrape_jenprace_cz(soup):
             sal_div = detail_soup.find("div", class_="label-reward")
             if sal_div:
                 stxt = sal_div.get_text(" ", strip=True)
-                # Fixed: Look for specific patterns like "27 000 - 50 000 Kč" but be more careful
-                # Try to find numbers with spaces but validate they're reasonable
-                nums = re.findall(r"\d[\d\s]*", stxt)
-                if nums:
-                    vals = []
-                    for x in nums:
-                        # Clean the number string
-                        cleaned = (
-                            x.replace(" ", "").replace("\u00a0", "").replace(".", "")
-                        )
-                        try:
-                            num = int(cleaned)
-                            # Filter out unrealistic values (over 200,000 for monthly salary)
-                            if num < 200000:  # Monthly salary shouldn't exceed 200k
-                                vals.append(num)
-                        except ValueError:
-                            continue
-
-                    if len(vals) == 1:
-                        salary_from = vals[0]
-                    elif len(vals) >= 2:
-                        salary_from, salary_to = vals[0], vals[1]
+                salary_from, salary_to = extract_salary_range(stxt)
 
         job_data = {
             "title": title,

@@ -12,7 +12,7 @@ router = APIRouter()
 
 @router.get("/subscription-status")
 @limiter.limit("30/minute")
-async def get_subscription_status(userId: str = Query(...), user: dict = Depends(get_current_user)):
+async def get_subscription_status(request: Request, userId: str = Query(...), user: dict = Depends(get_current_user)):
     user_id = user.get("id") or user.get("auth_id")
     company_id = user.get("company_id")
     is_company_admin = bool(user.get("company_name"))

@@ -101,7 +101,7 @@ async def get_invitation_details(invitation_id: str, token: str = Query(...)):
 
 @router.post("/invitations/{invitation_id}/submit")
 @limiter.limit("10/minute")
-async def submit_assessment_result(invitation_id: str, result_req: AssessmentResultRequest, token: str = Query(...)):
+async def submit_assessment_result(request: Request, invitation_id: str, result_req: AssessmentResultRequest, token: str = Query(...)):
     inv_resp = supabase.table("assessment_invitations").select("*").eq("id", invitation_id).execute()
     if not inv_resp.data: raise HTTPException(status_code=404, detail="Invitation not found")
     
