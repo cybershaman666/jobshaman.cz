@@ -372,36 +372,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     };
 
     const renderOverview = () => {
-        // Show Empty State if no jobs
-        if (jobs.length === 0) {
-            return (
-                <div className="flex flex-col items-center justify-center py-20 animate-in fade-in">
-                    <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
-                        <Briefcase size={40} className="text-slate-400" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{t('company.dashboard.welcome_title')}</h2>
-                    <p className="text-slate-500 dark:text-slate-400 max-w-md text-center mb-8">
-                        {t('company.dashboard.empty_state_desc')}
-                    </p>
-                    <button
-                        onClick={() => setActiveTab('create-ad')}
-                        className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-500 transition-colors flex items-center gap-2"
-                    >
-                        <PenTool size={20} />
-                        {t('company.dashboard.create_first_ad')}
-                    </button>
-                </div>
-            );
-        }
-
-        /* 
-        const agencySavings = 450000;
-        const percentSpent = 65;
-        const projectedSpend = 1200000;
-        const costPerHire = 12500;
-        const marketAvgCostPerHire = 35000;
-        */
-
         return (
             <div className="space-y-6 animate-in fade-in">
                 {/* Subscription Status Card */}
@@ -502,311 +472,332 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         </div>
                     </div>
                 </div>
-
-                {/* Header & Actions */}
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
-                    <div>
-                        <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{t('company.dashboard.title')}</h2>
-                        <p className="text-sm text-slate-500">{t('company.dashboard.subtitle')}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
+                {jobs.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center py-20 animate-in fade-in">
+                        <div className="w-24 h-24 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
+                            <Briefcase size={40} className="text-slate-400" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{t('company.dashboard.welcome_title')}</h2>
+                        <p className="text-slate-500 dark:text-slate-400 max-w-md text-center mb-8">
+                            {t('company.dashboard.empty_state_desc')}
+                        </p>
                         <button
                             onClick={() => setActiveTab('create-ad')}
-                            className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow-sm hover:bg-indigo-500 transition-colors flex items-center gap-2"
+                            className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-500 transition-colors flex items-center gap-2"
                         >
-                            <PenTool size={18} />
-                            {t('company.dashboard.create_ad_btn')}
+                            <PenTool size={20} />
+                            {t('company.dashboard.create_first_ad')}
                         </button>
-                        <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
-                            <Users size={16} className="ml-2 text-slate-400" />
-                            <select
-                                value={selectedRecruiterId}
-                                onChange={(e) => setSelectedRecruiterId(e.target.value)}
-                                className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 dark:text-slate-300 pr-8 cursor-pointer"
-                            >
-                                <option value="all">{t('company.dashboard.all_recruiters')}</option>
-                                {recruiters.filter(r => r.id !== 'all').map(r => (
-                                    <option key={r.id} value={r.id}>{r.name}</option>
-                                ))}
-                            </select>
-                        </div>
                     </div>
-                </div>
+                ) : (
+                    <>
+                        {/* Header & Actions */}
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-2">
 
-                {/* Metrics Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                    {/* Pipeline Metric */}
-                    <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-                        <div className="flex justify-between items-start mb-4">
                             <div>
-                                <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.pipeline')}</div>
-                                <div className="text-3xl font-bold text-slate-900 dark:text-white">0</div>
+                                <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">{t('company.dashboard.title')}</h2>
+                                <p className="text-sm text-slate-500">{t('company.dashboard.subtitle')}</p>
                             </div>
-                            <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
-                                <Users size={20} />
-                            </div>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex h-2 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-                                <div className="bg-emerald-500 w-[0%]" title="New: 0"></div>
-                            </div>
-                            <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-mono">
-                                <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>{t('company.dashboard.stats.new')}</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Quality Metric */}
-                    <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.match_score')}</div>
-                                <div className="text-3xl font-bold text-slate-900 dark:text-white">--<span className="text-lg text-slate-400 font-normal">/100</span></div>
-                            </div>
-                            <div className="p-2 bg-cyan-50 dark:bg-cyan-500/10 rounded-lg text-cyan-600 dark:text-cyan-400">
-                                <Target size={20} />
-                            </div>
-                        </div>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                            {t('company.dashboard.stats.no_data_yet')}
-                        </p>
-                    </div>
-
-                    {/* Time to Hire Metric */}
-                    <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.time_to_hire')}</div>
-                                <div className="text-3xl font-bold text-slate-900 dark:text-white">-- <span className="text-lg font-normal text-slate-500">{t('company.dashboard.stats.days')}</span></div>
-                            </div>
-                            <div className="p-2 bg-amber-50 dark:bg-amber-500/10 rounded-lg text-amber-600 dark:text-amber-400">
-                                <Clock size={20} />
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2 mt-3 text-sm border-t border-slate-100 dark:border-slate-800 pt-2">
-                            <span className="text-slate-400">{t('company.dashboard.stats.awaiting_hires')}</span>
-                        </div>
-                    </div>
-
-                    {/* Budget Metric */}
-                    <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
-                        <div className="flex justify-between items-start mb-2">
-                            <div>
-                                <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.saved')}</div>
-                                <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                                    0 <span className="text-lg font-normal text-slate-500 dark:text-slate-400">CZK</span>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setActiveTab('create-ad')}
+                                    className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow-sm hover:bg-indigo-500 transition-colors flex items-center gap-2"
+                                >
+                                    <PenTool size={18} />
+                                    {t('company.dashboard.create_ad_btn')}
+                                </button>
+                                <div className="flex items-center gap-3 bg-white dark:bg-slate-900 p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 shadow-sm">
+                                    <Users size={16} className="ml-2 text-slate-400" />
+                                    <select
+                                        value={selectedRecruiterId}
+                                        onChange={(e) => setSelectedRecruiterId(e.target.value)}
+                                        className="bg-transparent border-none focus:ring-0 text-sm font-bold text-slate-700 dark:text-slate-300 pr-8 cursor-pointer"
+                                    >
+                                        <option value="all">{t('company.dashboard.all_recruiters')}</option>
+                                        {recruiters.filter(r => r.id !== 'all').map(r => (
+                                            <option key={r.id} value={r.id}>{r.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
-                            <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400">
-                                <DollarSign size={20} />
-                            </div>
-                        </div>
-                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mb-1 mt-2">
-                            <div
-                                className="h-full rounded-full bg-emerald-500"
-                                style={{ width: `0%` }}
-                            ></div>
-                        </div>
-                        <div className="flex justify-between text-xs text-slate-400 mb-2">
-                            <span>{t('company.dashboard.stats.spent')}: 0%</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* AI Predictive Insights */}
-                <div className="bg-gradient-to-r from-indigo-50 to-cyan-50 dark:from-indigo-950/20 dark:to-cyan-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center gap-4 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none text-indigo-500">
-                        <BrainCircuit size={80} />
-                    </div>
-                    <div className="p-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800 z-10">
-                        <Sparkles size={20} />
-                    </div>
-                    <div className="flex-1 z-10">
-                        <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-200 mb-1">{t('company.dashboard.ai_insights.title')}</h3>
-                        <div className="flex flex-col md:flex-row gap-4 text-sm text-indigo-800 dark:text-indigo-300">
-                            <div className="flex items-center gap-2">
-                                <CheckCircle size={14} className="text-emerald-500" />
-                                <span>{t('company.dashboard.ai_insights.hired_prediction', { days: 21, count: 45 })}</span>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <ArrowRight size={14} className="text-amber-500" />
-                                <span>{t('company.dashboard.ai_insights.low_match_warning', { avg: 22 })}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                    {/* Left Column: Active Postings Table */}
-                    <div className="xl:col-span-2 space-y-4">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                <Briefcase size={20} className="text-cyan-600" /> {t('company.dashboard.active_postings')}
-                            </h3>
-                            <div className="flex gap-2">
-                                <button className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                                    <Search size={16} />
-                                </button>
-                                <button className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                                    <Filter size={16} />
-                                </button>
-                            </div>
                         </div>
 
-                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left">
-                                    <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 uppercase font-mono text-xs">
-                                        <tr>
-                                            <th className="px-4 py-3">{t('company.dashboard.table.position')}</th>
-                                            <th className="px-4 py-3">{t('company.dashboard.table.pipeline')}</th>
-                                            <th className="px-4 py-3 text-center">{t('company.dashboard.table.ai_match')}</th>
-                                            <th className="px-4 py-3 text-center">{t('company.dashboard.table.performance')}</th>
-                                            <th className="px-4 py-3 text-right">{t('company.dashboard.table.actions')}</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                                        {jobs.slice(0, 5).map((job) => {
-                                            let baseViews = 200;
-                                            let conversionRate = 0.08;
-                                            if (job.title.includes('React')) { baseViews = 450; conversionRate = 0.12; }
-                                            if (job.title.includes('Crypto')) { baseViews = 800; conversionRate = 0.02; }
-                                            if (job.title.includes('Store')) { baseViews = 600; conversionRate = 0.18; }
-
-                                            const views = Math.floor(baseViews * (0.8 + Math.random() * 0.4));
-                                            const applied = Math.floor(views * (conversionRate * (0.9 + Math.random() * 0.2)));
-                                            const realConversion = (applied / views) * 100;
-                                            const avgMatch = Math.floor(Math.random() * 30) + 60;
-                                            const isLowPerf = realConversion < 4;
-
-                                            return (
-                                                <tr key={job.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
-                                                    <td className="px-4 py-3">
-                                                        <div className="font-bold text-slate-900 dark:text-white text-sm">{job.title}</div>
-                                                        <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                                                            {job.location} • {job.postedAt}
-                                                            {isLowPerf && <span className="text-rose-500 font-bold ml-1 flex items-center gap-0.5"><TrendingDown size={12} /> {t('company.dashboard.stats.low_perf')}</span>}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3">
-                                                        <div className="flex items-center gap-2 mb-1">
-                                                            <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{applied}</span>
-                                                            <span className="text-xs text-slate-400">{t('company.dashboard.stats.candidates_count')}</span>
-                                                        </div>
-                                                        <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                                            <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(100, (applied / 50) * 100)}%` }}></div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold ${avgMatch > 75 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
-                                                            {avgMatch}%
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-center">
-                                                        <div className="text-xs font-mono text-slate-600 dark:text-slate-400">
-                                                            {views} views
-                                                        </div>
-                                                        <div className={`text-[10px] ${isLowPerf ? 'text-rose-500' : 'text-emerald-500'}`}>
-                                                            {realConversion.toFixed(1)}% conv
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-4 py-3 text-right">
-                                                        <div className="relative">
-                                                            <button
-                                                                onClick={() => toggleDropdown(job.id)}
-                                                                className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-1"
-                                                            >
-                                                                <MoreVertical size={16} />
-                                                            </button>
-
-                                                            {activeDropdownJobId === job.id && (
-                                                                <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-lg z-50">
-                                                                    <button
-                                                                        onClick={() => handleEditJob(job.id)}
-                                                                        className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
-                                                                    >
-                                                                        <Edit size={14} />
-                                                                        {t('company.dashboard.actions.edit')}
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handleCloseJob(job.id)}
-                                                                        className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
-                                                                    >
-                                                                        <X size={14} />
-                                                                        {t('company.dashboard.actions.close')}
-                                                                    </button>
-                                                                    <div className="border-t border-slate-200 dark:border-slate-700"></div>
-                                                                    <button
-                                                                        onClick={() => handleDeleteJob(job.id)}
-                                                                        className="w-full text-left px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors flex items-center gap-2"
-                                                                    >
-                                                                        <Trash2 size={14} />
-                                                                        {t('company.dashboard.actions.delete')}
-                                                                    </button>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })}
-                                    </tbody>
-                                </table>
+                        {/* Metrics Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {/* Pipeline Metric */}
+                            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div>
+                                        <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.pipeline')}</div>
+                                        <div className="text-3xl font-bold text-slate-900 dark:text-white">0</div>
+                                    </div>
+                                    <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
+                                        <Users size={20} />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="flex h-2 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
+                                        <div className="bg-emerald-500 w-[0%]" title="New: 0"></div>
+                                    </div>
+                                    <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-mono">
+                                        <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>{t('company.dashboard.stats.new')}</span>
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                    </div>
 
-                    {/* Right Column: Feed & Team */}
-                    <div className="space-y-6">
-                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-                            <div className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-700 dark:text-slate-200">
-                                <Zap size={16} className="text-amber-500" />
-                                {t('company.dashboard.team_activity')}
+                            {/* Quality Metric */}
+                            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.match_score')}</div>
+                                        <div className="text-3xl font-bold text-slate-900 dark:text-white">--<span className="text-lg text-slate-400 font-normal">/100</span></div>
+                                    </div>
+                                    <div className="p-2 bg-cyan-50 dark:bg-cyan-500/10 rounded-lg text-cyan-600 dark:text-cyan-400">
+                                        <Target size={20} />
+                                    </div>
+                                </div>
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                                    {t('company.dashboard.stats.no_data_yet')}
+                                </p>
                             </div>
-                            <div className="space-y-4">
-                                <div className="flex gap-3 relative pb-4 border-l-2 border-slate-100 dark:border-slate-800 pl-4 ml-2">
-                                    <div className="absolute -left-[5px] top-0 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-4 ring-white dark:ring-slate-900"></div>
-                                    <div className="text-xs">
-                                        <p className="text-slate-900 dark:text-white" dangerouslySetInnerHTML={{ __html: t('company_extra.activity.added_comment', { name: 'Floki', target: 'Jan Novák' }) }} />
-                                        <p className="text-slate-500 mt-0.5">{t('company_extra.activity.time_ago', { count: 20 })}</p>
-                                        <div className="mt-1 p-2 bg-slate-50 dark:bg-slate-950 rounded text-slate-600 dark:text-slate-400 italic">
-                                            "{t('company_extra.activity.no_redux')}"
+
+                            {/* Time to Hire Metric */}
+                            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.time_to_hire')}</div>
+                                        <div className="text-3xl font-bold text-slate-900 dark:text-white">-- <span className="text-lg font-normal text-slate-500">{t('company.dashboard.stats.days')}</span></div>
+                                    </div>
+                                    <div className="p-2 bg-amber-50 dark:bg-amber-500/10 rounded-lg text-amber-600 dark:text-amber-400">
+                                        <Clock size={20} />
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2 mt-3 text-sm border-t border-slate-100 dark:border-slate-800 pt-2">
+                                    <span className="text-slate-400">{t('company.dashboard.stats.awaiting_hires')}</span>
+                                </div>
+                            </div>
+
+                            {/* Budget Metric */}
+                            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.saved')}</div>
+                                        <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                                            0 <span className="text-lg font-normal text-slate-500 dark:text-slate-400">CZK</span>
                                         </div>
                                     </div>
-                                </div>
-                                <div className="flex gap-3 relative pl-4 ml-2">
-                                    <div className="absolute -left-[5px] top-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-white dark:ring-slate-900"></div>
-                                    <div className="text-xs">
-                                        <p className="text-slate-900 dark:text-white" dangerouslySetInnerHTML={{ __html: t('company_extra.activity.rejected_spam', { count: 15 }) }} />
-                                        <p className="text-slate-500 mt-0.5">{t('company_extra.activity.hour_ago', { count: 1 })}</p>
+                                    <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400">
+                                        <DollarSign size={20} />
                                     </div>
+                                </div>
+                                <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mb-1 mt-2">
+                                    <div
+                                        className="h-full rounded-full bg-emerald-500"
+                                        style={{ width: `0%` }}
+                                    ></div>
+                                </div>
+                                <div className="flex justify-between text-xs text-slate-400 mb-2">
+                                    <span>{t('company.dashboard.stats.spent')}: 0%</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
-                            <div className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-700 dark:text-slate-200">
-                                <Crown size={16} className="text-indigo-500" />
-                                {t('company.dashboard.leaderboard')}
+                        {/* AI Predictive Insights */}
+                        <div className="bg-gradient-to-r from-indigo-50 to-cyan-50 dark:from-indigo-950/20 dark:to-cyan-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center gap-4 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none text-indigo-500">
+                                <BrainCircuit size={80} />
                             </div>
-                            <div className="space-y-3">
-                                <div className="flex items-center justify-between">
+                            <div className="p-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800 z-10">
+                                <Sparkles size={20} />
+                            </div>
+                            <div className="flex-1 z-10">
+                                <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-200 mb-1">{t('company.dashboard.ai_insights.title')}</h3>
+                                <div className="flex flex-col md:flex-row gap-4 text-sm text-indigo-800 dark:text-indigo-300">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300">P</div>
-                                        <div className="text-xs">
-                                            <div className="font-bold dark:text-white">Petra N..</div>
-                                            <div className="text-slate-500">8 {t('company_extra.stats.hires')}</div>
-                                        </div>
+                                        <CheckCircle size={14} className="text-emerald-500" />
+                                        <span>{t('company.dashboard.ai_insights.hired_prediction', { days: 21, count: 45 })}</span>
                                     </div>
-                                    <div className="text-right text-xs">
-                                        <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400">19 {t('company_extra.stats.days_unit')}</div>
-                                        <div className="text-slate-400">{t('company_extra.stats.avg_tth')}</div>
+                                    <div className="flex items-center gap-2">
+                                        <ArrowRight size={14} className="text-amber-500" />
+                                        <span>{t('company.dashboard.ai_insights.low_match_warning', { avg: 22 })}</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+
+                        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                            {/* Left Column: Active Postings Table */}
+                            <div className="xl:col-span-2 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                        <Briefcase size={20} className="text-cyan-600" /> {t('company.dashboard.active_postings')}
+                                    </h3>
+                                    <div className="flex gap-2">
+                                        <button className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                                            <Search size={16} />
+                                        </button>
+                                        <button className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                                            <Filter size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left">
+                                            <thead className="bg-slate-50 dark:bg-slate-950 text-slate-500 dark:text-slate-400 uppercase font-mono text-xs">
+                                                <tr>
+                                                    <th className="px-4 py-3">{t('company.dashboard.table.position')}</th>
+                                                    <th className="px-4 py-3">{t('company.dashboard.table.pipeline')}</th>
+                                                    <th className="px-4 py-3 text-center">{t('company.dashboard.table.ai_match')}</th>
+                                                    <th className="px-4 py-3 text-center">{t('company.dashboard.table.performance')}</th>
+                                                    <th className="px-4 py-3 text-right">{t('company.dashboard.table.actions')}</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                                                {jobs.slice(0, 5).map((job) => {
+                                                    let baseViews = 200;
+                                                    let conversionRate = 0.08;
+                                                    if (job.title.includes('React')) { baseViews = 450; conversionRate = 0.12; }
+                                                    if (job.title.includes('Crypto')) { baseViews = 800; conversionRate = 0.02; }
+                                                    if (job.title.includes('Store')) { baseViews = 600; conversionRate = 0.18; }
+
+                                                    const views = Math.floor(baseViews * (0.8 + Math.random() * 0.4));
+                                                    const applied = Math.floor(views * (conversionRate * (0.9 + Math.random() * 0.2)));
+                                                    const realConversion = (applied / views) * 100;
+                                                    const avgMatch = Math.floor(Math.random() * 30) + 60;
+                                                    const isLowPerf = realConversion < 4;
+
+                                                    return (
+                                                        <tr key={job.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                                                            <td className="px-4 py-3">
+                                                                <div className="font-bold text-slate-900 dark:text-white text-sm">{job.title}</div>
+                                                                <div className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
+                                                                    {job.location} • {job.postedAt}
+                                                                    {isLowPerf && <span className="text-rose-500 font-bold ml-1 flex items-center gap-0.5"><TrendingDown size={12} /> {t('company.dashboard.stats.low_perf')}</span>}
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <div className="flex items-center gap-2 mb-1">
+                                                                    <span className="font-mono font-bold text-slate-700 dark:text-slate-300">{applied}</span>
+                                                                    <span className="text-xs text-slate-400">{t('company.dashboard.stats.candidates_count')}</span>
+                                                                </div>
+                                                                <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                                                                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(100, (applied / 50) * 100)}%` }}></div>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-center">
+                                                                <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-bold ${avgMatch > 75 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'}`}>
+                                                                    {avgMatch}%
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-center">
+                                                                <div className="text-xs font-mono text-slate-600 dark:text-slate-400">
+                                                                    {views} views
+                                                                </div>
+                                                                <div className={`text-[10px] ${isLowPerf ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                                                    {realConversion.toFixed(1)}% conv
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-right">
+                                                                <div className="relative">
+                                                                    <button
+                                                                        onClick={() => toggleDropdown(job.id)}
+                                                                        className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-1"
+                                                                    >
+                                                                        <MoreVertical size={16} />
+                                                                    </button>
+
+                                                                    {activeDropdownJobId === job.id && (
+                                                                        <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800 shadow-lg z-50">
+                                                                            <button
+                                                                                onClick={() => handleEditJob(job.id)}
+                                                                                className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
+                                                                            >
+                                                                                <Edit size={14} />
+                                                                                {t('company.dashboard.actions.edit')}
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={() => handleCloseJob(job.id)}
+                                                                                className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
+                                                                            >
+                                                                                <X size={14} />
+                                                                                {t('company.dashboard.actions.close')}
+                                                                            </button>
+                                                                            <div className="border-t border-slate-200 dark:border-slate-700"></div>
+                                                                            <button
+                                                                                onClick={() => handleDeleteJob(job.id)}
+                                                                                className="w-full text-left px-3 py-2 text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors flex items-center gap-2"
+                                                                            >
+                                                                                <Trash2 size={14} />
+                                                                                {t('company.dashboard.actions.delete')}
+                                                                            </button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right Column: Feed & Team */}
+                            <div className="space-y-6">
+                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                                    <div className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-700 dark:text-slate-200">
+                                        <Zap size={16} className="text-amber-500" />
+                                        {t('company.dashboard.team_activity')}
+                                    </div>
+                                    <div className="space-y-4">
+                                        <div className="flex gap-3 relative pb-4 border-l-2 border-slate-100 dark:border-slate-800 pl-4 ml-2">
+                                            <div className="absolute -left-[5px] top-0 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-4 ring-white dark:ring-slate-900"></div>
+                                            <div className="text-xs">
+                                                <p className="text-slate-900 dark:text-white" dangerouslySetInnerHTML={{ __html: t('company_extra.activity.added_comment', { name: 'Floki', target: 'Jan Novák' }) }} />
+                                                <p className="text-slate-500 mt-0.5">{t('company_extra.activity.time_ago', { count: 20 })}</p>
+                                                <div className="mt-1 p-2 bg-slate-50 dark:bg-slate-950 rounded text-slate-600 dark:text-slate-400 italic">
+                                                    "{t('company_extra.activity.no_redux')}"
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3 relative pl-4 ml-2">
+                                            <div className="absolute -left-[5px] top-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-white dark:ring-slate-900"></div>
+                                            <div className="text-xs">
+                                                <p className="text-slate-900 dark:text-white" dangerouslySetInnerHTML={{ __html: t('company_extra.activity.rejected_spam', { count: 15 }) }} />
+                                                <p className="text-slate-500 mt-0.5">{t('company_extra.activity.hour_ago', { count: 1 })}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                                    <div className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-700 dark:text-slate-200">
+                                        <Crown size={16} className="text-indigo-500" />
+                                        {t('company.dashboard.leaderboard')}
+                                    </div>
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center font-bold text-indigo-700 dark:text-indigo-300">P</div>
+                                                <div className="text-xs">
+                                                    <div className="font-bold dark:text-white">Petra N..</div>
+                                                    <div className="text-slate-500">8 {t('company_extra.stats.hires')}</div>
+                                                </div>
+                                            </div>
+                                            <div className="text-right text-xs">
+                                                <div className="font-mono font-bold text-emerald-600 dark:text-emerald-400">19 {t('company_extra.stats.days_unit')}</div>
+                                                <div className="text-slate-400">{t('company_extra.stats.avg_tth')}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </>
+                )}
             </div>
         );
     };

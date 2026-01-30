@@ -13,3 +13,8 @@ ALTER TABLE public.jobs
 ALTER COLUMN company_id TYPE UUID USING company_id::uuid;
 END IF;
 END $$;
+-- Ensure url and source are nullable for manual postings (Fixes 400 error on publish)
+ALTER TABLE public.jobs
+ALTER COLUMN url DROP NOT NULL;
+ALTER TABLE public.jobs
+ALTER COLUMN source DROP NOT NULL;
