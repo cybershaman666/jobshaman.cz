@@ -393,11 +393,13 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             );
         }
 
+        /* 
         const agencySavings = 450000;
         const percentSpent = 65;
         const projectedSpend = 1200000;
         const costPerHire = 12500;
         const marketAvgCostPerHire = 35000;
+        */
 
         return (
             <div className="space-y-6 animate-in fade-in">

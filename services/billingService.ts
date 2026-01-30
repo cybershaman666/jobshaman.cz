@@ -50,12 +50,10 @@ export const canCompanyUseFeature = (company: CompanyProfile, feature: PremiumFe
     if (tier === 'enterprise') return true;
 
     switch (feature) {
-        case 'COMPANY_AI_AD':
-            return tier === 'business' || tier === 'trial';
         case 'COMPANY_RECOMMENDATIONS':
-            return tier === 'business' || tier === 'enterprise';
+            return tier === 'business'; // Enterprise already returned true at line 50
         case 'COMPANY_UNLIMITED_JOBS':
-            return tier === 'enterprise';
+            return false; // Only enterprise (line 50)
         default:
             return true;
     }

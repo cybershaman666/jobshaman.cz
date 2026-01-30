@@ -48,7 +48,7 @@ export interface CompanyProfile {
   };
 }
 
-export type CompanyServiceTier = 'basic' | 'business' | 'enterprise' | 'assessment_bundle';
+export type CompanyServiceTier = 'free' | 'trial' | 'basic' | 'business' | 'enterprise' | 'assessment_bundle';
 
 export interface CompanyUsageStats {
   activeJobsCount: number;
