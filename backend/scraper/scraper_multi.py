@@ -237,33 +237,34 @@ def scrape_jobs_cz(soup):
 
         if detail_soup:
             try:
-                # Popis - Zachování pořadí a formátování (stejně jako u ostatních portálů)
-                # Na Jobs.cz jsou klíčové prvky v typrografických třídách, ale musíme je brát v pořadí
-                main_content = detail_soup.find("div", class_="JobDescriptionSection") or detail_soup
+                # Popis - Enhanced parsing to capture ALL content including lists
+                # Jobs.cz uses JobDescriptionSection or JobDescription as main container
+                main_content = detail_soup.find("div", class_="JobDescriptionSection") or detail_soup.find("div", class_="JobDescription")
                 
                 parts = []
-                # Hledáme odstavce a položky seznamu v rámci hlavního obsahu
-                for elem in main_content.find_all(["p", "li"], class_=lambda x: x and "typography-body-large" in x):
-                    txt = norm_text(elem.get_text())
-                    if not txt:
-                        continue
-                    
-                    if elem.name == "li":
-                        parts.append(f"- {txt}")
-                    else:
-                        parts.append(txt)
-                
-                # Pokud jsme nic nenašli přes třídy, zkusíme obecnější přístup
-                if not parts:
-                    desc_div = detail_soup.find("div", class_="JobDescription")
-                    if desc_div:
-                        for elem in desc_div.find_all(["p", "li"]):
-                            txt = norm_text(elem.get_text())
-                            if txt:
-                                parts.append(f"- {txt}" if elem.name == "li" else txt)
+                if main_content:
+                    # Extract all meaningful content: paragraphs, headings, and list items
+                    # Don't filter by typography classes - capture everything
+                    for elem in main_content.find_all(['p', 'li', 'h2', 'h3', 'h4', 'ul', 'ol']):
+                        # Skip ul/ol containers themselves, we only want their li children
+                        if elem.name in ['ul', 'ol']:
+                            continue
+                            
+                        txt = norm_text(elem.get_text())
+                        if not txt:
+                            continue
+                        
+                        # Format based on element type
+                        if elem.name == 'li':
+                            parts.append(f"- {txt}")
+                        elif elem.name in ['h2', 'h3', 'h4']:
+                            parts.append(f"\n### {txt}")
+                        else:  # p tags
+                            parts.append(txt)
 
                 if parts:
                     description = filter_out_junk("\n\n".join(parts))
+
 
                 # Benefity
                 btitle = detail_soup.find(
