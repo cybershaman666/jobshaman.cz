@@ -192,11 +192,24 @@ export const authenticatedFetch = async (
     // Add CSRF token for state-changing requests
     const method = (options.method || 'GET').toUpperCase();
     if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
-        const csrfToken = getCsrfToken();
+        let csrfToken = getCsrfToken();
+
+        // Auto-recovery: If token is missing, try to fetch it now
+        if (!csrfToken) {
+            console.log('⚠️ No valid CSRF token found. Attempting to fetch one immediately...');
+            const currentAuthToken = authToken || await getCurrentAuthToken() || localStorage.getItem('auth_token');
+            if (currentAuthToken) {
+                csrfToken = await fetchCsrfToken(currentAuthToken);
+                if (csrfToken) {
+                    console.log('✅ CSRF token auto-recovered successfully');
+                }
+            }
+        }
+
         if (csrfToken) {
             headers.set('X-CSRF-Token', csrfToken);
         } else {
-            console.warn('⚠️ No valid CSRF token found for ' + method + ' request');
+            console.warn('⚠️ No valid CSRF token found for ' + method + ' request even after retry');
         }
     }
 

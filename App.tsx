@@ -33,6 +33,7 @@ import { canCandidateUseFeature } from './services/billingService';
 import { analyzeJobForPathfinder } from './services/careerPathfinderService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
 import { checkPaymentStatus } from './services/stripeService';
+import { fetchCsrfToken, clearCsrfToken } from './services/csrfService';
 import { useUserProfile } from './hooks/useUserProfile';
 import { usePaginatedJobs } from './hooks/usePaginatedJobs';
 import { DEFAULT_USER_PROFILE } from './constants';
@@ -218,9 +219,7 @@ export default function App() {
                 if (data?.session) {
                     handleSessionRestoration(data.session.user.id);
                     // Fetch CSRF token on initial load if logged in
-                    import('./services/csrfService').then(({ fetchCsrfToken }) => {
-                        fetchCsrfToken(data.session.access_token);
-                    });
+                    fetchCsrfToken(data.session.access_token);
                 }
             });
 
@@ -228,17 +227,13 @@ export default function App() {
                 if (session) {
                     handleSessionRestoration(session.user.id);
                     // Fetch/Refresh CSRF token on auth change
-                    import('./services/csrfService').then(({ fetchCsrfToken }) => {
-                        fetchCsrfToken(session.access_token);
-                    });
+                    fetchCsrfToken(session.access_token);
                 } else {
                     setUserProfile({ ...DEFAULT_USER_PROFILE, isLoggedIn: false });
                     setViewState(ViewState.LIST);
                     setCompanyProfile(null);
                     // Clear CSRF token on logout
-                    import('./services/csrfService').then(({ clearCsrfToken }) => {
-                        clearCsrfToken();
-                    });
+                    clearCsrfToken();
                 }
             });
 
