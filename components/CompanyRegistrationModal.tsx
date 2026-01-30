@@ -12,7 +12,6 @@ interface CompanyRegistrationModalProps {
 
 export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }: CompanyRegistrationModalProps) {
   const { t } = useTranslation();
-  if (!isOpen) return null;
 
   const [step, setStep] = useState<number | 'success'>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,6 +25,8 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
     agreedToPrivacy: false
   });
   const [showPassword, setShowPassword] = useState(false);
+
+  if (!isOpen) return null;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value, type, checked } = e.target;
