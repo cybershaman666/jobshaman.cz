@@ -219,30 +219,51 @@ def verify_supabase_token(token: str) -> dict:
             raise HTTPException(status_code=401, detail="Invalid or expired token")
 
         user_data = user_response.user
+        user_id = user_data.id
 
         # Get additional user profile data
         profile_response = (
-            supabase.table("profiles").select("*").eq("id", user_data.id).execute()
+            supabase.table("profiles").select("*").eq("id", user_id).execute()
         )
+        
         if profile_response.data and len(profile_response.data) > 0:
             profile_data = profile_response.data[0]
             if isinstance(profile_data, dict):
                 result = profile_data.copy()
-                result["user_type"] = "candidate"
-                result["auth_id"] = user_data.id
+                result["auth_id"] = user_id
                 result["email"] = getattr(user_data, "email", "")
+                
+                # Check if this is a recruiter
+                if profile_data.get("role") == "recruiter":
+                    # Try to find their company
+                    company_response = (
+                        supabase.table("companies")
+                        .select("*")
+                        .eq("owner_id", user_id)
+                        .maybe_single()
+                        .execute()
+                    )
+                    
+                    if company_response.data:
+                        result["user_type"] = "company"
+                        result["company_id"] = company_response.data["id"]
+                        result["company_name"] = company_response.data.get("name")
+                        return result
+                
+                # Default to candidate if not a recruiter with a company
+                result["user_type"] = "candidate"
                 return result
 
-        # Try companies table
+        # Fallback: Try companies table directly (for legacy or direct company accounts)
         company_response = (
-            supabase.table("companies").select("*").eq("id", user_data.id).execute()
+            supabase.table("companies").select("*").eq("id", user_id).execute()
         )
         if company_response.data and len(company_response.data) > 0:
             company_data = company_response.data[0]
             if isinstance(company_data, dict):
                 result = company_data.copy()
                 result["user_type"] = "company"
-                result["auth_id"] = user_data.id
+                result["auth_id"] = user_id
                 result["email"] = getattr(user_data, "email", "")
                 return result
 
@@ -1521,10 +1542,26 @@ async def get_subscription_status(
             print("❌ Invalid userId parameter")
             raise HTTPException(status_code=400, detail="Valid user ID required")
 
+        user_id = user.get("id")
+        user_type = user.get("user_type", "candidate")
+        company_id = user.get("id") if user_type == "company" else user.get("company_id")
+
         # Validate authorization
-        if user.get("id") != userId:
+        # A user can access if:
+        # 1. They are requesting their own ID (personal subscription)
+        # 2. They are a company recruiter/owner requesting their own company's subscription
+        is_authorized = False
+        
+        if user_id == userId:
+            is_authorized = True
+        elif user_type == "company" and user_id == userId:
+            is_authorized = True
+        elif company_id == userId:
+            is_authorized = True
+            
+        if not is_authorized:
             print(
-                f"❌ Unauthorized access attempt: {user.get('id')} tried to access {userId}"
+                f"❌ Unauthorized access attempt: {user_id} (type: {user_type}, company: {company_id}) tried to access {userId}"
             )
             raise HTTPException(
                 status_code=403, detail="Cannot access other users' subscription info"
@@ -1577,7 +1614,7 @@ async def get_subscription_status(
             sub_response = (
                 supabase.table("subscriptions")
                 .select("*")
-                .eq("company_id", user.get("id"))
+                .eq("company_id", userId)
                 .execute()
             )
         else:
@@ -1697,7 +1734,10 @@ async def get_subscription_status(
             else None,
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
+        print(f"❌ Critical error in get_subscription_status: {e}")
         raise HTTPException(
             status_code=500, detail=f"Failed to get subscription status: {str(e)}"
         )

@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../services/supabaseService';
 import { Eye, EyeOff, Building2, Mail, Lock, CheckCircle, ArrowRight, Loader2, Info, X } from 'lucide-react';
 
@@ -10,6 +11,7 @@ interface CompanyRegistrationModalProps {
 }
 
 export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }: CompanyRegistrationModalProps) {
+  const { t } = useTranslation();
   if (!isOpen) return null;
 
   const [step, setStep] = useState<number | 'success'>(1);
@@ -66,8 +68,6 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
 
         // 1. Ensure user profile exists as 'recruiter'
         try {
-          // We import dynamically to avoid circular dependencies if any, but since we are in a component it should be fine.
-          // Using the service we just updated.
           const { createBaseProfile, updateUserProfile } = await import('../services/supabaseService');
 
           // Try to update first (if trigger created it as candidate)
@@ -85,7 +85,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
           }
         } catch (err) {
           console.error("❌ Critical Profile Setup Error:", err);
-          alert("Nepodařilo se vytvořit uživatelský profil. Prosím zkuste to znovu."); // "Failed to create user profile"
+          alert(t('company_onboarding.error_creating'));
           setIsSubmitting(false);
           return; // STOP EXECUTION to prevent FK violation
         }
@@ -97,8 +97,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
             name: formData.companyName,
             ico: formData.ico,
             website: formData.website,
-            contact_email: formData.email, // Use the new field
-            // contact_phone: ... (not in this form step, can be added later)
+            contact_email: formData.email,
             description: 'Nově registrovaná společnost'
           }, userId);
           console.log("✅ Company record created successfully:", companyData?.id);
@@ -110,7 +109,6 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
           }
         } catch (err) {
           console.error("❌ Failed to create company record:", err);
-          // Don't block success screen, as auto-recovery might fix it later
         }
       }
 
@@ -160,15 +158,15 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
         <div className="p-8">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">
-              {step === 1 && "Vytvořte si firemní účet"}
-              {step === 2 && "Doplňte údaje o firmě"}
-              {step === 3 && "Poslední krok"}
-              {step === 'success' && "Vítejte v JobShaman! 🎉"}
+              {step === 1 && t('company_registration.step1_title')}
+              {step === 2 && t('company_registration.step2_title')}
+              {step === 3 && t('company_registration.step3_title')}
+              {step === 'success' && t('company_registration.success_title')}
             </h2>
             <p className="text-slate-500 dark:text-slate-400">
               {step === 'success'
-                ? "Váš účet byl úspěšně vytvořen. Zkontrolujte svůj email pro potvrzení."
-                : "Přidejte se k firmám, které nabírají efektivně."}
+                ? t('company_registration.subtitle_success')
+                : t('company_registration.subtitle_default')}
             </p>
           </div>
 
@@ -177,7 +175,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
               <div className="space-y-4 animate-in fade-in slide-in-from-right-8">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Firemní Email
+                    {t('company_registration.email_label')}
                   </label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 text-slate-400" size={20} />
@@ -186,7 +184,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                       name="email"
                       required
                       className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                      placeholder="hr@firma.cz"
+                      placeholder={t('company_registration.email_placeholder')}
                       value={formData.email}
                       onChange={handleChange}
                     />
@@ -195,7 +193,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
 
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Heslo
+                    {t('company_registration.password_label')}
                   </label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 text-slate-400" size={20} />
@@ -205,7 +203,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                       required
                       minLength={8}
                       className="w-full pl-10 pr-12 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                      placeholder="Minimálně 8 znaků"
+                      placeholder={t('company_registration.password_placeholder')}
                       value={formData.password}
                       onChange={handleChange}
                     />
@@ -225,7 +223,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
               <div className="space-y-4 animate-in fade-in slide-in-from-right-8">
                 <div>
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Název Společnosti
+                    {t('company_registration.company_name_label')}
                   </label>
                   <div className="relative">
                     <Building2 className="absolute left-3 top-3 text-slate-400" size={20} />
@@ -234,7 +232,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                       name="companyName"
                       required
                       className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                      placeholder="Acme Corp s.r.o."
+                      placeholder={t('company_registration.company_name_placeholder')}
                       value={formData.companyName}
                       onChange={handleChange}
                     />
@@ -244,27 +242,27 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      IČO
+                      {t('company_registration.ico_label')}
                     </label>
                     <input
                       type="text"
                       name="ico"
                       required
                       className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                      placeholder="12345678"
+                      placeholder={t('company_registration.ico_placeholder')}
                       value={formData.ico}
                       onChange={handleChange}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                      Web (volitelné)
+                      {t('company_registration.web_label')}
                     </label>
                     <input
                       type="url"
                       name="website"
                       className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-                      placeholder="https://..."
+                      placeholder={t('company_registration.web_placeholder')}
                       value={formData.website}
                       onChange={handleChange}
                     />
@@ -278,7 +276,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                 <div className="bg-indigo-50 dark:bg-indigo-900/20 p-4 rounded-xl border border-indigo-100 dark:border-indigo-900/50 flex gap-3">
                   <Info className="shrink-0 text-indigo-600 dark:text-indigo-400" size={20} />
                   <p className="text-sm text-indigo-800 dark:text-indigo-300">
-                    Vytvořením účtu získáte 14 dní Premium na vyzkoušení zdarma. Žádná kreditní karta není potřeba.
+                    {t('company_registration.premium_info')}
                   </p>
                 </div>
 
@@ -292,7 +290,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                       className="mt-1 w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300"
                     />
                     <span className="text-sm text-slate-600 dark:text-slate-400">
-                      Souhlasím s <a href="#" className="text-indigo-600 hover:underline">Obchodními podmínkami</a> a zpracováním firemních údajů.
+                      {t('company_registration.terms_agree')}
                     </span>
                   </label>
 
@@ -305,7 +303,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                       className="mt-1 w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300"
                     />
                     <span className="text-sm text-slate-600 dark:text-slate-400">
-                      Souhlasím se zásadami <a href="#" className="text-indigo-600 hover:underline">Ochrany osobních údajů</a>.
+                      {t('company_registration.privacy_agree')}
                     </span>
                   </label>
                 </div>
@@ -325,7 +323,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                   }}
                   className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg"
                 >
-                  Přejít do portálu
+                  {t('company_registration.success_button')}
                   <ArrowRight size={20} />
                 </button>
               </div>
@@ -336,12 +334,11 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
         {/* Footer Actions */}
         <div className="p-8 pt-4 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-800 flex gap-4">
           {typeof step === 'number' && step > 1 && (
-
             <button
               onClick={() => setStep((typeof step === 'number' ? step : 1) - 1)}
               className="px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold rounded-xl hover:bg-white dark:hover:bg-slate-800 transition-all flex items-center gap-2"
             >
-              Zpět
+              {t('company_registration.back_button')}
             </button>
           )}
           <button
@@ -353,7 +350,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
             className={`flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 disabled:opacity-50 disabled:cursor-not-allowed ${step === 'success' ? 'hidden' : ''}`}
           >
             {isSubmitting ? <Loader2 className="animate-spin" /> : null}
-            {step === 3 ? "Dokončit registraci" : "Pokračovat"}
+            {step === 3 ? t('company_registration.finish_button') : t('company_registration.continue_button')}
             {!isSubmitting && <ArrowRight size={18} />}
           </button>
         </div>

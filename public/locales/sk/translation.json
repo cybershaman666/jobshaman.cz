@@ -782,6 +782,31 @@
             "ai_optimization": "AI Optimalizácia Inzerátov"
         }
     },
+    "company_registration": {
+        "step1_title": "Vytvorte si firemný účet",
+        "step2_title": "Doplňte údaje o firme",
+        "step3_title": "Posledný krok",
+        "success_title": "Vitajte v JobShaman! 🎉",
+        "subtitle_default": "Pridajte sa k firmám, ktoré naberajú efektívne.",
+        "subtitle_success": "Váš účet bol úspešne vytvorený. Skontrolujte svoj email pre potvrdenie.",
+        "email_label": "Firemný Email",
+        "email_placeholder": "hr@firma.sk",
+        "password_label": "Heslo",
+        "password_placeholder": "Minimálne 8 znakov",
+        "company_name_label": "Názov Spoločnosti",
+        "company_name_placeholder": "Acme Corp s.r.o.",
+        "ico_label": "IČO",
+        "ico_placeholder": "12345678",
+        "web_label": "Web (voliteľné)",
+        "web_placeholder": "https://...",
+        "premium_info": "Vytvorením účtu získate 14 dní Premium na vyskúšanie zadarmo. Žiadna kreditná karta nie je potrebná.",
+        "terms_agree": "Súhlasím s Obchodnými podmienkami a spracovaním firemných údajov.",
+        "privacy_agree": "Súhlasím so zásadami Ochrany osobných údajov.",
+        "back_button": "Späť",
+        "continue_button": "Pokračovat",
+        "finish_button": "Dokončiť registráciu",
+        "success_button": "Prosím potvrďte svoj email"
+    },
     "header": {
         "toggle_theme": "Zmeniť režim",
         "logout": "Odhlásiť sa"

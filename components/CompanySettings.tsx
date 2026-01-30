@@ -116,10 +116,12 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                         <div className="space-y-6">
                             {/* Mission / Philosophy */}
                             <div>
-                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                <label htmlFor="company-mission" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                                     <MessageSquare size={16} /> {t('company.settings.mission')}
                                 </label>
                                 <textarea
+                                    id="company-mission"
+                                    name="company-mission"
                                     className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 dark:text-slate-300 min-h-[100px]"
                                     value={localProfile.philosophy || ''}
                                     onChange={(e) => setLocalProfile({ ...localProfile, philosophy: e.target.value })}
@@ -130,10 +132,12 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                             {/* Tone of Voice */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <label htmlFor="company-tone" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                                         <Heart size={16} /> {t('company.settings.tone')}
                                     </label>
                                     <select
+                                        id="company-tone"
+                                        name="company-tone"
                                         className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 dark:text-slate-300"
                                         value={localProfile.tone}
                                         onChange={(e) => setLocalProfile({ ...localProfile, tone: e.target.value })}
@@ -146,10 +150,12 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                                 </div>
 
                                 <div>
-                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <label htmlFor="company-size" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                                         <Building2 size={16} /> {t('company.settings.size')}
                                     </label>
                                     <select
+                                        id="company-size"
+                                        name="company-size"
                                         className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 dark:text-slate-300"
                                         value={(localProfile as any).company_size || '1-10'}
                                         onChange={(e) => setLocalProfile({ ...localProfile, company_size: e.target.value } as any)}
@@ -163,10 +169,12 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                                 </div>
 
                                 <div className="md:col-span-2">
-                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <label htmlFor="company-industry" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                                         <Target size={16} /> {t('company.settings.industry')}
                                     </label>
                                     <input
+                                        id="company-industry"
+                                        name="company-industry"
                                         type="text"
                                         placeholder={t('company.settings.industry_placeholder')}
                                         className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 dark:text-slate-300"
@@ -176,10 +184,12 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                                 </div>
 
                                 <div className="md:col-span-2">
-                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <label htmlFor="company-address" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
                                         <Briefcase size={16} /> {t('company.settings.address')}
                                     </label>
                                     <input
+                                        id="company-address"
+                                        name="company-address"
                                         type="text"
                                         placeholder={t('company.settings.address_placeholder')}
                                         className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 dark:text-slate-300"
@@ -201,7 +211,10 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                                     ))}
                                 </div>
                                 <div className="flex gap-2">
+                                    <label htmlFor="add-value" className="sr-only">{t('company.settings.add_value_placeholder')}</label>
                                     <input
+                                        id="add-value"
+                                        name="add-value"
                                         type="text"
                                         className="flex-1 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none"
                                         placeholder={t('company.settings.add_value_placeholder')}
@@ -249,11 +262,13 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
 
                         {/* Invite Form */}
                         <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 mb-6">
-                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">{t('company.settings.invite_colleague')}</label>
+                            <label htmlFor="invite-email" className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">{t('company.settings.invite_colleague')}</label>
                             <div className="flex gap-2">
                                 <div className="relative flex-1">
                                     <Mail size={16} className="absolute left-3 top-3.5 text-slate-400" />
                                     <input
+                                        id="invite-email"
+                                        name="invite-email"
                                         type="email"
                                         placeholder={t('company.settings.invite_placeholder')}
                                         className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"

@@ -868,6 +868,31 @@
             "philosophy_placeholder": "Naše mise je propojovat talenty se smysluplnou prací..."
         }
     },
+    "company_registration": {
+        "step1_title": "Vytvořte si firemní účet",
+        "step2_title": "Doplňte údaje o firmě",
+        "step3_title": "Poslední krok",
+        "success_title": "Vítejte v JobShaman! 🎉",
+        "subtitle_default": "Přidejte se k firmám, které nabírají efektivně.",
+        "subtitle_success": "Váš účet byl úspěšně vytvořen. Zkontrolujte svůj email pro potvrzení.",
+        "email_label": "Firemní Email",
+        "email_placeholder": "hr@firma.cz",
+        "password_label": "Heslo",
+        "password_placeholder": "Minimálně 8 znaků",
+        "company_name_label": "Název Společnosti",
+        "company_name_placeholder": "Acme Corp s.r.o.",
+        "ico_label": "IČO",
+        "ico_placeholder": "12345678",
+        "web_label": "Web (volitelné)",
+        "web_placeholder": "https://...",
+        "premium_info": "Vytvořením účtu získáte 14 dní Premium na vyzkoušení zdarma. Žádná kreditní karta není potřeba.",
+        "terms_agree": "Souhlasím s Obchodními podmínkami a zpracováním firemních údajů.",
+        "privacy_agree": "Souhlasím se zásadami Ochrany osobních údajů.",
+        "back_button": "Zpět",
+        "continue_button": "Pokračovat",
+        "finish_button": "Dokončit registraci",
+        "success_button": "Prosím potvrďte svůj email"
+    },
     "header": {
         "toggle_theme": "Změnit režim",
         "logout": "Odhlásit se"
