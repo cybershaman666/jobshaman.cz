@@ -28,24 +28,29 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
         "single_assessment": {"assessments": 1, "job_postings": 0, "name": "Single Assessment"},
     }
 
-    sub_response = None
-    if is_company_admin:
-        sub_response = supabase.table("subscriptions").select("*").eq("company_id", userId).execute()
-        if not sub_response.data:
-            # Auto-trial
-            trial_end = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
-            trial_data = {
-                "company_id": userId,
-                "tier": "business",
-                "status": "active",
-                "current_period_end": trial_end,
-                "stripe_subscription_id": f"trial_{userId[:8]}"
-            }
-            sub_response = supabase.table("subscriptions").insert(trial_data).execute()
-    else:
-        sub_response = supabase.table("subscriptions").select("*").eq("user_id", user_id).execute()
-
-    sub_details = sub_response.data[0] if sub_response.data else {"tier": "free", "status": "active"}
+    sub_details = {"tier": "free", "status": "active"}
+    try:
+        if is_company_admin:
+            sub_response = supabase.table("subscriptions").select("*").eq("company_id", userId).execute()
+            if not sub_response.data:
+                # Auto-trial
+                trial_end = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
+                trial_data = {
+                    "company_id": userId,
+                    "tier": "business",
+                    "status": "active",
+                    "current_period_end": trial_end,
+                    "stripe_subscription_id": f"trial_{userId[:8]}"
+                }
+                sub_response = supabase.table("subscriptions").insert(trial_data).execute()
+        else:
+            sub_response = supabase.table("subscriptions").select("*").eq("user_id", user_id).execute()
+        
+        if sub_response and sub_response.data:
+            sub_details = sub_response.data[0]
+    except Exception as e:
+        print(f"❌ Error fetching/creating subscription for {userId}: {e}")
+        # Fallback to free tier on database error instead of crashing
     tier = sub_details.get("tier", "free")
     limits = tier_limits.get(tier, tier_limits["free"])
 
