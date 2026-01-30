@@ -1747,37 +1747,6 @@ async def get_subscription_status(
             
             # CHECK FOR TRIAL ELIGIBILITY (if currently free)
             # If company is < 14 days old and on free tier -> Upgrade to Trial
-            if is_company_admin and user_tier == "free" and supabase:
-                try:
-                    # Get company created_at
-                    comp_res = supabase.table("companies").select("created_at").eq("id", userId).single().execute()
-                    if comp_res.data:
-                        created_at_str = comp_res.data.get("created_at")
-                        if created_at_str:
-                            from datetime import datetime, timedelta, timezone
-                            # Handle different date formats if needed, assuming ISO
-                            created_at = datetime.fromisoformat(created_at_str.replace('Z', '+00:00'))
-                            now = datetime.now(timezone.utc)
-                            
-                            if (now - created_at).days < 14:
-                                print(f"🎁 Eligible for trial! Company is {(now - created_at).days} days old.")
-                                trial_end = (now + timedelta(days=14)).isoformat()
-                                
-                                # Update subscription to business trial
-                                supabase.table("subscriptions").update({
-                                    "tier": "business",
-                                    "status": "active",
-                                    "current_period_end": trial_end,
-                                    "updated_at": now.isoformat()
-                                }).eq("id", subscription_details["id"]).execute()
-                                
-                                # Update local variables
-                                user_tier = "business"
-                                subscription_details["tier"] = "business"
-                                subscription_details["current_period_end"] = trial_end
-                                print(f"✅ Auto-upgraded company {userId} to Business Trial")
-                except Exception as e:
-                    print(f"⚠️ Failed to check/upgrade trial eligibility: {e}")
 
         # REAL-TIME JOB COUNTING (more accurate than usage table)
         if is_company_admin:

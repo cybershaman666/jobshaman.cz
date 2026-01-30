@@ -702,10 +702,9 @@ export const getCompanySubscription = async (companyId: string) => {
         }
 
         if (!data) {
-            console.log('🩹 Auto-healing: No subscription found, activating 14-day trial...');
             try {
                 // AUTO-HEALING: Create the missing subscription
-                const newSub = await activateTrialSubscription(companyId);
+                const newSub = await initializeCompanySubscription(companyId);
                 if (newSub) {
                     return newSub;
                 }
@@ -763,29 +762,25 @@ export const updateSubscriptionStatus = async (companyId: string, status: string
     }
 };
 
-export const activateTrialSubscription = async (companyId: string): Promise<any> => {
+export const initializeCompanySubscription = async (companyId: string): Promise<any> => {
     if (!supabase) return;
 
-    // 14 days trial
-    const trialEndDate = new Date();
-    trialEndDate.setDate(trialEndDate.getDate() + 14);
-
-    // Create subscription record
+    // Create FREE subscription record (no trial)
     const { data, error } = await supabase
         .from('subscriptions')
         .insert({
             company_id: companyId,
-            tier: 'business', // Give them best tier for trial
+            tier: 'free',
             status: 'active',
             current_period_start: new Date().toISOString(),
-            current_period_end: trialEndDate.toISOString(),
-            stripe_subscription_id: `trial_${Date.now()}` // Mock ID for trial
+            current_period_end: null, // No end date for free tier
+            stripe_subscription_id: null
         })
         .select()
         .single();
 
     if (error) {
-        console.error('Failed to activate trial subscription:', error);
+        console.error('Failed to initialize subscription:', error);
         throw error; // Throw instead of silent return so caller knows it failed
     }
 
@@ -796,7 +791,7 @@ export const activateTrialSubscription = async (companyId: string): Promise<any>
             .insert({
                 subscription_id: data.id,
                 period_start: new Date().toISOString(),
-                period_end: trialEndDate.toISOString(),
+                period_end: null, // No period end
                 active_jobs_count: 0,
                 ai_assessments_used: 0,
                 ad_optimizations_used: 0,

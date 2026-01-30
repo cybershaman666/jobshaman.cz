@@ -103,9 +103,9 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
           console.log("✅ Company record created successfully:", companyData?.id);
 
           if (companyData?.id) {
-            const { activateTrialSubscription } = await import('../services/supabaseService');
-            await activateTrialSubscription(companyData.id);
-            console.log("✅ Free trial activated.");
+            const { initializeCompanySubscription } = await import('../services/supabaseService');
+            await initializeCompanySubscription(companyData.id);
+            console.log("✅ Free subscription initialized.");
           }
         } catch (err) {
           console.error("❌ Failed to create company record:", err);
