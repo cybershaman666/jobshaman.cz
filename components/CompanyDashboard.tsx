@@ -99,6 +99,9 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     const [jobBenefits, setJobBenefits] = useState<string>('');
     const [contactEmail, setContactEmail] = useState(userEmail || '');
     const [workplaceAddress, setWorkplaceAddress] = useState(propProfile?.address || '');
+    const [contractType, setContractType] = useState('HPP');
+    const [workType, setWorkType] = useState('On-site');
+    const [workingHours, setWorkingHours] = useState('');
     const [optimizationResult, setOptimizationResult] = useState<AIAdOptimizationResult | null>(null);
     const [isOptimizing, setIsOptimizing] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
@@ -214,14 +217,16 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             await publishJob({
                 title: jobTitle,
                 company: companyProfile.name,
-                description: adDraft,
+                description: adDraft + (workingHours ? `\n\n**Očekávaný úvazek:** ${workingHours}` : ''),
                 location: workplaceAddress || companyProfile.address || 'Česká republika',
                 salary_from: jobSalaryMin ? Number(jobSalaryMin) : undefined,
                 salary_to: jobSalaryMax ? Number(jobSalaryMax) : undefined,
                 benefits: jobBenefits ? jobBenefits.split(',').map(b => b.trim()).filter(b => b) : [],
                 contact_email: contactEmail,
                 workplace_address: workplaceAddress,
-                company_id: companyProfile.id
+                company_id: companyProfile.id,
+                contract_type: contractType,
+                work_type: workType
             });
             alert(t('company.ad_editor.publish_success'));
             if (isRealUser) {
@@ -970,6 +975,53 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                     className="w-full p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
                                 />
                             </div>
+                        </div>
+                    </div>
+
+                    {/* NEW FIELDS: Contract Type & Work Type */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label htmlFor="contract-type" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('filters.contract_type')}</label>
+                            <select
+                                id="contract-type"
+                                value={contractType}
+                                onChange={(e) => setContractType(e.target.value)}
+                                className="w-full p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
+                            >
+                                <option value="HPP">HPP</option>
+                                <option value="IČO">IČO</option>
+                                <option value="DPP">DPP</option>
+                                <option value="DPČ">DPČ</option>
+                                <option value="Internship">Stáž / Praxe</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label htmlFor="work-type" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('filters.job_type')}</label>
+                            <select
+                                id="work-type"
+                                value={workType}
+                                onChange={(e) => setWorkType(e.target.value)}
+                                className="w-full p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
+                            >
+                                <option value="On-site">On-site</option>
+                                <option value="Hybrid">Hybrid</option>
+                                <option value="Remote">Remote</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label htmlFor="working-hours" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.working_hours')}</label>
+                        <div className="relative">
+                            <Clock size={14} className="absolute left-3 top-2.5 text-slate-400" />
+                            <input
+                                id="working-hours"
+                                type="text"
+                                value={workingHours}
+                                onChange={(e) => setWorkingHours(e.target.value)}
+                                placeholder="např. 40 hod/týdně"
+                                className="w-full pl-9 p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
+                            />
                         </div>
                     </div>
 

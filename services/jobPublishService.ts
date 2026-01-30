@@ -16,6 +16,7 @@ export interface PublishJobRequest {
     contact_email?: string;
     workplace_address?: string;
     company_id?: string;
+    work_type?: string;
 }
 
 export const publishJob = async (jobData: PublishJobRequest) => {
