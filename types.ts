@@ -92,14 +92,15 @@ export interface Job {
   companyProfile?: CompanyProfile;
   tags: string[];
   benefits: string[];
-  contextualRelevance?: ContextualRelevanceScore; // New field for benefit relevance analysis
-  // New fields for Career Pathfinder
+  contextualRelevance?: ContextualRelevanceScore;
   required_skills: string[];
   lat?: number;
   lng?: number;
   salary_from?: number;
   salary_to?: number;
-  distanceKm?: number; // Distance in km from user location (if user has coordinates)
+  distanceKm?: number;
+  legality_status?: 'pending' | 'legal' | 'illegal' | 'review';
+  legality_reasons?: string[];
 }
 
 // Database representation of a job row (used when reading directly from Supabase)

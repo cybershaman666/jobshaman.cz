@@ -77,6 +77,7 @@ export const publishJob = async (jobData: PublishJobRequest) => {
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData?.session?.access_token;
 
+        console.log(`🚀 Triggering legality check for job ${data.id}...`);
         fetch(`${BACKEND_URL}/check-legality`, {
             method: 'POST',
             headers: {
@@ -90,7 +91,16 @@ export const publishJob = async (jobData: PublishJobRequest) => {
                 description: data.description,
                 location: data.location
             }),
-        }).catch(err => console.error("Legality check trigger failed:", err));
+        })
+            .then(async response => {
+                const result = await response.json();
+                if (response.ok) {
+                    console.log("✅ Legality check completed:", result);
+                } else {
+                    console.error(`❌ Legality check failed with status ${response.status}:`, result);
+                }
+            })
+            .catch(err => console.error("❌ Legality check trigger network error:", err));
 
         return data;
     } catch (error) {

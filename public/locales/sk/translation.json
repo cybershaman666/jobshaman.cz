@@ -461,10 +461,17 @@
             "active_postings": "Aktívne Inzeráty",
             "table": {
                 "position": "Pozícia",
-                "pipeline": "Zdravie Pipeline",
+                "status": "Stav",
+                "pipeline": "Kandidáti",
                 "ai_match": "AI Zhoda",
                 "performance": "Výkon",
                 "actions": "Akcie"
+            },
+            "status": {
+                "pending": "Čaká na kontrolu",
+                "approved": "Schválené",
+                "flagged": "Vyžaduje revíziu",
+                "refused": "Zamietnuté"
             },
             "stats": {
                 "pipeline": "Pipeline",
@@ -484,6 +491,7 @@
                 "low_match_warning": "Nízka AI zhoda ({{avg}}% priemer). Odporúčame dostosovať opis pracovného času v pracovnom inzeráte."
             },
             "actions": {
+                "view_as_user": "Zobraziť ako používateľ",
                 "edit": "Upraviť Pozíciu",
                 "close": "Označiť ako Zatvorenú",
                 "delete": "Odstrániť Pozíciu",

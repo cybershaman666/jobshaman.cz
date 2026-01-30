@@ -352,10 +352,17 @@
             "active_postings": "Active Ads",
             "table": {
                 "position": "Position",
+                "status": "Status",
                 "pipeline": "Pipeline Health",
                 "ai_match": "AI Match",
                 "performance": "Performance",
                 "actions": "Actions"
+            },
+            "status": {
+                "pending": "Pending Review",
+                "approved": "Approved",
+                "flagged": "Needs Review",
+                "refused": "Refused"
             },
             "stats": {
                 "pipeline": "Pipeline",
@@ -375,6 +382,7 @@
                 "low_match_warning": "Low AI match ({{avg}}% average). We recommend adjusting the working time description in the ad."
             },
             "actions": {
+                "view_as_user": "View as User",
                 "edit": "Edit Position",
                 "close": "Mark as Closed",
                 "delete": "Delete Position",
