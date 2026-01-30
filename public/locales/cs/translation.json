@@ -483,15 +483,18 @@
             "create_ad_btn": "Vytvořit Pracovní Inzerát",
             "welcome_title": "Vítejte v JobShaman",
             "empty_state_desc": "Žádná data. Vytvořte svůj první pracovní inzerát a začněte s náborem.",
+            "empty_state_desc": "Zatím jste nezveřejnili žádný inzerát. Začněte vytvořením prvního inzerátu pomocí AI editoru.",
             "create_first_ad": "Vytvořit První Pracovní Inzerát",
             "active_postings": "Aktivní Inzeráty",
             "table": {
                 "position": "Pozice",
                 "status": "Stav",
-                "pipeline": "Zdraví Pipeline",
+                "pipeline": "Pipeline",
                 "ai_match": "AI Shoda",
                 "performance": "Výkon",
-                "actions": "Akce"
+                "actions": "Akce",
+                "views_count": "zhlédnutí",
+                "conv_rate": "konv."
             },
             "status": {
                 "pending": "Čeká na kontrolu",
@@ -509,12 +512,20 @@
                 "low_perf": "Nízký Výkon",
                 "vs_avg": "vs CZ Průměr (32)",
                 "spent": "Vynaloženo",
-                "projected": "Proj."
+                "projected": "Proj.",
+                "new": "Nové",
+                "no_data_yet": "Zatím žádná data",
+                "awaiting_hires": "Čeká se na první nástupy",
+                "avg_tth": "Prům. TTH",
+                "days_unit": "dní"
             },
             "ai_insights": {
                 "title": "AI Strategické Postřehy",
                 "hired_prediction": "Na základě historie budete najímat v {{days}} dnech ({{count}} kandidátů v pipeline). Jste na cestě.",
-                "low_match_warning": "Nízká AI shoda ({{avg}}% průměr). Doporučujeme upravit popis pracovní doby v inzerátu."
+                "low_match_warning": "Nízká AI shoda ({{avg}}% průměr). Doporučujeme upravit popis pracovní doby v inzerátu.",
+                "analyzing_market": "Analyzujeme tržní trendy pro vaši první pozici...",
+                "awaiting_data": "Čekáme na data, abychom vám mohli poskytnout tipy pro optimalizaci.",
+                "no_data_yet": "Zatím žádná data."
             },
             "actions": {
                 "view_as_user": "Zobrazit jako uživatel",
@@ -524,8 +535,9 @@
                 "confirm_delete": "Jste si jisti, že chcete smazat tuto pozici?",
                 "confirm_close": "Jste si jisti, že chcete označit tuto pozici jako uzavřenou?"
             },
-            "team_activity": "Aktivita Tímu",
-            "leaderboard": "Žebříček"
+            "team_activity": "Aktivita týmu",
+            "leaderboard": "Žebříček",
+            "leaderboard_empty": "Zatím nejsou sledováni žádní kandidáti."
         },
         "settings": {
             "title": "Nastavení Firmy",
@@ -581,6 +593,7 @@
             "team_members": "Členové Týmu",
             "active": "Aktivní",
             "inactive": "Neaktivní",
+            "plan_suffix": "Plán",
             "tiers": {
                 "business": "Business",
                 "basic": "Basic",
@@ -591,21 +604,19 @@
             "title": "Editor Pracovního Inzerátu",
             "tone_prefix": "Tón Aplikován:",
             "position_name": "Název Pozice",
-            "salary_min": "Minimální mzda",
-            "salary_max": "Maximální mzda",
             "working_hours": "Pracovní úvazek",
-            "working_hours_placeholder": "např. 40 hod/týdně",
             "address": "Adresa pracoviště",
             "contact_email": "Kontaktní email pro CV",
             "benefits": "Benefity",
+            "profile_label": "Profil:",
             "benefits_placeholder": "Stravenky, Home Office, Multisport...",
             "benefits_hint": "Oddělte čárkou",
             "placeholder_title": "Napište název pracovní pozice...",
-            "placeholder_description": "Začněte psát popis pozice...",
+            "placeholder_description": "Popište pracovní pozici, požadavky a co nabízíte...",
             "switch_preview": "Přepnout náhled",
             "preview": "Náhled",
             "editor": "Editor",
-            "bold": "Tučně",
+            "bold": "Tučné",
             "italic": "Kurzíva",
             "heading": "Nadpis",
             "list": "Seznam",
