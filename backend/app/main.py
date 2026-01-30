@@ -7,7 +7,7 @@ from starlette.responses import JSONResponse
 
 from .core.limiter import limiter
 from .routers import jobs, billing, stripe, assessments, scraper
-from .core.security import add_security_headers, cors_middleware
+from .core.security import add_security_headers
 
 app = FastAPI(title="JobShaman Backend Services")
 app.state.limiter = limiter
