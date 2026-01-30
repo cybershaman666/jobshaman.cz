@@ -217,16 +217,28 @@ export default function App() {
             supabase.auth.getSession().then(({ data }: { data: any }) => {
                 if (data?.session) {
                     handleSessionRestoration(data.session.user.id);
+                    // Fetch CSRF token on initial load if logged in
+                    import('./services/csrfService').then(({ fetchCsrfToken }) => {
+                        fetchCsrfToken(data.session.access_token);
+                    });
                 }
             });
 
             const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
                 if (session) {
                     handleSessionRestoration(session.user.id);
+                    // Fetch/Refresh CSRF token on auth change
+                    import('./services/csrfService').then(({ fetchCsrfToken }) => {
+                        fetchCsrfToken(session.access_token);
+                    });
                 } else {
                     setUserProfile({ ...DEFAULT_USER_PROFILE, isLoggedIn: false });
                     setViewState(ViewState.LIST);
                     setCompanyProfile(null);
+                    // Clear CSRF token on logout
+                    import('./services/csrfService').then(({ clearCsrfToken }) => {
+                        clearCsrfToken();
+                    });
                 }
             });
 
