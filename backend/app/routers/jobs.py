@@ -18,10 +18,24 @@ async def root(request: Request):
 @router.post("/check-legality", response_model=JobCheckResponse)
 @limiter.limit("5/minute")
 async def check_job_legality(job: JobCheckRequest, request: Request, user: dict = Depends(verify_subscription)):
+    print(f"🧐 Checking legality for job {job.id}: {job.title} at {job.company}")
     risk_score, is_legal, reasons, needs_review = check_legality_rules(job.title, job.company, job.description)
     result = JobCheckResponse(risk_score=risk_score, is_legal=is_legal, reasons=reasons, needs_manual_review=needs_review)
-    if needs_review:
-        send_review_email(job, result)
+    
+    # If ad is illegal OR needs review, notify admin
+    if not is_legal or needs_review:
+        print(f"⚠️ Job {job.id} flagged: is_legal={is_legal}, needs_review={needs_review}. Risk={risk_score}")
+        email_context = {
+            "job_id": job.id,
+            "job_title": job.title,
+            "job_company": job.company,
+            "is_legal": is_legal,
+            "needs_review": needs_review,
+            "risk_score": risk_score,
+            "reasons": reasons
+        }
+        send_review_email(job, result, context=email_context)
+        
     return result
 
 @router.put("/{job_id}/status")
