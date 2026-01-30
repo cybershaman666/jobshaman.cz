@@ -8,7 +8,7 @@ from supabase import create_client, Client
 from dotenv import load_dotenv
 import jwt
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import html
 import bleach
 import secrets
@@ -132,9 +132,10 @@ def validate_csrf_token(token: str, user_id: str) -> bool:
                     print(f"❌ CSRF token already consumed")
                     return False
 
-                # Check expiration
+                # Check expiration (use timezone-aware datetime for comparison)
                 expires_at = datetime.fromisoformat(token_data["expires_at"])
-                if datetime.utcnow() > expires_at:
+                now_utc = datetime.now(timezone.utc)
+                if now_utc > expires_at:
                     print(f"❌ CSRF token expired")
                     return False
 
