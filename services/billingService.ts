@@ -33,33 +33,58 @@ export const canCandidateUseFeature = (_user: UserProfile, _feature: PremiumFeat
  */
 export const isSubscriptionExpired = (company: CompanyProfile): boolean => {
     if (!company.subscription?.expiresAt) return false;
-    
+
     const expiryDate = new Date(company.subscription.expiresAt);
     const now = new Date();
     return expiryDate < now;
 };
 
 /**
- * DEPRECATED: This function is client-side only and insecure.
- * All billing verification must happen on the server.
+ * Checks if a company can use a specific premium feature.
  */
-export const canCompanyUseFeature = (_company: CompanyProfile, _feature: PremiumFeature, _userEmail?: string): boolean => {
-    console.warn('⚠️  SECURITY WARNING: canCompanyUseFeature is deprecated and insecure. Use server-side verification instead.');
-    // Always return false to force server-side verification
-    return false;
+export const canCompanyUseFeature = (company: CompanyProfile, feature: PremiumFeature, _userEmail?: string): boolean => {
+    // Basic rules for features
+    const tier = company.subscription?.tier || 'basic';
+
+    // Enterprise has everything
+    if (tier === 'enterprise') return true;
+
+    switch (feature) {
+        case 'COMPANY_AI_AD':
+            return tier === 'business' || tier === 'trial';
+        case 'COMPANY_RECOMMENDATIONS':
+            return tier === 'business' || tier === 'enterprise';
+        case 'COMPANY_UNLIMITED_JOBS':
+            return tier === 'enterprise';
+        default:
+            return true;
+    }
 };
 
 /**
- * DEPRECATED: This function is client-side only and insecure.
- * All billing verification must happen on the server.
+ * Checks if a company can post a new job.
  */
-export const canCompanyPostJob = (_company: CompanyProfile, _userEmail?: string): { allowed: boolean; reason?: string } => {
-    console.warn('⚠️  SECURITY WARNING: canCompanyPostJob is deprecated and insecure. Use server-side verification instead.');
-    // Always require server-side verification
-    return { 
-        allowed: false, 
-        reason: 'Vyžaduje se ověření na serveru. Prosím, přihlaste se znovu.' 
-    };
+export const canCompanyPostJob = (company: CompanyProfile, _userEmail?: string): { allowed: boolean; reason?: string } => {
+    const tier = company.subscription?.tier || 'free';
+    const activeJobs = company.subscription?.usage?.activeJobsCount || 0;
+
+    // Trial/Free tier limit: 3 active jobs
+    if ((tier === 'free' || tier === 'trial' || tier === 'basic') && activeJobs >= 3) {
+        return {
+            allowed: false,
+            reason: 'Dosáhli jste limitu 3 aktivních inzerátů pro váš aktuální plán.'
+        };
+    }
+
+    // Business tier limit: 20 active jobs (example limit, can be adjusted)
+    if (tier === 'business' && activeJobs >= 20) {
+        return {
+            allowed: false,
+            reason: 'Dosáhli jste limitu 20 aktivních inzerátů pro váš tarif Business.'
+        };
+    }
+
+    return { allowed: true };
 };
 
 /**

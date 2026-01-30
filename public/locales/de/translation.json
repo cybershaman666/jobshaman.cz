@@ -303,7 +303,32 @@
     "field": "Fachrichtung",
     "year": "Abschlussjahr"
   },
-  "footer": {
+  "company_registration": {
+    "step1_title": "Erstellen Sie Ihr Unternehmenskonto",
+    "step2_title": "Unternehmensdaten ergänzen",
+    "step3_title": "Letzter Schritt",
+    "success_title": "Willkommen bei JobShaman! 🎉",
+    "subtitle_default": "Treten Sie Unternehmen bei, die effektiv rekrutieren.",
+    "subtitle_success": "Ihr Konto wurde erfolgreich erstellt. Bitte überprüfen Sie Ihre E-Mail zur Bestätigung.",
+    "email_label": "Unternehmens-E-Mail",
+    "email_placeholder": "hr@firma.de",
+    "password_label": "Passwort",
+    "password_placeholder": "Mindestens 8 Zeichen",
+    "company_name_label": "Unternehmensname",
+    "company_name_placeholder": "Acme Corp GmbH",
+    "ico_label": "Handelsregisternummer",
+    "ico_placeholder": "12345678",
+    "web_label": "Website (optional)",
+    "web_placeholder": "https://...",
+    "premium_info": "Mit der Erstellung eines Kontos erhalten Sie 14 Tage Premium zum kostenlosen Testen. Keine Kreditkarte erforderlich.",
+    "terms_agree": "Ich stimme den Allgemeinen Geschäftsbedingungen und der Verarbeitung von Unternehmensdaten zu.",
+    "privacy_agree": "Ich stimme der Datenschutzerklärung zu.",
+    "back_button": "Zurück",
+    "continue_button": "Weiter",
+    "finish_button": "Registrierung abschließen",
+    "success_button": "Bitte bestätigen Sie Ihre E-Mail"
+  },
+  "header": {
     "rights_reserved": "© 2026 JobShaman. Alle Rechte vorbehalten.",
     "terms": "Nutzungsbedingungen",
     "privacy": "Datenschutz",
@@ -701,5 +726,9 @@
       "philosophy": "Philosophie & Mission",
       "philosophy_placeholder": "Unsere Mission ist es, Talente mit sinnvoller Arbeit zu verbinden..."
     }
+  },
+  "header": {
+    "toggle_theme": "Thema umschalten",
+    "logout": "Abmelden"
   }
 }

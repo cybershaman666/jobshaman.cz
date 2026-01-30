@@ -729,6 +729,31 @@
             "philosophy_placeholder": "Our mission is to connect talent with meaningful work..."
         }
     },
+    "company_registration": {
+        "step1_title": "Create your company account",
+        "step2_title": "Fill in company details",
+        "step3_title": "Last step",
+        "success_title": "Welcome to JobShaman! 🎉",
+        "subtitle_default": "Join companies that recruit effectively.",
+        "subtitle_success": "Your account has been successfully created. Check your email for confirmation.",
+        "email_label": "Company Email",
+        "email_placeholder": "hr@company.com",
+        "password_label": "Password",
+        "password_placeholder": "Minimum 8 characters",
+        "company_name_label": "Company Name",
+        "company_name_placeholder": "Acme Corp s.r.o.",
+        "ico_label": "ID Number (IČO)",
+        "ico_placeholder": "12345678",
+        "web_label": "Website (optional)",
+        "web_placeholder": "https://...",
+        "premium_info": "By creating an account, you get 14 days of Premium to try for free. No credit card required.",
+        "terms_agree": "I agree to the Terms and Conditions and processing of company data.",
+        "privacy_agree": "I agree to the Privacy Policy.",
+        "back_button": "Back",
+        "continue_button": "Continue",
+        "finish_button": "Finish registration",
+        "success_button": "Please confirm your email"
+    },
     "header": {
         "toggle_theme": "Toggle Theme",
         "logout": "Logout"

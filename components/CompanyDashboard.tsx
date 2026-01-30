@@ -151,10 +151,17 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     // Load initial data for Real User
     useEffect(() => {
         const loadData = async () => {
+            if (!companyProfile?.id) return;
+
             try {
-                // Fetch real jobs
+                // Fetch real jobs for this company
                 if (supabase) {
-                    const { data: realJobs } = await supabase.from('jobs').select('*').order('scraped_at', { ascending: false });
+                    const { data: realJobs } = await supabase
+                        .from('jobs')
+                        .select('*')
+                        .eq('company_id', companyProfile.id)
+                        .order('created_at', { ascending: false });
+
                     if (realJobs) {
                         setJobs(realJobs as Job[]);
                         if (realJobs.length > 0) setSelectedJobId(realJobs[0].id);
@@ -165,7 +172,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             }
         };
         loadData();
-    }, []);
+    }, [companyProfile?.id]);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -530,7 +537,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.pipeline')}</div>
-                                <div className="text-3xl font-bold text-slate-900 dark:text-white">1,240</div>
+                                <div className="text-3xl font-bold text-slate-900 dark:text-white">0</div>
                             </div>
                             <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
                                 <Users size={20} />
@@ -538,16 +545,10 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         </div>
                         <div className="space-y-2">
                             <div className="flex h-2 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-                                <div className="bg-emerald-500 w-[30%]" title="New: 340"></div>
-                                <div className="bg-blue-500 w-[45%]" title="Screening: 520"></div>
-                                <div className="bg-purple-500 w-[15%]" title="Interview: 280"></div>
-                                <div className="bg-amber-500 w-[10%]" title="Offer: 100"></div>
+                                <div className="bg-emerald-500 w-[0%]" title="New: 0"></div>
                             </div>
                             <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-mono">
-                                <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>New</span>
-                                <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>Screen</span>
-                                <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-purple-500"></div>Int</span>
-                                <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>Off</span>
+                                <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>{t('company.dashboard.stats.new')}</span>
                             </div>
                         </div>
                     </div>
@@ -557,17 +558,14 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         <div className="flex justify-between items-start mb-2">
                             <div>
                                 <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.match_score')}</div>
-                                <div className="text-3xl font-bold text-slate-900 dark:text-white">68<span className="text-lg text-slate-400 font-normal">/100</span></div>
+                                <div className="text-3xl font-bold text-slate-900 dark:text-white">--<span className="text-lg text-slate-400 font-normal">/100</span></div>
                             </div>
                             <div className="p-2 bg-cyan-50 dark:bg-cyan-500/10 rounded-lg text-cyan-600 dark:text-cyan-400">
                                 <Target size={20} />
                             </div>
                         </div>
-                        <div className="text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium bg-emerald-50 dark:bg-emerald-900/10 py-1 px-2 rounded w-fit mb-2">
-                            <TrendingUp size={14} /> +12% Open Rate
-                        </div>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                            Vs Market Avg: <span className="font-bold text-slate-700 dark:text-slate-300">55/100</span>.
+                            {t('company.dashboard.stats.no_data_yet')}
                         </p>
                     </div>
 
@@ -576,27 +574,14 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         <div className="flex justify-between items-start mb-2">
                             <div>
                                 <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.time_to_hire')}</div>
-                                <div className="text-3xl font-bold text-slate-900 dark:text-white">24 <span className="text-lg font-normal text-slate-500">{t('company.dashboard.stats.days')}</span></div>
+                                <div className="text-3xl font-bold text-slate-900 dark:text-white">-- <span className="text-lg font-normal text-slate-500">{t('company.dashboard.stats.days')}</span></div>
                             </div>
                             <div className="p-2 bg-amber-50 dark:bg-amber-500/10 rounded-lg text-amber-600 dark:text-amber-400">
                                 <Clock size={20} />
                             </div>
                         </div>
                         <div className="flex items-center gap-2 mt-3 text-sm border-t border-slate-100 dark:border-slate-800 pt-2">
-                            <span className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
-                                <TrendingDown size={14} /> -8 {t('company.dashboard.stats.days')}
-                            </span>
-                            <span className="text-slate-400">{t('company.dashboard.stats.vs_avg')}</span>
-                        </div>
-                        <div className="mt-2 text-xs text-slate-500 space-y-0.5">
-                            <div className="flex justify-between">
-                                <span>IT / Tech</span>
-                                <span className="font-mono text-slate-700 dark:text-slate-300">18 {t('company_extra.stats.days_unit')}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>Marketing</span>
-                                <span className="font-mono text-slate-700 dark:text-slate-300">31 {t('company_extra.stats.days_unit')}</span>
-                            </div>
+                            <span className="text-slate-400">{t('company.dashboard.stats.awaiting_hires')}</span>
                         </div>
                     </div>
 
@@ -606,7 +591,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             <div>
                                 <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.saved')}</div>
                                 <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                                    {(agencySavings / 1000).toFixed(0)}k <span className="text-lg font-normal text-slate-500 dark:text-slate-400">CZK</span>
+                                    0 <span className="text-lg font-normal text-slate-500 dark:text-slate-400">CZK</span>
                                 </div>
                             </div>
                             <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400">
@@ -615,22 +600,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         </div>
                         <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mb-1 mt-2">
                             <div
-                                className={`h-full rounded-full ${percentSpent > 90 ? 'bg-rose-500' : 'bg-emerald-500'}`}
-                                style={{ width: `${percentSpent}%` }}
+                                className="h-full rounded-full bg-emerald-500"
+                                style={{ width: `0%` }}
                             ></div>
                         </div>
                         <div className="flex justify-between text-xs text-slate-400 mb-2">
-                            <span>{t('company.dashboard.stats.spent')}: {(percentSpent).toFixed(0)}%</span>
-                            <span>{t('company.dashboard.stats.projected')}: {(projectedSpend / 1000000).toFixed(1)}M</span>
-                        </div>
-                        <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
-                            <div className="flex justify-between items-center text-xs">
-                                <span className="text-slate-500">Cost/Hire</span>
-                                <span className="font-mono font-bold text-slate-700 dark:text-slate-200">{costPerHire.toLocaleString()} Kč</span>
-                            </div>
-                            <div className="text-xs text-right text-emerald-500">
-                                vs. {marketAvgCostPerHire.toLocaleString()} (Trh)
-                            </div>
+                            <span>{t('company.dashboard.stats.spent')}: 0%</span>
                         </div>
                     </div>
                 </div>
@@ -844,8 +819,10 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 </div>
 
                 <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.position_name')}</label>
+                    <label htmlFor="job-title" className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.position_name')}</label>
                     <input
+                        id="job-title"
+                        name="job-title"
                         type="text"
                         value={jobTitle}
                         onChange={(e) => setJobTitle(e.target.value)}
@@ -916,6 +893,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
                     {viewMode === 'write' ? (
                         <textarea
+                            id="job-description"
+                            name="job-description"
                             ref={textareaRef}
                             className="flex-1 w-full p-6 resize-none focus:outline-none text-slate-800 dark:text-slate-200 font-mono text-base leading-relaxed bg-white dark:bg-slate-900 placeholder:text-slate-400 dark:placeholder:text-slate-600"
                             value={adDraft}
@@ -966,9 +945,11 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.salary_min')}</label>
+                            <label htmlFor="salary-min" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.salary_min')}</label>
                             <div className="relative">
                                 <input
+                                    id="salary-min"
+                                    name="salary-min"
                                     type="number"
                                     value={jobSalaryMin}
                                     onChange={(e) => setJobSalaryMin(e.target.value)}
@@ -978,9 +959,11 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             </div>
                         </div>
                         <div>
-                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.salary_max')}</label>
+                            <label htmlFor="salary-max" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.salary_max')}</label>
                             <div className="relative">
                                 <input
+                                    id="salary-max"
+                                    name="salary-max"
                                     type="number"
                                     value={jobSalaryMax}
                                     onChange={(e) => setJobSalaryMax(e.target.value)}
@@ -992,10 +975,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     </div>
 
                     <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.address')}</label>
+                        <label htmlFor="workplace-address" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.address')}</label>
                         <div className="relative">
                             <Briefcase size={14} className="absolute left-3 top-2.5 text-slate-400" />
                             <input
+                                id="workplace-address"
+                                name="workplace-address"
                                 type="text"
                                 value={workplaceAddress}
                                 onChange={(e) => setWorkplaceAddress(e.target.value)}
@@ -1006,10 +991,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     </div>
 
                     <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.contact_email')}</label>
+                        <label htmlFor="contact-email" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.contact_email')}</label>
                         <div className="relative">
                             <Mail size={14} className="absolute left-3 top-2.5 text-slate-400" />
                             <input
+                                id="contact-email"
+                                name="contact-email"
                                 type="email"
                                 value={contactEmail}
                                 onChange={(e) => setContactEmail(e.target.value)}
@@ -1020,7 +1007,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     </div>
 
                     <div>
-                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">{t('company.ad_editor.benefits')}</label>
+                        <label htmlFor="job-benefits" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">{t('company.ad_editor.benefits')}</label>
 
                         <div className="flex flex-wrap gap-1.5 mb-2">
                             {COMMON_BENEFITS.map(key => {
@@ -1029,6 +1016,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 return (
                                     <button
                                         key={key}
+                                        type="button"
                                         onClick={() => toggleBenefit(key)}
                                         className={`px-2 py-1 text-xs rounded-md border transition-colors ${isActive ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 font-medium' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900'}`}
                                     >
@@ -1042,6 +1030,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         <div className="relative">
                             <Sparkles size={14} className="absolute left-3 top-2.5 text-slate-400" />
                             <input
+                                id="job-benefits"
+                                name="job-benefits"
                                 type="text"
                                 value={jobBenefits}
                                 onChange={(e) => setJobBenefits(e.target.value)}

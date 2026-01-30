@@ -701,5 +701,34 @@
       "philosophy": "Filozofia i misja",
       "philosophy_placeholder": "Naszą misją jest łączenie talentów z sensowną pracą..."
     }
+  },
+  "company_registration": {
+    "step1_title": "Utwórz konto firmowe",
+    "step2_title": "Uzupełnij dane o firmie",
+    "step3_title": "Ostatni krok",
+    "success_title": "Witaj w JobShaman! 🎉",
+    "subtitle_default": "Dołącz do firm, które rekrutują efektywnie.",
+    "subtitle_success": "Twoje konto zostało pomyślnie utworzone. Sprawdź swoją skrzynkę e-mail w celu potwierdzenia.",
+    "email_label": "Email firmowy",
+    "email_placeholder": "hr@firma.pl",
+    "password_label": "Hasło",
+    "password_placeholder": "Minimum 8 znaków",
+    "company_name_label": "Nazwa firmy",
+    "company_name_placeholder": "Acme Corp sp. z o.o.",
+    "ico_label": "NIP / REGON",
+    "ico_placeholder": "12345678",
+    "web_label": "Strona www (opcjonalnie)",
+    "web_placeholder": "https://...",
+    "premium_info": "Tworząc konto, otrzymujesz 14 dni Premium na darmowy okres próbny. Nie wymagamy karty kredytowej.",
+    "terms_agree": "Zgadzam się z Regulaminem i przetwarzaniem danych firmy.",
+    "privacy_agree": "Zgadzam się z Polityką prywatności.",
+    "back_button": "Wstecz",
+    "continue_button": "Kontynuuj",
+    "finish_button": "Zakończ rejestrację",
+    "success_button": "Proszę potwierdź swój e-mail"
+  },
+  "header": {
+    "toggle_theme": "Zmień motyw",
+    "logout": "Wyloguj się"
   }
 }
