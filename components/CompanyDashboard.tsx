@@ -220,7 +220,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 salary_to: jobSalaryMax ? Number(jobSalaryMax) : undefined,
                 benefits: jobBenefits ? jobBenefits.split(',').map(b => b.trim()).filter(b => b) : [],
                 contact_email: contactEmail,
-                workplace_address: workplaceAddress
+                workplace_address: workplaceAddress,
+                company_id: companyProfile.id
             });
             alert(t('company.ad_editor.publish_success'));
             if (isRealUser) {

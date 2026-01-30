@@ -240,14 +240,14 @@ def verify_supabase_token(token: str) -> dict:
                         supabase.table("companies")
                         .select("*")
                         .eq("owner_id", user_id)
-                        .maybe_single()
                         .execute()
                     )
                     
-                    if company_response.data:
+                    if company_response.data and len(company_response.data) > 0:
+                        company_data = company_response.data[0]
                         result["user_type"] = "company"
-                        result["company_id"] = company_response.data["id"]
-                        result["company_name"] = company_response.data.get("name")
+                        result["company_id"] = company_data["id"]
+                        result["company_name"] = company_data.get("name")
                         return result
                     
                     # 2. Try to find if they are a member
@@ -255,14 +255,14 @@ def verify_supabase_token(token: str) -> dict:
                         supabase.table("company_members")
                         .select("company_id, companies(*)")
                         .eq("user_id", user_id)
-                        .maybe_single()
                         .execute()
                     )
                     
-                    if member_response.data:
-                        comp_data = member_response.data.get("companies", {})
+                    if member_response.data and len(member_response.data) > 0:
+                        member_data = member_response.data[0]
+                        comp_data = member_data.get("companies", {})
                         result["user_type"] = "company"
-                        result["company_id"] = member_response.data["company_id"]
+                        result["company_id"] = member_data["company_id"]
                         result["company_name"] = comp_data.get("name") if comp_data else "Company"
                         return result
                 

@@ -15,6 +15,7 @@ export interface PublishJobRequest {
     source?: string;
     contact_email?: string;
     workplace_address?: string;
+    company_id?: string;
 }
 
 export const publishJob = async (jobData: PublishJobRequest) => {
@@ -45,6 +46,7 @@ export const publishJob = async (jobData: PublishJobRequest) => {
                 ...jobData,
                 lat,
                 lng,
+                company_id: jobData.company_id,
                 legality_status: 'pending', // Initial status before AI check
                 scraped_at: new Date().toISOString()
             })
