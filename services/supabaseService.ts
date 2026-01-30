@@ -109,7 +109,7 @@ export const getCurrentUser = async () => {
     }
 };
 
-export const createBaseProfile = async (userId: string, email: string, name: string) => {
+export const createBaseProfile = async (userId: string, email: string, name: string, role: string = 'candidate') => {
     if (!supabase) throw new Error("Supabase not configured");
 
     const { error } = await supabase
@@ -118,7 +118,7 @@ export const createBaseProfile = async (userId: string, email: string, name: str
             id: userId,
             email,
             full_name: name,
-            role: 'candidate',
+            role,
             subscription_tier: 'free',
             created_at: new Date().toISOString(),
         });
@@ -191,8 +191,8 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         photo: profileData.avatar_url,
         isLoggedIn: true,
         address: candidateData?.address || '',
-        coordinates: candidateData?.lat && candidateData?.lng ? { lat: candidateData.lat, lon: candidateData.lng } : 
-                  profileData.lat && profileData.lng ? { lat: profileData.lat, lon: profileData.lng } : undefined,
+        coordinates: candidateData?.lat && candidateData?.lng ? { lat: candidateData.lat, lon: candidateData.lng } :
+            profileData.lat && profileData.lng ? { lat: profileData.lat, lon: profileData.lng } : undefined,
         transportMode: (candidateData?.transport_mode as any) || 'public',
         cvText: candidateData?.cv_text || '',
         cvUrl: candidateData?.cv_url || '',
@@ -684,17 +684,56 @@ export const getCompanySubscription = async (companyId: string) => {
                 created_at
             `)
             .eq('company_id', companyId)
-            .single();
+            .maybeSingle();
 
         if (error) {
             console.warn('⚠️ Subscription fetch error:', error);
-            return null;
+            // Return default free tier on error to unblock UI
+            return {
+                tier: 'free',
+                status: 'active',
+                current_period_start: new Date().toISOString(),
+                current_period_end: null,
+                cancel_at_period_end: false,
+                stripe_subscription_id: null,
+                created_at: new Date().toISOString()
+            };
+        }
+
+        if (!data) {
+            console.log('🩹 Auto-healing: No subscription found, activating 14-day trial...');
+            try {
+                // AUTO-HEALING: Create the missing subscription
+                const newSub = await activateTrialSubscription(companyId);
+                if (newSub) {
+                    return newSub;
+                }
+            } catch (healError) {
+                console.error('Failed to auto-heal subscription:', healError);
+            }
+
+            // Fallback if healing fails
+            return {
+                tier: 'free',
+                status: 'active',
+                current_period_start: new Date().toISOString(),
+                current_period_end: null,
+                cancel_at_period_end: false,
+                stripe_subscription_id: null,
+                created_at: new Date().toISOString()
+            };
         }
 
         return data as any;
     } catch (error) {
         console.warn('⚠️ Exception fetching company subscription:', error);
-        return null;
+        // Fallback
+        return {
+            tier: 'free',
+            status: 'active',
+            current_period_start: new Date().toISOString(),
+            created_at: new Date().toISOString()
+        };
     }
 };
 
@@ -721,6 +760,55 @@ export const updateSubscriptionStatus = async (companyId: string, status: string
         console.error('Subscription status update error:', error);
         throw error;
     }
+};
+
+export const activateTrialSubscription = async (companyId: string): Promise<any> => {
+    if (!supabase) return;
+
+    // 14 days trial
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 14);
+
+    // Create subscription record
+    const { data, error } = await supabase
+        .from('subscriptions')
+        .insert({
+            company_id: companyId,
+            tier: 'business', // Give them best tier for trial
+            status: 'active',
+            current_period_start: new Date().toISOString(),
+            current_period_end: trialEndDate.toISOString(),
+            stripe_subscription_id: `trial_${Date.now()}` // Mock ID for trial
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Failed to activate trial subscription:', error);
+        return; // Don't crash, just log. 
+    }
+
+    // Initialize usage stats
+    if (data) {
+        await supabase
+            .from('subscription_usage')
+            .insert({
+                subscription_id: data.id,
+                period_start: new Date().toISOString(),
+                period_end: trialEndDate.toISOString()
+            });
+
+        // CRITICAL: Link subscription to company
+        await supabase
+            .from('companies')
+            .update({ subscription_id: data.id })
+            .eq('id', companyId);
+
+        console.log(`✅ Activated 14-day BUSINESS trial for company ${companyId}`);
+        return data as any;
+    }
+
+    return undefined;
 };
 
 export const getUsageSummary = async (companyId: string) => {

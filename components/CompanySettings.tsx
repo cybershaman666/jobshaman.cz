@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../src/i18n';
 import { CompanyProfile, RecruiterMember } from '../types';
 import { inviteRecruiter } from '../services/supabaseService';
-import { Save, Sparkles, MessageSquare, Heart, Target, Users, Mail, UserPlus, Shield, X } from 'lucide-react';
+import { Save, Sparkles, MessageSquare, Heart, Target, Users, Mail, UserPlus, Shield, X, Briefcase, Building2 } from 'lucide-react';
 
 interface CompanySettingsProps {
     profile: CompanyProfile;
@@ -121,7 +121,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                                 </label>
                                 <textarea
                                     className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 dark:text-slate-300 min-h-[100px]"
-                                    value={localProfile.philosophy}
+                                    value={localProfile.philosophy || ''}
                                     onChange={(e) => setLocalProfile({ ...localProfile, philosophy: e.target.value })}
                                     placeholder={t('company.settings.mission_placeholder')}
                                 />
@@ -143,6 +143,49 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                                         <option value="Corporate and formal">{t('company.settings.tones.formal')}</option>
                                         <option value="Startup hustle">{t('company.settings.tones.startup')}</option>
                                     </select>
+                                </div>
+
+                                <div>
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                        <Building2 size={16} /> {t('company.settings.size')}
+                                    </label>
+                                    <select
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 dark:text-slate-300"
+                                        value={(localProfile as any).company_size || '1-10'}
+                                        onChange={(e) => setLocalProfile({ ...localProfile, company_size: e.target.value } as any)}
+                                    >
+                                        <option value="1-10">1-10 {t('company.settings.employess')}</option>
+                                        <option value="11-50">11-50 {t('company.settings.employess')}</option>
+                                        <option value="51-200">51-200 {t('company.settings.employess')}</option>
+                                        <option value="201-500">201-500 {t('company.settings.employess')}</option>
+                                        <option value="500+">500+ {t('company.settings.employess')}</option>
+                                    </select>
+                                </div>
+
+                                <div className="md:col-span-2">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                        <Target size={16} /> {t('company.settings.industry')}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder={t('company.settings.industry_placeholder')}
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 dark:text-slate-300"
+                                        value={(localProfile as any).field_of_business || ''}
+                                        onChange={(e) => setLocalProfile({ ...localProfile, field_of_business: e.target.value } as any)}
+                                    />
+                                </div>
+
+                                <div className="md:col-span-2">
+                                    <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                        <Briefcase size={16} /> {t('company.settings.address')}
+                                    </label>
+                                    <input
+                                        type="text"
+                                        placeholder={t('company.settings.address_placeholder')}
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 dark:text-slate-300"
+                                        value={localProfile.address || ''}
+                                        onChange={(e) => setLocalProfile({ ...localProfile, address: e.target.value })}
+                                    />
                                 </div>
                             </div>
 
