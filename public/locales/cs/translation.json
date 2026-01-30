@@ -29,6 +29,12 @@
         "search_nearby": "📍 Nabídky v okolí",
         "search_everywhere": "🌍 Hledat všude",
         "contract_type": "Typ úvazku",
+        "job_type": "Typ práce",
+        "job_types": {
+            "on_site": "Na pracovišti",
+            "hybrid": "Hybridní",
+            "remote": "Remote"
+        },
         "benefits": "Benefity",
         "date_posted": "Datum zveřejnění",
         "any_time": "Kdykoliv",
@@ -575,6 +581,8 @@
             "position_name": "Název Pozice",
             "salary_min": "Minimální mzda",
             "salary_max": "Maximální mzda",
+            "working_hours": "Pracovní úvazek",
+            "working_hours_placeholder": "např. 40 hod/týdně",
             "address": "Adresa pracoviště",
             "contact_email": "Kontaktní email pro CV",
             "benefits": "Benefity",
