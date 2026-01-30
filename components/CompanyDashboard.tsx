@@ -422,7 +422,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             <h3 className="text-lg font-bold text-indigo-900 dark:text-indigo-300 mb-1">{t('company.subscription.title')}</h3>
                             <div className="flex items-center gap-4">
                                 <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                                    {subscription?.tier === 'business' ? t('company.subscription.tiers.business') : subscription?.tier === 'basic' ? t('company.subscription.tiers.basic') : t('company.subscription.tiers.free')} Plan
+                                    {subscription?.tier === 'business' ? t('company.subscription.tiers.business') : subscription?.tier === 'basic' ? t('company.subscription.tiers.basic') : t('company.subscription.tiers.free')} {t('company.subscription.plan_suffix')}
                                 </span>
                                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${subscription?.tier === 'free' || !subscription?.status
                                     ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
@@ -656,11 +656,11 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 <div className="flex flex-col md:flex-row gap-4 text-sm text-indigo-800 dark:text-indigo-300">
                                     <div className="flex items-center gap-2">
                                         <CheckCircle size={14} className="text-emerald-500" />
-                                        <span>{jobs.length > 0 ? t('company.dashboard.ai_insights.hired_prediction', { days: 21, count: Math.max(1, Math.floor(jobs.length * 1.5)) }) : 'Analysing market trends for your first posting...'}</span>
+                                        <span>{jobs.length > 0 ? t('company.dashboard.ai_insights.hired_prediction', { days: 21, count: Math.max(1, Math.floor(jobs.length * 1.5)) }) : t('company.dashboard.ai_insights.analyzing_market')}</span>
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <ArrowRight size={14} className="text-amber-500" />
-                                        <span>{jobs.length > 0 ? t('company.dashboard.ai_insights.low_match_warning', { avg: 22 }) : 'Awaiting data to provide optimization tips.'}</span>
+                                        <span>{jobs.length > 0 ? t('company.dashboard.ai_insights.low_match_warning', { avg: 22 }) : t('company.dashboard.ai_insights.awaiting_data')}</span>
                                     </div>
                                 </div>
                             </div>
@@ -755,10 +755,10 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                                             </td>
                                                             <td className="px-4 py-3 text-center">
                                                                 <div className="text-xs font-mono text-slate-600 dark:text-slate-400">
-                                                                    {views} views
+                                                                    {views} {t('company.dashboard.table.views_count')}
                                                                 </div>
                                                                 <div className={`text-[10px] ${isLowPerf ? 'text-rose-500' : 'text-emerald-500'}`}>
-                                                                    {realConversion.toFixed(1)}% conv
+                                                                    {realConversion.toFixed(1)}% {t('company.dashboard.table.conv_rate')}
                                                                 </div>
                                                             </td>
                                                             <td className="px-4 py-3 text-right">
@@ -841,7 +841,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                         {t('company.dashboard.leaderboard')}
                                     </div>
                                     <div className="space-y-3 text-xs text-slate-500 text-center py-4">
-                                        No hires tracked yet.
+                                        {t('company.dashboard.leaderboard_empty')}
                                     </div>
                                 </div>
                             </div>
@@ -956,7 +956,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30 flex justify-end gap-3">
                         <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mr-auto">
                             <Settings size={14} />
-                            Profil: {companyProfile.name}
+                            {t('company.ad_editor.profile_label')} {companyProfile.name}
                         </div>
                         <button
                             onClick={handleOptimize}
@@ -1223,7 +1223,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             {isMatching ? t('company.candidates.matching_analysing') : t('company.candidates.match_btn')}
                         </button>
                         <span className="text-xs text-slate-500 dark:text-slate-400 font-medium italic pr-1">
-                            AI doporučuje. Rozhoduje člověk.
+                            {t('company.candidates.ai_disclaimer')}
                         </span>
                     </div>
                 </div>
@@ -1236,7 +1236,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 {match && (
                                     <div className="absolute top-0 right-0 p-4 text-right">
                                         <div className="text-3xl font-bold text-cyan-600 dark:text-cyan-400 font-mono">{match.score}%</div>
-                                        <div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">Shoda</div>
+                                        <div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">{t('company.candidates.match_label')}</div>
                                     </div>
                                 )}
 
@@ -1258,24 +1258,24 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
                                         <div className="flex items-center gap-6 text-sm text-slate-500 dark:text-slate-400">
                                             <span className="flex items-center gap-1">
-                                                <Briefcase size={14} /> {candidate.experienceYears} let praxe
+                                                <Briefcase size={14} /> {candidate.experienceYears} {t('company.candidates.exp_years')}
                                             </span>
                                             <span className="flex items-center gap-1">
                                                 <TrendingUp size={14} />
-                                                {candidate.salaryExpectation.toLocaleString()} Kč/měs
+                                                {candidate.salaryExpectation.toLocaleString()} {t('company.candidates.salary_per_month')}
                                             </span>
                                         </div>
                                     </div>
 
                                     {/* Risk Assessment Card */}
                                     <div className="md:w-64 bg-slate-50 dark:bg-slate-950/50 rounded-lg p-4 border border-slate-200 dark:border-slate-800">
-                                        <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 font-mono">Analýza Rizik</h4>
+                                        <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 font-mono">{t('company.candidates.risk_analysis')}</h4>
 
                                         <div className="mb-3">
                                             <div className="flex justify-between text-xs mb-1">
-                                                <span className="text-slate-500 dark:text-slate-400">Riziko odchodu</span>
+                                                <span className="text-slate-500 dark:text-slate-400">{t('company.candidates.flight_risk')}</span>
                                                 <span className={`font-bold ${candidate.flightRisk === 'High' ? 'text-rose-500' : candidate.flightRisk === 'Medium' ? 'text-amber-500' : 'text-emerald-500'}`}>
-                                                    {candidate.flightRisk === 'High' ? 'Vysoké' : candidate.flightRisk === 'Medium' ? 'Střední' : 'Nízké'}
+                                                    {candidate.flightRisk === 'High' ? t('company.candidates.risk_levels.high') : candidate.flightRisk === 'Medium' ? t('company.candidates.risk_levels.medium') : t('company.candidates.risk_levels.low')}
                                                 </span>
                                             </div>
                                             <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full">
@@ -1358,10 +1358,10 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 {activeTab === 'assessments' && (
                     <div>
                         <div className="flex items-center justify-between mb-4">
-                            <div className="text-sm text-slate-500">Vytvářejte a spravujte interview‑replacement assessmenty</div>
+                            <div className="text-sm text-slate-500">{t('company.assessments_tab.desc')}</div>
                             <div className="flex items-center gap-2">
-                                <button onClick={() => setShowInvitationsList(prev => !prev)} className="px-3 py-1 rounded-md border text-sm">{showInvitationsList ? 'Zavřít pozvánky' : 'Spravovat pozvánky'}</button>
-                                <button onClick={() => setShowInvitationModal(true)} className="px-3 py-1 rounded-md bg-cyan-600 text-white text-sm">Pozvat kandidáta</button>
+                                <button onClick={() => setShowInvitationsList(prev => !prev)} className="px-3 py-1 rounded-md border text-sm">{showInvitationsList ? t('company.assessments_tab.close_invites') : t('company.assessments_tab.manage_invites')}</button>
+                                <button onClick={() => setShowInvitationModal(true)} className="px-3 py-1 rounded-md bg-cyan-600 text-white text-sm">{t('company.assessments_tab.invite_btn')}</button>
                             </div>
                         </div>
 
