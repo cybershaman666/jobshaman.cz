@@ -657,6 +657,113 @@
             }
         }
     },
+    "company_landing": {
+        "hero": {
+            "badge": "Náborová platforma poháňaná AI",
+            "title_start": "Naberajte tie najlepšie",
+            "title_highlight": "Talenty",
+            "title_end": "s AI",
+            "subtitle": "Zjednodušte nábor s AI optimalizáciou inzerátov a vlastným Assessment Centrom. Nájdite tých správnych kandidátov rýchlejšie.",
+            "start_free": "Začať zadarmo",
+            "login": "Prihlásiť sa",
+            "view_demo": "Prehliadnuť demo"
+        },
+        "stats": {
+            "title": "Výsledky v číslach",
+            "badge": "Štatistiky",
+            "screening": "Menej času na screening",
+            "costs": "Nižšie náklady na nábor",
+            "filling": "Rychlejšie obsadenie pozícií",
+            "satisfaction": "Spokojnosť firiem"
+        },
+        "benefits": {
+            "ai_powered": "AI optimalizácia inzerátov",
+            "easy_posting": "Jednoduché vytváranie inzerátov",
+            "assessments": "Vlastné Assessment Center",
+            "insights": "Prehľady o benefitoch"
+        },
+        "features": {
+            "title": "AI Nástroje",
+            "more_title": "Ďalšie Funkcie",
+            "optimization": {
+                "title": "AI Optimalizácia Inzerátov",
+                "desc": "Automatické vylepšenie textu inzerátov pre maximálnu atraktivitu a oslovenie kvalitnejších kandidátov. Využíva Gemini AI."
+            },
+            "assessment": {
+                "title": "AI Assessment Center",
+                "desc": "Inteligentné hodnotenie kandidátov pomocou AI analýzy odpovedí, zručností a kultúrnej zhody."
+            },
+            "posting": {
+                "title": "Správa Inzerátov",
+                "desc": "Jednoduché vytváranie a publikovanie pracovných inzerátov s formátovaním, emojis a výberom benefitov."
+            },
+            "insights": {
+                "title": "Prehľady o Benefitoch",
+                "desc": "Zistite, ktoré benefity kandidáti najviac oceňujú a prispôsobte svoju ponuku."
+            },
+            "dashboard": {
+                "title": "Prehľad Využitia",
+                "desc": "Sledujte využitie AI optimalizácií a assessmentov v rámci vášho predplatného."
+            }
+        },
+        "pricing": {
+            "title": "Cenové Plány",
+            "badge": "Cena",
+            "always_free": "Vždy zadarmo",
+            "best_choice": "Najlepšia voľba",
+            "offer": "Akčná ponuka",
+            "promo_discount": "Zavádzacia zľava",
+            "period": "mesiac",
+            "price_custom": "Na mieru",
+            "promo_hint": "* Štartovacia cena pre začiatok projektu",
+            "extra_assessment": "Každý ďalší AI assessment: 99 Kč",
+            "more_features": "+{{count}} ďalších funkcií",
+            "cta_contact": "Kontakt",
+            "cta_start_free": "Začať zadarmo",
+            "cta_start": "Začať",
+            "plans": {
+                "basic": {
+                    "name": "Základný",
+                    "desc": "Pre malé tímy a začiatočníkov",
+                    "f1": "Až 5 inzerátov mesačne",
+                    "f2": "Základná správa inzerátov",
+                    "f3": "Emailová podpora",
+                    "f4": "Základné štatistiky",
+                    "f5": "Žiadne AI funkcie"
+                },
+                "business": {
+                    "name": "Business",
+                    "desc": "Pre rastúce spoločnosti",
+                    "f1": "Neobmedzený počet inzerátov",
+                    "f2": "10 AI assessmentov mesačne",
+                    "f3": "Benefit insights",
+                    "f4": "AI optimalizácia inzerátov",
+                    "f5": "Prioritná podpora"
+                },
+                "enterprise": {
+                    "name": "Enterprise",
+                    "desc": "Pre veľké korporácie",
+                    "f1": "Všetky Business funkcie",
+                    "f2": "Neobmedzené AI assessmenty",
+                    "f3": "Integrácia s ATS systémami",
+                    "f4": "Dedikovaný account manager"
+                }
+            }
+        },
+        "testimonials": {
+            "title": "Referencie Firiem"
+        },
+        "cta": {
+            "badge": "Začnite hneď",
+            "title_start": "Pripravení",
+            "title_highlight": "zlepšiť",
+            "title_end": "nábor?",
+            "subtitle": "Pridajte sa k stovkám spokojných firiem a nájdite tie najlepšie talenty efektívnejšie.",
+            "register": "Registrovať firmu",
+            "login": "Prihlásiť sa",
+            "demo": "Dohodnúť demo"
+        }
+    },
     "company_extra": {
         "activity": {
             "added_comment": "<span class=\"font-bold\">{{name}}</span> pridal komentár k <span class=\"font-bold\">{{target}}</span>",

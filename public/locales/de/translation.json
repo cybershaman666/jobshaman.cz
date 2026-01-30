@@ -188,7 +188,10 @@
       "title_end": "berechnet, ob sich die Arbeit wirklich für Sie lohnt.",
       "subtitle": "Konzentrieren Sie sich auf das Wesentliche. JobShaman kümmert sich um die Mathematik. Reales Einkommen, Arbeitsweg, Zeit und Auswirkungen auf Ihr Wohlbefinden – alles an einem Ort.",
       "try_free_btn": "Kostenlos testen",
-      "browse_offers_btn": "{{count}} Angebote durchsuchen"
+      "browse_offers_btn": "{{count}} Angebote durchsuchen",
+      "label_home": "Zuhause",
+      "label_commute": "Pendeln",
+      "label_job": "Job"
     },
     "page_what_is": {
       "title_job": "Was ",
@@ -202,7 +205,8 @@
       "card_2_title": "Transparenz als Standard",
       "card_2_desc": "Sie sehen alle Berechnungen. Nichts passiert in einer Black Box.",
       "card_3_title": "Keine künstlichen KI-Behauptungen",
-      "card_3_desc": "Algorithmen dort, wo Daten vorhanden sind. KI dort, wo es keine andere Lösung gibt."
+      "card_3_desc": "Algorithmen dort, wo Daten vorhanden sind. KI dort, wo es keine andere Lösung gibt.",
+      "desc_4": "Wir sind das einzige Portal, das das Profil eines Nutzers basierend auf Fähigkeiten analysiert und einen geeigneten Kurs anbieten kann, um seine Position auf dem Arbeitsmarkt zu verbessern oder seinen Traumjob zu finden."
     },
     "page_why": {
       "title_job": "Warum ",
@@ -211,7 +215,10 @@
       "desc_1": "Unternehmen versprechen „attraktives Gehalt“, „Flexibilität“ und „Wachstum“. Stellenanzeigen sind so geschrieben, dass sie Ihnen gefallen. Aber wie sieht die Realität aus?",
       "desc_2": "Als ich den JHI (Job Happiness Index) entwarf, suchte ich nicht in Unternehmenstabellen nach Inspiration, sondern in Bhutan. Ihr „Bruttonationalglück“-Index lehrte mich, dass Wohlstand ohne inneren Komfort und Sinn leer ist. Also nahm ich ihren Ansatz und wandte ihn auf den Arbeitsmarkt an – ich messe, was die Menschen wirklich beeinflusst.",
       "time_title": "Zeit",
-      "time_desc": "Pendeln ist nicht nur eine Entfernung. Es sind 5 Stunden pro Woche, die Sie nie wiedersehen werden."
+      "time_desc": "Pendeln ist nicht nur eine Entfernung. Es sind 5 Stunden pro Woche, die Sie nie wiedersehen werden.",
+      "money_title": "Geld",
+      "money_desc": "Pendeln ist nicht nur eine Frage der Zeit. Jeder Kilometer kostet Geld, das Sie besser nutzen könnten.",
+      "reason": "Der Unterschied ist wesentlich: Wo die Realität berechnet werden kann, schätzen wir sie nicht."
     },
     "page_ai": {
       "title": "Wann wir KI einsetzen – und wann nicht",
@@ -567,6 +574,12 @@
       "filling": "Schnellere Stellenbesetzung",
       "satisfaction": "Zufriedenheit der Unternehmen"
     },
+    "benefits": {
+      "ai_powered": "KI-Anzeigenoptimierung",
+      "easy_posting": "Einfache Erstellung von Anzeigen",
+      "assessments": "Eigenes Assessment Center",
+      "insights": "Übersicht über Benefits"
+    },
     "features": {
       "title": "KI-Tools",
       "more_title": "Weitere Funktionen",
@@ -589,6 +602,18 @@
       "transparent": {
         "title": "Transparenz und Fair Play",
         "desc": "Überprüfung von Informationen in Anzeigen und Eliminierung irreführender Praktiken im Recruiting"
+      },
+      "posting": {
+        "title": "Anzeigenverwaltung",
+        "desc": "Einfaches Erstellen und Veröffentlichen von Stellenanzeigen mit Formatierung, Emojis und Auswahl von Benefits."
+      },
+      "insights": {
+        "title": "Einsichten in Benefits",
+        "desc": "Finden Sie heraus, welche Benefits Kandidaten am meisten schätzen, und passen Sie Ihr Angebot an."
+      },
+      "dashboard": {
+        "title": "Nutzungsübersicht",
+        "desc": "Verfolgen Sie die Nutzung von KI-Optimierungen und Assessments im Rahmen Ihres Abonnements."
       }
     },
     "pricing": {

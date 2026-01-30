@@ -228,7 +228,7 @@
             "reason": "Rozdíl je podstatný: tam, kde lze realitu vypočítat, ji neodhadujeme."
         },
         "page_ai": {
-            "title": "Kdy používáme AI – a kedy nie",
+            "title": "Kdy používáme AI – a kdy ne",
             "intro_job": "Job",
             "intro_shaman": "Shaman",
             "intro_end": "používá AI jen tam, kde to má smysl. Algoritmy tam, kde existují data. AI tam, kde není jiné řešení.",
@@ -237,7 +237,7 @@
             "algo_2": "analýzu dojíždění",
             "algo_3": "časové a finanční vlivy",
             "algo_4": "geografická data",
-            "ai_title": "AI používame pro:",
+            "ai_title": "AI používáme pro:",
             "ai_1": "assessment centra",
             "ai_2": "hodnocení odpovědí",
             "ai_3": "optimalizaci CV a motivačních dopisů",
@@ -667,7 +667,7 @@
             },
             "commute": {
                 "title": "Dopad dojezdu",
-                "desc": "Dojíždění není jen vzdálenost. Je to čas, peniaze, únava a dlouhodobý dopad na život.",
+                "desc": "Dojíždění není jen vzdálenost. Je to čas, peníze, únava a dlouhodobý dopad na život.",
                 "items": {
                     "distance": "vzdálenost",
                     "mode": "způsob dopravy",
@@ -759,15 +759,15 @@
             "insights": "Přehledy o benefitech"
         },
         "features": {
-            "title": "Hlavní Funkce",
+            "title": "AI Nástroje",
             "more_title": "Další Funkce",
             "optimization": {
                 "title": "AI Optimalizace Inzerátů",
-                "desc": "Nechte AI vylepšit text vašich inzerátů pro lepší přitažlivost a kvalitnější kandidáty. Využívá Gemini AI."
+                "desc": "Automatické vylepšení textu inzerátů pro maximální atraktivitu a oslovení kvalitnějších kandidátů. Využívá Gemini AI."
             },
             "assessment": {
-                "title": "Assessment Center",
-                "desc": "Vytvářejte vlastní hodnocení a posílejte pozvánky kandidátům. Získejte přehled o jejich dovednostech ještě před pohovorem."
+                "title": "AI Assessment Center",
+                "desc": "Inteligentní hodnocení kandidátů pomocí AI analýzy odpovědí, dovedností a kulturní shody."
             },
             "posting": {
                 "title": "Správa Inzerátů",
@@ -832,7 +832,7 @@
         "cta": {
             "badge": "Začněte hned",
             "title_start": "Připraveni",
-            "title_highlight": "zlepšiť",
+            "title_highlight": "zlepšit",
             "title_end": "nábor?",
             "subtitle": "Přidejte se ke stovkám spokojených firem a najděte ty nejlepší talenty efektivněji.",
             "register": "Registrovat firmu",
