@@ -1,7 +1,7 @@
 import os
 import stripe
 from fastapi import APIRouter, Request, Depends, HTTPException
-from ..core.config import STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+from ..core.config import STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_PREMIUM, STRIPE_PRICE_BUSINESS, STRIPE_PRICE_ASSESSMENT_BUNDLE, STRIPE_PRICE_SINGLE_ASSESSMENT
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_csrf_token_header
 from ..models.requests import CheckoutRequest
@@ -43,10 +43,10 @@ async def create_checkout_session(req: CheckoutRequest, request: Request, user: 
             raise HTTPException(status_code=400, detail=f"Invalid tier: {req.tier}")
 
         prices = {
-            "premium": os.getenv("STRIPE_PRICE_PREMIUM", "price_1StDJuG2Aezsy59eqi584FWl"),
-            "business": os.getenv("STRIPE_PRICE_BUSINESS", "price_1StDKmG2Aezsy59e1eiG9bny"),
-            "assessment_bundle": os.getenv("STRIPE_PRICE_ASSESSMENT_BUNDLE", "price_1StDTGG2Aezsy59esZLgocHw"),
-            "single_assessment": os.getenv("STRIPE_PRICE_SINGLE_ASSESSMENT", "price_1StDJuG2Aezsy59eqi584FWl"),
+            "premium": STRIPE_PRICE_PREMIUM,
+            "business": STRIPE_PRICE_BUSINESS,
+            "assessment_bundle": STRIPE_PRICE_ASSESSMENT_BUNDLE,
+            "single_assessment": STRIPE_PRICE_SINGLE_ASSESSMENT,
         }
 
         price_id = prices.get(backend_tier)
@@ -107,10 +107,10 @@ async def stripe_webhook(request: Request):
                 }
                 supabase.table("subscriptions").upsert(data, on_conflict="company_id").execute()
             
-            elif tier == "assessment_bundle":
+            elif tier in ["assessment_bundle", "single_assessment"]:
                 data = {
                     "company_id": user_id,
-                    "tier": "assessment_bundle",
+                    "tier": tier,
                     "status": "active",
                     "stripe_subscription_id": session.get("subscription") or f"oneshot_{session.get('id')}",
                     "current_period_end": (datetime.now(timezone.utc) + timedelta(days=365)).isoformat(),

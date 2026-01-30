@@ -1,17 +1,17 @@
 import html
 import bleach
 from pydantic import BaseModel, Field, validator
-from typing import List, Optional
+from typing import List, Optional, Any
 
 class JobStatusUpdateRequest(BaseModel):
     status: str
 
 class JobCheckRequest(BaseModel):
-    id: str = Field(..., min_length=1, max_length=100)
-    title: str = Field(..., min_length=1, max_length=200)
-    company: str = Field(..., min_length=1, max_length=200)
-    location: Optional[str] = Field(None, max_length=200)
-    description: str = Field(..., min_length=10, max_length=5000)
+    id: Any = Field(...)
+    title: str = Field(..., min_length=1, max_length=500)
+    company: str = Field(..., min_length=1, max_length=500)
+    location: Optional[str] = Field(None, max_length=500)
+    description: str = Field(..., min_length=10, max_length=30000)
     needs_manual_review: bool = False
 
     @validator("title", "company")
