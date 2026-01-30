@@ -235,7 +235,7 @@ def verify_supabase_token(token: str) -> dict:
                 
                 # Check if this is a recruiter
                 if profile_data.get("role") == "recruiter":
-                    # Try to find their company
+                    # 1. Try to find if they are an owner
                     company_response = (
                         supabase.table("companies")
                         .select("*")
@@ -248,6 +248,22 @@ def verify_supabase_token(token: str) -> dict:
                         result["user_type"] = "company"
                         result["company_id"] = company_response.data["id"]
                         result["company_name"] = company_response.data.get("name")
+                        return result
+                    
+                    # 2. Try to find if they are a member
+                    member_response = (
+                        supabase.table("company_members")
+                        .select("company_id, companies(*)")
+                        .eq("user_id", user_id)
+                        .maybe_single()
+                        .execute()
+                    )
+                    
+                    if member_response.data:
+                        comp_data = member_response.data.get("companies", {})
+                        result["user_type"] = "company"
+                        result["company_id"] = member_response.data["company_id"]
+                        result["company_name"] = comp_data.get("name") if comp_data else "Company"
                         return result
                 
                 # Default to candidate if not a recruiter with a company
@@ -1554,15 +1570,23 @@ async def get_subscription_status(
         
         if user_id == userId:
             is_authorized = True
+            print(f"✅ Authorized: user_id matches userId ({user_id})")
         elif user_type == "company" and user_id == userId:
             is_authorized = True
+            print(f"✅ Authorized: company admin matches userId ({user_id})")
         elif company_id == userId:
             is_authorized = True
+            print(f"✅ Authorized: recruiter matches companyId ({company_id})")
+        elif user.get("company_name") and user_id == userId: # Fallback for some company admin setups
+            is_authorized = True
+            print(f"✅ Authorized: company owner/admin fallback ({user_id})")
             
         if not is_authorized:
             print(
-                f"❌ Unauthorized access attempt: {user_id} (type: {user_type}, company: {company_id}) tried to access {userId}"
+                f"❌ Unauthorized access attempt: user_id={user_id}, type={user_type}, company_id={company_id} tried to access userId={userId}"
             )
+            # Log the full user dict (carefully) for debugging
+            # print(f"DEBUG User context: {user}")
             raise HTTPException(
                 status_code=403, detail="Cannot access other users' subscription info"
             )
