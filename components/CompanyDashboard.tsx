@@ -1003,9 +1003,9 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 onChange={(e) => setWorkType(e.target.value)}
                                 className="w-full p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
                             >
-                                <option value="On-site">On-site</option>
-                                <option value="Hybrid">Hybrid</option>
-                                <option value="Remote">Remote</option>
+                                <option value="On-site">{t('filters.job_types.on_site')}</option>
+                                <option value="Hybrid">{t('filters.job_types.hybrid')}</option>
+                                <option value="Remote">{t('filters.job_types.remote')}</option>
                             </select>
                         </div>
                     </div>
@@ -1019,7 +1019,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 type="text"
                                 value={workingHours}
                                 onChange={(e) => setWorkingHours(e.target.value)}
-                                placeholder="např. 40 hod/týdně"
+                                placeholder={t('company.ad_editor.working_hours_placeholder')}
                                 className="w-full pl-9 p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
                             />
                         </div>
