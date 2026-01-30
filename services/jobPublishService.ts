@@ -1,4 +1,5 @@
 import { supabase } from './supabaseService';
+import { geocodeWithCaching } from './geocodingService';
 
 const BACKEND_URL = 'https://jobshaman-cz.onrender.com';
 
@@ -12,17 +13,38 @@ export interface PublishJobRequest {
     contract_type?: string;
     benefits?: string[];
     source?: string;
+    contact_email?: string;
+    workplace_address?: string;
 }
 
 export const publishJob = async (jobData: PublishJobRequest) => {
     if (!supabase) throw new Error("Supabase is not configured");
 
     try {
+        // 0. Geocode Address
+        let lat = null;
+        let lng = null;
+        const addressToGeocode = jobData.workplace_address || jobData.location;
+
+        if (addressToGeocode) {
+            try {
+                const coords = await geocodeWithCaching(addressToGeocode);
+                if (coords) {
+                    lat = coords.lat;
+                    lng = coords.lon;
+                }
+            } catch (err) {
+                console.warn("Geocoding failed for new job:", err);
+            }
+        }
+
         // 1. Insert into Supabase
         const { data, error } = await supabase
             .from('jobs')
             .insert({
                 ...jobData,
+                lat,
+                lng,
                 legality_status: 'pending', // Initial status before AI check
                 scraped_at: new Date().toISOString()
             })

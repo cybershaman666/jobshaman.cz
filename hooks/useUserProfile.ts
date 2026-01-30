@@ -3,7 +3,6 @@ import { UserProfile, CompanyProfile, ViewState } from '../types';
 import { signOut, getUserProfile, getRecruiterCompany, updateUserProfile as updateUserProfileService, createCompany } from '../services/supabaseService';
 import { fetchCsrfToken, clearCsrfToken } from '../services/csrfService';
 import { supabase } from '../services/supabaseClient';
-import { MOCK_COMPANY_PROFILE } from '../constants';
 
 // Default user profile
 const DEFAULT_USER_PROFILE: UserProfile = {
@@ -30,7 +29,34 @@ export const useUserProfile = () => {
     const handleSessionRestoration = async (userId: string) => {
         try {
             console.log('🔄 handleSessionRestoration called with userId:', userId);
-            const profile = await getUserProfile(userId);
+            let profile = await getUserProfile(userId);
+
+            // Fallback: If profile doesn't exist but we have a session (e.g., DB trigger lag), create it now.
+            if (!profile && supabase) {
+                // VERIFY SESSION FIRST: Don't create profile if no user is actually logged in
+                const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+                if (authError || !user) {
+                    console.log('⚠️ No active session found. Skipping fallback profile creation.');
+                    return; // Exit early if no user
+                }
+
+                console.warn('⚠️ Profile not found for existing user. Attempting to create fallback profile...');
+                if (user.email) {
+                    try {
+                        // Use metadata role if available, otherwise default to candidate
+                        const role = user.user_metadata?.role || 'candidate';
+                        const name = user.user_metadata?.full_name || user.email.split('@')[0];
+
+                        await import('../services/supabaseService').then(m => m.createBaseProfile(userId, user.email!, name, role));
+                        profile = await getUserProfile(userId); // Retry fetch
+                        console.log('✅ Fallback profile created and loaded:', profile?.id);
+                    } catch (createErr) {
+                        console.error('❌ Failed to create fallback profile:', createErr);
+                    }
+                }
+            }
+
             console.log('Profile returned from getUserProfile:', { id: profile?.id, email: profile?.email, isLoggedIn: profile?.isLoggedIn });
 
             if (profile) {
@@ -66,45 +92,72 @@ export const useUserProfile = () => {
                     // The application can still work without CSRF token for GET requests
                 }
 
-                // Auto-Upgrade Logic for Admin Tester
-                if (profile.email === 'misahlavacu@gmail.com' && profile.role !== 'recruiter') {
-                    console.log("Auto-upgrading admin tester to recruiter...");
-                    await updateUserProfileService(userId, { role: 'recruiter' });
-                    // Force update local state
-                    setUserProfile(prev => ({ ...prev, role: 'recruiter' }));
+                // --- NEW AUTO-RECOVERY LOGIC START ---
+                // If user registered as recruiter (via metadata) but profile says 'candidate' (default trigger), fix it.
+                if (supabase) {
+                    const { data: { user } } = await supabase.auth.getUser();
+                    const metaRole = user?.user_metadata?.role;
+                    const metaCompany = user?.user_metadata?.company_name;
+                    const metaIco = user?.user_metadata?.ico;
+                    const metaWebsite = user?.user_metadata?.website;
 
-                    // Check if admin already has a company
-                    let company = await getRecruiterCompany(userId);
-
-                    if (!company) {
-                        console.log("Creating default company for admin tester...");
+                    if (metaRole === 'recruiter' && profile.role !== 'recruiter') {
+                        console.log("🛠️ Fixing profile role mismatch: Metadata says recruiter, DB says candidate. Updating...");
                         try {
-                            // Create company using mock data as template (excluding ID to let DB generate UUID)
-                            const { id, ...companyData } = MOCK_COMPANY_PROFILE;
-                            company = await createCompany(companyData, userId);
-                            console.log("Company created successfully:", company?.id);
+                            await updateUserProfileService(userId, { role: 'recruiter' });
+                            // Update local state immediately
+                            profile.role = 'recruiter';
+                            setUserProfile(prev => ({ ...prev, role: 'recruiter' }));
                         } catch (err) {
-                            console.error("Failed to auto-create company:", err);
+                            console.error("❌ Failed to auto-fix profile role:", err);
                         }
                     }
 
-                    if (company) {
-                        setCompanyProfile(company);
-                        setViewState(ViewState.COMPANY_DASHBOARD);
-                    } else {
-                        // Don't automatically show onboarding - let them click to create company
-                        setViewState(ViewState.LIST);
+                    // If they are a recruiter (or just became one), but have no company, check metadata for company name and create it.
+                    if (profile.role === 'recruiter') {
+                        let company = await getRecruiterCompany(userId);
+
+                        if (!company && metaCompany) {
+                            console.log("🛠️ Recruiter has no company, but metadata has company_name. Auto-creating company...");
+                            try {
+                                const newCompanyData = {
+                                    name: metaCompany,
+                                    // Use metadata values if available
+                                    ico: metaIco || '',
+                                    address: '',
+                                    description: '',
+                                    contact_email: user?.email,
+                                    contact_phone: '',
+                                    website: metaWebsite || '',
+                                    logo_url: ''
+                                };
+                                company = await createCompany(newCompanyData, userId);
+                                console.log("✅ Company auto-created from metadata:", company?.id);
+                            } catch (err) {
+                                console.error("❌ Failed to auto-create company from metadata:", err);
+                            }
+                        }
+
+                        if (company) {
+                            setCompanyProfile(company);
+                            setViewState(ViewState.COMPANY_DASHBOARD);
+                        }
                     }
                 }
+                // --- NEW AUTO-RECOVERY LOGIC END ---
+
+                // Auto-Upgrade Logic for Admin Tester - REMOVED for Strict Separation conformance
+                // Admin can manually switch roles if needed via DB or specific admin tool, 
+                // but should not auto-convert when testing as candidate.
 
                 // Auto-initialize coordinates for test user if missing (Brno coordinates)
                 if (profile.email === 'misahlavacu@gmail.com' && !profile.coordinates) {
                     console.log("🌍 Auto-initializing test user coordinates (Brno)...");
                     const brnoCoords = { lat: 49.1922, lon: 16.6113 };
                     try {
-                        await updateUserProfileService(userId, { 
+                        await updateUserProfileService(userId, {
                             address: 'Brno, Česká republika',
-                            coordinates: brnoCoords 
+                            coordinates: brnoCoords
                         });
                         // Update local state
                         setUserProfile(prev => ({
@@ -123,11 +176,26 @@ export const useUserProfile = () => {
                     // Note: This will be handled by the useAppFilters hook
                 }
 
+                // --- STRICT ROLE SEPARATION ---
+                // Only load company data if the user is explicitly a recruiter
                 if (profile.role === 'recruiter') {
                     const company = await getRecruiterCompany(userId);
                     if (company) {
                         setCompanyProfile(company);
+                        // Force view state to dashboard if they are a recruiter logging in
+                        // unless they are on a specific page that allows otherwise (like settings)
                         setViewState(ViewState.COMPANY_DASHBOARD);
+                        console.log("✅ Recruiter logged in, dashboard loaded.");
+                    } else {
+                        // Recruiter without company? They might need to finish onboarding
+                        console.log("⚠️ Recruiter role but no company found.");
+                    }
+                } else {
+                    // Start as candidate
+                    setCompanyProfile(null);
+                    // Ensure view state isn't stuck on dashboard
+                    if (viewState === ViewState.COMPANY_DASHBOARD) {
+                        setViewState(ViewState.LIST);
                     }
                 }
             }

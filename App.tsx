@@ -641,6 +641,13 @@ export default function App() {
         }
 
         if (viewState === ViewState.PROFILE) {
+            // STRICT SEPARATION: Recruiters cannot access candidate profile editor
+            if (userProfile.role === 'recruiter') {
+                // Defer state update to next tick to avoid render-phase update warning
+                setTimeout(() => setViewState(ViewState.COMPANY_DASHBOARD), 0);
+                return null;
+            }
+
             return (
                 <div className="col-span-1 lg:col-span-12 max-w-4xl mx-auto w-full h-full overflow-y-auto custom-scrollbar pb-6 px-1">
                     <ProfileEditor

@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../src/i18n';
 import Markdown from 'markdown-to-jsx';
 import { Job, Candidate, AIAdOptimizationResult, CompanyProfile } from '../types';
-import { MOCK_COMPANY_PROFILE } from '../constants';
 import { optimizeJobDescription } from '../services/geminiService';
 import { publishJob } from '../services/jobPublishService';
 import { canCompanyUseFeature, canCompanyPostJob } from '../services/billingService';
@@ -27,6 +26,7 @@ import {
     CheckCircle,
     Search,
     Settings,
+    Mail,
     BrainCircuit,
     DollarSign,
     Clock,
@@ -59,6 +59,12 @@ const JOB_EMOJIS = [
     '🎓', '💡', '⏰', '🌍', '💻', '🎉', '🛡️', '🏆', '🦄', '⚖️'
 ];
 
+const COMMON_BENEFITS = [
+    'home_office', '5_weeks_holiday', 'multisport', 'meal_allowance',
+    'flex_hours', 'laptop_private', 'phone_private', 'sick_days',
+    'education', 'snacks'
+];
+
 interface CompanyDashboardProps {
     companyProfile?: CompanyProfile | null;
     userEmail?: string;
@@ -76,7 +82,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     const isRealUser = !!propProfile;
 
     // Profile State
-    const [companyProfile, setCompanyProfile] = useState<CompanyProfile>(propProfile || MOCK_COMPANY_PROFILE);
+    const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(propProfile || null);
 
     // Data State (Empty for Real, Mocks for Demo)
     // Data State (Empty for initial load, fetched from Supabase)
@@ -88,6 +94,11 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
     const [adDraft, setAdDraft] = useState('');
     const [jobTitle, setJobTitle] = useState('');
+    const [jobSalaryMin, setJobSalaryMin] = useState<string>('');
+    const [jobSalaryMax, setJobSalaryMax] = useState<string>('');
+    const [jobBenefits, setJobBenefits] = useState<string>('');
+    const [contactEmail, setContactEmail] = useState(userEmail || '');
+    const [workplaceAddress, setWorkplaceAddress] = useState(propProfile?.address || '');
     const [optimizationResult, setOptimizationResult] = useState<AIAdOptimizationResult | null>(null);
     const [isOptimizing, setIsOptimizing] = useState(false);
     const [isPublishing, setIsPublishing] = useState(false);
@@ -104,9 +115,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
     // Recruiter Handling
     const [selectedRecruiterId, setSelectedRecruiterId] = useState<string>('all');
-    const recruiters = companyProfile.members || [
-        { id: 'all', name: t('company.dashboard.all_recruiters'), email: '', role: 'admin', joinedAt: '' },
-        { id: '1', name: 'Floki Shaman', email: 'floki@jobshaman.cz', role: 'admin', joinedAt: '' }
+    const recruiters = companyProfile?.members || [
+        { id: 'all', name: t('company.dashboard.all_recruiters'), email: '', role: 'admin', joinedAt: '' }
     ];
 
     // Load subscription data
@@ -124,6 +134,19 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
         loadSubscription();
     }, [companyProfile?.id]);
+
+    // GUARD: If no profile (and we are expecting one), show loading or empty state
+    // This satisfies TypeScript because subsequent code knows companyProfile is not null
+    if (!companyProfile) {
+        return (
+            <div className="min-h-[500px] flex items-center justify-center">
+                <div className="flex flex-col items-center gap-4 text-slate-400">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                    <p>{t('common.loading') || 'Načítám...'}</p>
+                </div>
+            </div>
+        );
+    }
 
     // Load initial data for Real User
     useEffect(() => {
@@ -185,7 +208,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 title: jobTitle,
                 company: companyProfile.name,
                 description: adDraft,
-                location: companyProfile.address || 'Česká republika',
+                location: workplaceAddress || companyProfile.address || 'Česká republika',
+                salary_from: jobSalaryMin ? Number(jobSalaryMin) : undefined,
+                salary_to: jobSalaryMax ? Number(jobSalaryMax) : undefined,
+                benefits: jobBenefits ? jobBenefits.split(',').map(b => b.trim()).filter(b => b) : [],
+                contact_email: contactEmail,
+                workplace_address: workplaceAddress
             });
             alert(t('company.ad_editor.publish_success'));
             if (isRealUser) {
@@ -315,6 +343,24 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
     const toggleDropdown = (jobId: string) => {
         setActiveDropdownJobId(activeDropdownJobId === jobId ? null : jobId);
+    };
+
+    const toggleBenefit = (benefitKey: string) => {
+        // Translate key to string for storage (temporary until we store keys)
+        // Ideally we would store keys, but for now user wants string list.
+        // We will fetch translation here? No, we need to store the value.
+        // Actually best practice is to store keys or standard values.
+        // Let's assume we store the localized string for now to match current "comma separated string" behavior
+        // OR better: Append the translated string.
+
+        const benefitLabel = t(`company.benefits.${benefitKey}`);
+        const currentBenefits = jobBenefits.split(',').map(b => b.trim()).filter(b => b);
+
+        if (currentBenefits.includes(benefitLabel)) {
+            setJobBenefits(currentBenefits.filter(b => b !== benefitLabel).join(', '));
+        } else {
+            setJobBenefits([...currentBenefits, benefitLabel].join(', '));
+        }
     };
 
     const renderOverview = () => {
@@ -808,106 +854,204 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     />
                 </div>
 
-                <div className="flex items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10">
-                    <button onClick={() => setViewMode(viewMode === 'write' ? 'preview' : 'write')} className={`p-1.5 rounded transition-colors flex items-center gap-2 px-3 text-xs font-bold ${viewMode === 'preview' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'}`} title={t('company.ad_editor.switch_preview')}>
-                        {viewMode === 'preview' ? <Eye size={16} /> : <LayoutTemplate size={16} />}
-                        {viewMode === 'preview' ? t('company.ad_editor.preview') : t('company.ad_editor.editor')}
-                    </button>
-                    <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+                <div className="flex-1 flex flex-col min-h-0 relative">
 
-                    <button onClick={() => insertFormat('**', '**')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.bold')}>
-                        <Bold size={16} />
-                    </button>
-                    <button onClick={() => insertFormat('*', '*')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.italic')}>
-                        <Italic size={16} />
-                    </button>
-                    <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
-                    <button onClick={() => insertFormat('\n### ', '\n')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.heading')}>
-                        <Heading size={16} />
-                    </button>
-                    <button onClick={() => insertFormat('\n- ', '')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.list')}>
-                        <List size={16} />
-                    </button>
-                    <button onClick={() => insertFormat('\n> ', '\n')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.quote')}>
-                        <Quote size={16} />
-                    </button>
-                    <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+                    <div className="flex items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10">
+                        <button onClick={() => setViewMode(viewMode === 'write' ? 'preview' : 'write')} className={`p-1.5 rounded transition-colors flex items-center gap-2 px-3 text-xs font-bold ${viewMode === 'preview' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'}`} title={t('company.ad_editor.switch_preview')}>
+                            {viewMode === 'preview' ? <Eye size={16} /> : <LayoutTemplate size={16} />}
+                            {viewMode === 'preview' ? t('company.ad_editor.preview') : t('company.ad_editor.editor')}
+                        </button>
+                        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
 
-                    <div className="relative">
+                        <button onClick={() => insertFormat('**', '**')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.bold')}>
+                            <Bold size={16} />
+                        </button>
+                        <button onClick={() => insertFormat('*', '*')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.italic')}>
+                            <Italic size={16} />
+                        </button>
+                        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+                        <button onClick={() => insertFormat('\n### ', '\n')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.heading')}>
+                            <Heading size={16} />
+                        </button>
+                        <button onClick={() => insertFormat('\n- ', '')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.list')}>
+                            <List size={16} />
+                        </button>
+                        <button onClick={() => insertFormat('\n> ', '\n')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.quote')}>
+                            <Quote size={16} />
+                        </button>
+                        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                className={`p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors ${showEmojiPicker ? 'bg-slate-100 dark:bg-slate-800 text-indigo-500' : ''}`}
+                                title={t('company.ad_editor.emoji')}
+                            >
+                                <Smile size={16} />
+                            </button>
+
+                            {showEmojiPicker && (
+                                <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl p-3 z-50 grid grid-cols-5 gap-1 animate-in zoom-in-95">
+                                    {JOB_EMOJIS.map(emoji => (
+                                        <button
+                                            key={emoji}
+                                            onClick={() => insertEmoji(emoji)}
+                                            className="h-9 w-9 flex items-center justify-center text-lg hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+                                        >
+                                            {emoji}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
+                        <button onClick={() => insertFormat('[', '](url)')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.link')}>
+                            <LinkIcon size={16} />
+                        </button>
+                        <button onClick={() => insertFormat('`', '`')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.code')}>
+                            <Code size={16} />
+                        </button>
+                    </div>
+
+                    {viewMode === 'write' ? (
+                        <textarea
+                            ref={textareaRef}
+                            className="flex-1 w-full p-6 resize-none focus:outline-none text-slate-800 dark:text-slate-200 font-mono text-base leading-relaxed bg-white dark:bg-slate-900 placeholder:text-slate-400 dark:placeholder:text-slate-600"
+                            value={adDraft}
+                            onChange={(e) => setAdDraft(e.target.value)}
+                            placeholder={t('company.ad_editor.placeholder_description')}
+                        />
+                    ) : (
+                        <div className="flex-1 w-full p-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950/30">
+                            <article className="prose prose-slate dark:prose-invert max-w-none text-slate-700 dark:text-slate-300">
+                                <Markdown>{adDraft}</Markdown>
+                            </article>
+                        </div>
+                    )}
+
+                    <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30 flex justify-end gap-3">
+                        <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mr-auto">
+                            <Settings size={14} />
+                            Profil: {companyProfile.name}
+                        </div>
                         <button
-                            onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                            className={`p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors ${showEmojiPicker ? 'bg-slate-100 dark:bg-slate-800 text-indigo-500' : ''}`}
-                            title={t('company.ad_editor.emoji')}
+                            onClick={handleOptimize}
+                            disabled={isOptimizing}
+                            className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-400 font-medium hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors border border-slate-200 dark:border-slate-800 shadow-sm disabled:opacity-50"
                         >
-                            <Smile size={16} />
+                            {isOptimizing ? <Sparkles className="animate-spin" size={18} /> : <Sparkles size={18} />}
+                            {isOptimizing ? t('company.ad_editor.analyzing') : t('company.ad_editor.ai_noise_btn')}
                         </button>
 
-                        {showEmojiPicker && (
-                            <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl p-3 z-50 grid grid-cols-5 gap-1 animate-in zoom-in-95">
-                                {JOB_EMOJIS.map(emoji => (
-                                    <button
-                                        key={emoji}
-                                        onClick={() => insertEmoji(emoji)}
-                                        className="h-9 w-9 flex items-center justify-center text-lg hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
-                                    >
-                                        {emoji}
-                                    </button>
-                                ))}
-                            </div>
-                        )}
+                        <button
+                            onClick={handlePublish}
+                            disabled={isPublishing}
+                            className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50"
+                        >
+                            {isPublishing ? <RefreshCw className="animate-spin" size={18} /> : <Zap size={18} />}
+                            {isPublishing ? t('company.ad_editor.publishing') : t('company.ad_editor.publish_btn')}
+                        </button>
                     </div>
-
-                    <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
-                    <button onClick={() => insertFormat('[', '](url)')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.link')}>
-                        <LinkIcon size={16} />
-                    </button>
-                    <button onClick={() => insertFormat('`', '`')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.code')}>
-                        <Code size={16} />
-                    </button>
-                </div>
-
-                {viewMode === 'write' ? (
-                    <textarea
-                        ref={textareaRef}
-                        className="flex-1 w-full p-6 resize-none focus:outline-none text-slate-800 dark:text-slate-200 font-mono text-base leading-relaxed bg-white dark:bg-slate-900 placeholder:text-slate-400 dark:placeholder:text-slate-600"
-                        value={adDraft}
-                        onChange={(e) => setAdDraft(e.target.value)}
-                        placeholder={t('company.ad_editor.placeholder_description')}
-                    />
-                ) : (
-                    <div className="flex-1 w-full p-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950/30">
-                        <article className="prose prose-slate dark:prose-invert max-w-none text-slate-700 dark:text-slate-300">
-                            <Markdown>{adDraft}</Markdown>
-                        </article>
-                    </div>
-                )}
-
-                <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30 flex justify-end gap-3">
-                    <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mr-auto">
-                        <Settings size={14} />
-                        Profil: {companyProfile.name}
-                    </div>
-                    <button
-                        onClick={handleOptimize}
-                        disabled={isOptimizing}
-                        className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-400 font-medium hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors border border-slate-200 dark:border-slate-800 shadow-sm disabled:opacity-50"
-                    >
-                        {isOptimizing ? <Sparkles className="animate-spin" size={18} /> : <Sparkles size={18} />}
-                        {isOptimizing ? t('company.ad_editor.analyzing') : t('company.ad_editor.ai_noise_btn')}
-                    </button>
-
-                    <button
-                        onClick={handlePublish}
-                        disabled={isPublishing}
-                        className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50"
-                    >
-                        {isPublishing ? <RefreshCw className="animate-spin" size={18} /> : <Zap size={18} />}
-                        {isPublishing ? t('company.ad_editor.publishing') : t('company.ad_editor.publish_btn')}
-                    </button>
                 </div>
             </div>
 
-            <div className="lg:col-span-4 space-y-6 overflow-y-auto pr-2 custom-scrollbar order-1 lg:order-2 h-full">
+            <div className="lg:col-span-4 space-y-4 overflow-y-auto pr-2 custom-scrollbar order-1 lg:order-2 h-full">
+
+                {/* Helper Fields Card */}
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden p-4 space-y-4">
+                    <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                        <Settings size={14} /> {t('company.ad_editor.settings_title')}
+                    </h3>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.salary_min')}</label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    value={jobSalaryMin}
+                                    onChange={(e) => setJobSalaryMin(e.target.value)}
+                                    placeholder="0"
+                                    className="w-full p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
+                                />
+                            </div>
+                        </div>
+                        <div>
+                            <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.salary_max')}</label>
+                            <div className="relative">
+                                <input
+                                    type="number"
+                                    value={jobSalaryMax}
+                                    onChange={(e) => setJobSalaryMax(e.target.value)}
+                                    placeholder="0"
+                                    className="w-full p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.address')}</label>
+                        <div className="relative">
+                            <Briefcase size={14} className="absolute left-3 top-2.5 text-slate-400" />
+                            <input
+                                type="text"
+                                value={workplaceAddress}
+                                onChange={(e) => setWorkplaceAddress(e.target.value)}
+                                placeholder={t('company.settings.address_placeholder')}
+                                className="w-full pl-9 p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.contact_email')}</label>
+                        <div className="relative">
+                            <Mail size={14} className="absolute left-3 top-2.5 text-slate-400" />
+                            <input
+                                type="email"
+                                value={contactEmail}
+                                onChange={(e) => setContactEmail(e.target.value)}
+                                placeholder="email@company.com"
+                                className="w-full pl-9 p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">{t('company.ad_editor.benefits')}</label>
+
+                        <div className="flex flex-wrap gap-1.5 mb-2">
+                            {COMMON_BENEFITS.map(key => {
+                                const label = t(`company.benefits.${key}`);
+                                const isActive = jobBenefits.includes(label);
+                                return (
+                                    <button
+                                        key={key}
+                                        onClick={() => toggleBenefit(key)}
+                                        className={`px-2 py-1 text-xs rounded-md border transition-colors ${isActive ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 font-medium' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900'}`}
+                                    >
+                                        {isActive && <CheckCircle size={10} className="inline mr-1" />}
+                                        {label}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <div className="relative">
+                            <Sparkles size={14} className="absolute left-3 top-2.5 text-slate-400" />
+                            <input
+                                type="text"
+                                value={jobBenefits}
+                                onChange={(e) => setJobBenefits(e.target.value)}
+                                placeholder={t('company.ad_editor.benefits_placeholder')}
+                                className="w-full pl-9 p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
+                            />
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-1">{t('company.ad_editor.benefits_hint')}</p>
+                    </div>
+                </div>
                 {optimizationResult && (
                     <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-xl p-6 animate-in zoom-in-95 shadow-sm">
                         <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-4">

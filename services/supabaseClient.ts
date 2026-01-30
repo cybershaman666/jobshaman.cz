@@ -31,15 +31,8 @@ export const getSupabaseClient = () => {
 
         // Set up auth state change listener to handle token refresh
         supabaseInstance.auth.onAuthStateChange((event: any, session: any) => {
-            console.log('Auth state changed:', event, session ? 'session exists' : 'no session');
-            
             if (event === 'TOKEN_REFRESHED') {
                 console.log('Token refreshed successfully');
-            } else if (event === 'SIGNED_OUT') {
-                console.log('User signed out');
-                // Clear any local state if needed
-            } else if (event === 'SIGNED_IN') {
-                console.log('User signed in');
             }
         });
 
@@ -60,7 +53,7 @@ export const isSupabaseConfigured = (): boolean => {
 // Helper function to safely get current session
 export const getCurrentSession = async () => {
     if (!supabase) return null;
-    
+
     try {
         const { data: { session }, error } = await supabase.auth.getSession();
         if (error) {
@@ -77,7 +70,7 @@ export const getCurrentSession = async () => {
 // Helper function to safely refresh session
 export const refreshSession = async () => {
     if (!supabase) return null;
-    
+
     try {
         const { data: { session }, error } = await supabase.auth.refreshSession();
         if (error) {

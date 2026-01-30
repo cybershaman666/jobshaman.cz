@@ -47,7 +47,9 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
         options: {
           data: {
             role: 'recruiter',
-            company_name: formData.companyName
+            company_name: formData.companyName,
+            ico: formData.ico,
+            website: formData.website
           }
         }
       });
@@ -55,10 +57,75 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
       if (authError) throw authError;
 
       // 2. Create Company Profile in 'companies' table (if triggered via webhook or handled manually here)
+      const { data: sessionData } = await supabase.auth.getSession();
+
+      // Setup immediately if we have a session (e.g. no email confirmation required or auto-login)
+      if (sessionData?.session?.user) {
+        const userId = sessionData.session.user.id;
+        console.log("✅ Registration successful, initializing company profile for:", userId);
+
+        // 1. Ensure user profile exists as 'recruiter'
+        try {
+          // We import dynamically to avoid circular dependencies if any, but since we are in a component it should be fine.
+          // Using the service we just updated.
+          const { createBaseProfile, updateUserProfile } = await import('../services/supabaseService');
+
+          // Try to update first (if trigger created it as candidate)
+          await updateUserProfile(userId, { role: 'recruiter' }).catch(async () => {
+            // If update failed (maybe profile doesn't exist), try to create
+            await createBaseProfile(userId, formData.email, formData.companyName, 'recruiter');
+          });
+
+          // VERIFY: Profile MUST exist before we create company (FK Constraint)
+          const { getUserProfile } = await import('../services/supabaseService');
+          const profileCheck = await getUserProfile(userId);
+
+          if (!profileCheck) {
+            throw new Error("Profile creation failed - cannot create company without user profile.");
+          }
+        } catch (err) {
+          console.error("❌ Critical Profile Setup Error:", err);
+          alert("Nepodařilo se vytvořit uživatelský profil. Prosím zkuste to znovu."); // "Failed to create user profile"
+          setIsSubmitting(false);
+          return; // STOP EXECUTION to prevent FK violation
+        }
+
+        // 2. Create the company record immediately
+        try {
+          const { createCompany } = await import('../services/supabaseService');
+          const companyData = await createCompany({
+            name: formData.companyName,
+            ico: formData.ico,
+            website: formData.website,
+            contact_email: formData.email, // Use the new field
+            // contact_phone: ... (not in this form step, can be added later)
+            description: 'Nově registrovaná společnost'
+          }, userId);
+          console.log("✅ Company record created successfully:", companyData?.id);
+
+          if (companyData?.id) {
+            const { activateTrialSubscription } = await import('../services/supabaseService');
+            await activateTrialSubscription(companyData.id);
+            console.log("✅ Free trial activated.");
+          }
+        } catch (err) {
+          console.error("❌ Failed to create company record:", err);
+          // Don't block success screen, as auto-recovery might fix it later
+        }
+      }
+
       setStep('success');
     } catch (error: any) {
       console.error("Registration error:", error);
-      alert(error.message || "Registration failed");
+
+      // Handle Rate Limiting specifically
+      if (error?.status === 429 || error?.message?.includes('rate limit')) {
+        alert("Příliš mnoho pokusů o registraci. Prosím počkejte chvíli a zkuste to znovu (ochrana proti spamu).");
+      } else if (error?.message?.includes('User already registered')) {
+        alert("Uživatel s tímto emailem již existuje. Prosím přihlašte se.");
+      } else {
+        alert(error.message || "Registrace se nezdařila. Zkuste to prosím znovu.");
+      }
     } finally {
       setIsSubmitting(false);
     }
