@@ -227,7 +227,9 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                     </div>
                 </div>
             ) : (
-                <WelcomePage />
+                <div className="h-full overflow-y-auto custom-scrollbar">
+                    <WelcomePage />
+                </div>
             )}
         </section>
     );
