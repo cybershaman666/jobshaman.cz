@@ -160,7 +160,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
             has_assessment
         `)
         .eq('id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle() to handle missing profiles gracefully
 
     if (profileError) {
         console.error('Profile fetch error:', profileError);
@@ -168,7 +168,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
     }
 
     if (!profileData) {
-        console.warn('⚠️ Profile data is null/undefined');
+        console.warn('⚠️ Profile not found for userId:', userId);
         return null;
     }
 
@@ -177,7 +177,8 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         .from('candidate_profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle() here too
+
 
     // If candidate profile doesn't exist, that's ok, we'll use defaults
 
@@ -785,30 +786,48 @@ export const activateTrialSubscription = async (companyId: string): Promise<any>
 
     if (error) {
         console.error('Failed to activate trial subscription:', error);
-        return; // Don't crash, just log. 
+        throw error; // Throw instead of silent return so caller knows it failed
     }
 
     // Initialize usage stats
     if (data) {
-        await supabase
+        const { error: usageError } = await supabase
             .from('subscription_usage')
             .insert({
                 subscription_id: data.id,
                 period_start: new Date().toISOString(),
-                period_end: trialEndDate.toISOString()
+                period_end: trialEndDate.toISOString(),
+                active_jobs_count: 0,
+                ai_assessments_used: 0,
+                ad_optimizations_used: 0,
+                last_reset_at: new Date().toISOString()
             });
 
+        if (usageError) {
+            console.error('❌ Failed to create subscription_usage record:', usageError);
+            // Don't throw - subscription was created, we can retry usage creation later
+        } else {
+            console.log('✅ Created subscription_usage record');
+        }
+
         // CRITICAL: Link subscription to company
-        await supabase
+        const { error: linkError } = await supabase
             .from('companies')
             .update({ subscription_id: data.id })
             .eq('id', companyId);
+
+        if (linkError) {
+            console.error('❌ Failed to link subscription to company:', linkError);
+        } else {
+            console.log('✅ Linked subscription to company');
+        }
 
         console.log(`✅ Activated 14-day BUSINESS trial for company ${companyId}`);
         return data as any;
     }
 
     return undefined;
+
 };
 
 export const getUsageSummary = async (companyId: string) => {
@@ -839,12 +858,26 @@ export const getUsageSummary = async (companyId: string) => {
             .eq('subscription_id', company.subscription_id)
             .order('period_end', { ascending: false })
             .limit(1)
-            .single();
+            .maybeSingle(); // Use maybeSingle() instead of single() to handle 0 rows gracefully
 
         if (usageError) {
             console.warn('⚠️ Usage summary fetch error:', usageError);
             return null;
         }
+
+        if (!usage) {
+            console.warn('⚠️ No usage record found for subscription:', company.subscription_id);
+            // Return default empty usage instead of null
+            return {
+                active_jobs_count: 0,
+                ai_assessments_used: 0,
+                ad_optimizations_used: 0,
+                period_start: new Date().toISOString(),
+                period_end: new Date().toISOString(),
+                last_reset_at: new Date().toISOString()
+            };
+        }
+
 
         return usage as any;
     } catch (error) {
