@@ -8,7 +8,8 @@ export const formatJobDescription = (description: string): string => {
         if (!trimmed) return null;
 
         // If it starts with a common bullet char, convert to standard markdown dash
-        if (/^[•◦▪▫∙‣⁃\-\*]/.test(trimmed)) {
+        // But avoid converting bold text (**) or italic (*) if not followed by a space
+        if (/^[•◦▪▫∙‣⁃]/.test(trimmed) || /^[\-\*]\s+/.test(trimmed)) {
             return '- ' + trimmed.replace(/^[•◦▪▫∙‣⁃\-\*]\s*/, '');
         }
 

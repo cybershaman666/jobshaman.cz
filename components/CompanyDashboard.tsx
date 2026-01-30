@@ -10,6 +10,7 @@ import { canCompanyUseFeature, canCompanyPostJob } from '../services/billingServ
 import { supabase, incrementAdOptimizationUsage } from '../services/supabaseService';
 import AnalyticsService from '../services/analyticsService';
 import { getSubscriptionStatus } from '../services/serverSideBillingService';
+import { formatJobDescription } from '../utils/formatters';
 import BullshitMeter from './BullshitMeter';
 import CompanySettings from './CompanySettings';
 import AssessmentCreator from './AssessmentCreator';
@@ -947,7 +948,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     ) : (
                         <div className="flex-1 w-full p-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950/30">
                             <article className="prose prose-slate dark:prose-invert max-w-none text-slate-700 dark:text-slate-300">
-                                <Markdown>{adDraft}</Markdown>
+                                <Markdown options={{ forceBlock: true }}>{formatJobDescription(adDraft)}</Markdown>
                             </article>
                         </div>
                     )}
