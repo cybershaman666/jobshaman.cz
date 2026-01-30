@@ -876,7 +876,7 @@
         "subtitle_default": "Přidejte se k firmám, které nabírají efektivně.",
         "subtitle_success": "Váš účet byl úspěšně vytvořen. Zkontrolujte svůj email pro potvrzení.",
         "email_label": "Firemní Email",
-        "email_placeholder": "hr@firma.cz",
+        "email_placeholder": "email@spolecnost.cz",
         "password_label": "Heslo",
         "password_placeholder": "Minimálně 8 znaků",
         "company_name_label": "Název Společnosti",

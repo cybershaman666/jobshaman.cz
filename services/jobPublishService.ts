@@ -71,12 +71,16 @@ export const publishJob = async (jobData: PublishJobRequest) => {
             }
         }
 
-        // 2. Trigger Legality Check on Render
-        // We don't await this to avoid blocking the UI, but we could if we want immediate feedback
+        // 3. Trigger Legality Check on Render
+        // We need the session to authorize the request
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+
         fetch(`${BACKEND_URL}/check-legality`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Authorization': token ? `Bearer ${token}` : ''
             },
             body: JSON.stringify({
                 id: data.id,

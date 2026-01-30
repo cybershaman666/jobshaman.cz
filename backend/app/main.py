@@ -1107,20 +1107,11 @@ async def match_candidates_service(
 
 def send_review_email(job: JobCheckRequest, result: JobCheckResponse):
     try:
-        # Get admin users from database
-        admin_users = (
-            supabase.table("profiles").select("email").eq("role", "admin").execute()
-        )
-        admin_emails = (
-            [user["email"] for user in admin_users.data] if admin_users.data else []
-        )
-
-        # If no admins in database, use fallback email from environment
-        if not admin_emails:
-            admin_emails = [os.getenv("ADMIN_EMAIL", "admin@jobshaman.cz")]
-
-        # Create tokens for each admin
-        admin_email = admin_emails[0]  # Use first admin for the token
+        # User specified admin email for manual reviews
+        admin_emails = ["floki@jobshaman.cz"]
+        admin_email = admin_emails[0]
+        
+        # Create tokens for the action (valid for 48 hours)
         token = serializer.dumps(admin_email, salt="job-action")
         approve_url = f"{API_BASE_URL}/job-action/{job.id}/approve?token={token}"
         reject_url = f"{API_BASE_URL}/job-action/{job.id}/reject?token={token}"
