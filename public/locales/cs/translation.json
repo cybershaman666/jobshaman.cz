@@ -739,7 +739,7 @@
             "title_start": "Najímejte nejlepší",
             "title_highlight": "Talenty",
             "title_end": "s AI",
-            "subtitle": "Moderní náborová platforma s AI analýzou kandidátů, Assessment Centrem a inteligentní optimalizací inzerátů. Přestaňte ztrácet čas s nevhodnými uchazeči.",
+            "subtitle": "Zjednodušte nábor s AI optimalizací inzerátů a vlastním Assessment Centrem. Najděte ty správné kandidáty rychleji.",
             "start_free": "Začít zdarma",
             "login": "Přihlásit se",
             "view_demo": "Prohlédnout demo"
@@ -752,28 +752,34 @@
             "filling": "Rychlejší obsazení pozic",
             "satisfaction": "Spokojenost firem"
         },
+        "benefits": {
+            "ai_powered": "AI optimalizace inzerátů",
+            "easy_posting": "Snadné vytváření inzerátů",
+            "assessments": "Vlastní Assessment Center",
+            "insights": "Přehledy o benefitech"
+        },
         "features": {
-            "title": "AI Nástroje",
+            "title": "Hlavní Funkce",
             "more_title": "Další Funkce",
-            "assessment": {
-                "title": "AI Assessment Center",
-                "desc": "Inteligentní hodnocení kandidátů pomocí AI analýzy odpovědí, dovedností a kulturního fitu"
-            },
-            "analysis": {
-                "title": "Analýza Kandidátů",
-                "desc": "Detailní profiling kandidátů včetně analýzy rizik odchodu a kompatibilita s týmem"
-            },
             "optimization": {
                 "title": "AI Optimalizace Inzerátů",
-                "desc": "Automatické vylepšení textu inzerátů pro maximální atraktivitu a dosažení kvalitnějších kandidátov"
+                "desc": "Nechte AI vylepšit text vašich inzerátů pro lepší přitažlivost a kvalitnější kandidáty. Využívá Gemini AI."
             },
-            "analytics": {
-                "title": "Pokročilá Analytics",
-                "desc": "Detailní přehledy o efektivitě inzerátov, demografice kandidátov a náklady na nábor"
+            "assessment": {
+                "title": "Assessment Center",
+                "desc": "Vytvářejte vlastní hodnocení a posílejte pozvánky kandidátům. Získejte přehled o jejich dovednostech ještě před pohovorem."
             },
-            "transparent": {
-                "title": "Transparentnost a Fair Play",
-                "desc": "Ověřování informací v inzerátech a eliminace klamavých praxí v náboru"
+            "posting": {
+                "title": "Správa Inzerátů",
+                "desc": "Jednoduché vytváření a publikování pracovních inzerátů s formátováním, emojis a výběrem benefitů."
+            },
+            "insights": {
+                "title": "Přehledy o Benefitech",
+                "desc": "Zjistěte, které benefity kandidáti nejvíce oceňují a přizpůsobte svou nabídku."
+            },
+            "dashboard": {
+                "title": "Přehled Využití",
+                "desc": "Sledujte využití AI optimalizací a assessmentů v rámci vašeho předplatného."
             }
         },
         "pricing": {
@@ -806,7 +812,7 @@
                     "desc": "Pro rostoucí společnosti",
                     "f1": "Neomezený počet inzerátů",
                     "f2": "10 AI assessmentů měsíčně",
-                    "f3": "Doporučení vhodných kandidátů",
+                    "f3": "Benefit insights",
                     "f4": "AI optimalizace inzerátů",
                     "f5": "Prioritní podpora"
                 },

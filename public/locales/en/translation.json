@@ -594,6 +594,12 @@
             "filling": "Faster position filling",
             "satisfaction": "Company satisfaction"
         },
+        "benefits": {
+            "ai_powered": "AI job ad optimization",
+            "easy_posting": "Easy job posting",
+            "assessments": "Custom Assessment Center",
+            "insights": "Benefit insights"
+        },
         "features": {
             "title": "AI Tools",
             "more_title": "Other Features",

@@ -73,66 +73,43 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
 
   const featuresList = [
     {
-      icon: BrainCircuit,
-      title: t('company_landing.features.assessment.title'),
-      description: t('company_landing.features.assessment.desc'),
-      color: 'bg-blue-100 text-blue-600 dark:bg-blue-950/30 dark:text-blue-400'
-    },
-    {
-      icon: Target,
-      title: t('company_landing.features.analysis.title'),
-      description: t('company_landing.features.analysis.desc'),
-      color: 'bg-green-100 text-green-600 dark:bg-green-950/30 dark:text-green-400'
-    },
-    {
       icon: Sparkles,
       title: t('company_landing.features.optimization.title'),
       description: t('company_landing.features.optimization.desc'),
+      color: 'bg-cyan-100 text-cyan-600 dark:bg-cyan-950/30 dark:text-cyan-400'
+    },
+    {
+      icon: BrainCircuit,
+      title: t('company_landing.features.assessment.title'),
+      description: t('company_landing.features.assessment.desc'),
       color: 'bg-purple-100 text-purple-600 dark:bg-purple-950/30 dark:text-purple-400'
     },
     {
+      icon: Target,
+      title: t('company_landing.features.posting.title'),
+      description: t('company_landing.features.posting.desc'),
+      color: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400'
+    },
+    {
       icon: BarChart,
-      title: t('company_landing.features.analytics.title'),
-      description: t('company_landing.features.analytics.desc'),
+      title: t('company_landing.features.insights.title'),
+      description: t('company_landing.features.insights.desc'),
       color: 'bg-orange-100 text-orange-600 dark:bg-orange-950/30 dark:text-orange-400'
     },
     {
       icon: Shield,
-      title: t('company_landing.features.transparent.title'),
-      description: t('company_landing.features.transparent.desc'),
+      title: t('company_landing.features.dashboard.title'),
+      description: t('company_landing.features.dashboard.desc'),
       color: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400'
     }
   ];
 
-  const statsList = [
-    { value: '75%', label: t('company_landing.stats.screening') },
-    { value: '40%', label: t('company_landing.stats.costs') },
-    { value: '3x', label: t('company_landing.stats.filling') },
-    { value: '89%', label: t('company_landing.stats.satisfaction') }
-  ];
-
-  const testimonials = [
-    {
-      company: 'TechInnovate s.r.o.',
-      role: 'HR Director',
-      name: 'Petra Nováková',
-      text: 'JobShaman kompletně změnil náš náborový proces. AI analýza kandidátů nám ušetřila desítky hodin měsíčně.',
-      rating: 5
-    },
-    {
-      company: 'Digital Solutions',
-      role: 'Tech Lead',
-      name: 'Martin Dvořák',
-      text: 'Assessment Center je naprosto geniální. Rychle identifikujeme skutečné talenty bez zbytečných kolapsů.',
-      rating: 5
-    },
-    {
-      company: 'Finance Group CZ',
-      role: 'Recruitment Manager',
-      name: 'Lucie Horáková',
-      text: 'Optimalizace inzerátů pomocí AI přinesla o 60% kvalitnějších kandidátů. Skvělá investice.',
-      rating: 5
-    }
+  // Remove fake statistics - keep it simple
+  const benefits = [
+    { icon: Sparkles, text: t('company_landing.benefits.ai_powered') },
+    { icon: Target, text: t('company_landing.benefits.easy_posting') },
+    { icon: BrainCircuit, text: t('company_landing.benefits.assessments') },
+    { icon: TrendingUp, text: t('company_landing.benefits.insights') }
   ];
 
   return (
@@ -160,103 +137,56 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             <p className="text-slate-600 dark:text-slate-300 text-lg md:text-xl leading-relaxed max-w-3xl mx-auto">
               {t('company_landing.hero.subtitle')}
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
               <button
                 onClick={onRegister}
-                className="flex items-center gap-2 text-sm font-bold text-white dark:text-slate-900 bg-slate-900 dark:bg-white hover:bg-slate-800 dark:hover:bg-slate-200 px-6 py-2.5 rounded-lg transition-colors"
+                className="flex items-center gap-2 text-sm font-bold text-white dark:text-slate-900 bg-cyan-600 dark:bg-cyan-400 hover:bg-cyan-500 dark:hover:bg-cyan-300 px-8 py-3 rounded-lg transition-colors shadow-lg"
               >
                 <Building size={18} />
                 {t('company_landing.hero.start_free')}
               </button>
               <button
                 onClick={onLogin}
-                className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-6 py-2.5 rounded-lg transition-colors border border-slate-300 dark:border-slate-600"
+                className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-8 py-3 rounded-lg transition-colors border border-slate-300 dark:border-slate-600"
               >
                 <LogIn size={18} />
                 {t('company_landing.hero.login')}
               </button>
-              <button
-                onClick={onRequestDemo}
-                className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-6 py-2.5 rounded-lg transition-colors border border-slate-300 dark:border-slate-600"
-              >
-                <Eye size={18} />
-                {t('company_landing.hero.view_demo')}
-              </button>
             </div>
           </div>
 
-          {/* Stats Section - Matching App Card Style */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-left mb-12">
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <TrendingUp size={24} className="text-emerald-500" />
-                  <h3 className="text-slate-900 dark:text-white font-bold text-lg">{t('company_landing.stats.title')}</h3>
-                </div>
-                <button className="text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded border border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                  <Info size={14} />
-                  {t('company_landing.stats.badge')}
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                {statsList.map((stat, index) => (
-                  <div key={index} className="text-center p-4 bg-slate-50 dark:bg-slate-950 rounded-lg">
-                    <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400 mb-1">
-                      {stat.value}
-                    </div>
-                    <div className="text-sm text-slate-600 dark:text-slate-400">
-                      {stat.label}
-                    </div>
+          {/* Benefits Grid - Simple and Honest */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+            {benefits.map((benefit, index) => (
+              <div key={index} className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="bg-cyan-100 dark:bg-cyan-900/30 p-2 rounded-lg">
+                    <benefit.icon className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                   </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                  <BrainCircuit size={24} className="text-purple-500" />
-                  <h3 className="text-slate-900 dark:text-white font-bold text-lg">{t('company_landing.features.title')}</h3>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{benefit.text}</p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 gap-4">
-                {featuresList.slice(0, 3).map((feature, index) => (
-                  <div key={index} className="flex items-start gap-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-lg">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${feature.color}`}>
-                      <feature.icon className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-slate-900 dark:text-white text-sm mb-1">
-                        {feature.title}
-                      </h4>
-                      <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                        {feature.description}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
 
-          {/* More Features */}
+          {/* Main Features Section */}
           <div className="bg-white dark:bg-slate-900 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative mb-12">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
-                <Shield size={24} className="text-indigo-500" />
-                <h3 className="text-slate-900 dark:text-white font-bold text-lg">{t('company_landing.features.more_title')}</h3>
+                <Sparkles size={24} className="text-cyan-500" />
+                <h3 className="text-slate-900 dark:text-white font-bold text-lg">{t('company_landing.features.title')}</h3>
               </div>
             </div>
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {featuresList.slice(3).map((feature, index) => (
-                <div key={index} className="p-4 bg-slate-50 dark:bg-slate-950 rounded-lg">
-                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${feature.color}`}>
-                    <feature.icon className="w-5 h-5" />
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {featuresList.map((feature, index) => (
+                <div key={index} className="p-6 bg-slate-50 dark:bg-slate-950 rounded-lg">
+                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${feature.color}`}>
+                    <feature.icon className="w-6 h-6" />
                   </div>
-                  <h4 className="font-semibold text-slate-900 dark:text-white text-sm mb-2">
+                  <h4 className="font-semibold text-slate-900 dark:text-white text-base mb-2">
                     {feature.title}
                   </h4>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                  <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
                     {feature.description}
                   </p>
                 </div>
@@ -384,38 +314,6 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             </div>
           </div>
 
-          {/* Testimonials - Matching App Card Style */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative mb-12">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-2">
-                <Users size={24} className="text-blue-500" />
-                <h3 className="text-slate-900 dark:text-white font-bold text-lg">{t('company_landing.testimonials.title')}</h3>
-              </div>
-            </div>
-            <div className="grid md:grid-cols-3 gap-6">
-              {testimonials.map((testimonial, index) => (
-                <div key={index} className="bg-slate-50 dark:bg-slate-950 rounded-lg p-4">
-                  <div className="flex items-center gap-1 mb-3">
-                    {[...Array(testimonial.rating)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 text-yellow-500 fill-current" />
-                    ))}
-                  </div>
-                  <p className="text-sm text-slate-700 dark:text-slate-300 mb-3 italic leading-relaxed">
-                    "{testimonial.text}"
-                  </p>
-                  <div>
-                    <div className="font-semibold text-slate-900 dark:text-white text-sm">
-                      {testimonial.name}
-                    </div>
-                    <div className="text-xs text-slate-600 dark:text-slate-400">
-                      {testimonial.role} @ {testimonial.company}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
           {/* Final CTA - Matching App Style */}
           <div className="bg-slate-900 dark:bg-slate-800 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative">
             <div className="text-center">
@@ -432,24 +330,17 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <button
                   onClick={onRegister}
-                  className="flex items-center gap-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 px-6 py-2.5 rounded-lg transition-colors"
+                  className="flex items-center gap-2 text-sm font-bold text-white bg-cyan-600 hover:bg-cyan-500 px-8 py-3 rounded-lg transition-colors shadow-lg"
                 >
                   <Building size={18} />
                   {t('company_landing.cta.register')}
                 </button>
                 <button
                   onClick={onLogin}
-                  className="flex items-center gap-2 text-sm font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-6 py-2.5 rounded-lg transition-colors border border-slate-700"
+                  className="flex items-center gap-2 text-sm font-bold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-8 py-3 rounded-lg transition-colors border border-slate-700"
                 >
                   <LogIn size={18} />
                   {t('company_landing.cta.login')}
-                </button>
-                <button
-                  onClick={onRequestDemo}
-                  className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-6 py-2.5 rounded-lg transition-colors border border-slate-300 dark:border-slate-600"
-                >
-                  <MessageSquare size={18} />
-                  {t('company_landing.cta.demo')}
                 </button>
               </div>
             </div>
