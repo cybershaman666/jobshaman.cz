@@ -48,12 +48,28 @@ export const publishJob = async (jobData: PublishJobRequest) => {
                 lng,
                 company_id: jobData.company_id,
                 legality_status: 'pending', // Initial status before AI check
-                scraped_at: new Date().toISOString()
+                scraped_at: new Date().toISOString(),
+                source: jobData.source || 'jobshaman.cz'
             })
             .select()
             .single();
 
         if (error) throw error;
+
+        // 2. Generate and update internal URL for manual postings if missing
+        if (!data.url) {
+            const internalUrl = `https://jobshaman.cz/jobs/${data.id}`;
+            const { error: updateError } = await supabase
+                .from('jobs')
+                .update({ url: internalUrl })
+                .eq('id', data.id);
+
+            if (!updateError) {
+                data.url = internalUrl;
+            } else {
+                console.error("Failed to update job URL:", updateError);
+            }
+        }
 
         // 2. Trigger Legality Check on Render
         // We don't await this to avoid blocking the UI, but we could if we want immediate feedback

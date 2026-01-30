@@ -1641,6 +1641,28 @@ async def get_subscription_status(
                 .eq("company_id", userId)
                 .execute()
             )
+            
+            # AUTO-HEAL: If no subscription exists for a company, activate a 14-day trial
+            if not sub_response.data and supabase:
+                print(f"🩹 Auto-activating trial for company: {userId}")
+                from datetime import datetime, timedelta, timezone
+                trial_end = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
+                
+                try:
+                    trial_data = {
+                        "company_id": userId,
+                        "tier": "business",
+                        "status": "active",
+                        "current_period_start": datetime.now(timezone.utc).isoformat(),
+                        "current_period_end": trial_end,
+                        "stripe_subscription_id": f"trial_{userId[:8]}"
+                    }
+                    new_sub = supabase.table("subscriptions").insert(trial_data).execute()
+                    if new_sub.data:
+                        subscription_details = new_sub.data[0]
+                        user_tier = "business"
+                except Exception as e:
+                    print(f"❌ Failed to auto-activate trial: {e}")
         else:
             # For personal users: query by user_id
             sub_response = (
@@ -1650,9 +1672,23 @@ async def get_subscription_status(
                 .execute()
             )
 
-        if sub_response.data:
+        if sub_response.data and not subscription_details:
             subscription_details = sub_response.data[0]
             user_tier = subscription_details.get("tier", "free")
+
+        # REAL-TIME JOB COUNTING (more accurate than usage table)
+        if is_company_admin:
+            try:
+                jobs_count_resp = (
+                    supabase.table("jobs")
+                    .select("id", count="exact")
+                    .eq("company_id", userId)
+                    .execute()
+                )
+                real_job_count = jobs_count_resp.count if jobs_count_resp.count is not None else 0
+            except Exception as e:
+                print(f"⚠️ Error counting jobs: {e}")
+                real_job_count = 0
 
         limits = tier_limits.get(user_tier, tier_limits["free"])
 
@@ -1742,7 +1778,7 @@ async def get_subscription_status(
             "assessmentsAvailable": limits["assessments"],
             "assessmentsUsed": assessments_used,
             "jobPostingsAvailable": limits["job_postings"],
-            "jobPostingsUsed": job_postings_used,
+            "jobPostingsUsed": real_job_count if is_company_admin else job_postings_used,
             # Candidate specific
             "cvRewritesAvailable": limits.get("cv_rewrites", 0),
             "cvRewritesUsed": cv_rewrites_used,
