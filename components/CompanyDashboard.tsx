@@ -442,10 +442,10 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('company.subscription.job_ads')}</span>
                             </div>
                             <div className="text-lg font-bold text-slate-900 dark:text-white">
-                                {subscription?.tier === 'business' ? t('company.subscription.unlimited') : subscription?.tier === 'basic' || subscription?.tier === 'free' ? '3' : '0'}
+                                {subscription?.jobPostingsUsed || 0} / {subscription?.jobPostingsAvailable === 999 ? t('company.subscription.unlimited') : subscription?.jobPostingsAvailable || '3'}
                             </div>
                             <div className="text-xs text-slate-500">
-                                {subscription?.tier === 'business' ? t('company.subscription.no_limit') : t('company.subscription.this_month')}
+                                {t('company.subscription.used')}
                             </div>
                             {subscription?.tier === 'free' && (
                                 <div className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
