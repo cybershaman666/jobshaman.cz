@@ -372,7 +372,15 @@
         "cv_size_error": "Soubor je příliš velký. Maximální velikost je 10MB.",
         "cv_upload_success": "CV úspěšně nahráno a zpracováno!",
         "cv_upload_error": "Nepodařilo se nahrát CV. Zkuste to znovu.",
-        "save_success": "Profil úspěšně uložen"
+        "save_success": "Profil úspěšně uložen",
+        "danger_zone": "Nebezpečná zóna",
+        "delete_account": "Smazat účet",
+        "delete_account_warning_title": "Smazat váš účet?",
+        "delete_account_warning_desc": "Tato akce je nevratná. Všechna vaše data, profil a historie budou trvale smazány.",
+        "delete_account_confirm": "Ano, smazat vše",
+        "delete_account_cancel": "Zrušit",
+        "delete_account_success": "Váš účet byl úspěšně smazán.",
+        "delete_account_error": "Nepodařilo se smazat účet. Zkuste to prosím znovu nebo kontaktujte podporu."
     },
     "cv_manager": {
         "title": "Správa životopisů",
@@ -482,7 +490,6 @@
             "all_recruiters": "Všichni Náboráři",
             "create_ad_btn": "Vytvořit Pracovní Inzerát",
             "welcome_title": "Vítejte v JobShaman",
-            "empty_state_desc": "Žádná data. Vytvořte svůj první pracovní inzerát a začněte s náborem.",
             "empty_state_desc": "Zatím jste nezveřejnili žádný inzerát. Začněte vytvořením prvního inzerátu pomocí AI editoru.",
             "create_first_ad": "Vytvořit První Pracovní Inzerát",
             "active_postings": "Aktivní Inzeráty",

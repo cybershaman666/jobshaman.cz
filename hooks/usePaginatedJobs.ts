@@ -10,6 +10,12 @@ interface UsePaginatedJobsProps {
     initialPageSize?: number;
 }
 
+// Global deduper helper to prevent "duplicate key" React warnings
+const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
+    const seen = new Set(existingJobs.map(j => j.id));
+    return [...existingJobs, ...newJobs.filter(j => !seen.has(j.id))];
+};
+
 export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePaginatedJobsProps) => {
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(false);
@@ -143,7 +149,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 globalSearch ? undefined : userProfile.coordinates?.lon,
                 effectiveRadius
             );
-            setJobs(result.jobs);
+            setJobs(dedupeJobs(result.jobs));
             setHasMore(result.hasMore);
             setTotalCount(result.totalCount);
             setCurrentPage(0);
@@ -207,7 +213,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                     if (result.jobs.length === 0) {
                         console.log(`🏙️  No geocoded jobs found, trying location text search...`);
                         const locationResult = await searchJobsByLocation(filterCity, 0, initialPageSize);
-                        setJobs(locationResult.jobs);
+                        setJobs(dedupeJobs(locationResult.jobs));
                         setHasMore(locationResult.hasMore);
                         setTotalCount(locationResult.totalCount);
                         // Only text-based results — clear merged context
@@ -240,7 +246,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                         const combinedTotal = (result.totalCount || 0) + Math.max(0, (locationResult.totalCount || 0) - (result.totalCount || 0));
 
                         const mergedAnnotated = await annotateRegionMatches(merged, userProfile.coordinates);
-                        setJobs(mergedAnnotated);
+                        setJobs(dedupeJobs(mergedAnnotated));
                         setHasMore(Boolean(result.hasMore || locationResult.hasMore));
                         setTotalCount(combinedTotal);
                         // Set merged pagination context so loadMoreJobs can fetch more from both sources
@@ -257,7 +263,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                     setLoading(true);
                     const locationResult = await searchJobsByLocation(filterCity, 0, initialPageSize);
                     const annotated = await annotateRegionMatches(locationResult.jobs, userProfile.coordinates);
-                    setJobs(annotated);
+                    setJobs(dedupeJobs(annotated));
                     setHasMore(locationResult.hasMore);
                     setTotalCount(locationResult.totalCount);
                     // Only text-based results — clear merged context
@@ -348,9 +354,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 // Annotate the collected batch for region matches, then append
                 const annotatedBatch = await annotateRegionMatches(newBatch, userProfile.coordinates);
                 if (searchResults.length > 0 && searchTerm.trim()) {
-                    setSearchResults(prev => [...prev, ...annotatedBatch]);
+                    setSearchResults(prev => dedupeJobs(annotatedBatch, prev));
                 } else {
-                    setJobs(prev => [...prev, ...annotatedBatch]);
+                    setJobs(prev => dedupeJobs(annotatedBatch, prev));
                 }
 
                 // Update pagination state
@@ -370,7 +376,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 const nextPage = currentPage + 1;
                 const result = await searchJobs(searchTerm, nextPage, initialPageSize);
                 if (result.jobs.length > 0) {
-                    setSearchResults(prev => [...prev, ...result.jobs]);
+                    setSearchResults(prev => dedupeJobs(result.jobs, prev));
                     setHasMore(result.hasMore);
                     setCurrentPage(nextPage);
                 } else {
@@ -392,7 +398,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             );
 
             if (result.jobs.length > 0) {
-                setJobs(prev => [...prev, ...result.jobs]);
+                setJobs(prev => dedupeJobs(result.jobs, prev));
                 setHasMore(result.hasMore);
                 setCurrentPage(nextPage);
             } else {

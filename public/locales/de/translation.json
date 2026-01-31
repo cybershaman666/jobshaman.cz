@@ -301,7 +301,15 @@
     "school": "Schule / Universität",
     "degree": "Abschluss",
     "field": "Fachrichtung",
-    "year": "Abschlussjahr"
+    "year": "Abschlussjahr",
+    "danger_zone": "Gefahrenzone",
+    "delete_account": "Konto löschen",
+    "delete_account_warning_title": "Ihr Konto löschen?",
+    "delete_account_warning_desc": "Diese Aktion ist unwiderruflich. Alle Ihre Daten, Ihr Profil und Ihr Verlauf werden dauerhaft gelöscht.",
+    "delete_account_confirm": "Ja, alles löschen",
+    "delete_account_cancel": "Abbrechen",
+    "delete_account_success": "Ihr Konto wurde erfolgreich gelöscht.",
+    "delete_account_error": "Fehler beim Löschen des Kontos. Bitte versuchen Sie es erneut oder kontaktieren Sie den Support."
   },
   "company_registration": {
     "step1_title": "Erstellen Sie Ihr Unternehmenskonto",

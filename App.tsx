@@ -96,6 +96,7 @@ export default function App() {
         setUserProfile,
         setCompanyProfile,
         signOut,
+        deleteAccount,
         handleSessionRestoration
     } = useUserProfile();
 
@@ -656,9 +657,20 @@ export default function App() {
         }
 
         if (viewState === ViewState.COMPANY_DASHBOARD) {
+            if (!companyProfile && userProfile.role === 'recruiter') {
+                // If recruiter somehow got here without a profile, show onboarding
+                setIsOnboardingCompany(true);
+                return null;
+            }
+
             return (
                 <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
-                    <CompanyDashboard companyProfile={companyProfile} userEmail={userProfile.email} />
+                    <CompanyDashboard
+                        companyProfile={companyProfile}
+                        userEmail={userProfile.email}
+                        onDeleteAccount={deleteAccount}
+                        onProfileUpdate={setCompanyProfile}
+                    />
                 </div>
             );
         }
@@ -678,6 +690,7 @@ export default function App() {
                         onChange={handleProfileUpdate}
                         onSave={() => setViewState(ViewState.LIST)}
                         onRefreshProfile={refreshUserProfile}
+                        onDeleteAccount={deleteAccount}
                         savedJobs={filteredJobs.filter(job => savedJobIds.includes(job.id))}
                         savedJobIds={savedJobIds}
                         onToggleSave={handleToggleSave}
@@ -848,9 +861,11 @@ export default function App() {
                 showCompanyLanding={showCompanyLanding}
                 setShowCompanyLanding={setShowCompanyLanding}
                 userProfile={userProfile}
+                companyProfile={companyProfile}
                 handleAuthAction={handleAuthAction}
-                toggleTheme={() => setTheme(theme === 'light' ? 'dark' : 'light')}
+                toggleTheme={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
                 theme={theme}
+                setIsOnboardingCompany={setIsOnboardingCompany}
             />
 
             <main className="flex-1 max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 overflow-hidden">

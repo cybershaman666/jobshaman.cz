@@ -1,7 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import i18n from '../src/i18n';
 import Markdown from 'markdown-to-jsx';
 import { Job, Candidate, AIAdOptimizationResult, CompanyProfile } from '../types';
 import { optimizeJobDescription } from '../services/geminiService';
@@ -35,7 +34,6 @@ import {
     Filter,
     ArrowRight,
     TrendingDown,
-    Target,
     Bold,
     Italic,
     List,
@@ -70,25 +68,24 @@ const COMMON_BENEFITS = [
 interface CompanyDashboardProps {
     companyProfile?: CompanyProfile | null;
     userEmail?: string;
+    onDeleteAccount?: () => Promise<boolean>;
+    onProfileUpdate?: (profile: CompanyProfile) => void;
 }
 
-const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: propProfile, userEmail }) => {
-    const { t } = useTranslation();
+const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: propProfile, userEmail, onDeleteAccount, onProfileUpdate }) => {
+    const { t, i18n } = useTranslation();
     const [activeTab, setActiveTab] = useState<'overview' | 'create-ad' | 'candidates' | 'settings' | 'assessments' | 'marketplace'>('overview');
     const [showUpgradeModal, setShowUpgradeModal] = useState<{ open: boolean, feature?: string }>({ open: false });
     const [showInvitationModal, setShowInvitationModal] = useState(false);
     const [showInvitationsList, setShowInvitationsList] = useState(false);
     const [activeDropdownJobId, setActiveDropdownJobId] = useState<string | null>(null);
 
-    // Real User Detection
-    const isRealUser = !!propProfile;
-
-    // Profile State
-    const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(propProfile || null);
+    // Data State (Empty for initial load, fetched from Supabase)
 
     // Data State (Empty for Real, Mocks for Demo)
     // Data State (Empty for initial load, fetched from Supabase)
     const [jobs, setJobs] = useState<Job[]>([]);
+    const [jobStats, setJobStats] = useState<Record<string, { views: number, applicants: number }>>({});
     const [candidates] = useState<Candidate[]>([]);
 
     // Subscription state
@@ -117,6 +114,10 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     const [selectedJobId, setSelectedJobId] = useState<string>(jobs.length > 0 ? jobs[0].id : '');
     const [candidateMatches, setCandidateMatches] = useState<Record<string, { score: number, reason: string }>>({});
     const [isMatching, setIsMatching] = useState(false);
+
+    // Simplified Profile management
+    const companyProfile = propProfile;
+    const isRealUser = !!companyProfile;
 
     // Recruiter Handling
     const [selectedRecruiterId, setSelectedRecruiterId] = useState<string>('all');
@@ -170,6 +171,39 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     if (realJobs) {
                         setJobs(realJobs as Job[]);
                         if (realJobs.length > 0) setSelectedJobId(realJobs[0].id);
+
+                        // Fetch stats for these jobs
+                        const jobIds = (realJobs as Job[]).map((j: Job) => j.id);
+                        if (jobIds.length > 0) {
+                            // 1. Fetch Applications count
+                            const { data: apps } = await supabase
+                                .from('job_applications')
+                                .select('job_id')
+                                .in('job_id', jobIds);
+
+                            // 2. Fetch Views count from analytics
+                            const { data: views } = await supabase
+                                .from('analytics_events')
+                                .select('metadata')
+                                .eq('event_type', 'job_view')
+                                .eq('company_id', companyProfile.id);
+
+                            // Aggregate stats
+                            const stats: Record<string, { views: number, applicants: number }> = {};
+                            jobIds.forEach((id: string) => stats[id] = { views: 0, applicants: 0 });
+
+                            apps?.forEach((app: any) => {
+                                if (stats[app.job_id]) stats[app.job_id].applicants++;
+                            });
+
+                            views?.forEach((v: any) => {
+                                const jId = v.metadata?.job_id;
+                                if (jId && stats[jId]) stats[jId].views++;
+                            });
+
+                            setJobStats(stats);
+                            console.log("📊 Real-time Dashboard Stats Loaded:", stats);
+                        }
                     }
                 }
             } catch (e) {
@@ -570,7 +604,9 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 <div className="flex justify-between items-start mb-4">
                                     <div>
                                         <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.pipeline')}</div>
-                                        <div className="text-3xl font-bold text-slate-900 dark:text-white">0</div>
+                                        <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                                            {Object.values(jobStats).reduce((acc, curr) => acc + curr.applicants, 0)}
+                                        </div>
                                     </div>
                                     <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
                                         <Users size={20} />
@@ -578,7 +614,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex h-2 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800">
-                                        <div className="bg-emerald-500 w-[0%]" title="New: 0"></div>
+                                        <div className="bg-emerald-500 w-[100%]" title="Applicants"></div>
                                     </div>
                                     <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 font-mono">
                                         <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>{t('company.dashboard.stats.new')}</span>
@@ -586,35 +622,43 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 </div>
                             </div>
 
-                            {/* Quality Metric */}
+                            {/* Views Metric (Replaces Match Score for now as it's more useful) */}
                             <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
-                                        <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.match_score')}</div>
-                                        <div className="text-3xl font-bold text-slate-900 dark:text-white">--<span className="text-lg text-slate-400 font-normal">/100</span></div>
+                                        <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.table.views_count')}</div>
+                                        <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                                            {Object.values(jobStats).reduce((acc, curr) => acc + curr.views, 0)}
+                                        </div>
                                     </div>
                                     <div className="p-2 bg-cyan-50 dark:bg-cyan-500/10 rounded-lg text-cyan-600 dark:text-cyan-400">
-                                        <Target size={20} />
+                                        <Eye size={20} />
                                     </div>
                                 </div>
                                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                                    {t('company.dashboard.stats.no_data_yet')}
+                                    {t('company.dashboard.stats.analyzing_market')}
                                 </p>
                             </div>
 
-                            {/* Time to Hire Metric */}
+                            {/* Conversion Metric */}
                             <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden group">
                                 <div className="flex justify-between items-start mb-2">
                                     <div>
-                                        <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.time_to_hire')}</div>
-                                        <div className="text-3xl font-bold text-slate-900 dark:text-white">-- <span className="text-lg font-normal text-slate-500">{t('company.dashboard.stats.days')}</span></div>
+                                        <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.table.conv_rate')}</div>
+                                        <div className="text-3xl font-bold text-slate-900 dark:text-white">
+                                            {(() => {
+                                                const totalViews = Object.values(jobStats).reduce((acc, curr) => acc + curr.views, 0);
+                                                const totalApps = Object.values(jobStats).reduce((acc, curr) => acc + curr.applicants, 0);
+                                                return totalViews > 0 ? ((totalApps / totalViews) * 100).toFixed(1) : '0.0';
+                                            })()}%
+                                        </div>
                                     </div>
                                     <div className="p-2 bg-amber-50 dark:bg-amber-500/10 rounded-lg text-amber-600 dark:text-amber-400">
-                                        <Clock size={20} />
+                                        <TrendingUp size={20} />
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2 mt-3 text-sm border-t border-slate-100 dark:border-slate-800 pt-2">
-                                    <span className="text-slate-400">{t('company.dashboard.stats.awaiting_hires')}</span>
+                                    <span className="text-slate-400">{t('company.dashboard.stats.pipeline')}</span>
                                 </div>
                             </div>
 
@@ -624,7 +668,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                     <div>
                                         <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.saved')}</div>
                                         <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                                            0 <span className="text-lg font-normal text-slate-500 dark:text-slate-400">CZK</span>
+                                            {Object.values(jobStats).reduce((acc, curr) => acc + curr.applicants, 0) * 1250} <span className="text-lg font-normal text-slate-500 dark:text-slate-400">CZK</span>
                                         </div>
                                     </div>
                                     <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400">
@@ -634,11 +678,11 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden mb-1 mt-2">
                                     <div
                                         className="h-full rounded-full bg-emerald-500"
-                                        style={{ width: `0%` }}
+                                        style={{ width: `100%` }}
                                     ></div>
                                 </div>
                                 <div className="flex justify-between text-xs text-slate-400 mb-2">
-                                    <span>{t('company.dashboard.stats.spent')}: 0%</span>
+                                    <span>{t('company.dashboard.stats.potential_savings')}</span>
                                 </div>
                             </div>
                         </div>
@@ -698,11 +742,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                             </thead>
                                             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                                                 {jobs.slice(0, 5).map((job) => {
-                                                    const views = 0;
-                                                    const applied = 0;
-                                                    const realConversion = 0;
+                                                    const stats = jobStats[job.id] || { views: 0, applicants: 0 };
+                                                    const views = stats.views;
+                                                    const applied = stats.applicants;
+                                                    const realConversion = views > 0 ? (applied / views) * 100 : 0;
                                                     const avgMatch = 0;
-                                                    const isLowPerf = false;
+                                                    const isLowPerf = views > 20 && realConversion < 2;
 
                                                     return (
                                                         <tr key={job.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
@@ -1353,7 +1398,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             {/* Content Area */}
             <div className="min-h-[500px]">
                 {activeTab === 'overview' && renderOverview()}
-                {activeTab === 'settings' && <CompanySettings profile={companyProfile} onSave={setCompanyProfile} />}
+                {activeTab === 'settings' && companyProfile && <CompanySettings profile={companyProfile} onSave={onProfileUpdate || (() => { })} onDeleteAccount={onDeleteAccount} />}
                 {activeTab === 'create-ad' && renderCreateAd()}
                 {activeTab === 'assessments' && (
                     <div>

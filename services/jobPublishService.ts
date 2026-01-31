@@ -98,9 +98,11 @@ export const publishJob = async (jobData: PublishJobRequest) => {
 
             const result = await response.json();
             if (response.ok) {
-                console.log("✅ [DEBUG] Legality check completed:", result);
+                console.log(`✅ [DEBUG] Legality check completed for job ${data.id}:`, result);
             } else {
-                console.error(`❌ [DEBUG] Legality check failed with status ${response.status}:`, result);
+                console.error(`❌ [DEBUG] Legality check failed for job ${data.id} with status ${response.status}:`, result);
+                // We don't throw here to avoid blocking the UI success message, 
+                // but the job will remain 'pending' in the dashboard.
             }
         } catch (err) {
             console.error("❌ [DEBUG] Legality check trigger network error:", err);
