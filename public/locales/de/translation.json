@@ -354,388 +354,371 @@
     "ai_summary_default": "JobShaman – moderne Plattform für Jobsuchende in Tschechien mit KI-Analyse und Transparenz."
   },
   "about": "Über uns",
-  "contact": "Kontakt"
-},
-"company": {
-  "portal": {
-    "title": "Unternehmensportal",
-    "subtitle": "Personalbeschaffung ohne Schnörkel, Daten bez Verzerrung."
-  },
-  "dashboard": {
-    "title": "Recruiting-Übersicht",
-    "subtitle": "Statistiken für das gesamte Unternehmen und einzelne Recruiter.",
-    "tabs": {
-      "overview": "Übersicht",
-      "dna_culture": "DNA & Kultur",
-      "ai_editor": "AI-Editor",
-      "assessments": "Assessments",
-      "candidates": "Kandidaten",
-      "marketplace": "Kurs-Marktplatz"
-    },
-    "all_recruiters": "Alle Recruiter",
-    "create_ad_btn": "Stellenanzeige erstellen",
-    "welcome_title": "Willkommen bei JobShaman",
-    "empty_state_desc": "Keine Daten. Erstellen Sie Ihre erste Stellenanzeige und beginnen Sie mit dem Recruiting.",
-    "create_first_ad": "Erste Stellenanzeige erstellen",
-    "active_postings": "Aktive Anzeigen",
-    "table": {
-      "position": "Position",
-      "status": "Status",
-      "pipeline": "Pipeline-Zustand",
-      "ai_match": "KI-Match",
-      "performance": "Leistung",
-      "actions": "Aktionen"
-    },
-    "status": {
-      "pending": "Wartend auf Prüfung",
-      "approved": "Genehmigt",
-      "flagged": "Erfordert Überprüfung",
-      "refused": "Abgelehnt"
-    },
-    "stats": {
-      "pipeline": "Pipeline",
-      "match_score": "Match-Score",
-      "time_to_hire": "Zeit bis zur Einstellung",
-      "saved": "Gespeichert",
-      "days": "Tage",
-      "candidates_count": "Kandidaten",
-      "low_perf": "Niedrige Leistung",
-      "vs_avg": "vs. Durchschnitt (32)",
-      "spent": "Ausgegeben",
-      "projected": "Progn."
-    },
-    "ai_insights": {
-      "title": "Strategische KI-Einblicke",
-      "hired_prediction": "Basierend auf der Historie werden Sie in {{days}} Tagen einstellen ({{count}} Kandidaten in der Pipeline). Sie sind auf Kurs.",
-      "low_match_warning": "Niedriger KI-Match (durchschnittlich {{avg}}%). Wir empfehlen, die Beschreibung der Arbeitszeit in der Anzeige anzupassen."
-    },
-    "actions": {
-      "view_as_user": "Als Benutzer ansehen",
-      "edit": "Position bearbeiten",
-      "close": "Als geschlossen markieren",
-      "delete": "Position löschen",
-      "confirm_delete": "Sind Sie sicher, dass Sie diese Position löschen möchten?",
-      "confirm_close": "Sind Sie sicher, dass Sie diese Position als geschlossen markieren möchten?"
-    },
-    "team_activity": "Teamaktivität",
-    "leaderboard": "Rangliste"
-  },
-  "settings": {
-    "title": "Unternehmenseinstellungen",
-    "dna": "Unternehmens-DNA",
-    "team": "Team & Zugriff",
-    "culture_title": "Unternehmenskultur und Werte",
-    "culture_desc": "Definieren Sie, wer Sie sind, damit die KI passende Leute finden kann.",
-    "mission": "Mission und Philosophie",
-    "mission_placeholder": "Warum existiert Ihr Unternehmen? Welchen Einfluss haben Sie auf die Welt?",
-    "tone": "Kommunikationston",
-    "tones": {
-      "friendly": "Professionell, aber freundlich",
-      "geeky": "Technisch und 'nerdig'",
-      "formal": "Corporate und formal",
-      "startup": "Startup-Energie und Drive"
-    },
-    "values": "Werte (max. 5)",
-    "add_value_placeholder": "Wert hinzufügen (z.B. 'Transparenz')",
-    "add_btn": "Hinzufügen",
-    "team_mgmt": "Teammanagement",
-    "team_mgmt_desc": "Wer hat Zugriff auf das Recruiting?",
-    "plan_label": "Plan:",
-    "active_until": "Aktiv bis",
-    "ai_usage": "Genutzte KI-Assessments",
-    "invite_colleague": "Kollegen einladen",
-    "invite_placeholder": "email@unternehmen.de",
-    "invite_btn": "Einladen",
-    "admin_label": "Admin",
-    "remove_from_team": "Aus Team entfernen",
-    "save_changes": "Änderungen speichern",
-    "invite_success": "Einladung für {{email}} wurde gesendet!",
-    "invite_failed": "Einladung konnte nicht gesendet werden."
-  },
-  "subscription": {
-    "title": "Unternehmens-Abonnement",
-    "manage": "Abonnement verwalten",
-    "next_payment": "Nächste Zahlung:",
-    "days_left": "in {{count}} Tagen",
-    "ai_assessments": "KI-Assessments",
-    "used": "genutzt",
-    "buy_credits": "Credits kaufen",
-    "job_ads": "Stellenanzeigen",
-    "unlimited": "Unbegrenzt",
-    "no_limit": "Keine Begrenzung",
-    "this_month": "Diesen Monat",
-    "upgrade": "Upgrade auf Premium",
-    "team_members": "Teammitglieder",
-    "active": "Aktiv",
-    "inactive": "Inaktiv",
-    "tiers": {
-      "business": "Business",
-      "basic": "Basis",
-      "free": "Kostenlos"
-    }
-  },
-  "ad_editor": {
-    "title": "Stellenanzeigen-Editor",
-    "tone_prefix": "Angewandter Ton:",
-    "position_name": "Positionsbezeichnung",
-    "fill_required": "Bitte füllen Sie sowohl die Positionsbezeichnung als auch die Beschreibung aus.",
-    "publish_success": "Die Anzeige wurde zur Überprüfung gesendet und wird in Kürze veröffentlicht!",
-    "publish_error": "Fehler beim Veröffentlichen der Stellenanzeige.",
-    "post_limit_exceeded": "Mehr als 5 Stellenanzeigen"
-  }
-},
-"common": {
-  "unknown": "Unbekannt",
-  "none": "Keine",
-  "standard_package": "Standardpaket",
-  "search": "Suche"
-},
-"seo": {
-  "base_title": "JobShaman - Intelligente Stellenangebote",
-  "home_description": "Finden Sie Ihren idealen Job mit KI-Analyse.",
-  "marketplace_title": "Kurse und Schulungen - JobShaman",
-  "marketplace_description": "Kurse für Ihre Karriere.",
-  "profile_title": "Mein Profil | JobShaman",
-  "profile_description": "Verwalten Sie Ihr Profil.",
-  "company_dashboard_title": "Für Unternehmen - JobShaman",
-  "company_dashboard_description": "Anzeigen mit KI veröffentlichen.",
-  "job_detail_suffix": "JobShaman",
-  "job_detail_description": "Jobposition {{title}}.",
-  "ai_summary_home": "JobShaman - KI-Jobsuche-Plattform.",
-  "ai_summary_job": "Position {{title}}.",
-  "ai_summary_company": "JobShaman für Unternehmen.",
-  "ai_summary_default": "JobShaman - moderne Jobsuche."
-},
-"welcome_extra": {
-  "metrics": {
-    "time_label": "Zeit",
-    "time_value": "+18 Std. / Monat",
-    "money_label": "Geld",
-    "money_value": "–4.200 CZK",
-    "jhi_label": "JHI",
-    "jhi_value": "–7 Punkte",
-    "impact_desc": "Das ist Arbeit, aufgeschlüsselt in Auswirkungen."
-  },
-  "how_it_works": {
-    "title": "Wie wir es berechnen",
-    "financial": {
-      "title": "Finanzielle Realität",
-      "desc": "Wie viel Ihnen wirklich jeden Monat übrig bleibt. Nach Steuern, Pflichtabzügen und Pendelkosten.",
-      "hint": "Kein „bis zu 60.000 CZK“. Nur Nettoeinkommen in der realen Welt."
-    },
-    "commute": {
-      "title": "Auswirkung des Pendelns",
-      "desc": "Pendeln ist nicht nur eine Entfernung. Es ist Zeit, Geld, Müdigkeit und langfristige Auswirkungen auf das Leben.",
-      "items": {
-        "distance": "Entfernung",
-        "mode": "Pendelmodus",
-        "loss": "Zeitverlust",
-        "costs": "monatliche Kosten"
-      }
-    },
-    "jhi": {
-      "title": "JHI – Job Happiness Index",
-      "desc": "Eine einzige Zahl, die fünf Dimensionen des Arbeitslebens zusammenfasst: Einkommen, Zeit, Stabilität, Flexibilität und Belastung.",
-      "hint": "Die Inspiration stammt aus dem Bruttonationalglück-Index von Bhutan. Wir bewerten keine Unternehmen. Wir bewerten die Auswirkungen der Arbeit auf den Menschen."
-    },
-    "transparency": {
-      "title": "Transparenz-Score",
-      "desc": "Einige Anzeigen sind fair. Andere sind nur gut geschrieben.",
-      "hint": "Wir analysieren Sprache, Unklarheiten und fehlende Informationen. Je weniger Nebel, desto höher der Score."
-    }
-  }
-},
-"marketplace_extra": {
-  "funding_categories": {
-    "technical_professions": "Technische Berufe",
-    "technical_professions_desc": "Elektriker, Schweißer, Klempner",
-    "technical_courses": "Technische Kurse",
-    "technical_courses_desc": "Schweißen, IT-Zertifizierungen",
-    "language_courses": "Sprachkurse",
-    "language_courses_desc": "Englisch, Deutsch und andere"
-  },
-  "courses": {
-    "gov_1": {
-      "title": "Elektriker - Elektroinstallationstätigkeit",
-      "desc": "Kurs zur Erlangung eines Befähigungsnachweises für Elektroinstallationstätigkeiten. Hohe Nachfrage auf dem Arbeitsmarkt."
-    },
-    "gov_2": {
-      "title": "Führerschein Klasse C+E",
-      "desc": "Professioneller Führerschein für den Güterverkehr. Umschulungskurs mit Vermittlungsgarantie."
-    },
-    "com_1": {
-      "title": "Java Backend Developer Certificate",
-      "desc": "Kompletter Kurs zur Backend-Anwendungsentwicklung in Java mit Zertifizierung. Jobvermittlungsgarantie."
-    },
-    "com_2": {
-      "title": "Python für Data Science",
-      "desc": "Moderner Python-Kurs mit Fokus auf Datenanalyse, maschinelles Lernen und KI. Ideal für das Karrierewachstum."
-    }
-  }
-},
-"company_extra": {
-  "activity": {
-    "added_comment": "<span class=\"font-bold\">{{name}}</span> hat einen Kommentar zu <span class=\"font-bold\">{{target}}</span> hinzugefügt",
-    "rejected_spam": "<span class=\"font-bold\">KI-Assistent</span> hat {{count}} Spams abgelehnt",
-    "time_ago": "vor {{count}} Min.",
-    "hour_ago": "vor {{count}} Std.",
-    "no_redux": "Sieht vielversprechend aus, hat aber keine Erfahrung mit Redux."
-  },
-  "stats": {
-    "hires": "Einstellungen",
-    "avg_tth": "Durchschn. TTH",
-    "days_unit": "Tage"
-  },
-  "features": {
-    "more_than_5": "Mehr als 5 Anzeigen",
-    "ai_optimization": "KI-Anzeigenoptimierung"
-  }
-},
-"company_landing": {
-  "hero": {
-    "badge": "KI-gestützte Recruiting-Plattform",
-    "title_start": "Stellen Sie die besten",
-    "title_highlight": "Talente",
-    "title_end": "mit KI ein",
-    "subtitle": "Moderne Recruiting-Plattform mit KI-Kandidatenanalyse, Assessment Center und intelligenter Stellenanzeigen-Optimierung. Verschwenden Sie keine Zeit mehr mit ungeeigneten Bewerbern.",
-    "start_free": "Kostenlos starten",
-    "login": "Anmelden",
-    "view_demo": "Demo ansehen"
-  },
-  "stats": {
-    "title": "Ergebnisse in Zahlen",
-    "badge": "Statistiken",
-    "screening": "Weniger Zeit für Screening",
-    "costs": "Geringere Recruiting-Kosten",
-    "filling": "Schnellere Stellenbesetzung",
-    "satisfaction": "Zufriedenheit der Unternehmen"
-  },
-  "benefits": {
-    "ai_powered": "KI-Anzeigenoptimierung",
-    "easy_posting": "Einfache Erstellung von Anzeigen",
-    "assessments": "Eigenes Assessment Center",
-    "insights": "Übersicht über Benefits"
-  },
-  "features": {
-    "title": "KI-Tools",
-    "more_title": "Weitere Funktionen",
-    "assessment": {
-      "title": "KI Assessment Center",
-      "desc": "Intelligente Kandidatenbewertung mittels KI-Analyse von Antworten, Fähigkeiten und kultureller Passung"
-    },
-    "analysis": {
-      "title": "Kandidatenanalyse",
-      "desc": "Detailliertes Kandidatenprofiling inklusive Fluktuationsrisikoanalyse und Teamkompatibilität"
-    },
-    "optimization": {
-      "title": "KI-Anzeigenoptimierung",
-      "desc": "Automatische Verbesserung von Stellenanzeigentexten für maximale Attraktivität und Erreichen höher qualifizierter Kandidaten"
-    },
-    "analytics": {
-      "title": "Erweiterte Analytik",
-      "desc": "Detaillierte Übersichten zur Anzeigenwirksamkeit, Kandidatendemografie und Recruiting-Kosten"
-    },
-    "transparent": {
-      "title": "Transparenz und Fair Play",
-      "desc": "Überprüfung von Informationen in Anzeigen und Eliminierung irreführender Praktiken im Recruiting"
-    },
-    "posting": {
-      "title": "Anzeigenverwaltung",
-      "desc": "Einfaches Erstellen und Veröffentlichen von Stellenanzeigen mit Formatierung, Emojis und Auswahl von Benefits."
-    },
-    "insights": {
-      "title": "Einsichten in Benefits",
-      "desc": "Finden Sie heraus, welche Benefits Kandidaten am meisten schätzen, und passen Sie Ihr Angebot an."
+  "contact": "Kontakt",
+  "company": {
+    "portal": {
+      "title": "Unternehmensportal",
+      "subtitle": "Personalbeschaffung ohne Schnörkel, Daten bez Verzerrung."
     },
     "dashboard": {
-      "title": "Nutzungsübersicht",
-      "desc": "Verfolgen Sie die Nutzung von KI-Optimierungen und Assessments im Rahmen Ihres Abonnements."
+      "title": "Recruiting-Übersicht",
+      "subtitle": "Statistiken für das gesamte Unternehmen und einzelne Recruiter.",
+      "tabs": {
+        "overview": "Übersicht",
+        "dna_culture": "DNA & Kultur",
+        "ai_editor": "AI-Editor",
+        "assessments": "Assessments",
+        "candidates": "Kandidaten",
+        "marketplace": "Kurs-Marktplatz"
+      },
+      "all_recruiters": "Alle Recruiter",
+      "create_ad_btn": "Stellenanzeige erstellen",
+      "welcome_title": "Willkommen bei JobShaman",
+      "empty_state_desc": "Keine Daten. Erstellen Sie Ihre erste Stellenanzeige und beginnen Sie mit dem Recruiting.",
+      "create_first_ad": "Erste Stellenanzeige erstellen",
+      "active_postings": "Aktive Anzeigen",
+      "table": {
+        "position": "Position",
+        "status": "Status",
+        "pipeline": "Pipeline-Zustand",
+        "ai_match": "KI-Match",
+        "performance": "Leistung",
+        "actions": "Aktionen"
+      },
+      "status": {
+        "pending": "Wartend auf Prüfung",
+        "approved": "Genehmigt",
+        "flagged": "Erfordert Überprüfung",
+        "refused": "Abgelehnt"
+      },
+      "stats": {
+        "pipeline": "Pipeline",
+        "match_score": "Match-Score",
+        "time_to_hire": "Zeit bis zur Einstellung",
+        "saved": "Gespeichert",
+        "days": "Tage",
+        "candidates_count": "Kandidaten",
+        "low_perf": "Niedrige Leistung",
+        "vs_avg": "vs. Durchschnitt (32)",
+        "spent": "Ausgegeben",
+        "projected": "Progn."
+      },
+      "ai_insights": {
+        "title": "Strategische KI-Einblicke",
+        "hired_prediction": "Basierend auf der Historie werden Sie in {{days}} Tagen einstellen ({{count}} Kandidaten in der Pipeline). Sie sind auf Kurs.",
+        "low_match_warning": "Niedriger KI-Match (durchschnittlich {{avg}}%). Wir empfehlen, die Beschreibung der Arbeitszeit in der Anzeige anzupassen."
+      },
+      "actions": {
+        "view_as_user": "Als Benutzer ansehen",
+        "edit": "Position bearbeiten",
+        "close": "Als geschlossen markieren",
+        "delete": "Position löschen",
+        "confirm_delete": "Sind Sie sicher, dass Sie diese Position löschen möchten?",
+        "confirm_close": "Sind Sie sicher, dass Sie diese Position als geschlossen markieren möchten?"
+      },
+      "team_activity": "Teamaktivität",
+      "leaderboard": "Rangliste"
+    },
+    "settings": {
+      "title": "Unternehmenseinstellungen",
+      "dna": "Unternehmens-DNA",
+      "team": "Team & Zugriff",
+      "culture_title": "Unternehmenskultur und Werte",
+      "culture_desc": "Definieren Sie, wer Sie sind, damit die KI passende Leute finden kann.",
+      "mission": "Mission und Philosophie",
+      "mission_placeholder": "Warum existiert Ihr Unternehmen? Welchen Einfluss haben Sie auf die Welt?",
+      "tone": "Kommunikationston",
+      "tones": {
+        "friendly": "Professionell, aber freundlich",
+        "geeky": "Technisch und 'nerdig'",
+        "formal": "Corporate und formal",
+        "startup": "Startup-Energie und Drive"
+      },
+      "values": "Werte (max. 5)",
+      "add_value_placeholder": "Wert hinzufügen (z.B. 'Transparenz')",
+      "add_btn": "Hinzufügen",
+      "team_mgmt": "Teammanagement",
+      "team_mgmt_desc": "Wer hat Zugriff auf das Recruiting?",
+      "plan_label": "Plan:",
+      "active_until": "Aktiv bis",
+      "ai_usage": "Genutzte KI-Assessments",
+      "invite_colleague": "Kollegen einladen",
+      "invite_placeholder": "email@unternehmen.de",
+      "invite_btn": "Einladen",
+      "admin_label": "Admin",
+      "remove_from_team": "Aus Team entfernen",
+      "save_changes": "Änderungen speichern",
+      "invite_success": "Einladung für {{email}} wurde gesendet!",
+      "invite_failed": "Einladung konnte nicht gesendet werden."
+    },
+    "subscription": {
+      "title": "Unternehmens-Abonnement",
+      "manage": "Abonnement verwalten",
+      "next_payment": "Nächste Zahlung:",
+      "days_left": "in {{count}} Tagen",
+      "ai_assessments": "KI-Assessments",
+      "used": "genutzt",
+      "buy_credits": "Credits kaufen",
+      "job_ads": "Stellenanzeigen",
+      "unlimited": "Unbegrenzt",
+      "no_limit": "Keine Begrenzung",
+      "this_month": "Diesen Monat",
+      "upgrade": "Upgrade auf Premium",
+      "team_members": "Teammitglieder",
+      "active": "Aktiv",
+      "inactive": "Inaktiv",
+      "tiers": {
+        "business": "Business",
+        "basic": "Basis",
+        "free": "Kostenlos"
+      }
+    },
+    "ad_editor": {
+      "title": "Stellenanzeigen-Editor",
+      "tone_prefix": "Angewandter Ton:",
+      "position_name": "Positionsbezeichnung",
+      "fill_required": "Bitte füllen Sie sowohl die Positionsbezeichnung als auch die Beschreibung aus.",
+      "publish_success": "Die Anzeige wurde zur Überprüfung gesendet und wird in Kürze veröffentlicht!",
+      "publish_error": "Fehler beim Veröffentlichen der Stellenanzeige.",
+      "post_limit_exceeded": "Mehr als 5 Stellenanzeigen"
     }
   },
-  "pricing": {
-    "title": "Preispläne",
-    "badge": "Preis",
-    "always_free": "Immer kostenlos",
-    "best_choice": "Beste Wahl",
-    "offer": "Sonderangebot",
-    "promo_discount": "Einführungsrabatt",
-    "period": "Monat",
-    "price_custom": "Auf Anfrage",
-    "promo_hint": "* Einführungspreis für den Projektstart",
-    "extra_assessment": "Jedes weitere KI-Assessment: 99 CZK",
-    "more_features": "+{{count}} weitere Funktionen",
-    "cta_contact": "Kontakt",
-    "cta_start_free": "Kostenlos starten",
-    "cta_start": "Starten",
-    "plans": {
-      "basic": {
-        "name": "Basis",
-        "desc": "Für kleine Teams und Anfänger",
-        "f1": "Bis zu 5 Anzeigen monatlich",
-        "f2": "Grundlegende Anzeigenverwaltung",
-        "f3": "E-Mail-Support",
-        "f4": "Basisstatistiken",
-        "f5": "Keine KI-Funktionen"
+  "common": {
+    "unknown": "Unbekannt",
+    "none": "Keine",
+    "standard_package": "Standardpaket",
+    "search": "Suche"
+  },
+  "welcome_extra": {
+    "metrics": {
+      "time_label": "Zeit",
+      "time_value": "+18 Std. / Monat",
+      "money_label": "Geld",
+      "money_value": "–4.200 CZK",
+      "jhi_label": "JHI",
+      "jhi_value": "–7 Punkte",
+      "impact_desc": "Das ist Arbeit, aufgeschlüsselt in Auswirkungen."
+    },
+    "how_it_works": {
+      "title": "Wie wir es berechnen",
+      "financial": {
+        "title": "Finanzielle Realität",
+        "desc": "Wie viel Ihnen wirklich jeden Monat übrig bleibt. Nach Steuern, Pflichtabzügen und Pendelkosten.",
+        "hint": "Kein „bis zu 60.000 CZK“. Nur Nettoeinkommen in der realen Welt."
       },
-      "business": {
-        "name": "Business",
-        "desc": "Für wachsende Unternehmen",
-        "f1": "Unbegrenzte Anzahl an Anzeigen",
-        "f2": "10 KI-Assessments monatlich",
-        "f3": "Empfehlungen passender Kandidaten",
-        "f4": "KI-Anzeigenoptimierung",
-        "f5": "Priorisierter Support"
+      "commute": {
+        "title": "Auswirkung des Pendelns",
+        "desc": "Pendeln ist nicht nur eine Entfernung. Es ist Zeit, Geld, Müdigkeit und langfristige Auswirkungen auf das Leben.",
+        "items": {
+          "distance": "Entfernung",
+          "mode": "Pendelmodus",
+          "loss": "Zeitverlust",
+          "costs": "monatliche Kosten"
+        }
       },
-      "enterprise": {
-        "name": "Enterprise",
-        "desc": "Für große Konzerne",
-        "f1": "Alle Business-Funktionen",
-        "f2": "Unbegrenzte KI-Assessments",
-        "f3": "Integration mit ATS-Systemen",
-        "f4": "Dedizierter Account Manager"
+      "jhi": {
+        "title": "JHI – Job Happiness Index",
+        "desc": "Eine einzige Zahl, die fünf Dimensionen des Arbeitslebens zusammenfasst: Einkommen, Zeit, Stabilität, Flexibilität und Belastung.",
+        "hint": "Die Inspiration stammt aus dem Bruttonationalglück-Index von Bhutan. Wir bewerten keine Unternehmen. Wir bewerten die Auswirkungen der Arbeit auf den Menschen."
+      },
+      "transparency": {
+        "title": "Transparenz-Score",
+        "desc": "Einige Anzeigen sind fair. Andere sind nur gut geschrieben.",
+        "hint": "Wir analysieren Sprache, Unklarheiten und fehlende Informationen. Je weniger Nebel, desto höher der Score."
       }
     }
   },
-  "testimonials": {
-    "title": "Referenzen von Unternehmen"
+  "marketplace_extra": {
+    "funding_categories": {
+      "technical_professions": "Technische Berufe",
+      "technical_professions_desc": "Elektriker, Schweißer, Klempner",
+      "technical_courses": "Technische Kurse",
+      "technical_courses_desc": "Schweißen, IT-Zertifizierungen",
+      "language_courses": "Sprachkurse",
+      "language_courses_desc": "Englisch, Deutsch und andere"
+    },
+    "courses": {
+      "gov_1": {
+        "title": "Elektriker - Elektroinstallationstätigkeit",
+        "desc": "Kurs zur Erlangung eines Befähigungsnachweises für Elektroinstallationstätigkeiten. Hohe Nachfrage auf dem Arbeitsmarkt."
+      },
+      "gov_2": {
+        "title": "Führerschein Klasse C+E",
+        "desc": "Professioneller Führerschein für den Güterverkehr. Umschulungskurs mit Vermittlungsgarantie."
+      },
+      "com_1": {
+        "title": "Java Backend Developer Certificate",
+        "desc": "Kompletter Kurs zur Backend-Anwendungsentwicklung in Java mit Zertifizierung. Jobvermittlungsgarantie."
+      },
+      "com_2": {
+        "title": "Python für Data Science",
+        "desc": "Moderner Python-Kurs mit Fokus auf Datenanalyse, maschinelles Lernen und KI. Ideal für das Karrierewachstum."
+      }
+    }
   },
-  "cta": {
-    "badge": "Jetzt starten",
-    "title_start": "Bereit das",
-    "title_highlight": "Recruiting",
-    "title_end": "zu verbessern?",
-    "subtitle": "Schließen Sie sich hunderten zufriedenen Unternehmen an und finden Sie die besten Talente effizienter.",
-    "register": "Unternehmen registrieren",
-    "login": "Anmelden",
-    "demo": "Demo vereinbaren"
-  }
-},
-"company_onboarding": {
-  "title": "Unternehmensregistrierung",
-  "step": "Schritt {{current}} / {{total}}",
-  "cancel": "Abbrechen",
-  "continue": "Weiter",
-  "back": "Zurück",
-  "finish": "Registrierung abschließen",
-  "error_creating": "Fehler beim Erstellen des Unternehmens.",
-  "step1": {
-    "title": "Rechnungs- & Rechtsdaten",
-    "company_name": "Unternehmensname",
-    "company_name_placeholder": "Acme GmbH",
-    "ico": "Handelsregisternummer",
-    "ico_placeholder": "12345678",
-    "dic": "USt-IdNr.",
-    "dic_placeholder": "DE12345678",
-    "address": "Hauptsitz (Adresse)",
-    "address_placeholder": "Musterstraße 1, Berlin",
-    "info_box": "Diese Angaben dienen der Verifizierung Ihres Unternehmens. Anzeigen von verifizierten Unternehmen haben eine höhere Priorität und Reichweite."
+  "company_extra": {
+    "activity": {
+      "added_comment": "<span class=\"font-bold\">{{name}}</span> hat einen Kommentar zu <span class=\"font-bold\">{{target}}</span> hinzugefügt",
+      "rejected_spam": "<span class=\"font-bold\">KI-Assistent</span> hat {{count}} Spams abgelehnt",
+      "time_ago": "vor {{count}} Min.",
+      "hour_ago": "vor {{count}} Std.",
+      "no_redux": "Sieht vielversprechend aus, hat aber keine Erfahrung mit Redux."
+    },
+    "stats": {
+      "hires": "Einstellungen",
+      "avg_tth": "Durchschn. TTH",
+      "days_unit": "Tage"
+    },
+    "features": {
+      "more_than_5": "Mehr als 5 Anzeigen",
+      "ai_optimization": "KI-Anzeigenoptimierung"
+    }
   },
-  "step2": {
-    "title": "Profil & Kultur",
-    "industry": "Branche",
-    "industry_placeholder": "IT / Softwareentwicklung",
-    "philosophy": "Philosophie & Mission",
-    "philosophy_placeholder": "Unsere Mission ist es, Talente mit sinnvoller Arbeit zu verbinden..."
+  "company_landing": {
+    "hero": {
+      "badge": "KI-gestützte Recruiting-Plattform",
+      "title_start": "Stellen Sie die besten",
+      "title_highlight": "Talente",
+      "title_end": "mit KI ein",
+      "subtitle": "Moderne Recruiting-Plattform mit KI-Kandidatenanalyse, Assessment Center und intelligenter Stellenanzeigen-Optimierung. Verschwenden Sie keine Zeit mehr mit ungeeigneten Bewerbern.",
+      "start_free": "Kostenlos starten",
+      "login": "Anmelden",
+      "view_demo": "Demo ansehen"
+    },
+    "stats": {
+      "title": "Ergebnisse in Zahlen",
+      "badge": "Statistiken",
+      "screening": "Weniger Zeit für Screening",
+      "costs": "Geringere Recruiting-Kosten",
+      "filling": "Schnellere Stellenbesetzung",
+      "satisfaction": "Zufriedenheit der Unternehmen"
+    },
+    "benefits": {
+      "ai_powered": "KI-Anzeigenoptimierung",
+      "easy_posting": "Einfache Erstellung von Anzeigen",
+      "assessments": "Eigenes Assessment Center",
+      "insights": "Übersicht über Benefits"
+    },
+    "features": {
+      "title": "KI-Tools",
+      "more_title": "Weitere Funktionen",
+      "assessment": {
+        "title": "KI Assessment Center",
+        "desc": "Intelligente Kandidatenbewertung mittels KI-Analyse von Antworten, Fähigkeiten und kultureller Passung"
+      },
+      "analysis": {
+        "title": "Kandidatenanalyse",
+        "desc": "Detailliertes Kandidatenprofiling inklusive Fluktuationsrisikoanalyse und Teamkompatibilität"
+      },
+      "optimization": {
+        "title": "KI-Anzeigenoptimierung",
+        "desc": "Automatische Verbesserung von Stellenanzeigentexten für maximale Attraktivität und Erreichen höher qualifizierter Kandidaten"
+      },
+      "analytics": {
+        "title": "Erweiterte Analytik",
+        "desc": "Detaillierte Übersichten zur Anzeigenwirksamkeit, Kandidatendemografie und Recruiting-Kosten"
+      },
+      "transparent": {
+        "title": "Transparenz und Fair Play",
+        "desc": "Überprüfung von Informationen in Anzeigen und Eliminierung irreführender Praktiken im Recruiting"
+      },
+      "posting": {
+        "title": "Anzeigenverwaltung",
+        "desc": "Einfaches Erstellen und Veröffentlichen von Stellenanzeigen mit Formatierung, Emojis und Auswahl von Benefits."
+      },
+      "insights": {
+        "title": "Einsichten in Benefits",
+        "desc": "Finden Sie heraus, welche Benefits Kandidaten am meisten schätzen, und passen Sie Ihr Angebot an."
+      },
+      "dashboard": {
+        "title": "Nutzungsübersicht",
+        "desc": "Verfolgen Sie die Nutzung von KI-Optimierungen und Assessments im Rahmen Ihres Abonnements."
+      }
+    },
+    "pricing": {
+      "title": "Preispläne",
+      "badge": "Preis",
+      "always_free": "Immer kostenlos",
+      "best_choice": "Beste Wahl",
+      "offer": "Sonderangebot",
+      "promo_discount": "Einführungsrabatt",
+      "period": "Monat",
+      "price_custom": "Auf Anfrage",
+      "promo_hint": "* Einführungspreis für den Projektstart",
+      "extra_assessment": "Jedes weitere KI-Assessment: 99 CZK",
+      "more_features": "+{{count}} weitere Funktionen",
+      "cta_contact": "Kontakt",
+      "cta_start_free": "Kostenlos starten",
+      "cta_start": "Starten",
+      "plans": {
+        "basic": {
+          "name": "Basis",
+          "desc": "Für kleine Teams und Anfänger",
+          "f1": "Bis zu 5 Anzeigen monatlich",
+          "f2": "Grundlegende Anzeigenverwaltung",
+          "f3": "E-Mail-Support",
+          "f4": "Basisstatistiken",
+          "f5": "Keine KI-Funktionen"
+        },
+        "business": {
+          "name": "Business",
+          "desc": "Für wachsende Unternehmen",
+          "f1": "Unbegrenzte Anzahl an Anzeigen",
+          "f2": "10 KI-Assessments monatlich",
+          "f3": "Empfehlungen passender Kandidaten",
+          "f4": "KI-Anzeigenoptimierung",
+          "f5": "Priorisierter Support"
+        },
+        "enterprise": {
+          "name": "Enterprise",
+          "desc": "Für große Konzerne",
+          "f1": "Alle Business-Funktionen",
+          "f2": "Unbegrenzte KI-Assessments",
+          "f3": "Integration mit ATS-Systemen",
+          "f4": "Dedizierter Account Manager"
+        }
+      }
+    },
+    "testimonials": {
+      "title": "Referenzen von Unternehmen"
+    },
+    "cta": {
+      "badge": "Jetzt starten",
+      "title_start": "Bereit das",
+      "title_highlight": "Recruiting",
+      "title_end": "zu verbessern?",
+      "subtitle": "Schließen Sie sich hunderten zufriedenen Unternehmen an und finden Sie die besten Talente effizienter.",
+      "register": "Unternehmen registrieren",
+      "login": "Anmelden",
+      "demo": "Demo vereinbaren"
+    }
+  },
+  "company_onboarding": {
+    "title": "Unternehmensregistrierung",
+    "step": "Schritt {{current}} / {{total}}",
+    "cancel": "Abbrechen",
+    "continue": "Weiter",
+    "back": "Zurück",
+    "finish": "Registrierung abschließen",
+    "error_creating": "Fehler beim Erstellen des Unternehmens.",
+    "step1": {
+      "title": "Rechnungs- & Rechtsdaten",
+      "company_name": "Unternehmensname",
+      "company_name_placeholder": "Acme GmbH",
+      "ico": "Handelsregisternummer",
+      "ico_placeholder": "12345678",
+      "dic": "USt-IdNr.",
+      "dic_placeholder": "DE12345678",
+      "address": "Hauptsitz (Adresse)",
+      "address_placeholder": "Musterstraße 1, Berlin",
+      "info_box": "Diese Angaben dienen der Verifizierung Ihres Unternehmens. Anzeigen von verifizierten Unternehmen haben eine höhere Priorität und Reichweite."
+    },
+    "step2": {
+      "title": "Profil & Kultur",
+      "industry": "Branche",
+      "industry_placeholder": "IT / Softwareentwicklung",
+      "philosophy": "Philosophie & Mission",
+      "philosophy_placeholder": "Unsere Mission ist es, Talente mit sinnvoller Arbeit zu verbinden..."
+    }
   }
-}
 }
