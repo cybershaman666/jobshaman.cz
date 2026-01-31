@@ -13,11 +13,12 @@ router = APIRouter()
 @router.get("/subscription-status")
 @limiter.limit("30/minute")
 async def get_subscription_status(request: Request, userId: str = Query(...), user: dict = Depends(get_current_user)):
+    authorized_ids = user.get("authorized_ids", [])
     user_id = user.get("id") or user.get("auth_id")
-    company_id = user.get("company_id")
     is_company_admin = bool(user.get("company_name"))
-
-    if not (user_id == userId or company_id == userId):
+    
+    if userId not in authorized_ids:
+        print(f"🚫 [AUTH] Access denied: {userId} not in authorized list {authorized_ids}")
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     tier_limits = {

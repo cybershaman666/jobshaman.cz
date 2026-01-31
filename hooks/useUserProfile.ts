@@ -132,8 +132,10 @@ export const useUserProfile = () => {
                                     website: metaWebsite || '',
                                     logo_url: ''
                                 };
+
+                                // createCompany in supabaseService now handles duplicates by ICO/owner_id
                                 company = await createCompany(newCompanyData, userId);
-                                console.log("✅ Company auto-created from metadata:", company?.id);
+                                console.log("✅ Company auto-created or retrieved from metadata:", company?.id);
                             } catch (err) {
                                 console.error("❌ Failed to auto-create company from metadata:", err);
                             }
