@@ -38,11 +38,14 @@ async def check_job_legality(job: JobCheckRequest, request: Request, user: dict 
         # Ensure job ID is treated as integer for BIGINT column
         job_id_int = int(job.id) if str(job.id).isdigit() else job.id
         
-        update_result = supabase.table("jobs").update({
+        # Use existing columns: legality_status, risk_score, verification_notes
+        update_data = {
             "legality_status": db_status,
-            "legality_reasons": reasons,
-            "updated_at": now_iso()
-        }).eq("id", job_id_int).execute()
+            "risk_score": risk_score,
+            "verification_notes": ", ".join(reasons) if reasons else ""
+        }
+        
+        update_result = supabase.table("jobs").update(update_data).eq("id", job_id_int).execute()
         
         if not update_result.data:
             print(f"⚠️ [DB WARNING] No rows updated for job {job.id}. Check if ID exists and types match.")

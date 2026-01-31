@@ -922,7 +922,9 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
                 tags: uniqueTags,
                 benefits: benefits,
                 contextualRelevance: contextualRelevance,
-                required_skills: []
+                required_skills: [],
+                legality_status: scraped.legality_status,
+                legality_reasons: scraped.verification_notes ? scraped.verification_notes.split(',').map((s: string) => s.trim()) : []
             };
         } catch (innerError) {
             console.error("Mapping error for job ID:", item.id, innerError);

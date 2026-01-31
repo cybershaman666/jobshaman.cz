@@ -138,6 +138,7 @@ def save_job_to_supabase(job_data):
     parsed_url = urlparse(job_data["url"])
     job_data["source"] = parsed_url.netloc.replace("www.", "")
     job_data.setdefault("scraped_at", now_iso())
+    job_data.setdefault("legality_status", "legal") # Default to legal for scraped jobs
     
     # GEOCODE LOCATION: Convert location string to lat/lon
     if "location" in job_data and job_data["location"]:
