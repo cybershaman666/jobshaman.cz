@@ -20,6 +20,8 @@ interface ScrapedJob {
     url?: string;
     lat?: number | string | null;
     lng?: number | string | null;
+    legality_status?: 'pending' | 'legal' | 'illegal' | 'review';
+    verification_notes?: string;
 }
 
 // --- CONFIG ---
