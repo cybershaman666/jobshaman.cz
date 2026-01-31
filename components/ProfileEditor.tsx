@@ -40,6 +40,7 @@ interface ProfileEditorProps {
   onToggleSave?: (jobId: string) => void;
   onJobSelect?: (jobId: string) => void;
   selectedJobId?: string | null;
+  onDeleteAccount?: () => Promise<boolean>;
 }
 
 const ProfileEditor: React.FC<ProfileEditorProps> = ({
@@ -51,7 +52,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   savedJobIds = [],
   onToggleSave,
   onJobSelect,
-  selectedJobId
+  selectedJobId,
+  onDeleteAccount
 }) => {
   const { t } = useTranslation();
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
@@ -65,6 +67,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cvInputRef = useRef<HTMLInputElement>(null);
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
 
 
@@ -904,6 +909,32 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 )}
               </div>
             </div>
+
+            {/* Danger Zone */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border-2 border-red-200 dark:border-red-900/30 overflow-hidden">
+              <div className="border-b border-red-100 dark:border-red-900/20 p-4 bg-red-50/50 dark:bg-red-900/10">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                    <Trash2 className="w-5 h-5 text-red-600 dark:text-red-400" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-red-900 dark:text-red-100">{t('profile.danger_zone')}</h2>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                  {t('profile.delete_account_warning_desc')}
+                </p>
+
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
+                >
+                  <Trash2 size={16} />
+                  {t('profile.delete_account')}
+                </button>
+              </div>
+            </div>
           </>
         ) : (
           <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
@@ -920,6 +951,70 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           </div>
         )}
       </div>
+
+      {/* Account Deletion Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-all duration-300">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="p-8">
+              <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-6 mx-auto">
+                <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 dark:text-white text-center mb-2">
+                {t('profile.delete_account_warning_title')}
+              </h3>
+              <p className="text-slate-600 dark:text-slate-400 text-center mb-8">
+                {t('profile.delete_account_warning_desc')}
+              </p>
+
+              <div className="flex flex-col gap-3">
+                <button
+                  onClick={async () => {
+                    if (onDeleteAccount) {
+                      setIsDeleting(true);
+                      try {
+                        const success = await onDeleteAccount();
+                        if (!success) {
+                          setIsDeleting(false);
+                          alert(t('profile.delete_account_error'));
+                        }
+                      } catch (err) {
+                        setIsDeleting(false);
+                        console.error("Deletion error:", err);
+                        alert(t('profile.delete_account_error'));
+                      }
+                    }
+                  }}
+                  disabled={isDeleting}
+                  className="w-full py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-3 shadow-lg shadow-red-500/20 disabled:opacity-50 active:scale-[0.98]"
+                >
+                  {isDeleting ? (
+                    <div className="flex items-center gap-2">
+                      <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>{t('app.loading')}</span>
+                    </div>
+                  ) : (
+                    <>
+                      <Trash2 size={20} />
+                      {t('profile.delete_account_confirm')}
+                    </>
+                  )}
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                  className="w-full py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all active:scale-[0.98]"
+                >
+                  {t('profile.delete_account_cancel')}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

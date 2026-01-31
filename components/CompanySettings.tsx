@@ -4,19 +4,23 @@ import { useTranslation } from 'react-i18next';
 import i18n from '../src/i18n';
 import { CompanyProfile, RecruiterMember } from '../types';
 import { inviteRecruiter } from '../services/supabaseService';
-import { Save, Sparkles, MessageSquare, Heart, Target, Users, Mail, UserPlus, Shield, X, Briefcase, Building2 } from 'lucide-react';
+import { Save, Sparkles, MessageSquare, Heart, Target, Users, Mail, UserPlus, Shield, X, Briefcase, Building2, AlertCircle, Trash2 } from 'lucide-react';
 
 interface CompanySettingsProps {
     profile: CompanyProfile;
     onSave: (profile: CompanyProfile) => void;
+    onDeleteAccount?: () => Promise<boolean>;
 }
 
-const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) => {
+const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDeleteAccount }) => {
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<'dna' | 'team'>('dna');
     const [localProfile, setLocalProfile] = useState(profile);
+    const [isSaving, setIsSaving] = useState(false);
     const [newValue, setNewValue] = useState('');
     const [isInviting, setIsInviting] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Team Management State
     const [inviteEmail, setInviteEmail] = useState('');
@@ -24,8 +28,13 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
         { id: '1', name: 'Floki Shaman', email: 'floki@jobshaman.cz', role: 'admin', joinedAt: new Date().toISOString() }
     ]);
 
-    const handleSave = () => {
-        onSave({ ...localProfile, members });
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await onSave({ ...localProfile, members });
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const addValue = () => {
@@ -321,13 +330,104 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave }) =>
                 <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-800">
                     <button
                         onClick={handleSave}
-                        className="px-8 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-900/20 flex items-center gap-2"
+                        disabled={isSaving}
+                        className="px-8 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-500 transition-colors shadow-lg shadow-emerald-900/20 flex items-center gap-2 disabled:opacity-50"
                     >
                         <Save size={18} />
-                        {t('company.settings.save_changes')}
+                        {isSaving ? t('common.saving') : t('company.settings.save_changes')}
                     </button>
                 </div>
+
+                {/* Danger Zone */}
+                <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800">
+                    <h3 className="text-lg font-bold text-rose-600 mb-4 flex items-center gap-2">
+                        <AlertCircle className="w-5 h-5" />
+                        {t('profile.danger_zone_title') || 'Nebezpečná zóna'}
+                    </h3>
+                    <div className="bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/20 rounded-xl p-6">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                            <div>
+                                <h4 className="font-bold text-slate-900 dark:text-white mb-1">
+                                    {t('profile.delete_account_title') || 'Smazat účet'}
+                                </h4>
+                                <p className="text-sm text-slate-600 dark:text-slate-400">
+                                    {t('profile.delete_account_desc') || 'Trvale smaže váš účet a všechna přidružená data společnosti. Tuto akci nelze vrátit zpět.'}
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => setShowDeleteConfirm(true)}
+                                className="px-6 py-3 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 font-bold rounded-xl hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-all active:scale-[0.98] shadow-sm shadow-rose-500/5 whitespace-nowrap"
+                            >
+                                {t('profile.delete_account_btn') || 'Smazat můj účet'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            {/* Account Deletion Confirmation Modal */}
+            {showDeleteConfirm && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md transition-all duration-300">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 max-w-md w-full overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="p-8">
+                            <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mb-6 mx-auto">
+                                <AlertCircle className="w-8 h-8 text-red-600 dark:text-red-400" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-slate-900 dark:text-white text-center mb-2">
+                                {t('profile.delete_account_warning_title')}
+                            </h3>
+                            <p className="text-slate-600 dark:text-slate-400 text-center mb-8">
+                                {t('profile.delete_account_warning_desc')}
+                            </p>
+
+                            <div className="flex flex-col gap-3">
+                                <button
+                                    onClick={async () => {
+                                        if (onDeleteAccount) {
+                                            setIsDeleting(true);
+                                            try {
+                                                const success = await onDeleteAccount();
+                                                if (!success) {
+                                                    setIsDeleting(false);
+                                                    alert(t('profile.delete_account_error'));
+                                                }
+                                            } catch (err) {
+                                                setIsDeleting(false);
+                                                console.error("Deletion error:", err);
+                                                alert(t('profile.delete_account_error'));
+                                            }
+                                        }
+                                    }}
+                                    disabled={isDeleting}
+                                    className="w-full py-4 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-all flex items-center justify-center gap-3 shadow-lg shadow-red-500/20 disabled:opacity-50 active:scale-[0.98]"
+                                >
+                                    {isDeleting ? (
+                                        <div className="flex items-center gap-2">
+                                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                            <span>{t('app.loading')}</span>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <Trash2 size={20} />
+                                            {t('profile.delete_account_confirm')}
+                                        </>
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => setShowDeleteConfirm(false)}
+                                    disabled={isDeleting}
+                                    className="w-full py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-medium hover:bg-slate-200 dark:hover:bg-slate-600 transition-all active:scale-[0.98]"
+                                >
+                                    {t('profile.delete_account_cancel')}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -35,12 +35,22 @@ async def check_job_legality(job: JobCheckRequest, request: Request, user: dict 
     # Update Supabase
     print(f"💾 [DB] Updating job {job.id} legality_status to: {db_status}")
     try:
-        supabase.table("jobs").update({
+        # Ensure job ID is treated as integer for BIGINT column
+        job_id_int = int(job.id) if str(job.id).isdigit() else job.id
+        
+        update_result = supabase.table("jobs").update({
             "legality_status": db_status,
-            "legality_reasons": reasons
-        }).eq("id", job.id).execute()
+            "legality_reasons": reasons,
+            "updated_at": now_iso()
+        }).eq("id", job_id_int).execute()
+        
+        if not update_result.data:
+            print(f"⚠️ [DB WARNING] No rows updated for job {job.id}. Check if ID exists and types match.")
+        else:
+            print(f"✅ [DB] Successfully updated status for job {job.id}")
+            
     except Exception as e:
-        print(f"❌ [DB ERROR] Failed to update job status: {e}")
+        print(f"❌ [DB ERROR] Failed to update job status for {job.id}: {e}")
 
     # If ad is illegal OR needs review, notify admin AND recruiter
     if not is_legal or needs_review:

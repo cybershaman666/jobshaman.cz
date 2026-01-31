@@ -346,7 +346,15 @@
         "cv_size_error": "Súbor je príliš veľký. Maximálna veľkosť je 10MB.",
         "cv_upload_success": "CV úspešne nahrané a spracované!",
         "cv_upload_error": "Nepodarilo sa nahrať CV. Skúste to znovu.",
-        "save_success": "Profil úspešne uložený"
+        "save_success": "Profil úspešne uložený",
+        "danger_zone": "Nebezpečná zóna",
+        "delete_account": "Zmazať účet",
+        "delete_account_warning_title": "Zmazať váš účet?",
+        "delete_account_warning_desc": "Táto akcia je nevratná. Všetky vaše údaje, profil a história budú natrvalo zmazané.",
+        "delete_account_confirm": "Áno, zmazať všetko",
+        "delete_account_cancel": "Zrušiť",
+        "delete_account_success": "Váš účet bol úspešne zmazaný.",
+        "delete_account_error": "Nepodarilo sa zmazať účet. Skúste to prosím znova alebo kontaktujte podporu."
     },
     "cv_manager": {
         "title": "Správa životopisov",

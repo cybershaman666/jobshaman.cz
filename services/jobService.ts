@@ -414,7 +414,8 @@ export const getJobCount = async (): Promise<number> => {
     try {
         const { count, error } = await supabase
             .from('jobs')
-            .select('*', { count: 'exact', head: true });
+            .select('*', { count: 'exact', head: true })
+            .eq('legality_status', 'legal');
 
         if (error) {
             console.error("Error fetching job count:", error);
@@ -533,6 +534,7 @@ const fetchJobsPaginatedFallback = async (
         const { data, error } = await supabase
             .from('jobs')
             .select('*')
+            .eq('legality_status', 'legal')
             .range(from, to)
             .order('scraped_at', { ascending: false });
 
@@ -591,6 +593,7 @@ export const searchJobs = async (
         const { data, error } = await supabase
             .from('jobs')
             .select('*')
+            .eq('legality_status', 'legal')
             .or(`title.ilike.%${searchTerm}%,company.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%`)
             .order('scraped_at', { ascending: false })
             .range(from, to);
@@ -637,6 +640,7 @@ export const searchJobsByLocation = async (
         const { count, error: countError } = await supabase
             .from('jobs')
             .select('*', { count: 'exact', head: true })
+            .eq('legality_status', 'legal')
             .ilike('location', `%${locationText}%`);
 
         if (countError) {
@@ -650,6 +654,7 @@ export const searchJobsByLocation = async (
         const { data, error } = await supabase
             .from('jobs')
             .select('*')
+            .eq('legality_status', 'legal')
             .ilike('location', `%${locationText}%`)
             .order('scraped_at', { ascending: false })
             .range(from, to);
@@ -721,6 +726,7 @@ export const fetchRealJobs = async (
             const { data, error } = await supabase
                 .from('jobs')
                 .select('*')
+                .eq('legality_status', 'legal')
                 .range(from, to)
                 .order('scraped_at', { ascending: false });
 

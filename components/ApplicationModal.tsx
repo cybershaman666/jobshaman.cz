@@ -4,6 +4,7 @@ import { Job, UserProfile } from '../types';
 import { X, Upload, FileText, Wand2, CheckCircle, Send, Loader2, BrainCircuit, User, Mail, Phone, Linkedin, Link as LinkIcon, Crown } from 'lucide-react';
 import { generateCoverLetter } from '../services/geminiService';
 import { sendEmail, EmailTemplates } from '../services/emailService';
+import { supabase, trackAnalyticsEvent } from '../services/supabaseService';
 
 interface ApplicationModalProps {
   job: Job;
@@ -86,11 +87,39 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
       });
 
       if (emailResult.success) {
-        // Simulate API call
+        // Record in DB if possible
+        if (supabase) {
+          try {
+            await supabase.from('job_applications').insert({
+              job_id: job.id,
+              candidate_id: user.id || null, // Might be anonymous
+              company_id: job.company_id,
+              applied_at: new Date().toISOString(),
+              cover_letter: coverLetter,
+              status: 'pending'
+            });
+
+            // Track analytics event
+            await trackAnalyticsEvent({
+              event_type: 'job_application',
+              user_id: user.id,
+              company_id: job.company_id,
+              metadata: {
+                job_id: job.id,
+                job_title: job.title
+              }
+            });
+          } catch (dbErr) {
+            console.error('Failed to record application in DB:', dbErr);
+            // We don't fail the whole UI because the email was sent
+          }
+        }
+
+        // Simulate API call delay for UI feedback
         setTimeout(() => {
           setStep('success');
           console.log('Application submitted:', { formData, job: job.title });
-        }, 2000);
+        }, 1500);
       } else {
         console.error('Failed to send application email:', emailResult.error);
         alert('Nepodařilo se odeslat přihlášku. Zkuste to prosím znovu.');

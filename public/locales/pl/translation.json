@@ -301,7 +301,15 @@
     "school": "Szkoła / uniwersytet",
     "degree": "Stopień",
     "field": "Kierunek",
-    "year": "Rok ukończenia"
+    "year": "Rok ukończenia",
+    "danger_zone": "Strefa zagrożenia",
+    "delete_account": "Usuń konto",
+    "delete_account_warning_title": "Usunąć Twoje konto?",
+    "delete_account_warning_desc": "Ta akcja jest nieodwracalna. Wszystkie Twoje dane, profil i historia zostaną trwale usunięte.",
+    "delete_account_confirm": "Tak, usuń wszystko",
+    "delete_account_cancel": "Anuluj",
+    "delete_account_success": "Twoje konto zostało pomyślnie usunięte.",
+    "delete_account_error": "Nie udało się usunout konta. Spróbuj ponownie lub skontaktuj się s pomocą techniczną."
   },
   "footer": {
     "rights_reserved": "© 2026 JobShaman. Wszelkie prawa zastrzeżone.",

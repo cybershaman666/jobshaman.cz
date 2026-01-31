@@ -7,7 +7,7 @@ import {
     UserCircle,
     ShoppingBag
 } from 'lucide-react';
-import { ViewState, UserProfile } from '../types';
+import { ViewState, UserProfile, CompanyProfile } from '../types';
 import SubscriptionStatusBadge from './SubscriptionStatusBadge';
 
 import { useTranslation } from 'react-i18next';
@@ -19,9 +19,11 @@ interface AppHeaderProps {
     showCompanyLanding: boolean;
     setShowCompanyLanding: (show: boolean) => void;
     userProfile: UserProfile;
+    companyProfile: CompanyProfile | null;
     handleAuthAction: () => void;
     toggleTheme: () => void;
     theme: 'light' | 'dark';
+    setIsOnboardingCompany: (show: boolean) => void;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
@@ -31,9 +33,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     showCompanyLanding,
     setShowCompanyLanding,
     userProfile,
+    companyProfile,
     handleAuthAction,
     toggleTheme,
-    theme
+    theme,
+    setIsOnboardingCompany
 }) => {
     const { t, i18n } = useTranslation();
 
@@ -99,7 +103,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 setViewState(ViewState.LIST);
                             } else if (userProfile.isLoggedIn) {
                                 if (userProfile.role === 'recruiter') {
-                                    setViewState(ViewState.COMPANY_DASHBOARD);
+                                    if (companyProfile) {
+                                        setViewState(ViewState.COMPANY_DASHBOARD);
+                                    } else {
+                                        // Recruiter but no company - go to onboarding
+                                        setIsOnboardingCompany(true);
+                                    }
                                 } else {
                                     setShowCompanyLanding(true);
                                 }

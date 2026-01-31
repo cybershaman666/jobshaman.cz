@@ -10,6 +10,8 @@ import ContextualRelevance from './ContextualRelevance';
 import { ArrowUpRight, Bookmark, Gift, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Markdown from 'markdown-to-jsx';
+import { trackAnalyticsEvent } from '../services/supabaseService';
+import { useEffect } from 'react';
 
 interface JobDetailViewProps {
     mounted: boolean;
@@ -68,6 +70,21 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     handleAnalyzeJob
 }) => {
     const { t } = useTranslation();
+
+    // Track job view
+    useEffect(() => {
+        if (selectedJobId && selectedJob) {
+            trackAnalyticsEvent({
+                event_type: 'job_view',
+                user_id: userProfile.id,
+                company_id: selectedJob.company_id,
+                metadata: {
+                    job_id: selectedJobId,
+                    job_title: selectedJob.title
+                }
+            });
+        }
+    }, [selectedJobId, selectedJob?.id]);
 
     return (
         <section className={`lg:col-span-8 xl:col-span-9 flex flex-col min-h-0 h-full ${!mounted ? 'flex' : (!selectedJobId ? 'hidden lg:flex' : 'flex')}`}>

@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { UserProfile, CompanyProfile, ViewState } from '../types';
 import { signOut, getUserProfile, getRecruiterCompany, updateUserProfile as updateUserProfileService, createCompany } from '../services/supabaseService';
-import { fetchCsrfToken, clearCsrfToken } from '../services/csrfService';
+import { fetchCsrfToken, clearCsrfToken, authenticatedFetch } from '../services/csrfService';
+import { BACKEND_URL } from '../constants';
 import { supabase } from '../services/supabaseClient';
 
 // Default user profile
@@ -225,14 +226,49 @@ export const useUserProfile = () => {
         try {
             await signOut();
             console.log('✅ Supabase signout successful');
-        } catch (error) {
+        } catch (error: any) {
             console.error('❌ Supabase signout failed:', error);
+            // If it's a refresh token error, we MUST clear local storage manually
+            // to prevent the client from trying to use the invalid token again.
+            if (error?.message?.includes('Refresh Token') || error?.message?.includes('Invalid Refresh Token')) {
+                console.log('🧹 Manual storage cleanup due to refresh token error');
+                localStorage.removeItem('sb-auth-token');
+            }
+        } finally {
+            clearCsrfToken();  // Clear CSRF token on logout
+            setUserProfile(DEFAULT_USER_PROFILE);
+            setCompanyProfile(null);
+            setViewState(ViewState.LIST);
+
+            // Final safety net: clear the specific Supabase storage key if it still exists
+            if (localStorage.getItem('sb-auth-token')) {
+                localStorage.removeItem('sb-auth-token');
+            }
+
+            console.log('🧹 Local auth state and storage cleared');
         }
-        clearCsrfToken();  // Clear CSRF token on logout
-        setUserProfile(DEFAULT_USER_PROFILE);
-        setCompanyProfile(null);
-        setViewState(ViewState.LIST);
-        console.log('🧹 Local auth state cleared');
+    };
+
+    const deleteAccount = async () => {
+        console.log('🗑️ Attempting to delete account...');
+        try {
+            const response = await authenticatedFetch(`${BACKEND_URL}/account`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                console.log('✅ Account successfully deleted on backend');
+                await signOutUser();
+                return true;
+            } else {
+                const errorData = await response.json().catch(() => ({}));
+                console.error('❌ Account deletion failed:', errorData);
+                return false;
+            }
+        } catch (error) {
+            console.error('❌ Error during account deletion:', error);
+            return false;
+        }
     };
 
     return {
@@ -243,6 +279,7 @@ export const useUserProfile = () => {
         setUserProfile: updateUserProfileState,
         setCompanyProfile,
         signOut: signOutUser,
+        deleteAccount,
         handleSessionRestoration
     };
 };
