@@ -351,20 +351,26 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
         const { data, error } = await supabase
             .from('companies')
             .select('*')
-            .eq('owner_id', userId)
-            .maybeSingle();
+            .eq('owner_id', userId);
 
-        console.log('📊 Company query result:', { data: data?.id || 'none', error: error || 'none' });
+        console.log('📊 Company query result:', { count: data?.length || 0, error: error || 'none' });
 
         if (error) {
             console.error('Recruiter company fetch error:', error);
             return null;
         }
 
-        if (!data) {
+        if (!data || data.length === 0) {
             console.log('No company found for userId:', userId);
             return null;
         }
+
+        // Handle multiple companies - pick the first one but log it
+        if (data.length > 1) {
+            console.warn(`⚠️ Multiple companies (${data.length}) found for recruiter ${userId}. Using the first one.`);
+        }
+
+        const company = data[0];
 
         // Get subscription details using new structure
         // Wrap in try-catch to handle network errors
@@ -372,14 +378,14 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
         let usageData = null;
 
         try {
-            subscriptionData = await getCompanySubscription(data.id);
+            subscriptionData = await getCompanySubscription(company.id);
         } catch (subError) {
             console.warn('⚠️ Failed to fetch subscription data:', subError);
             // Continue without subscription data
         }
 
         try {
-            usageData = await getUsageSummary(data.id);
+            usageData = await getUsageSummary(company.id);
         } catch (usageError) {
             console.warn('⚠️ Failed to fetch usage data:', usageError);
             // Continue without usage data
@@ -402,7 +408,7 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
         } : null;
 
         return {
-            ...data,
+            ...company,
             subscription
         };
     } catch (error) {
@@ -885,6 +891,35 @@ export const getUsageSummary = async (companyId: string) => {
 
 export const createCompany = async (companyData: any, userId?: string): Promise<any> => {
     if (!supabase) throw new Error("Supabase not configured");
+
+    // Check for existing company by ICO if provided
+    if (companyData.ico) {
+        const { data: existingICO } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('ico', companyData.ico)
+            .maybeSingle();
+
+        if (existingICO) {
+            console.log("ℹ️ Company with this ICO already exists, fetching existing record.");
+            return getCompanyProfile(existingICO.id);
+        }
+    }
+
+    // Check for existing company by owner_id
+    if (userId) {
+        const { data: existingOwner } = await supabase
+            .from('companies')
+            .select('id')
+            .eq('owner_id', userId)
+            .limit(1)
+            .maybeSingle();
+
+        if (existingOwner) {
+            console.log("ℹ️ User already owns a company, fetching existing record.");
+            return getCompanyProfile(existingOwner.id);
+        }
+    }
 
     const { data, error } = await supabase
         .from('companies')

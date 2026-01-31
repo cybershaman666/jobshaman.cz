@@ -74,26 +74,38 @@ def verify_supabase_token(token: str) -> dict:
         
         if profile_resp.data:
             profile = profile_resp.data[0]
+            authorized_ids = [user_id]
             profile["auth_id"] = user_id
             profile["email"] = getattr(user_response.user, "email", "")
             
             if profile.get("role") == "recruiter":
-                comp_resp = supabase.table("companies").select("*").eq("owner_id", user_id).execute()
-                if comp_resp.data:
-                    profile["user_type"] = "company"
-                    profile["company_id"] = comp_resp.data[0]["id"]
-                    profile["company_name"] = comp_resp.data[0].get("name")
-                    return profile
+                # Find all companies owned by user
+                owner_resp = supabase.table("companies").select("id, name").eq("owner_id", user_id).execute()
+                owned_companies = owner_resp.data or []
                 
-                member_resp = supabase.table("company_members").select("company_id, companies(*)").eq("user_id", user_id).execute()
-                if member_resp.data:
-                    m = member_resp.data[0]
+                # Find all companies where user is a member
+                member_resp = supabase.table("company_members").select("company_id, companies(name)").eq("user_id", user_id).execute()
+                member_companies = member_resp.data or []
+                
+                all_associations = []
+                for c in owned_companies:
+                    all_associations.append({"id": c["id"], "name": c.get("name"), "type": "owner"})
+                    authorized_ids.append(c["id"])
+                
+                for m in member_companies:
+                    if m["company_id"] not in authorized_ids:
+                        all_associations.append({"id": m["company_id"], "name": m.get("companies", {}).get("name"), "type": "member"})
+                        authorized_ids.append(m["company_id"])
+                
+                if all_associations:
                     profile["user_type"] = "company"
-                    profile["company_id"] = m["company_id"]
-                    profile["company_name"] = m.get("companies", {}).get("name")
-                    return profile
-            
-            profile["user_type"] = "candidate"
+                    profile["associations"] = all_associations
+                    # Keep legacy fields for compatibility (using SIRT/first association)
+                    profile["company_id"] = all_associations[0]["id"]
+                    profile["company_name"] = all_associations[0]["name"]
+                
+            profile["authorized_ids"] = authorized_ids
+            profile["user_type"] = profile.get("user_type", "candidate")
             return profile
             
         raise HTTPException(status_code=401, detail="Profile not found")
