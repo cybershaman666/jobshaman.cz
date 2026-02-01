@@ -1,24 +1,23 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Assessment, AssessmentResult } from '../types';
+import { Assessment } from '../types';
 import { supabase } from '../services/supabaseService';
-import { Timer, AlertTriangle, Eye, EyeOff, CheckCircle, Zap, Code, FileText, ChevronRight, Maximize2, ShieldAlert } from 'lucide-react';
+import { Timer, EyeOff, CheckCircle, ChevronRight, ShieldAlert } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 interface Props {
     assessment: Assessment;
     invitationId: string;
-    candidateId?: string;
     onComplete: (resultId: string) => void;
+    mode?: 'taker' | 'preview';
 }
 
-const AssessmentTaker: React.FC<Props> = ({ assessment, invitationId, candidateId, onComplete }) => {
+const AssessmentTaker: React.FC<Props> = ({ assessment, invitationId, onComplete, mode = 'taker' }) => {
     const { t } = useTranslation();
     const [started, setStarted] = useState(false);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [answers, setAnswers] = useState<{ questionId: string; answer: string }[]>([]);
     const [timeLeft, setTimeLeft] = useState(assessment.timeLimitSeconds || 900);
     const [cheatingAttempts, setCheatingAttempts] = useState(0);
-    const [isFullscreen, setIsFullscreen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [showCheatWarning, setShowCheatWarning] = useState(false);
 
@@ -26,7 +25,7 @@ const AssessmentTaker: React.FC<Props> = ({ assessment, invitationId, candidateI
 
     // --- Cheat Detection ---
     useEffect(() => {
-        if (!started || submitting) return;
+        if (!started || submitting || mode === 'preview') return;
 
         const handleVisibilityChange = () => {
             if (document.hidden) {
@@ -47,11 +46,11 @@ const AssessmentTaker: React.FC<Props> = ({ assessment, invitationId, candidateI
             document.removeEventListener('visibilitychange', handleVisibilityChange);
             window.removeEventListener('blur', handleBlur);
         };
-    }, [started, submitting]);
+    }, [started, submitting, mode]);
 
     // --- Timer ---
     useEffect(() => {
-        if (!started || submitting) return;
+        if (!started || submitting || mode === 'preview') return; // No timer in preview
 
         const timer = setInterval(() => {
             setTimeLeft(prev => {
@@ -65,18 +64,18 @@ const AssessmentTaker: React.FC<Props> = ({ assessment, invitationId, candidateI
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [started, submitting]);
+    }, [started, submitting, mode]);
 
     // --- Fullscreen Toggle ---
     const toggleFullscreen = () => {
+        if (mode === 'preview') return; // No fullscreen in preview
+
         if (!document.fullscreenElement) {
             containerRef.current?.requestFullscreen().catch(err => {
                 console.error(`Error attempting to enable fullscreen: ${err.message}`);
             });
-            setIsFullscreen(true);
         } else {
             document.exitFullscreen();
-            setIsFullscreen(false);
         }
     };
 
@@ -118,6 +117,11 @@ const AssessmentTaker: React.FC<Props> = ({ assessment, invitationId, candidateI
     };
 
     const handleSubmit = async () => {
+        if (mode === 'preview') {
+            onComplete('preview-completed');
+            return;
+        }
+
         setSubmitting(true);
         if (document.fullscreenElement) document.exitFullscreen();
 

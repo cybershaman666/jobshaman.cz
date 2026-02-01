@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { supabase } from '../services/supabaseService';
 import { AssessmentResult } from '../types';
 import { evaluateAssessmentResult } from '../services/geminiService';
-import { Sparkles, ChevronDown, ChevronUp, CheckCircle, AlertCircle, FileText } from 'lucide-react';
+import { Sparkles, ChevronDown, ChevronUp, CheckCircle, AlertCircle, FileText, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import AssessmentPreviewModal from './AssessmentPreviewModal';
 
 interface Props {
     companyId: string;
@@ -57,13 +58,50 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
                 result.answers
             );
 
-            // ... (rest is same)
+            // 3. Save to Supabase using RPC
+            const { error: saveError } = await supabase.rpc('save_assessment_evaluation', {
+                p_result_id: result.id,
+                p_evaluation: evaluation
+            });
+
+            if (saveError) throw saveError;
+
+            // 4. Update local state
+            setResults(prev => prev.map(r =>
+                r.id === result.id
+                    ? { ...r, ai_evaluation: evaluation }
+                    : r
+            ));
+
+            // Auto-expand the result to show analysis
+            setExpandedId(result.id);
 
         } catch (e) {
             console.error("Evaluation failed:", e);
             alert(t('assessment.results.eval_failed'));
         } finally {
             setEvaluatingId(null);
+        }
+    };
+
+    const [previewAssessment, setPreviewAssessment] = useState<any | null>(null);
+
+    const handlePreview = async (result: AssessmentResult) => {
+        try {
+            if (!supabase) return;
+            const { data: assessmentData, error } = await supabase
+                .from('assessments')
+                .select('*')
+                .eq('id', result.assessment_id)
+                .single();
+
+            if (error) throw error;
+            if (assessmentData) {
+                setPreviewAssessment(assessmentData);
+            }
+        } catch (e) {
+            console.error("Failed to load assessment for preview:", e);
+            alert(t('assessment.results.preview_failed') || 'Nepodařilo se načíst zadání assessmentu.');
         }
     };
 
@@ -100,6 +138,14 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
                             </div>
 
                             <div className="flex items-center gap-3">
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); handlePreview(result); }}
+                                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                                    title="Náhled zadání"
+                                >
+                                    <Eye size={20} />
+                                </button>
+
                                 {!result.ai_evaluation ? (
                                     <button
                                         onClick={() => handleAiEvaluate(result)}
@@ -211,6 +257,13 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
                     </div>
                 ))}
             </div>
+
+            {previewAssessment && (
+                <AssessmentPreviewModal
+                    assessment={previewAssessment}
+                    onClose={() => setPreviewAssessment(null)}
+                />
+            )}
         </div>
     );
 };
