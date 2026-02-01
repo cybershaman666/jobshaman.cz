@@ -21,7 +21,8 @@
         "saving": "Ukladám...",
         "demo_alert": "Demo prístup: Táto funkcia bude dostupná čoskoro.",
         "beta_badge": "BETA",
-        "beta_description": "Beta verzia - môže obsahovať chyby"
+        "beta_description": "Beta verzia - môže obsahovať chyby",
+        "found_jobs": "Nájdených {{count}} ponúk"
     },
     "filters": {
         "location_commute": "Lokalita a Dojazd",
