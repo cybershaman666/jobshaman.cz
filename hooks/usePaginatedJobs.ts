@@ -237,7 +237,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         totalCount,
         searchTerm,
         isSearching: !!searchTerm,
-        searchResults: [], // Deprecated/Unused in unified mode
 
         filterCity,
         filterMaxDistance,
@@ -256,7 +255,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         loadMoreJobs,
         performSearch,
         setSearchTerm,
-        setSearchResults: () => { }, // No-op
         setFilterCity,
         setFilterMaxDistance,
         setEnableCommuteFilter,
