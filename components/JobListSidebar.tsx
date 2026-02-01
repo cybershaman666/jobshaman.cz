@@ -21,7 +21,6 @@ interface JobListSidebarProps {
     searchTerm: string;
     setSearchTerm: (term: string) => void;
     performSearch: (term: string) => void;
-    setSearchResults: (results: Job[]) => void;
     showFilters: boolean;
     setShowFilters: (show: boolean) => void;
     expandedSections: Record<string, boolean>;
@@ -44,7 +43,6 @@ interface JobListSidebarProps {
     toggleBenefitFilter: (benefit: string) => void;
     isLoadingJobs: boolean;
     isSearching: boolean;
-    searchResults: Job[];
     filteredJobs: Job[];
     savedJobIds: string[];
     handleToggleSave: (jobId: string) => void;
@@ -64,7 +62,6 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     searchTerm,
     setSearchTerm,
     performSearch,
-    setSearchResults,
     showFilters,
     setShowFilters,
     expandedSections,
@@ -87,7 +84,6 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     toggleBenefitFilter,
     isLoadingJobs,
     isSearching,
-    searchResults,
     filteredJobs,
     savedJobIds,
     handleToggleSave,
@@ -121,8 +117,6 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                     setSearchTerm(term);
                                     if (term.trim()) {
                                         performSearch(term);
-                                    } else {
-                                        setSearchResults([]);
                                     }
                                 }}
                                 onFocus={() => setShowFilters(true)}

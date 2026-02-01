@@ -107,8 +107,6 @@ export default function App() {
         totalCount,
         searchTerm,
         isSearching,
-        searchResults,
-        setSearchResults,
         loadInitialJobs,
         loadMoreJobs,
         performSearch,
@@ -795,7 +793,6 @@ export default function App() {
                     searchTerm={searchTerm}
                     setSearchTerm={setSearchTerm}
                     performSearch={performSearch}
-                    setSearchResults={setSearchResults}
                     showFilters={showFilters}
                     setShowFilters={setShowFilters}
                     expandedSections={expandedSections}
@@ -818,7 +815,6 @@ export default function App() {
                     toggleBenefitFilter={toggleBenefitFilter}
                     isLoadingJobs={isLoadingJobs}
                     isSearching={isSearching}
-                    searchResults={searchResults}
                     filteredJobs={filteredJobs}
                     savedJobIds={savedJobIds}
                     handleToggleSave={handleToggleSave}
