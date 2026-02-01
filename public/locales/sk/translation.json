@@ -31,6 +31,12 @@
         "search_nearby": "📍 Ponuky v blízkosti",
         "search_everywhere": "🌍 Hľadať všade",
         "contract_type": "Typ úväzku",
+        "job_type": "Typ práce",
+        "job_types": {
+            "on_site": "Na pracovisku",
+            "hybrid": "Hybridné",
+            "remote": "Remote"
+        },
         "benefits": "Benefity",
         "date_posted": "Dátum zverejnenia",
         "any_time": "Kedykoľvek",
@@ -477,7 +483,9 @@
                 "pipeline": "Kandidáti",
                 "ai_match": "AI Zhoda",
                 "performance": "Výkon",
-                "actions": "Akcie"
+                "actions": "Akcie",
+                "views_count": "zhliadnutia",
+                "conv_rate": "konv."
             },
             "status": {
                 "pending": "Čaká na kontrolu",
@@ -495,7 +503,10 @@
                 "low_perf": "Nízky Výkon",
                 "vs_avg": "vs SK Priemer (32)",
                 "spent": "Vynaložené",
-                "projected": "Proj"
+                "projected": "Progn.",
+                "potential_savings": "Potenciálna úspora",
+                "analyzing_market": "Analyzujeme trh...",
+                "currency": "CZK"
             },
             "ai_insights": {
                 "title": "AI Strategické Postrehy",
@@ -593,9 +604,26 @@
             "why_better": "Prečo je to lepšie",
             "use_text_btn": "Použiť tento text",
             "fill_required": "Prosím vyplňte tak názov pozície ako aj popis.",
+            "salary_min": "Minimálna mzda",
+            "salary_max": "Maximálna mzda",
+            "working_hours": "Pracovný úväzok",
+            "working_hours_placeholder": "napr. 40h/týždeň",
+            "address": "Adresa pracoviska",
+            "contact_email": "Kontaktný email pre CV",
+            "benefits": "Benefity",
+            "benefits_placeholder": "Stravenky, Home Office, Multisport...",
+            "benefits_hint": "Oddelte čiarkou",
+            "internship": "Stáž / Prax",
+            "profile_label": "Profil:",
             "publish_success": "Inzerát bol odoslaný na kontrolu a bude čoskoro publikovaný!",
             "publish_error": "Chyba pri publikovaní pracovného inzerátu.",
             "post_limit_exceeded": "Viac ako 5 pracovných inzerátov"
+        },
+        "assessments_tab": {
+            "desc": "Vytvárajte a spravujte AI posudky pre kandidátov.",
+            "manage_invites": "Spravovať pozvánky",
+            "close_invites": "Zavrieť pozvánky",
+            "invite_btn": "Pozvať kandidáta"
         },
         "candidates": {
             "no_candidates_title": "Žiadni kandidáti",

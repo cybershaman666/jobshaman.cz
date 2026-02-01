@@ -527,8 +527,10 @@
                 "new": "Nové",
                 "no_data_yet": "Zatím žádná data",
                 "awaiting_hires": "Čeká se na první nástupy",
-                "avg_tth": "Prům. TTH",
-                "days_unit": "dní"
+                "days_unit": "dní",
+                "potential_savings": "Potenciální úspora",
+                "analyzing_market": "Analyzujeme trh...",
+                "currency": "CZK"
             },
             "ai_insights": {
                 "title": "AI Strategické Postřehy",
@@ -622,6 +624,7 @@
             "profile_label": "Profil:",
             "benefits_placeholder": "Stravenky, Home Office, Multisport...",
             "benefits_hint": "Oddělte čárkou",
+            "internship": "Stáž / Praxe",
             "placeholder_title": "Napište název pracovní pozice...",
             "placeholder_description": "Popište pracovní pozici, požadavky a co nabízíte...",
             "switch_preview": "Přepnout náhled",
@@ -638,6 +641,9 @@
             "ai_noise_btn": "Odstranit Šum (AI)",
             "analyzing": "Analyzuji...",
             "settings_title": "Detaily a Benefity",
+            "salary_min": "Minimální mzda",
+            "salary_max": "Maximální mzda",
+            "working_hours_placeholder": "např. 40h/týden",
             "publishing": "Zveřejňuji...",
             "publish_btn": "Zveřejnit Inzerát",
             "optimization_title": "Návrh Optimalizace",
@@ -648,6 +654,12 @@
             "publish_success": "Inzerát byl odeslán ke kontrole a bude brzy publikován!",
             "publish_error": "Chyba při publikování pracovního inzerátu.",
             "post_limit_exceeded": "Více než 5 pracovních inzerátů"
+        },
+        "assessments_tab": {
+            "desc": "Vytvářejte a spravujte AI posudky pro kandidáty.",
+            "manage_invites": "Spravovat pozvánky",
+            "close_invites": "Zavřít pozvánky",
+            "invite_btn": "Pozvat kandidáta"
         },
         "candidates": {
             "no_candidates_title": "Žádní kandidáti",

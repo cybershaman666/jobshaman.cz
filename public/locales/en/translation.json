@@ -28,7 +28,13 @@
         "max_distance": "Max Distance",
         "search_nearby": "📍 Nearby offers",
         "search_everywhere": "🌍 Search everywhere",
-        "contract_type": "Contract Type",
+        "contract_type": "Contract type",
+        "job_type": "Job type",
+        "job_types": {
+            "on_site": "On-site",
+            "hybrid": "Hybrid",
+            "remote": "Remote"
+        },
         "benefits": "Benefits",
         "date_posted": "Date Posted",
         "any_time": "Any time",
@@ -368,7 +374,9 @@
                 "pipeline": "Pipeline Health",
                 "ai_match": "AI Match",
                 "performance": "Performance",
-                "actions": "Actions"
+                "actions": "Actions",
+                "views_count": "views",
+                "conv_rate": "conv."
             },
             "status": {
                 "pending": "Pending Review",
@@ -386,7 +394,10 @@
                 "low_perf": "Low Performance",
                 "vs_avg": "vs Average (32)",
                 "spent": "Spent",
-                "projected": "Proj."
+                "projected": "Proj.",
+                "potential_savings": "Potential Savings",
+                "analyzing_market": "Analyzing market...",
+                "currency": "CZK"
             },
             "ai_insights": {
                 "title": "AI Strategic Insights",
@@ -462,9 +473,9 @@
             "title": "Job Ad Editor",
             "tone_prefix": "Tone Applied:",
             "position_name": "Position Name",
-            "placeholder_title": "Enter the job position title...",
-            "placeholder_description": "Start writing the job description...",
-            "switch_preview": "Switch to preview",
+            "placeholder_title": "Enter job title...",
+            "placeholder_description": "Describe the position, requirements, and what you offer...",
+            "switch_preview": "Switch preview",
             "preview": "Preview",
             "editor": "Editor",
             "bold": "Bold",
@@ -477,8 +488,19 @@
             "code": "Code",
             "ai_noise_btn": "Remove Noise (AI)",
             "analyzing": "Analyzing...",
+            "settings_title": "Details & Benefits",
+            "salary_min": "Min Salary",
+            "salary_max": "Max Salary",
+            "working_hours": "Working Hours",
+            "working_hours_placeholder": "e.g. 40h/week",
+            "address": "Workplace Address",
+            "contact_email": "Contact email for CV",
+            "benefits": "Benefits",
+            "benefits_placeholder": "Meal vouchers, Home Office, Multisport...",
+            "benefits_hint": "Separate with commas",
+            "internship": "Internship / Practice",
             "publishing": "Publishing...",
-            "publish_btn": "Publish Job Ad",
+            "publish_btn": "Publish Ad",
             "optimization_title": "Optimization Suggestion",
             "what_removed": "What we removed",
             "why_better": "Why it's better",
@@ -486,7 +508,14 @@
             "fill_required": "Please fill in both the position name and description.",
             "publish_success": "The ad has been sent for review and will be published soon!",
             "publish_error": "Error publishing job ad.",
-            "post_limit_exceeded": "More than 5 job ads"
+            "post_limit_exceeded": "More than 5 job postings",
+            "profile_label": "Profile:"
+        },
+        "assessments_tab": {
+            "desc": "Create and manage AI assessments for candidates.",
+            "manage_invites": "Manage invitations",
+            "close_invites": "Close invitations",
+            "invite_btn": "Invite candidate"
         },
         "candidates": {
             "no_candidates_title": "No candidates",
