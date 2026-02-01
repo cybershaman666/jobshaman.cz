@@ -175,6 +175,21 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
                             <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-6 animate-in slide-in-from-top-2">
                                 {result.ai_evaluation ? (
                                     <div className="grid md:grid-cols-2 gap-6">
+                                        {/* Recommendation Box */}
+                                        {result.ai_evaluation.recommendation && (
+                                            <div className="md:col-span-2 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-4">
+                                                <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center text-white shadow-lg flex-shrink-0">
+                                                    <Sparkles size={24} />
+                                                </div>
+                                                <div>
+                                                    <h4 className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-1">Doporučení Partnera</h4>
+                                                    <p className="text-slate-900 dark:text-white font-bold text-lg leading-tight">
+                                                        {result.ai_evaluation.recommendation}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+
                                         <div className="space-y-4">
                                             <div>
                                                 <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">{t('assessment.results.summary_title')}</h4>
@@ -247,7 +262,14 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
                                         {result.answers.map((ans, idx) => (
                                             <div key={idx} className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
                                                 <div className="text-xs font-bold text-slate-400 mb-1">{t('assessment.results.question_label')} {idx + 1}</div>
-                                                <div className="text-sm font-mono text-slate-700 dark:text-slate-300">{ans.answer}</div>
+                                                <div className="text-sm font-mono text-slate-700 dark:text-slate-300 mb-2">{ans.answer}</div>
+
+                                                {/* Question Feedback */}
+                                                {result.ai_evaluation?.questionFeedback?.find(f => f.questionId === ans.questionId)?.feedback && (
+                                                    <div className="mt-2 text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30 p-2 rounded border border-indigo-100 dark:border-indigo-900/40 italic">
+                                                        🤖 {result.ai_evaluation.questionFeedback.find(f => f.questionId === ans.questionId)?.feedback}
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>

@@ -284,9 +284,18 @@ const AssessmentTaker: React.FC<Props> = ({ assessment, invitationId, onComplete
                     <div className="absolute top-0 left-0 w-1 h-full bg-cyan-600"></div>
 
                     <div className="mb-6">
-                        <span className="inline-block px-3 py-1 rounded bg-slate-800 text-slate-300 text-xs font-bold border border-slate-700 mb-3">
-                            {question.type === 'MultipleChoice' ? t('assessment.taker.type_multiple_choice') : question.type === 'Code' ? t('assessment.taker.type_code') : t('assessment.taker.type_open')}
-                        </span>
+                        <div className="flex gap-2 mb-3">
+                            <span className="inline-block px-3 py-1 rounded bg-slate-800 text-slate-300 text-xs font-bold border border-slate-700">
+                                {question.type === 'MultipleChoice' ? t('assessment.taker.type_multiple_choice') : question.type === 'Code' ? t('assessment.taker.type_code') : t('assessment.taker.type_open')}
+                            </span>
+                            {question.category && (
+                                <span className="inline-block px-3 py-1 rounded bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-500/30">
+                                    {question.category === 'Technical' ? 'Technický základ' :
+                                        question.category === 'Situational' ? 'Situace z praxe' :
+                                            question.category === 'Practical' ? 'Praktický úkol' : 'Logika a analýza'}
+                                </span>
+                            )}
+                        </div>
                         <h2 className="text-2xl md:text-3xl font-bold text-white leading-tight">{question.text}</h2>
                     </div>
 
