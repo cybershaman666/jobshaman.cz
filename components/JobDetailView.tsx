@@ -207,7 +207,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                     )}
 
                                     {/* Transparency Card */}
-                                    <TransparencyCard data={selectedJob.transparency} variant={theme} />
+                                    <TransparencyCard variant={theme} />
                                 </div>
 
                                 {/* Right Column - Skills Gap Analysis & BullshitMeter */}
