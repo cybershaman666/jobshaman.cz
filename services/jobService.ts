@@ -401,7 +401,8 @@ const transformJob = (scrapedJob: any): Job => {
         benefits: benefits,
         required_skills: [], // Initialize empty array
         salary_from: salaryFrom || undefined,
-        salary_to: salaryTo || undefined
+        salary_to: salaryTo || undefined,
+        country_code: scrapedJob.country_code
     };
 };
 
@@ -436,7 +437,8 @@ export const fetchJobsPaginated = async (
     pageSize: number = 50,
     userLat?: number,
     userLng?: number,
-    radiusKm: number = 50
+    radiusKm: number = 50,
+    countryCode?: string
 ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
     if (!isSupabaseConfigured() || !supabase) {
         console.warn("Supabase not configured.");
@@ -446,7 +448,7 @@ export const fetchJobsPaginated = async (
     try {
         // If user coordinates provided AND both lat/lng are defined, use spatial query
         if (userLat !== undefined && userLng !== undefined && userLat !== null && userLng !== null) {
-            console.log(`🗺️  Using spatial search for location: ${userLat}, ${userLng}, radius: ${radiusKm}km`);
+            console.log(`🗺️  Using spatial search for location: ${userLat}, ${userLng}, radius: ${radiusKm}km, country: ${countryCode || 'all'}`);
 
             const { data, error } = await supabase
                 .rpc('search_jobs_minimal', {
@@ -460,7 +462,7 @@ export const fetchJobsPaginated = async (
             if (error) {
                 console.error('Spatial query error:', error);
                 // Fallback to regular query if spatial function not ready
-                return fetchJobsPaginatedFallback(page, pageSize, userLat, userLng, radiusKm);
+                return fetchJobsPaginatedFallback(page, pageSize, userLat, userLng, radiusKm, countryCode);
             }
 
             if (!data || data.length === 0) {
@@ -486,7 +488,8 @@ export const fetchJobsPaginated = async (
                     education_level: row.education_level,
                     url: row.url,
                     lat: row.lat,
-                    lng: row.lng
+                    lng: row.lng,
+                    country_code: row.country_code
                 });
 
                 // Add distance information
@@ -494,8 +497,13 @@ export const fetchJobsPaginated = async (
                 return job;
             });
 
+            // Filter by country code if provided
+            const countryFilteredJobs = countryCode
+                ? processedJobs.filter((job: Job) => job.country_code === countryCode)
+                : processedJobs;
+
             // Filter by quality standards and remove duplicates
-            const filteredJobs = filterJobsByQuality(processedJobs);
+            const filteredJobs = filterJobsByQuality(countryFilteredJobs);
 
             const totalCount = data[0]?.total_count || 0;
             const hasMore = data[0]?.has_more || false;
@@ -510,7 +518,7 @@ export const fetchJobsPaginated = async (
         }
 
         // Fallback: Regular pagination without location filter
-        return fetchJobsPaginatedFallback(page, pageSize);
+        return fetchJobsPaginatedFallback(page, pageSize, undefined, undefined, undefined, countryCode);
 
     } catch (e) {
         console.error("Error in fetchJobsPaginated:", e);
@@ -524,7 +532,8 @@ const fetchJobsPaginatedFallback = async (
     pageSize: number = 50,
     userLat?: number,
     userLng?: number,
-    _radiusKm?: number // Not used in fallback
+    _radiusKm?: number, // Not used in fallback
+    countryCode?: string
 ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
     try {
         // Get total count first
@@ -533,10 +542,17 @@ const fetchJobsPaginatedFallback = async (
         const from = page * pageSize;
         const to = from + pageSize - 1;
 
-        const { data, error } = await supabase
+        let query = supabase
             .from('jobs')
             .select('*')
-            .eq('legality_status', 'legal')
+            .eq('legality_status', 'legal');
+
+        // Apply country code filter if provided
+        if (countryCode) {
+            query = query.eq('country_code', countryCode);
+        }
+
+        const { data, error } = await query
             .range(from, to)
             .order('scraped_at', { ascending: false });
 
@@ -549,7 +565,7 @@ const fetchJobsPaginatedFallback = async (
             return { jobs: [], hasMore: false, totalCount };
         }
 
-        console.log(`📋 Fallback: Fetched ${data.length} jobs (page ${page}, total: ${totalCount})`);
+        console.log(`📋 Fallback: Fetched ${data.length} jobs (page ${page}, total: ${totalCount}, country: ${countryCode || 'all'})`);
 
         const processedJobs = data.map((job: any) => {
             const transformed = transformJob(job);
@@ -581,22 +597,30 @@ const fetchJobsPaginatedFallback = async (
 export const searchJobs = async (
     searchTerm: string,
     page: number = 0,
-    pageSize: number = 20
+    pageSize: number = 20,
+    countryCode?: string
 ): Promise<{ jobs: Job[], hasMore: boolean }> => {
     if (!isSupabaseConfigured() || !supabase || !searchTerm.trim()) {
         return { jobs: [], hasMore: false };
     }
 
     try {
-        console.log(`🔍 Searching for: "${searchTerm}" (page ${page})`);
+        console.log(`🔍 Searching for: "${searchTerm}" (page ${page}, country: ${countryCode || 'all'})`);
         const from = page * pageSize;
         const to = from + pageSize;
 
-        const { data, error } = await supabase
+        let query = supabase
             .from('jobs')
             .select('*')
             .eq('legality_status', 'legal')
-            .or(`title.ilike.%${searchTerm}%,company.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%`)
+            .or(`title.ilike.%${searchTerm}%,company.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%`);
+
+        // Apply country code filter if provided
+        if (countryCode) {
+            query = query.eq('country_code', countryCode);
+        }
+
+        const { data, error } = await query
             .order('scraped_at', { ascending: false })
             .range(from, to);
 
@@ -626,24 +650,31 @@ export const searchJobs = async (
 export const searchJobsByLocation = async (
     locationText: string,
     page: number = 0,
-    pageSize: number = 50
+    pageSize: number = 50,
+    countryCode?: string
 ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
     if (!isSupabaseConfigured() || !supabase || !locationText.trim()) {
         return { jobs: [], hasMore: false, totalCount: 0 };
     }
 
     try {
-        console.log(`🏙️  Searching jobs by location text: "${locationText}"`);
+        console.log(`🏙️  Searching jobs by location text: "${locationText}" (country: ${countryCode || 'all'})`);
 
         const from = page * pageSize;
         const to = from + pageSize - 1;
 
         // First, get the total count of matching jobs
-        const { count, error: countError } = await supabase
+        let countQuery = supabase
             .from('jobs')
             .select('*', { count: 'exact', head: true })
             .eq('legality_status', 'legal')
             .ilike('location', `%${locationText}%`);
+
+        if (countryCode) {
+            countQuery = countQuery.eq('country_code', countryCode);
+        }
+
+        const { count, error: countError } = await countQuery;
 
         if (countError) {
             console.error("Error getting location search count:", countError);
@@ -653,11 +684,17 @@ export const searchJobsByLocation = async (
         const totalCount = count || 0;
 
         // Then fetch the paginated results
-        const { data, error } = await supabase
+        let dataQuery = supabase
             .from('jobs')
             .select('*')
             .eq('legality_status', 'legal')
-            .ilike('location', `%${locationText}%`)
+            .ilike('location', `%${locationText}%`);
+
+        if (countryCode) {
+            dataQuery = dataQuery.eq('country_code', countryCode);
+        }
+
+        const { data, error } = await dataQuery
             .order('scraped_at', { ascending: false })
             .range(from, to);
 

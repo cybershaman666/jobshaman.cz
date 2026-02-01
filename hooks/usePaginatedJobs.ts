@@ -1,9 +1,21 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Job } from '../types';
 import { fetchJobsPaginated, searchJobs, searchJobsByLocation } from '../services/jobService';
 import { UserProfile } from '../types';
 import { calculateDistanceKm, getCoordinates } from '../services/commuteService';
 import { BENEFIT_KEYWORDS } from '../utils/benefits';
+
+// Map i18n language codes to country codes
+const getCountryCodeFromLanguage = (language: string): string => {
+    const langMap: Record<string, string> = {
+        'cs': 'cs',
+        'pl': 'pl',
+        'sk': 'sk',
+        'de': 'de'
+    };
+    return langMap[language] || 'cs'; // Default to Czech
+};
 
 interface UsePaginatedJobsProps {
     userProfile: UserProfile;
@@ -17,6 +29,9 @@ const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
 };
 
 export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePaginatedJobsProps) => {
+    const { i18n } = useTranslation();
+    const [countryCode, setCountryCode] = useState<string>(() => getCountryCodeFromLanguage(i18n.language));
+
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
@@ -147,7 +162,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 initialPageSize,
                 globalSearch ? undefined : userProfile.coordinates?.lat,
                 globalSearch ? undefined : userProfile.coordinates?.lon,
-                effectiveRadius
+                effectiveRadius,
+                countryCode
             );
             setJobs(dedupeJobs(result.jobs));
             setHasMore(result.hasMore);
@@ -182,6 +198,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         loadInitialJobs();
     }, [globalSearch, filterMaxDistance, enableCommuteFilter, userProfile.coordinates?.lat, userProfile.coordinates?.lon, loadInitialJobs]);
 
+    // Reload jobs when language changes (country code filter)
+    useEffect(() => {
+        const newCountryCode = getCountryCodeFromLanguage(i18n.language);
+        if (newCountryCode !== countryCode) {
+            console.log(`🌍 Language changed from ${countryCode} to ${newCountryCode}, reloading jobs...`);
+            setCountryCode(newCountryCode);
+            loadInitialJobs();
+        }
+    }, [i18n.language, countryCode, loadInitialJobs]);
+
     // Handle city filter changes - geocode city and reload jobs with that location
     useEffect(() => {
         if (!filterCity || !filterCity.trim()) {
@@ -206,13 +232,14 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                         initialPageSize,
                         coords.lat,
                         coords.lon,
-                        100 // Use wider radius for city search (100km)
+                        100, // Use wider radius for city search (100km)
+                        countryCode
                     );
 
                     // If geocoding worked but returned no results, try location text search
                     if (result.jobs.length === 0) {
                         console.log(`🏙️  No geocoded jobs found, trying location text search...`);
-                        const locationResult = await searchJobsByLocation(filterCity, 0, initialPageSize);
+                        const locationResult = await searchJobsByLocation(filterCity, 0, initialPageSize, countryCode);
                         setJobs(dedupeJobs(locationResult.jobs));
                         setHasMore(locationResult.hasMore);
                         setTotalCount(locationResult.totalCount);
@@ -225,7 +252,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                     } else {
                         // Also fetch jobs that match the location text but might not be geocoded
                         console.log(`🏙️  Geocoded jobs found (${result.jobs.length}). Also fetching location-text matches to include non-geocoded offers...`);
-                        const locationResult = await searchJobsByLocation(filterCity, 0, initialPageSize * 2);
+                        const locationResult = await searchJobsByLocation(filterCity, 0, initialPageSize * 2, countryCode);
 
                         // Merge geocoded results first, then append location-text-only jobs (dedup by id)
                         const merged: Job[] = [];
@@ -318,7 +345,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                     if (sHas) {
                         const nextS = sPage + 1;
                         const effectiveRadius = enableCommuteFilter ? filterMaxDistance : 1000;
-                        const spatialRes = await fetchJobsPaginated(nextS, pageSize, mergedContext.coords?.lat, mergedContext.coords?.lon, effectiveRadius);
+                        const spatialRes = await fetchJobsPaginated(nextS, pageSize, mergedContext.coords?.lat, mergedContext.coords?.lon, effectiveRadius, countryCode);
                         sHas = Boolean(spatialRes.hasMore);
                         sPage = nextS;
 
@@ -334,7 +361,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                     // If still need more, fetch location-text page
                     if (newBatch.length < pageSize && lHas) {
                         const nextL = lPage + 1;
-                        const locRes = await searchJobsByLocation(mergedContext.locationText || '', nextL, pageSize);
+                        const locRes = await searchJobsByLocation(mergedContext.locationText || '', nextL, pageSize, countryCode);
                         lHas = Boolean(locRes.hasMore);
                         lPage = nextL;
 
@@ -374,7 +401,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             // If we are search mode but not merged (full-text search)
             if (searchTerm.trim() && searchResults.length > 0 && mergedContext.mode === 'none') {
                 const nextPage = currentPage + 1;
-                const result = await searchJobs(searchTerm, nextPage, initialPageSize);
+                const result = await searchJobs(searchTerm, nextPage, initialPageSize, countryCode);
                 if (result.jobs.length > 0) {
                     setSearchResults(prev => dedupeJobs(result.jobs, prev));
                     setHasMore(result.hasMore);
@@ -394,7 +421,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 initialPageSize,
                 globalSearch ? undefined : userProfile.coordinates?.lat,
                 globalSearch ? undefined : userProfile.coordinates?.lon,
-                effectiveRadius
+                effectiveRadius,
+                countryCode
             );
 
             if (result.jobs.length > 0) {
@@ -434,11 +462,11 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             if (coords) {
                 console.log(`🔎 Geocoded search term to: ${coords.lat}, ${coords.lon} — running spatial search first`);
                 const effectiveRadius = enableCommuteFilter ? filterMaxDistance : 1000;
-                const spatialResult = await fetchJobsPaginated(0, initialPageSize, coords.lat, coords.lon, effectiveRadius);
+                const spatialResult = await fetchJobsPaginated(0, initialPageSize, coords.lat, coords.lon, effectiveRadius, countryCode);
 
                 if (spatialResult.jobs.length === 0) {
                     console.log(`🔎 Spatial search returned 0 — falling back to location-text search`);
-                    const locationRes = await searchJobsByLocation(term, 0, initialPageSize);
+                    const locationRes = await searchJobsByLocation(term, 0, initialPageSize, countryCode);
                     const annotated = await annotateRegionMatches(locationRes.jobs, userProfile.coordinates);
                     setSearchResults(annotated);
                     setHasMore(Boolean(locationRes.hasMore));
@@ -450,7 +478,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                     setLocationHasMore(Boolean(locationRes.hasMore));
                 } else {
                     // Also fetch location-text matches to include non-geocoded offers and merge
-                    const locationRes = await searchJobsByLocation(term, 0, initialPageSize * 2);
+                    const locationRes = await searchJobsByLocation(term, 0, initialPageSize * 2, countryCode);
                     const merged: Job[] = [];
                     const seen = new Set<string>();
 
@@ -479,7 +507,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             } else {
                 // Not an address / couldn't geocode — use full-text search
                 console.log(`🔎 Could not geocode term, using full-text search for: "${term}"`);
-                const result = await searchJobs(term, 0, initialPageSize);
+                const result = await searchJobs(term, 0, initialPageSize, countryCode);
                 setSearchResults(result.jobs);
                 setHasMore(result.hasMore);
                 setMergedContext({ mode: 'none' }); // Not merged, just regular search
