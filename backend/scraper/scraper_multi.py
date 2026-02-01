@@ -140,6 +140,22 @@ def save_job_to_supabase(job_data):
     job_data.setdefault("scraped_at", now_iso())
     job_data.setdefault("legality_status", "legal") # Default to legal for scraped jobs
     
+    # DETECT AND ASSIGN COUNTRY CODE based on domain
+    domain = parsed_url.netloc.lower()
+    if '.cz' in domain:
+        job_data["country_code"] = "cs"
+    elif '.sk' in domain:
+        job_data["country_code"] = "sk"
+    elif '.pl' in domain:
+        job_data["country_code"] = "pl"
+    elif '.de' in domain:
+        job_data["country_code"] = "de"
+    else:
+        # Default to Czech if domain is unknown
+        job_data["country_code"] = "cs"
+    
+    print(f"    🌍 Country code: {job_data['country_code']} (detected from {domain})")
+    
     # GEOCODE LOCATION: Convert location string to lat/lon
     if "location" in job_data and job_data["location"]:
         location_str = job_data["location"]
