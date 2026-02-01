@@ -8,7 +8,7 @@ import { getRemainingAssessments } from '../services/billingService';
 import AnalyticsService from '../services/analyticsService';
 import AssessmentPreviewModal from './AssessmentPreviewModal';
 import PlanUpgradeModal from './PlanUpgradeModal';
-import { BrainCircuit, Loader2, Code, FileText, CheckCircle, Copy, Zap, BarChart3, Eye, Sparkles } from 'lucide-react';
+import { BrainCircuit, Loader2, Code, FileText, CheckCircle, Copy, BarChart3, Eye, Sparkles } from 'lucide-react';
 
 interface AssessmentCreatorProps {
     companyProfile?: CompanyProfile | null;
@@ -20,7 +20,6 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
     const [role, setRole] = useState('');
     const [skills, setSkills] = useState('');
     const [difficulty, setDifficulty] = useState('Senior');
-    const [questionCount, setQuestionCount] = useState<number>(5);
     const [isGenerating, setIsGenerating] = useState(false);
     const [assessment, setAssessment] = useState<Assessment | null>(null);
     const [showPreview, setShowPreview] = useState(false);
@@ -75,23 +74,11 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                 alert(`Dosáhli jste limitu ${limit} assessmentů pro aktuální tarif. Upgradujte pro další assessmenty.`);
                 return;
             }
-
-            // Premium check for extended assessments
-            if (questionCount > 5 && tier === 'basic') {
-                setShowUpgradeModal(true);
-                return;
-            }
-        } else {
-            // Individual user logic
-            if (questionCount > 5) {
-                setShowUpgradeModal(true);
-                return;
-            }
         }
 
         setIsGenerating(true);
         try {
-            const result = await generateAssessment(role, skills.split(','), difficulty, questionCount);
+            const result = await generateAssessment(role, skills.split(','), difficulty);
             setAssessment(result);
 
             // Track usage for companies
@@ -225,33 +212,34 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                     </div>
 
                     <div>
-                        <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Délka Assessmetu</label>
-                        <div className="grid grid-cols-3 gap-2">
-                            {[2, 5, 10].map(count => (
-                                <button
-                                    key={count}
-                                    onClick={() => setQuestionCount(count)}
-                                    className={`relative p-3 rounded-xl border font-bold text-sm transition-all ${questionCount === count
-                                        ? 'bg-cyan-50 dark:bg-cyan-950/30 border-cyan-500 text-cyan-600 dark:text-cyan-400 ring-1 ring-cyan-500'
-                                        : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-cyan-300 dark:hover:border-cyan-700'
-                                        }`}
-                                >
-                                    {count} Otázek
-                                    {count === 10 && (
-                                        <div className="absolute -top-2 -right-2 bg-amber-500 text-white text-[10px] px-1.5 py-0.5 rounded-full flex items-center gap-0.5 shadow-sm">
-                                            <Zap size={8} fill="currentColor" />
-                                            PRO
-                                        </div>
-                                    )}
-                                </button>
-                            ))}
+                        <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Struktura Assessmentu</label>
+                        <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-xl space-y-3">
+                            <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-bold text-sm">
+                                <Sparkles size={16} className="text-amber-500" />
+                                🏗️ Komplexní Digitální AC
+                            </div>
+                            <div className="grid grid-cols-1 gap-2">
+                                <div className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400">
+                                    <div className="min-w-[18px] h-[18px] bg-white dark:bg-slate-800 rounded flex items-center justify-center font-bold text-indigo-500 border border-indigo-100 dark:border-indigo-800">1</div>
+                                    <span><b>Odborný "Quick-fire"</b> (5-8 úloh) - znalost postupů, nástrojů a norem.</span>
+                                </div>
+                                <div className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400">
+                                    <div className="min-w-[18px] h-[18px] bg-white dark:bg-slate-800 rounded flex items-center justify-center font-bold text-indigo-500 border border-indigo-100 dark:border-indigo-800">2</div>
+                                    <span><b>Situační úkoly (SJT)</b> (2-3 scénáře) - chování v reálných situacích.</span>
+                                </div>
+                                <div className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400">
+                                    <div className="min-w-[18px] h-[18px] bg-white dark:bg-slate-800 rounded flex items-center justify-center font-bold text-indigo-500 border border-indigo-100 dark:border-indigo-800">3</div>
+                                    <span><b>Praktická Case Study</b> (1 úkol) - reálná ukázka práce na míru pozici.</span>
+                                </div>
+                                <div className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400">
+                                    <div className="min-w-[18px] h-[18px] bg-white dark:bg-slate-800 rounded flex items-center justify-center font-bold text-indigo-500 border border-indigo-100 dark:border-indigo-800">4</div>
+                                    <span><b>Logika & Analýza</b> (1-2 úlohy) - prioritizace a interpretace dat.</span>
+                                </div>
+                            </div>
                         </div>
-                        {questionCount === 10 && (
-                            <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5 flex items-center gap-1">
-                                <Zap size={12} />
-                                Rozšířený assessment (10 otázek) stojí 99 Kč.
-                            </p>
-                        )}
+                        <p className="text-[10px] text-slate-400 mt-2 italic px-1">
+                            Složení se automaticky přizpůsobí charakteru pozice (od chirurga po plánovače výroby).
+                        </p>
                     </div>
 
                     <button

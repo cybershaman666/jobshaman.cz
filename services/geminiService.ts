@@ -700,19 +700,21 @@ export const matchCandidateToJob = async (candidateBio: string, jobDescription: 
 };
 
 // --- Assessment Generation ---
-export const generateAssessment = async (role: string, skills: string[], difficulty: string, questionCount: number = 5): Promise<Assessment> => {
+// --- Assessment Generation ---
+export const generateAssessment = async (role: string, skills: string[], difficulty: string): Promise<Assessment> => {
     const ai = getAi();
     if (!ai) {
         return {
             id: 'mock-id',
-            title: `Mock Assessment for ${role}`,
+            title: `Mock Digitální AC: ${role}`,
             role: role,
-            description: "Toto je testovací assessment bez AI klíče.",
-            timeLimitSeconds: 600,
+            description: "Toto je testovací assessment bez AI klíče. Ukázka struktury digitálního AC.",
+            timeLimitSeconds: 1200,
             questions: [
-                { id: 'q1', text: "Toto je ukázková otázka (API Key chybí). Vysvětlete Event Loop.", type: "Open" },
-                { id: 'q2', text: "Vyberte správnou složitost quicksortu.", type: "MultipleChoice", options: ["O(n)", "O(n log n)", "O(n^2)", "O(log n)"], correctAnswer: "O(n log n)" },
-                { id: 'q3', text: "Napište funkci pro Fibonacciho posloupnost.", type: "Code" }
+                { id: 'q1', text: "Vysvětlete rozdíl mezi let a const v JavaScriptu.", type: "MultipleChoice", category: "Technical", options: ["let je blokový, const nelze měnit", "oba jsou stejné", "const je globální", "let je silnější"], correctAnswer: "let je blokový, const nelze měnit" },
+                { id: 'q2', text: "Server přestal odpovídat a v logu je 500. Co uděláte jako první?", type: "Scenario", category: "Situational" },
+                { id: 'q3', text: "Napište funkci, která obrátí řetězec bez použití reverse().", type: "Code", category: "Practical" },
+                { id: 'q4', text: "Pokud jsou všichni A také B, a někteří B jsou C, plyne z toho, že někteří A jsou C?", type: "Open", category: "Logic" }
             ],
             createdAt: new Date().toISOString()
         };
@@ -720,28 +722,30 @@ export const generateAssessment = async (role: string, skills: string[], difficu
 
     try {
         const prompt = `
-        Create a technical assessment for the role of ${role}.
+        Jsi hlavní hiring architekt platformy JobShaman, která staví na radikální pravdě a profesionalitě.
+        Vytváříš "Digital Assessment Center" (AC) pro pozici: ${role} (${difficulty}).
+        
         Skills: ${skills.join(', ')}.
-        Difficulty: ${difficulty}.
         OUTPUT IN CZECH.
 
-        Generate ${questionCount} distinct questions to verify real-world competence.
-        Mix of Open-ended, Code, and MultipleChoice questions.
-        
-        JSON Structure:
-        - title: Name of the test (Creative, e.g. "React Warrior Challenge")
-        - description: Short intro to the test (gamified tone).
-        - timeLimitSeconds: Recommended time in seconds (e.g. 900 for 15 mins).
-        - questions: Array of objects:
-            - id: string (unique)
-            - text: string
-            - type: 'Code' | 'Open' | 'Scenario' | 'MultipleChoice'
-            - options: string[] (Array of 4 options if type implies selection, otherwise null)
-            - correctAnswer: string (The correct option text or brief answer key)
+        TVŮJ ÚKOL: Vytvořit test, který odhalí nejen znalosti, ale i skutečný charakter a integritu kandidáta v kontextu jeho oboru. 
+        Ať už je to chirurg, programátor, nebo plánovač výroby, hledej kritické body, kde se láme "papírová pravda" a realita ("no-bullshit" přístup).
+
+        Struktura AC:
+        1. Technický "Quick-fire" (5-8 úloh): Klíčové znalosti, normy, nástroje nebo postupy (podle oboru).
+        2. Situační "Bullshit vs. Reality" (2-3 scénáře): Etická dilemata nebo tlak na ohýbání faktů typický pro TENTO OBOR (např. u chirurga zatajení chyby, u plánovače falšování reportu, u obchodníka slibování nesplnitelného).
+        3. Praktická Case Study (1 komplexní úkol): Reálná ukázka práce. Musí být specifická pro obor (např. analýza grafu, návrh operace, prioritizace fronty zakázek, odpověď na krizový e-mail).
+        4. Logika & Strategie (1-2 úkoly): Schopnost prioritizace a práce s omezeními v daném oboru.
+
+        JSON Struktura:
+        - title: Profesionální a úderný název (např. "${role}: Audit dovedností a integrity")
+        - description: 2 věty vysvětlující, že test jde pod povrch běžných frází.
+        - timeLimitSeconds: Doporučený čas (např. 1800 pro 30 min).
+        - questions: Pole objektů {id, text, type, category, options, correctAnswer}
         `;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-1.5-flash',
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
@@ -759,10 +763,11 @@ export const generateAssessment = async (role: string, skills: string[], difficu
                                     id: { type: Type.STRING },
                                     text: { type: Type.STRING },
                                     type: { type: Type.STRING, enum: ["Code", "Open", "Scenario", "MultipleChoice"] },
+                                    category: { type: Type.STRING, enum: ["Technical", "Situational", "Practical", "Logic"] },
                                     options: { type: Type.ARRAY, items: { type: Type.STRING } },
                                     correctAnswer: { type: Type.STRING }
                                 },
-                                required: ["id", "text", "type"]
+                                required: ["id", "text", "type", "category"]
                             }
                         }
                     },
@@ -810,38 +815,40 @@ export const evaluateAssessmentResult = async (
             pros: ["Testovací verze bez AI klíče.", "Odpovědi dávají smysl."],
             cons: ["Nelze hloubkově analyzovat."],
             summary: "Toto je pouze simulované hodnocení. Pro reálnou analýzu nastavte API klíč.",
-            skillMatchScore: 50
+            skillMatchScore: 50,
+            recommendation: "Nastavte si Gemini API klíč pro reálné hodnocení."
         };
     }
 
     try {
         // Prepare context for AI
         const qaPairs = questions.map(q => {
-            const warningAnswer = answers.find(a => a.questionId === q.id)?.answer || "Nezodpovězeno";
-            return `Otázka: ${q.text}\nOdpověď uchazeče: ${warningAnswer}`;
+            const answer = answers.find(a => a.questionId === q.id)?.answer || "Nezodpovězeno";
+            return `ID: ${q.id}\nOtázka: ${q.text}\nOdpověď uchazeče: ${answer}`;
         }).join("\n\n");
 
         const prompt = `
-        Jsi zkušený tech lead a hiring manager. Tvým úkolem je ohodnotit výsledky technického testu uchazeče.
-        Role: ${role}
-        Obtížnost: ${difficulty}
-
-        DŮLEŽITÉ PRAVIDLO: NIKDY uchazeče nezamítej ani nediskvalifikuj. Tvým úkolem je pouze objektivně popsat silné a slabé stránky a dát doporučení pro další kolo pohovoru. Buď konstruktivní.
-
-        Otázky a Odpovědi:
+        Jsi hlavní hiring konzultant a expert na profesní integritu platformy JobShaman.
+        Tvým úkolem je hloubkově ohodnotit výsledky Digital AC pro roli ${role} (${difficulty}).
+        
+        Zajímají nás technické znalosti, ale i uvažování, etika, smysl pro efektivitu a schopnost řešit problémy samostatně v kontextu TÉTO konkrétní profese.
+        
+        Analyzuj tyto odpovědi:
         ${qaPairs}
 
-        Výstup musí být validní JSON v tomto formátu:
-        {
-          "pros": ["silná stránka 1", "silná stránka 2"],
-          "cons": ["slabá stránka/oblast ke zlepšení 1", ...],
-          "summary": "Celkové shrnutí výkonu v 2-3 větách. Zmiň úroveň seniority podle odpovědí.",
-          "skillMatchScore": 0-100 (číslo vyjadřující technickou shodu s rolí)
-        }
+        DŮLEŽITÉ: Jsi na straně firmy, která hledá pravdu a kvalitu. Buď upřímný, hledej náznaky neprofesionality nebo "bulshitu", ale oceň opravdovou expertízu a zdravý selský rozum.
+        
+        JSON Struktura:
+        - pros: string[] (silné stránky, postřehy o uvažování v rámci profese)
+        - cons: string[] (rizika, slabá místa, etické pochyby, co si pohlídat)
+        - summary: string (2-3 věty shrnující celkový dojem a senioritu)
+        - skillMatchScore: number (0-100)
+        - recommendation: string (Krátké, úderné doporučení: např. "Profesionální přístup s vysokou integritou", "Vynikající praktické uvažování - pozvat k pohovoru", "Zatím spíše teoretické znalosti")
+        - questionFeedback: pole objektů { questionId, feedback } (Stručný komentář k uvažování u každé konkrétní otázky v kontextu oboru)
         `;
 
         const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
+            model: 'gemini-1.5-flash',
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
@@ -851,9 +858,21 @@ export const evaluateAssessmentResult = async (
                         pros: { type: Type.ARRAY, items: { type: Type.STRING } },
                         cons: { type: Type.ARRAY, items: { type: Type.STRING } },
                         summary: { type: Type.STRING },
-                        skillMatchScore: { type: Type.NUMBER }
+                        skillMatchScore: { type: Type.NUMBER },
+                        recommendation: { type: Type.STRING },
+                        questionFeedback: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    questionId: { type: Type.STRING },
+                                    feedback: { type: Type.STRING }
+                                },
+                                required: ["questionId", "feedback"]
+                            }
+                        }
                     },
-                    required: ["pros", "cons", "summary", "skillMatchScore"]
+                    required: ["pros", "cons", "summary", "skillMatchScore", "recommendation", "questionFeedback"]
                 }
             }
         });

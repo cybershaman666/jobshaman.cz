@@ -281,6 +281,11 @@ export interface AssessmentEvaluation {
   cons: string[];
   summary: string;
   skillMatchScore: number; // 0-100 independent AI score
+  questionFeedback?: {
+    questionId: string;
+    feedback: string;
+  }[];
+  recommendation?: string; // Qualitative recommendation for the founder
 }
 
 export type CandidateSubscriptionTier = 'free' | 'premium';
@@ -393,6 +398,7 @@ export interface Assessment {
     id: string;
     text: string;
     type: 'Code' | 'Open' | 'Scenario' | 'MultipleChoice';
+    category?: 'Technical' | 'Situational' | 'Practical' | 'Logic';
     options?: string[]; // For MultipleChoice
     correctAnswer?: string; // Optional: for auto-grading
   }[];

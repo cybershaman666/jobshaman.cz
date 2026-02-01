@@ -73,10 +73,8 @@ const InvitationLanding: React.FC = () => {
     const role = invitation.metadata?.role || invitation.metadata?.job_title || 'Kandidát';
     const skills: string[] = invitation.metadata?.skills || (invitation.metadata?.skill_list || '').split(',').map((s: string) => s.trim()).filter(Boolean) || ['obecné'];
     const difficulty = invitation.metadata?.difficulty || 'Senior';
-    const questionCount = invitation.metadata?.question_count || 5;
-
     try {
-      const gen = await generateAssessment(role, skills, difficulty, questionCount);
+      const gen = await generateAssessment(role, skills, difficulty);
       setAssessment(gen);
     } catch (e: any) {
       console.error(e);
