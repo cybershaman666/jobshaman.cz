@@ -67,18 +67,18 @@ export const canCompanyPostJob = (company: CompanyProfile, _userEmail?: string):
     const activeJobs = company.subscription?.usage?.activeJobsCount || 0;
 
     // Trial/Free tier limit: 3 active jobs
-    if ((tier === 'free' || tier === 'trial' || tier === 'basic') && activeJobs >= 3) {
+    if ((tier === 'free' || tier === 'basic') && activeJobs >= 3) {
         return {
             allowed: false,
             reason: 'Dosáhli jste limitu 3 aktivních inzerátů pro váš aktuální plán.'
         };
     }
 
-    // Business tier limit: 20 active jobs (example limit, can be adjusted)
-    if (tier === 'business' && activeJobs >= 20) {
+    // Trial and Business tier limit: 20 active jobs (example limit, can be adjusted)
+    if ((tier === 'trial' || tier === 'business') && activeJobs >= 20) {
         return {
             allowed: false,
-            reason: 'Dosáhli jste limitu 20 aktivních inzerátů pro váš tarif Business.'
+            reason: 'Dosáhli jste limitu 20 aktivních inzerátů pro váš tarif.'
         };
     }
 
@@ -98,7 +98,7 @@ export const getRemainingAssessments = (company: CompanyProfile): number => {
     const used = company.subscription?.usage?.aiAssessmentsUsed || 0;
 
     if (tier === 'enterprise') return 999999; // Practically unlimited
-    if (tier === 'business' || tier === 'assessment_bundle') return Math.max(0, 10 - used);
+    if (tier === 'business' || tier === 'assessment_bundle' || tier === 'trial') return Math.max(0, 10 - used);
 
     return 0; // No free assessments
 };

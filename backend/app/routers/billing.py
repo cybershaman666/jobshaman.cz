@@ -24,7 +24,9 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
     tier_limits = {
         "free": {"assessments": 0, "job_postings": 3, "name": "Free"},
         "premium": {"assessments": 0, "job_postings": 10, "name": "Premium"},
-        "business": {"assessments": 999, "job_postings": 999, "name": "Business"},
+        "business": {"assessments": 10, "job_postings": 999, "name": "Business"},
+        "trial": {"assessments": 10, "job_postings": 999, "name": "Business Plan (Trial)"},
+        "enterprise": {"assessments": 999999, "job_postings": 999, "name": "Enterprise"},
         "assessment_bundle": {"assessments": 10, "job_postings": 0, "name": "Assessment Bundle"},
         "single_assessment": {"assessments": 1, "job_postings": 0, "name": "Single Assessment"},
     }
@@ -72,15 +74,32 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
             real_job_count = jobs_resp.count if jobs_resp.count is not None else 0
         except: real_job_count = 0
 
+    # Fetch usage data from subscription_usage table
+    stats = {"ai_assessments_used": 0, "active_jobs_count": 0}
+    try:
+        if sub_details.get("id"):
+            usage_resp = supabase.table("subscription_usage").select("*").eq("subscription_id", sub_details["id"]).order("period_end", desc=True).limit(1).execute()
+            if usage_resp.data:
+                usage = usage_resp.data[0]
+                stats["ai_assessments_used"] = usage.get("ai_assessments_used", 0)
+                stats["active_jobs_count"] = usage.get("active_jobs_count", 0)
+    except Exception as e:
+        print(f"⚠️ Error fetching usage stats: {e}")
+
+    # For UI clarity, return assessmentsAvailable as REMAINING credits
+    total_assessments = limits["assessments"]
+    used_assessments = stats["ai_assessments_used"]
+    remaining_assessments = max(0, total_assessments - used_assessments)
+
     return {
         "tier": tier,
         "tierName": limits["name"],
         "status": sub_details.get("status", "active"),
         "expiresAt": sub_details.get("current_period_end"),
-        "assessmentsAvailable": limits["assessments"],
-        "assessmentsUsed": sub_details.get("ai_assessments_used", 0),
+        "assessmentsAvailable": remaining_assessments,
+        "assessmentsUsed": used_assessments,
         "jobPostingsAvailable": limits["job_postings"],
-        "jobPostingsUsed": real_job_count if is_company_admin else 0,
+        "jobPostingsUsed": real_job_count if is_company_admin else stats["active_jobs_count"],
     }
 
 @router.post("/verify-billing")
