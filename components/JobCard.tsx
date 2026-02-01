@@ -21,15 +21,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
   // Defensive check for JHI score
   const jhiScore = job.jhi?.score || 0;
 
-  // Refined badge colors (matte instead of neon)
-  let scoreBadgeClass = "text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800";
 
-  if (jhiScore < 70) {
-    scoreBadgeClass = "text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800";
-  }
-  if (jhiScore < 50) {
-    scoreBadgeClass = "text-rose-600 dark:text-rose-400 bg-rose-100 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800";
-  }
 
   const handleSaveClick = (e: React.MouseEvent) => {
     e.stopPropagation();
