@@ -552,6 +552,7 @@
             },
             "actions": {
                 "view_as_user": "Zobrazit jako uživatel",
+                "create_assessment": "Vytvořit assessment",
                 "edit": "Upravit Pozici",
                 "close": "Označit jako Uzavřenou",
                 "delete": "Smazat Pozici",

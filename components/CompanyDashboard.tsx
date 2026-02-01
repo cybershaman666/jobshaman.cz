@@ -49,7 +49,8 @@ import {
     RefreshCw,
     Crown,
     MoreVertical,
-    Info
+    Info,
+    BrainCircuit
 } from 'lucide-react';
 
 // Curated Emojis for Job Ads
@@ -108,6 +109,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
     // Editor Ref
     const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    const [assessmentJobId, setAssessmentJobId] = useState<string | undefined>(undefined);
 
     // Candidate State
     const [selectedJobId, setSelectedJobId] = useState<string>(jobs.length > 0 ? jobs[0].id : '');
@@ -431,6 +434,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
     const toggleDropdown = (jobId: string) => {
         setActiveDropdownJobId(activeDropdownJobId === jobId ? null : jobId);
+    };
+
+    const handleCreateAssessmentFromJob = (jobId: string) => {
+        setAssessmentJobId(jobId);
+        setActiveTab('assessments');
+        setActiveDropdownJobId(null);
     };
 
     const toggleBenefit = (benefitKey: string) => {
@@ -835,6 +844,13 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                                                                 <Eye size={14} />
                                                                                 {t('company.dashboard.actions.view_as_user')}
                                                                             </a>
+                                                                            <button
+                                                                                onClick={() => handleCreateAssessmentFromJob(job.id)}
+                                                                                className="w-full text-left px-3 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 font-medium"
+                                                                            >
+                                                                                <BrainCircuit size={14} />
+                                                                                {t('company.dashboard.actions.create_assessment')}
+                                                                            </button>
                                                                             <div className="border-t border-slate-200 dark:border-slate-700"></div>
                                                                             <button
                                                                                 onClick={() => handleEditJob(job.id)}
@@ -1436,7 +1452,11 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             />
                         )}
 
-                        <AssessmentCreator companyProfile={companyProfile} />
+                        <AssessmentCreator
+                            companyProfile={companyProfile}
+                            jobs={jobs}
+                            initialJobId={assessmentJobId}
+                        />
                     </div>
                 )}
                 {activeTab === 'candidates' && renderCandidates()}

@@ -872,3 +872,37 @@ export const evaluateAssessmentResult = async (
         };
     }
 };
+
+// --- Skill Extraction ---
+export const extractSkillsFromJob = async (title: string, description: string): Promise<string[]> => {
+    const ai = getAi();
+    if (!ai) return [];
+
+    try {
+        const prompt = `
+        Analyze the following job title and description and extract a list of 5-10 key technical skills, tools, or competencies required for the role.
+        Role: ${title}
+        Description: ${description}
+        
+        Return ONLY a JSON array of strings.
+        `;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.ARRAY,
+                    items: { type: Type.STRING }
+                }
+            }
+        });
+
+        const jsonText = response.text;
+        return JSON.parse(jsonText || '[]');
+    } catch (error) {
+        console.error("Skill extraction failed:", error);
+        return [];
+    }
+};
