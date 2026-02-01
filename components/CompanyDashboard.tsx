@@ -17,6 +17,7 @@ import BenefitInsights from './BenefitInsights';
 import PlanUpgradeModal from './PlanUpgradeModal';
 import AssessmentInvitationModal from './AssessmentInvitationModal';
 import MyInvitations from './MyInvitations';
+import AssessmentResultsList from './AssessmentResultsList';
 import {
     Briefcase,
     Users,
@@ -1422,6 +1423,10 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 <MyInvitations forCompany />
                             </div>
                         )}
+
+                        <div className="mb-6">
+                            <AssessmentResultsList companyId={companyProfile.id || ''} />
+                        </div>
 
                         {showInvitationModal && (
                             <AssessmentInvitationModal

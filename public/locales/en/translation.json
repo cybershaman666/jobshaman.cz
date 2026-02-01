@@ -806,5 +806,50 @@
     "header": {
         "toggle_theme": "Toggle Theme",
         "logout": "Logout"
+    },
+    "assessment": {
+        "taker": {
+            "limit": "Limit",
+            "anti_cheat": "Anti-Cheat",
+            "active": "Active",
+            "fullscreen_mode": "Window will switch to fullscreen mode.",
+            "blur_detection": "Switching windows or tabs will be recorded.",
+            "auto_submit": "Test will auto-submit when time expires.",
+            "initialize_mission": "INITIALIZE MISSION (START)",
+            "uploading_data": "UPLOADING DATA...",
+            "assessment_label": "ASSESSMENT",
+            "warnings": "WARNINGS:",
+            "focus_lost": "FOCUS LOST DETECTED",
+            "return_to_test": "Return to the test. Warnings: {{count}}",
+            "progress": "Progress",
+            "type_multiple_choice": "MULTIPLE CHOICE",
+            "type_code": "CODING TASK",
+            "type_open": "OPEN QUESTION",
+            "submit_mission": "SUBMIT MISSION",
+            "next_phase": "NEXT PHASE",
+            "submission_failed": "Submission failed. Please try again.",
+            "placeholder_code": "// Write your code here...",
+            "placeholder_text": "Your answer..."
+        },
+        "results": {
+            "loading": "Loading results...",
+            "no_results_title": "No assessments submitted yet",
+            "no_results_desc": "Results will appear here once candidates complete the assessment.",
+            "title": "Submitted Assessments",
+            "score": "Score:",
+            "evaluating": "Evaluating...",
+            "ai_evaluate_btn": "AI Evaluation",
+            "evaluated": "Evaluated",
+            "summary_title": "Performance Summary",
+            "match_score_title": "AI Match Score",
+            "pros_title": "Strengths",
+            "cons_title": "Areas for Improvement",
+            "not_evaluated_desc": "This assessment has not been evaluated by AI yet.",
+            "run_analysis_btn": "Run Deep AI Analysis",
+            "detailed_answers": "Detailed Answers",
+            "question_label": "Question",
+            "eval_failed": "Failed to evaluate assessment.",
+            "question_fallback": "Question"
+        }
     }
 }

@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
-import { AIAnalysisResult, AIAdOptimizationResult, CompanyProfile, Assessment, CVAnalysis, UserProfile, ShamanAdvice, SalaryEstimate } from "../types";
+import { AIAnalysisResult, AIAdOptimizationResult, CompanyProfile, Assessment, CVAnalysis, UserProfile, ShamanAdvice, SalaryEstimate, AssessmentEvaluation } from "../types";
 
 // Safe API Key Access
 const getApiKey = () => {
@@ -34,7 +34,19 @@ const getAi = () => {
 // Helper to check if API key is present
 export const hasApiKey = (): boolean => !!getApiKey();
 
-export const analyzeJobDescription = async (description: string): Promise<AIAnalysisResult> => {
+import { supabase } from './supabaseClient';
+
+export const analyzeJobDescription = async (
+    description: string,
+    jobId?: string,
+    existingAnalysis?: AIAnalysisResult
+): Promise<AIAnalysisResult> => {
+    // 1. Check if we already have a cached analysis (passed from DB)
+    if (existingAnalysis) {
+        console.log("⚡ Ušetřeno volání AI: Používám cache z DB.");
+        return existingAnalysis;
+    }
+
     const ai = getAi();
     if (!ai) {
         // Fallback mock response if no key is provided for demo purposes
@@ -87,7 +99,26 @@ export const analyzeJobDescription = async (description: string): Promise<AIAnal
         const jsonText = response.text;
         if (!jsonText) throw new Error("No response from AI");
 
-        return JSON.parse(jsonText) as AIAnalysisResult;
+        const result = JSON.parse(jsonText) as AIAnalysisResult;
+
+        // 2. Save result to cache securely via RPC if Job ID is present
+        if (jobId && supabase) {
+            try {
+                // We use RPC to avoid RLS issues (users can't update jobs table directly)
+                // The function must be created in Supabase first: save_job_ai_analysis(p_job_id, p_analysis)
+                const { error } = await supabase.rpc('save_job_ai_analysis', {
+                    p_job_id: jobId,
+                    p_analysis: result
+                });
+
+                if (error) console.error("Failed to cache AI analysis:", error);
+                else console.log("💾 AI výsledek uložen do cache.");
+            } catch (cacheError) {
+                console.warn("Cache save error (ignoring):", cacheError);
+            }
+        }
+
+        return result;
 
     } catch (error) {
         console.error("AI Analysis failed:", error);
@@ -633,6 +664,7 @@ export const matchCandidateToJob = async (candidateBio: string, jobDescription: 
     }
 };
 
+// --- Assessment Generation ---
 export const generateAssessment = async (role: string, skills: string[], difficulty: string, questionCount: number = 5): Promise<Assessment> => {
     const ai = getAi();
     if (!ai) {
@@ -640,9 +672,12 @@ export const generateAssessment = async (role: string, skills: string[], difficu
             id: 'mock-id',
             title: `Mock Assessment for ${role}`,
             role: role,
+            description: "Toto je testovací assessment bez AI klíče.",
+            timeLimitSeconds: 600,
             questions: [
-                { text: "Toto je ukázková otázka (API Key chybí). Vysvětlete Event Loop.", type: "Open" },
-                { text: "Napište funkci pro Fibonacciho posloupnost.", type: "Code" }
+                { id: 'q1', text: "Toto je ukázková otázka (API Key chybí). Vysvětlete Event Loop.", type: "Open" },
+                { id: 'q2', text: "Vyberte správnou složitost quicksortu.", type: "MultipleChoice", options: ["O(n)", "O(n log n)", "O(n^2)", "O(log n)"], correctAnswer: "O(n log n)" },
+                { id: 'q3', text: "Napište funkci pro Fibonacciho posloupnost.", type: "Code" }
             ],
             createdAt: new Date().toISOString()
         };
@@ -655,11 +690,19 @@ export const generateAssessment = async (role: string, skills: string[], difficu
         Difficulty: ${difficulty}.
         OUTPUT IN CZECH.
 
-        Generate ${questionCount} distinct questions to verify real-world competence, not just trivia.
+        Generate ${questionCount} distinct questions to verify real-world competence.
+        Mix of Open-ended, Code, and MultipleChoice questions.
         
         JSON Structure:
-        - title: Name of the test
-        - questions: Array of objects { text: string, type: 'Code' | 'Open' | 'Scenario' }
+        - title: Name of the test (Creative, e.g. "React Warrior Challenge")
+        - description: Short intro to the test (gamified tone).
+        - timeLimitSeconds: Recommended time in seconds (e.g. 900 for 15 mins).
+        - questions: Array of objects:
+            - id: string (unique)
+            - text: string
+            - type: 'Code' | 'Open' | 'Scenario' | 'MultipleChoice'
+            - options: string[] (Array of 4 options if type implies selection, otherwise null)
+            - correctAnswer: string (The correct option text or brief answer key)
         `;
 
         const response = await ai.models.generateContent({
@@ -671,17 +714,24 @@ export const generateAssessment = async (role: string, skills: string[], difficu
                     type: Type.OBJECT,
                     properties: {
                         title: { type: Type.STRING },
+                        description: { type: Type.STRING },
+                        timeLimitSeconds: { type: Type.NUMBER },
                         questions: {
                             type: Type.ARRAY,
                             items: {
                                 type: Type.OBJECT,
                                 properties: {
+                                    id: { type: Type.STRING },
                                     text: { type: Type.STRING },
-                                    type: { type: Type.STRING, enum: ["Code", "Open", "Scenario"] }
-                                }
+                                    type: { type: Type.STRING, enum: ["Code", "Open", "Scenario", "MultipleChoice"] },
+                                    options: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                    correctAnswer: { type: Type.STRING }
+                                },
+                                required: ["id", "text", "type"]
                             }
                         }
-                    }
+                    },
+                    required: ["title", "description", "timeLimitSeconds", "questions"]
                 }
             }
         });
@@ -699,6 +749,78 @@ export const generateAssessment = async (role: string, skills: string[], difficu
 
     } catch (e) {
         console.error("Assessment gen failed", e);
+        throw e;
+    }
+};
+
+// --- Assessment Evaluation ---
+export const evaluateAssessmentResult = async (
+    role: string,
+    difficulty: string,
+    questions: { id: string; text: string }[],
+    answers: { questionId: string; answer: string }[]
+): Promise<AssessmentEvaluation> => {
+    const ai = getAi();
+    if (!ai) {
+        // Mock fallback
+        return {
+            pros: ["Testovací verze bez AI klíče.", "Odpovědi dávají smysl."],
+            cons: ["Nelze hloubkově analyzovat."],
+            summary: "Toto je pouze simulované hodnocení. Pro reálnou analýzu nastavte API klíč.",
+            skillMatchScore: 50
+        };
+    }
+
+    try {
+        // Prepare context for AI
+        const qaPairs = questions.map(q => {
+            const warningAnswer = answers.find(a => a.questionId === q.id)?.answer || "Nezodpovězeno";
+            return `Otázka: ${q.text}\nOdpověď uchazeče: ${warningAnswer}`;
+        }).join("\n\n");
+
+        const prompt = `
+        Jsi zkušený tech lead a hiring manager. Tvým úkolem je ohodnotit výsledky technického testu uchazeče.
+        Role: ${role}
+        Obtížnost: ${difficulty}
+
+        DŮLEŽITÉ PRAVIDLO: NIKDY uchazeče nezamítej ani nediskvalifikuj. Tvým úkolem je pouze objektivně popsat silné a slabé stránky a dát doporučení pro další kolo pohovoru. Buď konstruktivní.
+
+        Otázky a Odpovědi:
+        ${qaPairs}
+
+        Výstup musí být validní JSON v tomto formátu:
+        {
+          "pros": ["silná stránka 1", "silná stránka 2"],
+          "cons": ["slabá stránka/oblast ke zlepšení 1", ...],
+          "summary": "Celkové shrnutí výkonu v 2-3 větách. Zmiň úroveň seniority podle odpovědí.",
+          "skillMatchScore": 0-100 (číslo vyjadřující technickou shodu s rolí)
+        }
+        `;
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-3-flash-preview',
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        pros: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        cons: { type: Type.ARRAY, items: { type: Type.STRING } },
+                        summary: { type: Type.STRING },
+                        skillMatchScore: { type: Type.NUMBER }
+                    },
+                    required: ["pros", "cons", "summary", "skillMatchScore"]
+                }
+            }
+        });
+
+        const jsonText = response.text;
+        if (!jsonText) throw new Error("No response from AI");
+        return JSON.parse(jsonText) as AssessmentEvaluation;
+
+    } catch (e) {
+        console.error("Assessment Evaluation failed:", e);
         throw e;
     }
 };

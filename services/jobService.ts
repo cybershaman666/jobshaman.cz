@@ -402,7 +402,9 @@ const transformJob = (scrapedJob: any): Job => {
         required_skills: [], // Initialize empty array
         salary_from: salaryFrom || undefined,
         salary_to: salaryTo || undefined,
-        country_code: scrapedJob.country_code
+        country_code: scrapedJob.country_code,
+        // Map cached AI analysis if present
+        aiAnalysis: scrapedJob.ai_analysis
     };
 };
 

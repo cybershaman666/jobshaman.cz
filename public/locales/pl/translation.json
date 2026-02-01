@@ -804,5 +804,50 @@
   "header": {
     "toggle_theme": "Zmień motyw",
     "logout": "Wyloguj się"
+  },
+  "assessment": {
+    "taker": {
+      "limit": "Limit",
+      "anti_cheat": "Anti-Cheat",
+      "active": "Aktywny",
+      "fullscreen_mode": "Okno przełączy się w tryb pełnoekranowy.",
+      "blur_detection": "Przełączanie okien lub kart będzie rejestrowane.",
+      "auto_submit": "Test zostanie automatycznie przesłany po upływie czasu.",
+      "initialize_mission": "ROZPOCZNIJ MISJĘ (START)",
+      "uploading_data": "PRZESYŁANIE DANYCH...",
+      "assessment_label": "ASSESSMENT",
+      "warnings": "OSTRZEŻENIA:",
+      "focus_lost": "WYKRYTO UTRATĘ KONCENTRACJI",
+      "return_to_test": "Wróć do testu. Ostrzeżenia: {{count}}",
+      "progress": "Postęp",
+      "type_multiple_choice": "WIELOKROTNY WYBÓR",
+      "type_code": "ZADANIE PROGRAMISTYCZNE",
+      "type_open": "PYTANIE OTWARTE",
+      "submit_mission": "WYŚLIJ MISJĘ",
+      "next_phase": "NASTĘPNA FAZA",
+      "submission_failed": "Przesyłanie nie powiodło się. Spróbuj ponownie.",
+      "placeholder_code": "// Tutaj wpisz swój kod...",
+      "placeholder_text": "Twoja odpowiedź..."
+    },
+    "results": {
+      "loading": "Ładowanie wyników...",
+      "no_results_title": "Brak przesłanych ocen",
+      "no_results_desc": "Wyniki pojawią się tutaj, gdy kandydaci ukończą ocenę.",
+      "title": "Przesłane Oceny",
+      "score": "Wynik:",
+      "evaluating": "Ocenianie...",
+      "ai_evaluate_btn": "Ocena AI",
+      "evaluated": "Oceniono",
+      "summary_title": "Podsumowanie Wyników",
+      "match_score_title": "Wynik Dopasowania AI",
+      "pros_title": "Mocne Strony",
+      "cons_title": "Obszary do Poprawy",
+      "not_evaluated_desc": "Ta ocena nie została jeszcze oceniona przez AI.",
+      "run_analysis_btn": "Uruchom Głęboką Analizę AI",
+      "detailed_answers": "Szczegółowe Odpowiedzi",
+      "question_label": "Pytanie",
+      "eval_failed": "Nie udało się ocenić.",
+      "question_fallback": "Pytanie"
+    }
   }
 }

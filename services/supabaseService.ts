@@ -207,8 +207,6 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
             priorities: []
         },
         cvAnalysis: undefined,
-        currentCVId: undefined,
-        cvs: [],
         subscription: {
             tier: getTestAccountTier(profileData.email) || profileData.subscription_tier || 'free',
             expiresAt: undefined,
