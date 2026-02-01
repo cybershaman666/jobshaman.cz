@@ -19,7 +19,7 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
     // CRITICAL: Clear any existing token to prevent race conditions
     // This ensures we don't use a stale token while a new one is being fetched
     clearCsrfToken();
-    console.log('🔄 Fetching fresh CSRF token...');
+    // console.log('🔄 Fetching fresh CSRF token...');
 
     try {
         const response = await fetch(`${BACKEND_URL}/csrf-token`, {
@@ -44,7 +44,7 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
 
         // Store token with expiry time
         setCsrfToken(data.csrf_token, data.expiry || 3600);
-        console.log(`✅ CSRF token obtained successfully: ${data.csrf_token.substring(0, 10)}...`);
+        // console.log(`✅ CSRF token obtained successfully`);
 
         return data.csrf_token;
     } catch (error) {
@@ -123,7 +123,7 @@ export const refreshCsrfTokenIfNeeded = async (authToken: string): Promise<strin
 
     // If less than 10 minutes remaining, refresh
     if (timeRemaining < 600) {
-        console.log('🔄 Refreshing CSRF token...');
+        // console.log('🔄 Refreshing CSRF token...');
         return fetchCsrfToken(authToken);
     }
 
@@ -213,7 +213,7 @@ export const authenticatedFetch = async (
 
         if (csrfToken) {
             headers.set('X-CSRF-Token', csrfToken);
-            console.log(`🔐 Using CSRF token for ${method} request: ${csrfToken.substring(0, 10)}...`);
+            // console.log(`🔐 Using CSRF token for ${method} request`);
         } else {
             console.warn('⚠️ No valid CSRF token found for ' + method + ' request even after retry');
         }

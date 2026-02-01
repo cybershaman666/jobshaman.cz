@@ -112,11 +112,7 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                             </ul>
                             <button
                                 onClick={() => {
-                                    console.log('🔘 Business Plan clicked');
-                                    console.log('📊 Company Profile:', companyProfile);
-
                                     if (companyProfile?.id) {
-                                        console.log('✅ ID found, tracking analytics...');
                                         AnalyticsService.trackUpgradeTrigger({
                                             companyId: companyProfile.id,
                                             feature: 'BUSINESS_COMPANY_PLAN',
@@ -125,11 +121,9 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                         });
 
                                         ABTestService.trackConversion('pricing_display_test', 'business_clicked', 4990);
-
-                                        console.log('🚀 Redirecting to checkout...');
                                         redirectToCheckout('business', companyProfile.id);
                                     } else {
-                                        console.error('❌ Company ID missing in profile!', companyProfile);
+                                        console.error('❌ Company ID missing in profile!');
                                         alert('Chyba: Nepodařilo se načíst ID společnosti. Zkuste obnovit stránku.');
                                     }
                                 }}

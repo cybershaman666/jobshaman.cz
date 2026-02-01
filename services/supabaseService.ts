@@ -142,7 +142,7 @@ export const createBaseProfile = async (userId: string, email: string, name: str
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
     if (!supabase) return null;
 
-    console.log('📥 Fetching user profile for userId:', userId);
+    // console.log('📥 Fetching user profile for userId:', userId);
 
     // Fetch from profiles table
     const { data: profileData, error: profileError } = await supabase
@@ -220,7 +220,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         role: profileData.role
     };
 
-    console.log('✅ User profile loaded with id:', userProfile.id);
+    // console.log('✅ User profile loaded');
     return userProfile;
 };
 
@@ -343,7 +343,7 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
         return null;
     }
 
-    console.log('🔍 Looking for company for userId:', userId);
+    // console.log('🔍 Looking for company for userId:', userId);
 
     try {
         const { data, error } = await supabase
@@ -359,7 +359,7 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
         }
 
         if (!data || data.length === 0) {
-            console.log('No company found for userId:', userId);
+            // console.log('No company found for userId:', userId);
             return null;
         }
 

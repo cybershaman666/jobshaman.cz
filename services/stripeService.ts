@@ -57,7 +57,7 @@ export const redirectToCheckout = async (tier: 'premium' | 'basic' | 'business' 
             alert(errorMessage);
         }
     } catch (error) {
-        console.error('Stripe error:', error);
+        console.error('Stripe error:', error instanceof Error ? error.message : 'Unknown error');
 
         // More specific error messages
         if (error instanceof Error) {

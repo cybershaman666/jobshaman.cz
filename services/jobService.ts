@@ -134,6 +134,110 @@ export const clearJobCache = () => {
     console.log('🧹 Job cache cleared - will fetch fresh results with new coordinates');
 };
 
+// --- GEOCODING CACHE & SERVICE ---
+
+interface GeocodeResult {
+    lat: number;
+    lng: number;
+    displayName: string;
+}
+
+class GeocodeCache {
+    private cache: Map<string, CacheEntry<GeocodeResult | null>> = new Map();
+    private maxSize: number = 100;
+
+    set(key: string, data: GeocodeResult | null, ttl: number = 3600000): void { // 1 hour TTL
+        if (this.cache.size >= this.maxSize) {
+            const firstKey = this.cache.keys().next().value;
+            if (firstKey !== undefined) {
+                this.cache.delete(firstKey);
+            }
+        }
+        this.cache.set(key, { data, timestamp: Date.now(), ttl });
+    }
+
+    get(key: string): GeocodeResult | null | undefined {
+        const entry = this.cache.get(key);
+        if (!entry) return undefined; // Not in cache
+        if (Date.now() - entry.timestamp > entry.ttl) {
+            this.cache.delete(key);
+            return undefined;
+        }
+        return entry.data;
+    }
+}
+
+const geocodeCache = new GeocodeCache();
+
+/**
+ * Geocode a city name to coordinates using OpenStreetMap Nominatim
+ * Returns null if geocoding fails
+ */
+export const geocodeCity = async (cityName: string, countryCode?: string): Promise<GeocodeResult | null> => {
+    if (!cityName || cityName.trim().length === 0) return null;
+
+    const normalizedCity = cityName.trim().toLowerCase();
+    const cacheKey = `${normalizedCity}:${countryCode || 'any'}`;
+
+    // Check cache first
+    const cached = geocodeCache.get(cacheKey);
+    if (cached !== undefined) {
+        console.log(`🗺️  Geocode cache hit for "${cityName}"`);
+        return cached;
+    }
+
+    try {
+        console.log(`🌍 Geocoding "${cityName}" (country: ${countryCode || 'any'})...`);
+
+        // Build query with country bias for better results
+        const searchQuery = countryCode
+            ? `${cityName}, ${countryCode.toUpperCase()}`
+            : cityName;
+
+        const url = new URL('https://nominatim.openstreetmap.org/search');
+        url.searchParams.set('q', searchQuery);
+        url.searchParams.set('format', 'json');
+        url.searchParams.set('limit', '1');
+        url.searchParams.set('addressdetails', '1');
+
+        const response = await fetch(url.toString(), {
+            headers: {
+                'User-Agent': 'JobShaman/1.0' // Required by OSM
+            }
+        });
+
+        if (!response.ok) {
+            console.error(`❌ Geocoding failed with status ${response.status}`);
+            geocodeCache.set(cacheKey, null); // Cache failure to avoid repeated requests
+            return null;
+        }
+
+        const results = await response.json();
+
+        if (!results || results.length === 0) {
+            console.log(`🔍 No geocoding results for "${cityName}"`);
+            geocodeCache.set(cacheKey, null);
+            return null;
+        }
+
+        const result: GeocodeResult = {
+            lat: parseFloat(results[0].lat),
+            lng: parseFloat(results[0].lon),
+            displayName: results[0].display_name
+        };
+
+        console.log(`✅ Geocoded "${cityName}" to ${result.lat}, ${result.lng}`);
+        geocodeCache.set(cacheKey, result);
+        return result;
+
+    } catch (error) {
+        console.error(`❌ Geocoding error for "${cityName}":`, error);
+        geocodeCache.set(cacheKey, null); // Cache failure
+        return null;
+    }
+};
+
+
 // --- SALARY NORMALIZATION HELPERS ---
 // Note: Functions temporarily removed as they're not currently used
 // const detectSalaryCurrency = ...
@@ -727,6 +831,173 @@ export const searchJobsByLocation = async (
         return { jobs: [], hasMore: false, totalCount: 0 };
     }
 };
+
+// --- COMPREHENSIVE FILTER FUNCTION ---
+
+export interface JobFilterOptions {
+    // Location & Distance
+    userLat?: number;
+    userLng?: number;
+    radiusKm?: number;
+    filterCity?: string;
+
+    // Contract Type
+    filterContractTypes?: string[]; // ['HPP', 'IČO', 'Part-time']
+
+    // Benefits
+    filterBenefits?: string[];
+
+    // Salary
+    filterMinSalary?: number;
+
+    // Date Posted
+    filterDatePosted?: string; // 'all', '24h', '3d', '7d', '14d'
+
+    // Experience Level
+    filterExperienceLevels?: string[]; // ['Junior', 'Medior', 'Senior', 'Lead']
+
+    // Pagination
+    page?: number;
+    pageSize?: number;
+
+    // Country
+    countryCode?: string;
+}
+
+/**
+ * Comprehensive job filtering function that supports all filter types
+ * Uses database-level filtering via RPC for optimal performance
+ * Automatically geocodes city names to enable distance filtering
+ */
+export const fetchJobsWithFilters = async (
+    options: JobFilterOptions
+): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
+    if (!isSupabaseConfigured() || !supabase) {
+        console.warn("Supabase not configured.");
+        return { jobs: [], hasMore: false, totalCount: 0 };
+    }
+
+    const {
+        userLat,
+        userLng,
+        radiusKm = 50,
+        filterCity,
+        filterContractTypes,
+        filterBenefits,
+        filterMinSalary,
+        filterDatePosted = 'all',
+        filterExperienceLevels,
+        page = 0,
+        pageSize = 50,
+        countryCode
+    } = options;
+
+    try {
+        let finalUserLat = userLat;
+        let finalUserLng = userLng;
+
+        // If city filter is provided but no coordinates, try to geocode
+        if (filterCity && filterCity.trim() && (!userLat || !userLng)) {
+            console.log(`🏙️  City filter provided without coordinates, geocoding "${filterCity}"...`);
+            const geocoded = await geocodeCity(filterCity, countryCode);
+            if (geocoded) {
+                finalUserLat = geocoded.lat;
+                finalUserLng = geocoded.lng;
+                console.log(`✅ Using geocoded coordinates: ${finalUserLat}, ${finalUserLng}`);
+            } else {
+                console.log(`⚠️  Geocoding failed, will use text-based location filter`);
+            }
+        }
+
+        console.log(`🔍 Fetching jobs with filters:`, {
+            location: filterCity || 'any',
+            coordinates: finalUserLat && finalUserLng ? `${finalUserLat}, ${finalUserLng}` : 'none',
+            radius: radiusKm,
+            contractTypes: filterContractTypes || [],
+            benefits: filterBenefits || [],
+            minSalary: filterMinSalary,
+            datePosted: filterDatePosted,
+            experience: filterExperienceLevels || [],
+            page,
+            pageSize,
+            country: countryCode || 'all'
+        });
+
+        const { data, error } = await supabase.rpc('search_jobs_with_filters', {
+            user_lat: finalUserLat ?? null,
+            user_lng: finalUserLng ?? null,
+            radius_km: radiusKm,
+            filter_city: filterCity || null,
+            filter_contract_types: filterContractTypes && filterContractTypes.length > 0 ? filterContractTypes : null,
+            filter_benefits: filterBenefits && filterBenefits.length > 0 ? filterBenefits : null,
+            filter_min_salary: filterMinSalary ?? null,
+            filter_date_posted: filterDatePosted,
+            filter_experience_levels: filterExperienceLevels && filterExperienceLevels.length > 0 ? filterExperienceLevels : null,
+            limit_count: pageSize,
+            offset_val: page * pageSize,
+            filter_country_code: countryCode ?? null
+        });
+
+        if (error) {
+            console.error('❌ Error fetching filtered jobs:', error);
+            return { jobs: [], hasMore: false, totalCount: 0 };
+        }
+
+        if (!data || data.length === 0) {
+            console.log('🔍 No jobs found matching filter criteria');
+            return { jobs: [], hasMore: false, totalCount: 0 };
+        }
+
+        // Process results
+        const processedJobs = data.map((row: any) => {
+            const job = transformJob({
+                id: row.id,
+                title: row.title,
+                company: row.company,
+                location: row.location,
+                description: row.description,
+                benefits: row.benefits,
+                contract_type: row.contract_type,
+                salary_from: row.salary_from,
+                salary_to: row.salary_to,
+                work_type: row.work_type,
+                scraped_at: row.scraped_at,
+                source: row.source,
+                education_level: row.education_level,
+                url: row.url,
+                lat: row.lat,
+                lng: row.lng,
+                country_code: row.country_code,
+                legality_status: row.legality_status,
+                verification_notes: row.verification_notes
+            });
+
+            // Add distance and tags information
+            (job as any).distance_km = row.distance_km;
+            if (row.tags) {
+                job.tags = [...job.tags, ...row.tags];
+            }
+
+            return job;
+        });
+
+        const totalCount = data[0]?.total_count || 0;
+        const hasMore = (page + 1) * pageSize < totalCount;
+
+        console.log(`✅ Found ${processedJobs.length} filtered jobs (total: ${totalCount}, has more: ${hasMore})`);
+
+        return {
+            jobs: processedJobs,
+            hasMore,
+            totalCount
+        };
+
+    } catch (e) {
+        console.error("Error in fetchJobsWithFilters:", e);
+        return { jobs: [], hasMore: false, totalCount: 0 };
+    }
+};
+
 
 // Legacy function - kept for compatibility
 export const fetchRealJobs = async (
