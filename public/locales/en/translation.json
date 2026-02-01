@@ -199,6 +199,16 @@
             "label_commute": "Commute",
             "label_job": "Job"
         },
+        "benefits_carousel": {
+            "jhi_title": "Happiness Index (JHI)",
+            "jhi_desc": "Reveal toxic companies before you send your CV.",
+            "salary_title": "Real Wage",
+            "salary_desc": "AI estimates salary even where companies hide it.",
+            "commute_title": "Commute Reality",
+            "commute_desc": "We calculate your lost time and money.",
+            "coach_title": "AI Career Coach",
+            "coach_desc": "Improves your CV and writes a cover letter for you."
+        },
         "page_what_is": {
             "title_job": "What ",
             "title_shaman": "JobShaman",

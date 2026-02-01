@@ -142,9 +142,7 @@ export const createBaseProfile = async (userId: string, email: string, name: str
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
     if (!supabase) return null;
 
-    // console.log('📥 Fetching user profile for userId:', userId);
-
-    // Fetch from profiles table
+    // Fetch from profiles table with candidate_profiles join
     const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select(`
@@ -157,10 +155,11 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
             updated_at,
             subscription_tier,
             usage_stats,
-            has_assessment
+            has_assessment,
+            candidate_profiles (*)
         `)
         .eq('id', userId)
-        .maybeSingle(); // Use maybeSingle() to handle missing profiles gracefully
+        .maybeSingle();
 
     if (profileError) {
         console.error('Profile fetch error:', profileError);
@@ -172,15 +171,8 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         return null;
     }
 
-    // Fetch from candidate_profiles table
-    const { data: candidateData, error: _candidateError } = await supabase
-        .from('candidate_profiles')
-        .select('*')
-        .eq('id', userId)
-        .maybeSingle(); // Use maybeSingle() here too
-
-
-    // If candidate profile doesn't exist, that's ok, we'll use defaults
+    // candidateData is now part of profileData due to join
+    const candidateData = profileData.candidate_profiles?.[0];
 
     // Map to UserProfile structure - ENSURE id is always included
     const userProfile: UserProfile = {
@@ -192,8 +184,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         photo: profileData.avatar_url,
         isLoggedIn: true,
         address: candidateData?.address || '',
-        coordinates: candidateData?.lat && candidateData?.lng ? { lat: candidateData.lat, lon: candidateData.lng } :
-            profileData.lat && profileData.lng ? { lat: profileData.lat, lon: profileData.lng } : undefined,
+        coordinates: candidateData?.lat && candidateData?.lng ? { lat: candidateData.lat, lon: candidateData.lng } : undefined,
         transportMode: (candidateData?.transport_mode as any) || 'public',
         cvText: candidateData?.cv_text || '',
         cvUrl: candidateData?.cv_url || '',
@@ -220,7 +211,6 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         role: profileData.role
     };
 
-    // console.log('✅ User profile loaded');
     return userProfile;
 };
 
@@ -343,76 +333,89 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
         return null;
     }
 
-    // console.log('🔍 Looking for company for userId:', userId);
+    let retryCount = 0;
+    const maxRetries = 2;
 
-    try {
-        const { data, error } = await supabase
-            .from('companies')
-            .select('*')
-            .eq('owner_id', userId);
-
-        console.log('📊 Company query result:', { count: data?.length || 0, error: error || 'none' });
-
-        if (error) {
-            console.error('Recruiter company fetch error:', error);
-            return null;
-        }
-
-        if (!data || data.length === 0) {
-            // console.log('No company found for userId:', userId);
-            return null;
-        }
-
-        // Handle multiple companies - pick the first one but log it
-        if (data.length > 1) {
-            console.warn(`⚠️ Multiple companies (${data.length}) found for recruiter ${userId}. Using the first one.`);
-        }
-
-        const company = data[0];
-
-        // Get subscription details using new structure
-        // Wrap in try-catch to handle network errors
-        let subscriptionData = null;
-        let usageData = null;
-
+    while (retryCount <= maxRetries) {
         try {
-            subscriptionData = await getCompanySubscription(company.id);
-        } catch (subError) {
-            console.warn('⚠️ Failed to fetch subscription data:', subError);
-            // Continue without subscription data
-        }
+            // Combined query to reduce network roundtrips: companies -> subscriptions -> usage
+            const { data, error } = await supabase
+                .from('companies')
+                .select(`
+                    *,
+                    subscriptions (
+                        *,
+                        subscription_usage (
+                            *
+                        )
+                    )
+                `)
+                .eq('owner_id', userId);
 
-        try {
-            usageData = await getUsageSummary(company.id);
-        } catch (usageError) {
-            console.warn('⚠️ Failed to fetch usage data:', usageError);
-            // Continue without usage data
-        }
+            if (error) {
+                // Check if it's a network error that we should retry
+                const isNetworkError = error.message?.includes('NetworkError') ||
+                    error.message?.includes('fetch') ||
+                    (typeof error === 'object' && !error.code);
 
-        // Build the expected nested structure that components expect
-        const subscription = subscriptionData ? {
-            tier: subscriptionData.tier,
-            expiresAt: subscriptionData.current_period_end,
-            status: subscriptionData.status,
-            usage: usageData ? {
-                activeJobsCount: usageData.active_jobs_count || 0,
-                aiAssessmentsUsed: usageData.ai_assessments_used || 0,
-                adOptimizationsUsed: usageData.ad_optimizations_used || 0
-            } : {
-                activeJobsCount: 0,
-                aiAssessmentsUsed: 0,
-                adOptimizationsUsed: 0
+                if (retryCount < maxRetries && isNetworkError) {
+                    retryCount++;
+                    console.warn(`🔄 Retrying company fetch (attempt ${retryCount}/ ${maxRetries}) after error:`, error.message);
+                    await new Promise(resolve => setTimeout(resolve, 800 * retryCount)); // Exponential backoff
+                    continue;
+                }
+
+                console.error('Recruiter company fetch error:', error);
+                return null;
             }
-        } : null;
 
-        return {
-            ...company,
-            subscription
-        };
-    } catch (error) {
-        console.error('Error in getRecruiterCompany:', error);
-        return null;
+            if (!data || data.length === 0) {
+                return null;
+            }
+
+            // Handle multiple companies - pick the first one
+            if (data.length > 1) {
+                console.warn(`⚠️ Multiple companies (${data.length}) found for recruiter ${userId}. Using the first one.`);
+            }
+
+            const company = data[0];
+            const rawSubscription = company.subscriptions?.[0];
+
+            // Build the expected nested structure that components expect
+            // If rawSubscription exists, it might have an array of usage records
+            const rawUsage = rawSubscription?.subscription_usage?.[0];
+
+            const subscription = rawSubscription ? {
+                tier: rawSubscription.tier,
+                expiresAt: rawSubscription.current_period_end,
+                status: rawSubscription.status,
+                usage: rawUsage ? {
+                    activeJobsCount: rawUsage.active_jobs_count || 0,
+                    aiAssessmentsUsed: rawUsage.ai_assessments_used || 0,
+                    adOptimizationsUsed: rawUsage.ad_optimizations_used || 0
+                } : {
+                    activeJobsCount: 0,
+                    aiAssessmentsUsed: 0,
+                    adOptimizationsUsed: 0
+                }
+            } : null;
+
+            return {
+                ...company,
+                subscription
+            };
+        } catch (error: any) {
+            if (retryCount < maxRetries && (error.message?.includes('NetworkError') || error.name === 'TypeError')) {
+                retryCount++;
+                console.warn(`🔄 Retrying company fetch after exception (attempt ${retryCount}/ ${maxRetries}):`, error.message);
+                await new Promise(resolve => setTimeout(resolve, 800 * retryCount));
+                continue;
+            }
+            console.error('Error in getRecruiterCompany:', error);
+            return null;
+        }
     }
+    return null;
 };
 
 // ========================================

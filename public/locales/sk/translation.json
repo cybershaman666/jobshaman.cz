@@ -190,6 +190,16 @@
             "label_commute": "Dojazd",
             "label_job": "Práca"
         },
+        "benefits_carousel": {
+            "jhi_title": "Index Šťastia (JHI)",
+            "jhi_desc": "Odhaľte toxické firmy skôr, než pošlete CV.",
+            "salary_title": "Skutočná Mzda",
+            "salary_desc": "AI odhadne plat aj tam, kde ho firmy taja.",
+            "commute_title": "Realita Dochádzania",
+            "commute_desc": "Spočítame vám stratený čas aj peniaze.",
+            "coach_title": "AI Kariérny Kouč",
+            "coach_desc": "Vylepší CV a napíše motivačný list za vás."
+        },
         "page_what_is": {
             "title_job": "Čo je ",
             "title_shaman": "JobShaman",

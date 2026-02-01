@@ -199,6 +199,16 @@
       "label_commute": "Pendeln",
       "label_job": "Job"
     },
+    "benefits_carousel": {
+      "jhi_title": "Glücksindex (JHI)",
+      "jhi_desc": "Entlarve toxische Firmen, bevor du dein CV schickst.",
+      "salary_title": "Realer Lohn",
+      "salary_desc": "KI schätzt das Gehalt, auch dort, wo Firmen es verbergen.",
+      "commute_title": "Pendel-Realität",
+      "commute_desc": "Wir berechnen deine verlorene Zeit und dein Geld.",
+      "coach_title": "AI-Karrierecoach",
+      "coach_desc": "Verbessert dein CV und schreibt das Anschreiben für dich."
+    },
     "page_what_is": {
       "title_job": "Was ",
       "title_shaman": "JobShaman",

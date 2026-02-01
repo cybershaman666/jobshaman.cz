@@ -199,6 +199,16 @@
       "label_commute": "Dojazd",
       "label_job": "Praca"
     },
+    "benefits_carousel": {
+      "jhi_title": "Indeks Szczęścia (JHI)",
+      "jhi_desc": "Odkryj toksyczne firmy, zanim wyślesz CV.",
+      "salary_title": "Prawdziwa Płaca",
+      "salary_desc": "AI szacuje płacę nawet tam, kde firmy ją ukrywają.",
+      "commute_title": "Realny Dojazd",
+      "commute_desc": "Obliczymy Twój stracony czas i pieniądze.",
+      "coach_title": "AI Karierowy Coach",
+      "coach_desc": "Ulepszy CV i napisze list motywacyjny za Ciebie."
+    },
     "page_what_is": {
       "title_job": "Czym jest ",
       "title_shaman": "JobShaman",
