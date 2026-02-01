@@ -29,6 +29,12 @@
     "search_nearby": "📍 Oferty w pobliżu",
     "search_everywhere": "🌍 Szukaj wszędzie",
     "contract_type": "Typ umowy",
+    "job_type": "Rodzaj pracy",
+    "job_types": {
+      "on_site": "Stacjonarnie",
+      "hybrid": "Hybrydowo",
+      "remote": "Zdalnie"
+    },
     "benefits": "Benefity",
     "date_posted": "Data publikacji",
     "any_time": "Kiedykolwiek",
@@ -368,7 +374,9 @@
         "pipeline": "Stan pipeline",
         "ai_match": "Dopasowanie AI",
         "performance": "Wydajność",
-        "actions": "Akcje"
+        "actions": "Akcje",
+        "views_count": "wyświetlenia",
+        "conv_rate": "konv."
       },
       "status": {
         "pending": "Oczekiwanie na recenzję",
@@ -385,8 +393,13 @@
         "candidates_count": "kandydatów",
         "low_perf": "Niska wydajność",
         "vs_avg": "vs średnia (32)",
-        "spent": "Wydane",
-        "projected": "Prog."
+        "spent": "Wydano",
+        "projected": "Progn.",
+        "potential_savings": "Potencjalne oszczędności",
+        "analyzing_market": "Analizowanie rynku...",
+        "currency": "CZK",
+        "hires": "zatrudnionych",
+        "avg_tth": "Śr. TTH"
       },
       "ai_insights": {
         "title": "Strategiczne spostrzeżenia AI",
@@ -462,10 +475,53 @@
       "title": "Edytor ogłoszeń o pracę",
       "tone_prefix": "Zastosowany ton:",
       "position_name": "Nazwa stanowiska",
+      "post_limit_exceeded": "Więcej niż 5 ogłoszeń o pracę",
+      "placeholder_title": "Wprowadź nazwę stanowiska...",
+      "placeholder_description": "Opisz stanowisko, wymagania i co oferujesz...",
+      "switch_preview": "Przełącz podgląd",
+      "preview": "Podgląd",
+      "editor": "Edytor",
+      "bold": "Pogrubienie",
+      "italic": "Kursywa",
+      "heading": "Nagłówek",
+      "list": "Lista",
+      "quote": "Cytat",
+      "emoji": "Wstaw Emoji",
+      "link": "Link",
+      "code": "Kod",
+      "ai_noise_btn": "Usuń szum (AI)",
+      "analyzing": "Analizowanie...",
+      "settings_title": "Szczegóły i benefity",
+      "salary_min": "Min. wynagrodzenie",
+      "salary_max": "Maks. wynagrodzenie",
+      "working_hours": "Godziny pracy",
+      "working_hours_placeholder": "np. 40h/tydzień",
+      "address": "Adres miejsca pracy",
+      "contact_email": "E-mail kontaktowy do CV",
+      "benefits": "Benefity",
+      "benefits_placeholder": "Bony żywnościowe, Home Office, Multisport...",
+      "benefits_hint": "Oddziel przecinkami",
+      "internship": "Staż / Praktyka",
+      "publishing": "Publikowanie...",
+      "publish_btn": "Opublikuj ogłoszenie",
+      "optimization_title": "Sugestia optymalizacji",
+      "what_removed": "Co usunęliśmy",
+      "why_better": "Dlaczego jest lepiej",
+      "use_text_btn": "Użyj tego tekstu",
+      "profile_label": "Profil:",
       "fill_required": "Proszę wypełnić zarówno nazwę stanowiska, jak i opis.",
       "publish_success": "Ogłoszenie zostało wysłane do przeglądu i wkrótce zostanie opublikowane!",
-      "publish_error": "Błąd podczas publikowania ogłoszenia o pracę.",
-      "post_limit_exceeded": "Więcej niż 5 ogłoszeń o pracę"
+      "publish_error": "Błąd podczas publikowania ogłoszenia o pracę."
+    },
+    "assessments_tab": {
+      "desc": "Twórz i zarządzaj ocenami AI dla kandydatów.",
+      "manage_invites": "Zarządzaj zaproszeniami",
+      "close_invites": "Zamknij zaproszenia",
+      "invite_btn": "Zaproś kandydata"
+    },
+    "candidates": {
+      "no_candidates_title": "Brak kandydatów",
+      "no_candidates_desc": "Gdy opublikujesz ofertę, tutaj zaczną pojawiać się profile kandydatów z obliczonymi wynikami dopasowania."
     }
   },
   "common": {
@@ -519,7 +575,7 @@
       },
       "jhi": {
         "title": "JHI – Job Happiness Index",
-        "desc": "Jedna liczba podsumowująca pięć wymiarów życia zawodowego: dochód, čas, stabilność, elastyczność i obciążenie.",
+        "desc": "Jedna liczba podsumowująca pięć wymiarów życia zawodowego: dochód, czas, stabilność, elastyczność i obciążenie.",
         "hint": "Inspiracja pochodzi z bhutańskiego wskaźnika szczęścia narodového brutto. Nie oceniamy firm. Oceniamy wpływ pracy na człowieka."
       },
       "transparency": {
@@ -566,8 +622,6 @@
       "no_redux": "Wygląda obiecująco, ale brakuje mu doświadczenia z Redux."
     },
     "stats": {
-      "hires": "zatrudnionych",
-      "avg_tth": "Śr. TTH",
       "days_unit": "dni"
     },
     "features": {

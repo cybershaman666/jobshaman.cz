@@ -29,6 +29,12 @@
     "search_nearby": "📍 Angebote in der Nähe",
     "search_everywhere": "🌍 Überall suchen",
     "contract_type": "Vertragsart",
+    "job_type": "Beschäftigungsart",
+    "job_types": {
+      "on_site": "Vor Ort",
+      "hybrid": "Hybrid",
+      "remote": "Remote"
+    },
     "benefits": "Benefits",
     "date_posted": "Veröffentlichungsdatum",
     "any_time": "Jederzeit",
@@ -395,7 +401,9 @@
         "pipeline": "Pipeline-Zustand",
         "ai_match": "KI-Match",
         "performance": "Leistung",
-        "actions": "Aktionen"
+        "actions": "Aktionen",
+        "views_count": "Ansichten",
+        "conv_rate": "Konv."
       },
       "status": {
         "pending": "Wartend auf Prüfung",
@@ -413,7 +421,10 @@
         "low_perf": "Niedrige Leistung",
         "vs_avg": "vs. Durchschnitt (32)",
         "spent": "Ausgegeben",
-        "projected": "Progn."
+        "projected": "Progn.",
+        "potential_savings": "Potenzielle Einsparungen",
+        "analyzing_market": "Analysiere Markt...",
+        "currency": "CZK"
       },
       "ai_insights": {
         "title": "Strategische KI-Einblicke",
@@ -489,10 +500,53 @@
       "title": "Stellenanzeigen-Editor",
       "tone_prefix": "Angewandter Ton:",
       "position_name": "Positionsbezeichnung",
+      "post_limit_exceeded": "Mehr als 5 Stellenanzeigen",
+      "placeholder_title": "Positionstitel eingeben...",
+      "placeholder_description": "Beschreiben Sie die Position, Anforderungen und was Sie bieten...",
+      "switch_preview": "Vorschau umschalten",
+      "preview": "Vorschau",
+      "editor": "Editor",
+      "bold": "Fett",
+      "italic": "Kursiv",
+      "heading": "Überschrift",
+      "list": "Liste",
+      "quote": "Zitat",
+      "emoji": "Emoji einfügen",
+      "link": "Link",
+      "code": "Code",
+      "ai_noise_btn": "Noise entfernen (KI)",
+      "analyzing": "Analysiere...",
+      "settings_title": "Details & Vorteile",
+      "salary_min": "Min. Gehalt",
+      "salary_max": "Max. Gehalt",
+      "working_hours": "Arbeitszeit",
+      "working_hours_placeholder": "z.B. 40 Std./Woche",
+      "address": "Arbeitsplatzadresse",
+      "contact_email": "Kontakt-E-Mail für CV",
+      "benefits": "Benefits",
+      "benefits_placeholder": "Essensgutscheine, Home-Office, Multisport...",
+      "benefits_hint": "Mit Kommas trennen",
+      "internship": "Praktikum / Praxis",
+      "publishing": "Veröffentliche...",
+      "publish_btn": "Anzeige veröffentlichen",
+      "optimization_title": "Optimierungsvorschlag",
+      "what_removed": "Was wir entfernt haben",
+      "why_better": "Warum es besser ist",
+      "use_text_btn": "Diesen Text verwenden",
+      "profile_label": "Profil:",
       "fill_required": "Bitte füllen Sie sowohl die Positionsbezeichnung als auch die Beschreibung aus.",
       "publish_success": "Die Anzeige wurde zur Überprüfung gesendet und wird in Kürze veröffentlicht!",
-      "publish_error": "Fehler beim Veröffentlichen der Stellenanzeige.",
-      "post_limit_exceeded": "Mehr als 5 Stellenanzeigen"
+      "publish_error": "Fehler beim Veröffentlichen der Stellenanzeige."
+    },
+    "assessments_tab": {
+      "desc": "Erstellen und verwalten Sie KI-Assessments für Kandidaten.",
+      "manage_invites": "Einladungen verwalten",
+      "close_invites": "Einladungen schließen",
+      "invite_btn": "Kandidat einladen"
+    },
+    "candidates": {
+      "no_candidates_title": "Keine Kandidaten",
+      "no_candidates_desc": "Sobald Sie ein Angebot veröffentlichen, werden hier Kandidatenprofile mit berechneten Match-Scores angezeigt."
     }
   },
   "common": {
@@ -577,9 +631,9 @@
       "no_redux": "Sieht vielversprechend aus, hat aber keine Erfahrung mit Redux."
     },
     "stats": {
-      "hires": "Einstellungen",
-      "avg_tth": "Durchschn. TTH",
-      "days_unit": "Tage"
+      "potential_savings": "Potenzielle Einsparungen",
+      "analyzing_market": "Analysiere Markt...",
+      "currency": "CZK"
     },
     "features": {
       "more_than_5": "Mehr als 5 Anzeigen",

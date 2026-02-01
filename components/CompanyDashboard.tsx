@@ -473,7 +473,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 <div className="text-sm text-indigo-700 dark:text-indigo-300">
                                     <div className="font-medium">{t('company.subscription.next_payment')}</div>
                                     <div className="font-mono">{new Date(subscription.expiresAt).toLocaleDateString(i18n.language === 'cs' ? 'cs-CZ' : 'en-US')}</div>
-                                    <div className="text-xs opacity-75">({t('company.subscription.days_left', { count: subscription.daysUntilRenewal || 0 })})</div>
+                                    <div className="text-xs opacity-75">({t('company.subscription.days_left', { count: Math.ceil((new Date(subscription.expiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) })})</div>
                                 </div>
                             )}
                             <div className="mt-2">
@@ -668,7 +668,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                     <div>
                                         <div className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-widest mb-1">{t('company.dashboard.stats.saved')}</div>
                                         <div className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
-                                            {Object.values(jobStats).reduce((acc, curr) => acc + curr.applicants, 0) * 1250} <span className="text-lg font-normal text-slate-500 dark:text-slate-400">CZK</span>
+                                            {Object.values(jobStats).reduce((acc, curr) => acc + curr.applicants, 0) * 1250} <span className="text-lg font-normal text-slate-500 dark:text-slate-400">{t('company.dashboard.stats.currency')}</span>
                                         </div>
                                     </div>
                                     <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400">
@@ -687,7 +687,9 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             </div>
                         </div>
 
-                        {/* AI Predictive Insights */}
+
+                        {/* AI Predictive Insights - Temporarily disabled until real data is available */}
+                        {/* 
                         <div className="bg-gradient-to-r from-indigo-50 to-cyan-50 dark:from-indigo-950/20 dark:to-cyan-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center gap-4 relative overflow-hidden">
                             <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none text-indigo-500">
                                 <BrainCircuit size={80} />
@@ -709,6 +711,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 </div>
                             </div>
                         </div>
+                        */}
 
                         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                             {/* Left Column: Active Postings Table */}
@@ -1077,7 +1080,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 <option value="IČO">IČO</option>
                                 <option value="DPP">DPP</option>
                                 <option value="DPČ">DPČ</option>
-                                <option value="Internship">Stáž / Praxe</option>
+                                <option value="Internship">{t('company.ad_editor.internship')}</option>
                             </select>
                         </div>
                         <div>
