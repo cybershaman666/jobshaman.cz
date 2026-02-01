@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { UserProfile, CompanyProfile, ViewState } from '../types';
 import { signOut, getUserProfile, getRecruiterCompany, updateUserProfile as updateUserProfileService, createCompany } from '../services/supabaseService';
 import { fetchCsrfToken, clearCsrfToken, authenticatedFetch } from '../services/csrfService';
@@ -26,8 +26,18 @@ export const useUserProfile = () => {
     const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
     const [viewState, setViewState] = useState<ViewState>(ViewState.LIST);
 
+    // Track in-progress session restoration to prevent duplicates
+    const restorationInProgressRef = useRef<string | null>(null);
+
     // Session restoration and profile management
     const handleSessionRestoration = async (userId: string) => {
+        // Deduplicate: if already restoring this user, skip
+        if (restorationInProgressRef.current === userId) {
+            console.log('⏭️ Session restoration already in progress for', userId);
+            return;
+        }
+
+        restorationInProgressRef.current = userId;
         try {
             console.log('🔄 handleSessionRestoration called with userId:', userId);
             let profile = await getUserProfile(userId);
@@ -216,6 +226,8 @@ export const useUserProfile = () => {
             }
         } catch (error) {
             console.error('Session restoration failed:', error);
+        } finally {
+            restorationInProgressRef.current = null;
         }
     };
 
