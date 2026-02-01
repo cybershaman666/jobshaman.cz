@@ -31,7 +31,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile })
         if (companyProfile) {
             const tier = companyProfile.subscription?.tier || 'basic';
             const used = companyProfile.subscription?.usage?.aiAssessmentsUsed || 0;
-            const limit = tier === 'enterprise' ? 999999 : tier === 'business' || tier === 'assessment_bundle' ? 10 : 0;
+            const limit = (tier === 'enterprise' || tier === 'business' || tier === 'trial' || tier === 'assessment_bundle') ? (tier === 'enterprise' ? 999999 : 10) : 0;
 
             if (used >= limit) {
                 alert(`Dosáhli jste limitu ${limit} assessmentů pro aktuální tarif. Upgradujte pro další assessmenty.`);
@@ -93,7 +93,13 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile })
                                     Zbývající Assessmenty: <span className="text-cyan-600 dark:text-cyan-400">{remainingAssessments}</span>
                                 </div>
                                 <div className="text-xs text-slate-500 dark:text-slate-400">
-                                    Tarif: <span className="font-medium">{tier === 'basic' ? 'Základní' : tier === 'business' ? 'Business' : 'Assessment Bundle'}</span>
+                                    Tarif: <span className="font-medium">
+                                        {tier === 'enterprise' ? 'Enterprise' :
+                                            tier === 'business' ? 'Business' :
+                                                tier === 'trial' ? 'Business (Trial)' :
+                                                    tier === 'assessment_bundle' ? 'Assessment Bundle' :
+                                                        'Základní'}
+                                    </span>
                                 </div>
                             </div>
                         </div>

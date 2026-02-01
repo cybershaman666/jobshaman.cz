@@ -113,6 +113,8 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
     free: 'bg-gray-50 border-gray-200',
     basic: 'bg-blue-50 border-blue-200',
     business: 'bg-purple-50 border-purple-200',
+    trial: 'bg-indigo-50 border-indigo-200',
+    enterprise: 'bg-emerald-50 border-emerald-200',
     assessment_bundle: 'bg-amber-50 border-amber-200',
   };
 
@@ -120,6 +122,8 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
     free: 'bg-gray-100 text-gray-800',
     basic: 'bg-blue-100 text-blue-800',
     business: 'bg-purple-100 text-purple-800',
+    trial: 'bg-indigo-100 text-indigo-800',
+    enterprise: 'bg-emerald-100 text-emerald-800',
     assessment_bundle: 'bg-amber-100 text-amber-800',
   };
 
@@ -452,7 +456,7 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
             <>
               <div className="flex items-center gap-2 text-purple-700">
                 <CheckCircle className="w-4 h-4" />
-                Unlimited assessments
+                10 AI assessments/month
               </div>
               <div className="flex items-center gap-2 text-purple-700">
                 <CheckCircle className="w-4 h-4" />
@@ -473,6 +477,48 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
               <div className="flex items-center gap-2 text-purple-700">
                 <CheckCircle className="w-4 h-4" />
                 API access
+              </div>
+            </>
+          )}
+
+          {subscription.tier === 'trial' && (
+            <>
+              <div className="flex items-center gap-2 text-indigo-700">
+                <CheckCircle className="w-4 h-4" />
+                10 AI assessments (Trial)
+              </div>
+              <div className="flex items-center gap-2 text-indigo-700">
+                <CheckCircle className="w-4 h-4" />
+                Unlimited job postings
+              </div>
+              <div className="flex items-center gap-2 text-indigo-700">
+                <CheckCircle className="w-4 h-4" />
+                All Business features included
+              </div>
+              <div className="flex items-center gap-2 text-indigo-700">
+                <CheckCircle className="w-4 h-4" />
+                Full AI matching & analytics
+              </div>
+            </>
+          )}
+
+          {subscription.tier === 'enterprise' && (
+            <>
+              <div className="flex items-center gap-2 text-emerald-700">
+                <CheckCircle className="w-4 h-4" />
+                Unlimited AI assessments
+              </div>
+              <div className="flex items-center gap-2 text-emerald-700">
+                <CheckCircle className="w-4 h-4" />
+                Unlimited job postings
+              </div>
+              <div className="flex items-center gap-2 text-emerald-700">
+                <CheckCircle className="w-4 h-4" />
+                Dedicated Account Manager
+              </div>
+              <div className="flex items-center gap-2 text-emerald-700">
+                <CheckCircle className="w-4 h-4" />
+                SLA & custom contracts
               </div>
             </>
           )}

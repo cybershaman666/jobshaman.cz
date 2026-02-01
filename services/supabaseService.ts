@@ -772,16 +772,19 @@ export const updateSubscriptionStatus = async (companyId: string, status: string
 export const initializeCompanySubscription = async (companyId: string): Promise<any> => {
     if (!supabase) return;
 
-    // Create FREE subscription record (no trial)
+    // Create TRIAL subscription record (Business features for 14 days)
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 14);
+
     const { data, error } = await supabase
         .from('subscriptions')
         .insert({
             company_id: companyId,
-            tier: 'free',
+            tier: 'trial',
             status: 'active',
             current_period_start: new Date().toISOString(),
-            current_period_end: null, // No end date for free tier
-            stripe_subscription_id: null
+            current_period_end: trialEndDate.toISOString(),
+            stripe_subscription_id: `trial_${companyId.substring(0, 8)}`
         })
         .select()
         .single();
