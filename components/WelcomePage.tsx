@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Home, MapPin, Briefcase, Clock, TrendingUp, Eye, CheckCircle, AlertCircle, Target, Brain, BarChart3, Zap } from 'lucide-react';
+import { MapPin, Clock, TrendingUp, Eye, CheckCircle, Heart, Target, Brain, BarChart3, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getJobCount } from '../services/jobService';
 
@@ -25,19 +25,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onTryFree, onBrowseOffers }) 
     fetchCount();
   }, []);
 
-  // Demo metrics that rotate
-  const metrics = [
-    { label: t('welcome_extra.metrics.time_label'), value: t('welcome_extra.metrics.time_value'), icon: Clock },
-    { label: t('welcome_extra.metrics.money_label'), value: t('welcome_extra.metrics.money_value'), icon: TrendingUp },
-    { label: t('welcome_extra.metrics.jhi_label'), value: t('welcome_extra.metrics.jhi_value'), icon: Briefcase }
-  ];
 
-  const ActiveMetricIcon = metrics[activeMetric].icon;
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setActiveMetric((prev) => (prev + 1) % metrics.length);
-    }, 3000);
+      setActiveMetric((prev) => (prev + 1) % 4);
+    }, 4000);
     return () => clearInterval(interval);
   }, []);
 
@@ -76,48 +69,66 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onTryFree, onBrowseOffers }) 
             </div>
           </div>
 
-          {/* Right column: Graphics */}
+          {/* Right column: Graphics - Animated Value Prop Carousel */}
           <div className="flex justify-center items-center">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 shadow-xl w-full max-w-sm">
-              {/* Schema: Home -> Commute -> Job */}
-              <div className="flex items-center justify-between mb-12">
-                <div className="flex flex-col items-center">
-                  <div className="bg-cyan-100 dark:bg-cyan-900/30 p-3 rounded-lg mb-2">
-                    <Home className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
-                  </div>
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{t('welcome.page_hero.label_home')}</span>
+            <div className="relative w-full max-w-sm">
+              {/* Decorative elements behind */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-400/20 rounded-full blur-3xl -z-10"></div>
+              <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-400/20 rounded-full blur-3xl -z-10"></div>
+
+              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 shadow-2xl transition-all duration-500 min-h-[320px] flex flex-col justify-between relative overflow-hidden group hover:border-cyan-400/50 dark:hover:border-cyan-600/50">
+
+                {/* Progress Indicators */}
+                <div className="flex justify-center gap-2 mb-6">
+                  {[0, 1, 2, 3].map((idx) => (
+                    <div
+                      key={idx}
+                      className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeMetric
+                        ? 'w-8 bg-cyan-600 dark:bg-cyan-400'
+                        : 'w-2 bg-slate-200 dark:bg-slate-800'
+                        }`}
+                    />
+                  ))}
                 </div>
 
-                <div className="flex-1 h-1 bg-cyan-200 dark:bg-cyan-800 mx-3 relative">
-                  <span className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-cyan-600 dark:bg-cyan-400 text-white text-xs px-2 py-1 rounded font-bold whitespace-nowrap">
-                    {t('welcome.page_hero.label_commute')}
-                  </span>
-                </div>
-
-                <div className="flex flex-col items-center">
-                  <div className="bg-cyan-100 dark:bg-cyan-900/30 p-3 rounded-lg mb-2">
-                    <Briefcase className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
+                {/* Carousel Content */}
+                <div className="flex-1 flex flex-col items-center text-center justify-center relative">
+                  {/* Item 0: JHI */}
+                  <div className={`transition-all duration-500 absolute inset-0 flex flex-col items-center justify-center ${activeMetric === 0 ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}>
+                    <div className="w-20 h-20 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mb-6 ring-4 ring-rose-50 dark:ring-rose-900/10">
+                      <Heart className="w-10 h-10 text-rose-600 dark:text-rose-400" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{t('welcome.benefits_carousel.jhi_title')}</h3>
+                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed max-w-[250px]">{t('welcome.benefits_carousel.jhi_desc')}</p>
                   </div>
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{t('welcome.page_hero.label_job')}</span>
-                </div>
-              </div>
 
-              {/* Rotating metrics */}
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-6 text-center">
-                <div className="flex justify-center mb-4">
-                  <div className="bg-cyan-100 dark:bg-cyan-900/30 p-4 rounded-lg">
-                    <ActiveMetricIcon className="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
+                  {/* Item 1: Salary */}
+                  <div className={`transition-all duration-500 absolute inset-0 flex flex-col items-center justify-center ${activeMetric === 1 ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}>
+                    <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-6 ring-4 ring-emerald-50 dark:ring-emerald-900/10">
+                      <TrendingUp className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{t('welcome.benefits_carousel.salary_title')}</h3>
+                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed max-w-[250px]">{t('welcome.benefits_carousel.salary_desc')}</p>
+                  </div>
+
+                  {/* Item 2: Commute */}
+                  <div className={`transition-all duration-500 absolute inset-0 flex flex-col items-center justify-center ${activeMetric === 2 ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}>
+                    <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-6 ring-4 ring-blue-50 dark:ring-blue-900/10">
+                      <Clock className="w-10 h-10 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{t('welcome.benefits_carousel.commute_title')}</h3>
+                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed max-w-[250px]">{t('welcome.benefits_carousel.commute_desc')}</p>
+                  </div>
+
+                  {/* Item 3: AI Coach */}
+                  <div className={`transition-all duration-500 absolute inset-0 flex flex-col items-center justify-center ${activeMetric === 3 ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}>
+                    <div className="w-20 h-20 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-6 ring-4 ring-purple-50 dark:ring-purple-900/10">
+                      <Brain className="w-10 h-10 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{t('welcome.benefits_carousel.coach_title')}</h3>
+                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed max-w-[250px]">{t('welcome.benefits_carousel.coach_desc')}</p>
                   </div>
                 </div>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
-                  {metrics[activeMetric].label}
-                </p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">
-                  {metrics[activeMetric].value}
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-4 italic">
-                  {t('welcome_extra.metrics.impact_desc')}
-                </p>
               </div>
             </div>
           </div>
@@ -257,7 +268,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onTryFree, onBrowseOffers }) 
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 hover:border-cyan-300 dark:hover:border-cyan-700 transition-all hover:shadow-lg">
             <div className="flex items-center gap-3 mb-4">
               <div className="bg-cyan-100 dark:bg-cyan-900/30 p-2 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                <Heart className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
               </div>
               <h3 className="text-lg font-bold text-slate-900 dark:text-white">
                 {t('welcome_extra.how_it_works.jhi.title')}

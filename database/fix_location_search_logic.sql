@@ -1,5 +1,7 @@
--- Comprehensive RPC function for filtering jobs with all supported filters
--- Supports: location/city, distance radius, contract type, benefits, salary, date, experience, pagination, search term
+-- Migration to fix location search logic
+-- Problem: When 'filter_city' is provided (e.g. "Hustopeče"), the frontend geocodes it and sends BOTH coordinates AND invalid text filter, 
+-- causing the query to require BOTH (within radius) AND (location ILIKE "Hustopeče"), which fails for nearby jobs.
+-- Fix: If spatial filter is active (coordinates provided), we now IGNORE the text-based 'filter_city'.
 CREATE OR REPLACE FUNCTION search_jobs_with_filters(
         -- Location & Distance
         user_lat DOUBLE PRECISION DEFAULT NULL,
