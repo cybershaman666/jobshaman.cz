@@ -2,11 +2,12 @@
 import React, { useState } from 'react';
 import { Assessment, CompanyProfile } from '../types';
 import { generateAssessment } from '../services/geminiService';
-import { redirectToCheckout } from '../services/stripeService';
+
 import { incrementAssessmentUsage } from '../services/supabaseService';
 import { getRemainingAssessments } from '../services/billingService';
 import AnalyticsService from '../services/analyticsService';
 import AssessmentPreviewModal from './AssessmentPreviewModal';
+import PlanUpgradeModal from './PlanUpgradeModal';
 import { BrainCircuit, Loader2, Code, FileText, CheckCircle, Copy, Zap, BarChart3, Eye } from 'lucide-react';
 
 interface AssessmentCreatorProps {
@@ -21,6 +22,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile })
     const [isGenerating, setIsGenerating] = useState(false);
     const [assessment, setAssessment] = useState<Assessment | null>(null);
     const [showPreview, setShowPreview] = useState(false);
+    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
     const handleGenerate = async () => {
         if (!role || !skills) return;
@@ -38,22 +40,14 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile })
 
             // Premium check for extended assessments
             if (questionCount > 5 && tier === 'basic') {
-                if (confirm(`Generování ${questionCount} otázek je prémiová funkce. Chcete upgradovat na Assessment Bundle za 990 Kč?`)) {
-                    await redirectToCheckout('assessment_bundle', companyProfile.id || '');
-                    return;
-                } else {
-                    return;
-                }
+                setShowUpgradeModal(true);
+                return;
             }
         } else {
-            // Individual user logic (not implemented in this component yet)
+            // Individual user logic
             if (questionCount > 5) {
-                if (confirm(`Generování ${questionCount} otázek je prémiová funkce za 99 Kč. Chcete pokračovat k platbě?`)) {
-                    await redirectToCheckout('assessment_bundle', 'current_user');
-                    return;
-                } else {
-                    return;
-                }
+                setShowUpgradeModal(true);
+                return;
             }
         }
 
@@ -104,20 +98,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile })
                             </div>
                         </div>
                         <button
-                            onClick={async () => {
-                                if (companyProfile?.id) {
-                                    /* Track usage */
-                                    AnalyticsService.trackUpgradeTrigger({
-                                        companyId: companyProfile.id,
-                                        feature: 'ASSESSMENT_CREDITS_BUTTON',
-                                        currentTier: tier,
-                                        reason: 'User clicked buy credits button'
-                                    });
-                                    await redirectToCheckout('assessment_bundle', companyProfile.id);
-                                } else {
-                                    alert('Chyba: Nepodařilo se identifikovat společnost.');
-                                }
-                            }}
+                            onClick={() => setShowUpgradeModal(true)}
                             className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap"
                         >
                             Další Kredit
@@ -275,6 +256,13 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile })
                     onClose={() => setShowPreview(false)}
                 />
             )}
+
+            <PlanUpgradeModal
+                isOpen={showUpgradeModal}
+                onClose={() => setShowUpgradeModal(false)}
+                feature="AI Assessment"
+                companyProfile={companyProfile || { id: 'guest', name: 'Guest' } as any}
+            />
         </div>
     );
 };
