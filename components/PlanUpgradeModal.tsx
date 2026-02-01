@@ -21,9 +21,9 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                 className="absolute inset-0 bg-slate-900/80 backdrop-blur-md"
                 onClick={onClose}
             ></div>
-            <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col md:flex-row">
+            <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col md:flex-row">
                 {/* Left Side: Feature Context */}
-                <div className="md:w-1/3 bg-slate-50 dark:bg-slate-950 p-8 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-center">
+                <div className="md:w-1/3 bg-slate-50 dark:bg-slate-950 p-8 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-center md:overflow-y-auto">
                     <div className="w-16 h-16 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-2xl flex items-center justify-center mb-6">
                         <Crown size={32} />
                     </div>
@@ -48,7 +48,7 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                 </div>
 
                 {/* Right Side: Options */}
-                <div className="flex-1 p-8 bg-white dark:bg-slate-900 overflow-y-auto">
+                <div className="flex-1 p-8 bg-white dark:bg-slate-900 overflow-y-auto max-h-[90vh] md:max-h-full">
                     <h3 className="font-bold text-lg mb-6 text-slate-900 dark:text-white">Vyberte si řešení</h3>
 
                     <div className="grid grid-cols-1 gap-4">
