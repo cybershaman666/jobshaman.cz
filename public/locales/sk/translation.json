@@ -466,7 +466,7 @@
             "tabs": {
                 "overview": "Prehľad",
                 "dna_culture": "DNA & Kultúra",
-                "ai_editor": "AI Editor",
+                "ai_editor": "Editor ponúk",
                 "assessments": "Assessmenty",
                 "candidates": "Kandidáti",
                 "marketplace": "Marketplace kurzov"
@@ -579,7 +579,7 @@
             }
         },
         "ad_editor": {
-            "title": "Editor Pracovného Inzerátu",
+            "title": "Editor ponúk",
             "tone_prefix": "Tón Aplikovaný:",
             "position_name": "Názov Pozície",
             "placeholder_title": "Napíšte názov pracovnej pozície...",

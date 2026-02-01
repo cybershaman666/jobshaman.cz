@@ -357,7 +357,7 @@
             "tabs": {
                 "overview": "Overview",
                 "dna_culture": "DNA & Culture",
-                "ai_editor": "AI Editor",
+                "ai_editor": "Offer Editor",
                 "assessments": "Assessments",
                 "candidates": "Candidates",
                 "marketplace": "Course Marketplace"
@@ -470,7 +470,7 @@
             }
         },
         "ad_editor": {
-            "title": "Job Ad Editor",
+            "title": "Offer Editor",
             "tone_prefix": "Tone Applied:",
             "position_name": "Position Name",
             "placeholder_title": "Enter job title...",
