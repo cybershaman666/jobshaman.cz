@@ -862,6 +862,7 @@ export interface JobFilterOptions {
 
     // Country
     countryCode?: string;
+    searchTerm?: string;
 }
 
 /**
@@ -889,7 +890,8 @@ export const fetchJobsWithFilters = async (
         filterExperienceLevels,
         page = 0,
         pageSize = 50,
-        countryCode
+        countryCode,
+        searchTerm
     } = options;
 
     try {
@@ -899,33 +901,35 @@ export const fetchJobsWithFilters = async (
         // If city filter is provided but no coordinates, try to geocode
         if (filterCity && filterCity.trim() && (!userLat || !userLng)) {
             console.log(`🏙️  City filter provided without coordinates, geocoding "${filterCity}"...`);
-            const geocoded = await geocodeCity(filterCity, countryCode);
-            if (geocoded) {
-                finalUserLat = geocoded.lat;
-                finalUserLng = geocoded.lng;
+            const { geocodeWithCaching } = await import('./geocodingService');
+            const coords = await geocodeWithCaching(filterCity);
+            if (coords) {
+                finalUserLat = coords.lat;
+                finalUserLng = coords.lon;
                 console.log(`✅ Using geocoded coordinates: ${finalUserLat}, ${finalUserLng}`);
-            } else {
-                console.log(`⚠️  Geocoding failed, will use text-based location filter`);
             }
         }
 
-        console.log(`🔍 Fetching jobs with filters:`, {
-            location: filterCity || 'any',
-            coordinates: finalUserLat && finalUserLng ? `${finalUserLat}, ${finalUserLng}` : 'none',
+        console.log(`🔍 Fetching filtered jobs with options:`, {
             radius: radiusKm,
-            contractTypes: filterContractTypes || [],
+            city: filterCity,
+            lat: finalUserLat,
+            lng: finalUserLng,
+            contract: filterContractTypes || [],
             benefits: filterBenefits || [],
             minSalary: filterMinSalary,
-            datePosted: filterDatePosted,
+            date: filterDatePosted,
             experience: filterExperienceLevels || [],
             page,
             pageSize,
-            country: countryCode || 'all'
+            country: countryCode || 'all',
+            searchTerm: searchTerm || 'none'
         });
 
         const { data, error } = await supabase.rpc('search_jobs_with_filters', {
-            user_lat: finalUserLat ?? null,
-            user_lng: finalUserLng ?? null,
+            search_term: searchTerm || null,
+            user_lat: finalUserLat || null,
+            user_lng: finalUserLng || null,
             radius_km: radiusKm,
             filter_city: filterCity || null,
             filter_contract_types: filterContractTypes && filterContractTypes.length > 0 ? filterContractTypes : null,

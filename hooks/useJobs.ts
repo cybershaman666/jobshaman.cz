@@ -90,8 +90,21 @@ export const useJobs = (viewState: ViewState, userProfile: UserProfile) => {
                 };
 
                 console.log('🔍 Triggering database filter query with options:', filterOptions);
-                const { jobs: filteredJobs } = await fetchJobsWithFilters(filterOptions);
+                const { jobs: filteredJobs, totalCount } = await fetchJobsWithFilters(filterOptions);
                 setDbFilteredJobs(filteredJobs);
+
+                // Track filter usage analytics (non-blocking)
+                if (hasActiveFilters && totalCount !== undefined) {
+                    const AnalyticsService = (await import('../services/analyticsService')).default;
+                    AnalyticsService.trackFilterUsage({
+                        filterCity: filterCity.trim() || undefined,
+                        filterContractTypes: filterContractType.length > 0 ? filterContractType : undefined,
+                        filterBenefits: filterBenefits.length > 0 ? filterBenefits : undefined,
+                        radiusKm: enableCommuteFilter ? filterMaxDistance : undefined,
+                        hasDistanceFilter: enableCommuteFilter,
+                        resultCount: totalCount
+                    }).catch(err => console.warn('Analytics tracking failed:', err));
+                }
             } catch (error) {
                 console.error('Error filtering jobs from database:', error);
                 setDbFilteredJobs([]);
