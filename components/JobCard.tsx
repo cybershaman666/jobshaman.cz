@@ -86,25 +86,63 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
           {distanceBadge}
 
           {hasTransparentSalary && (
-            <div className="flex items-center gap-1 text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-700 whitespace-nowrap">
-              <Euro size={10} />
+            <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-semibold 
+              bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/30 dark:to-teal-900/30 
+              border border-emerald-200/60 dark:border-emerald-700/60 
+              text-emerald-700 dark:text-emerald-400 shadow-sm backdrop-blur-sm">
+              <div className="bg-emerald-100 dark:bg-emerald-800 rounded-full p-0.5">
+                <Euro size={10} className="stroke-[2.5px]" />
+              </div>
               <span className="hidden sm:inline">{t('job.transparent_eu')}</span>
-              <span className="sm:hidden">EU</span>
+              <span className="sm:hidden">EU Trans.</span>
             </div>
           )}
-
-
         </div>
 
         {/* Right Side Actions */}
-        <div className="flex items-center gap-2">
-          <div className={`px-2 py-0.5 rounded text-sm font-bold font-mono whitespace-nowrap ${scoreBadgeClass}`}>
-            JHI {jhiScore}
+        <div className="flex items-center gap-3">
+          {/* JHI Circular Progress */}
+          <div className="flex items-center gap-2" title={`Job Health Index: ${jhiScore}/100`}>
+            <div className="relative w-9 h-9 flex items-center justify-center">
+              {/* Background Circle */}
+              <svg className="w-full h-full transform -rotate-90">
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="14"
+                  className="stroke-slate-200 dark:stroke-slate-700 fill-none"
+                  strokeWidth="3"
+                />
+                {/* Progress Circle */}
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="14"
+                  className={`fill-none transition-all duration-1000 ease-out
+                    ${jhiScore >= 70 ? 'stroke-emerald-500' :
+                      jhiScore >= 50 ? 'stroke-amber-500' : 'stroke-rose-500'}
+                  `}
+                  strokeWidth="3"
+                  strokeDasharray={2 * Math.PI * 14}
+                  strokeDashoffset={2 * Math.PI * 14 * (1 - jhiScore / 100)}
+                  strokeLinecap="round"
+                />
+              </svg>
+              {/* Score Number */}
+              <span className={`absolute text-[10px] font-bold font-mono tracking-tighter
+                ${jhiScore >= 70 ? 'text-emerald-700 dark:text-emerald-400' :
+                  jhiScore >= 50 ? 'text-amber-700 dark:text-amber-400' : 'text-rose-700 dark:text-rose-400'}
+              `}>
+                {jhiScore}
+              </span>
+            </div>
           </div>
 
           <button
             onClick={handleSaveClick}
-            className={`p-1.5 rounded transition-all ${isSaved ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-500/10 border-cyan-200' : 'text-slate-400 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-600 dark:hover:text-white'}`}
+            className={`p-2 rounded-full transition-all ${isSaved
+              ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-900/30 ring-1 ring-cyan-200 dark:ring-cyan-700'
+              : 'text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-600 dark:hover:text-slate-200'}`}
             title={isSaved ? t('job.remove_save') : t('job.save')}
           >
             <Bookmark size={18} className={isSaved ? "fill-current" : ""} />
@@ -144,14 +182,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
         </div>
       </div>
 
-      {/* Tags */}
-      <div className="flex gap-2 flex-wrap">
-        {job.tags && job.tags.map(tag => (
-          <span key={tag} className="px-2.5 py-1 text-xs rounded border font-medium tracking-wide transition-colors bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 group-hover:border-slate-300 dark:group-hover:border-slate-700">
-            {tag}
-          </span>
-        ))}
-      </div>
+
     </div>
   );
 };
