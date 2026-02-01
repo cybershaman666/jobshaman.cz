@@ -1,20 +1,22 @@
 
-import React, { useState } from 'react';
-import { Assessment, CompanyProfile } from '../types';
-import { generateAssessment } from '../services/geminiService';
+import React, { useState, useEffect } from 'react';
+import { Assessment, CompanyProfile, Job } from '../types';
+import { generateAssessment, extractSkillsFromJob } from '../services/geminiService';
 
 import { incrementAssessmentUsage } from '../services/supabaseService';
 import { getRemainingAssessments } from '../services/billingService';
 import AnalyticsService from '../services/analyticsService';
 import AssessmentPreviewModal from './AssessmentPreviewModal';
 import PlanUpgradeModal from './PlanUpgradeModal';
-import { BrainCircuit, Loader2, Code, FileText, CheckCircle, Copy, Zap, BarChart3, Eye } from 'lucide-react';
+import { BrainCircuit, Loader2, Code, FileText, CheckCircle, Copy, Zap, BarChart3, Eye, Sparkles } from 'lucide-react';
 
 interface AssessmentCreatorProps {
     companyProfile?: CompanyProfile | null;
+    jobs?: Job[];
+    initialJobId?: string;
 }
 
-const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile }) => {
+const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, jobs = [], initialJobId }) => {
     const [role, setRole] = useState('');
     const [skills, setSkills] = useState('');
     const [difficulty, setDifficulty] = useState('Senior');
@@ -23,6 +25,42 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile })
     const [assessment, setAssessment] = useState<Assessment | null>(null);
     const [showPreview, setShowPreview] = useState(false);
     const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+    const [selectedJobId, setSelectedJobId] = useState(initialJobId || '');
+    const [isExtracting, setIsExtracting] = useState(false);
+
+    // React to initialJobId prop changes
+    useEffect(() => {
+        if (initialJobId) {
+            handleJobSelect(initialJobId);
+        }
+    }, [initialJobId]);
+
+    // Auto-fill when job is selected
+    const handleJobSelect = async (jobId: string) => {
+        setSelectedJobId(jobId);
+        const job = jobs.find(j => j.id === jobId);
+        if (job) {
+            setRole(job.title);
+            if (job.required_skills && job.required_skills.length > 0) {
+                setSkills(job.required_skills.join(', '));
+            } else {
+                // Try to extract skills from description
+                setIsExtracting(true);
+                try {
+                    const extracted = await extractSkillsFromJob(job.title, job.description);
+                    if (extracted.length > 0) {
+                        setSkills(extracted.join(', '));
+                    } else {
+                        setSkills('');
+                    }
+                } catch (e) {
+                    setSkills('');
+                } finally {
+                    setIsExtracting(false);
+                }
+            }
+        }
+    };
 
     const handleGenerate = async () => {
         if (!role || !skills) return;
@@ -126,6 +164,27 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile })
                 </div>
 
                 <div className="space-y-4">
+                    {jobs.length > 0 && (
+                        <div className="p-3 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-800 rounded-xl mb-2">
+                            <label className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                                <Sparkles size={12} /> Automaticky z inzerátu
+                            </label>
+                            <select
+                                value={selectedJobId}
+                                onChange={(e) => handleJobSelect(e.target.value)}
+                                className="w-full bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 rounded-lg p-2 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            >
+                                <option value="">-- Vyberte aktivní inzerát --</option>
+                                {jobs.map(job => (
+                                    <option key={job.id} value={job.id}>{job.title}</option>
+                                ))}
+                            </select>
+                            <p className="text-[10px] text-slate-500 mt-2">
+                                Výběrem inzerátu AI automaticky doplní roli a klíčové dovednosti.
+                            </p>
+                        </div>
+                    )}
+
                     <div>
                         <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Role</label>
                         <input
@@ -144,6 +203,12 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile })
                             placeholder="např. React, Performance Optimization, System Design"
                             className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none h-24 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-colors"
                         />
+                        {isExtracting && (
+                            <div className="flex items-center gap-2 mt-1 text-xs text-indigo-500 italic">
+                                <Loader2 size={12} className="animate-spin" />
+                                Analyzuji inzerát a vytahuji dovednosti...
+                            </div>
+                        )}
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Obtížnost</label>
