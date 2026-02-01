@@ -85,6 +85,14 @@ RETURN QUERY WITH base_filtered AS (
                 AND j.salary_from >= filter_min_salary
             )
         )
+        AND (
+            search_term IS NULL
+            OR search_term = ''
+            OR (
+                j.title ILIKE '%' || search_term || '%'
+                OR j.company ILIKE '%' || search_term || '%'
+            )
+        )
 ),
 deduplicated AS (
     -- STEP 2: Early deduplication to reduce row count for expensive checks
@@ -113,15 +121,6 @@ final_filtered AS (
             filter_city IS NULL
             OR has_spatial_filter
             OR LOWER(fj_in.location) LIKE '%' || LOWER(filter_city) || '%'
-        ) -- Search Term text filter (Expensive on large descriptions)
-        AND (
-            search_term IS NULL
-            OR search_term = ''
-            OR (
-                fj_in.title ILIKE '%' || search_term || '%'
-                OR fj_in.company ILIKE '%' || search_term || '%'
-                OR fj_in.description ILIKE '%' || search_term || '%'
-            )
         ) -- Spatial distance filter (Calculated once per unique job)
         AND (
             NOT has_spatial_filter
@@ -144,7 +143,9 @@ final_filtered AS (
                     AND (
                         fj_in.contract_type ILIKE '%ičo%'
                         OR fj_in.contract_type ILIKE '%fakturace%'
+                        OR fj_in.contract_type ILIKE '%živnost%'
                         OR fj_in.title ILIKE '%ičo%'
+                        OR fj_in.title ILIKE '%živnost%'
                     )
                 )
                 OR (
@@ -160,7 +161,9 @@ final_filtered AS (
                     AND NOT (
                         fj_in.contract_type ILIKE '%ičo%'
                         OR fj_in.contract_type ILIKE '%fakturace%'
+                        OR fj_in.contract_type ILIKE '%živnost%'
                         OR fj_in.title ILIKE '%ičo%'
+                        OR fj_in.title ILIKE '%živnost%'
                         OR fj_in.contract_type ILIKE '%part%time%'
                         OR fj_in.contract_type ILIKE '%zkrácený%'
                         OR fj_in.contract_type ILIKE '%brigáda%'
@@ -177,7 +180,7 @@ final_filtered AS (
                 WHERE EXISTS (
                         SELECT 1
                         FROM unnest(fj_in.benefits) AS job_benefit
-                        WHERE LOWER(job_benefit) LIKE '%' || LOWER(required_benefit) || '%'
+                        WHERE regexp_replace(LOWER(job_benefit), '[- ]', '', 'g') LIKE '%' || regexp_replace(LOWER(required_benefit), '[- ]', '', 'g') || '%'
                     )
             )
         ) -- Experience level filter (Expensive subquery per unique job)

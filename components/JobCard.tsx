@@ -144,8 +144,8 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
 
       {/* Job Metadata */}
       <div className="flex flex-wrap gap-y-2 gap-x-4 text-sm mb-4 font-medium text-slate-500 dark:text-slate-400">
-        <div className="flex items-center gap-1.5">
-          <MapPin size={16} className="text-slate-400 dark:text-slate-500" /> <span className="truncate">{job.location}</span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <MapPin size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{job.location}</span>
         </div>
         <div className="flex items-center gap-1.5 min-w-0">
           <Briefcase size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{job.type}</span>
@@ -153,24 +153,24 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
 
         {/* Salary Display Logic */}
         {job.salaryRange && job.salaryRange !== "Mzda neuvedena" && job.salaryRange !== "Salary not specified" ? (
-          <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200">
-            <Banknote size={16} className="text-emerald-600 dark:text-emerald-500" />
+          <div className="flex items-center gap-1.5 text-slate-700 dark:text-slate-200 min-w-0">
+            <Banknote size={16} className="text-emerald-600 dark:text-emerald-500 flex-shrink-0" />
             <span className="truncate">{job.salaryRange}</span>
           </div>
         ) : job.aiEstimatedSalary ? (
-          <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400" title="Odhadováno AI modelem na základě tržních dat">
-            <Sparkles size={16} className="fill-current" />
+          <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400 min-w-0" title="Odhadováno AI modelem na základě tržních dat">
+            <Sparkles size={16} className="fill-current flex-shrink-0" />
             <span className="truncate">{job.aiEstimatedSalary.min.toLocaleString()} - {job.aiEstimatedSalary.max.toLocaleString()} {job.aiEstimatedSalary.currency} ({t('job.salary_estimate')})</span>
           </div>
         ) : (
-          <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-600 italic">
-            <Banknote size={16} />
+          <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-600 italic min-w-0">
+            <Banknote size={16} className="flex-shrink-0" />
             <span className="truncate">{t('job.salary_not_specified')}</span>
           </div>
         )}
 
-        <div className="flex items-center gap-1.5">
-          <Clock size={16} className="text-slate-400 dark:text-slate-500" /> <span className="truncate">{job.postedAt}</span>
+        <div className="flex items-center gap-1.5 min-w-0">
+          <Clock size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{job.postedAt}</span>
         </div>
       </div>
 

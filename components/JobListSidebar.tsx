@@ -378,29 +378,6 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                 <Activity className="animate-spin mb-2 text-cyan-500" size={24} />
                                 <p className="text-sm">{t('app.searching')}</p>
                             </div>
-                        ) : isSearching ? (
-                            searchResults.length > 0 ? (
-                                searchResults.map(job => (
-                                    <JobCard
-                                        key={job.id}
-                                        job={job}
-                                        isSelected={selectedJobId === job.id}
-                                        isSaved={savedJobIds.includes(job.id)}
-                                        onToggleSave={() => handleToggleSave(job.id)}
-                                        onClick={() => handleJobSelect(job.id)}
-                                        variant={theme}
-                                        userProfile={userProfile}
-                                    />
-                                ))
-                            ) : (
-                                <div className="py-12 px-4 text-center text-slate-400 dark:text-slate-500 flex flex-col items-center">
-                                    <Search size={32} className="mb-4 opacity-50" />
-                                    <p className="font-bold mb-2">Žádné výsledky pro "{searchTerm}"</p>
-                                    <p className="text-xs opacity-75 max-w-[200px] mb-4">
-                                        Zkuste jiná klíčová slova
-                                    </p>
-                                </div>
-                            )
                         ) : filteredJobs.length > 0 ? (
                             filteredJobs.map(job => (
                                 <JobCard
@@ -417,7 +394,14 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                         ) : (
                             <div className="py-12 px-4 text-center text-slate-400 dark:text-slate-500 flex flex-col items-center">
                                 <Search size={32} className="mb-4 opacity-50" />
-                                {backendPolling ? (
+                                {isSearching ? (
+                                    <>
+                                        <p className="font-bold mb-2">Žádné výsledky pro "{searchTerm}"</p>
+                                        <p className="text-xs opacity-75 max-w-[200px] mb-4">
+                                            Zkuste jiná klíčová slova
+                                        </p>
+                                    </>
+                                ) : backendPolling ? (
                                     <div className="flex flex-col items-center">
                                         <p className="font-bold mb-2">Probouzím backend… ☕🔮</p>
                                         <p className="text-xs opacity-75 max-w-[260px] mb-4">Chvíli to trvá — kontroluji, jestli server vylezl z postele. Zkusím to znovu automaticky.</p>
@@ -443,6 +427,12 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                         )}
                                     </div>
                                 )}
+                            </div>
+                        )}
+                        {loadingMore && (
+                            <div className="py-6 flex flex-col items-center justify-center text-slate-400">
+                                <Activity className="animate-spin mb-2 text-cyan-500" size={20} />
+                                <p className="text-xs">Načítám další nabídky...</p>
                             </div>
                         )}
                     </div>
