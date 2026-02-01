@@ -6,7 +6,7 @@ import { Job, Candidate, AIAdOptimizationResult, CompanyProfile } from '../types
 import { optimizeJobDescription } from '../services/geminiService';
 import { publishJob } from '../services/jobPublishService';
 import { canCompanyUseFeature, canCompanyPostJob } from '../services/billingService';
-import { supabase, incrementAdOptimizationUsage } from '../services/supabaseService';
+import { supabase, incrementAdOptimizationUsage, incrementJobPosting } from '../services/supabaseService';
 import AnalyticsService from '../services/analyticsService';
 import { getSubscriptionStatus } from '../services/serverSideBillingService';
 import { formatJobDescription } from '../utils/formatters';
@@ -262,6 +262,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 contract_type: contractType,
                 work_type: workType
             });
+
+            // Increment job posting usage count
+            if (companyProfile.id) {
+                await incrementJobPosting(companyProfile.id);
+            }
+
             alert(t('company.ad_editor.publish_success'));
             if (isRealUser) {
                 setAdDraft('');
