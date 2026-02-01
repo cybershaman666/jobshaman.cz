@@ -458,7 +458,8 @@ export const fetchJobsPaginated = async (
                     user_lng: userLng,
                     radius_km: radiusKm,
                     limit_count: pageSize,
-                    offset_count: page * pageSize
+                    offset_val: page * pageSize,
+                    filter_country_code: countryCode
                 });
 
             if (error) {

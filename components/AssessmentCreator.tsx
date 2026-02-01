@@ -6,7 +6,8 @@ import { redirectToCheckout } from '../services/stripeService';
 import { incrementAssessmentUsage } from '../services/supabaseService';
 import { getRemainingAssessments } from '../services/billingService';
 import AnalyticsService from '../services/analyticsService';
-import { BrainCircuit, Loader2, Code, FileText, CheckCircle, Copy, Zap, BarChart3 } from 'lucide-react';
+import AssessmentPreviewModal from './AssessmentPreviewModal';
+import { BrainCircuit, Loader2, Code, FileText, CheckCircle, Copy, Zap, BarChart3, Eye } from 'lucide-react';
 
 interface AssessmentCreatorProps {
     companyProfile?: CompanyProfile | null;
@@ -19,6 +20,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile })
     const [questionCount, setQuestionCount] = useState<number>(5);
     const [isGenerating, setIsGenerating] = useState(false);
     const [assessment, setAssessment] = useState<Assessment | null>(null);
+    const [showPreview, setShowPreview] = useState(false);
 
     const handleGenerate = async () => {
         if (!role || !skills) return;
@@ -244,6 +246,13 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile })
                         </div>
 
                         <div className="mt-auto pt-6 border-t border-slate-200 dark:border-slate-800">
+                            <button
+                                onClick={() => setShowPreview(true)}
+                                className="flex items-center gap-2 text-sm text-cyan-600 dark:text-cyan-400 bg-white dark:bg-slate-900 p-3 rounded-lg border border-cyan-200 dark:border-cyan-800 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 transition-colors"
+                            >
+                                <Eye size={16} />
+                                <span>Vyzkoušet (Preview)</span>
+                            </button>
                             <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
                                 <CheckCircle size={16} className="text-emerald-500" />
                                 <span>Tento test můžete odeslat kandidátovi jako "Pre-screen challenge".</span>
@@ -259,6 +268,13 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile })
                     </div>
                 )}
             </div>
+
+            {showPreview && assessment && (
+                <AssessmentPreviewModal
+                    assessment={assessment}
+                    onClose={() => setShowPreview(false)}
+                />
+            )}
         </div>
     );
 };
