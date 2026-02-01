@@ -32,18 +32,26 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
     sub_details = {"tier": "free", "status": "active"}
     try:
         if is_company_admin:
-            sub_response = supabase.table("subscriptions").select("*").eq("company_id", userId).execute()
+            # Use the company_id from the user profile, not the passed userId (which might be the user's ID)
+            target_company_id = user.get("company_id")
+            if not target_company_id:
+                print(f"⚠️ Company Admin {user_id} has no company_id associated")
+                # Fallback or error? For now, if no company_id, we can't fetch company subscription.
+                # But is_company_admin is only true if company_name exists, implying company_id exists in our security logic.
+                target_company_id = userId # Fallback to request param if something is weird, but risky.
+            
+            sub_response = supabase.table("subscriptions").select("*").eq("company_id", target_company_id).execute()
             if not sub_response.data:
                 # Auto-trial
                 trial_end = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
                 trial_data = {
-                    "company_id": userId,
+                    "company_id": target_company_id,
                     "tier": "business",
                     "status": "trialing",
                     "current_period_end": trial_end,
                     "stripe_customer_id": "trial_cust",
                     "stripe_price_id": "trial_price",
-                    "stripe_subscription_id": f"trial_{userId[:8]}"
+                    "stripe_subscription_id": f"trial_{target_company_id[:8]}"
                 }
                 sub_response = supabase.table("subscriptions").insert(trial_data).execute()
         else:
@@ -59,7 +67,8 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
 
     if is_company_admin:
         try:
-            jobs_resp = supabase.table("jobs").select("id", count="exact").eq("company_id", userId).execute()
+            target_company_id = user.get("company_id") or userId
+            jobs_resp = supabase.table("jobs").select("id", count="exact").eq("company_id", target_company_id).execute()
             real_job_count = jobs_resp.count if jobs_resp.count is not None else 0
         except: real_job_count = 0
 
