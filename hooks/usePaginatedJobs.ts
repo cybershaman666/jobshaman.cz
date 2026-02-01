@@ -155,6 +155,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     // Debounced reload when filters change
     useEffect(() => {
         const timeoutId = setTimeout(() => {
+            console.log('⏱️ Debounced filter fetch triggered');
             setCurrentPage(0);
             fetchFilteredJobs(0, false);
         }, 500);
@@ -163,8 +164,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [
         searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, countryCode, fetchFilteredJobs
-    ]);
+        filterMaxDistance, countryCode
+    ]); // Excluded fetchFilteredJobs to avoid re-triggering when it's just redefined
 
     // Load more jobs
     const loadMoreJobs = useCallback(() => {
