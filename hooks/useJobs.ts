@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Job, ViewState, UserProfile } from '../types';
-import { fetchRealJobs } from '../services/jobService';
+import { fetchRealJobs, fetchJobsWithFilters } from '../services/jobService';
 import { calculateCommuteReality } from '../services/commuteService';
 
 const removeAccents = (str: any) => {
@@ -36,6 +36,11 @@ export const useJobs = (viewState: ViewState, userProfile: UserProfile) => {
     const [filterBenefits, setFilterBenefits] = useState<string[]>([]);
     const [filterContractType, setFilterContractType] = useState<string[]>([]);
 
+    // Database-backed filtered jobs
+    const [dbFilteredJobs, setDbFilteredJobs] = useState<Job[]>([]);
+    const [isFilteringDb, setIsFilteringDb] = useState(false);
+
+    // Load initial jobs (for saved view and fallback)
     const loadRealJobs = async () => {
         setIsLoadingJobs(true);
         try {
@@ -52,7 +57,75 @@ export const useJobs = (viewState: ViewState, userProfile: UserProfile) => {
         setSavedJobIds(prev => prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]);
     };
 
+    // Debounced database filtering effect
+    useEffect(() => {
+        // Skip database filtering if:
+        // 1. User is viewing saved jobs (use client-side filtering)
+        // 2. No filters are active
+        const hasActiveFilters =
+            filterCity.trim().length > 0 ||
+            enableCommuteFilter ||
+            filterBenefits.length > 0 ||
+            filterContractType.length > 0;
+
+        if (viewState === ViewState.SAVED || !hasActiveFilters) {
+            setDbFilteredJobs([]);
+            return;
+        }
+
+        // Debounce database queries
+        const timeoutId = setTimeout(async () => {
+            setIsFilteringDb(true);
+            try {
+                const filterOptions = {
+                    userLat: userProfile.coordinates?.lat,
+                    userLng: userProfile.coordinates?.lon,
+                    radiusKm: enableCommuteFilter ? filterMaxDistance : undefined,
+                    filterCity: filterCity.trim() || undefined,
+                    filterContractTypes: filterContractType.length > 0 ? filterContractType : undefined,
+                    filterBenefits: filterBenefits.length > 0 ? filterBenefits : undefined,
+                    page: 0,
+                    pageSize: 500, // Load more for better UX
+                    countryCode: undefined // UserProfile doesn't have country_code
+                };
+
+                console.log('🔍 Triggering database filter query with options:', filterOptions);
+                const { jobs: filteredJobs } = await fetchJobsWithFilters(filterOptions);
+                setDbFilteredJobs(filteredJobs);
+            } catch (error) {
+                console.error('Error filtering jobs from database:', error);
+                setDbFilteredJobs([]);
+            } finally {
+                setIsFilteringDb(false);
+            }
+        }, 500); // 500ms debounce
+
+        return () => clearTimeout(timeoutId);
+    }, [
+        filterCity,
+        filterMaxDistance,
+        enableCommuteFilter,
+        filterBenefits,
+        filterContractType,
+        userProfile.coordinates,
+        viewState
+    ]);
+
+    // Client-side filtering for instant feedback and saved jobs view
     const filteredJobs = useMemo(() => {
+        // If we have database-filtered results and filters are active, use those
+        const hasActiveFilters =
+            filterCity.trim().length > 0 ||
+            enableCommuteFilter ||
+            filterBenefits.length > 0 ||
+            filterContractType.length > 0;
+
+        if (hasActiveFilters && dbFilteredJobs.length > 0 && viewState !== ViewState.SAVED) {
+            console.log(`✅ Using database-filtered results: ${dbFilteredJobs.length} jobs`);
+            return dbFilteredJobs;
+        }
+
+        // Fall back to client-side filtering (for saved view or when db results not ready)
         let sourceJobs = jobs;
         if (viewState === ViewState.SAVED) {
             sourceJobs = jobs.filter(job => savedJobIds.includes(job.id));
@@ -134,7 +207,7 @@ export const useJobs = (viewState: ViewState, userProfile: UserProfile) => {
             });
         }
         return filtered;
-    }, [searchTerm, filterCity, filterMaxDistance, enableCommuteFilter, filterBenefits, filterContractType, userProfile, viewState, savedJobIds, jobs]);
+    }, [searchTerm, filterCity, filterMaxDistance, enableCommuteFilter, filterBenefits, filterContractType, userProfile, viewState, savedJobIds, jobs, dbFilteredJobs]);
 
     useEffect(() => {
         loadRealJobs();
@@ -145,7 +218,7 @@ export const useJobs = (viewState: ViewState, userProfile: UserProfile) => {
         setJobs,
         selectedJobId,
         setSelectedJobId,
-        isLoadingJobs,
+        isLoadingJobs: isLoadingJobs || isFilteringDb,
         savedJobIds,
         handleToggleSave,
         filteredJobs,
