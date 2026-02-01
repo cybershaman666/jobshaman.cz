@@ -786,5 +786,50 @@
       "philosophy": "Philosophie & Mission",
       "philosophy_placeholder": "Unsere Mission ist es, Talente mit sinnvoller Arbeit zu verbinden..."
     }
+  },
+  "assessment": {
+    "taker": {
+      "limit": "Limit",
+      "anti_cheat": "Anti-Cheat",
+      "active": "Aktiv",
+      "fullscreen_mode": "Fenster wechselt in den Vollbildmodus.",
+      "blur_detection": "Das Wechseln von Fenstern oder Tabs wird aufgezeichnet.",
+      "auto_submit": "Der Test wird automatisch gesendet, wenn die Zeit abläuft.",
+      "initialize_mission": "MISSION STARTEN (START)",
+      "uploading_data": "DATEN WERDEN HOCHGELADEN...",
+      "assessment_label": "ASSESSMENT",
+      "warnings": "WARNUNGEN:",
+      "focus_lost": "FOKUSVERLUST ERKANNT",
+      "return_to_test": "Zurück zum Test. Warnungen: {{count}}",
+      "progress": "Fortschritt",
+      "type_multiple_choice": "MULTIPLE CHOICE",
+      "type_code": "PROGRAMMIERAUFGABE",
+      "type_open": "OFFENE FRAGE",
+      "submit_mission": "MISSION ABSENDEN",
+      "next_phase": "NÄCHSTE PHASE",
+      "submission_failed": "Übermittlung fehlgeschlagen. Bitte versuchen Sie es erneut.",
+      "placeholder_code": "// Schreiben Sie Ihren Code hier...",
+      "placeholder_text": "Ihre Antwort..."
+    },
+    "results": {
+      "loading": "Lade Ergebnisse...",
+      "no_results_title": "Noch keine Assessments eingereicht",
+      "no_results_desc": "Ergebnisse erscheinen hier, sobald Kandidaten das Assessment abschließen.",
+      "title": "Eingereichte Assessments",
+      "score": "Punktzahl:",
+      "evaluating": "Wird ausgewertet...",
+      "ai_evaluate_btn": "KI-Auswertung",
+      "evaluated": "Ausgewertet",
+      "summary_title": "Leistungszusammenfassung",
+      "match_score_title": "KI-Match-Score",
+      "pros_title": "Stärken",
+      "cons_title": "Verbesserungswürdig",
+      "not_evaluated_desc": "Dieses Assessment wurde noch nicht von der KI ausgewertet.",
+      "run_analysis_btn": "Tiefe KI-Analyse starten",
+      "detailed_answers": "Detaillierte Antworten",
+      "question_label": "Frage",
+      "eval_failed": "Assessment konnte nicht ausgewertet werden.",
+      "question_fallback": "Frage"
+    }
   }
 }

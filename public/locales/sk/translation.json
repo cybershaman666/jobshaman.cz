@@ -858,5 +858,50 @@
     "header": {
         "toggle_theme": "Zmeniť režim",
         "logout": "Odhlásiť sa"
+    },
+    "assessment": {
+        "taker": {
+            "limit": "Limit",
+            "anti_cheat": "Anti-Cheat",
+            "active": "Aktívny",
+            "fullscreen_mode": "Okno sa prepne do celoobrazovkového režimu.",
+            "blur_detection": "Prepínanie okien alebo kariet bude zaznamenané.",
+            "auto_submit": "Test sa automaticky odošle po vypršaní času.",
+            "initialize_mission": "SPUSTIŤ MISIU (START)",
+            "uploading_data": "NAHRÁVAM DÁTA...",
+            "assessment_label": "HODNOTENIE",
+            "warnings": "VAROVANIA:",
+            "focus_lost": "ZISTENÁ STRATA POZORNOSTI",
+            "return_to_test": "Vráťte sa k testu. Varovania: {{count}}",
+            "progress": "Postup",
+            "type_multiple_choice": "VIACERÉ MOŽNOSTI",
+            "type_code": "PROGRAMOVACIA ÚLOHA",
+            "type_open": "OTVORENÁ OTÁZKA",
+            "submit_mission": "ODOSLAŤ MISIU",
+            "next_phase": "ĎALŠIA FÁZA",
+            "submission_failed": "Odoslanie zlyhalo. Skúste to prosím znova.",
+            "placeholder_code": "// Tu napíšte svoj kód...",
+            "placeholder_text": "Vaša odpoveď..."
+        },
+        "results": {
+            "loading": "Načítavam výsledky...",
+            "no_results_title": "Zatiaľ žiadne odoslané hodnotenia",
+            "no_results_desc": "Výsledky sa tu objavia, keď kandidáti dokončia hodnotenie.",
+            "title": "Odoslané Hodnotenia",
+            "score": "Skóre:",
+            "evaluating": "Vyhodnocujem...",
+            "ai_evaluate_btn": "AI Hodnotenie",
+            "evaluated": "Vyhodnotené",
+            "summary_title": "Súhrn Výkonu",
+            "match_score_title": "AI Skóre Zhody",
+            "pros_title": "Silné Stránky",
+            "cons_title": "Oblasti na Zlepšenie",
+            "not_evaluated_desc": "Toto hodnotenie zatiaľ nebolo vyhodnotené AI.",
+            "run_analysis_btn": "Spustiť Hĺbkovú AI Analýzu",
+            "detailed_answers": "Detailné Odpovede",
+            "question_label": "Otázka",
+            "eval_failed": "Nepodarilo sa vyhodnotiť.",
+            "question_fallback": "Otázka"
+        }
     }
 }

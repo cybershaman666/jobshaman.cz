@@ -555,7 +555,12 @@ export default function App() {
 
         setAnalyzing(true);
         try {
-            const result = await analyzeJobDescription(selectedJob.description);
+            // Pass job ID and any existing cached analysis to the service
+            const result = await analyzeJobDescription(
+                selectedJob.description,
+                String(selectedJob.id),
+                selectedJob.aiAnalysis
+            );
             setAiAnalysis(result);
         } catch (e) {
             console.error(e);

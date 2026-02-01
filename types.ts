@@ -79,7 +79,8 @@ export interface Job {
   location: string;
   type: 'Remote' | 'Hybrid' | 'On-site';
   salaryRange?: string;
-  aiEstimatedSalary?: SalaryEstimate; // New field for AI fallback
+  aiEstimatedSalary?: SalaryEstimate;
+  aiAnalysis?: AIAnalysisResult; // Cached analysis from DB
   description: string; // Markdown supported
   postedAt: string;
   scrapedAt?: string; // ISO Timestamp for sorting
@@ -250,15 +251,36 @@ export interface UserProfile {
     commuteTolerance: number; // Minutes
     priorities: string[]; // e.g. "Dog Friendly", "Wheelchair Access"
   };
-  // New fields for CV management
-  currentCVId?: string; // ID of currently selected CV
-  cvs?: CVDocument[]; // All uploaded CVs
+  hasAssessment?: boolean;
   subscription?: {
     tier: CandidateSubscriptionTier;
     expiresAt?: string;
     usage?: CandidateUsageStats;
   };
-  hasAssessment?: boolean;
+}
+
+export interface AssessmentResult {
+  id: string;
+  company_id: string;
+  candidate_id?: string;
+  assessment_id: string;
+  role: string;
+  difficulty: string;
+  questions_total: number;
+  questions_correct: number;
+  score: number;
+  time_spent_seconds: number;
+  answers: { questionId: string; answer: string; isCorrect?: boolean }[];
+  feedback?: string;
+  completed_at: string;
+  ai_evaluation?: AssessmentEvaluation; // AI Feedback for Recruiter
+}
+
+export interface AssessmentEvaluation {
+  pros: string[];
+  cons: string[];
+  summary: string;
+  skillMatchScore: number; // 0-100 independent AI score
 }
 
 export type CandidateSubscriptionTier = 'free' | 'premium';
@@ -304,14 +326,7 @@ export interface MarketplacePartner {
   created_at: string;
 }
 
-export interface AssessmentResult {
-  id: string;
-  candidate_id: string;
-  skill_name: string;
-  score: number; // 0-100
-  assessment_type: string;
-  completed_at: string;
-}
+// Duplicate AssessmentResult removed
 
 export interface BenefitValuation {
   id: string;
@@ -372,9 +387,14 @@ export interface Assessment {
   id: string;
   title: string;
   role: string;
+  description?: string;
+  timeLimitSeconds?: number;
   questions: {
+    id: string;
     text: string;
-    type: 'Code' | 'Open' | 'Scenario';
+    type: 'Code' | 'Open' | 'Scenario' | 'MultipleChoice';
+    options?: string[]; // For MultipleChoice
+    correctAnswer?: string; // Optional: for auto-grading
   }[];
   createdAt: string;
 }
