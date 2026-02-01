@@ -13,6 +13,8 @@ import {
     RefreshCw
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { FilterSuggestions } from './FilterSuggestions';
+import { SavedFiltersMenu } from './SavedFiltersMenu';
 
 interface JobListSidebarProps {
     selectedJobId: string | null;
@@ -140,6 +142,39 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                     {/* Collapsible Filters Container */}
                     {showFilters && (
                         <div className="px-4 pb-4 max-h-[40vh] overflow-y-auto custom-scrollbar border-t border-slate-100 dark:border-slate-800 pt-4 animate-in slide-in-from-top-2">
+                            {/* Saved Filters Menu */}
+                            <SavedFiltersMenu
+                                onLoadFilter={(filters) => {
+                                    if (filters.filterCity) setFilterCity(filters.filterCity);
+                                    if (filters.filterContractTypes) filters.filterContractTypes.forEach(type => {
+                                        if (!filterContractType.includes(type)) toggleContractTypeFilter(type);
+                                    });
+                                    if (filters.filterBenefits) filters.filterBenefits.forEach(benefit => {
+                                        if (!filterBenefits.includes(benefit)) toggleBenefitFilter(benefit);
+                                    });
+                                    if (filters.filterMaxDistance) setFilterMaxDistance(filters.filterMaxDistance);
+                                    if (filters.enableCommuteFilter !== undefined) setEnableCommuteFilter(filters.enableCommuteFilter);
+                                }}
+                                currentFilters={{
+                                    filterCity,
+                                    filterContractTypes: filterContractType,
+                                    filterBenefits,
+                                    filterMaxDistance,
+                                    enableCommuteFilter
+                                }}
+                                hasActiveFilters={!!(filterCity || filterContractType.length > 0 || filterBenefits.length > 0)}
+                            />
+
+                            {/* Popular Filter Suggestions */}
+                            <FilterSuggestions
+                                onApplyFilter={(filters) => {
+                                    if (filters.filterCity) setFilterCity(filters.filterCity);
+                                    if (filters.filterContractTypes) filters.filterContractTypes.forEach(type => toggleContractTypeFilter(type));
+                                    if (filters.filterBenefits) filters.filterBenefits.forEach(benefit => toggleBenefitFilter(benefit));
+                                }}
+                                hasActiveFilters={!!(filterCity || filterContractType.length > 0 || filterBenefits.length > 0)}
+                            />
+
                             {/* FILTER: Location & Commute */}
                             <div className="space-y-3">
                                 <button onClick={() => toggleSection('location')} className="flex items-center justify-between w-full text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide hover:text-slate-700 dark:hover:text-slate-200 transition-colors">

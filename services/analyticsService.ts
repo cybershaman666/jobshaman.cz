@@ -8,6 +8,31 @@ interface AnalyticsEvent {
     metadata?: Record<string, any>;
 }
 
+// ===== FILTER ANALYTICS TYPES =====
+export interface FilterAnalytics {
+    filterCity?: string;
+    filterContractTypes?: string[];
+    filterBenefits?: string[];
+    filterMinSalary?: number;
+    filterDatePosted?: string;
+    filterExperienceLevels?: string[];
+    radiusKm?: number;
+    hasDistanceFilter?: boolean;
+    resultCount?: number;
+}
+
+export interface PopularFilterCombination {
+    combinationKey: string;
+    usageCount: number;
+    avgResults: number;
+    filters: {
+        filterCity?: string;
+        filterContractTypes?: string[];
+        filterBenefits?: string[];
+        filterMinSalary?: number;
+    };
+}
+
 class AnalyticsService {
     private static events: AnalyticsEvent[] = [];
 
@@ -126,10 +151,10 @@ class AnalyticsService {
         recentTriggers: AnalyticsEvent[];
     } {
         const upgradeTriggers = this.events.filter(e => e.event === 'upgrade_triggered');
-        
+
         const featureBreakdown: Record<string, number> = {};
         const tierBreakdown: Record<string, number> = {};
-        
+
         upgradeTriggers.forEach(trigger => {
             if (trigger.feature) {
                 featureBreakdown[trigger.feature] = (featureBreakdown[trigger.feature] || 0) + 1;
@@ -145,6 +170,106 @@ class AnalyticsService {
             tierBreakdown,
             recentTriggers: upgradeTriggers.slice(-10).reverse()
         };
+    }
+
+    // ===== FILTER ANALYTICS METHODS =====
+
+    /**
+     * Track filter usage analytics (non-blocking, fire-and-forget)
+     * This helps us understand which filters are most popular
+     */
+    static async trackFilterUsage(analytics: FilterAnalytics): Promise<void> {
+        // Dynamic import to avoid circular dependencies
+        const { supabase } = await import('./supabaseService');
+
+        if (!supabase) {
+            console.warn('Supabase not configured, skipping filter analytics');
+            return;
+        }
+
+        try {
+            // Get current user (if logged in)
+            const { data: { user } } = await supabase.auth.getUser();
+
+            // Insert analytics record (non-blocking)
+            const { error } = await supabase.from('filter_analytics').insert({
+                user_id: user?.id || null,
+                filter_city: analytics.filterCity || null,
+                filter_contract_types: analytics.filterContractTypes || null,
+                filter_benefits: analytics.filterBenefits || null,
+                filter_min_salary: analytics.filterMinSalary || null,
+                filter_date_posted: analytics.filterDatePosted || null,
+                filter_experience_levels: analytics.filterExperienceLevels || null,
+                radius_km: analytics.radiusKm || null,
+                has_distance_filter: analytics.hasDistanceFilter || false,
+                result_count: analytics.resultCount || 0
+            });
+
+            if (error) {
+                console.warn('Failed to track filter analytics:', error);
+            }
+        } catch (error) {
+            // Silent failure - don't disrupt user experience
+            console.warn('Error tracking filter analytics:', error);
+        }
+    }
+
+    /**
+     * Get popular filter combinations from the last 30 days
+     */
+    static async getPopularFilterCombinations(limit: number = 5): Promise<PopularFilterCombination[]> {
+        const { supabase } = await import('./supabaseService');
+
+        if (!supabase) {
+            console.warn('Supabase not configured');
+            return [];
+        }
+
+        try {
+            const { data, error } = await supabase.rpc('get_popular_filter_combinations', {
+                limit_count: limit
+            });
+
+            if (error) {
+                console.error('Failed to fetch popular filters:', error);
+                return [];
+            }
+
+            return (data || []).map((item: any) => ({
+                combinationKey: item.combination_key,
+                usageCount: item.usage_count,
+                avgResults: item.avg_results,
+                filters: item.filters
+            }));
+        } catch (error) {
+            console.error('Error fetching popular filters:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Format filter combination as human-readable text
+     */
+    static formatFilterCombination(filters: PopularFilterCombination['filters']): string {
+        const parts: string[] = [];
+
+        if (filters.filterCity) {
+            parts.push(filters.filterCity);
+        }
+
+        if (filters.filterContractTypes && filters.filterContractTypes.length > 0) {
+            parts.push(filters.filterContractTypes.join(' + '));
+        }
+
+        if (filters.filterBenefits && filters.filterBenefits.length > 0) {
+            parts.push(filters.filterBenefits.join(' + '));
+        }
+
+        if (filters.filterMinSalary) {
+            parts.push(`${filters.filterMinSalary}+ Kč`);
+        }
+
+        return parts.join(' • ') || 'Popular search';
     }
 }
 
