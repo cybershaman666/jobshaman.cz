@@ -1453,7 +1453,19 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         )}
 
                         <AssessmentCreator
-                            companyProfile={companyProfile}
+                            companyProfile={companyProfile ? {
+                                ...companyProfile,
+                                subscription: subscription ? {
+                                    ...companyProfile.subscription,
+                                    tier: subscription.tier,
+                                    expiresAt: subscription.expiresAt,
+                                    usage: {
+                                        ...companyProfile.subscription?.usage,
+                                        aiAssessmentsUsed: subscription.assessmentsUsed || 0,
+                                        activeJobsCount: subscription.jobPostingsUsed || 0
+                                    }
+                                } as any : companyProfile.subscription
+                            } : null}
                             jobs={jobs}
                             initialJobId={assessmentJobId}
                         />

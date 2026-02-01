@@ -338,52 +338,46 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
 
     while (retryCount <= maxRetries) {
         try {
-            // Combined query to reduce network roundtrips: companies -> subscriptions -> usage
+            // Combined query for company -> subscriptions (using explicit FK)
             const { data, error } = await supabase
                 .from('companies')
                 .select(`
                     *,
-                    subscriptions (
-                        *,
-                        subscription_usage (
-                            *
-                        )
+                    subscriptions:subscriptions!companies_subscription_id_fkey (
+                        *
                     )
                 `)
                 .eq('owner_id', userId);
 
             if (error) {
-                // Check if it's a network error that we should retry
-                const isNetworkError = error.message?.includes('NetworkError') ||
-                    error.message?.includes('fetch') ||
-                    (typeof error === 'object' && !error.code);
-
-                if (retryCount < maxRetries && isNetworkError) {
+                // ... same error handling as before ...
+                if (retryCount < maxRetries && (error.message?.includes('NetworkError') || error.message?.includes('fetch'))) {
                     retryCount++;
-                    console.warn(`🔄 Retrying company fetch (attempt ${retryCount}/ ${maxRetries}) after error:`, error.message);
-                    await new Promise(resolve => setTimeout(resolve, 800 * retryCount)); // Exponential backoff
+                    await new Promise(resolve => setTimeout(resolve, 800 * retryCount));
                     continue;
                 }
-
                 console.error('Recruiter company fetch error:', error);
                 return null;
             }
 
-            if (!data || data.length === 0) {
-                return null;
-            }
-
-            // Handle multiple companies - pick the first one
-            if (data.length > 1) {
-                console.warn(`⚠️ Multiple companies (${data.length}) found for recruiter ${userId}. Using the first one.`);
-            }
+            if (!data || data.length === 0) return null;
 
             const company = data[0];
             const rawSubscription = company.subscriptions?.[0];
 
-            // Build the expected nested structure that components expect
-            // If rawSubscription exists, it might have an array of usage records
-            const rawUsage = rawSubscription?.subscription_usage?.[0];
+            // Step 2: Fetch usage separately if subscription exists
+            let rawUsage = null;
+            if (rawSubscription?.id) {
+                const { data: usageData } = await supabase
+                    .from('subscription_usage')
+                    .select('*')
+                    .eq('subscription_id', rawSubscription.id)
+                    .order('period_end', { ascending: false })
+                    .limit(1)
+                    .single();
+
+                rawUsage = usageData;
+            }
 
             const subscription = rawSubscription ? {
                 tier: rawSubscription.tier,
