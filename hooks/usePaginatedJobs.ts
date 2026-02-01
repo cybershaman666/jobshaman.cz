@@ -93,9 +93,19 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             const { fetchJobsWithFilters } = await import('../services/jobService');
 
             // Only use coordinates if we are doing a commute filter or proximity sort
-            const { lat, lon } = (enableCommuteFilter || (userProfile.coordinates && !filterCity))
-                ? (userProfile.coordinates || { lat: undefined, lon: undefined })
-                : { lat: undefined, lon: undefined };
+            let lat = userProfile.coordinates?.lat;
+            let lon = userProfile.coordinates?.lon;
+
+            // If no user coordinates but we have a city and commute filter is requested,
+            // try to get coordinates for the city to allow radius search.
+            if (!lat && !lon && filterCity && enableCommuteFilter) {
+                const { getStaticCoordinates } = await import('../services/geocodingService');
+                const cityCoords = getStaticCoordinates(filterCity);
+                if (cityCoords) {
+                    lat = cityCoords.lat;
+                    lon = cityCoords.lon;
+                }
+            }
 
             const result = await fetchJobsWithFilters({
                 page,

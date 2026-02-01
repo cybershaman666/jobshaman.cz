@@ -19,7 +19,8 @@
     "cancel": "Abbrechen",
     "delete": "Löschen",
     "beta_badge": "BETA",
-    "beta_description": "Beta-Version - kann Fehler enthalten"
+    "beta_description": "Beta-Version - kann Fehler enthalten",
+    "found_jobs": "Gefundene Stellen: {{count}}"
   },
   "filters": {
     "location_commute": "Standort und Arbeitsweg",

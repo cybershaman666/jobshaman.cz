@@ -197,12 +197,24 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                             </div>
                                         </label>
                                         {enableCommuteFilter && (
-                                            <div className={`p-3 rounded-md border ${userProfile.isLoggedIn && userProfile.address ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800' : 'bg-slate-100 dark:bg-slate-900/50 border-dashed border-slate-300 dark:border-slate-800 opacity-60'}`}>
+                                            <div className={`p-3 rounded-md border ${(userProfile.isLoggedIn && userProfile.address) || filterCity ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800' : 'bg-slate-100 dark:bg-slate-900/50 border-dashed border-slate-300 dark:border-slate-800 opacity-60'}`}>
                                                 <div className="flex justify-between text-xs mb-2">
                                                     <span className="font-medium text-slate-500 dark:text-slate-400">{t('filters.max_distance')}</span>
-                                                    <span className="font-mono text-cyan-600 dark:text-cyan-400">{userProfile.isLoggedIn && userProfile.address ? `${filterMaxDistance} km` : 'N/A'}</span>
+                                                    <span className="font-mono text-cyan-600 dark:text-cyan-400">{(userProfile.isLoggedIn && userProfile.address) || filterCity ? `${filterMaxDistance} km` : 'N/A'}</span>
                                                 </div>
-                                                <input type="range" min="5" max="100" step="5" value={filterMaxDistance} onChange={(e) => setFilterMaxDistance(parseInt(e.target.value))} disabled={!userProfile.isLoggedIn || !userProfile.address} className="w-full accent-cyan-500 cursor-pointer disabled:cursor-not-allowed bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full appearance-none" />
+                                                <input
+                                                    type="range"
+                                                    min="5"
+                                                    max="100"
+                                                    step="5"
+                                                    value={filterMaxDistance}
+                                                    onChange={(e) => setFilterMaxDistance(parseInt(e.target.value))}
+                                                    disabled={!((userProfile.isLoggedIn && userProfile.address) || filterCity)}
+                                                    className="w-full accent-cyan-500 cursor-pointer disabled:cursor-not-allowed bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full appearance-none"
+                                                />
+                                                {!(userProfile.isLoggedIn && userProfile.address) && !filterCity && (
+                                                    <p className="text-[10px] text-slate-500 mt-2 italic">Pro radius zadejte město nebo se přihlaste s adresou.</p>
+                                                )}
                                             </div>
                                         )}
 
@@ -366,6 +378,13 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
 
                 {/* Job List Container (Scrolls independently below fixed header) */}
                 <div ref={jobListRef} className="flex-1 overflow-y-auto custom-scrollbar p-4" style={{ overscrollBehavior: 'contain' }}>
+                    {totalCount > 0 && !isLoadingJobs && (
+                        <div className="mb-4 px-1 flex items-center justify-between">
+                            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                                {t('app.found_jobs', { count: totalCount })}
+                            </span>
+                        </div>
+                    )}
                     <div className="space-y-3">
                         {isLoadingJobs ? (
                             <div className="py-12 flex flex-col items-center justify-center text-slate-400">
