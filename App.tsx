@@ -180,22 +180,25 @@ export default function App() {
 
     useEffect(() => {
         const handleScroll = () => {
-            if (!jobListRef.current || loadingMore || !hasMore) return;
+            if (!jobListRef.current) return;
 
             const { scrollTop, scrollHeight, clientHeight } = jobListRef.current;
-            const threshold = 200; // Load more when 200px from bottom
+            const threshold = 300; // Increased threshold
+            const isNearBottom = scrollTop + clientHeight >= scrollHeight - threshold;
 
-            if (scrollTop + clientHeight >= scrollHeight - threshold) {
+            if (isNearBottom && !loadingMore && hasMore) {
+                console.log('🚀 Infinite scroll triggered! Loading page...', totalCount);
                 loadMoreJobs();
             }
         };
 
         const element = jobListRef.current;
         if (element) {
+            console.log('✅ Scroll listener attached to job list');
             element.addEventListener('scroll', handleScroll);
             return () => element.removeEventListener('scroll', handleScroll);
         }
-    }, [loadingMore, hasMore, isSearching, loadMoreJobs]);
+    }, [loadingMore, hasMore, isSearching, loadMoreJobs, isLoadingJobs, viewState]);
 
     useEffect(() => {
         // Initial Theme Setup

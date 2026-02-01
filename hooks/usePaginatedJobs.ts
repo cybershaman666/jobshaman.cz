@@ -119,7 +119,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 setJobs(result.jobs);
             }
 
-            setHasMore(result.jobs.length === initialPageSize); // Simple heuristic, can be improved if total count is reliable
+            setHasMore(result.hasMore);
             setTotalCount(result.totalCount || 0);
 
             // Track analytics
@@ -171,8 +171,11 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const loadMoreJobs = useCallback(() => {
         if (!loadingMore && hasMore) {
             const nextPage = currentPage + 1;
+            console.log(`🔄 loadMoreJobs called. Moving to page ${nextPage}`);
             setCurrentPage(nextPage);
             fetchFilteredJobs(nextPage, true);
+        } else {
+            console.log('⏭️ loadMoreJobs skipped:', { loadingMore, hasMore });
         }
     }, [loadingMore, hasMore, currentPage, fetchFilteredJobs]);
 
