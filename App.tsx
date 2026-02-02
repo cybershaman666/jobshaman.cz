@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, CompanyProfile, CareerPathfinderResult } from './types';
 
 import { Analytics } from '@vercel/analytics/react';
+import { SpeedInsights } from '@vercel/speed-insights/react';
 import { initialBlogPosts } from './src/data/blogPosts';
 import AppHeader from './components/AppHeader';
 import { generateSEOMetadata, updatePageMeta } from './utils/seo';
@@ -887,6 +888,7 @@ export default function App() {
             <>
                 {/* Vercel Analytics */}
                 <Analytics />
+                <SpeedInsights />
                 {/* LEFT COLUMN: Sidebar (Fixed Filters + Scrollable List) */}
                 <JobListSidebar
                     selectedJobId={selectedJobId}
