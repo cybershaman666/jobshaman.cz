@@ -149,7 +149,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         return (
             <div className="min-h-[500px] flex items-center justify-center">
                 <div className="flex flex-col items-center gap-4 text-slate-400">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
                     <p>{t('common.loading') || 'Načítám...'}</p>
                 </div>
             </div>
@@ -464,12 +464,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         return (
             <div className="space-y-6 animate-in fade-in">
                 {/* Subscription Status Card */}
-                <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-6">
+                <div className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 border border-cyan-200 dark:border-cyan-800 rounded-xl p-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h3 className="text-lg font-bold text-indigo-900 dark:text-indigo-300 mb-1">{t('company.subscription.title')}</h3>
+                            <h3 className="text-lg font-bold text-cyan-900 dark:text-cyan-300 mb-1">{t('company.subscription.title')}</h3>
                             <div className="flex items-center gap-4">
-                                <span className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
+                                <span className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
                                     {subscription?.tier === 'business' ? t('company.subscription.tiers.business') : subscription?.tier === 'basic' ? t('company.subscription.tiers.basic') : t('company.subscription.tiers.free')} {t('company.subscription.plan_suffix')}
                                 </span>
                                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${subscription?.tier === 'free' || !subscription?.status
@@ -484,7 +484,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         </div>
                         <div className="text-right">
                             {subscription?.expiresAt && subscription?.tier !== 'free' && (
-                                <div className="text-sm text-indigo-700 dark:text-indigo-300">
+                                <div className="text-sm text-cyan-700 dark:text-cyan-300">
                                     <div className="font-medium">{t('company.subscription.next_payment')}</div>
                                     <div className="font-mono">{new Date(subscription.expiresAt).toLocaleDateString(i18n.language === 'cs' ? 'cs-CZ' : 'en-US')}</div>
                                     <div className="text-xs opacity-75">({t('company.subscription.days_left', { count: Math.ceil((new Date(subscription.expiresAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) })})</div>
@@ -493,7 +493,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             <div className="mt-2">
                                 <button
                                     onClick={() => setShowUpgradeModal({ open: true, feature: 'Změna plánu' })}
-                                    className="text-sm px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-500 transition-colors font-medium"
+                                    className="text-sm px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-500 transition-colors font-medium"
                                 >
                                     {t('company.subscription.manage')}
                                 </button>
@@ -502,10 +502,10 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     </div>
 
                     {/* Credits and Usage */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-indigo-200 dark:border-indigo-800">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6 pt-6 border-t border-cyan-200 dark:border-cyan-800">
                         <div className="bg-white dark:bg-slate-900 rounded-lg p-3">
                             <div className="flex items-center gap-2 mb-1">
-                                <Zap className="w-4 h-4 text-indigo-600" />
+                                <Zap className="w-4 h-4 text-cyan-600" />
                                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('company.subscription.ai_assessments')}</span>
                             </div>
                             <div className="text-lg font-bold text-slate-900 dark:text-white">
@@ -527,7 +527,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         </div>
                         <div className="bg-white dark:bg-slate-900 rounded-lg p-3">
                             <div className="flex items-center gap-2 mb-1">
-                                <Briefcase className="w-4 h-4 text-indigo-600" />
+                                <Briefcase className="w-4 h-4 text-cyan-600" />
                                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('company.subscription.job_ads')}</span>
                             </div>
                             <div className="text-lg font-bold text-slate-900 dark:text-white">
@@ -549,7 +549,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         </div>
                         <div className="bg-white dark:bg-slate-900 rounded-lg p-3">
                             <div className="flex items-center gap-2 mb-1">
-                                <Users className="w-4 h-4 text-indigo-600" />
+                                <Users className="w-4 h-4 text-cyan-600" />
                                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('company.subscription.team_members')}</span>
                             </div>
                             <div className="text-lg font-bold text-slate-900 dark:text-white">
@@ -572,7 +572,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         </p>
                         <button
                             onClick={() => setActiveTab('create-ad')}
-                            className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-500 transition-colors flex items-center gap-2"
+                            className="px-8 py-3 bg-cyan-600 text-white font-bold rounded-xl shadow-lg hover:bg-cyan-500 transition-colors flex items-center gap-2"
                         >
                             <PenTool size={20} />
                             {t('company.dashboard.create_first_ad')}
@@ -590,7 +590,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={() => setActiveTab('create-ad')}
-                                    className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-lg shadow-sm hover:bg-indigo-500 transition-colors flex items-center gap-2"
+                                    className="px-4 py-2 bg-cyan-600 text-white font-bold rounded-lg shadow-sm hover:bg-cyan-500 transition-colors flex items-center gap-2"
                                 >
                                     <PenTool size={18} />
                                     {t('company.dashboard.create_ad_btn')}
@@ -622,7 +622,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                             {Object.values(jobStats).reduce((acc, curr) => acc + curr.applicants, 0)}
                                         </div>
                                     </div>
-                                    <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 rounded-lg text-indigo-600 dark:text-indigo-400">
+                                    <div className="p-2 bg-cyan-50 dark:bg-cyan-500/10 rounded-lg text-cyan-600 dark:text-cyan-400">
                                         <Users size={20} />
                                     </div>
                                 </div>
@@ -704,16 +704,16 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
                         {/* AI Predictive Insights - Temporarily disabled until real data is available */}
                         {/* 
-                        <div className="bg-gradient-to-r from-indigo-50 to-cyan-50 dark:from-indigo-950/20 dark:to-cyan-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center gap-4 relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none text-indigo-500">
+                        <div className="bg-gradient-to-r from-cyan-50 to-cyan-50 dark:from-cyan-950/20 dark:to-cyan-950/20 border border-cyan-100 dark:border-cyan-900/50 rounded-xl p-4 flex flex-col md:flex-row items-start md:items-center gap-4 relative overflow-hidden">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none text-cyan-500">
                                 <BrainCircuit size={80} />
                             </div>
-                            <div className="p-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800 z-10">
+                            <div className="p-2 bg-white dark:bg-slate-900 rounded-lg shadow-sm text-cyan-600 dark:text-cyan-400 border border-cyan-100 dark:border-cyan-800 z-10">
                                 <Sparkles size={20} />
                             </div>
                             <div className="flex-1 z-10">
-                                <h3 className="text-sm font-bold text-indigo-900 dark:text-indigo-200 mb-1">{t('company.dashboard.ai_insights.title')}</h3>
-                                <div className="flex flex-col md:flex-row gap-4 text-sm text-indigo-800 dark:text-indigo-300">
+                                <h3 className="text-sm font-bold text-cyan-900 dark:text-cyan-200 mb-1">{t('company.dashboard.ai_insights.title')}</h3>
+                                <div className="flex flex-col md:flex-row gap-4 text-sm text-cyan-800 dark:text-cyan-300">
                                     <div className="flex items-center gap-2">
                                         <CheckCircle size={14} className="text-emerald-500" />
                                         <span>{jobs.length > 0 ? t('company.dashboard.ai_insights.hired_prediction', { days: 21, count: Math.max(1, Math.floor(jobs.length * 1.5)) }) : t('company.dashboard.ai_insights.analyzing_market')}</span>
@@ -807,7 +807,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                                                     <span className="text-xs text-slate-400">{t('company.dashboard.stats.candidates_count')}</span>
                                                                 </div>
                                                                 <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5 rounded-full overflow-hidden">
-                                                                    <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${Math.min(100, (applied / 50) * 100)}%` }}></div>
+                                                                    <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${Math.min(100, (applied / 50) * 100)}%` }}></div>
                                                                 </div>
                                                             </td>
                                                             <td className="px-4 py-3 text-center">
@@ -827,7 +827,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                                                 <div className="relative">
                                                                     <button
                                                                         onClick={() => toggleDropdown(job.id)}
-                                                                        className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors p-1"
+                                                                        className="text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors p-1"
                                                                     >
                                                                         <MoreVertical size={16} />
                                                                     </button>
@@ -846,7 +846,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                                                             </a>
                                                                             <button
                                                                                 onClick={() => handleCreateAssessmentFromJob(job.id)}
-                                                                                className="w-full text-left px-3 py-2 text-sm text-indigo-600 dark:text-indigo-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 font-medium"
+                                                                                className="w-full text-left px-3 py-2 text-sm text-cyan-600 dark:text-cyan-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2 font-medium"
                                                                             >
                                                                                 <BrainCircuit size={14} />
                                                                                 {t('company.dashboard.actions.create_assessment')}
@@ -906,7 +906,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
                                 <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
                                     <div className="flex items-center gap-2 mb-3 text-sm font-bold text-slate-700 dark:text-slate-200">
-                                        <Crown size={16} className="text-indigo-500" />
+                                        <Crown size={16} className="text-cyan-500" />
                                         {t('company.dashboard.leaderboard')}
                                     </div>
                                     <div className="space-y-3 text-xs text-slate-500 text-center py-4">
@@ -947,7 +947,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 <div className="flex-1 flex flex-col min-h-0 relative">
 
                     <div className="flex items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10">
-                        <button onClick={() => setViewMode(viewMode === 'write' ? 'preview' : 'write')} className={`p-1.5 rounded transition-colors flex items-center gap-2 px-3 text-xs font-bold ${viewMode === 'preview' ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'}`} title={t('company.ad_editor.switch_preview')}>
+                        <button onClick={() => setViewMode(viewMode === 'write' ? 'preview' : 'write')} className={`p-1.5 rounded transition-colors flex items-center gap-2 px-3 text-xs font-bold ${viewMode === 'preview' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'}`} title={t('company.ad_editor.switch_preview')}>
                             {viewMode === 'preview' ? <Eye size={16} /> : <LayoutTemplate size={16} />}
                             {viewMode === 'preview' ? t('company.ad_editor.preview') : t('company.ad_editor.editor')}
                         </button>
@@ -974,7 +974,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         <div className="relative">
                             <button
                                 onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                                className={`p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors ${showEmojiPicker ? 'bg-slate-100 dark:bg-slate-800 text-indigo-500' : ''}`}
+                                className={`p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors ${showEmojiPicker ? 'bg-slate-100 dark:bg-slate-800 text-cyan-500' : ''}`}
                                 title={t('company.ad_editor.emoji')}
                             >
                                 <Smile size={16} />
@@ -1039,7 +1039,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         <button
                             onClick={handlePublish}
                             disabled={isPublishing}
-                            className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50"
+                            className="flex items-center gap-2 bg-cyan-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-cyan-500 transition-all shadow-lg shadow-cyan-600/20 disabled:opacity-50"
                         >
                             {isPublishing ? <RefreshCw className="animate-spin" size={18} /> : <Zap size={18} />}
                             {isPublishing ? t('company.ad_editor.publishing') : t('company.ad_editor.publish_btn')}
@@ -1178,7 +1178,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                         key={key}
                                         type="button"
                                         onClick={() => toggleBenefit(key)}
-                                        className={`px-2 py-1 text-xs rounded-md border transition-colors ${isActive ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-indigo-200 dark:border-indigo-800 font-medium' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900'}`}
+                                        className={`px-2 py-1 text-xs rounded-md border transition-colors ${isActive ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800 font-medium' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900'}`}
                                     >
                                         {isActive && <CheckCircle size={10} className="inline mr-1" />}
                                         {label}

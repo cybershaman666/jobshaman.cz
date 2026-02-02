@@ -53,7 +53,7 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
 
                     <div className="grid grid-cols-1 gap-4">
                         {/* Option 1: Basic Plan (Free) */}
-                        <div className="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-blue-500 dark:hover:border-blue-500 transition-all cursor-pointer group relative overflow-hidden">
+                        <div className="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-cyan-500 dark:hover:border-cyan-500 transition-all cursor-pointer group relative overflow-hidden">
                             <div className="flex justify-between items-center mb-2">
                                 <div className="flex items-center gap-2">
                                     <div className="p-2 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
@@ -134,10 +134,10 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                         </div>
 
                         {/* Option 3: Assessment Add-ons */}
-                        <div className="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-purple-500 dark:hover:border-purple-500 transition-all cursor-pointer group relative overflow-hidden">
+                        <div className="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-cyan-500 dark:hover:border-cyan-500 transition-all cursor-pointer group relative overflow-hidden">
                             <div className="flex justify-between items-center mb-2">
                                 <div className="flex items-center gap-2">
-                                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
+                                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-lg">
                                         <BrainCircuit size={20} />
                                     </div>
                                     <div>
@@ -178,14 +178,14 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                                 alert('Nepodařilo se zahájit platbu: ' + (err instanceof Error ? err.message : String(err)));
                                             }
                                         }}
-                                        className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-sm transition-colors"
+                                        className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg text-sm transition-colors"
                                     >
                                         99 Kč
                                     </button>
                                 </div>
 
                                 {/* Assessment Bundle */}
-                                <div className="flex justify-between items-center p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border-2 border-purple-200 dark:border-purple-800">
+                                <div className="flex justify-between items-center p-3 bg-cyan-50 dark:bg-cyan-950/20 rounded-lg border-2 border-cyan-200 dark:border-cyan-800">
                                     <div>
                                         <div className="font-bold text-sm text-slate-900 dark:text-white">10 Assessmentů</div>
                                         <div className="text-xs text-slate-500">Platnost 12 měsíců</div>
@@ -214,7 +214,7 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                                 alert('Nepodařilo se zahájit platbu: ' + (err instanceof Error ? err.message : String(err)));
                                             }
                                         }}
-                                        className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg text-sm transition-colors shadow-sm"
+                                        className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg text-sm transition-colors shadow-sm"
                                     >
                                         990 Kč
                                     </button>
