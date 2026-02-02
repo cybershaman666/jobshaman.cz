@@ -4,16 +4,25 @@ import { resolve } from 'path';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/', // Use absolute paths for assets
   plugins: [react()],
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    sourcemap: false,
+    rollupOptions: {
+      output: {
+        manualChunks: undefined
+      }
+    }
+  },
   root: process.cwd(), // Explicitly set root to current directory
   publicDir: 'public',
-  base: './', // Use relative paths for Vercel deployment
   define: {
     // Polyfill process.env for local development if needed by some libs
     'process.env': process.env
   },
   server: {
-    host: '0.0.0.0', // Allow external access
     port: 3000,
     open: true
   },
