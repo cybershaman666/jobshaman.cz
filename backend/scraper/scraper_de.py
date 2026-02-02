@@ -139,7 +139,7 @@ class GermanyScraper(BaseScraper):
                          if isinstance(ct, str): contract_type = ct
                          elif isinstance(ct, list): contract_type = ", ".join(ct)
                     
-                    if 'description' in json_ld:
+                    if 'description' in json_ld and json_ld['description']:
                         desc_html = json_ld['description']
                         # Clean HTML to text
                         desc_soup = BeautifulSoup(desc_html, 'html.parser')
@@ -245,7 +245,7 @@ class GermanyScraper(BaseScraper):
                     'salary_from': salary_from,
                     'salary_to': salary_to,
                     'country_code': country_code,
-                    'currency': 'EUR'
+                    'salary_currency': 'EUR'
                 }
                 
                 if save_job_to_supabase(self.supabase, job_data):
@@ -397,7 +397,7 @@ class GermanyScraper(BaseScraper):
                     'salary_from': salary_from,
                     'salary_to': salary_to,
                     'country_code': country_code, # Force AT
-                    'currency': 'EUR'
+                    'salary_currency': 'EUR'
                 }
                 
                 if save_job_to_supabase(self.supabase, job_data):

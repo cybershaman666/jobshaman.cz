@@ -20,7 +20,9 @@
         "delete": "Odstranit",
         "beta_badge": "BETA",
         "beta_description": "Beta verze - může obsahovat chyby",
-        "found_jobs": "Nalezeno {{count}} nabídek"
+        "found_jobs": "Nalezeno {{count}} nabídek",
+        "share": "Sdílet",
+        "link_copied": "Odkaz zkopírován!"
     },
     "filters": {
         "location_commute": "Lokalita a Dojezd",

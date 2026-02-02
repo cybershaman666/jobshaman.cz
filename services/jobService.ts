@@ -16,6 +16,7 @@ interface ScrapedJob {
     salary_from?: number | string;
     salary_to?: number | string;
     currency?: string;
+    salary_currency?: string;
     work_type?: string;
     scraped_at?: string;
     source?: string;
@@ -131,7 +132,7 @@ const BENEFIT_PATTERNS = [
 const transformJob = (scrapedJob: any): Job => {
     const salaryFrom = safeParseInt(scrapedJob.salary_from);
     const salaryTo = safeParseInt(scrapedJob.salary_to);
-    const currency = scrapedJob.currency || 'Kč';
+    const currency = scrapedJob.salary_currency || scrapedJob.currency || 'Kč';
 
     const salaryRange = salaryFrom && salaryTo ? `${salaryFrom.toLocaleString('cs-CZ')} - ${salaryTo.toLocaleString('cs-CZ')} ${currency}` :
         salaryFrom ? `od ${salaryFrom.toLocaleString('cs-CZ')} ${currency}` :
@@ -872,7 +873,7 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
             }
 
             let salaryRange = undefined;
-            const currency = scraped.currency || 'Kč';
+            const currency = scraped.salary_currency || scraped.currency || 'Kč';
 
             if (salaryFrom) {
                 salaryRange = `${salaryFrom.toLocaleString()} ${currency}`;

@@ -20,7 +20,9 @@
         "delete": "Delete",
         "beta_badge": "BETA",
         "beta_description": "Beta version - may contain mistakes",
-        "found_jobs": "Found {{count}} offers"
+        "found_jobs": "Found {{count}} offers",
+        "share": "Share",
+        "link_copied": "Link copied!"
     },
     "filters": {
         "location_commute": "Location & Commute",

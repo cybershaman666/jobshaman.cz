@@ -379,6 +379,17 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict) -> bool:
     job_data.setdefault("scraped_at", now_iso())
     job_data.setdefault("legality_status", "legal")  # Default to legal for scraped jobs
     
+    # Sync 'currency' and 'salary_currency' for compatibility
+    # The database uses salary_currency, but frontend might use currency
+    if 'salary_currency' in job_data:
+        job_data['currency'] = job_data['salary_currency']
+    elif 'currency' in job_data:
+        job_data['salary_currency'] = job_data['currency']
+    elif 'salary_currency' not in job_data and 'currency' not in job_data:
+        # Fallback to CZK/PLN/EUR if we can guess it from country_code?
+        # But wait, country_code is assigned AFTER this in current code.
+        pass
+    
     # DETECT AND ASSIGN COUNTRY CODE based on domain
     if "country_code" not in job_data:
         domain = parsed_url.netloc.lower()

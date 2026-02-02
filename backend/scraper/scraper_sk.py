@@ -182,6 +182,8 @@ class SlovakiaScraper(BaseScraper):
                     'work_type': work_type,
                     'salary_from': salary_from,
                     'salary_to': salary_to,
+                    'salary_currency': 'EUR',
+                    'country_code': 'sk'
                 }
                 
                 if save_job_to_supabase(job_data):
@@ -268,6 +270,8 @@ class SlovakiaScraper(BaseScraper):
                     'contract_type': detect_work_type(title + " " + description + " " + location),
                     'salary_from': salary_from,
                     'salary_to': salary_to,
+                    'salary_currency': 'EUR',
+                    'country_code': 'sk'
                 }
                 
                 if save_job_to_supabase(job_data):
