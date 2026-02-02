@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react';
 import { UserProfile, CompanyProfile, ViewState } from '../types';
-import { signOut, getUserProfile, getRecruiterCompany, updateUserProfile as updateUserProfileService, createCompany } from '../services/supabaseService';
+import { signOut, getUserProfile, getRecruiterCompany, updateUserProfile as updateUserProfileService, createCompany, verifyAuthSession } from '../services/supabaseService';
 import { fetchCsrfToken, clearCsrfToken, authenticatedFetch } from '../services/csrfService';
 import { BACKEND_URL } from '../constants';
 import { supabase } from '../services/supabaseClient';
@@ -31,6 +31,12 @@ export const useUserProfile = () => {
 
     // Session restoration and profile management
     const handleSessionRestoration = async (userId: string) => {
+        // Double check we have a userId
+        if (!userId) {
+            console.error('❌ handleSessionRestoration called without userId');
+            return;
+        }
+
         // Deduplicate: if already restoring this user, skip
         if (restorationInProgressRef.current === userId) {
             console.log('⏭️ Session restoration already in progress for', userId);
@@ -39,36 +45,54 @@ export const useUserProfile = () => {
 
         restorationInProgressRef.current = userId;
         try {
-            console.log('🔄 handleSessionRestoration called with userId:', userId);
+            console.log(`🔄 [SessionRestoration] Starting for user: ${userId}`);
+
+            // 1. Verify session state first
+            const { isValid, error: authError } = await verifyAuthSession('handleSessionRestoration');
+            if (!isValid) {
+                console.warn(`🟠 [SessionRestoration] Skipped for ${userId}: ${authError}`);
+                restorationInProgressRef.current = null;
+                return;
+            }
+
+            // 2. Try to fetch profile
             let profile = await getUserProfile(userId);
 
             // Fallback: If profile doesn't exist but we have a session (e.g., DB trigger lag), create it now.
             if (!profile && supabase) {
-                // VERIFY SESSION FIRST: Don't create profile if no user is actually logged in
-                // We use getUser() instead of getSession() for server-side verification/refresh
-                const { data: { user }, error: authError } = await supabase.auth.getUser();
+                console.warn(`⚠️ [SessionRestoration] Profile not found for ${userId}. Retrying after short delay...`);
 
-                if (authError || !user) {
-                    console.log('⚠️ No active verified session found. Skipping fallback profile creation.');
-                    return; // Exit early if no user
-                }
+                // Wait briefly for triggers
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                profile = await getUserProfile(userId);
 
-                console.warn('⚠️ Profile not found for verified user. Attempting to create fallback profile...');
-                if (user.email) {
-                    try {
-                        const role = user.user_metadata?.role || 'candidate';
-                        const name = user.user_metadata?.full_name || user.email.split('@')[0];
+                if (!profile) {
+                    console.warn('⚠️ [SessionRestoration] Profile still missing. Attempting to create fallback profile...');
 
-                        await import('../services/supabaseService').then(m => m.createBaseProfile(userId, user.email!, name, role));
-                        profile = await getUserProfile(userId); // Retry fetch
-                        console.log('✅ Fallback profile created and loaded:', profile?.id);
-                    } catch (createErr) {
-                        console.error('❌ Failed to create fallback profile (check RLS):', createErr);
+                    const { data: { user } } = await supabase.auth.getUser();
+                    if (user && user.email) {
+                        try {
+                            const role = user.user_metadata?.role || 'candidate';
+                            const name = user.user_metadata?.full_name || user.email.split('@')[0];
+
+                            const { createBaseProfile } = await import('../services/supabaseService');
+                            await createBaseProfile(userId, user.email, name, role);
+                            profile = await getUserProfile(userId); // Retry fetch
+                            console.log('✅ [SessionRestoration] Fallback profile created and loaded:', profile?.id);
+                        } catch (createErr) {
+                            console.error('❌ [SessionRestoration] Failed to create fallback profile:', createErr);
+                        }
+                    } else {
+                        console.error('❌ [SessionRestoration] Cannot create fallback: User data missing');
                     }
                 }
             }
 
-            console.log('Profile returned from getUserProfile:', { id: profile?.id, email: profile?.email, isLoggedIn: profile?.isLoggedIn });
+            console.log('[SessionRestoration] Result:', {
+                found: !!profile,
+                id: profile?.id,
+                isLoggedIn: profile?.isLoggedIn
+            });
 
             if (profile) {
                 console.log('Setting user profile with id:', profile.id);
@@ -166,26 +190,6 @@ export const useUserProfile = () => {
                 // Admin can manually switch roles if needed via DB or specific admin tool, 
                 // but should not auto-convert when testing as candidate.
 
-                // Auto-initialize coordinates for test user if missing (Brno coordinates)
-                if (profile.email === 'misahlavacu@gmail.com' && !profile.coordinates) {
-                    console.log("🌍 Auto-initializing test user coordinates (Brno)...");
-                    const brnoCoords = { lat: 49.1922, lon: 16.6113 };
-                    try {
-                        await updateUserProfileService(userId, {
-                            address: 'Brno, Česká republika',
-                            coordinates: brnoCoords
-                        });
-                        // Update local state
-                        setUserProfile(prev => ({
-                            ...prev,
-                            address: 'Brno, Česká republika',
-                            coordinates: brnoCoords
-                        }));
-                        console.log("✅ Test user coordinates initialized:", brnoCoords);
-                    } catch (err) {
-                        console.error("❌ Failed to initialize coordinates:", err);
-                    }
-                }
 
                 // Auto-enable commute filter on restore if address exists
                 if (profile.address) {

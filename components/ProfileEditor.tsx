@@ -32,7 +32,7 @@ import { useTranslation } from 'react-i18next';
 
 interface ProfileEditorProps {
   profile: UserProfile;
-  onChange: (profile: UserProfile) => void;
+  onChange: (profile: UserProfile, persist?: boolean) => void;
   onSave: () => void;
   onRefreshProfile?: () => void;
   savedJobs?: Job[];
@@ -113,7 +113,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       const photoUrl = await uploadProfilePhoto(profile.id || '', file);
 
       if (photoUrl) {
-        onChange({ ...profile, photo: photoUrl });
+        onChange({ ...profile, photo: photoUrl }, true);
         alert(t('profile.photo_upload_success'));
       }
     } catch (error) {
@@ -150,7 +150,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       const cvUrl = await uploadCVFile(profile.id || '', file);
       if (cvUrl) {
         // Just set the CV URL - the parsing will update the profile separately
-        onChange({ ...profile, cvUrl });
+        onChange({ ...profile, cvUrl }, true);
 
         // Trigger profile refresh after a short delay to allow parsing to complete
         setTimeout(() => {
@@ -202,7 +202,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           ...profile,
           ...formData.personal,
           coordinates: coords
-        });
+        }, true);
       } else {
         setAddressVerificationStatus('error');
       }
