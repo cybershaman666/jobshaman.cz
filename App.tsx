@@ -610,6 +610,10 @@ export default function App() {
         setSelectedJobId(jobId);
         setSelectedBlogPostSlug(null); // Clear blog post when job selected
 
+        if (!jobId) {
+            setDirectlyFetchedJob(null);
+        }
+
         if (jobId) {
             window.history.pushState({}, '', `/jobs/${jobId}`);
         } else {
@@ -935,7 +939,7 @@ export default function App() {
                     dynamicJHI={dynamicJHI}
                     savedJobIds={savedJobIds}
                     handleToggleSave={handleToggleSave}
-                    setSelectedJobId={setSelectedJobId}
+                    setSelectedJobId={handleJobSelect}
                     setIsApplyModalOpen={setIsApplyModalOpen}
                     detailScrollRef={detailScrollRef}
                     userProfile={userProfile}
@@ -966,7 +970,7 @@ export default function App() {
             <AppHeader
                 viewState={viewState}
                 setViewState={setViewState}
-                setSelectedJobId={setSelectedJobId}
+                setSelectedJobId={handleJobSelect}
                 showCompanyLanding={showCompanyLanding}
                 setShowCompanyLanding={setShowCompanyLanding}
                 userProfile={userProfile}
