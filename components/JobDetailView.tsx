@@ -7,7 +7,7 @@ import SkillsGapBox from './SkillsGapBox';
 import BullshitMeter from './BullshitMeter';
 import TransparencyCard from './TransparencyCard';
 import ContextualRelevance from './ContextualRelevance';
-import { ArrowUpRight, Bookmark, Gift, Zap } from 'lucide-react';
+import { ArrowUpRight, Bookmark, Gift, Zap, Share2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Markdown from 'markdown-to-jsx';
 import { trackAnalyticsEvent } from '../services/supabaseService';
@@ -73,6 +73,21 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     handleBlogPostSelect
 }) => {
     const { t } = useTranslation();
+    const [shareTooltip, setShareTooltip] = React.useState(false);
+
+    const handleShare = async () => {
+        if (!selectedJob) return;
+
+        const shareUrl = `${window.location.origin}/jobs/${selectedJob.id}`;
+
+        try {
+            await navigator.clipboard.writeText(shareUrl);
+            setShareTooltip(true);
+            setTimeout(() => setShareTooltip(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
+    };
 
     // Track job view
     useEffect(() => {
@@ -105,6 +120,20 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 flex-none">
+                                <div className="relative">
+                                    <button
+                                        onClick={handleShare}
+                                        className="p-2.5 rounded-lg border bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                                        title={t('app.share')}
+                                    >
+                                        <Share2 size={20} />
+                                    </button>
+                                    {shareTooltip && (
+                                        <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap shadow-lg">
+                                            {t('app.link_copied')}
+                                        </div>
+                                    )}
+                                </div>
                                 <button onClick={() => handleToggleSave(selectedJob.id)} className={`p-2.5 rounded-lg border transition-all ${savedJobIds.includes(selectedJob.id) ? 'bg-indigo-50 dark:bg-indigo-500/10 border-indigo-200 text-indigo-600' : 'bg-slate-100 dark:bg-slate-800 border-slate-200'}`}>
                                     <Bookmark size={20} className={savedJobIds.includes(selectedJob.id) ? "fill-current" : ""} />
                                 </button>

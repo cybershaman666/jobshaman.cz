@@ -8,19 +8,20 @@ try:
     from .scraper_base import (
         BaseScraper, scrape_page, norm_text, extract_salary,
         detect_work_type, save_job_to_supabase, build_description,
-        extract_benefits
+        extract_benefits, filter_out_junk
     )
 except ImportError:
     # Fallback to direct import (when run as script)
     from scraper_base import (
         BaseScraper, scrape_page, norm_text, extract_salary,
         detect_work_type, save_job_to_supabase, build_description,
-        extract_benefits
+        extract_benefits, filter_out_junk
     )
 import json
 from urllib.parse import urljoin
 import time
 import re
+from bs4 import BeautifulSoup
 
 
 class PolandScraper(BaseScraper):
@@ -80,7 +81,11 @@ class PolandScraper(BaseScraper):
                     company = offer.get('companyName')
                     
                     # URL construction
-                    offer_url = offer.get('offers', [{}])[0].get('offerUrl')
+                    offer_url = None
+                    offer_objs = offer.get('offers', [{}])
+                    if offer_objs and len(offer_objs) > 0:
+                        offer_url = offer_objs[0].get('offerUrl') or offer_objs[0].get('offerAbsoluteUri')
+                    
                     if not offer_url:
                         # Fallback
                         slug = offer.get('companyProfileUrl')
@@ -104,7 +109,12 @@ class PolandScraper(BaseScraper):
                     # We might need to fetch detail.
                     
                     # Location
-                    location = offer.get('displayWorkplace', 'Polska')
+                    location = offer.get('displayWorkplace')
+                    if not location and offer_objs:
+                        location = offer_objs[0].get('displayWorkplace')
+                    
+                    if not location:
+                        location = 'Polska'
                     
                     # Salary
                     salary_txt = offer.get('salaryText', '')
@@ -133,7 +143,7 @@ class PolandScraper(BaseScraper):
                             except: pass
                             
                         if json_ld:
-                            if 'description' in json_ld:
+                            if 'description' in json_ld and json_ld['description']:
                                 desc_html = json_ld['description']
                                 desc_soup = BeautifulSoup(desc_html, 'html.parser')
                                 description = filter_out_junk(desc_soup.get_text('\n\n'))
@@ -168,7 +178,7 @@ class PolandScraper(BaseScraper):
                         'work_type': work_type,
                         'salary_from': salary_from,
                         'salary_to': salary_to,
-                        'currency': 'PLN',
+                        'salary_currency': 'PLN',
                         'country_code': 'pl'
                     }
                     
@@ -280,14 +290,43 @@ class PolandScraper(BaseScraper):
                     benefits = []
                     
                     if detail_soup:
+                         # Enhanced selectors for NoFluffJobs
                          description = build_description(
                             detail_soup,
                             {
-                                'paragraphs': ['.job-description p', 'nfj-posting-description p'],
-                                'lists': ['.job-description ul', 'nfj-posting-requirements ul']
+                                'paragraphs': [
+                                    '#posting-description p', 
+                                    '.posting-description p',
+                                    'nfj-posting-description p',
+                                    '[data-cy="posting-description"] p',
+                                    '.job-description p'
+                                ],
+                                'lists': [
+                                    '#posting-requirements ul',
+                                    '.posting-requirements ul',
+                                    'nfj-posting-requirements ul',
+                                    '[data-cy="posting-requirements"] ul',
+                                    '.job-description ul'
+                                ]
                             }
                         )
-                         benefits = extract_benefits(detail_soup, ['nfj-posting-benefits li', '.benefits-list li'])
+                         
+                         benefits = extract_benefits(detail_soup, [
+                            'nfj-posting-benefits li', 
+                            '.benefits-list li',
+                            '[data-cy="posting-benefits"] li',
+                            '#posting-benefits li'
+                        ])
+                         
+                         # If still empty, try to find text heavy div
+                         if not description or len(description) < 100:
+                             candidates = detail_soup.select('div')
+                             candidates.sort(key=lambda x: len(x.get_text()), reverse=True)
+                             for c in candidates[:3]:
+                                 txt = filter_out_junk(c.get_text())
+                                 if len(txt) > 200 and "cookies" not in txt.lower():
+                                     description = txt
+                                     break
                     
                     work_type = 'On-site'
                     if job.get('fullyRemote'): work_type = 'Remote'
@@ -303,7 +342,7 @@ class PolandScraper(BaseScraper):
                         'work_type': work_type,
                         'salary_from': salary_from,
                         'salary_to': salary_to,
-                        'currency': 'PLN',
+                        'salary_currency': 'PLN',
                         'country_code': 'pl'
                     }
                     
@@ -407,6 +446,8 @@ class PolandScraper(BaseScraper):
                     'work_type': work_type,
                     'salary_from': salary_from,
                     'salary_to': salary_to,
+                    'salary_currency': 'PLN',
+                    'country_code': 'pl'
                 }
                 
                 if save_job_to_supabase(self.supabase, job_data):
