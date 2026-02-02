@@ -2,6 +2,7 @@ import { supabase, isSupabaseConfigured } from './supabaseService';
 import { Job, NoiseMetrics } from '../types';
 import { contextualRelevanceScorer, ContextualRelevanceScorer } from './contextualRelevanceService';
 import { calculateJHI } from '../utils/jhiCalculator';
+import i18n from '../src/i18n';
 
 // Loose interface to accept whatever Supabase returns
 interface ScrapedJob {
@@ -14,6 +15,7 @@ interface ScrapedJob {
     contract_type?: string;
     salary_from?: number | string;
     salary_to?: number | string;
+    currency?: string;
     work_type?: string;
     scraped_at?: string;
     source?: string;
@@ -24,404 +26,116 @@ interface ScrapedJob {
     legality_status?: 'pending' | 'legal' | 'illegal' | 'review';
     verification_notes?: string;
     ai_analysis?: any;
+    country_code?: string;
 }
 
-// --- CONFIG ---
+// ... (skipping constants)
 
-// Patterns to detect benefits in description text if structured data is missing
-const BENEFIT_PATTERNS = [
-    { label: 'Stravenky', regex: /stravenk|příspěvek na stravování|jídeln|oběd|stravné/i },
-    { label: 'MultiSport', regex: /multisport|sportovn|fitnes|posilovna/i },
-    { label: '5 týdnů dovolené', regex: /5 týdnů|25 dnů|týden dovolené navíc|extra dovolená/i },
-    { label: 'Služební auto', regex: /služební (auto|vůz|vozidlo)|auto i pro soukromé|firmovní vůz/i },
-    { label: 'Penzijní připojištění', regex: /penzijní|životní pojištění|důchodové/i },
-    { label: 'Sick Days', regex: /sick\s*days|zdravotní volno|nemocenské/i },
-    { label: 'Flexibilní doba', regex: /flexibilní|pružná|volná pracovní doba/i },
-    { label: 'Home Office', regex: /home\s*office|práce z domova|remote|práce odkudkoliv/i },
-    { label: 'Cafeteria', regex: /cafeteria|kafeterie|benefity na míru|benefit system/i },
-    { label: 'Občerstvení', regex: /občerstvení|káva|ovoce|snídaně|obědy zdarma/i },
-    { label: 'Hardware', regex: /macbook|notebook|telefon|laptop|iphone|vybavení/i },
-    { label: 'Vzdělávání', regex: /školení|kurzy|konference|vzdělávání|certifikace|rozvoj/i },
+// --- HELPERS ---
 
-    // NEW patterns
-    { label: '13. plat', regex: /13\.?\s*plat|třináctý plat|roční bonus/i },
-    { label: '14. plat', regex: /14\.?\s*plat|čtrnáctý plat/i },
-    { label: 'Bonusy', regex: /\bbonu|prémie|odměny|kvartální/i },
-    { label: 'RSU/Akcie', regex: /\brsu\b|stock options|akcie|podíl na zisku/i },
-    { label: 'Jazykové kurzy', regex: /jazykové?\s*kurzy?|anglick[ýá]\s*kurz|němčina/i },
-    { label: 'Teambuilding', regex: /teambuilding|firemní akce|výlety|party/i },
-    { label: 'Příspěvek na bydlení', regex: /příspěvek na bydlení|nájem|ubytování/i },
-    { label: 'Relokační balíček', regex: /relokac|přestěhování|relocation|moving/i },
-    { label: 'Rodičovská', regex: /rodičovská|mateřská|otcovská|péče o děti/i },
-    { label: 'Pes v kanceláři', regex: /dog\-?friendly|pes (v|do)?\s*kanceláři/i },
-    { label: '4denní týden', regex: /4\-?denní týden|kratší pracovní týden/i }
-];
-
-// --- PARSING HELPERS ---
-
-const getRelativeTime = (dateString?: string | null): string => {
-    if (!dateString) {
-        console.warn('⚠️ getRelativeTime called with:', dateString);
-        return 'N/A';
-    }
-    try {
-        // Handle 'timestamp without time zone' format from Postgres: "2026-01-27 14:30:00"
-        // Replace space with 'T' to make it ISO 8601 compatible
-        let isoString = String(dateString).trim();
-        if (isoString.includes(' ') && !isoString.includes('T')) {
-            isoString = isoString.replace(' ', 'T');
-        }
-        const date = new Date(isoString);
-        if (isNaN(date.getTime())) {
-            console.warn('⚠️ getRelativeTime failed to parse:', dateString);
-            return 'N/A';
-        }
-
-        const now = new Date();
-        const diffTime = now.getTime() - date.getTime();
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-        const diffHours = Math.floor(diffTime / (1000 * 60 * 60));
-
-        if (diffHours < 1) return 'Před chvílí';
-        if (diffHours < 24) return `před ${diffHours} hod.`;
-        if (diffDays === 1) return 'Včera';
-        return `před ${diffDays} dny`;
-    } catch (e) {
-        console.warn('⚠️ getRelativeTime exception:', e, 'dateString:', dateString);
-        return 'N/A';
-    }
+const safeParseInt = (value: any): number | undefined => {
+    if (value === undefined || value === null) return undefined;
+    const parsed = parseInt(String(value), 10);
+    return isNaN(parsed) ? undefined : parsed;
 };
 
-// --- SIMPLE IN-MEMORY CACHE FOR JOBS ---
-interface CacheEntry<T> {
-    data: T;
-    timestamp: number;
-    ttl: number;
-}
-
-class JobCache {
-    private cache: Map<string, CacheEntry<any>> = new Map();
-    private maxSize: number = 200;
-
-    set<T>(key: string, data: T, ttl: number = 60000): void {
-        if (this.cache.size >= this.maxSize) {
-            const firstKey = this.cache.keys().next().value;
-            if (firstKey !== undefined) {
-                this.cache.delete(firstKey);
-            }
-        }
-        this.cache.set(key, { data, timestamp: Date.now(), ttl });
-    }
-
-    get<T>(key: string): T | null {
-        const entry = this.cache.get(key);
-        if (!entry) return null;
-        if (Date.now() - entry.timestamp > entry.ttl) {
-            this.cache.delete(key);
-            return null;
-        }
-        return entry.data as T;
-    }
-
-    clear(): void {
-        this.cache.clear();
-    }
-}
-
-const jobCache = new JobCache();
-
-// Clear cache when user coordinates change to force fresh fetch
-export const clearJobCache = () => {
-    jobCache.clear();
-    console.log('🧹 Job cache cleared - will fetch fresh results with new coordinates');
+const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Radius of the earth in km
+    const dLat = deg2rad(lat2 - lat1);
+    const dLon = deg2rad(lon2 - lon1);
+    const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const d = R * c; // Distance in km
+    return Math.round(d * 10) / 10;
 };
 
-// --- GEOCODING CACHE & SERVICE ---
-
-interface GeocodeResult {
-    lat: number;
-    lng: number;
-    displayName: string;
-}
-
-class GeocodeCache {
-    private cache: Map<string, CacheEntry<GeocodeResult | null>> = new Map();
-    private maxSize: number = 100;
-
-    set(key: string, data: GeocodeResult | null, ttl: number = 3600000): void { // 1 hour TTL
-        if (this.cache.size >= this.maxSize) {
-            const firstKey = this.cache.keys().next().value;
-            if (firstKey !== undefined) {
-                this.cache.delete(firstKey);
-            }
-        }
-        this.cache.set(key, { data, timestamp: Date.now(), ttl });
-    }
-
-    get(key: string): GeocodeResult | null | undefined {
-        const entry = this.cache.get(key);
-        if (!entry) return undefined; // Not in cache
-        if (Date.now() - entry.timestamp > entry.ttl) {
-            this.cache.delete(key);
-            return undefined;
-        }
-        return entry.data;
-    }
-}
-
-const geocodeCache = new GeocodeCache();
-
-/**
- * Geocode a city name to coordinates using OpenStreetMap Nominatim
- * Returns null if geocoding fails
- */
-export const geocodeCity = async (cityName: string, countryCode?: string): Promise<GeocodeResult | null> => {
-    if (!cityName || cityName.trim().length === 0) return null;
-
-    const normalizedCity = cityName.trim().toLowerCase();
-    const cacheKey = `${normalizedCity}:${countryCode || 'any'}`;
-
-    // Check cache first
-    const cached = geocodeCache.get(cacheKey);
-    if (cached !== undefined) {
-        console.log(`🗺️  Geocode cache hit for "${cityName}"`);
-        return cached;
-    }
-
-    try {
-        console.log(`🌍 Geocoding "${cityName}" (country: ${countryCode || 'any'})...`);
-
-        // Build query with country bias for better results
-        const searchQuery = countryCode
-            ? `${cityName}, ${countryCode.toUpperCase()}`
-            : cityName;
-
-        const url = new URL('https://nominatim.openstreetmap.org/search');
-        url.searchParams.set('q', searchQuery);
-        url.searchParams.set('format', 'json');
-        url.searchParams.set('limit', '1');
-        url.searchParams.set('addressdetails', '1');
-
-        const response = await fetch(url.toString(), {
-            headers: {
-                'User-Agent': 'JobShaman/1.0' // Required by OSM
-            }
-        });
-
-        if (!response.ok) {
-            console.error(`❌ Geocoding failed with status ${response.status}`);
-            geocodeCache.set(cacheKey, null); // Cache failure to avoid repeated requests
-            return null;
-        }
-
-        const results = await response.json();
-
-        if (!results || results.length === 0) {
-            console.log(`🔍 No geocoding results for "${cityName}"`);
-            geocodeCache.set(cacheKey, null);
-            return null;
-        }
-
-        const result: GeocodeResult = {
-            lat: parseFloat(results[0].lat),
-            lng: parseFloat(results[0].lon),
-            displayName: results[0].display_name
-        };
-
-        console.log(`✅ Geocoded "${cityName}" to ${result.lat}, ${result.lng}`);
-        geocodeCache.set(cacheKey, result);
-        return result;
-
-    } catch (error) {
-        console.error(`❌ Geocoding error for "${cityName}":`, error);
-        geocodeCache.set(cacheKey, null); // Cache failure
-        return null;
-    }
+const deg2rad = (deg: number): number => {
+    return deg * (Math.PI / 180);
 };
 
+const estimateNoise = (description: string): NoiseMetrics => {
+    const buzzwords = ['dynamické prostredie', 'tah na branku', 'rockstar', 'ninja', 'rodinná atmosféra', 'stres', 'presčasy'];
+    let score = 0;
+    const found: string[] = [];
 
-// --- SALARY NORMALIZATION HELPERS ---
-// Note: Functions temporarily removed as they're not currently used
-// const detectSalaryCurrency = ...
-// const normalizeSalary = ...
+    buzzwords.forEach(word => {
+        if (description.toLowerCase().includes(word)) {
+            score += 10;
+            found.push(word);
+        }
+    });
 
-const safeParseInt = (val: string | number | null | undefined): number | null => {
-    if (val === null || val === undefined) return null;
-    if (typeof val === 'number') return val;
-    if (typeof val === 'string') {
-        const cleaned = val.replace(/\s/g, '').replace(/,/g, '').replace(/\u00A0/g, '');
-        const parsed = parseInt(cleaned, 10);
-        return isNaN(parsed) ? null : parsed;
-    }
-    return null;
+    const level = score > 50 ? 'high' : score > 20 ? 'medium' : 'low';
+
+    return {
+        score: Math.min(score, 100),
+        level,
+        keywords: found,
+        flags: found,
+        tone: level === 'high' ? 'Hype-heavy' : 'Professional'
+    };
 };
 
-// Robust parser for Python lists stored as strings: "['A', 'B']"
-const parseBenefits = (raw: string[] | string | null | any): string[] => {
-    if (!raw) return [];
+const getRelativeTime = (dateString?: string): string => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
-    // 1. If it's already an array (Supabase JSON/Array column)
-    if (Array.isArray(raw)) {
-        return raw.map(String).filter(b => b && b.trim().length > 0 && b.toLowerCase() !== 'benefity nespecifikovány');
-    }
+    if (diffInSeconds < 60) return 'před chvílí';
+    if (diffInSeconds < 3600) return `před ${Math.floor(diffInSeconds / 60)} min`;
+    if (diffInSeconds < 86400) return `před ${Math.floor(diffInSeconds / 3600)} hod`;
+    return `před ${Math.floor(diffInSeconds / 86400)} dny`;
+};
 
-    if (typeof raw === 'string') {
-        let text = raw.trim();
-        if (!text || text === '[]' || text === '{}') return [];
-
-        // 2. Handle Python/JS style list: ['Item A', 'Item B'] or ["Item A", "Item B"]
-        if (text.startsWith('[') && text.endsWith(']')) {
+const parseBenefits = (benefits: any): string[] => {
+    if (!benefits) return [];
+    if (Array.isArray(benefits)) return benefits.map(String);
+    if (typeof benefits === 'string') {
+        // Try parsing JSON if it looks like a stringified array
+        if (benefits.trim().startsWith('[') && benefits.trim().endsWith(']')) {
             try {
-                // Try strictly compliant JSON first
-                return JSON.parse(text);
+                const parsed = JSON.parse(benefits);
+                if (Array.isArray(parsed)) return parsed;
             } catch (e) {
-                // Regex to capture content inside quotes (single or double)
-                // This ignores commas inside the quotes
-                const matches = text.match(/(['"])(.*?)\1/g);
-                if (matches) {
-                    return matches.map(m => m.slice(1, -1).trim()) // Remove quotes
-                        .filter(b => b.length > 0 && b.toLowerCase() !== 'benefity nespecifikovány');
-                }
-                // Fallback for simple comma separation if regex fails
-                const content = text.slice(1, -1);
-                return content.split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+                // Ignore parse error
             }
         }
-
-        // 3. Handle Postgres Array: {Item A,Item B}
-        if (text.startsWith('{') && text.endsWith('}')) {
-            const content = text.slice(1, -1);
-            // Handle quoted CSV inside postgres array
-            const matches = content.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
-            if (matches) {
-                return matches.map(m => m.replace(/^"|"$/g, '').replace(/\\"/g, '"').trim());
-            }
-            return content.split(',').map(s => s.trim()).filter(Boolean);
-        }
-
-        // 4. Fallback
-        if (text.includes('\n')) return text.split('\n').map(s => s.trim()).filter(Boolean);
-        return [text];
+        return benefits.split(',').map(b => b.trim()).filter(b => b.length > 0);
     }
     return [];
 };
 
-const formatDescription = (desc: string | null | undefined): string => {
-    if (!desc) return "Popis není k dispozici.";
-
-    let clean = String(desc).trim();
-    if (clean === "Popis nenalezen") return "Detailní popis pozice se nepodařilo stáhnout. Navštivte původní zdroj.";
-
-    // Basic cleanup - preserve list structures!
-    const hasHtmlTags = /<[a-z][\s\S]*>/i.test(clean);
-
-    if (hasHtmlTags) {
-        clean = clean
-            .replace(/<br\s*\/?>/gi, '\n')
-            .replace(/<\/p>/gi, '\n\n')
-            .replace(/<ul>/gi, '\n')
-            .replace(/<\/ul>/gi, '\n')
-            .replace(/<ol>/gi, '\n')
-            .replace(/<\/ol>/gi, '\n')
-            .replace(/<\/li>/gi, '\n')
-            .replace(/<li>/gi, '- ')
-            .replace(/&nbsp;/g, ' ');
-        clean = clean.replace(/<[^>]*>/g, '');
-    }
-
-    // Split into lines and handle bullet points before aggressive noise filtering
-    const lines = clean.split(/\r?\n/);
-    const processedLines = lines.map(line => {
-        const trimmed = line.trim();
-        if (!trimmed) return null;
-
-        // If it starts with a common bullet char, convert to standard markdown dash
-        if (/^[•◦▪▫∙‣⁃\-\*]/.test(trimmed)) {
-            return '- ' + trimmed.replace(/^[•◦▪▫∙‣⁃\-\*]\s*/, '');
-        }
-
-        // If line has significant leading indentation (3+ spaces), it's likely a bullet
-        const match = line.match(/^(\s+)/);
-        if (match && match[1].length >= 3) {
-            return '- ' + trimmed;
-        }
-
-        return trimmed;
-    }).filter(Boolean);
-
-    // Normalize whitespace and newlines
-    clean = (processedLines as string[]).join('\n');
-
-    // Remove common footer/navigation noise aggressively but conservatively
-    const FOOTER_TOKENS = [
-        'nástup možný ihned', 'nabídky práce', 'zaměstnavatelé', 'brigády', 'absolventi', 'hledání dle firem',
-        'zkrácené úvazky', 'pro neziskovky', 'práce v zahraničí', 'inspirace', 'nové příležitosti', 'rozjezd podnikání',
-        'rozvoj kariéry', 'rady', 'jak napsat cv', 'porovnání platů', 'kalkulačky', 'přehled', 'uložené nabídky',
-        'upozornění na nabídky', 'historie odpovědí', 'vytvořit si životopis', 'hledám zaměstnance', 'vložit brigádu',
-        'ceník inzerce', 'napište nám', 'pro média', 'jobs.cz', 'profesia.sk', 'profesia.cz', 'prace.cz', 'práce za rohom',
-        'atmoskop', 'nelisa.com', 'teamio', 'seduo.cz', 'seduo.sk', 'platy.cz', 'platy.sk', 'paylab.com', 'cvonline.lt',
-        'cv.lv', 'cv.ee', 'dirbam.it', 'visidarbi.lv', 'otsintood.ee', 'personaloatrankos.lt', 'recruitment.lv',
-        'varbamisteenused.ee', 'mojposao', 'vrabotuvanje', 'hercul.hr', 'virtual valley', 'pulser', 'jobly.fi',
-        'about eaton', 'awards', 'eaton\'s sustainability 2030 targets', 'nahlásit nezákonný obsah',
-        'nastavení cookies', 'transparentnost', 'reklama na portálech alma career'
-    ].map(s => s.toLowerCase());
-
-    const filteredLines = (processedLines as string[]).filter(line => {
-        const low = line.toLowerCase();
-        for (const tok of FOOTER_TOKENS) {
-            if (low === tok || low.includes(tok)) return false;
-        }
-        if (/\b[a-z0-9.-]+\.(cz|sk|com|pl|lt|lv|ee|it|hr|ba|fi)\b/i.test(line) && line.length < 80) return false;
-        const parts = line.split(/[\|,·•–-]/).map(p => p.trim()).filter(Boolean);
-        if (parts.length >= 4 && parts.every(p => p.length < 30)) return false;
-        if (line.length < 30 && /^[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9].*/.test(line)) return false;
-        return true;
-    });
-
-    const final = filteredLines.join('\n\n').trim();
-    return final.length > 0 ? final : 'Popis není k dispozici.';
+const formatDescription = (desc?: string): string => {
+    if (!desc) return '';
+    // Strip HTML tags if any
+    return desc.replace(/<[^>]*>/g, '').trim();
 };
 
-// --- ESTIMATORS ---
-
-
-// Helper: Haversine distance calculation
-const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Earth's radius in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-};
-
-const estimateNoise = (text: string): NoiseMetrics => {
-    const flags = [];
-    const lower = text.toLowerCase();
-
-    if (lower.includes('rodina')) flags.push('Jsme rodina');
-    if (lower.includes('odolnost vůči stresu')) flags.push('Odolnost vůči stresu');
-    if (lower.includes('dynamické prostředí')) flags.push('Dynamické prostředí');
-    if (lower.includes('ninja') || lower.includes('rockstar')) flags.push('Ninja/Rockstar');
-
-    const score = Math.min(100, flags.length * 20 + 10);
-
-    return {
-        score,
-        flags,
-        tone: score > 60 ? 'Hype-heavy' : score > 30 ? 'Casual' : 'Professional'
-    };
-};
+const BENEFIT_PATTERNS = [
+    { regex: /flexibiln[íi]|pružn[áa] prac|flexible/i, label: 'Flexibilní pracovní doba' },
+    { regex: /dovolen[áa] [5-9]|5 t[ýy]dn[ůu]|25 dn[ůu]|weeks of vacation/i, label: '5 týdnů dovolené' },
+    { regex: /home office|práce z domova|remote/i, label: 'Home Office' },
+    { regex: /stravenk|e-stravenk|meal voucher/i, label: 'Stravenky' },
+    { regex: /multisport/i, label: 'Multisport karta' },
+    { regex: /sick days|zdravotn[íi] volno/i, label: 'Sick days' },
+    { regex: /notebook|počítač|laptop/i, label: 'Notebook' },
+    { regex: /telefon|mobil/i, label: 'Mobilní telefon' },
+    { regex: /vzděláv|školen[íi]|training|education/i, label: 'Vzdělávací kurzy' }
+];
 
 // Job transformation helper
 const transformJob = (scrapedJob: any): Job => {
     const salaryFrom = safeParseInt(scrapedJob.salary_from);
     const salaryTo = safeParseInt(scrapedJob.salary_to);
-    const salaryRange = salaryFrom && salaryTo ? `${salaryFrom.toLocaleString('cs-CZ')} - ${salaryTo.toLocaleString('cs-CZ')} Kč` :
-        salaryFrom ? `od ${salaryFrom.toLocaleString('cs-CZ')} Kč` :
-            salaryTo ? `až ${salaryTo.toLocaleString('cs-CZ')} Kč` : 'Mzda neuvedena';
+    const currency = scrapedJob.currency || 'Kč';
+
+    const salaryRange = salaryFrom && salaryTo ? `${salaryFrom.toLocaleString('cs-CZ')} - ${salaryTo.toLocaleString('cs-CZ')} ${currency}` :
+        salaryFrom ? `od ${salaryFrom.toLocaleString('cs-CZ')} ${currency}` :
+            salaryTo ? `až ${salaryTo.toLocaleString('cs-CZ')} ${currency}` : (i18n.language === 'en' ? 'Salary not specified' : 'Mzda neuvedena');
 
     // Extract contract type and work type from raw fields
     const jobType = scrapedJob.contract_type || scrapedJob.type || 'Neuvedeno';
@@ -857,7 +571,7 @@ export const fetchJobsWithFilters = async (
     const {
         userLat,
         userLng,
-        radiusKm = 50,
+        radiusKm,
         filterCity,
         filterContractTypes,
         filterBenefits,
@@ -906,7 +620,7 @@ export const fetchJobsWithFilters = async (
             search_term: searchTerm || null,
             user_lat: finalUserLat || null,
             user_lng: finalUserLng || null,
-            radius_km: radiusKm,
+            radius_km: radiusKm || null,
             filter_city: filterCity || null,
             filter_contract_types: filterContractTypes && filterContractTypes.length > 0 ? filterContractTypes : null,
             filter_benefits: filterBenefits && filterBenefits.length > 0 ? filterBenefits : null,
@@ -1090,10 +804,12 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
             }
 
             let salaryRange = undefined;
+            const currency = scraped.currency || 'Kč';
+
             if (salaryFrom) {
-                salaryRange = `${salaryFrom.toLocaleString()} Kč`;
+                salaryRange = `${salaryFrom.toLocaleString()} ${currency}`;
                 if (salaryTo) {
-                    salaryRange += ` - ${salaryTo.toLocaleString()} Kč`;
+                    salaryRange += ` - ${salaryTo.toLocaleString()} ${currency}`;
                 }
             } else {
                 salaryRange = "Mzda neuvedena";
@@ -1311,4 +1027,16 @@ export const filterJobsByQuality = (jobs: Job[]): Job[] => {
     }
 
     return uniqueJobs;
+};
+
+// Clear job cache
+export const clearJobCache = () => {
+    try {
+        const keys = Object.keys(localStorage);
+        const jobKeys = keys.filter(key => key.startsWith('job_cache_') || key.startsWith('cached_job_'));
+        jobKeys.forEach(key => localStorage.removeItem(key));
+        console.log(`Cleared ${jobKeys.length} items from job cache.`);
+    } catch (e) {
+        console.error('Error clearing job cache:', e);
+    }
 };

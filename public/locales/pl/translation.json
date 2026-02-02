@@ -264,6 +264,14 @@
       "subtitle": "Bez długich rejestracji. Bez klikania przez trzy strony. Tylko dane."
     }
   },
+  "promo": {
+    "cross_border": {
+      "headline": "Praca nie kończy się na granicach. Dlaczego Twoje poszukiwania miałyby?",
+      "body_1": "Mieszkasz w Rybniku, ale do Ostrawy masz bliżej niż do Katowic? Większość portali pracy przestaje szukać dokładnie tam, gdzie kończy się państwo.",
+      "body_2": "W JobShaman szukamy według rzeczywistości, nie według mapy. Dzięki analizie geoprzestrzennej pokazujemy oferty w odległości dojazdu, nawet przez granice.",
+      "cta": "Jeden przełącznik odblokowuje wyszukiwanie transgraniczne. Tylko zweryfikowane oferty."
+    }
+  },
   "jhi": {
     "label_financial": "Finanse",
     "label_time": "Czas",

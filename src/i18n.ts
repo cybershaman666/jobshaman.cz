@@ -19,7 +19,7 @@ i18n
         debug: false,
 
         // Supported languages
-        supportedLngs: ['cs', 'en', 'de', 'pl', 'sk'],
+        supportedLngs: ['cs', 'en', 'de', 'pl', 'sk', 'at'],
 
         // Improve caching
         backend: {
