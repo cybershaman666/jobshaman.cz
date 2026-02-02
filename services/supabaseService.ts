@@ -35,9 +35,10 @@ export const signInWithEmail = async (email: string, pass: string) => {
     const result = await supabase.auth.signInWithPassword({ email, password: pass });
 
     // Explicitly check for profile existence after login to fix missing profile issues
-    if (result.data.user) {
+    if (result.data.user && result.data.session) {
         const profile = await getUserProfile(result.data.user.id);
         if (!profile) {
+            console.log('👤 Profile not found for signed-in user, creating base profile...');
             await createBaseProfile(result.data.user.id, email, email.split('@')[0]);
         }
     }
@@ -61,9 +62,12 @@ export const signUpWithEmail = async (email: string, pass: string, fullName: str
 
     if (error) throw error;
 
-    // 2. Create Base Profile
-    if (data.user) {
+    // 2. Create Base Profile (ONLY if session is established - i.e. no email confirmation)
+    if (data.user && data.session) {
+        console.log('👤 Session established after signUp, creating profile...');
         await createBaseProfile(data.user.id, email, fullName);
+    } else if (data.user) {
+        console.log('📧 Email confirmation required. Profile will be created on first login.');
     }
 
     return { data, error };

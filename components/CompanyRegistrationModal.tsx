@@ -44,7 +44,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
       // 1. Sign up with Supabase Auth
       if (!supabase) throw new Error("Supabase not initialized");
 
-      const { error: authError } = await supabase.auth.signUp({
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
         options: {
@@ -60,11 +60,13 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
       if (authError) throw authError;
 
       // 2. Create Company Profile in 'companies' table (if triggered via webhook or handled manually here)
-      const { data: sessionData } = await supabase.auth.getSession();
+      // Use result data directly to ensure we have the most current session state
+      const user = authData.user;
+      const session = authData.session;
 
       // Setup immediately if we have a session (e.g. no email confirmation required or auto-login)
-      if (sessionData?.session?.user) {
-        const userId = sessionData.session.user.id;
+      if (user && session) {
+        const userId = user.id;
         console.log("✅ Registration successful, initializing company profile for:", userId);
 
         // 1. Ensure user profile exists as 'recruiter'

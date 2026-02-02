@@ -45,17 +45,17 @@ export const useUserProfile = () => {
             // Fallback: If profile doesn't exist but we have a session (e.g., DB trigger lag), create it now.
             if (!profile && supabase) {
                 // VERIFY SESSION FIRST: Don't create profile if no user is actually logged in
+                // We use getUser() instead of getSession() for server-side verification/refresh
                 const { data: { user }, error: authError } = await supabase.auth.getUser();
 
                 if (authError || !user) {
-                    console.log('⚠️ No active session found. Skipping fallback profile creation.');
+                    console.log('⚠️ No active verified session found. Skipping fallback profile creation.');
                     return; // Exit early if no user
                 }
 
-                console.warn('⚠️ Profile not found for existing user. Attempting to create fallback profile...');
+                console.warn('⚠️ Profile not found for verified user. Attempting to create fallback profile...');
                 if (user.email) {
                     try {
-                        // Use metadata role if available, otherwise default to candidate
                         const role = user.user_metadata?.role || 'candidate';
                         const name = user.user_metadata?.full_name || user.email.split('@')[0];
 
@@ -63,7 +63,7 @@ export const useUserProfile = () => {
                         profile = await getUserProfile(userId); // Retry fetch
                         console.log('✅ Fallback profile created and loaded:', profile?.id);
                     } catch (createErr) {
-                        console.error('❌ Failed to create fallback profile:', createErr);
+                        console.error('❌ Failed to create fallback profile (check RLS):', createErr);
                     }
                 }
             }

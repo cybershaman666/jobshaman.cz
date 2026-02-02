@@ -38,7 +38,14 @@ const BlogSection: React.FC<BlogSectionProps> = ({
             setSelectedPost(post);
         }
     };
-    const [isAdmin, setIsAdmin] = useState(false);
+    const [isAdmin, setIsAdmin] = useState(() => {
+        // Only allow admin mode in development
+        if (import.meta.env.PROD) return false;
+
+        // Check for URL parameter in development
+        const params = new URLSearchParams(window.location.search);
+        return params.get('admin') === 'true';
+    });
     const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
     const [globalStats, setGlobalStats] = useState({
         active_jobs: 0,
@@ -139,15 +146,17 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                     {JSON.stringify(structuredData)}
                 </script>
 
-                {/* Admin Toggle (Subtle) */}
-                <div className="absolute top-4 right-4 opacity-10 hover:opacity-100 transition-opacity">
-                    <button
-                        onClick={() => setIsAdmin(!isAdmin)}
-                        className="p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500"
-                    >
-                        <Edit2 size={16} />
-                    </button>
-                </div>
+                {/* Admin Toggle (Only in Dev) */}
+                {import.meta.env.DEV && (
+                    <div className="absolute top-4 right-4 opacity-10 hover:opacity-100 transition-opacity">
+                        <button
+                            onClick={() => setIsAdmin(!isAdmin)}
+                            className="p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500"
+                        >
+                            <Edit2 size={16} />
+                        </button>
+                    </div>
+                )}
 
                 {/* Admin Toolbar */}
                 {isAdmin && (

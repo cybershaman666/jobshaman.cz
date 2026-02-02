@@ -233,10 +233,10 @@ export default function App() {
 
         // AUTH LISTENER
         if (supabase) {
-            supabase.auth.getSession().then(({ data }: { data: any }) => {
-                if (data?.session) {
-                    handleSessionRestoration(data.session.user.id);
-                    // CSRF token is fetched inside handleSessionRestoration
+            // Use getUser() here to ensure the session is verified and token is refreshed if needed
+            supabase.auth.getUser().then(({ data }: { data: any }) => {
+                if (data?.user) {
+                    handleSessionRestoration(data.user.id);
                 }
             });
 
