@@ -1,4 +1,4 @@
-import mammoth from 'mammoth';
+import * as mammoth from 'mammoth';
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Set worker path
@@ -171,16 +171,86 @@ const extractDOCXText = async (file: File): Promise<string> => {
 
     // Check if the arrayBuffer has content
     if (arrayBuffer.byteLength === 0) {
-      throw new Error('No content found in file');
+      throw new Error('No content found in file array buffer');
+    }
+
+    console.log(`ArrayBuffer size: ${arrayBuffer.byteLength} bytes`);
+
+    // Check ZIP signature (PK..)
+    const signature = new Uint8Array(arrayBuffer.slice(0, 4));
+    const sigHex = Array.from(signature).map(b => b.toString(16).padStart(2, '0')).join('').toUpperCase();
+    console.log(`File signature: ${sigHex}`);
+
+    if (sigHex !== '504B0304') {
+      console.warn('File does not have a standard ZIP/DOCX signature (504B0304).');
+      // If it's a small file, it might be a renamed text file?
+      if (arrayBuffer.byteLength < 5000) {
+        console.log('File is small and missing signature, trying to read as plain text.');
+        const text = new TextDecoder().decode(arrayBuffer);
+        return text;
+      }
     }
 
     // Use convertToHtml to preserve structure, then convert to clean text
-    const htmlResult = await mammoth.convertToHtml({ arrayBuffer });
-    const html = htmlResult.value || '';
+    // Some environments require mammoth.default or mammoth.convertToHtml
+    const mammothLibrary = (mammoth as any).default || mammoth;
 
-    // Log any warnings from mammoth
-    if (htmlResult.messages && htmlResult.messages.length > 0) {
-      console.log('Mammoth messages:', htmlResult.messages);
+    if (typeof mammothLibrary.convertToHtml !== 'function') {
+      console.error('Mammoth library structure:', mammothLibrary);
+      throw new Error('Mammoth convertToHtml is not a function');
+    }
+
+    let html = '';
+    try {
+      // Try with Uint8Array as some zip readers prefer it
+      const uint8Array = new Uint8Array(arrayBuffer);
+
+      // DEEP DIAGNOSTIC: Search for key DOCX markers in the bytes
+      const textDecoder = new TextDecoder();
+      // Only decode a portion for performance, but the central directory is at the end
+      // and file headers are at the beginning. Let's check chunks.
+      const firstChunk = textDecoder.decode(uint8Array.slice(0, 10000));
+      const lastChunk = textDecoder.decode(uint8Array.slice(-10000));
+      const hasDocumentXml = firstChunk.includes('word/document.xml') || lastChunk.includes('word/document.xml');
+      const hasContentXml = firstChunk.includes('content.xml') || lastChunk.includes('content.xml');
+      const isOdt = firstChunk.includes('vnd.oasis.opendocument.text');
+      const isEncrypted = firstChunk.includes('EncryptionInfo') || firstChunk.includes('EncryptedPackage');
+
+      console.log(`Diagnostic: hasDocumentXml=${hasDocumentXml}, hasContentXml=${hasContentXml}, isOdt=${isOdt}, isEncrypted=${isEncrypted}`);
+
+      if (isOdt || (hasContentXml && !hasDocumentXml)) {
+        throw new Error('This file appears to be an OpenDocument Text (.odt) file, possibly with a .docx extension. LibreOffice can save in this format. Please try saving it explicitly as "Word 2007-365 (.docx)" or upload a PDF version.');
+      }
+
+      if (isEncrypted) {
+        throw new Error('This file appears to be password-protected or encrypted. Mammoth cannot parse encrypted Word files.');
+      }
+
+      if (!hasDocumentXml && sigHex === '504B0304') {
+        console.warn('File is a ZIP but "word/document.xml" was not found in headers. Might not be a standard DOCX.');
+      }
+
+      const htmlResult = await mammothLibrary.convertToHtml({ arrayBuffer: uint8Array });
+      html = htmlResult.value || '';
+
+      if (htmlResult.messages && htmlResult.messages.length > 0) {
+        console.log('Mammoth messages:', htmlResult.messages);
+      }
+    } catch (primaryError) {
+      const errorMessage = primaryError instanceof Error ? primaryError.message : String(primaryError);
+      console.warn(`Mammoth convertToHtml failed (${errorMessage}), trying extractRawText fallback`);
+
+      try {
+        const textResult = await mammothLibrary.extractRawText({ arrayBuffer: new Uint8Array(arrayBuffer) });
+        if (textResult.value) {
+          console.log('Successfully extracted raw text using fallback');
+          return textResult.value;
+        }
+        throw primaryError;
+      } catch (fallbackError) {
+        console.error('Mammoth fallback also failed:', fallbackError);
+        throw primaryError;
+      }
     }
 
     if (!html.trim()) {
@@ -314,12 +384,19 @@ interface ParseResult {
 
 import { WorkExperience, UserProfile, Education } from '../types';
 
-export const parseCVFromPDF = async (file: File): Promise<ParseResult> => {
+export const parseCVContent = async (file: File): Promise<ParseResult> => {
   try {
+    // Determine file type for better logging
+    const fileName = file.name.toLowerCase();
+    const isPDF = fileName.endsWith('.pdf');
+    const isDOCX = fileName.endsWith('.docx');
+
+    console.log(`Starting CV content parsing for: ${file.name} (Size: ${file.size} bytes, Type: ${isPDF ? 'PDF' : isDOCX ? 'DOCX' : 'Unknown'})`);
+
     // Extract text from file (supports PDF, DOCX, TXT)
     const text = await extractTextFromFile(file);
 
-    console.log('Extracted PDF text length:', text.length);
+    console.log(`Extracted text length: ${text.length} chars`);
 
     const result: ParseResult = {
       cvText: text.substring(0, 300) // First 300 chars for summary
@@ -364,11 +441,16 @@ export const parseCVFromPDF = async (file: File): Promise<ParseResult> => {
     // Extract education
     result.education = extractEducation(text);
 
-    console.log('CV parsing result:', result);
+    console.log('CV parsing result:', {
+      name: result.name,
+      email: result.email,
+      skillsCount: result.skills?.length,
+      expCount: result.workHistory?.length
+    });
     return result;
 
   } catch (error) {
-    console.error('PDF parsing failed:', error);
+    console.error('CV content parsing failed:', error);
     return {
       cvText: `[Parsing error: ${error instanceof Error ? error.message : 'Unknown error'}]`
     };
@@ -758,7 +840,7 @@ export const parseProfileFromCVWithFallback = async (
 ): Promise<Partial<UserProfile>> => {
   try {
     // Parse CV using algorithmic methods only
-    const result = await parseCVFromPDF(file);
+    const result = await parseCVContent(file);
 
     console.log('CV parsing completed:', result.skills?.length, 'skills extracted');
     return result;

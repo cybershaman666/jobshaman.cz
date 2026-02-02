@@ -1096,7 +1096,7 @@ export const uploadCVFile = async (_userId: string, file: File): Promise<string>
     if (!supabase) throw new Error("Supabase not configured");
 
     const sanitizedName = sanitizeFileName(file.name);
-    const fileName = `uploads/${Date.now()}-${sanitizedName}`;
+    const fileName = `${_userId}/${Date.now()}-${sanitizedName}`;
     const { data, error } = await supabase.storage
         .from('cvs')
         .upload(fileName, file);
