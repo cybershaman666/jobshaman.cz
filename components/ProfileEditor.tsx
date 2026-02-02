@@ -21,6 +21,7 @@ import {
   Bookmark
 } from 'lucide-react';
 import { uploadProfilePhoto, uploadCVFile } from '../services/supabaseService';
+import { parseProfileFromCVWithFallback } from '../services/cvParserService';
 import { resolveAddressToCoordinates } from '../services/commuteService';
 import PremiumFeaturesPreview from './PremiumFeaturesPreview';
 import MyInvitations from './MyInvitations';
@@ -149,17 +150,57 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     try {
       const cvUrl = await uploadCVFile(profile.id || '', file);
       if (cvUrl) {
-        // Just set the CV URL - the parsing will update the profile separately
-        onChange({ ...profile, cvUrl }, true);
+        // Trigger CV parsing immediately after upload
+        try {
+          console.log('📄 Starting CV parsing for:', file.name);
+          const parsedData = await parseProfileFromCVWithFallback(file);
+          console.log('✅ CV parsing result:', parsedData);
 
-        // Trigger profile refresh after a short delay to allow parsing to complete
+          // Merge parsed data into profile
+          const updatedProfile = {
+            ...profile,
+            cvUrl,
+            // Only update fields if they are available in parsed data and not already set logically
+            name: parsedData.name || profile.name,
+            email: parsedData.email || profile.email,
+            phone: parsedData.phone || profile.phone,
+            jobTitle: parsedData.jobTitle || profile.jobTitle,
+            skills: parsedData.skills && parsedData.skills.length > 0 ? parsedData.skills : profile.skills,
+            workHistory: parsedData.workHistory && parsedData.workHistory.length > 0 ? parsedData.workHistory : profile.workHistory,
+            education: parsedData.education && parsedData.education.length > 0 ? parsedData.education : profile.education,
+            cvText: parsedData.cvText || profile.cvText
+          };
+
+          // Update local form data to sync UI immediately
+          setFormData({
+            personal: {
+              ...formData.personal,
+              name: parsedData.name || formData.personal.name,
+              email: parsedData.email || formData.personal.email,
+              phone: parsedData.phone || formData.personal.phone,
+              jobTitle: parsedData.jobTitle || formData.personal.jobTitle,
+            },
+            experience: (parsedData.workHistory && parsedData.workHistory.length > 0) ? parsedData.workHistory : formData.experience,
+            education: (parsedData.education && parsedData.education.length > 0) ? parsedData.education : formData.education,
+            skills: (parsedData.skills && parsedData.skills.length > 0) ? parsedData.skills : formData.skills
+          });
+
+          // Save the updated profile with parsed data
+          onChange(updatedProfile, true);
+          alert(t('profile.cv_upload_success'));
+        } catch (parseError) {
+          console.error('CV parsing failed, but upload succeeded:', parseError);
+          // Still save the URL if parsing fails
+          onChange({ ...profile, cvUrl }, true);
+          alert(t('profile.cv_upload_success'));
+        }
+
+        // Trigger profile refresh after a short delay to allow UI to sync
         setTimeout(() => {
           if (onRefreshProfile) {
             onRefreshProfile();
           }
-        }, 2000);
-
-        alert(t('profile.cv_upload_success'));
+        }, 1000);
       }
     } catch (error) {
       console.error('CV upload failed:', error);
