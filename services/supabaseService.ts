@@ -24,6 +24,48 @@ export const isSupabaseConfigured = (): boolean => {
     return !!supabase;
 };
 
+/**
+ * Diagnostic helper to verify if the Supabase client has a valid session token.
+ * This is crucial for fixing 401 errors on RLS-protected tables.
+ */
+export const verifyAuthSession = async (context: string) => {
+    if (!supabase) return { isValid: false, error: 'Supabase not configured' };
+
+    try {
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error) {
+            console.error(`🔴 Auth verify error [${context}]:`, error);
+            return { isValid: false, error: error.message };
+        }
+
+        if (!session) {
+            console.warn(`🟠 No active session found [${context}]. Requests will be sent as 'anon'.`);
+            return { isValid: false, error: 'No active session' };
+        }
+
+        // Check if token is potentially expired (though getSession usually refreshes)
+        const expiresAt = session.expires_at || 0;
+        const now = Math.floor(Date.now() / 1000);
+
+        if (expiresAt < now + 10) { // 10s buffer
+            console.warn(`🟠 Session token near expiry [${context}]. Attempting refresh...`);
+            const { data: { session: refreshed }, error: refreshErr } = await supabase.auth.refreshSession();
+            if (refreshErr || !refreshed) {
+                console.error(`🔴 Session refresh failed [${context}]:`, refreshErr);
+                return { isValid: false, error: 'Session expired/refresh failed' };
+            }
+            return { isValid: true, session: refreshed };
+        }
+
+        console.log(`🟢 Verified valid session [${context}] for user:`, session.user?.id);
+        return { isValid: true, session };
+    } catch (err) {
+        console.error(`🔴 Unexpected auth check error [${context}]:`, err);
+        return { isValid: false, error: String(err) };
+    }
+};
+
 
 
 // ========================================
@@ -116,6 +158,17 @@ export const getCurrentUser = async () => {
 export const createBaseProfile = async (userId: string, email: string, name: string, role: string = 'candidate') => {
     if (!supabase) throw new Error("Supabase not configured");
 
+    console.log(`👤 Attempting to create base profile for ${userId} (${email})...`);
+
+    // VERIFY SESSION FIRST
+    const { isValid, error: authError } = await verifyAuthSession('createBaseProfile');
+    if (!isValid) {
+        const msg = `❌ Cannot create profile: Auth verification failed (${authError}). This will likely result in a 401.`;
+        console.error(msg);
+        // We throw here to be caught by the caller's UI logic
+        throw new Error(msg);
+    }
+
     const { error } = await supabase
         .from('profiles')
         .insert({
@@ -127,7 +180,12 @@ export const createBaseProfile = async (userId: string, email: string, name: str
             created_at: new Date().toISOString(),
         });
 
-    if (error) throw error;
+    if (error) {
+        console.error('🔴 Error inserting into profiles:', error);
+        throw error;
+    }
+
+    console.log('✅ Base profile created successfully.');
 
     // Also create candidate_profiles entry
     const { error: candidateError } = await supabase
@@ -145,6 +203,13 @@ export const createBaseProfile = async (userId: string, email: string, name: str
 
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
     if (!supabase) return null;
+
+    console.log(`🔍 Fetching profile for ${userId}...`);
+
+    // Diagnostic: check if session exists before fetching. 
+    // We don't throw for GET requests as some profiles might be public in future, 
+    // but right now they are RLS-protected.
+    await verifyAuthSession('getUserProfile');
 
     // Fetch from profiles table with candidate_profiles join
     const { data: profileData, error: profileError } = await supabase
@@ -166,7 +231,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         .maybeSingle();
 
     if (profileError) {
-        console.error('Profile fetch error:', profileError);
+        console.error('🔴 Profile fetch error:', profileError);
         return null;
     }
 

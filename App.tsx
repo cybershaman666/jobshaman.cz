@@ -29,7 +29,7 @@ import AppFooter from './components/AppFooter';
 import { analyzeJobDescription } from './services/geminiService';
 import { calculateCommuteReality } from './services/commuteService';
 import { clearJobCache } from './services/jobService';
-import { supabase, getUserProfile, updateUserProfile } from './services/supabaseService';
+import { supabase, getUserProfile, updateUserProfile, verifyAuthSession } from './services/supabaseService';
 import { canCandidateUseFeature } from './services/billingService';
 import { analyzeJobForPathfinder } from './services/careerPathfinderService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
@@ -233,22 +233,32 @@ export default function App() {
 
         // AUTH LISTENER
         if (supabase) {
-            // Use getUser() here to ensure the session is verified and token is refreshed if needed
-            supabase.auth.getUser().then(({ data }: { data: any }) => {
-                if (data?.user) {
-                    handleSessionRestoration(data.user.id);
-                }
-            });
-
-            const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
-                if (session) {
+            // Initial session check
+            const initSession = async () => {
+                console.log('🏁 [App] Running initial session check...');
+                const { isValid, session } = await verifyAuthSession('AppInit');
+                if (isValid && session) {
+                    console.log('✅ [App] Initial session verified for:', session.user.id);
                     handleSessionRestoration(session.user.id);
-                    // CSRF token is fetched inside handleSessionRestoration
                 } else {
+                    console.log('ℹ️ [App] No initial valid session found.');
+                }
+            };
+            initSession();
+
+            const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
+                console.log(`🔔 [App] Auth state changed: ${event}`);
+
+                if (session) {
+                    // Only restore if we have a valid session and it's a meaningful event
+                    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+                        handleSessionRestoration(session.user.id);
+                    }
+                } else if (event === 'SIGNED_OUT') {
+                    console.log('👤 [App] User signed out, clearing state.');
                     setUserProfile({ ...DEFAULT_USER_PROFILE, isLoggedIn: false });
                     setViewState(ViewState.LIST);
                     setCompanyProfile(null);
-                    // Clear CSRF token on logout
                     clearCsrfToken();
                 }
             });
@@ -507,35 +517,57 @@ export default function App() {
         }
     };
 
-    const handleProfileUpdate = async (updatedProfile: UserProfile) => {
+    const handleProfileUpdate = async (updatedProfile: UserProfile, persist: boolean = false) => {
         try {
             setUserProfile(updatedProfile);
+
             // Auto-enable commute filter if address is added and filter wasn't on (only once)
             if (updatedProfile.address && !enableCommuteFilter && !hasAutoEnabledCommuteFilter.current) {
-                console.log('🏠 Profile updated with address, auto-enabling commute filter');
+                console.log('🏠 Profile updated locally with address, auto-enabling commute filter');
                 setEnableCommuteFilter(true);
                 setFilterMaxDistance(50);
                 hasAutoEnabledCommuteFilter.current = true;
             }
 
-            // Save to Supabase if we have a user ID
-            if (updatedProfile.id) {
+            // ONLY persist if explicitly requested (e.g., CV/Photo upload)
+            if (persist && updatedProfile.id) {
+                console.log("💾 Persisting profile changes immediately...");
                 await updateUserProfile(updatedProfile.id, updatedProfile);
-                console.log("Profile saved successfully");
 
-                // 🔄 CRITICAL: Refetch profile to get updated coordinates from DB
-                console.log("🔄 Refetching profile to sync coordinates...");
-                const { getUserProfile } = await import('./services/supabaseService');
-                const freshProfile = await getUserProfile(updatedProfile.id);
-                if (freshProfile) {
-                    setUserProfile(freshProfile);
-                    console.log("✅ Profile refetched. New coordinates:", freshProfile.coordinates);
+                // Refetch to sync (only on explicit persistence)
+                const { getUserProfile: fetchUpdated } = await import('./services/supabaseService');
+                const fresh = await fetchUpdated(updatedProfile.id);
+                if (fresh) {
+                    setUserProfile(fresh);
                 }
-            } else {
-                console.log("Local profile updated (no ID yet)");
             }
         } catch (error) {
-            console.error("Failed to update profile:", error);
+            console.error("Failed to update profile locally:", error);
+        }
+    };
+
+    const handleProfileSave = async () => {
+        if (!userProfile.id) return;
+
+        try {
+            console.log("💾 Explicitly saving profile to Supabase...");
+            await updateUserProfile(userProfile.id, userProfile);
+            console.log("✅ Profile saved successfully");
+
+            // 🔄 Refetch profile to get updated coordinates from DB calculated by triggers or service logic
+            console.log("🔄 Refetching profile to sync coordinates...");
+            const { getUserProfile: fetchUpdated } = await import('./services/supabaseService');
+            const freshProfile = await fetchUpdated(userProfile.id);
+            if (freshProfile) {
+                setUserProfile(freshProfile);
+                console.log("✅ Profile refetched. New coordinates:", freshProfile.coordinates);
+            }
+
+            // Alert user success
+            // Note: We could use a toast here if we had one
+
+        } catch (error) {
+            console.error("Failed to save profile:", error);
             alert("Nepodařilo se uložit profil. Zkuste to znovu.");
         }
     };
@@ -738,8 +770,8 @@ export default function App() {
                 <div className="col-span-1 lg:col-span-12 max-w-4xl mx-auto w-full h-full overflow-y-auto custom-scrollbar pb-6 px-1">
                     <ProfileEditor
                         profile={userProfile}
-                        onChange={handleProfileUpdate}
-                        onSave={() => setViewState(ViewState.LIST)}
+                        onChange={(p, persist) => handleProfileUpdate(p, persist)} // Pass persist flag for immediate saves
+                        onSave={handleProfileSave} // Explicit save button
                         onRefreshProfile={refreshUserProfile}
                         onDeleteAccount={deleteAccount}
                         savedJobs={filteredJobs.filter(job => savedJobIds.includes(job.id))}
