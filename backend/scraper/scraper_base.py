@@ -369,7 +369,7 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict) -> bool:
         )
         if response.data:
             print(f"    --> Nabídka s URL {job_data['url']} již existuje, přeskočeno.")
-            return True
+            return False
     except Exception as e:
         print(f"Chyba při kontrole duplicity: {e}")
     
