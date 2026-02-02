@@ -379,8 +379,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         {/* Tab Content */}
         {activeTab === 'profile' ? (
           <>
-            {/* Premium Features Preview */}
-            <PremiumFeaturesPreview userProfile={profile} />
 
             {/* Candidate Invitations (if logged in) */}
             {profile.isLoggedIn && (
@@ -934,6 +932,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   {t('profile.delete_account')}
                 </button>
               </div>
+            </div>
+
+            {/* Premium Features Preview */}
+            <div className="mt-8">
+              <PremiumFeaturesPreview userProfile={profile} />
             </div>
           </>
         ) : (
