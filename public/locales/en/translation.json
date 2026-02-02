@@ -261,7 +261,15 @@
             "title_job": "Decide based on",
             "title_end": "reality, not promises",
             "button": "Try for Free",
-            "subtitle": "No long registrations. No clicking through three pages. Only data."
+            "subtitle": "No lengthy registrations. No clicking through three pages. Just data."
+        }
+    },
+    "promo": {
+        "cross_border": {
+            "headline": "Work doesn't stop at borders. Why should your search?",
+            "body_1": "Living in Rybnik, but Ostrava is closer than Katowice? Most job portals stop looking exactly where the state ends.",
+            "body_2": "In JobShaman, we search by reality, not by the map. Thanks to geospatial analysis, we show offers within commuting distance, even across borders.",
+            "cta": "Single switch unlocks cross-border search. Verified offers only."
         }
     },
     "jhi": {

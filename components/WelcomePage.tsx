@@ -3,6 +3,7 @@ import { MapPin, Clock, TrendingUp, Eye, CheckCircle, Heart, Target, Brain, BarC
 import { useTranslation } from 'react-i18next';
 import { getJobCount } from '../services/jobService';
 import BlogSection from './BlogSection';
+import CrossBorderPromo from './CrossBorderPromo';
 
 interface WelcomePageProps {
   onTryFree?: () => void;
@@ -142,6 +143,8 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
           </div>
         </div>
       </section>
+
+      <CrossBorderPromo />
 
       {/* DIVIDER */}
       <div className="max-w-7xl mx-auto px-4 lg:px-8 my-6">
@@ -363,6 +366,13 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
           </div>
         </div>
       </section>
+
+      {/* DIVIDER */}
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 my-6">
+        <div className="h-px bg-slate-200 dark:bg-slate-800"></div>
+      </div>
+
+
 
       {/* DIVIDER */}
       <div className="max-w-7xl mx-auto px-4 lg:px-8 my-6">

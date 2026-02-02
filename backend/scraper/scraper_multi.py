@@ -307,14 +307,17 @@ def scrape_jobs_cz(soup):
 
         if detail_soup:
             try:
-                # Popis - Enhanced parsing to capture ALL content including lists
-                # Jobs.cz uses JobDescriptionSection or JobDescription as main container
-                main_content = detail_soup.find("div", class_="JobDescriptionSection") or detail_soup.find("div", class_="JobDescription")
+                # Popis - Jobs.cz uses RichContent class for job descriptions
+                # This is the main container with all the formatted job description content
+                main_content = detail_soup.find("div", class_="RichContent")
+                
+                # Fallback to older selectors if RichContent not found
+                if not main_content:
+                    main_content = detail_soup.find("div", class_="JobDescriptionSection") or detail_soup.find("div", class_="JobDescription")
                 
                 parts = []
                 if main_content:
                     # Extract all meaningful content: paragraphs, headings, and list items
-                    # Don't filter by typography classes - capture everything
                     for elem in main_content.find_all(['p', 'li', 'h2', 'h3', 'h4', 'ul', 'ol']):
                         # Skip ul/ol containers themselves, we only want their li children
                         if elem.name in ['ul', 'ol']:

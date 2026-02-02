@@ -46,6 +46,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         { code: 'en', name: 'EN', flag: '🇬🇧' },
         { code: 'pl', name: 'PL', flag: '🇵🇱' },
         { code: 'de', name: 'DE', flag: '🇩🇪' },
+        { code: 'at', name: 'AT', flag: '🇦🇹' },
         { code: 'sk', name: 'SK', flag: '🇸🇰' }
     ];
 

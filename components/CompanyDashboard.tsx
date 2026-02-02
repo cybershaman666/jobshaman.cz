@@ -1241,7 +1241,9 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 <BullshitMeter metrics={{
                     score: adDraft.toLowerCase().includes('ninja') || adDraft.toLowerCase().includes('rockstar') ? 85 : 20,
                     flags: adDraft.toLowerCase().includes('ninja') ? ['Ninja', 'Hype', 'Grind'] : [],
-                    tone: adDraft.toLowerCase().includes('ninja') ? 'Hype-heavy' : 'Professional'
+                    tone: adDraft.toLowerCase().includes('ninja') ? 'Hype-heavy' : 'Professional',
+                    level: (adDraft.toLowerCase().includes('ninja') || adDraft.toLowerCase().includes('rockstar')) ? 'high' : 'low',
+                    keywords: adDraft.toLowerCase().includes('ninja') ? ['Ninja', 'Hype', 'Grind'] : []
                 }} variant="dark" />
 
                 <BenefitInsights />

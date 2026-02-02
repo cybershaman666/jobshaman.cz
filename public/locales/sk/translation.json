@@ -255,6 +255,14 @@
             "subtitle": "Bez dlhých registrácií. Bez klikania cez tri stránky. Len dáta."
         }
     },
+    "promo": {
+        "cross_border": {
+            "headline": "Práca nekončí na hraniciach. Prečo by mal váš vyhľadávač?",
+            "body_1": "Bývate v Rybniku, ale do Ostravy to máte bližšie než do Katovíc? Väčšina pracovných portálov prestane hľadať presne tam, kde končí štát.",
+            "body_2": "V JobShaman hľadáme podľa reality, nie podľa mapy. Vďaka geopriestorovej analýze zobrazujeme ponuky v dojazdovej vzdialenosti, pokojne cez hranice.",
+            "cta": "Jedným prepínačom odomknete cezhraničné vyhľadávanie. Len overené ponuky."
+        }
+    },
     "jhi": {
         "label_financial": "Financie",
         "label_time": "Čas",

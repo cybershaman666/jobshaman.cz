@@ -10,7 +10,9 @@ export interface JHI {
 
 export interface NoiseMetrics {
   score: number; // 0-100, where 100 is pure fluff
-  flags: string[];
+  flags: string[]; // Keep flags for backward compatibility or alias to keywords
+  level: 'low' | 'medium' | 'high'; // Added level
+  keywords: string[]; // Added keywords
   tone: 'Professional' | 'Casual' | 'Hype-heavy' | 'Toxic' | 'Dry' | 'Technical';
 }
 

@@ -9,7 +9,9 @@ const getCountryCodeFromLanguage = (language: string): string => {
         'cs': 'cs',
         'pl': 'pl',
         'sk': 'sk',
-        'de': 'de'
+
+        'de': 'de',
+        'at': 'at'
     };
     return langMap[language] || 'cs'; // Default to Czech
 };
