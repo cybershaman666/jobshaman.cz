@@ -24,6 +24,9 @@
   },
   "filters": {
     "location_commute": "Standort und Arbeitsweg",
+    "cross_border": "Grenzüberschreitende Suche 🌍",
+    "search_all_desc": "Suche über EU-Grenzen hinweg",
+    "search_current_desc": "Nur im aktuellen Land suchen",
     "city_placeholder": "Stadt (z.B. Prag)",
     "limit_by_commute": "Nach Arbeitsweg begrenzen",
     "max_distance": "Max. Entfernung",
@@ -394,7 +397,7 @@
       "subtitle": "Statistiken für das gesamte Unternehmen und einzelne Recruiter.",
       "tabs": {
         "overview": "Übersicht",
-        "dna_culture": "DNA & Kultur",
+        "dna_culture": "Unternehmensprofil",
         "ai_editor": "AI-Editor",
         "assessments": "Assessments",
         "candidates": "Kandidaten",
@@ -455,7 +458,7 @@
     },
     "settings": {
       "title": "Unternehmenseinstellungen",
-      "dna": "Unternehmens-DNA",
+      "dna": "Basisinfo",
       "team": "Team & Zugriff",
       "culture_title": "Unternehmenskultur und Werte",
       "culture_desc": "Definieren Sie, wer Sie sind, damit die KI passende Leute finden kann.",

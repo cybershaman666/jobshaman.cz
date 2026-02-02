@@ -140,7 +140,9 @@ export default function App() {
         setExpandedSections,
         toggleBenefitFilter,
         toggleContractTypeFilter,
-        toggleExperienceFilter
+        toggleExperienceFilter,
+        globalSearch,
+        setGlobalSearch
     } = usePaginatedJobs({ userProfile });
 
     // Prevent layout flash on first render by waiting for client mount
@@ -865,6 +867,8 @@ export default function App() {
                     totalCount={totalCount}
                     loadRealJobs={loadRealJobs}
                     backendPolling={backendPolling}
+                    globalSearch={globalSearch}
+                    setGlobalSearch={setGlobalSearch}
                 />
 
                 {/* RIGHT COLUMN: Detail View (or Welcome Guide) */}

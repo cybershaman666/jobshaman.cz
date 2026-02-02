@@ -836,8 +836,8 @@ export interface JobFilterOptions {
     page?: number;
     pageSize?: number;
 
-    // Country
-    countryCode?: string;
+    // Countries
+    countryCodes?: string[];
     searchTerm?: string;
 }
 
@@ -866,7 +866,7 @@ export const fetchJobsWithFilters = async (
         filterExperienceLevels,
         page = 0,
         pageSize = 50,
-        countryCode,
+        countryCodes,
         searchTerm
     } = options;
 
@@ -898,7 +898,7 @@ export const fetchJobsWithFilters = async (
             experience: filterExperienceLevels || [],
             page,
             pageSize,
-            country: countryCode || 'all',
+            countries: countryCodes || ['all'],
             searchTerm: searchTerm || 'none'
         });
 
@@ -915,7 +915,7 @@ export const fetchJobsWithFilters = async (
             filter_experience_levels: filterExperienceLevels && filterExperienceLevels.length > 0 ? filterExperienceLevels : null,
             limit_count: pageSize,
             offset_val: page * pageSize,
-            filter_country_code: countryCode ?? null
+            filter_country_codes: countryCodes && countryCodes.length > 0 ? countryCodes : null
         });
 
         if (error) {
@@ -1271,10 +1271,10 @@ export const isValidJobPosting = (job: Job): boolean => {
         return false;
     }
 
-    // Check description exists and has minimum length (500 characters)
+    // Check description exists and has minimum length (200 characters)
     if (!job.description ||
         typeof job.description !== 'string' ||
-        job.description.trim().length < 500) {
+        job.description.trim().length < 200) {
         return false;
     }
 

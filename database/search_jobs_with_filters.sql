@@ -21,7 +21,7 @@ CREATE OR REPLACE FUNCTION search_jobs_with_filters(
         limit_count INTEGER DEFAULT 50,
         offset_val INTEGER DEFAULT 0,
         -- Country
-        filter_country_code VARCHAR(2) DEFAULT NULL,
+        filter_country_codes TEXT [] DEFAULT NULL,
         -- Search Term (NEW)
         search_term TEXT DEFAULT NULL
     ) RETURNS TABLE(
@@ -69,10 +69,10 @@ RETURN QUERY WITH base_filtered AS (
     -- STEP 1: Fast filtering (indexed or simple columns)
     SELECT j.*
     FROM jobs j
-    WHERE j.legality_status = 'legal'
+    WHERE j.legality_status IN ('legal', 'pending', 'review')
         AND (
-            filter_country_code IS NULL
-            OR j.country_code = filter_country_code
+            filter_country_codes IS NULL
+            OR j.country_code = ANY(filter_country_codes)
         )
         AND (
             cutoff_date IS NULL
@@ -96,12 +96,13 @@ RETURN QUERY WITH base_filtered AS (
 ),
 deduplicated AS (
     -- STEP 2: Early deduplication to reduce row count for expensive checks
-    -- DISTINCT ON is faster than window functions for simple top-1 per group
-    SELECT DISTINCT ON (d.title, d.company, d.location) d.*
+    -- Refining deduplication to include source to avoid collapsing unique postings from different sources
+    SELECT DISTINCT ON (d.title, d.company, d.location, d.source) d.*
     FROM base_filtered d
     ORDER BY d.title,
         d.company,
         d.location,
+        d.source,
         d.scraped_at DESC
 ),
 final_filtered AS (
