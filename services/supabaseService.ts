@@ -1095,7 +1095,8 @@ export const inviteRecruiter = async (companyId: string, email: string, invitedB
 export const uploadCVFile = async (_userId: string, file: File): Promise<string> => {
     if (!supabase) throw new Error("Supabase not configured");
 
-    const fileName = `uploads/${Date.now()}-${file.name}`;
+    const sanitizedName = sanitizeFileName(file.name);
+    const fileName = `uploads/${Date.now()}-${sanitizedName}`;
     const { data, error } = await supabase.storage
         .from('cvs')
         .upload(fileName, file);
@@ -1108,7 +1109,8 @@ export const uploadCVFile = async (_userId: string, file: File): Promise<string>
 export const uploadProfilePhoto = async (userId: string, file: File): Promise<string> => {
     if (!supabase) throw new Error("Supabase not configured");
 
-    const fileName = `${userId}/${Date.now()}-${file.name}`;
+    const sanitizedName = sanitizeFileName(file.name);
+    const fileName = `${userId}/${Date.now()}-${sanitizedName}`;
     const { data: _uploadData, error } = await supabase.storage
         .from('profile-photos')
         .upload(fileName, file);
