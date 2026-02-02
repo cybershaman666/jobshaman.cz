@@ -441,12 +441,12 @@ def run_germany_scraper():
         {
             'name': 'Stellenanzeigen.de',
             'base_url': 'https://www.stellenanzeigen.de/suche/?q=software',
-            'max_pages': 5
+            'max_pages': 20
         },
         {
             'name': 'Karriere.at',
             'base_url': 'https://www.karriere.at/jobs/software',
-            'max_pages': 5
+            'max_pages': 20
         }
     ]
     
