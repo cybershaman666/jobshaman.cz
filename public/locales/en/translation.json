@@ -23,7 +23,10 @@
         "found_jobs": "Found {{count}} offers"
     },
     "filters": {
-        "location_commute": "Location and Commute",
+        "location_commute": "Location & Commute",
+        "cross_border": "Cross-border search 🌍",
+        "search_all_desc": "Searching across EU borders",
+        "search_current_desc": "Searching local country only",
         "city_placeholder": "City (e.g. Prague)",
         "limit_by_commute": "Limit by commute",
         "max_distance": "Max Distance",
@@ -367,7 +370,7 @@
             "subtitle": "Statistics for the whole company and individual recruiters.",
             "tabs": {
                 "overview": "Overview",
-                "dna_culture": "DNA & Culture",
+                "dna_culture": "Company Profile",
                 "ai_editor": "Offer Editor",
                 "assessments": "Assessments",
                 "candidates": "Candidates",
@@ -428,7 +431,7 @@
         },
         "settings": {
             "title": "Company Settings",
-            "dna": "Company DNA",
+            "dna": "Basic Info",
             "team": "Team & Access",
             "culture_title": "Company Culture and Values",
             "culture_desc": "Define who you are so AI can find people who fit.",

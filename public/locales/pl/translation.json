@@ -24,6 +24,9 @@
   },
   "filters": {
     "location_commute": "Lokalizacja i dojazd",
+    "cross_border": "Wyszukiwanie transgraniczne 🌍",
+    "search_all_desc": "Szukaj w całej UE",
+    "search_current_desc": "Szukaj tylko w obecnym kraju",
     "city_placeholder": "Miasto (np. Warszawa)",
     "limit_by_commute": "Ogranicz czasem dojazdu",
     "max_distance": "Maks. odległość",
@@ -367,7 +370,7 @@
       "subtitle": "Statystyki dla całej firmy i poszczególnych rekruterów.",
       "tabs": {
         "overview": "Przegląd",
-        "dna_culture": "DNA i Kultura",
+        "dna_culture": "Profil firmy",
         "ai_editor": "Edytor AI",
         "assessments": "Oceny",
         "candidates": "Kandydaci",
@@ -430,7 +433,7 @@
     },
     "settings": {
       "title": "Ustawienia firmy",
-      "dna": "DNA firmy",
+      "dna": "Podstawowe dane",
       "team": "Zespół i dostęp",
       "culture_title": "Kultura i wartości firmy",
       "culture_desc": "Zdefiniuj, kim jesteś, aby AI mogła znaleźć osoby, które do Ciebie pasują.",

@@ -24,6 +24,9 @@
     },
     "filters": {
         "location_commute": "Lokalita a Dojezd",
+        "cross_border": "Příhraniční vyhledávání 🌍",
+        "search_all_desc": "Hledám i v zahraničí (DE, AT, PL, SK)",
+        "search_current_desc": "Hledám pouze v ČR",
         "city_placeholder": "Město (např. Praha)",
         "limit_by_commute": "Limitovat dojezdem",
         "max_distance": "Max Vzdálenost",
@@ -512,7 +515,7 @@
             "subtitle": "Statistiky pro celou firmu a jednotlivé náboráře.",
             "tabs": {
                 "overview": "Přehled",
-                "dna_culture": "DNA & Kultura",
+                "dna_culture": "Profil firmy",
                 "ai_editor": "Editor nabídek",
                 "assessments": "Assessmenty",
                 "candidates": "Kandidáti",
@@ -582,7 +585,7 @@
         },
         "settings": {
             "title": "Nastavení Firmy",
-            "dna": "DNA Firmy",
+            "dna": "Základní údaje",
             "team": "Tým a Přístup",
             "culture_title": "Firemní Kultura a Hodnoty",
             "culture_desc": "Definujte kdo jste, aby AI mohla najít lidi, kteří se hodí.",
@@ -1026,7 +1029,7 @@
     },
     "blog": {
         "title": "Shamanic Insights",
-        "subtitle": "Analýza, dáta a realita českého pracovného trhu bez príkras.",
+        "subtitle": "Analýza, dáta a realita českého pracovného trhu bez příkras.",
         "read_more": "Číst více",
         "all_articles": "Všechny články",
         "stats": {

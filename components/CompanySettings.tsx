@@ -94,14 +94,14 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
             <div className="lg:col-span-1 space-y-2">
                 <button
                     onClick={() => setActiveTab('dna')}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'dna' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'dna' ? 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                 >
                     <Sparkles size={18} />
                     {t('company.settings.dna')}
                 </button>
                 <button
                     onClick={() => setActiveTab('team')}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'team' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'team' ? 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
                 >
                     <Users size={18} />
                     {t('company.settings.team')}
@@ -113,7 +113,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                 {activeTab === 'dna' && (
                     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm relative overflow-hidden">
                         <div className="flex items-center gap-3 mb-6">
-                            <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
+                            <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-lg">
                                 <Target size={24} />
                             </div>
                             <div>
@@ -131,7 +131,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                 <textarea
                                     id="company-mission"
                                     name="company-mission"
-                                    className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 dark:text-slate-300 min-h-[100px]"
+                                    className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300 min-h-[100px]"
                                     value={localProfile.philosophy || ''}
                                     onChange={(e) => setLocalProfile({ ...localProfile, philosophy: e.target.value })}
                                     placeholder={t('company.settings.mission_placeholder')}
@@ -147,7 +147,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                     <select
                                         id="company-tone"
                                         name="company-tone"
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 dark:text-slate-300"
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
                                         value={localProfile.tone}
                                         onChange={(e) => setLocalProfile({ ...localProfile, tone: e.target.value })}
                                     >
@@ -165,7 +165,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                     <select
                                         id="company-size"
                                         name="company-size"
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 dark:text-slate-300"
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
                                         value={(localProfile as any).company_size || '1-10'}
                                         onChange={(e) => setLocalProfile({ ...localProfile, company_size: e.target.value } as any)}
                                     >
@@ -186,7 +186,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-industry"
                                         type="text"
                                         placeholder={t('company.settings.industry_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 dark:text-slate-300"
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
                                         value={(localProfile as any).field_of_business || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, field_of_business: e.target.value } as any)}
                                     />
@@ -201,7 +201,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="company-address"
                                         type="text"
                                         placeholder={t('company.settings.address_placeholder')}
-                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none text-slate-700 dark:text-slate-300"
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
                                         value={localProfile.address || ''}
                                         onChange={(e) => setLocalProfile({ ...localProfile, address: e.target.value })}
                                     />
@@ -213,9 +213,9 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('company.settings.values')}</label>
                                 <div className="flex flex-wrap gap-2 mb-3">
                                     {localProfile.values.map((val, idx) => (
-                                        <span key={idx} className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2">
+                                        <span key={idx} className="bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2">
                                             {val}
-                                            <button onClick={() => removeValue(val)} className="hover:text-indigo-900 dark:hover:text-white"><X size={14} /></button>
+                                            <button onClick={() => removeValue(val)} className="hover:text-cyan-900 dark:hover:text-white"><X size={14} /></button>
                                         </span>
                                     ))}
                                 </div>
@@ -225,7 +225,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         id="add-value"
                                         name="add-value"
                                         type="text"
-                                        className="flex-1 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        className="flex-1 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none"
                                         placeholder={t('company.settings.add_value_placeholder')}
                                         value={newValue}
                                         onChange={(e) => setNewValue(e.target.value)}
@@ -244,7 +244,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                     <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
                         <div className="flex items-center justify-between mb-6">
                             <div className="flex items-center gap-3">
-                                <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg">
+                                <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-lg">
                                     <Users size={24} />
                                 </div>
                                 <div>
@@ -280,7 +280,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                         name="invite-email"
                                         type="email"
                                         placeholder={t('company.settings.invite_placeholder')}
-                                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-indigo-500 outline-none"
+                                        className="w-full pl-10 pr-4 py-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 focus:ring-2 focus:ring-cyan-500 outline-none"
                                         value={inviteEmail}
                                         onChange={(e) => setInviteEmail(e.target.value)}
                                     />
@@ -288,7 +288,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                 <button
                                     onClick={handleInvite}
                                     disabled={!inviteEmail || isInviting}
-                                    className="px-6 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                    className="px-6 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                                 >
                                     {isInviting ? <Sparkles className="animate-spin" size={18} /> : <UserPlus size={18} />}
                                     {t('company.settings.invite_btn')}

@@ -10,7 +10,8 @@ import {
     ChevronDown,
     ChevronUp,
     CheckCircle,
-    RefreshCw
+    RefreshCw,
+    Globe
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { FilterSuggestions } from './FilterSuggestions';
@@ -55,6 +56,8 @@ interface JobListSidebarProps {
     totalCount: number;
     loadRealJobs: () => void;
     backendPolling: boolean;
+    globalSearch: boolean;
+    setGlobalSearch: (global: boolean) => void;
 }
 
 const JobListSidebar: React.FC<JobListSidebarProps> = ({
@@ -95,7 +98,9 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     hasMore,
     totalCount,
     loadRealJobs,
-    backendPolling
+    backendPolling,
+    globalSearch,
+    setGlobalSearch
 }) => {
     const { t } = useTranslation();
 
@@ -196,6 +201,27 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                 <div className={`absolute top-1 w-3 h-3 rounded-full bg-white shadow-sm transition-all ${enableCommuteFilter ? 'left-6' : 'left-1'}`}></div>
                                             </div>
                                         </label>
+
+                                        {/* Cross-border Filter Toggle */}
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); setGlobalSearch(!globalSearch); }}
+                                            className={`w-full flex items-center justify-between p-2 rounded-md border transition-all ${globalSearch ? 'bg-cyan-50 border-cyan-200 dark:bg-cyan-500/10 dark:border-cyan-500/30' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-900'}`}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <Globe size={16} className={`transition-colors ${globalSearch ? 'text-cyan-500' : 'text-slate-400'}`} />
+                                                <div className="text-left">
+                                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200 block">
+                                                        {t('filters.cross_border')}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block -mt-0.5">
+                                                        {globalSearch ? t('filters.search_all_desc') : t('filters.search_current_desc')}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${globalSearch ? 'border-cyan-500 bg-cyan-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                                                {globalSearch && <CheckCircle size={10} className="text-white" />}
+                                            </div>
+                                        </button>
                                         {enableCommuteFilter && (
                                             <div className={`p-3 rounded-md border ${(userProfile.isLoggedIn && userProfile.address) || filterCity ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800' : 'bg-slate-100 dark:bg-slate-900/50 border-dashed border-slate-300 dark:border-slate-800 opacity-60'}`}>
                                                 <div className="flex justify-between text-xs mb-2">

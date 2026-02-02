@@ -27,7 +27,7 @@ const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
 
 export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePaginatedJobsProps) => {
     const { i18n } = useTranslation();
-    const [countryCode, setCountryCode] = useState<string>(() => getCountryCodeFromLanguage(i18n.language));
+    const [countryCodes, setCountryCodes] = useState<string[]>(() => [getCountryCodeFromLanguage(i18n.language)]);
 
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(false);
@@ -120,7 +120,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 radiusKm: enableCommuteFilter ? filterMaxDistance : undefined,
                 userLat: lat,
                 userLng: lon,
-                countryCode
+                countryCodes: globalSearch ? undefined : countryCodes
             });
 
             if (isLoadMore) {
@@ -158,7 +158,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [
         initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCode
+        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch
     ]);
 
 
@@ -174,7 +174,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [
         searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, countryCode
+        filterMaxDistance, countryCodes, globalSearch
     ]); // Excluded fetchFilteredJobs to avoid re-triggering when it's just redefined
 
     // Load more jobs
@@ -198,13 +198,14 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     // React to language changes
     useEffect(() => {
         const newCountryCode = getCountryCodeFromLanguage(i18n.language);
-        if (newCountryCode !== countryCode) {
-            setCountryCode(newCountryCode);
-            // We need to reload jobs when country changes, but since countryCode 
-            // is in the dependency array of fetchFilteredJobs (via useEffect below),
-            // it should happen automatically.
+        if (!countryCodes.includes(newCountryCode)) {
+            // By default, reset to the new language's country when language changes
+            // unless we are in global search mode
+            if (!globalSearch) {
+                setCountryCodes([newCountryCode]);
+            }
         }
-    }, [i18n.language, countryCode]);
+    }, [i18n.language, globalSearch]);
 
     // Perform search is now just setting the search term
     const performSearch = useCallback((term: string) => {
@@ -260,6 +261,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         showFilters,
         expandedSections,
         globalSearch,
+        countryCodes,
 
         loadInitialJobs,
         loadMoreJobs,
@@ -277,6 +279,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setShowFilters,
         setExpandedSections,
         setGlobalSearch,
+        setCountryCodes,
         toggleBenefitFilter,
         toggleContractTypeFilter,
         toggleExperienceFilter,

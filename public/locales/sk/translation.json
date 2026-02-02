@@ -26,6 +26,9 @@
     },
     "filters": {
         "location_commute": "Lokalita a Dojazd",
+        "cross_border": "Cezhraničné vyhľadávanie 🌍",
+        "search_all_desc": "Hľadám aj v zahraničí (ČR, AT, PL, HU)",
+        "search_current_desc": "Hľadám iba na Slovensku",
         "city_placeholder": "Mesto (napr. Bratislava)",
         "limit_by_commute": "Limitovať dojazdom",
         "max_distance": "Max Vzdialenosť",
@@ -476,7 +479,7 @@
             "subtitle": "Štatistiky pre celú firmu a jednotlivých náboriacich pracovníkov.",
             "tabs": {
                 "overview": "Prehľad",
-                "dna_culture": "DNA & Kultúra",
+                "dna_culture": "Profil firmy",
                 "ai_editor": "Editor ponúk",
                 "assessments": "Assessmenty",
                 "candidates": "Kandidáti",
@@ -537,7 +540,7 @@
         },
         "settings": {
             "title": "Nastavenia Firmy",
-            "dna": "DNA Firmy",
+            "dna": "Základné údaje",
             "team": "Tým a Prístup",
             "culture_title": "Firemná Kulúra a Hodnoty",
             "culture_desc": "Definujte kto ste, aby AI mohla nájsť ľudí ktorí sa hodia.",
