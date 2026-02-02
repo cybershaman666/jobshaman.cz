@@ -240,8 +240,10 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         return null;
     }
 
-    // candidateData is now part of profileData due to join
-    const candidateData = profileData.candidate_profiles?.[0];
+    // candidateData could be an object (1:1) or an array of 1 object depending on join type/Supabase version
+    const candidateData = Array.isArray(profileData.candidate_profiles)
+        ? profileData.candidate_profiles[0]
+        : profileData.candidate_profiles;
 
     // Map to UserProfile structure - ENSURE id is always included
     const userProfile: UserProfile = {
@@ -326,7 +328,7 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
             .from('candidate_profiles')
             .select('id')
             .eq('id', userId)
-            .single();
+            .maybeSingle();
 
         if (existing) {
             // Update existing
@@ -1108,14 +1110,14 @@ export const uploadProfilePhoto = async (userId: string, file: File): Promise<st
 
     const fileName = `${userId}/${Date.now()}-${file.name}`;
     const { data: _uploadData, error } = await supabase.storage
-        .from('profile_photos')
+        .from('profile-photos')
         .upload(fileName, file);
 
     if (error) throw error;
 
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
-        .from('profile_photos')
+        .from('profile-photos')
         .getPublicUrl(fileName);
 
     return publicUrl;
