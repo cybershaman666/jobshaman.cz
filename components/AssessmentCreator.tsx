@@ -152,14 +152,14 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
 
                 <div className="space-y-4">
                     {jobs.length > 0 && (
-                        <div className="p-3 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-800 rounded-xl mb-2">
-                            <label className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+                        <div className="p-3 bg-cyan-50 dark:bg-cyan-900/10 border border-cyan-200 dark:border-cyan-800 rounded-xl mb-2">
+                            <label className="text-xs font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider mb-2 flex items-center gap-1">
                                 <Sparkles size={12} /> Automaticky z inzerátu
                             </label>
                             <select
                                 value={selectedJobId}
                                 onChange={(e) => handleJobSelect(e.target.value)}
-                                className="w-full bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-800 rounded-lg p-2 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                className="w-full bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-800 rounded-lg p-2 text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                             >
                                 <option value="">-- Vyberte aktivní inzerát --</option>
                                 {jobs.map(job => (
@@ -191,7 +191,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                             className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:outline-none h-24 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-600 transition-colors"
                         />
                         {isExtracting && (
-                            <div className="flex items-center gap-2 mt-1 text-xs text-indigo-500 italic">
+                            <div className="flex items-center gap-2 mt-1 text-xs text-cyan-500 italic">
                                 <Loader2 size={12} className="animate-spin" />
                                 Analyzuji inzerát a vytahuji dovednosti...
                             </div>
@@ -213,26 +213,26 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
 
                     <div>
                         <label className="block text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Struktura Assessmentu</label>
-                        <div className="p-4 bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/50 rounded-xl space-y-3">
-                            <div className="flex items-center gap-2 text-indigo-700 dark:text-indigo-300 font-bold text-sm">
+                        <div className="p-4 bg-cyan-50 dark:bg-cyan-950/20 border border-cyan-100 dark:border-cyan-900/50 rounded-xl space-y-3">
+                            <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-300 font-bold text-sm">
                                 <Sparkles size={16} className="text-amber-500" />
                                 🏗️ Komplexní Digitální AC
                             </div>
                             <div className="grid grid-cols-1 gap-2">
                                 <div className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400">
-                                    <div className="min-w-[18px] h-[18px] bg-white dark:bg-slate-800 rounded flex items-center justify-center font-bold text-indigo-500 border border-indigo-100 dark:border-indigo-800">1</div>
+                                    <div className="min-w-[18px] h-[18px] bg-white dark:bg-slate-800 rounded flex items-center justify-center font-bold text-cyan-500 border border-cyan-100 dark:border-cyan-800">1</div>
                                     <span><b>Odborný "Quick-fire"</b> (5-8 úloh) - znalost postupů, nástrojů a norem.</span>
                                 </div>
                                 <div className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400">
-                                    <div className="min-w-[18px] h-[18px] bg-white dark:bg-slate-800 rounded flex items-center justify-center font-bold text-indigo-500 border border-indigo-100 dark:border-indigo-800">2</div>
+                                    <div className="min-w-[18px] h-[18px] bg-white dark:bg-slate-800 rounded flex items-center justify-center font-bold text-cyan-500 border border-cyan-100 dark:border-cyan-800">2</div>
                                     <span><b>Situační úkoly (SJT)</b> (2-3 scénáře) - chování v reálných situacích.</span>
                                 </div>
                                 <div className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400">
-                                    <div className="min-w-[18px] h-[18px] bg-white dark:bg-slate-800 rounded flex items-center justify-center font-bold text-indigo-500 border border-indigo-100 dark:border-indigo-800">3</div>
+                                    <div className="min-w-[18px] h-[18px] bg-white dark:bg-slate-800 rounded flex items-center justify-center font-bold text-cyan-500 border border-cyan-100 dark:border-cyan-800">3</div>
                                     <span><b>Praktická Case Study</b> (1 úkol) - reálná ukázka práce na míru pozici.</span>
                                 </div>
                                 <div className="flex items-start gap-2 text-[11px] text-slate-600 dark:text-slate-400">
-                                    <div className="min-w-[18px] h-[18px] bg-white dark:bg-slate-800 rounded flex items-center justify-center font-bold text-indigo-500 border border-indigo-100 dark:border-indigo-800">4</div>
+                                    <div className="min-w-[18px] h-[18px] bg-white dark:bg-slate-800 rounded flex items-center justify-center font-bold text-cyan-500 border border-cyan-100 dark:border-cyan-800">4</div>
                                     <span><b>Logika & Analýza</b> (1-2 úlohy) - prioritizace a interpretace dat.</span>
                                 </div>
                             </div>
