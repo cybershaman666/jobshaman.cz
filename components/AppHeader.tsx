@@ -60,7 +60,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 {/* Logo */}
                 <div
                     className="flex items-center gap-2 cursor-pointer group"
-                    onClick={() => { setViewState(ViewState.LIST); setSelectedJobId(null); }}
+                    onClick={() => {
+                        setViewState(ViewState.LIST);
+                        setSelectedJobId(null);
+                        setShowCompanyLanding(false);
+                        setIsOnboardingCompany(false);
+                    }}
                 >
                     <div className="p-1 rounded-lg transition-colors bg-transparent">
                         <img
