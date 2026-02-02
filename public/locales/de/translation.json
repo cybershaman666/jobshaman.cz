@@ -756,6 +756,31 @@
         }
       }
     },
+    "blog": {
+      "title": "Shamanic Insights",
+      "subtitle": "Analyse, Daten und Realität des tschechischen Arbeitsmarktes ohne Schnörkel.",
+      "read_more": "Weiterlesen",
+      "all_articles": "Alle Artikel",
+      "stats": {
+        "active_jobs": "Aktive Angebote",
+        "transparency_rate": "Transparenzrate",
+        "avg_jhi": "Durchschnittlicher JHI"
+      },
+      "posts": {
+        "post1": {
+          "title": "Wie erkennt man ein toxisches Unternehmen?",
+          "excerpt": "Die Analyse von über 500 Anzeigen zeigt klare Muster. Worauf Sie achten sollten, bevor Sie Ihren Lebenslauf senden."
+        },
+        "post2": {
+          "title": "Transparenz im Recruiting 2026",
+          "excerpt": "Die neue EU-Transparenzrichtlinie verändert das Spiel. Sehen Sie, welche Unternehmen am weitesten vorne liegen."
+        },
+        "post3": {
+          "title": "KI als Ihr Karrierecoach",
+          "excerpt": "Wie Sie Career Pathfinder und KI-Analyse effektiv nutzen, um in Ihrem Karriereweg voranzukommen."
+        }
+      }
+    },
     "testimonials": {
       "title": "Referenzen von Unternehmen"
     },

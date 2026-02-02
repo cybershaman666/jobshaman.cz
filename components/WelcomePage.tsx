@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, TrendingUp, Eye, CheckCircle, Heart, Target, Brain, BarChart3, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getJobCount } from '../services/jobService';
+import BlogSection from './BlogSection';
 
 interface WelcomePageProps {
   onTryFree?: () => void;
@@ -442,6 +443,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onTryFree, onBrowseOffers }) 
           </button>
         </div>
       </section>
+
+      {/* BLOG SECTION */}
+      <BlogSection />
     </div>
   );
 };

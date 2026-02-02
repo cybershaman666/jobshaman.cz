@@ -914,5 +914,30 @@
             "eval_failed": "Nepodarilo sa vyhodnotiť.",
             "question_fallback": "Otázka"
         }
+    },
+    "blog": {
+        "title": "Shamanic Insights",
+        "subtitle": "Analýza, dáta a realita českého pracovného trhu bez príkras.",
+        "read_more": "Čítať viac",
+        "all_articles": "Všetky články",
+        "stats": {
+            "active_jobs": "Aktívnych ponúk",
+            "transparency_rate": "Miera transparentnosti",
+            "avg_jhi": "Priemerné JHI"
+        },
+        "posts": {
+            "post1": {
+                "title": "Ako spoznať toxickú firmu?",
+                "excerpt": "Analýza 500+ inzerátov ukazuje jasné vzorce. Na čo si dať pozor, než pošlete svoje CV."
+            },
+            "post2": {
+                "title": "Transparentnosť v náboru 2026",
+                "excerpt": "Nová smernica EÚ o transparentnosti odmeňovania mení pravidlá hry. Pozrite sa, ktoré firmy sú najďalej."
+            },
+            "post3": {
+                "title": "AI ako váš kariérny kouč",
+                "excerpt": "Ako efektívne využiť Career Pathfinder a AI analýzu k posunu vo vašej profesijnej dráhe."
+            }
+        }
     }
 }

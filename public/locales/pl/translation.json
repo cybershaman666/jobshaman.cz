@@ -745,6 +745,31 @@
         }
       }
     },
+    "blog": {
+      "title": "Shamanic Insights",
+      "subtitle": "Analiza, dane i rzeczywistość czeskiego rynku pracy bez upiększeń.",
+      "read_more": "Czytaj więcej",
+      "all_articles": "Wszystkie artykuły",
+      "stats": {
+        "active_jobs": "Aktywne oferty",
+        "transparency_rate": "Wskaźnik przejrzystości",
+        "avg_jhi": "Średni JHI"
+      },
+      "posts": {
+        "post1": {
+          "title": "Jak rozpoznać toksyczną firmę?",
+          "excerpt": "Analiza ponad 500 ogłoszeń pokazuje jasne wzorce. Na co uważać, zanim wyślesz swoje CV."
+        },
+        "post2": {
+          "title": "Przejrzystość w rekrutacji 2026",
+          "excerpt": "Nowa dyrektywa UE dotycząca przejrzystości wynagrodzeń zmienia reguły gry. Zobacz, które firmy są najdalej."
+        },
+        "post3": {
+          "title": "AI jako Twój trener kariery",
+          "excerpt": "Jak skutecznie korzystać z Career Pathfinder i analizy AI, aby ruszyć do przodu na swojej ścieżce zawodowej."
+        }
+      }
+    },
     "testimonials": {
       "title": "Referencje firm"
     },

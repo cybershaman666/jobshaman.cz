@@ -862,5 +862,30 @@
             "eval_failed": "Failed to evaluate assessment.",
             "question_fallback": "Question"
         }
+    },
+    "blog": {
+        "title": "Shamanic Insights",
+        "subtitle": "Analysis, data and reality of the Czech job market without the gloss.",
+        "read_more": "Read more",
+        "all_articles": "All articles",
+        "stats": {
+            "active_jobs": "Active listings",
+            "transparency_rate": "Transparency rate",
+            "avg_jhi": "Average JHI"
+        },
+        "posts": {
+            "post1": {
+                "title": "How to spot a toxic company?",
+                "excerpt": "Analysis of 500+ ads shows clear patterns. What to watch out for before you send your CV."
+            },
+            "post2": {
+                "title": "Transparency in Recruitment 2026",
+                "excerpt": "New EU transparency directive changes the game. See which companies are furthest ahead."
+            },
+            "post3": {
+                "title": "AI as your career coach",
+                "excerpt": "How to effectively use Career Pathfinder and AI analysis to move forward in your career path."
+            }
+        }
     }
 }
