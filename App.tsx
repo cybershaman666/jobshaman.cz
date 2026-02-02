@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, CompanyProfile, CareerPathfinderResult } from './types';
 
 import { Analytics } from '@vercel/analytics/react';
+import { initialBlogPosts } from './src/data/blogPosts';
 import AppHeader from './components/AppHeader';
 import { generateSEOMetadata, updatePageMeta } from './utils/seo';
 import CompanyDashboard from './components/CompanyDashboard';
@@ -61,6 +62,13 @@ export default function App() {
         const path = window.location.pathname;
         if (path.startsWith('/jobs/')) {
             return path.split('/jobs/')[1] || null;
+        }
+        return null;
+    });
+    const [selectedBlogPostSlug, setSelectedBlogPostSlug] = useState<string | null>(() => {
+        const path = window.location.pathname;
+        if (path.startsWith('/blog/')) {
+            return path.split('/blog/')[1] || null;
         }
         return null;
     });
@@ -418,9 +426,14 @@ export default function App() {
         // Wait until translations are ready to avoid raw keys in browser tab
         if (t('seo.base_title') === 'seo.base_title') return;
 
-        const metadata = generateSEOMetadata(pageName, t, selectedJob);
+        const selectedBlogPost = initialBlogPosts.find(p => p.slug === selectedBlogPostSlug);
+        const metadata = generateSEOMetadata(
+            selectedBlogPostSlug ? 'blog-post' : pageName,
+            t,
+            selectedBlogPostSlug ? selectedBlogPost : selectedJob
+        );
         updatePageMeta(metadata);
-    }, [viewState, showCompanyLanding, selectedJob, userProfile, i18n.language, t]);
+    }, [viewState, showCompanyLanding, selectedJob, selectedBlogPostSlug, userProfile, i18n.language, t]);
 
     useEffect(() => {
         if (theme === 'dark') {
@@ -535,8 +548,15 @@ export default function App() {
         setSavedJobIds(prev => prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]);
     };
 
-    const handleJobSelect = (jobId: string) => {
+    const handleJobSelect = (jobId: string | null) => {
         setSelectedJobId(jobId);
+        setSelectedBlogPostSlug(null); // Clear blog post when job selected
+
+        if (jobId) {
+            window.history.pushState({}, '', `/jobs/${jobId}`);
+        } else {
+            window.history.pushState({}, '', '/');
+        }
 
         // Scroll ONLY the right column using setTimeout to ensure DOM is ready
         setTimeout(() => {
@@ -546,6 +566,24 @@ export default function App() {
                 console.log('✅ Right column scrolled to top');
             }
         }, 0); // Use 0 timeout to run after current execution stack
+    };
+
+    const handleBlogPostSelect = (slug: string | null) => {
+        setSelectedBlogPostSlug(slug);
+        setSelectedJobId(null); // Clear job when blog selected
+
+        if (slug) {
+            window.history.pushState({}, '', `/blog/${slug}`);
+        } else {
+            window.history.pushState({}, '', '/');
+        }
+
+        // Scroll to top
+        setTimeout(() => {
+            if (detailScrollRef.current) {
+                detailScrollRef.current.scrollTop = 0;
+            }
+        }, 0);
     };
 
     const [showPremiumUpgrade, setShowPremiumUpgrade] = useState<{ open: boolean, feature?: string }>({ open: false });
@@ -856,6 +894,8 @@ export default function App() {
                     aiAnalysis={aiAnalysis}
                     analyzing={analyzing}
                     handleAnalyzeJob={handleAnalyzeJob}
+                    selectedBlogPostSlug={selectedBlogPostSlug}
+                    handleBlogPostSelect={handleBlogPostSelect}
                 />
             </>
         );

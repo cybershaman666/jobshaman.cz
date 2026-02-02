@@ -116,10 +116,30 @@
 
   <url>
     <loc>https://jobshaman.cz/blog</loc>
-    <lastmod>2026-01-23</lastmod>
+    <lastmod>2026-02-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.75</priority>
     <xhtml:link rel="alternate" hreflang="cs" href="https://jobshaman.cz/blog" />
+  </url>
+
+  <!-- Blog Posts -->
+  <url>
+    <loc>https://jobshaman.cz/blog/jak-poznat-toxickou-firmu</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://jobshaman.cz/blog/transparentnost-v-naboru-2026</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://jobshaman.cz/blog/ai-jako-vas-karierni-kouc</loc>
+    <lastmod>2026-02-02</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
 
   <!-- FAQ Pages -->

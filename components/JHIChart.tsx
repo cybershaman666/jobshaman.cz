@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { ResponsiveContainer, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Tooltip } from 'recharts';
 import { JHI } from '../types';
+import JHIMethodologyTooltip from './JHIMethodologyTooltip';
 
 interface JHIChartProps {
   jhi: JHI;
@@ -52,6 +53,9 @@ const JHIChart: React.FC<JHIChartProps> = ({ jhi, theme = 'light', highlightGrow
 
   return (
     <div className="w-full h-64 relative">
+      <div className="absolute top-0 right-0 z-10">
+        <JHIMethodologyTooltip />
+      </div>
       <ResponsiveContainer width="100%" height="100%">
         <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data}>
           <PolarGrid stroke={colors.grid} />

@@ -1,15 +1,43 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { BookOpen, Shield, BarChart3, Search, Plus, Edit2, X, Check, Calendar, Clock, ArrowRight, Copy, Save } from 'lucide-react';
+import { BookOpen, Shield, BarChart3, Search, Plus, Edit2, X, Check, Calendar, Clock, ArrowRight, Copy, Save, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../services/supabaseService';
 import { initialBlogPosts as blogPosts, BlogPost } from '../src/data/blogPosts';
 import Markdown from 'markdown-to-jsx';
 
-const BlogSection: React.FC = () => {
+interface BlogSectionProps {
+    selectedBlogPostSlug?: string | null;
+    setSelectedBlogPostSlug?: (slug: string | null) => void;
+}
+
+const BlogSection: React.FC<BlogSectionProps> = ({
+    selectedBlogPostSlug,
+    setSelectedBlogPostSlug
+}) => {
     const { t } = useTranslation();
     const [posts, setPosts] = useState<BlogPost[]>(blogPosts);
     const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
+
+    // Sync selectedPost with prop
+    useEffect(() => {
+        if (selectedBlogPostSlug) {
+            const post = posts.find(p => p.slug === selectedBlogPostSlug);
+            if (post) {
+                setSelectedPost(post);
+            }
+        } else {
+            setSelectedPost(null);
+        }
+    }, [selectedBlogPostSlug, posts]);
+
+    const handleSelectPost = (post: BlogPost | null) => {
+        if (setSelectedBlogPostSlug) {
+            setSelectedBlogPostSlug(post ? post.slug : null);
+        } else {
+            setSelectedPost(post);
+        }
+    };
     const [isAdmin, setIsAdmin] = useState(false);
     const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
     const [globalStats, setGlobalStats] = useState({
@@ -127,7 +155,21 @@ const BlogSection: React.FC = () => {
                         <div className="flex items-center gap-3">
                             <span className="text-sm font-bold text-cyan-800 dark:text-cyan-300">Admin Mode</span>
                             <button
-                                onClick={() => setEditingPost({ id: 0, title: '', excerpt: '', content: '', date: new Date().toLocaleDateString('cs-CZ'), readTime: '5 min čtení', category: 'Novinky', image: '' })}
+                                onClick={() => setEditingPost({
+                                    id: 0,
+                                    slug: '',
+                                    title: '',
+                                    excerpt: '',
+                                    content: '',
+                                    date: new Date().toLocaleDateString('cs-CZ'),
+                                    readTime: '5 min čtení',
+                                    category: 'Novinky',
+                                    image: '',
+                                    author: '',
+                                    keywords: [],
+                                    shamanSummary: '',
+                                    qa: []
+                                })}
                                 className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 text-white rounded-lg text-sm font-bold hover:bg-cyan-500 transition-colors"
                             >
                                 <Plus size={16} /> Přidat článek
@@ -201,7 +243,7 @@ const BlogSection: React.FC = () => {
                     {posts.map((post) => (
                         <article
                             key={post.id}
-                            onClick={() => setSelectedPost(post)}
+                            onClick={() => handleSelectPost(post)}
                             className="group flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer"
                         >
                             <div className="relative h-48 overflow-hidden">
@@ -275,10 +317,31 @@ const BlogSection: React.FC = () => {
                                     <span className="flex items-center gap-1"><Clock size={14} /> {selectedPost.readTime}</span>
                                 </div>
                             </div>
-                            <button onClick={() => setSelectedPost(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                            <button onClick={() => handleSelectPost(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
                                 <X size={24} className="text-slate-500" />
                             </button>
                         </div>
+
+                        {/* AEO: Structured Data for the Article */}
+                        <script type="application/ld+json">
+                            {JSON.stringify({
+                                "@context": "https://schema.org",
+                                "@type": "BlogPosting",
+                                "headline": selectedPost.title,
+                                "description": selectedPost.excerpt,
+                                "author": {
+                                    "@type": "Person",
+                                    "name": selectedPost.author
+                                },
+                                "datePublished": selectedPost.date,
+                                "image": selectedPost.image,
+                                "keywords": selectedPost.keywords.join(', '),
+                                "mainEntityOfPage": {
+                                    "@type": "WebPage",
+                                    "@id": `https://jobshaman.cz/blog/${selectedPost.slug}`
+                                }
+                            })}
+                        </script>
 
                         {/* Modal Content */}
                         <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10">
@@ -288,15 +351,67 @@ const BlogSection: React.FC = () => {
                             <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-8 leading-tight">
                                 {selectedPost.title}
                             </h1>
-                            <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed text-lg">
+
+                            {/* AEO: Shaman's Summary (TL;DR) */}
+                            <div className="mb-10 p-6 bg-cyan-50 dark:bg-cyan-900/20 border-l-4 border-cyan-500 rounded-r-xl">
+                                <div className="flex items-center gap-2 mb-3">
+                                    <Zap className="text-cyan-600 dark:text-cyan-400" size={20} />
+                                    <h3 className="text-sm font-bold uppercase tracking-widest text-cyan-700 dark:text-cyan-300">
+                                        Shaman's Summary (TL;DR)
+                                    </h3>
+                                </div>
+                                <p className="text-slate-700 dark:text-slate-200 font-medium italic">
+                                    "{selectedPost.shamanSummary}"
+                                </p>
+                            </div>
+
+                            <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed text-lg mb-12">
                                 <Markdown options={{ forceBlock: true }}>{selectedPost.content}</Markdown>
                             </div>
+
+                            {/* AEO: Key Takeaways (FAQ) */}
+                            {selectedPost.qa && selectedPost.qa.length > 0 && (
+                                <div className="mt-12 bg-slate-50 dark:bg-slate-950/50 rounded-2xl p-8 border border-slate-200 dark:border-slate-800">
+                                    <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-2">
+                                        <Plus className="text-cyan-600" size={24} /> Key Takeaways & FAQ
+                                    </h3>
+                                    <div className="space-y-6">
+                                        {selectedPost.qa.map((item, idx) => (
+                                            <div key={idx} className="space-y-2">
+                                                <h4 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-cyan-500"></div>
+                                                    {item.question}
+                                                </h4>
+                                                <p className="text-slate-600 dark:text-slate-400 pl-4 border-l border-slate-200 dark:border-slate-800 text-sm">
+                                                    {item.answer}
+                                                </p>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* FAQPage Structured Data */}
+                                    <script type="application/ld+json">
+                                        {JSON.stringify({
+                                            "@context": "https://schema.org",
+                                            "@type": "FAQPage",
+                                            "mainEntity": selectedPost.qa.map(q => ({
+                                                "@type": "Question",
+                                                "name": q.question,
+                                                "acceptedAnswer": {
+                                                    "@type": "Answer",
+                                                    "text": q.answer
+                                                }
+                                            }))
+                                        })}
+                                    </script>
+                                </div>
+                            )}
                         </div>
 
                         {/* Modal Footer */}
                         <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex justify-end">
                             <button
-                                onClick={() => setSelectedPost(null)}
+                                onClick={() => handleSelectPost(null)}
                                 className="px-6 py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold hover:bg-slate-800 dark:hover:bg-slate-200 transition-all active:scale-95"
                             >
                                 Zavřít článek

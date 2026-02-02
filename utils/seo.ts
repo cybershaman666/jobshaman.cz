@@ -65,6 +65,16 @@ export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetada
         canonical: `${baseUrl}/profil`
       };
 
+    case 'blog-post':
+      return {
+        title: `${data?.title || ''} | ${t('blog.category_label')} - JobShaman`,
+        description: data?.shamanSummary || data?.excerpt || '',
+        keywords: data?.keywords || [],
+        canonical: `${baseUrl}/blog/${data?.slug}`,
+        ogImage: data?.image || `${baseUrl}/og-image.jpg`,
+        structuredData: generateBlogStructuredData(data)
+      };
+
     default:
       return {
         title: baseTitle,
@@ -126,6 +136,51 @@ export const generateJobPostingStructuredData = (job: any) => {
     "workHours": job.workType,
     "industry": job.industry
   };
+};
+
+// Generate structured data for blog posts (AEO)
+export const generateBlogStructuredData = (post: any) => {
+  if (!post) return undefined;
+
+  const blogPosting = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    "headline": post.title,
+    "description": post.excerpt,
+    "author": {
+      "@type": "Person",
+      "name": post.author || "JobShaman"
+    },
+    "datePublished": post.date,
+    "image": post.image,
+    "keywords": post.keywords?.join(', '),
+    "mainEntityOfPage": {
+      "@type": "WebPage",
+      "@id": `https://jobshaman.cz/blog/${post.slug}`
+    }
+  };
+
+  if (post.qa && post.qa.length > 0) {
+    return {
+      "@context": "https://schema.org",
+      "@graph": [
+        blogPosting,
+        {
+          "@type": "FAQPage",
+          "mainEntity": post.qa.map((q: any) => ({
+            "@type": "Question",
+            "name": q.question,
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": q.answer
+            }
+          }))
+        }
+      ]
+    };
+  }
+
+  return blogPosting;
 };
 
 // Generate FAQ structured data
@@ -285,6 +340,8 @@ export const generateAISummary = (page: string, t: any, data?: any): string => {
         location: data?.location || t('common.unknown'),
         benefits: data?.benefits?.slice(0, 3).join(', ') || t('common.standard_package')
       });
+    case 'blog-post':
+      return `${data?.title}: ${data?.shamanSummary || data?.excerpt}`;
     case 'company-dashboard':
       return t('seo.ai_summary_company');
     default:

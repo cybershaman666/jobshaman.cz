@@ -278,7 +278,23 @@
         "label_mental": "Psychika",
         "label_growth": "Růst",
         "label_values": "Hodnoty",
-        "series_score": "Skóre"
+        "series_score": "Skóre",
+        "methodology": {
+            "title": "Shamanova Formule V1.1",
+            "info_button": "Jak se to počítá?",
+            "financial_title": "Finanční Realita",
+            "financial_desc": "Mzda, bonusy, transparentnost a rozptyl nabídek.",
+            "time_title": "Časová Dotace",
+            "time_desc": "Typ úvazku, remote, hybrid a čas ztracený dojížděním.",
+            "mental_title": "Duševní Pohoda",
+            "mental_desc": "Toxicita inzerátu, stresové faktory a péče o zdraví.",
+            "growth_title": "Možnost Růstu",
+            "growth_desc": "Vzdělávací budgety, mentoring a kariérní vize.",
+            "values_title": "Soulad s Hodnotami",
+            "values_desc": "Osobní shoda s kulturou a smyslem práce.",
+            "penalty_label": "Kritická penalizace:",
+            "penalty_desc": "Pokud jakýkoliv pilíř klesne pod 20 bodů, celkové JHI se propadá o 30% (Anti-BS ochrana)."
+        }
     },
     "job": {
         "jhi_score": "JHI Skóre",
