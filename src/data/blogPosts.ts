@@ -1,17 +1,24 @@
 export interface BlogPost {
     id: number;
+    slug: string;
     title: string;
     excerpt: string;
     content: string; // Markdown content
     date: string;
+    modifiedDate?: string;
     readTime: string;
     category: string;
     image: string;
+    author: string;
+    keywords: string[];
+    shamanSummary: string; // TL;DR for AEO
+    qa: { question: string; answer: string }[]; // For FAQ schema
 }
 
 export const initialBlogPosts: BlogPost[] = [
     {
         id: 1,
+        slug: 'jak-poznat-toxickou-firmu',
         title: 'Jak poznat toxickou firmu?',
         excerpt: 'Analýza 500+ inzerátů ukazuje jasné vzorce. Na čo si dát pozor, než pošlete své CV.',
         content: `
@@ -40,10 +47,18 @@ Sledujte pozice s JHI nad 75 bodů. Tyto nabídky obvykle nabízejí nejlepší 
         date: '2. února 2026',
         readTime: '5 min čtení',
         category: 'Tipy & Triky',
-        image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&q=80&w=800'
+        image: 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?auto=format&fit=crop&q=80&w=800',
+        author: 'Šaman Michal',
+        keywords: ['toxická firma', 'JHI skóre', 'spokojenost v práci', 'analýza inzerátů', 'bullshit detektor'],
+        shamanSummary: 'Toxické firmy se často schovávají za vágní fráze. Náš JHI skóre vám pomůže odhalit realitu dříve, než ztratíte čas na pohovoru. Klíčem je sledovat transparentnost a reálné dopady na váš čas a psychiku.',
+        qa: [
+            { question: 'Co je to JHI?', answer: 'Job Happiness Index je komplexní skóre od 0 do 100, které hodnotí kvalitu pracovní nabídky na základě financí, času, psychiky, růstu a hodnot.' },
+            { question: 'Jak poznám málo transparentní firmu?', answer: 'Typickým znakem je absence mzdového rozmezí, vágní popis benefitů a nadužívání klišé jako "dynamické prostředí" bez konkrétních detailů.' }
+        ]
     },
     {
         id: 2,
+        slug: 'transparentnost-v-naboru-2026',
         title: 'Transparentnost v náboru 2026',
         excerpt: 'Nová směrnice EU o transparentnosti odměňování mění pravidla hry. Podívejte se, které firmy jsou nejdále.',
         content: `
@@ -63,10 +78,18 @@ Transparentní nábor šetří čas oběma stranám. Pokud firma tají plat, ča
         date: '28. ledna 2026',
         readTime: '8 min čtení',
         category: 'Novinky',
-        image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=800'
+        image: 'https://images.unsplash.com/photo-1554224155-8d04cb21cd6c?auto=format&fit=crop&q=80&w=800',
+        author: 'Tým JobShaman',
+        keywords: ['transparentnost', 'EU směrnice', 'platové rozmezí', 'férový nábor', 'transparentní mzda'],
+        shamanSummary: 'Rok 2026 je rokem konce mzdového tajemství v inzerátech. EU směrnice nutí firmy k otevřenosti, což radikálně zlepší pozici kandidátů na trhu práce. Firmy s naším Transparent Badge jsou v tomto o krok napřed.',
+        qa: [
+            { question: 'Musí firmy uvádět plat v inzerátu?', answer: 'Podle nové směrnice EU musí firmy poskytnout informace o nástupním platu nebo jeho rozmezí buď v inzerátu, nebo před pohovorem.' },
+            { question: 'Co je EU Transparent Badge?', answer: 'Je to naše certifikace pro firmy, které dobrovolně splňují nejpřísnější kritéria transparentnosti v odměňování a popisu pozic.' }
+        ]
     },
     {
         id: 3,
+        slug: 'ai-jako-vas-karierni-kouc',
         title: 'AI jako váš kariérní kouč',
         excerpt: 'Jak efektivně využít Career Pathfinder a AI analýzu k posunu ve vaší profesní dráze.',
         content: `
@@ -86,6 +109,13 @@ AI není náhrada za vaši osobnost, je to nástroj, který vám umožní vynikn
         date: '15. ledna 2026',
         readTime: '6 min čtení',
         category: 'Technologie',
-        image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800'
+        image: 'https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=800',
+        author: 'AI Shaman',
+        keywords: ['AI kariéra', 'Career Pathfinder', 'optimalizace CV', 'umělá inteligence', 'budoucnost práce'],
+        shamanSummary: 'AI transformuje hledání práce z hádanky na vědu. Náš Career Pathfinder identifikuje vaše silné stránky a propojuje je s nejvhodnějšími příležitostmi, čímž maximalizuje vaše šance na úspěch bez nutnosti stovek pokusů.',
+        qa: [
+            { question: 'Jak funguje Career Pathfinder?', answer: 'Pathfinder využívá velké jazykové modely k analýze vašeho CV a požadavků trhu, čímž identifikuje "skryté" shody, které tradiční vyhledávání přehlédne.' },
+            { question: 'Může AI napsat můj motivační dopis?', answer: 'Ano, ale v JobShaman doporučujeme AI používat jako asistenta pro strukturu a argumentaci, zatímco finální tón by měl zůstat váš vlastní.' }
+        ]
     }
 ];

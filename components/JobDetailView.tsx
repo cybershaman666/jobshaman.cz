@@ -34,12 +34,13 @@ interface JobDetailViewProps {
     setShowFinancialMethodology: (show: boolean) => void;
     getTransportIcon: (mode: string) => React.ComponentType<any>;
     formatJobDescription: (description: string) => string;
-    // New props for full functionality
     theme: 'light' | 'dark';
     pathfinderAnalysis: CareerPathfinderResult | null;
     aiAnalysis: AIAnalysisResult | null;
     analyzing: boolean;
     handleAnalyzeJob: () => void;
+    selectedBlogPostSlug: string | null;
+    handleBlogPostSelect: (slug: string | null) => void;
 }
 
 const JobDetailView: React.FC<JobDetailViewProps> = ({
@@ -67,7 +68,9 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     pathfinderAnalysis,
     aiAnalysis,
     analyzing,
-    handleAnalyzeJob
+    handleAnalyzeJob,
+    selectedBlogPostSlug,
+    handleBlogPostSelect
 }) => {
     const { t } = useTranslation();
 
@@ -179,7 +182,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                 {/* Left Column - JHI Chart and AI Analysis */}
                                 <div className="space-y-6">
                                     {/* JHI Chart with Spider Graph */}
-                                    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+                                    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800 relative">
                                         <div className="flex items-center justify-between mb-6">
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 bg-emerald-100 dark:bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20"><Zap size={20} /></div>
@@ -245,7 +248,10 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                 </div>
             ) : (
                 <div className="h-full overflow-y-auto custom-scrollbar">
-                    <WelcomePage />
+                    <WelcomePage
+                        selectedBlogPostSlug={selectedBlogPostSlug}
+                        handleBlogPostSelect={handleBlogPostSelect}
+                    />
                 </div>
             )}
         </section>

@@ -7,9 +7,16 @@ import BlogSection from './BlogSection';
 interface WelcomePageProps {
   onTryFree?: () => void;
   onBrowseOffers?: () => void;
+  selectedBlogPostSlug: string | null;
+  handleBlogPostSelect: (slug: string | null) => void;
 }
 
-const WelcomePage: React.FC<WelcomePageProps> = ({ onTryFree, onBrowseOffers }) => {
+const WelcomePage: React.FC<WelcomePageProps> = ({
+  onTryFree,
+  onBrowseOffers,
+  selectedBlogPostSlug,
+  handleBlogPostSelect
+}) => {
   const { t } = useTranslation();
   const [activeMetric, setActiveMetric] = useState(0);
   const [jobCount, setJobCount] = useState<number | null>(null);
@@ -445,7 +452,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({ onTryFree, onBrowseOffers }) 
       </section>
 
       {/* BLOG SECTION */}
-      <BlogSection />
+      <BlogSection
+        selectedBlogPostSlug={selectedBlogPostSlug}
+        setSelectedBlogPostSlug={handleBlogPostSelect}
+      />
     </div>
   );
 };
