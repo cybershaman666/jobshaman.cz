@@ -507,6 +507,7 @@ class BaseScraper:
             Total number of jobs saved
         """
         total_saved = 0
+        consecutive_zero_pages = 0
         
         for page_num in range(1, max_pages + 1):
             # Build page URL (different sites use different pagination formats)
@@ -526,8 +527,16 @@ class BaseScraper:
             total_saved += jobs
             
             if jobs == 0:
-                print(f"   ℹ️ Žádné nové nabídky na stránce {page_num}, končím.")
-                break
+                consecutive_zero_pages += 1
+                print(f"   ℹ️ Žádné nové nabídky na stránce {page_num} ({consecutive_zero_pages}/3 prázdných stránek)")
+                
+                # Stop only after 3 consecutive pages with no new jobs
+                if consecutive_zero_pages >= 3:
+                    print(f"   ⏹️ 3 po sobě jdoucí prázdné stránky, končím.")
+                    break
+            else:
+                # Reset counter when we find jobs
+                consecutive_zero_pages = 0
             
             # Rate limiting between pages
             time.sleep(2)

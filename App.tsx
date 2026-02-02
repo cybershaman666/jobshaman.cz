@@ -28,6 +28,7 @@ import PremiumUpgradeModal from './components/PremiumUpgradeModal';
 import AppFooter from './components/AppFooter';
 import { analyzeJobDescription } from './services/geminiService';
 import { calculateCommuteReality } from './services/commuteService';
+import { fetchJobById } from './services/jobService';
 import { clearJobCache } from './services/jobService';
 import { supabase, getUserProfile, updateUserProfile, verifyAuthSession } from './services/supabaseService';
 import { canCandidateUseFeature } from './services/billingService';
@@ -74,6 +75,7 @@ export default function App() {
     });
     const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
     const [analyzing, setAnalyzing] = useState(false);
+    const [directlyFetchedJob, setDirectlyFetchedJob] = useState<Job | null>(null);
     const [isLoadingJobs, setIsLoadingJobs] = useState(true);
 
     // Career Pathfinder State
@@ -149,7 +151,7 @@ export default function App() {
     const [mounted, setMounted] = useState(false);
     useEffect(() => { setMounted(true); }, []);
 
-    const selectedJob = filteredJobs.find(j => j.id === selectedJobId);
+    const selectedJob = filteredJobs.find(j => j.id === selectedJobId) || directlyFetchedJob;
 
     // --- EFFECTS ---
 
@@ -278,6 +280,28 @@ export default function App() {
             return () => subscription.unsubscribe();
         }
     }, []);
+
+    // Fetch job by ID for direct links (e.g., /jobs/18918)
+    useEffect(() => {
+        const fetchDirectJob = async () => {
+            // Only fetch if:
+            // 1. We have a selectedJobId (from URL)
+            // 2. The job is not in filteredJobs
+            // 3. We haven't already fetched it
+            // 4. Jobs have finished initial loading
+            if (selectedJobId && !filteredJobs.find(j => j.id === selectedJobId) && !isLoadingJobs) {
+                console.log('🔗 Direct link detected, fetching job by ID:', selectedJobId);
+                const job = await fetchJobById(selectedJobId);
+                if (job) {
+                    setDirectlyFetchedJob(job);
+                } else {
+                    console.warn('⚠️ Job not found for direct link:', selectedJobId);
+                }
+            }
+        };
+
+        fetchDirectJob();
+    }, [selectedJobId, filteredJobs.length, isLoadingJobs]);
 
     // If user session is restored after initial mount, reload jobs to avoid empty list due to race.
     const lastReloadUserIdRef = useRef<string | null>(null);

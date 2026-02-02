@@ -616,11 +616,18 @@ export const fetchJobsWithFilters = async (
             searchTerm: searchTerm || 'none'
         });
 
+        // When radius is disabled (undefined/null), also disable spatial filtering
+        // by setting coordinates to null
+        const usesSpatialFilter = radiusKm !== undefined && radiusKm !== null;
+        const spatialLat = usesSpatialFilter ? finalUserLat : null;
+        const spatialLng = usesSpatialFilter ? finalUserLng : null;
+        const spatialRadius = usesSpatialFilter ? radiusKm : null;
+
         const { data, error } = await supabase.rpc('search_jobs_with_filters', {
             search_term: searchTerm || null,
-            user_lat: finalUserLat || null,
-            user_lng: finalUserLng || null,
-            radius_km: radiusKm || null,
+            user_lat: spatialLat,
+            user_lng: spatialLng,
+            radius_km: spatialRadius,
             filter_city: filterCity || null,
             filter_contract_types: filterContractTypes && filterContractTypes.length > 0 ? filterContractTypes : null,
             filter_benefits: filterBenefits && filterBenefits.length > 0 ? filterBenefits : null,
@@ -689,6 +696,67 @@ export const fetchJobsWithFilters = async (
     } catch (e) {
         console.error("Error in fetchJobsWithFilters:", e);
         return { jobs: [], hasMore: false, totalCount: 0 };
+    }
+};
+
+/**
+ * Fetch a single job by ID (for direct links like /jobs/:id)
+ */
+export const fetchJobById = async (jobId: string): Promise<Job | null> => {
+    try {
+        if (!supabase) {
+            console.error('❌ Supabase not configured');
+            return null;
+        }
+
+        console.log(`🔍 Fetching job by ID: ${jobId}`);
+
+        const { data, error } = await supabase
+            .from('jobs')
+            .select('*')
+            .eq('id', jobId)
+            .single();
+
+        if (error) {
+            console.error('❌ Error fetching job by ID:', error);
+            return null;
+        }
+
+        if (!data) {
+            console.log('🔍 No job found with ID:', jobId);
+            return null;
+        }
+
+        const job = transformJob({
+            id: data.id,
+            title: data.title,
+            company: data.company,
+            location: data.location,
+            description: data.description,
+            benefits: data.benefits,
+            contract_type: data.contract_type,
+            salary_from: data.salary_from,
+            salary_to: data.salary_to,
+            currency: data.currency,
+            work_type: data.work_type,
+            scraped_at: data.scraped_at,
+            source: data.source,
+            education_level: data.education_level,
+            url: data.url,
+            lat: data.lat,
+            lng: data.lng,
+            country_code: data.country_code,
+            legality_status: data.legality_status,
+            verification_notes: data.verification_notes,
+            ai_analysis: data.ai_analysis
+        });
+
+        console.log(`✅ Fetched job: ${job.title} at ${job.company}`);
+        return job;
+
+    } catch (e) {
+        console.error("Error in fetchJobById:", e);
+        return null;
     }
 };
 
