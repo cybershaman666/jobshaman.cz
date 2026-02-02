@@ -1,6 +1,7 @@
 import { supabase, isSupabaseConfigured } from './supabaseService';
-import { Job, JHI, NoiseMetrics } from '../types';
+import { Job, NoiseMetrics } from '../types';
 import { contextualRelevanceScorer, ContextualRelevanceScorer } from './contextualRelevanceService';
+import { calculateJHI } from '../utils/jhiCalculator';
 
 // Loose interface to accept whatever Supabase returns
 interface ScrapedJob {
@@ -22,6 +23,7 @@ interface ScrapedJob {
     lng?: number | string | null;
     legality_status?: 'pending' | 'legal' | 'illegal' | 'review';
     verification_notes?: string;
+    ai_analysis?: any;
 }
 
 // --- CONFIG ---
@@ -382,42 +384,6 @@ const formatDescription = (desc: string | null | undefined): string => {
 
 // --- ESTIMATORS ---
 
-const estimateJHI = (job: ScrapedJob, salaryFrom: number | null): JHI => {
-    let financial = 50;
-    let timeCost = 50;
-    let mentalLoad = 50;
-    let growth = 50;
-    let values = 50;
-
-    const desc = (job.description || "").toLowerCase();
-
-    // Financial Score
-    if (salaryFrom) {
-        if (salaryFrom > 100000) financial = 95;
-        else if (salaryFrom > 70000) financial = 80;
-        else if (salaryFrom > 50000) financial = 65;
-        else if (salaryFrom > 35000) financial = 50;
-        else financial = 30;
-    }
-
-    // Keywords Analysis
-    if (desc.includes('remote') || desc.includes('home office')) timeCost += 20;
-    if (desc.includes('přesčas') || desc.includes('směny')) timeCost -= 20;
-    if (desc.includes('stres') || desc.includes('dynamické')) mentalLoad -= 15;
-    if (desc.includes('přátelský') || desc.includes('rodinná')) mentalLoad += 15;
-    if (desc.includes('vzdělávání') || desc.includes('školení')) growth += 20;
-
-    const clamp = (n: number) => Math.max(0, Math.min(100, n));
-
-    return {
-        score: Math.round((financial + timeCost + mentalLoad + growth + values) / 5),
-        financial: clamp(financial),
-        timeCost: clamp(timeCost),
-        mentalLoad: clamp(mentalLoad),
-        growth: clamp(growth),
-        values: clamp(values)
-    };
-};
 
 // Helper: Haversine distance calculation
 const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -473,6 +439,16 @@ const transformJob = (scrapedJob: any): Job => {
 
     const fullDesc = scrapedJob.description || 'Popis pozice není k dispozici.';
 
+    // Calculate JHI
+    const jhi = calculateJHI({
+        salary_from: salaryFrom ?? undefined,
+        salary_to: salaryTo ?? undefined,
+        type: scrapedJob.work_type as any,
+        benefits: benefits,
+        description: fullDesc,
+        location: locationString
+    });
+
     return {
         id: String(scrapedJob.id),
         title: scrapedJob.title || (scrapedJob.company ? `${scrapedJob.company} - Pozice` : 'Pozice bez názvu'),
@@ -487,7 +463,7 @@ const transformJob = (scrapedJob: any): Job => {
         url: scrapedJob.url,
         lat: scrapedJob.lat ? parseFloat(String(scrapedJob.lat)) : undefined,
         lng: scrapedJob.lng ? parseFloat(String(scrapedJob.lng)) : undefined,
-        jhi: estimateJHI(scrapedJob, salaryFrom),
+        jhi: jhi,
         noiseMetrics: estimateNoise(fullDesc),
         transparency: {
             turnoverRate: 15,
@@ -1222,7 +1198,15 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
                 lat: scraped.lat ? parseFloat(String(scraped.lat)) : undefined,
                 lng: scraped.lng ? parseFloat(String(scraped.lng)) : undefined,
                 ...(distanceKm !== undefined && { distanceKm }),
-                jhi: estimateJHI(scraped, salaryFrom),
+                jhi: calculateJHI({
+                    salary_from: salaryFrom ?? undefined,
+                    salary_to: salaryTo ?? undefined,
+                    type: jobType,
+                    benefits: benefits,
+                    description: fullDesc,
+                    location: locationString,
+                    distanceKm: distanceKm
+                }),
                 noiseMetrics: estimateNoise(fullDesc),
                 transparency: {
                     turnoverRate: 15,

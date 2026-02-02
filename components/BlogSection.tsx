@@ -1,0 +1,420 @@
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import { BookOpen, Shield, BarChart3, Search, Plus, Edit2, X, Check, Calendar, Clock, ArrowRight, Copy, Save } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { supabase } from '../services/supabaseService';
+import { initialBlogPosts as blogPosts, BlogPost } from '../src/data/blogPosts';
+import Markdown from 'markdown-to-jsx';
+
+const BlogSection: React.FC = () => {
+    const { t } = useTranslation();
+    const [posts, setPosts] = useState<BlogPost[]>(blogPosts);
+    const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [editingPost, setEditingPost] = useState<BlogPost | null>(null);
+    const [globalStats, setGlobalStats] = useState({
+        active_jobs: 0,
+        transparency_rate: 0,
+        avg_jhi: 78
+    });
+
+    useEffect(() => {
+        const fetchStats = async () => {
+            try {
+                const { data, error } = await supabase.rpc('get_global_stats');
+                if (error) throw error;
+                if (data) {
+                    setGlobalStats(data);
+                }
+            } catch (err) {
+                console.error('Error fetching global stats:', err);
+                // Fallback to placeholders if RPC is not yet available in DB
+                setGlobalStats({
+                    active_jobs: 4200,
+                    transparency_rate: 94,
+                    avg_jhi: 78
+                });
+            }
+        };
+
+        fetchStats();
+    }, []);
+    const [copied, setCopied] = useState(false);
+
+    // Stats (can be derived or kept separate)
+    const stats = [
+        {
+            label: t('blog.stats.active_jobs'),
+            value: globalStats.active_jobs > 0 ? `${globalStats.active_jobs.toLocaleString()}+` : '4,200+',
+            icon: Search,
+            color: 'text-cyan-400'
+        },
+        {
+            label: t('blog.stats.transparency_rate'),
+            value: `${globalStats.transparency_rate}%`,
+            icon: Shield,
+            color: 'text-emerald-400'
+        },
+        {
+            label: t('blog.stats.avg_jhi'),
+            value: `${globalStats.avg_jhi}/100`,
+            icon: BarChart3,
+            color: 'text-purple-400'
+        }
+    ];
+
+    const handleSavePost = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingPost) return;
+
+        const postToSave: BlogPost = editingPost;
+
+        if (postToSave.id === 0) {
+            // New post
+            const newPost: BlogPost = { ...postToSave, id: Math.max(...posts.map(p => p.id), 0) + 1 };
+            setPosts([newPost, ...posts]);
+        } else {
+            // Update existing
+            setPosts(posts.map(p => p.id === postToSave.id ? postToSave : p));
+        }
+        setEditingPost(null);
+    };
+
+    const handleExport = () => {
+        const dataStr = `export const initialBlogPosts: BlogPost[] = ${JSON.stringify(posts, null, 2)};`;
+        navigator.clipboard.writeText(dataStr);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    const structuredData = {
+        "@context": "https://schema.org",
+        "@type": "Blog",
+        "name": "JobShaman Shamanic Insights",
+        "description": "Insights and analysis from the world of AI-driven job searching in the Czech Republic.",
+        "blogPost": posts.map(post => ({
+            "@type": "BlogPosting",
+            "headline": post.title,
+            "description": post.excerpt,
+            "datePublished": "2026-02-02",
+            "author": {
+                "@type": "Organization",
+                "name": "JobShaman"
+            }
+        }))
+    };
+
+    return (
+        <section className="py-16 bg-slate-50 dark:bg-slate-950/50 relative">
+            <div className="max-w-7xl mx-auto px-4 lg:px-8">
+                <script type="application/ld+json">
+                    {JSON.stringify(structuredData)}
+                </script>
+
+                {/* Admin Toggle (Subtle) */}
+                <div className="absolute top-4 right-4 opacity-10 hover:opacity-100 transition-opacity">
+                    <button
+                        onClick={() => setIsAdmin(!isAdmin)}
+                        className="p-2 bg-slate-200 dark:bg-slate-800 rounded-full text-slate-500"
+                    >
+                        <Edit2 size={16} />
+                    </button>
+                </div>
+
+                {/* Admin Toolbar */}
+                {isAdmin && (
+                    <div className="mb-8 p-4 bg-cyan-100 dark:bg-cyan-950/30 border border-cyan-200 dark:border-cyan-800 rounded-xl flex items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex items-center gap-3">
+                            <span className="text-sm font-bold text-cyan-800 dark:text-cyan-300">Admin Mode</span>
+                            <button
+                                onClick={() => setEditingPost({ id: 0, title: '', excerpt: '', content: '', date: new Date().toLocaleDateString('cs-CZ'), readTime: '5 min čtení', category: 'Novinky', image: '' })}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-cyan-600 text-white rounded-lg text-sm font-bold hover:bg-cyan-500 transition-colors"
+                            >
+                                <Plus size={16} /> Přidat článek
+                            </button>
+                        </div>
+                        <button
+                            onClick={handleExport}
+                            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 dark:bg-slate-200 text-white dark:text-slate-900 rounded-lg text-sm font-bold hover:bg-slate-700 dark:hover:bg-slate-300 transition-colors"
+                        >
+                            {copied ? <Check size={16} /> : <Copy size={16} />}
+                            {copied ? 'Zkopírováno!' : 'Exportovat DB'}
+                        </button>
+                    </div>
+                )}
+
+                {/* Header */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6"
+                >
+                    <div>
+                        <div className="flex items-center gap-2 mb-3">
+                            <BookOpen className="text-cyan-600 dark:text-cyan-400" size={24} />
+                            <span className="text-sm font-bold uppercase tracking-widest text-cyan-600 dark:text-cyan-400">
+                                {t('blog.category_label', 'Shamanic Insights')}
+                            </span>
+                        </div>
+                        <h2 className="text-4xl font-bold text-slate-900 dark:text-white">
+                            {t('blog.title', 'Novinky ze světa práce')}
+                        </h2>
+                        <p className="text-lg text-slate-600 dark:text-slate-400 mt-4 max-w-2xl">
+                            {t('blog.subtitle', 'Sledujeme trendy, analyzujeme trh a pomáháme vám dělat informovaná kariérní rozhodnutí.')}
+                        </p>
+                    </div>
+                    <button className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-bold hover:gap-3 transition-all">
+                        {t('blog.view_all', 'Všechny články')} <ArrowRight size={20} />
+                    </button>
+                </motion.div>
+
+                {/* Stats Grid */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.2 }}
+                    className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16"
+                >
+                    {stats.map((stat, idx) => (
+                        <div key={idx} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4 group hover:border-cyan-300 dark:hover:border-cyan-700 transition-all">
+                            <div className={`p-3 rounded-xl bg-slate-50 dark:bg-slate-800 group-hover:scale-110 transition-transform`}>
+                                <stat.icon size={26} className={stat.color} />
+                            </div>
+                            <div>
+                                <div className="text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</div>
+                                <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">{stat.label}</div>
+                            </div>
+                        </div>
+                    ))}
+                </motion.div>
+
+                {/* Blog Posts Grid */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: 0.4 }}
+                    className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
+                >
+                    {posts.map((post) => (
+                        <article
+                            key={post.id}
+                            onClick={() => setSelectedPost(post)}
+                            className="group flex flex-col bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-xl transition-all hover:-translate-y-1 cursor-pointer"
+                        >
+                            <div className="relative h-48 overflow-hidden">
+                                {post.image ? (
+                                    <img
+                                        src={post.image}
+                                        alt={post.title}
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-slate-300">
+                                        <BookOpen size={48} />
+                                    </div>
+                                )}
+                                <div className="absolute top-4 left-4 flex gap-2">
+                                    <span className="px-3 py-1 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm text-[10px] font-bold rounded-full text-cyan-600 dark:text-cyan-400 shadow-sm uppercase tracking-wider">
+                                        {post.category}
+                                    </span>
+                                </div>
+                                {isAdmin && (
+                                    <button
+                                        onClick={(e) => { e.stopPropagation(); setEditingPost(post); }}
+                                        className="absolute top-4 right-4 p-2 bg-white/90 dark:bg-slate-900/90 rounded-full text-slate-600 dark:text-slate-300 hover:text-cyan-600 shadow-sm"
+                                    >
+                                        <Edit2 size={14} />
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="p-6 flex flex-col flex-1">
+                                <div className="flex items-center gap-4 text-[10px] text-slate-500 dark:text-slate-400 mb-3 uppercase font-bold tracking-tight">
+                                    <div className="flex items-center gap-1">
+                                        <Calendar size={12} /> {post.date}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                        <Clock size={12} /> {post.readTime}
+                                    </div>
+                                </div>
+
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors line-clamp-2">
+                                    {t(`blog.posts.post${post.id}.title`, post.title)}
+                                </h3>
+
+                                <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed mb-6 flex-1 line-clamp-3">
+                                    {t(`blog.posts.post${post.id}.excerpt`, post.excerpt)}
+                                </p>
+
+                                <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                                    <button className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors uppercase tracking-wider">
+                                        {t('blog.read_more', 'Číst více')} <ArrowRight size={16} />
+                                    </button>
+                                </div>
+                            </div>
+                        </article>
+                    ))}
+                </motion.div>
+            </div>
+
+            {/* DETAIL MODAL */}
+            {selectedPost && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+                        {/* Modal Header */}
+                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-white dark:bg-slate-900">
+                            <div className="flex items-center gap-4">
+                                <span className="px-3 py-1 bg-cyan-100 dark:bg-cyan-950 text-[10px] font-bold rounded-full text-cyan-600 dark:text-cyan-400 uppercase tracking-widest">
+                                    {selectedPost.category}
+                                </span>
+                                <div className="flex items-center gap-3 text-xs text-slate-500 font-medium">
+                                    <span className="flex items-center gap-1"><Calendar size={14} /> {selectedPost.date}</span>
+                                    <span className="flex items-center gap-1"><Clock size={14} /> {selectedPost.readTime}</span>
+                                </div>
+                            </div>
+                            <button onClick={() => setSelectedPost(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                                <X size={24} className="text-slate-500" />
+                            </button>
+                        </div>
+
+                        {/* Modal Content */}
+                        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 md:p-10">
+                            {selectedPost.image && (
+                                <img src={selectedPost.image} alt={selectedPost.title} className="w-full h-64 md:h-96 object-cover rounded-xl mb-10 shadow-lg" />
+                            )}
+                            <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-8 leading-tight">
+                                {selectedPost.title}
+                            </h1>
+                            <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed text-lg">
+                                <Markdown options={{ forceBlock: true }}>{selectedPost.content}</Markdown>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex justify-end">
+                            <button
+                                onClick={() => setSelectedPost(null)}
+                                className="px-6 py-2.5 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 rounded-xl font-bold hover:bg-slate-800 dark:hover:bg-slate-200 transition-all active:scale-95"
+                            >
+                                Zavřít článek
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* EDITOR MODAL */}
+            {editingPost && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-900 w-full max-w-4xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+                        <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
+                                {editingPost.id === 0 ? 'Nový článek' : 'Upravit článek'}
+                            </h2>
+                            <button onClick={() => setEditingPost(null)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                                <X size={24} className="text-slate-500" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSavePost} className="flex-1 overflow-y-auto custom-scrollbar p-6 space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Titulek</label>
+                                    <input
+                                        required
+                                        value={editingPost.title}
+                                        onChange={e => setEditingPost({ ...editingPost, title: e.target.value })}
+                                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        placeholder="Jak najít práci..."
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Kategorie</label>
+                                    <select
+                                        value={editingPost.category}
+                                        onChange={e => setEditingPost({ ...editingPost, category: e.target.value })}
+                                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none"
+                                    >
+                                        <option value="Tipy & Triky">Tipy & Triky</option>
+                                        <option value="Novinky">Novinky</option>
+                                        <option value="Technologie">Technologie</option>
+                                        <option value="Kariéra">Kariéra</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">URL Obrázku (Unsplash apod.)</label>
+                                    <input
+                                        value={editingPost.image}
+                                        onChange={e => setEditingPost({ ...editingPost, image: e.target.value })}
+                                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        placeholder="https://images.unsplash.com/..."
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Čas čtení</label>
+                                    <input
+                                        value={editingPost.readTime}
+                                        onChange={e => setEditingPost({ ...editingPost, readTime: e.target.value })}
+                                        className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none"
+                                        placeholder="5 min čtení"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Perex (krátký popis na kartě)</label>
+                                <textarea
+                                    required
+                                    rows={3}
+                                    value={editingPost.excerpt}
+                                    onChange={e => setEditingPost({ ...editingPost, excerpt: e.target.value })}
+                                    className="w-full p-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none resize-none"
+                                    placeholder="Stručné shrnutí článku..."
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <label className="text-sm font-bold text-slate-700 dark:text-slate-300">Obsah (Markdown)</label>
+                                <textarea
+                                    required
+                                    rows={12}
+                                    value={editingPost.content}
+                                    onChange={e => setEditingPost({ ...editingPost, content: e.target.value })}
+                                    className="w-full p-4 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-cyan-500 outline-none font-mono text-sm"
+                                    placeholder="# Nadpis\n\nText článku s **tučným** písmem..."
+                                />
+                            </div>
+                        </form>
+
+                        <div className="p-6 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 flex justify-between items-center">
+                            <p className="text-xs text-slate-500 italic">Změny se uloží pouze do aktuální relace. Nezapomeňte exportovat!</p>
+                            <div className="flex gap-3">
+                                <button
+                                    type="button"
+                                    onClick={() => setEditingPost(null)}
+                                    className="px-6 py-2.5 border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 rounded-xl font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                                >
+                                    Zrušit
+                                </button>
+                                <button
+                                    onClick={handleSavePost}
+                                    className="px-6 py-2.5 bg-cyan-600 text-white rounded-xl font-bold hover:bg-cyan-500 transition-all shadow-lg shadow-cyan-600/20 flex items-center gap-2"
+                                >
+                                    <Save size={18} /> Uložit do relace
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </section>
+    );
+};
+
+export default BlogSection;
