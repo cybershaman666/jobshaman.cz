@@ -8,10 +8,13 @@ import { initialBlogPosts } from './src/data/blogPosts';
 import AppHeader from './components/AppHeader';
 import { generateSEOMetadata, updatePageMeta } from './utils/seo';
 import CompanyDashboard from './components/CompanyDashboard';
+import FreelancerDashboard from './components/FreelancerDashboard';
 import CompanyOnboarding from './components/CompanyOnboarding';
 import ProfileEditor from './components/ProfileEditor';
 import AuthModal from './components/AuthModal';
 import CompanyRegistrationModal from './components/CompanyRegistrationModal';
+import FreelancerRegistrationModal from './components/FreelancerRegistrationModal';
+import ServicesMarketplace from './components/ServicesMarketplace';
 import MarketplacePage from './components/MarketplacePage';
 import EnterpriseSignup from './components/EnterpriseSignup';
 import CompanyLandingPage from './components/CompanyLandingPage';
@@ -93,6 +96,7 @@ export default function App() {
     const [isOnboardingCompany, setIsOnboardingCompany] = useState(false);
     const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
     const [isCompanyRegistrationOpen, setIsCompanyRegistrationOpen] = useState(false);
+    const [isFreelancerRegistrationOpen, setIsFreelancerRegistrationOpen] = useState(false);
     const [showCompanyLanding, setShowCompanyLanding] = useState(false);
     const [commuteAnalysis, setCommuteAnalysis] = useState<CommuteAnalysis | null>(null);
     const [showFinancialMethodology, setShowFinancialMethodology] = useState(false);
@@ -786,6 +790,34 @@ export default function App() {
             );
         }
 
+        if (viewState === ViewState.FREELANCER_DASHBOARD) {
+            return (
+                <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+                    <FreelancerDashboard
+                        userProfile={userProfile}
+                        companyProfile={companyProfile}
+                        onLogout={signOut}
+                    />
+                </div>
+            );
+        }
+
+        if (viewState === ViewState.MARKETPLACE) {
+            return (
+                <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+                    <MarketplacePage userProfile={userProfile} />
+                </div>
+            );
+        }
+
+        if (viewState === ViewState.SERVICES) {
+            return (
+                <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+                    <ServicesMarketplace userProfile={userProfile} />
+                </div>
+            );
+        }
+
         if (viewState === ViewState.PROFILE) {
             // STRICT SEPARATION: Recruiters cannot access candidate profile editor
             if (userProfile.role === 'recruiter') {
@@ -812,13 +844,6 @@ export default function App() {
             );
         }
 
-        if (viewState === ViewState.MARKETPLACE) {
-            return (
-                <div className="col-span-1 lg:col-span-12 max-w-7xl mx-auto w-full h-full overflow-y-auto custom-scrollbar pb-6 px-1">
-                    <MarketplacePage theme={theme} userProfile={userProfile} />
-                </div>
-            );
-        }
 
         if (viewState === ViewState.SAVED) {
             const savedJobs = filteredJobs.filter(job => savedJobIds.includes(job.id));
@@ -1006,6 +1031,24 @@ export default function App() {
                 onSuccess={() => {
                     setIsCompanyRegistrationOpen(false);
                     console.log('Company registration successful');
+                }}
+            />
+
+            <FreelancerRegistrationModal
+                isOpen={isFreelancerRegistrationOpen}
+                onClose={() => setIsFreelancerRegistrationOpen(false)}
+                onSuccess={() => {
+                    setIsFreelancerRegistrationOpen(false);
+                    window.location.reload();
+                }}
+            />
+
+            <FreelancerRegistrationModal
+                isOpen={isFreelancerRegistrationOpen}
+                onClose={() => setIsFreelancerRegistrationOpen(false)}
+                onSuccess={() => {
+                    setIsFreelancerRegistrationOpen(false);
+                    window.location.reload();
                 }}
             />
 

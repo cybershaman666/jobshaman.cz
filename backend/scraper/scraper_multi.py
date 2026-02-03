@@ -56,6 +56,32 @@ def get_supabase_client():
 supabase: Client = get_supabase_client()
 
 # --- Pomocné funkce ---
+def is_low_quality(job_data):
+    """
+    Checks if a job is low quality based on description length and blacklisted phrases.
+    """
+    description = job_data.get("description", "")
+    if not description:
+        return True
+    
+    # 1. Length check (User requested "500 words", but that's very strict. 
+    # We'll start with 500 characters (~80 words) to filter out empty/one-line descriptions)
+    if len(description) < 500:
+        return True
+        
+    # 2. Blacklisted phrases
+    blacklist = [
+        "První kontakt: e-mail přes odpovědní formulář",
+        "První kontakt: e-mail"
+    ]
+    
+    desc_lower = description.lower()
+    for phrase in blacklist:
+        if phrase.lower() in desc_lower:
+            return True
+            
+    return False
+
 def now_iso():
     return datetime.utcnow().isoformat()
 
@@ -385,6 +411,11 @@ def scrape_jobs_cz(soup):
             "salary_from": salary_from,
             "salary_to": salary_to,
         }
+
+        # Quality Check
+        if is_low_quality(job_data):
+            print(f"    ⚠️ Nízká kvalita, přeskakuji: {title}")
+            continue
 
         if save_job_to_supabase(job_data):
             jobs_saved += 1

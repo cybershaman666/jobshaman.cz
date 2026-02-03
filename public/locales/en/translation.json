@@ -90,6 +90,7 @@
         "saved": "Saved",
         "profile": "Profile",
         "marketplace": "Courses & Retraining",
+        "services": "Services & Collaboration",
         "for_companies": "For Companies",
         "back": "Back",
         "home": "Home",
@@ -384,7 +385,7 @@
                 "ai_editor": "Offer Editor",
                 "assessments": "Assessments",
                 "candidates": "Candidates",
-                "marketplace": "Course Marketplace"
+                "marketplace": "Freelancers"
             },
             "all_recruiters": "All Recruiters",
             "create_ad_btn": "Create Job Ad",
@@ -900,5 +901,153 @@
                 "excerpt": "How to effectively use Career Pathfinder and AI analysis to move forward in your career path."
             }
         }
+    },
+    "freelancer": {
+        "dashboard": {
+            "title": "Freelancer Dashboard",
+            "tabs": {
+                "services": "My Services",
+                "portfolio": "Portfolio",
+                "settings": "Settings"
+            },
+            "services": {
+                "create_title": "Create Service",
+                "title_label": "Service Title",
+                "title_placeholder": "e.g. Logo Design",
+                "desc_label": "Description",
+                "desc_placeholder": "Describe what you offer...",
+                "price_label": "Price (CZK)",
+                "price_placeholder": "5000",
+                "location_label": "Location",
+                "location_placeholder": "Remote, Prague...",
+                "category_label": "Category",
+                "publish_btn": "Publish Service",
+                "delete_confirm": "Are you sure you want to delete this service?",
+                "limit_alert": "As a freelancer with a Free plan, you can have a maximum of 3 active services. Upgrade to PRO for more.",
+                "success_alert": "Service published successfully!",
+                "error_alert": "Error publishing service.",
+                "empty_title": "No services",
+                "empty_desc": "You don't offer any services yet. Create your first one!",
+                "price": "Price",
+                "list_title": "List of Services",
+                "add_btn": "Add Service",
+                "no_reviews": "No reviews yet"
+            },
+            "upgrade_cta": "Activate Premium",
+            "active_plan": "Active Plan",
+            "free_plan": "Free Plan",
+            "premium_plan": "Freelance Premium",
+            "benefits_title": "Premium Benefits",
+            "benefit_1": "Unlimited services",
+            "benefit_2": "Priority listing",
+            "benefit_3": "'Verified Freelancer' badge",
+            "benefit_4": "Traffic statistics"
+        },
+        "marketplace": {
+            "title": "Services & Cooperation",
+            "subtitle": "Find experts for your project or offer your services.",
+            "search_placeholder": "Search services, freelancers...",
+            "offer_service": "Offer Service",
+            "categories": {
+                "all": "All Services",
+                "crafts": "Crafts",
+                "it": "IT & Development",
+                "design": "Design & Creative",
+                "marketing": "Marketing",
+                "writing": "Writing & Translation",
+                "consulting": "Consulting"
+            },
+            "card": {
+                "verified": "Verified",
+                "rating": "rating",
+                "reviews": "reviews",
+                "starting_at": "from",
+                "response_time": "Responds within 24h"
+            },
+            "filters": {
+                "search_title": "Search"
+            },
+            "promo": {
+                "title": "Are you a pro?",
+                "desc": "Register as a freelancer, build your portfolio and get new clients.",
+                "highlight": "First 3 ads per month free!",
+                "cta": "Start Offering Services"
+            }
+        }
+    },
+    "freelancer_registration": {
+        "step_1_title": "Freelancer Registration - Step 1",
+        "step_2_title": "Freelancer Profile - Step 2",
+        "step_3_title": "Finish Registration",
+        "success_title": "Welcome aboard!",
+        "success_desc": "Your profile has been created. You can now offer your services.",
+        "intro_desc": "Create a profile and start offering your services to companies and individuals.",
+        "email_label": "Email",
+        "password_label": "Password",
+        "password_placeholder": "Min. 8 characters",
+        "fullname_label": "Full Name (or Brand Name)",
+        "fullname_placeholder": "John Doe",
+        "ico_label": "ID Number (Optional)",
+        "website_label": "Web / Portfolio (Optional)",
+        "terms_agree": "I agree to the Terms & Conditions",
+        "privacy_agree": "I agree to Privacy Policy",
+        "go_to_profile": "Go to My Profile",
+        "back": "Back",
+        "finish": "Finish",
+        "continue": "Continue",
+        "info_box": "You get 3 free service ads per month. You can upgrade to Premium later.",
+        "error_too_many": "Too many registration attempts. Please wait.",
+        "error_exists": "User with this email already exists. Please log in.",
+        "error_generic": "Registration failed.",
+        "pricing_title": "Plans for Freelancers",
+        "plan_basic": "Basic Account",
+        "plan_basic_desc": "Free",
+        "plan_basic_offers": "3 active offers per month",
+        "plan_basic_inquiries": "3 inquiries per month",
+        "plan_premium": "Premium",
+        "plan_premium_desc": "Unlimited",
+        "plan_premium_badge": "POPULAR",
+        "plan_premium_offers": "Unlimited offers",
+        "plan_premium_inquiries": "Unlimited inquiries",
+        "plan_premium_priority": "Higher visibility in search",
+        "confirm_email_instructions": "We've sent a confirmation link to your email. After confirming, click the button below to finalize registration.",
+        "confirm_email_not_found": "Could not verify email confirmation. Please try again after confirming your email.",
+        "error_finalize": "Finalizing registration failed. Please contact support.",
+        "waiting_for_confirmation": "Waiting for email confirmation and will finalize automatically…",
+        "check_email_magic": "We've sent you a sign-in link (magic link). Check your email.",
+        "resend_confirmation": "Resend sign-in link",
+        "error_resend": "Failed to send confirmation. Please try again later.",
+        "check_email_help": "If the email doesn't arrive, check your SMTP settings, email templates, and your spam folder."
+    },
+    "freelancer_marketplace": {
+        "title": "Freelancers & Craftspeople",
+        "subtitle": "Find and hire quality freelancers and craftspeople from the JobShaman community.",
+        "search_placeholder": "Search freelancers, skills...",
+        "categories": {
+            "all": "All",
+            "it": "IT & Development",
+            "design": "Design",
+            "crafts": "Crafts",
+            "marketing": "Marketing"
+        },
+        "results": "Found {{count}} freelancers",
+        "no_results": "No freelancers found",
+        "no_results_desc": "Try changing your filters or search term.",
+        "reviews": "reviews",
+        "hourly_rate": "Rate:",
+        "contact_btn": "Contact",
+        "contact_placeholder": "Write a message to the freelancer...",
+        "contact_send": "Send",
+        "contact_cancel": "Cancel",
+        "contact_sending": "Sending...",
+        "contact_sent": "Message sent. The freelancer will be contacted.",
+        "contact_failed": "Failed to send message. Please try again later."
+    },
+    "freelancer_marketplace_extra": {
+        "empty_state_title": "No services yet",
+        "empty_state_desc": "Be the first to offer services in this category.",
+        "create_offer_btn": "Create Offer",
+        "inquire_btn": "Inquire",
+        "wip_alert": "View Detail (WIP)"
     }
 }

@@ -18,6 +18,7 @@ import PlanUpgradeModal from './PlanUpgradeModal';
 import AssessmentInvitationModal from './AssessmentInvitationModal';
 import MyInvitations from './MyInvitations';
 import AssessmentResultsList from './AssessmentResultsList';
+import CompanyFreelancerMarketplace from './CompanyFreelancerMarketplace';
 import {
     Briefcase,
     Users,
@@ -1474,7 +1475,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     </div>
                 )}
                 {activeTab === 'candidates' && renderCandidates()}
-                {/* {activeTab === 'marketplace' && <CompanyMarketplace />} */}
+                {activeTab === 'marketplace' && <CompanyFreelancerMarketplace />}
             </div>
 
             <PlanUpgradeModal
