@@ -1006,6 +1006,22 @@ export const createCompany = async (companyData: any, userId?: string): Promise<
     return data;
 };
 
+// Update company industry (used for fixing freelancer companies without proper industry flag)
+export const updateCompanyIndustry = async (companyId: string, industry: string): Promise<any> => {
+    if (!supabase) throw new Error("Supabase not configured");
+
+    const { data, error } = await supabase
+        .from('companies')
+        .update({ industry })
+        .eq('id', companyId)
+        .select('*')
+        .single();
+
+    if (error) throw error;
+
+    return data;
+};
+
 // ========================================
 // FREELANCER / MARKETPLACE HELPERS
 // ========================================

@@ -169,6 +169,20 @@ export const useUserProfile = () => {
                 if (profile.role === 'recruiter') {
                     company = await getRecruiterCompany(userId);
 
+                    // CRITICAL FIX: If freelancer but company.industry is not set, ensure it's marked as 'Freelancer'
+                    if (company && metaIsFreelancer && !company.industry) {
+                        console.log("🛠️ Freelancer company exists but industry is not set. Setting to 'Freelancer'...");
+                        company.industry = 'Freelancer';
+                        // Also update in database
+                        try {
+                            const { updateCompanyIndustry } = await import('../services/supabaseService');
+                            await updateCompanyIndustry(company.id, 'Freelancer');
+                            console.log("✅ Company industry updated to 'Freelancer' in database");
+                        } catch (err) {
+                            console.error("⚠️ Failed to update company industry in database:", err);
+                        }
+                    }
+
                     if (!company && metaCompany) {
                         console.log("🛠️ Recruiter has no company, but metadata has company_name. Auto-creating company...");
                         try {
