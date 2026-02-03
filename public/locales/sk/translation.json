@@ -1010,10 +1010,11 @@
                 "loading": "Načítavam...",
                 "empty": "Zatiaľ žiadne dopyty.",
                 "unknown_sender": "Neznámy odosielateľ",
-                "sender_company": "Firma",
-                "sender_user": "Užívateľ",
-                "sender_anon": "Anonym"
-            },
+            "sender_company": "Firma",
+            "sender_user": "Užívateľ",
+            "sender_anon": "Anonym",
+            "reply_btn": "Odpovedať"
+        },
             "services": {
                 "create_title": "Vytvoriť službu",
                 "title_label": "Názov služby",

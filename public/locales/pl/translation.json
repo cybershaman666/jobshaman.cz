@@ -956,10 +956,11 @@
                 "loading": "Ładowanie...",
                 "empty": "Brak zapytań.",
                 "unknown_sender": "Nieznany nadawca",
-                "sender_company": "Firma",
-                "sender_user": "Użytkownik",
-                "sender_anon": "Anonim"
-            },
+            "sender_company": "Firma",
+            "sender_user": "Użytkownik",
+            "sender_anon": "Anonim",
+            "reply_btn": "Odpowiedz"
+        },
             "services": {
                 "create_title": "Utwórz usługę",
                 "title_label": "Tytuł usługi",
