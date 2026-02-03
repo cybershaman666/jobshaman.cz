@@ -1325,6 +1325,8 @@
         "reviews": "recenzí",
         "hourly_rate": "Sazba:",
         "contact_btn": "Kontaktovat",
+        "contact_email_placeholder": "Váš e-mail (povinný)",
+        "contact_phone_placeholder": "Telefon (nepovinný)",
         "contact_placeholder": "Napište zprávu freelancerovi...",
         "contact_send": "Odeslat",
         "contact_cancel": "Zrušit",

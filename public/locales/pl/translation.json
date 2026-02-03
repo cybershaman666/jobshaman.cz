@@ -1155,6 +1155,8 @@
                 "reviews": "opinie",
                 "hourly_rate": "Stawka:",
                 "contact_btn": "Kontakt",
+                "contact_email_placeholder": "Twój e‑mail (wymagany)",
+                "contact_phone_placeholder": "Telefon (opcjonalnie)",
                 "contact_placeholder": "Napisz wiadomość do freelancera...",
                 "contact_send": "Wyślij",
                 "contact_cancel": "Anuluj",
