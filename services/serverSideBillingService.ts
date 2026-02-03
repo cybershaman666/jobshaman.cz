@@ -125,7 +125,12 @@ export async function getSubscriptionStatus(userId: string): Promise<{
     console.log('✅ Subscription status retrieved:', data);
     return data;
   } catch (error) {
-    console.warn('Error getting subscription status (falling back to free tier):', error);
+    const isAborted = error instanceof Error && error.name === 'AbortError';
+    if (isAborted) {
+      console.warn('⏱️ Subscription status request TIMED OUT. The server is likely waking up from sleep.');
+    } else {
+      console.warn('Error getting subscription status (falling back to free tier):', error);
+    }
     return {
       tier: 'free',
       tierName: 'Free',

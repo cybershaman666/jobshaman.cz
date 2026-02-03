@@ -10,13 +10,13 @@ from datetime import datetime
 # Import country scrapers with fallback
 try:
     # Try module imports first
-    from .scraper_cz import run_all_scrapers as run_cz
+    from .scraper_multi import run_all_scrapers as run_cz
     from .scraper_sk import run_slovakia_scraper as run_sk
     from .scraper_pl import run_poland_scraper as run_pl
     from .scraper_de import run_germany_scraper as run_de
 except ImportError:
     # Fallback to direct imports
-    from scraper_cz import run_all_scrapers as run_cz
+    from scraper_multi import run_all_scrapers as run_cz
     from scraper_sk import run_slovakia_scraper as run_sk
     from scraper_pl import run_poland_scraper as run_pl
     from scraper_de import run_germany_scraper as run_de

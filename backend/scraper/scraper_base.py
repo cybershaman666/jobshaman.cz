@@ -61,6 +61,21 @@ def get_supabase_client() -> Optional[Client]:
         return None
 
 
+def guess_currency(country_code: str) -> str:
+    """Guess currency based on country code"""
+    if not country_code:
+        return 'Kč'
+    
+    code = country_code.lower()
+    if code == 'cs' or code == 'cz':
+        return 'Kč'
+    if code == 'sk' or code == 'de' or code == 'at':
+        return 'EUR'
+    if code == 'pl':
+        return 'PLN'
+    return 'Kč'
+
+
 # --- Utility Functions ---
 
 def now_iso() -> str:
@@ -386,8 +401,7 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict) -> bool:
     elif 'currency' in job_data:
         job_data['salary_currency'] = job_data['currency']
     elif 'salary_currency' not in job_data and 'currency' not in job_data:
-        # Fallback to CZK/PLN/EUR if we can guess it from country_code?
-        # But wait, country_code is assigned AFTER this in current code.
+        # We will assign this after country_code detection below
         pass
     
     # DETECT AND ASSIGN COUNTRY CODE based on domain
@@ -406,6 +420,16 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict) -> bool:
         else:
             # Default to Czech if domain is unknown
             job_data["country_code"] = "cs"
+            
+    # Final currency fallback based on country code
+    if not job_data.get('salary_currency') and not job_data.get('currency'):
+        guessed = guess_currency(job_data.get('country_code'))
+        job_data['salary_currency'] = guessed
+        job_data['currency'] = guessed
+    elif not job_data.get('currency'):
+        job_data['currency'] = job_data['salary_currency']
+    elif not job_data.get('salary_currency'):
+        job_data['salary_currency'] = job_data['currency']
     
     print(f"    🌍 Country code: {job_data['country_code']} (detected from {job_data.get('source', 'URL')})")
     
