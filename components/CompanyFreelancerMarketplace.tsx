@@ -49,11 +49,10 @@ const CompanyFreelancerMarketplace: React.FC = () => {
     const loadFreelancers = async () => {
         try {
             setLoading(true);
-            // Get all companies with industry = 'Freelancer'
+            // Get all freelancer profiles (public read via RLS)
             const { data, error } = await supabase
-                .from('companies')
-                .select('id, name, description, address, website')
-                .eq('industry', 'Freelancer')
+                .from('freelancer_profiles')
+                .select('id, headline, bio, hourly_rate, address, tags, profiles(id, full_name, avatar_url)')
                 .order('created_at', { ascending: false });
 
             if (error) {
@@ -63,18 +62,19 @@ const CompanyFreelancerMarketplace: React.FC = () => {
             }
 
             // Transform data to match Freelancer interface
-            const transformedFreelancers: Freelancer[] = (data || []).map((company: any) => ({
-                id: company.id,
-                name: company.name,
-                title: company.name, // Use name as title for now
-                description: company.description || 'Kvalitný freelancer',
-                category: 'crafts', // Default category
-                location: company.address,
+            const transformedFreelancers: Freelancer[] = (data || []).map((freelancer: any) => ({
+                id: freelancer.id,
+                name: freelancer.profiles?.full_name || t('freelancer_marketplace.unknown_name') || 'Freelancer',
+                title: freelancer.headline || freelancer.profiles?.full_name || 'Freelancer',
+                description: freelancer.bio || t('freelancer_marketplace.no_bio') || 'Kvalitní freelancer',
+                category: Array.isArray(freelancer.tags) && freelancer.tags.length > 0 ? freelancer.tags[0] : 'crafts',
+                location: freelancer.address,
                 rating: 5.0, // Default rating
                 reviews_count: 0,
-                hourly_rate: 500, // Default rate
+                hourly_rate: freelancer.hourly_rate || 500, // Default rate
                 verified: false,
-                badge: undefined
+                badge: undefined,
+                image: freelancer.profiles?.avatar_url || undefined
             }));
 
             setFreelancers(transformedFreelancers);
@@ -316,5 +316,4 @@ const CompanyFreelancerMarketplace: React.FC = () => {
 };
 
 export default CompanyFreelancerMarketplace;
-
 

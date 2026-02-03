@@ -674,6 +674,8 @@ export const fetchJobsWithFilters = async (
         const spatialLng = usesSpatialFilter ? finalUserLng : null;
         const spatialRadius = usesSpatialFilter ? radiusKm : null;
 
+        const minSalaryFilter = filterMinSalary && filterMinSalary > 0 ? filterMinSalary : null;
+
         const { data, error } = await supabase.rpc('search_jobs_with_filters', {
             search_term: searchTerm || null,
             user_lat: spatialLat,
@@ -682,7 +684,7 @@ export const fetchJobsWithFilters = async (
             filter_city: filterCity || null,
             filter_contract_types: filterContractTypes && filterContractTypes.length > 0 ? filterContractTypes : null,
             filter_benefits: filterBenefits && filterBenefits.length > 0 ? filterBenefits : null,
-            filter_min_salary: filterMinSalary ?? null,
+            filter_min_salary: minSalaryFilter,
             filter_date_posted: filterDatePosted,
             filter_experience_levels: filterExperienceLevels && filterExperienceLevels.length > 0 ? filterExperienceLevels : null,
             limit_count: pageSize,
