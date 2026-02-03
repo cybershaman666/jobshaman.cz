@@ -909,6 +909,69 @@
             "verified": "Verifiziert"
         }
     },
+    "freelancer": {
+        "dashboard": {
+            "title": "Freelancer Dashboard",
+            "tabs": {
+                "services": "Meine Dienstleistungen",
+                "portfolio": "Portfolio",
+                "settings": "Einstellungen"
+            },
+            "services": {
+                "create_title": "Dienstleistung erstellen",
+                "title_label": "Dienstleistungstitel",
+                "title_placeholder": "z.B. Logo-Design",
+                "desc_label": "Beschreibung",
+                "desc_placeholder": "Beschreiben Sie, was Sie anbieten...",
+                "price_label": "Preis (CZK)",
+                "price_placeholder": "5000",
+                "location_label": "Ort",
+                "location_placeholder": "Remote, Prag...",
+                "category_label": "Kategorie",
+                "publish_btn": "Dienstleistung veröffentlichen",
+                "delete_confirm": "Sind Sie sicher, dass Sie diese Dienstleistung löschen möchten?",
+                "limit_alert": "Als Freelancer mit einem kostenlosen Plan können Sie maximal 3 aktive Dienstleistungen haben. Upgrade auf PRO für mehr.",
+                "success_alert": "Dienstleistung erfolgreich veröffentlicht!",
+                "error_alert": "Fehler beim Veröffentlichen der Dienstleistung.",
+                "empty_title": "Keine Dienstleistungen",
+                "empty_desc": "Sie bieten noch keine Dienstleistungen an. Erstellen Sie Ihre erste!",
+                "price": "Preis",
+                "list_title": "Liste der Dienstleistungen",
+                "add_btn": "Dienstleistung hinzufügen",
+                "no_reviews": "Noch keine Bewertungen"
+            },
+            "portfolio": {
+                "title": "Mein Portfolio",
+                "add_btn": "Element hinzufügen",
+                "add_item_title": "Portfolio-Element hinzufügen",
+                "title_label": "Projekttitel",
+                "title_placeholder": "z.B. E-Commerce-Website Redesign",
+                "desc_label": "Beschreibung",
+                "desc_placeholder": "Erzählen Sie von Ihrem Projekt, was Sie getan haben, welche Technologie verwendet wurde...",
+                "url_label": "Projekt-Link (Optional)",
+                "url_placeholder": "https://example.com/project",
+                "image_label": "Projektbild",
+                "image_placeholder": "Klicken oder Bild ziehen (JPG, PNG)",
+                "empty_desc": "Ihr Portfolio ist leer. Beginnen Sie mit Ihrem besten Werk!",
+                "view_link": "Projekt anzeigen",
+                "delete_btn": "Löschen",
+                "delete_confirm": "Sind Sie sicher, dass Sie dieses Portfolio-Element löschen möchten?",
+                "success": "Portfolio-Element erfolgreich hinzugefügt!",
+                "error": "Fehler beim Upload des Portfolio-Elements.",
+                "delete_error": "Fehler beim Löschen des Portfolio-Elements.",
+                "uploading": "Wird hochgeladen..."
+            },
+            "upgrade_cta": "Premium aktivieren",
+            "active_plan": "Aktiver Plan",
+            "free_plan": "Kostenloser Plan",
+            "premium_plan": "Freelance Premium",
+            "benefits_title": "Premium-Vorteile",
+            "benefit_1": "Unbegrenzte Dienstleistungen",
+            "benefit_2": "Prioritäts-Listing",
+            "benefit_3": "'Verifizierter Freelancer'-Badge",
+            "benefit_4": "Verkehrsstatistiken"
+        }
+    },
     "freelancer_registration": {
         "step_1_title": "Freelancer-Registrierung - Schritt 1",
         "step_2_title": "Freelancer-Profil - Schritt 2",
