@@ -77,7 +77,9 @@ const normalizeCurrency = (currency?: string): string => {
 };
 
 const getCurrencyFromJob = (job: Partial<Job>): string => {
-    const fromRange = normalizeCurrency(detectCurrency(job.salaryRange || ''));
+    const range = job.salaryRange || '';
+    const rangeHasCurrency = /Kč|CZK|PLN|zł|CHF|€|\$|£/i.test(range);
+    const fromRange = rangeHasCurrency ? normalizeCurrency(detectCurrency(range)) : '';
     if (fromRange) return fromRange;
 
     const cc = (job.country_code || '').toUpperCase();
