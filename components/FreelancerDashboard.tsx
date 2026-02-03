@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { supabase, incrementJobPosting, uploadPortfolioImage, getPortfolioItems, deletePortfolioItem } from '../services/supabaseService';
+import { supabase, incrementJobPosting, uploadPortfolioImage, getPortfolioItems, deletePortfolioItem, getFreelancerProfile, createFreelancerProfile } from '../services/supabaseService';
 import { publishJob } from '../services/jobPublishService';
 import { CompanyProfile, Job, UserProfile, PortfolioItem } from '../types';
 import { useTranslation } from 'react-i18next';
@@ -71,7 +71,29 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
             .eq('company_id', companyProfile.id)
             .order('created_at', { ascending: false });
 
-        if (data) setServices(data as Job[]);
+        if (data) {
+            setServices(data as Job[]);
+
+            // Backfill freelancer profile if services already exist
+            if (userProfile?.id && data.length > 0) {
+                try {
+                    const existing = await getFreelancerProfile(userProfile.id);
+                    if (!existing) {
+                        await createFreelancerProfile(userProfile.id, {
+                            headline: companyProfile?.name || userProfile.name || null,
+                            bio: companyProfile?.description || null,
+                            contact_email: userProfile.email || null,
+                            website: companyProfile?.website || null,
+                            presentation: '',
+                            work_type: 'remote'
+                        });
+                        console.log('✅ Backfilled freelancer profile from existing services.');
+                    }
+                } catch (err) {
+                    console.warn('⚠️ Failed to backfill freelancer profile:', err);
+                }
+            }
+        }
     };
 
     const handlePublishService = async (e: React.FormEvent) => {
@@ -86,6 +108,21 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
         }
 
         try {
+            // Ensure freelancer profile exists for marketplace visibility
+            if (userProfile?.id) {
+                const existing = await getFreelancerProfile(userProfile.id);
+                if (!existing) {
+                    await createFreelancerProfile(userProfile.id, {
+                        headline: companyProfile?.name || userProfile.name || null,
+                        bio: companyProfile?.description || null,
+                        contact_email: userProfile.email || null,
+                        website: companyProfile?.website || null,
+                        presentation: '',
+                        work_type: 'remote'
+                    });
+                }
+            }
+
             await publishJob({
                 title: formData.title,
                 company: companyProfile.name,
