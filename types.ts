@@ -426,3 +426,15 @@ export type WorkMode = 'remote' | 'hybrid' | 'onsite' | 'field';
 export type JobType = 'office' | 'field' | 'service' | 'technical' | 'care' | 'logistics';
 export type LocationType = 'fixed' | 'multi-site' | 'mobile';
 export type ScheduleType = 'fixed' | 'flexible' | 'shift-based';
+
+export interface PortfolioItem {
+  id: string;
+  freelancer_id: string;
+  title: string;
+  description: string;
+  url?: string; // Link to project/website
+  imageUrl?: string; // URL to image in Supabase
+  fileName?: string; // Original file name for reference
+  createdAt: string;
+  updatedAt?: string;
+}

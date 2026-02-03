@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
-import { supabase, incrementJobPosting } from '../services/supabaseService';
+import { supabase, incrementJobPosting, uploadPortfolioImage, getPortfolioItems, deletePortfolioItem } from '../services/supabaseService';
 import { publishJob } from '../services/jobPublishService';
-import { CompanyProfile, Job, UserProfile } from '../types';
+import { CompanyProfile, Job, UserProfile, PortfolioItem } from '../types';
 import { useTranslation } from 'react-i18next';
 import {
     Briefcase,
@@ -15,7 +15,9 @@ import {
     Trash2,
     Zap,
     Crown,
-    CreditCard
+    CreditCard,
+    Image,
+    Link as LinkIcon
 } from 'lucide-react';
 import { redirectToCheckout } from '../services/stripeService';
 
@@ -29,7 +31,10 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
     const { t } = useTranslation();
     const [activeTab, setActiveTab] = useState<'services' | 'portfolio' | 'settings'>('services');
     const [services, setServices] = useState<Job[]>([]);
+    const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
     const [isCreating, setIsCreating] = useState(false);
+    const [isCreatingPortfolio, setIsCreatingPortfolio] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState(false);
 
     // Service Form State
     const [formData, setFormData] = useState({
@@ -40,9 +45,18 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
         category: 'crafts'
     });
 
+    // Portfolio Form State
+    const [portfolioFormData, setPortfolioFormData] = useState({
+        title: '',
+        description: '',
+        url: '',
+        file: null as File | null
+    });
+
     useEffect(() => {
         if (companyProfile?.id) {
             loadServices();
+            loadPortfolio();
         }
     }, [companyProfile?.id]);
 
@@ -99,6 +113,50 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
         if (confirm(t('freelancer.dashboard.services.delete_confirm'))) {
             await supabase.from('jobs').delete().eq('id', id);
             loadServices();
+        }
+    };
+
+    const loadPortfolio = async () => {
+        if (!companyProfile?.id) return;
+        const items = await getPortfolioItems(companyProfile.id);
+        setPortfolio(items as PortfolioItem[]);
+    };
+
+    const handleAddPortfolioItem = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!companyProfile?.id || !portfolioFormData.file) return;
+
+        setUploadProgress(true);
+        try {
+            await uploadPortfolioImage(
+                companyProfile.id,
+                portfolioFormData.file,
+                portfolioFormData.title,
+                portfolioFormData.description,
+                portfolioFormData.url || undefined
+            );
+            
+            setPortfolioFormData({ title: '', description: '', url: '', file: null });
+            setIsCreatingPortfolio(false);
+            loadPortfolio();
+            alert(t('freelancer.dashboard.portfolio.success'));
+        } catch (err) {
+            console.error(err);
+            alert(t('freelancer.dashboard.portfolio.error'));
+        } finally {
+            setUploadProgress(false);
+        }
+    };
+
+    const handleDeletePortfolioItem = async (itemId: string, fileName: string) => {
+        if (confirm(t('freelancer.dashboard.portfolio.delete_confirm'))) {
+            try {
+                await deletePortfolioItem(itemId, fileName);
+                loadPortfolio();
+            } catch (err) {
+                console.error(err);
+                alert(t('freelancer.dashboard.portfolio.delete_error'));
+            }
         }
     };
 
@@ -281,6 +339,149 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                                 </button>
                                                 <button onClick={() => handleDeleteService(service.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors" title="Smazat">
                                                     <Trash2 size={18} />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Tab: Portfolio */}
+                {activeTab === 'portfolio' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">{t('freelancer.dashboard.portfolio.title')}</h2>
+                            {!isCreatingPortfolio && (
+                                <button
+                                    onClick={() => setIsCreatingPortfolio(true)}
+                                    className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-xl shadow-lg hover:opacity-90 transition-all flex items-center gap-2"
+                                >
+                                    <Plus size={18} />
+                                    {t('freelancer.dashboard.portfolio.add_btn')}
+                                </button>
+                            )}
+                        </div>
+
+                        {isCreatingPortfolio ? (
+                            <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg mb-8">
+                                <h3 className="font-bold text-lg mb-4 text-slate-900 dark:text-white">{t('freelancer.dashboard.portfolio.add_item_title')}</h3>
+                                <form onSubmit={handleAddPortfolioItem} className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('freelancer.dashboard.portfolio.title_label')}</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={portfolioFormData.title}
+                                            onChange={e => setPortfolioFormData({ ...portfolioFormData, title: e.target.value })}
+                                            className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-emerald-500"
+                                            placeholder={t('freelancer.dashboard.portfolio.title_placeholder')}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('freelancer.dashboard.portfolio.desc_label')}</label>
+                                        <textarea
+                                            required
+                                            value={portfolioFormData.description}
+                                            onChange={e => setPortfolioFormData({ ...portfolioFormData, description: e.target.value })}
+                                            className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-emerald-500 h-24"
+                                            placeholder={t('freelancer.dashboard.portfolio.desc_placeholder')}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('freelancer.dashboard.portfolio.url_label')}</label>
+                                        <input
+                                            type="url"
+                                            value={portfolioFormData.url}
+                                            onChange={e => setPortfolioFormData({ ...portfolioFormData, url: e.target.value })}
+                                            className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-emerald-500"
+                                            placeholder={t('freelancer.dashboard.portfolio.url_placeholder')}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('freelancer.dashboard.portfolio.image_label')}</label>
+                                        <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-6 text-center hover:border-emerald-400 transition-colors cursor-pointer bg-slate-50 dark:bg-slate-900">
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                required
+                                                onChange={e => {
+                                                    if (e.target.files?.[0]) {
+                                                        setPortfolioFormData({ ...portfolioFormData, file: e.target.files[0] });
+                                                    }
+                                                }}
+                                                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                            />
+                                            <Image className="mx-auto text-slate-400 mb-2" size={32} />
+                                            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+                                                {portfolioFormData.file ? portfolioFormData.file.name : t('freelancer.dashboard.portfolio.image_placeholder')}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end gap-3 pt-4">
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsCreatingPortfolio(false);
+                                                setPortfolioFormData({ title: '', description: '', url: '', file: null });
+                                            }}
+                                            className="px-4 py-2 text-slate-500 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                                        >
+                                            {t('app.cancel')}
+                                        </button>
+                                        <button
+                                            type="submit"
+                                            disabled={uploadProgress}
+                                            className="px-6 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition-colors shadow-lg disabled:opacity-50"
+                                        >
+                                            {uploadProgress ? t('freelancer.dashboard.portfolio.uploading') : t('freelancer.dashboard.portfolio.add_btn')}
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {portfolio.length === 0 ? (
+                                    <div className="col-span-full text-center py-12 bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
+                                        <Image className="mx-auto text-slate-300 mb-4" size={40} />
+                                        <p className="text-slate-500">{t('freelancer.dashboard.portfolio.empty_desc')}</p>
+                                    </div>
+                                ) : (
+                                    portfolio.map(item => (
+                                        <div key={item.id} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden hover:shadow-md transition-shadow group">
+                                            {item.image_url && (
+                                                <div className="aspect-square overflow-hidden bg-slate-100 dark:bg-slate-900">
+                                                    <img
+                                                        src={item.image_url}
+                                                        alt={item.title}
+                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                                    />
+                                                </div>
+                                            )}
+                                            <div className="p-4">
+                                                <h3 className="font-bold text-slate-900 dark:text-white mb-1 line-clamp-1">{item.title}</h3>
+                                                <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-3">{item.description}</p>
+                                                <div className="flex items-center gap-2">
+                                                    {item.url && (
+                                                        <a
+                                                            href={item.url}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                                                        >
+                                                            <LinkIcon size={12} />
+                                                            {t('freelancer.dashboard.portfolio.view_link')}
+                                                        </a>
+                                                    )}
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDeletePortfolioItem(item.id, item.file_name || '')}
+                                                    className="mt-3 w-full p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
+                                                >
+                                                    <Trash2 size={16} />
+                                                    {t('freelancer.dashboard.portfolio.delete_btn')}
                                                 </button>
                                             </div>
                                         </div>

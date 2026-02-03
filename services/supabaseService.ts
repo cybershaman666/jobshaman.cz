@@ -1673,4 +1673,122 @@ export const deleteCVDocument = async (userId: string, cvId: string): Promise<bo
         console.error('CV deletion failed:', error);
         return false;
     }
+}
+
+// ========================================
+// PORTFOLIO FUNCTIONS (new)
+// ========================================
+
+export const uploadPortfolioImage = async (
+    freelancerId: string,
+    file: File,
+    title: string,
+    description: string,
+    url?: string
+) => {
+    if (!supabase) throw new Error("Supabase not configured");
+
+    try {
+        // Generate unique filename
+        const timestamp = Date.now();
+        const fileName = `${freelancerId}/${timestamp}-${file.name}`;
+
+        // Upload to 'portfolio' bucket
+        const { data, error: uploadError } = await supabase.storage
+            .from('portfolio')
+            .upload(fileName, file);
+
+        if (uploadError) {
+            console.error('Portfolio upload error:', uploadError);
+            throw uploadError;
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+            .from('portfolio')
+            .getPublicUrl(fileName);
+
+        // Save portfolio item to database
+        const { data: portfolioData, error: dbError } = await supabase
+            .from('portfolio_items')
+            .insert({
+                freelancer_id: freelancerId,
+                title,
+                description,
+                url: url || null,
+                image_url: publicUrl,
+                file_name: fileName,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            })
+            .select()
+            .single();
+
+        if (dbError) {
+            console.error('Portfolio DB error:', dbError);
+            // Clean up uploaded file if DB insert fails
+            await supabase.storage.from('portfolio').remove([fileName]);
+            throw dbError;
+        }
+
+        return portfolioData;
+    } catch (error) {
+        console.error('Portfolio upload failed:', error);
+        throw error;
+    }
 };
+
+export const getPortfolioItems = async (freelancerId: string) => {
+    if (!supabase) throw new Error("Supabase not configured");
+
+    try {
+        const { data, error } = await supabase
+            .from('portfolio_items')
+            .select('*')
+            .eq('freelancer_id', freelancerId)
+            .order('created_at', { ascending: false });
+
+        if (error) {
+            console.error('Portfolio fetch error:', error);
+            throw error;
+        }
+
+        return data || [];
+    } catch (error) {
+        console.error('Portfolio fetch failed:', error);
+        return [];
+    }
+};
+
+export const deletePortfolioItem = async (itemId: string, fileName: string) => {
+    if (!supabase) throw new Error("Supabase not configured");
+
+    try {
+        // Delete from storage
+        if (fileName) {
+            const { error: storageError } = await supabase.storage
+                .from('portfolio')
+                .remove([fileName]);
+
+            if (storageError) {
+                console.error('Portfolio file deletion error:', storageError);
+            }
+        }
+
+        // Delete from database
+        const { error: dbError } = await supabase
+            .from('portfolio_items')
+            .delete()
+            .eq('id', itemId);
+
+        if (dbError) {
+            console.error('Portfolio item deletion error:', dbError);
+            throw dbError;
+        }
+
+        return true;
+    } catch (error) {
+        console.error('Portfolio deletion failed:', error);
+        throw error;
+    }
+};;
