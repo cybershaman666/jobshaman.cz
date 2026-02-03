@@ -14,9 +14,20 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Middlewares
+ALLOWED_ORIGINS = [
+    "https://jobshaman.cz",
+    "https://jobshaman.com",
+    "https://www.jobshaman.cz",
+    "https://www.jobshaman.com",
+    "https://jobshaman-api.onrender.com",
+    "https://jobshaman-cz.onrender.com",
+    "http://localhost:3000",
+    "http://localhost:5173",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Should be restricted in production
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
