@@ -128,6 +128,8 @@ export const useUserProfile = () => {
                 }
 
                 // --- NEW AUTO-RECOVERY LOGIC START ---
+                // Prepare metadata flags used across subsequent checks
+                let metaIsFreelancer = false;
                 // If user registered as recruiter (via metadata) but profile says 'candidate' (default trigger), fix it.
                 if (supabase) {
                     const { data: { user } } = await supabase.auth.getUser();
@@ -135,7 +137,7 @@ export const useUserProfile = () => {
                     const metaCompany = user?.user_metadata?.company_name;
                     const metaIco = user?.user_metadata?.ico;
                     const metaWebsite = user?.user_metadata?.website;
-                    const metaIsFreelancer = user?.user_metadata?.is_freelancer === true || user?.user_metadata?.is_freelancer === 'true';
+                    metaIsFreelancer = user?.user_metadata?.is_freelancer === true || user?.user_metadata?.is_freelancer === 'true';
 
                     if (metaRole === 'recruiter' && profile.role !== 'recruiter') {
                         console.log("🛠️ Fixing profile role mismatch: Metadata says recruiter, DB says candidate. Updating...");
