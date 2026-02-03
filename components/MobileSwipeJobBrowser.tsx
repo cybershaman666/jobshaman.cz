@@ -9,7 +9,6 @@ interface MobileSwipeJobBrowserProps {
     jobs: Job[];
     savedJobIds: string[];
     onToggleSave: (jobId: string) => void;
-    onJobSelect: (jobId: string | null) => void;
     onOpenDetails: (jobId: string) => void;
     isLoadingMore: boolean;
     hasMore: boolean;
@@ -27,7 +26,6 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     jobs,
     savedJobIds,
     onToggleSave,
-    onJobSelect,
     onOpenDetails,
     isLoadingMore,
     hasMore,

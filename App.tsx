@@ -1015,7 +1015,6 @@ export default function App() {
                             jobs={filteredJobs}
                             savedJobIds={savedJobIds}
                             onToggleSave={handleToggleSave}
-                            onJobSelect={handleJobSelect}
                             onOpenDetails={handleOpenJobDetailsFromSwipe}
                             isLoadingMore={loadingMore}
                             hasMore={hasMore}
