@@ -403,8 +403,55 @@ class GermanyScraper(BaseScraper):
                         else:
                             description = filter_out_junk(norm_text(best_div.get_text()))
                 
-                # Benefits
-                benefits = extract_benefits(detail_soup, ['.m-benefits__list li', '.benefits-list li', '.benefits li', 'ul li'])
+                # Benefits (Karriere.at has separate sections; avoid mixing requirements/salary)
+                benefits = []
+                try:
+                    benefit_keywords = [
+                        'benefit', 'benefits', 'wir bieten', 'unser angebot', 'angebot',
+                        'vorteile', 'was wir bieten', 'das bieten wir', 'zusatzleistungen', 'leistungen'
+                    ]
+                    ignore_patterns = [
+                        r'(gehalt|entgelt|verdienst|€|eur|brutto|monatsgehalt|jahresgehalt|salary|bezahlung|lohn)',
+                        r'(anforder|profil|voraussetzung|qualifikation|aufgaben|tätigkeit|verantwortung|was sie mitbringen|ihr profil|ihre aufgaben|dein profil|deine aufgaben)'
+                    ]
+
+                    def is_benefit_line(text: str) -> bool:
+                        t = text.lower().strip()
+                        if not t or len(t) < 2:
+                            return False
+                        if len(t) > 200:
+                            return False
+                        for pat in ignore_patterns:
+                            if re.search(pat, t):
+                                return False
+                        return True
+
+                    # First: explicit benefits containers
+                    benefits = extract_benefits(detail_soup, ['.m-benefits__list li', '.benefits-list li', '.benefits li'])
+
+                    # If still empty, try to find a "benefits" section by heading
+                    if not benefits:
+                        for heading in detail_soup.find_all(['h2', 'h3', 'h4']):
+                            htxt = norm_text(heading.get_text()).lower()
+                            if any(k in htxt for k in benefit_keywords):
+                                # Collect list items until next heading
+                                items = []
+                                for sib in heading.find_all_next():
+                                    if sib.name in ['h2', 'h3', 'h4']:
+                                        break
+                                    for li in sib.find_all('li'):
+                                        txt = norm_text(li.get_text())
+                                        if is_benefit_line(txt):
+                                            items.append(txt)
+                                if items:
+                                    benefits.extend(items)
+                                    break
+
+                    # Final cleanup
+                    benefits = [b for b in benefits if is_benefit_line(b)]
+                except Exception:
+                    benefits = []
+
                 if not benefits:
                     benefits = ["Nicht spezifiziert"]
                 
