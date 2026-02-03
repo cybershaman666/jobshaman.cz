@@ -1132,6 +1132,8 @@
         "reviews": "reviews",
         "hourly_rate": "Rate:",
         "contact_btn": "Contact",
+        "contact_email_placeholder": "Your email (required)",
+        "contact_phone_placeholder": "Phone (optional)",
         "contact_placeholder": "Write a message to the freelancer...",
         "contact_send": "Send",
         "contact_cancel": "Cancel",

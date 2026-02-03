@@ -1067,6 +1067,8 @@
         "reviews": "Bewertungen",
         "hourly_rate": "Satz:",
         "contact_btn": "Kontaktieren",
+        "contact_email_placeholder": "Ihre E‑Mail (Pflichtfeld)",
+        "contact_phone_placeholder": "Telefon (optional)",
         "contact_placeholder": "Nachricht an den Freelancer schreiben...",
         "contact_send": "Senden",
         "contact_cancel": "Abbrechen",

@@ -1209,6 +1209,8 @@
                 "reviews": "recenzie",
                 "hourly_rate": "Sadzba:",
                 "contact_btn": "Kontaktovať",
+                "contact_email_placeholder": "Váš e‑mail (povinný)",
+                "contact_phone_placeholder": "Telefón (nepovinný)",
                 "contact_placeholder": "Napíšte správu freelancerovi...",
                 "contact_send": "Odoslať",
                 "contact_cancel": "Zrušiť",
