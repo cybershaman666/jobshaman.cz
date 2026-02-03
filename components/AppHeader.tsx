@@ -73,10 +73,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
     return (
         <header className="sticky top-0 z-50 w-full border-b border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md">
-            <div className="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8 max-w-[1920px] mx-auto">
+            <div className="flex h-16 items-center justify-between px-3 sm:px-6 lg:px-8 max-w-[1920px] mx-auto gap-2 sm:gap-4">
                 {/* Logo */}
                 <div
-                    className="flex items-center gap-2 cursor-pointer group"
+                    className="flex items-center gap-2 cursor-pointer group flex-shrink-0"
                     onClick={() => {
                         setViewState(ViewState.LIST);
                         setSelectedJobId(null);
@@ -91,11 +91,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                             className="w-6 h-6 bg-transparent"
                         />
                     </div>
-                    <span className="text-xl font-bold tracking-tight hidden sm:block"><span className="text-cyan-600 dark:text-cyan-400">JobShaman</span></span>
+                    <span className="text-lg sm:text-xl font-bold tracking-tight hidden sm:block"><span className="text-cyan-600 dark:text-cyan-400">JobShaman</span></span>
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex items-center gap-1 bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700/50 overflow-visible flex-wrap">
+                <nav className="hidden sm:flex items-center gap-1 bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700/50">
                     {(() => { console.log("🧭 [AppHeader] showCompanyLanding:", showCompanyLanding, "viewState:", viewState); return null; })()}
                     {!showCompanyLanding && (
                         <>
@@ -122,11 +122,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     setViewState(ViewState.MARKETPLACE);
                                     // Don't clear selectedJobId - that would trigger path restoration
                                 }}
-                                className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.MARKETPLACE ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                className={`hidden lg:flex px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap items-center gap-1.5 ${viewState === ViewState.MARKETPLACE ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                                 title="Marketplace - kliknutelné"
                             >
                                 <ShoppingBag className="w-4 h-4" />
-                                {t('nav.marketplace')}
+                                <span className="hidden xl:inline">{t('nav.marketplace')}</span>
                             </button>
                             <button
                                 onClick={() => { 
@@ -134,11 +134,11 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     setViewState(ViewState.SERVICES);
                                     // Don't clear selectedJobId - that would trigger path restoration
                                 }}
-                                className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.SERVICES ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                className={`hidden lg:flex px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap items-center gap-1.5 ${viewState === ViewState.SERVICES ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                                 title="Services - kliknutelné"
                             >
                                 <Handshake className="w-4 h-4" />
-                                {t('nav.services')}
+                                <span className="hidden xl:inline">{t('nav.services')}</span>
                             </button>
                         </>
                     )}
@@ -171,7 +171,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD || viewState === ViewState.FREELANCER_DASHBOARD ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                     >
                         <Briefcase size={14} />
-                        {showCompanyLanding ? t('nav.back') : (companyProfile?.industry === 'Freelancer' ? 'Můj Freelance Účet' : t('nav.for_companies'))}
+                        <span className="hidden md:inline">{showCompanyLanding ? t('nav.back') : (companyProfile?.industry === 'Freelancer' ? 'Můj Účet' : t('nav.for_companies'))}</span>
+                        <span className="md:hidden">{showCompanyLanding ? '←' : '👤'}</span>
                     </button>
                 </nav>
 
