@@ -269,6 +269,17 @@ class GermanyScraper(BaseScraper):
         
         # Link selector from inspection: m-jobsListItem__titleLink
         job_links = soup.select('a.m-jobsListItem__titleLink, a.job-link')
+
+        # Fallback: collect links that look like job detail pages
+        if not job_links:
+            job_links = []
+            for a in soup.find_all('a', href=True):
+                href = a['href']
+                if '/jobs/' in href and 'karriere.at' in urljoin('https://www.karriere.at', href):
+                    # Skip listing/search pages
+                    if '/jobs?' in href or href.endswith('/jobs'):
+                        continue
+                    job_links.append(a)
         
         for link_el in job_links:
             try:
@@ -495,7 +506,7 @@ def run_germany_scraper():
         {
             'name': 'Karriere.at',
             # Full market listing
-            'base_url': 'https://www.karriere.at/jobs',
+            'base_url': 'https://www.karriere.at/jobs?page={page}',
             'max_pages': 50
         }
     ]
