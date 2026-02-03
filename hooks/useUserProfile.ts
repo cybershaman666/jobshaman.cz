@@ -135,6 +135,7 @@ export const useUserProfile = () => {
                     const metaCompany = user?.user_metadata?.company_name;
                     const metaIco = user?.user_metadata?.ico;
                     const metaWebsite = user?.user_metadata?.website;
+                    const metaIsFreelancer = user?.user_metadata?.is_freelancer === true || user?.user_metadata?.is_freelancer === 'true';
 
                     if (metaRole === 'recruiter' && profile.role !== 'recruiter') {
                         console.log("🛠️ Fixing profile role mismatch: Metadata says recruiter, DB says candidate. Updating...");
@@ -164,6 +165,7 @@ export const useUserProfile = () => {
                                     contact_email: user?.email,
                                     contact_phone: '',
                                     website: metaWebsite || '',
+                                    industry: metaIsFreelancer ? 'Freelancer' : '',
                                     logo_url: ''
                                 };
 
@@ -179,7 +181,12 @@ export const useUserProfile = () => {
                             setCompanyProfile(company);
                             const pathname = window.location.pathname;
                             if (!pathname.startsWith('/jobs/') && pathname !== '/podminky-uziti' && pathname !== '/ochrana-osobnich-udaju' && pathname !== '/enterprise' && !pathname.startsWith('/assessment/')) {
-                                setViewState(ViewState.COMPANY_DASHBOARD);
+                                // If metadata marks user as freelancer, prefer freelancer dashboard
+                                if (metaIsFreelancer) {
+                                    setViewState(ViewState.FREELANCER_DASHBOARD);
+                                } else {
+                                    setViewState(ViewState.COMPANY_DASHBOARD);
+                                }
                             }
                         }
                     }
@@ -209,7 +216,7 @@ export const useUserProfile = () => {
                         const isExternalPage = pathname === '/podminky-uziti' || pathname === '/ochrana-osobnich-udaju' || pathname === '/enterprise' || pathname.startsWith('/assessment/');
 
                         if (!isJobDetail && !isExternalPage) {
-                            if (company.industry === 'Freelancer') {
+                            if (metaIsFreelancer || company.industry === 'Freelancer') {
                                 setViewState(ViewState.FREELANCER_DASHBOARD);
                             } else {
                                 setViewState(ViewState.COMPANY_DASHBOARD);
