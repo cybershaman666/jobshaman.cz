@@ -7,11 +7,12 @@ import SkillsGapBox from './SkillsGapBox';
 import BullshitMeter from './BullshitMeter';
 import TransparencyCard from './TransparencyCard';
 import ContextualRelevance from './ContextualRelevance';
-import { ArrowUpRight, Bookmark, Gift, Zap, Share2 } from 'lucide-react';
+import { ArrowUpRight, Bookmark, Gift, Zap, Share2, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Markdown from 'markdown-to-jsx';
 import { trackAnalyticsEvent } from '../services/supabaseService';
 import { useEffect } from 'react';
+import { removeAccents } from '../utils/benefits';
 
 interface JobDetailViewProps {
     mounted: boolean;
@@ -73,6 +74,32 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     handleBlogPostSelect
 }) => {
     const { t } = useTranslation();
+    const highValueKeywords = [
+        'remote',
+        'home office',
+        'flex',
+        'flexibil',
+        '5 tydn',
+        '25 dn',
+        'dovolena navic',
+        'vzdel',
+        'skoleni',
+        'cert',
+        'penzij',
+        'pension',
+        'bonus',
+        'prem',
+        'akcie',
+        'stock',
+        'zdravot',
+        'sick',
+        'multisport'
+    ];
+
+    const isHighValueBenefit = (benefit: string) => {
+        const normalized = removeAccents(benefit);
+        return highValueKeywords.some(keyword => normalized.includes(keyword));
+    };
     const [shareTooltip, setShareTooltip] = React.useState(false);
 
     const handleShare = async () => {
@@ -175,17 +202,28 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
 
                             {/* Benefits Section */}
                             {selectedJob.benefits && selectedJob.benefits.length > 0 && (
-                                <div className="bg-gradient-to-br from-emerald-50 to-cyan-50 dark:from-emerald-950/20 dark:to-cyan-950/20 rounded-xl p-6 border border-emerald-200 dark:border-emerald-800">
+                                <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-6 border border-cyan-200 dark:border-cyan-900/40">
                                     <div className="flex items-center gap-2 mb-4">
-                                        <Gift className="text-emerald-600 dark:text-emerald-400" size={20} />
+                                        <Gift className="text-cyan-600 dark:text-cyan-400" size={20} />
                                         <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('job.benefits')}</h3>
                                     </div>
                                     <div className="flex flex-wrap gap-2">
-                                        {selectedJob.benefits.map((benefit, idx) => (
-                                            <span key={idx} className="px-3 py-1.5 bg-white dark:bg-slate-900 text-emerald-700 dark:text-emerald-300 rounded-lg text-sm font-medium border border-emerald-200 dark:border-emerald-700">
-                                                {benefit}
-                                            </span>
-                                        ))}
+                                        {selectedJob.benefits.map((benefit, idx) => {
+                                            const highlight = isHighValueBenefit(benefit);
+                                            return (
+                                                <span
+                                                    key={idx}
+                                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border ${
+                                                        highlight
+                                                            ? 'bg-cyan-600 text-white border-cyan-600 shadow-sm'
+                                                            : 'bg-white dark:bg-slate-900 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800'
+                                                    }`}
+                                                >
+                                                    {highlight && <Sparkles size={14} className="text-white" />}
+                                                    {benefit}
+                                                </span>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             )}
