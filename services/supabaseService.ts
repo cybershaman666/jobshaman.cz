@@ -1710,7 +1710,7 @@ export const uploadPortfolioImage = async (
 
         // Save portfolio item to database
         const { data: portfolioData, error: dbError } = await supabase
-            .from('portfolio_items')
+            .from('freelancer_portfolio_items')
             .insert({
                 freelancer_id: freelancerId,
                 title,
@@ -1743,7 +1743,7 @@ export const getPortfolioItems = async (freelancerId: string) => {
 
     try {
         const { data, error } = await supabase
-            .from('portfolio_items')
+            .from('freelancer_portfolio_items')
             .select('*')
             .eq('freelancer_id', freelancerId)
             .order('created_at', { ascending: false });
@@ -1777,7 +1777,7 @@ export const deletePortfolioItem = async (itemId: string, fileName: string) => {
 
         // Delete from database
         const { error: dbError } = await supabase
-            .from('portfolio_items')
+            .from('freelancer_portfolio_items')
             .delete()
             .eq('id', itemId);
 
