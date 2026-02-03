@@ -504,7 +504,7 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                                                                 try {
                                                                     setIsSubmitting(true);
                                                                     // Send a magic link as a fallback if confirmation email wasn't received
-                                                                    const { data, error } = await supabase.auth.signInWithOtp({ email: formData.email }, { emailRedirectTo: window.location.origin });
+                                                                    const { error } = await supabase.auth.signInWithOtp({ email: formData.email }, { emailRedirectTo: window.location.origin });
                                                                     if (error) throw error;
                                                                     alert(t('freelancer_registration.check_email_magic', { defaultValue: 'Poslali jsme vám přihlašovací odkaz (magic link). Zkontrolujte svou e‑mailovou schránku.' }));
                                                                 } catch (err) {
