@@ -1,4 +1,5 @@
 import { Job, JHI } from '../types';
+import { detectCurrency, detectCurrencyFromLocation } from '../services/financialService';
 
 // --- CONFIGURATION ---
 
@@ -54,18 +55,53 @@ const BENEFIT_WEIGHTS = {
     'Dog-friendly': 2
 };
 
-const SALARY_BASELINE = 20000; // CZK - 0 points
-const SALARY_TARGET = 80000; // CZK - 100 points
+const SALARY_BASELINE_EUR = 800; // 20k CZK
+const SALARY_TARGET_EUR = 3200; // 80k CZK
 const AVG_COMMUTE_PENALTY_PER_MIN = 1.2;
 
 // --- HELPERS ---
 
 const clamp = (val: number, min = 0, max = 100) => Math.min(Math.max(val, min), max);
 
-const normalizeSalary = (amount: number): number => {
+const normalizeSalary = (amount: number, currency: string): number => {
     if (!amount) return 0;
-    const score = ((amount - SALARY_BASELINE) / (SALARY_TARGET - SALARY_BASELINE)) * 100;
+    const { baseline, target } = getSalaryBounds(currency);
+    const score = ((amount - baseline) / (target - baseline)) * 100;
     return clamp(score);
+};
+
+const normalizeCurrency = (currency?: string): string => {
+    if (!currency) return 'CZK';
+    if (currency === 'Kč') return 'CZK';
+    return currency.toUpperCase();
+};
+
+const getCurrencyFromJob = (job: Partial<Job>): string => {
+    const fromRange = normalizeCurrency(detectCurrency(job.salaryRange || ''));
+    if (fromRange) return fromRange;
+
+    const cc = (job.country_code || '').toUpperCase();
+    if (cc === 'PL') return 'PLN';
+    if (cc === 'CH') return 'CHF';
+    if (cc === 'CZ') return 'CZK';
+    if (['DE', 'AT', 'SK', 'FR', 'IT', 'ES', 'NL', 'IE', 'BE', 'PT'].includes(cc)) return 'EUR';
+
+    const fromLocation = normalizeCurrency(detectCurrencyFromLocation(job.location || ''));
+    return fromLocation || 'CZK';
+};
+
+const getSalaryBounds = (currency: string): { baseline: number; target: number } => {
+    const cur = normalizeCurrency(currency);
+    const multiplier =
+        cur === 'CZK' ? 25 :
+        cur === 'PLN' ? 4.3 :
+        cur === 'CHF' ? 1.05 :
+        1; // EUR default
+
+    return {
+        baseline: SALARY_BASELINE_EUR * multiplier,
+        target: SALARY_TARGET_EUR * multiplier
+    };
 };
 
 // --- PILLARS ---
@@ -75,6 +111,7 @@ const normalizeSalary = (amount: number): number => {
  */
 const calculateFinancialReality = (job: Partial<Job>): number => {
     let salaryScore = 40; // Default if hidden (below average but not 0)
+    const currency = getCurrencyFromJob(job);
 
     // Determine salary to use
     let salary = job.salary_from;
@@ -91,7 +128,7 @@ const calculateFinancialReality = (job: Partial<Job>): number => {
     }
 
     if (salary) {
-        salaryScore = normalizeSalary(salary);
+        salaryScore = normalizeSalary(salary, currency);
     } else {
         // Penalty for hidden salary
         salaryScore -= 20;
