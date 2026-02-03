@@ -711,7 +711,7 @@ export default function App() {
 
         if (!jobId) {
             setDirectlyFetchedJob(null);
-            if (openedFromSwipe && viewState === ViewState.JOBS) {
+            if (openedFromSwipe && viewState === ViewState.LIST) {
                 setIsMobileSwipeView(true);
                 setOpenedFromSwipe(false);
             }

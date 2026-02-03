@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Job } from '../types';
 import { UserProfile } from '../types';
 
@@ -27,7 +26,6 @@ const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
 };
 
 export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePaginatedJobsProps) => {
-    const { i18n } = useTranslation();
     const initialCountry = getCountryCodeFromAddress(userProfile.address);
     const [countryCodes, setCountryCodes] = useState<string[]>(() => (initialCountry ? [initialCountry] : []));
 
