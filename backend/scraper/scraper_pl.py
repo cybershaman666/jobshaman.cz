@@ -137,7 +137,12 @@ class PolandScraper(BaseScraper):
                         for s in scripts:
                             try:
                                 ld = json.loads(s.get_text())
-                                if ld.get('@type') == 'JobPosting':
+                                if isinstance(ld, list):
+                                    for item in ld:
+                                        if item.get('@type') == 'JobPosting':
+                                            json_ld = item
+                                            break
+                                elif ld.get('@type') == 'JobPosting':
                                     json_ld = ld
                                     break
                             except: pass
@@ -146,23 +151,60 @@ class PolandScraper(BaseScraper):
                             if 'description' in json_ld and json_ld['description']:
                                 desc_html = json_ld['description']
                                 desc_soup = BeautifulSoup(desc_html, 'html.parser')
-                                description = filter_out_junk(desc_soup.get_text('\n\n'))
+                                parts = []
+                                for elem in desc_soup.find_all(['p', 'li', 'h2', 'h3']):
+                                    txt = norm_text(elem.get_text())
+                                    if len(txt) > 2:
+                                        if elem.name == 'li': parts.append(f"- {txt}")
+                                        elif elem.name in ['h2', 'h3']: parts.append(f"\n### {txt}")
+                                        else: parts.append(txt)
+                                description = filter_out_junk("\n\n".join(parts)) if parts else filter_out_junk(desc_soup.get_text('\n\n'))
                             
                             if 'employmentType' in json_ld:
                                 contract_type = str(json_ld['employmentType'])
                                 
                         else:
-                             # Fallback HTML extraction
-                             description = build_description(
+                            # Fallback HTML extraction with multiple selector strategies
+                            description = build_description(
                                 detail_soup,
                                 {
-                                    'paragraphs': ['[data-test="section-responsibilities"] p', '[data-test="section-requirements"] p', '[data-test="text-benefit"]'],
-                                    'lists': ['[data-test="section-responsibilities"] ul', '[data-test="section-requirements"] ul']
+                                    'paragraphs': ['[data-test="section-responsibilities"] p', '[data-test="section-requirements"] p', '.job-description p', '.offer-description p', '.content p', 'main p', 'article p'],
+                                    'lists': ['[data-test="section-responsibilities"] ul', '[data-test="section-requirements"] ul', '.job-description ul', '.offer-description ul']
                                 }
                             )
                             
-                        # Benefits from detail
-                        benefits = extract_benefits(detail_soup, ['[data-test="section-benefits"] li', '.benefits-list li'])
+                            # Last resort: find largest content container
+                            if description == "Popis není dostupný" or len(description) < 100:
+                                candidates = []
+                                for div in detail_soup.find_all(['div', 'main', 'article', 'section']):
+                                    txt = div.get_text(strip=True)
+                                    if 200 < len(txt) < 15000:
+                                        score = len(txt)
+                                        candidates.append((div, score))
+                                
+                                if candidates:
+                                    candidates.sort(key=lambda x: x[1], reverse=True)
+                                    best_div = candidates[0][0]
+                                    parts = []
+                                    for elem in best_div.find_all(['p', 'li', 'h2', 'h3']):
+                                        txt = norm_text(elem.get_text())
+                                        if len(txt) > 2:
+                                            if elem.name == 'li': parts.append(f"- {txt}")
+                                            elif elem.name in ['h2', 'h3']: parts.append(f"\n### {txt}")
+                                            else: parts.append(txt)
+                                    if parts:
+                                        description = filter_out_junk("\n\n".join(parts))
+                            
+                        # Benefits from detail - enhanced selectors
+                        benefits = extract_benefits(detail_soup, [
+                            '[data-test="section-benefits"] li', 
+                            '.benefits-list li',
+                            '.job-benefits li',
+                            '[data-test="benefits"] li',
+                            '.offer-benefits li'
+                        ])
+                        if not benefits:
+                            benefits = []
                         
                         # Refine work type
                         work_type = detect_work_type(title, description, location)
@@ -292,45 +334,92 @@ class PolandScraper(BaseScraper):
                     detail_soup = scrape_page(url)
                     description = "Popis není dostupný"
                     benefits = []
+                    contract_type = "B2B/Contract"  # NoFluff default often
                     
                     if detail_soup:
-                         # Enhanced selectors for NoFluffJobs
-                         description = build_description(
-                            detail_soup,
-                            {
-                                'paragraphs': [
-                                    '#posting-description p', 
-                                    '.posting-description p',
-                                    'nfj-posting-description p',
-                                    '[data-cy="posting-description"] p',
-                                    '.job-description p'
-                                ],
-                                'lists': [
-                                    '#posting-requirements ul',
-                                    '.posting-requirements ul',
-                                    'nfj-posting-requirements ul',
-                                    '[data-cy="posting-requirements"] ul',
-                                    '.job-description ul'
-                                ]
-                            }
-                        )
+                         # Try JSON-LD first
+                         json_ld = None
+                         scripts = detail_soup.find_all('script', type='application/ld+json')
+                         for s in scripts:
+                             try:
+                                 ld = json.loads(s.get_text())
+                                 if isinstance(ld, list):
+                                     for item in ld:
+                                         if item.get('@type') == 'JobPosting':
+                                             json_ld = item
+                                             break
+                                 elif ld.get('@type') == 'JobPosting':
+                                     json_ld = ld
+                                     break
+                             except: pass
+                         
+                         if json_ld and 'description' in json_ld and json_ld['description']:
+                             desc_html = json_ld['description']
+                             desc_soup = BeautifulSoup(desc_html, 'html.parser')
+                             parts = []
+                             for elem in desc_soup.find_all(['p', 'li', 'h2', 'h3']):
+                                 txt = norm_text(elem.get_text())
+                                 if len(txt) > 2:
+                                     if elem.name == 'li': parts.append(f"- {txt}")
+                                     elif elem.name in ['h2', 'h3']: parts.append(f"\n### {txt}")
+                                     else: parts.append(txt)
+                             description = filter_out_junk("\n\n".join(parts)) if parts else filter_out_junk(desc_soup.get_text('\n\n'))
+                         else:
+                             # Enhanced selectors for NoFluffJobs
+                             description = build_description(
+                                detail_soup,
+                                {
+                                    'paragraphs': [
+                                        '#posting-description p', 
+                                        '.posting-description p',
+                                        'nfj-posting-description p',
+                                        '[data-cy="posting-description"] p',
+                                        '.job-description p',
+                                        'main p',
+                                        'article p'
+                                    ],
+                                    'lists': [
+                                        '#posting-requirements ul',
+                                        '.posting-requirements ul',
+                                        'nfj-posting-requirements ul',
+                                        '[data-cy="posting-requirements"] ul',
+                                        '.job-description ul',
+                                        'main ul',
+                                        'article ul'
+                                    ]
+                                }
+                            )
+                         
+                         # Last resort fallback
+                         if not description or description == "Popis není dostupný" or len(description) < 100:
+                             candidates = []
+                             for div in detail_soup.find_all(['div', 'main', 'article', 'section']):
+                                 txt = div.get_text(strip=True)
+                                 if 200 < len(txt) < 15000 and "cookies" not in txt.lower():
+                                     score = len(txt)
+                                     candidates.append((div, score))
+                             
+                             if candidates:
+                                 candidates.sort(key=lambda x: x[1], reverse=True)
+                                 best_div = candidates[0][0]
+                                 parts = []
+                                 for elem in best_div.find_all(['p', 'li', 'h2', 'h3']):
+                                     txt = norm_text(elem.get_text())
+                                     if len(txt) > 2:
+                                         if elem.name == 'li': parts.append(f"- {txt}")
+                                         elif elem.name in ['h2', 'h3']: parts.append(f"\n### {txt}")
+                                         else: parts.append(txt)
+                                 if parts:
+                                     description = filter_out_junk("\n\n".join(parts))
                          
                          benefits = extract_benefits(detail_soup, [
                             'nfj-posting-benefits li', 
                             '.benefits-list li',
                             '[data-cy="posting-benefits"] li',
-                            '#posting-benefits li'
+                            '#posting-benefits li',
+                            '.benefits li',
+                            '[data-test="benefits"] li'
                         ])
-                         
-                         # If still empty, try to find text heavy div
-                         if not description or len(description) < 100:
-                             candidates = detail_soup.select('div')
-                             candidates.sort(key=lambda x: len(x.get_text()), reverse=True)
-                             for c in candidates[:3]:
-                                 txt = filter_out_junk(c.get_text())
-                                 if len(txt) > 200 and "cookies" not in txt.lower():
-                                     description = txt
-                                     break
                     
                     work_type = 'On-site'
                     if job.get('fullyRemote'): work_type = 'Remote'

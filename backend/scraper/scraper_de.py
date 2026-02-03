@@ -341,21 +341,61 @@ class GermanyScraper(BaseScraper):
                     loc_el = detail_soup.select_one('.m-jobContent__jobLocation, .m-jobHeader__location')
                     if loc_el: location = norm_text(loc_el.get_text())
                 
-                # Description
+                # Description - Enhanced extraction with multiple fallbacks
                 description = "Beschreibung nicht gefunden"
-                # Verified selector: m-jobContent__jobDetail
-                desc_el = detail_soup.select_one('.m-jobContent__jobDetail, .m-jobContent__rows')
                 
-                if desc_el:
-                    # Verified selector: m-jobContent__jobDetail
-                    # Utilizing specific selectors instead of unsupported root_element arg
+                # Try JSON-LD description first
+                if json_ld and 'description' in json_ld and json_ld['description']:
+                    try:
+                        desc_html = json_ld['description']
+                        desc_soup = BeautifulSoup(desc_html, 'html.parser')
+                        parts = []
+                        for elem in desc_soup.find_all(['p', 'li', 'h2', 'h3']):
+                            txt = norm_text(elem.get_text())
+                            if len(txt) > 2:
+                                if elem.name == 'li': parts.append(f"- {txt}")
+                                elif elem.name in ['h2', 'h3']: parts.append(f"\n### {txt}")
+                                else: parts.append(txt)
+                        if parts:
+                            description = filter_out_junk("\n\n".join(parts))
+                    except:
+                        pass
+                
+                # Fallback to CSS selectors if not in JSON-LD
+                if description == "Beschreibung nicht gefunden" or len(description) < 100:
                     description = build_description(detail_soup, {
-                        'paragraphs': ['.m-jobContent__jobDetail p'],
-                        'lists': ['.m-jobContent__jobDetail ul']
+                        'paragraphs': ['.m-jobContent__jobDetail p', '.content p', '.job-description p', 'main p', 'article p'],
+                        'lists': ['.m-jobContent__jobDetail ul', '.content ul', '.job-description ul', 'main ul', 'article ul']
                     })
                 
+                # Last resort: find largest text container
+                if description == "Beschreibung nicht gefunden" or len(description) < 100:
+                    candidates = []
+                    for div in detail_soup.find_all(['div', 'main', 'article']):
+                        txt = div.get_text(strip=True)
+                        if 150 < len(txt) < 10000:  # Reasonable size
+                            score = len(txt)
+                            candidates.append((div, score))
+                    
+                    if candidates:
+                        candidates.sort(key=lambda x: x[1], reverse=True)
+                        best_div = candidates[0][0]
+                        parts = []
+                        for elem in best_div.find_all(['p', 'li', 'h2', 'h3']):
+                            txt = norm_text(elem.get_text())
+                            if len(txt) > 2:
+                                if elem.name == 'li': parts.append(f"- {txt}")
+                                elif elem.name in ['h2', 'h3']: parts.append(f"\n### {txt}")
+                                else: parts.append(txt)
+                        if parts:
+                            description = filter_out_junk("\n\n".join(parts))
+                        else:
+                            description = filter_out_junk(norm_text(best_div.get_text()))
+                
                 # Benefits
-                benefits = extract_benefits(detail_soup, ['.m-benefits__list li', '.benefits-list li'])
+                benefits = extract_benefits(detail_soup, ['.m-benefits__list li', '.benefits-list li', '.benefits li', 'ul li'])
+                if not benefits:
+                    benefits = ["Nicht spezifiziert"]
                 
                 # Salary
                 salary_from, salary_to = None, None
@@ -453,8 +493,8 @@ def run_germany_scraper():
         },
         {
             'name': 'Karriere.at',
-            'base_url': 'https://www.karriere.at/jobs/software',
-            'max_pages': 20
+            'base_url': 'https://www.karriere.at/jobs',
+            'max_pages': 30
         }
     ]
     
