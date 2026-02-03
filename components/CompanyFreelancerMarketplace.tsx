@@ -39,6 +39,7 @@ const CompanyFreelancerMarketplace: React.FC = () => {
     const [contactMessage, setContactMessage] = useState('');
     const [contactEmail, setContactEmail] = useState('');
     const [contactPhone, setContactPhone] = useState('');
+    const [requireContact, setRequireContact] = useState(true);
     const [contactTarget, setContactTarget] = useState<Freelancer | null>(null);
     const [freelancers, setFreelancers] = useState<Freelancer[]>([]);
     const [loading, setLoading] = useState(true);
@@ -57,14 +58,38 @@ const CompanyFreelancerMarketplace: React.FC = () => {
                 if (!isMounted) return;
                 setContactEmail(user?.email || '');
                 setContactPhone('');
+                setRequireContact(true);
+
+                if (user?.id && contactTarget?.id) {
+                    const { data } = await supabase
+                        .from('service_inquiries')
+                        .select('id')
+                        .eq('freelancer_id', contactTarget.id)
+                        .eq('from_user_id', user.id)
+                        .limit(1);
+                    if (!isMounted) return;
+                    if (data && data.length > 0) {
+                        setRequireContact(false);
+                    }
+                } else if (contactTarget?.id) {
+                    const cached = localStorage.getItem(`freelance_contact_${contactTarget.id}`);
+                    if (!isMounted) return;
+                    if (cached) {
+                        const parsed = JSON.parse(cached);
+                        setContactEmail(parsed.email || '');
+                        setContactPhone(parsed.phone || '');
+                        setRequireContact(false);
+                    }
+                }
             } catch {
                 if (!isMounted) return;
                 setContactEmail('');
                 setContactPhone('');
+                setRequireContact(true);
             }
         })();
         return () => { isMounted = false; };
-    }, [showContactModal]);
+    }, [showContactModal, contactTarget?.id]);
 
     const loadFreelancers = async () => {
         try {
@@ -166,6 +191,12 @@ const CompanyFreelancerMarketplace: React.FC = () => {
                 metadata: contactPhone ? { contact_phone: contactPhone } : null
             };
             await createServiceInquiry(payload);
+            if (!user?.id && contactTarget?.id) {
+                localStorage.setItem(`freelance_contact_${contactTarget.id}`, JSON.stringify({
+                    email: contactEmail,
+                    phone: contactPhone
+                }));
+            }
             setContacting(false);
             setShowContactModal(false);
             setContactMessage('');
@@ -348,7 +379,7 @@ const CompanyFreelancerMarketplace: React.FC = () => {
                             onChange={(e) => setContactEmail(e.target.value)}
                             placeholder={t('freelancer_marketplace.contact_email_placeholder') || 'Váš e-mail (povinný)'}
                             className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white mb-3"
-                            required
+                            required={requireContact}
                         />
 
                         <input
@@ -370,7 +401,7 @@ const CompanyFreelancerMarketplace: React.FC = () => {
                             <button onClick={() => setShowContactModal(false)} className="px-4 py-2 rounded-lg border text-sm">{t('freelancer_marketplace.contact_cancel') || 'Zrušit'}</button>
                             <button
                                 onClick={sendContact}
-                                disabled={contacting || !contactMessage.trim() || !contactEmail.trim()}
+                                disabled={contacting || !contactMessage.trim() || (requireContact && !contactEmail.trim())}
                                 className="px-4 py-2 rounded-lg bg-cyan-600 text-white disabled:opacity-50"
                             >
                                 {contacting ? t('freelancer_marketplace.contact_sending') || 'Odesílám...' : t('freelancer_marketplace.contact_send') || 'Odeslat'}
