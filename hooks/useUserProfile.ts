@@ -210,6 +210,27 @@ export const useUserProfile = () => {
                     if (company) {
                         setCompanyProfile(company);
                     }
+
+                    // Ensure freelancer_profiles row exists for freelancer companies
+                    const isFreelancer = metaIsFreelancer || company?.industry === 'Freelancer';
+                    if (isFreelancer) {
+                        try {
+                            const { getFreelancerProfile, createFreelancerProfile } = await import('../services/supabaseService');
+                            const existingFreelancer = await getFreelancerProfile(userId);
+                            if (!existingFreelancer) {
+                                const { data: { user } } = await supabase.auth.getUser();
+                                await createFreelancerProfile(userId, {
+                                    contact_email: user?.email || profile.email || null,
+                                    website: user?.user_metadata?.website || null,
+                                    presentation: '',
+                                    work_type: 'remote'
+                                });
+                                console.log('✅ Auto-created freelancer profile for marketplace visibility.');
+                            }
+                        } catch (err) {
+                            console.warn('⚠️ Failed to ensure freelancer profile:', err);
+                        }
+                    }
                 }
 
                 // Auto-Upgrade Logic for Admin Tester - REMOVED for Strict Separation conformance
