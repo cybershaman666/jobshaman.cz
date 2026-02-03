@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Job } from '../types';
 import { UserProfile } from '../types';
 
@@ -14,6 +15,18 @@ const getCountryCodeFromAddress = (address: string): string | null => {
     return null;
 };
 
+// Infer country code from language (best-effort)
+const getCountryCodeFromLanguage = (lng?: string): string | null => {
+    if (!lng) return null;
+    const code = lng.split('-')[0].toLowerCase();
+    if (code === 'cs') return 'cs';
+    if (code === 'sk') return 'sk';
+    if (code === 'de') return 'de';
+    if (code === 'pl') return 'pl';
+    if (code === 'at') return 'at';
+    return null;
+};
+
 interface UsePaginatedJobsProps {
     userProfile: UserProfile;
     initialPageSize?: number;
@@ -26,7 +39,8 @@ const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
 };
 
 export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePaginatedJobsProps) => {
-    const initialCountry = getCountryCodeFromAddress(userProfile.address);
+    const { i18n } = useTranslation();
+    const initialCountry = getCountryCodeFromAddress(userProfile.address) || getCountryCodeFromLanguage(i18n.language);
     const [countryCodes, setCountryCodes] = useState<string[]>(() => (initialCountry ? [initialCountry] : []));
 
     const [jobs, setJobs] = useState<Job[]>([]);
@@ -206,13 +220,14 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         }
     }, [globalSearch, countryCodes.length, userProfile.address]);
 
-    // If user is logged out and has no address, always stay in global search
+    // When language changes, default to that country's jobs (unless cross-border is enabled)
     useEffect(() => {
-        if (!userProfile.isLoggedIn && !userProfile.address) {
-            if (countryCodes.length > 0) setCountryCodes([]);
-            if (!globalSearch) setGlobalSearch(true);
+        if (globalSearch) return;
+        const langCountry = getCountryCodeFromLanguage(i18n.language);
+        if (langCountry && (countryCodes.length !== 1 || countryCodes[0] !== langCountry)) {
+            setCountryCodes([langCountry]);
         }
-    }, [userProfile.isLoggedIn, userProfile.address, countryCodes.length, globalSearch]);
+    }, [i18n.language, globalSearch, countryCodes]);
 
     // Perform search is now just setting the search term
     const performSearch = useCallback((term: string) => {
