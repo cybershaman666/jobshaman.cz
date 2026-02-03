@@ -49,63 +49,58 @@ const CompanyFreelancerMarketplace: React.FC = () => {
     const loadFreelancers = async () => {
         try {
             setLoading(true);
-            // Get all freelancer profiles (public read via RLS)
+            // Base query: freelancer_profiles only (public read via RLS)
             const { data, error } = await supabase
                 .from('freelancer_profiles')
-                .select('id, headline, bio, hourly_rate, address, tags, profiles(id, full_name, avatar_url)')
+                .select('id, headline, bio, hourly_rate, address, tags, contact_email, website')
                 .order('created_at', { ascending: false });
 
             if (error) {
-                console.warn('Error loading freelancers with profile join, retrying without profiles:', error);
-                const { data: fallbackData, error: fallbackError } = await supabase
-                    .from('freelancer_profiles')
-                    .select('id, headline, bio, hourly_rate, address, tags, contact_email, website')
-                    .order('created_at', { ascending: false });
-
-                if (fallbackError) {
-                    console.error('Error loading freelancers (fallback):', fallbackError);
-                    setFreelancers([]);
-                    return;
-                }
-
-                const transformedFreelancers: Freelancer[] = (fallbackData || []).map((freelancer: any) => {
-                    const emailName = freelancer.contact_email ? String(freelancer.contact_email).split('@')[0] : null;
-                    const displayName = freelancer.headline || emailName || t('freelancer_marketplace.unknown_name') || 'Freelancer';
-                    return {
-                        id: freelancer.id,
-                        name: displayName,
-                        title: freelancer.headline || displayName,
-                        description: freelancer.bio || t('freelancer_marketplace.no_bio') || 'Kvalitní freelancer',
-                        category: Array.isArray(freelancer.tags) && freelancer.tags.length > 0 ? freelancer.tags[0] : 'crafts',
-                        location: freelancer.address,
-                        rating: 5.0,
-                        reviews_count: 0,
-                        hourly_rate: freelancer.hourly_rate || 500,
-                        verified: false,
-                        badge: undefined,
-                        image: undefined
-                    };
-                });
-
-                setFreelancers(transformedFreelancers);
+                console.error('Error loading freelancers:', error);
+                setFreelancers([]);
                 return;
             }
 
+            const freelancerIds = (data || []).map((f: any) => f.id).filter(Boolean);
+
+            // Try to enrich with profiles (optional; may be blocked by RLS)
+            let profileMap: Record<string, { full_name?: string; avatar_url?: string }> = {};
+            if (freelancerIds.length > 0) {
+                const { data: profilesData, error: profilesError } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, avatar_url')
+                    .in('id', freelancerIds);
+
+                if (!profilesError && profilesData) {
+                    profileMap = profilesData.reduce((acc: any, p: any) => {
+                        acc[p.id] = { full_name: p.full_name, avatar_url: p.avatar_url };
+                        return acc;
+                    }, {});
+                } else if (profilesError) {
+                    console.warn('Profiles enrichment failed (non-fatal):', profilesError);
+                }
+            }
+
             // Transform data to match Freelancer interface
-            const transformedFreelancers: Freelancer[] = (data || []).map((freelancer: any) => ({
-                id: freelancer.id,
-                name: freelancer.profiles?.full_name || t('freelancer_marketplace.unknown_name') || 'Freelancer',
-                title: freelancer.headline || freelancer.profiles?.full_name || 'Freelancer',
-                description: freelancer.bio || t('freelancer_marketplace.no_bio') || 'Kvalitní freelancer',
-                category: Array.isArray(freelancer.tags) && freelancer.tags.length > 0 ? freelancer.tags[0] : 'crafts',
-                location: freelancer.address,
-                rating: 5.0, // Default rating
-                reviews_count: 0,
-                hourly_rate: freelancer.hourly_rate || 500, // Default rate
-                verified: false,
-                badge: undefined,
-                image: freelancer.profiles?.avatar_url || undefined
-            }));
+            const transformedFreelancers: Freelancer[] = (data || []).map((freelancer: any) => {
+                const profile = profileMap[freelancer.id];
+                const emailName = freelancer.contact_email ? String(freelancer.contact_email).split('@')[0] : null;
+                const displayName = profile?.full_name || freelancer.headline || emailName || t('freelancer_marketplace.unknown_name') || 'Freelancer';
+                return {
+                    id: freelancer.id,
+                    name: displayName,
+                    title: freelancer.headline || displayName,
+                    description: freelancer.bio || t('freelancer_marketplace.no_bio') || 'Kvalitní freelancer',
+                    category: Array.isArray(freelancer.tags) && freelancer.tags.length > 0 ? freelancer.tags[0] : 'crafts',
+                    location: freelancer.address,
+                    rating: 5.0, // Default rating
+                    reviews_count: 0,
+                    hourly_rate: freelancer.hourly_rate || 500, // Default rate
+                    verified: false,
+                    badge: undefined,
+                    image: profile?.avatar_url || undefined
+                };
+            });
 
             setFreelancers(transformedFreelancers);
         } catch (err) {
