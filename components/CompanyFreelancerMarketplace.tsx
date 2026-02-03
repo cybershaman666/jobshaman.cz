@@ -56,8 +56,38 @@ const CompanyFreelancerMarketplace: React.FC = () => {
                 .order('created_at', { ascending: false });
 
             if (error) {
-                console.error('Error loading freelancers:', error);
-                setFreelancers([]);
+                console.warn('Error loading freelancers with profile join, retrying without profiles:', error);
+                const { data: fallbackData, error: fallbackError } = await supabase
+                    .from('freelancer_profiles')
+                    .select('id, headline, bio, hourly_rate, address, tags, contact_email, website')
+                    .order('created_at', { ascending: false });
+
+                if (fallbackError) {
+                    console.error('Error loading freelancers (fallback):', fallbackError);
+                    setFreelancers([]);
+                    return;
+                }
+
+                const transformedFreelancers: Freelancer[] = (fallbackData || []).map((freelancer: any) => {
+                    const emailName = freelancer.contact_email ? String(freelancer.contact_email).split('@')[0] : null;
+                    const displayName = freelancer.headline || emailName || t('freelancer_marketplace.unknown_name') || 'Freelancer';
+                    return {
+                        id: freelancer.id,
+                        name: displayName,
+                        title: freelancer.headline || displayName,
+                        description: freelancer.bio || t('freelancer_marketplace.no_bio') || 'Kvalitní freelancer',
+                        category: Array.isArray(freelancer.tags) && freelancer.tags.length > 0 ? freelancer.tags[0] : 'crafts',
+                        location: freelancer.address,
+                        rating: 5.0,
+                        reviews_count: 0,
+                        hourly_rate: freelancer.hourly_rate || 500,
+                        verified: false,
+                        badge: undefined,
+                        image: undefined
+                    };
+                });
+
+                setFreelancers(transformedFreelancers);
                 return;
             }
 
@@ -316,4 +346,3 @@ const CompanyFreelancerMarketplace: React.FC = () => {
 };
 
 export default CompanyFreelancerMarketplace;
-
