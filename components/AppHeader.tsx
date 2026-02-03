@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
     Briefcase,
     Sun,
@@ -6,7 +6,9 @@ import {
     LogOut,
     UserCircle,
     ShoppingBag,
-    Handshake
+    Handshake,
+    Menu,
+    X
 } from 'lucide-react';
 import { ViewState, UserProfile, CompanyProfile } from '../types';
 import SubscriptionStatusBadge from './SubscriptionStatusBadge';
@@ -43,6 +45,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     onIntentionalListClick
 }) => {
     const { t, i18n } = useTranslation();
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     const languages = [
         { code: 'cs', name: 'CZ', flag: '🇨🇿' },
@@ -94,7 +97,16 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                     <span className="text-lg sm:text-xl font-bold tracking-tight hidden sm:block"><span className="text-cyan-600 dark:text-cyan-400">JobShaman</span></span>
                 </div>
 
-                {/* Navigation */}
+                {/* Mobile Menu Button */}
+                <button
+                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                    className="sm:hidden flex items-center justify-center p-2 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+                    title="Menu"
+                >
+                    {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                </button>
+
+                {/* Desktop Navigation */}
                 <nav className="hidden sm:flex items-center gap-1 bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700/50">
                     {(() => { console.log("🧭 [AppHeader] showCompanyLanding:", showCompanyLanding, "viewState:", viewState); return null; })()}
                     {!showCompanyLanding && (
@@ -241,6 +253,85 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                     </div>
                 )}
             </div>
+
+            {/* Mobile Navigation Drawer */}
+            {mobileMenuOpen && (
+                <div className="sm:hidden border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                    <div className="px-3 py-4 space-y-2">
+                        {!showCompanyLanding && (
+                            <>
+                                <button
+                                    onClick={() => { 
+                                        onIntentionalListClick?.();
+                                        setViewState(ViewState.LIST); 
+                                        setSelectedJobId(null);
+                                        setMobileMenuOpen(false);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all ${viewState === ViewState.LIST ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                >
+                                    {t('nav.offers')}
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        userProfile.isLoggedIn ? setViewState(ViewState.PROFILE) : handleAuthAction();
+                                        setMobileMenuOpen(false);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all ${viewState === ViewState.PROFILE ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'} ${userProfile.role === 'recruiter' ? 'hidden' : ''}`}
+                                >
+                                    {t('nav.profile')}
+                                </button>
+                                <button
+                                    onClick={() => { 
+                                        setViewState(ViewState.MARKETPLACE);
+                                        setMobileMenuOpen(false);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${viewState === ViewState.MARKETPLACE ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                >
+                                    <ShoppingBag className="w-4 h-4" />
+                                    {t('nav.marketplace')}
+                                </button>
+                                <button
+                                    onClick={() => { 
+                                        setViewState(ViewState.SERVICES);
+                                        setMobileMenuOpen(false);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${viewState === ViewState.SERVICES ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                >
+                                    <Handshake className="w-4 h-4" />
+                                    {t('nav.services')}
+                                </button>
+                            </>
+                        )}
+                        <button
+                            onClick={() => {
+                                if (showCompanyLanding) {
+                                    setShowCompanyLanding(false);
+                                    setViewState(ViewState.LIST);
+                                } else if (userProfile.isLoggedIn) {
+                                    if (companyProfile?.industry === 'Freelancer') {
+                                        setViewState(ViewState.FREELANCER_DASHBOARD);
+                                    } else if (userProfile.role === 'recruiter') {
+                                        if (companyProfile) {
+                                            setViewState(ViewState.COMPANY_DASHBOARD);
+                                        } else {
+                                            setIsOnboardingCompany(true);
+                                        }
+                                    } else {
+                                        setShowCompanyLanding(true);
+                                    }
+                                } else {
+                                    setShowCompanyLanding(true);
+                                }
+                                setMobileMenuOpen(false);
+                            }}
+                            className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD || viewState === ViewState.FREELANCER_DASHBOARD ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                        >
+                            <Briefcase size={14} />
+                            {showCompanyLanding ? t('nav.back') : (companyProfile?.industry === 'Freelancer' ? 'Můj Účet' : t('nav.for_companies'))}
+                        </button>
+                    </div>
+                </div>
+            )}
         </header>
     );
 };
