@@ -127,6 +127,7 @@ export default function App() {
     const [commuteAnalysis, setCommuteAnalysis] = useState<CommuteAnalysis | null>(null);
     const [showFinancialMethodology, setShowFinancialMethodology] = useState(false);
     const [isMobileSwipeView, setIsMobileSwipeView] = useState(false);
+    const [openedFromSwipe, setOpenedFromSwipe] = useState(false);
 
 
     // Use custom hooks
@@ -691,6 +692,7 @@ export default function App() {
 
     const handleOpenJobDetailsFromSwipe = (jobId: string) => {
         handleJobSelect(jobId);
+        setOpenedFromSwipe(true);
         setIsMobileSwipeView(false);
     };
 
@@ -709,6 +711,10 @@ export default function App() {
 
         if (!jobId) {
             setDirectlyFetchedJob(null);
+            if (openedFromSwipe && viewState === ViewState.JOBS) {
+                setIsMobileSwipeView(true);
+                setOpenedFromSwipe(false);
+            }
         }
 
         if (jobId) {
