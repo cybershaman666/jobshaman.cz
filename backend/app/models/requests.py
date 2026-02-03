@@ -59,3 +59,10 @@ class AssessmentResultRequest(BaseModel):
     time_spent_seconds: int
     answers: dict
     feedback: Optional[str] = None
+
+class JobInteractionRequest(BaseModel):
+    job_id: int
+    event_type: str = Field(..., pattern=r"^(impression|swipe_left|swipe_right|open_detail|apply_click|save|unsave)$")
+    dwell_time_ms: Optional[int] = None
+    session_id: Optional[str] = None
+    metadata: Optional[dict] = None

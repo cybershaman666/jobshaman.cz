@@ -3,6 +3,7 @@ import { Job } from '../types';
 import { Bookmark, X, Check, ChevronDown, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
+import { trackJobInteraction } from '../services/jobInteractionService';
 
 interface MobileSwipeJobBrowserProps {
     jobs: Job[];
@@ -43,6 +44,9 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     const [exitAnimation, setExitAnimation] = useState<'left' | 'right' | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const justSwipedRef = useRef(false);
+    const sessionIdRef = useRef(`swipe_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+    const viewStartRef = useRef<number | null>(null);
+    const lastImpressionJobIdRef = useRef<string | null>(null);
 
     const currentJob = jobs[currentIndex];
     const isSaved = currentJob && savedJobIds.includes(currentJob.id);
@@ -61,8 +65,39 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
         return () => window.removeEventListener('keydown', handleKeyPress);
     }, [currentIndex, jobs.length]);
 
+    // Track impressions when the current job changes
+    useEffect(() => {
+        if (!currentJob) return;
+        if (lastImpressionJobIdRef.current === currentJob.id) return;
+
+        lastImpressionJobIdRef.current = currentJob.id;
+        viewStartRef.current = Date.now();
+
+        trackJobInteraction({
+            jobId: currentJob.id,
+            eventType: 'impression',
+            sessionId: sessionIdRef.current,
+            metadata: {
+                index: currentIndex,
+                source: 'mobile_swipe'
+            }
+        });
+    }, [currentJob?.id, currentIndex]);
+
     const handleReject = () => {
         if (currentIndex < jobs.length) {
+            const dwellTimeMs = viewStartRef.current ? Date.now() - viewStartRef.current : undefined;
+            if (currentJob) {
+                trackJobInteraction({
+                    jobId: currentJob.id,
+                    eventType: 'swipe_left',
+                    dwellTimeMs,
+                    sessionId: sessionIdRef.current,
+                    metadata: {
+                        source: 'mobile_swipe'
+                    }
+                });
+            }
             setExitAnimation('left');
             setTimeout(() => {
                 setCurrentIndex(prev => prev + 1);
@@ -72,8 +107,27 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     };
 
     const handleSave = () => {
+        const dwellTimeMs = viewStartRef.current ? Date.now() - viewStartRef.current : undefined;
         if (currentJob) {
             onToggleSave(currentJob.id);
+            trackJobInteraction({
+                jobId: currentJob.id,
+                eventType: 'swipe_right',
+                dwellTimeMs,
+                sessionId: sessionIdRef.current,
+                metadata: {
+                    source: 'mobile_swipe'
+                }
+            });
+            trackJobInteraction({
+                jobId: currentJob.id,
+                eventType: isSaved ? 'unsave' : 'save',
+                dwellTimeMs,
+                sessionId: sessionIdRef.current,
+                metadata: {
+                    source: 'mobile_swipe'
+                }
+            });
         }
         if (currentIndex < jobs.length) {
             setExitAnimation('right');
@@ -86,6 +140,16 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
 
     const handleOpenDetails = () => {
         if (!currentJob) return;
+        const dwellTimeMs = viewStartRef.current ? Date.now() - viewStartRef.current : undefined;
+        trackJobInteraction({
+            jobId: currentJob.id,
+            eventType: 'open_detail',
+            dwellTimeMs,
+            sessionId: sessionIdRef.current,
+            metadata: {
+                source: 'mobile_swipe'
+            }
+        });
         onOpenDetails(currentJob.id);
     };
 
