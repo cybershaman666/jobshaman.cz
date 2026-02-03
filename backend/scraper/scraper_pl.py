@@ -8,14 +8,14 @@ try:
     from .scraper_base import (
         BaseScraper, scrape_page, norm_text, extract_salary,
         detect_work_type, save_job_to_supabase, build_description,
-        extract_benefits, filter_out_junk
+        extract_benefits, filter_out_junk, is_low_quality
     )
 except ImportError:
     # Fallback to direct import (when run as script)
     from scraper_base import (
         BaseScraper, scrape_page, norm_text, extract_salary,
         detect_work_type, save_job_to_supabase, build_description,
-        extract_benefits, filter_out_junk
+        extract_benefits, filter_out_junk, is_low_quality
     )
 import json
 from urllib.parse import urljoin
@@ -182,6 +182,10 @@ class PolandScraper(BaseScraper):
                         'country_code': 'pl'
                     }
                     
+                    if is_low_quality(job_data):
+                        print(f"       ⚠️ Nízká kvalita, přeskakuji.")
+                        continue
+
                     if save_job_to_supabase(self.supabase, job_data):
                         jobs_saved += 1
                         
@@ -346,6 +350,10 @@ class PolandScraper(BaseScraper):
                         'country_code': 'pl'
                     }
                     
+                    if is_low_quality(job_data):
+                        print(f"       ⚠️ Nízká kvalita, přeskakuji.")
+                        continue
+
                     if save_job_to_supabase(self.supabase, job_data):
                         jobs_saved += 1
                         
@@ -450,6 +458,10 @@ class PolandScraper(BaseScraper):
                     'country_code': 'pl'
                 }
                 
+                if is_low_quality(job_data):
+                    print(f"       ⚠️ Nízká kvalita, přeskakuji.")
+                    continue
+
                 if save_job_to_supabase(self.supabase, job_data):
                     jobs_saved += 1
                 

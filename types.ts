@@ -50,7 +50,7 @@ export interface CompanyProfile {
   };
 }
 
-export type CompanyServiceTier = 'free' | 'trial' | 'basic' | 'business' | 'enterprise' | 'assessment_bundle';
+export type CompanyServiceTier = 'free' | 'trial' | 'basic' | 'business' | 'enterprise' | 'assessment_bundle' | 'freelance_premium';
 
 export interface CompanyUsageStats {
   activeJobsCount: number;
@@ -149,7 +149,9 @@ export enum ViewState {
   PROFILE = 'PROFILE',
   PROFILE_EDITOR = 'PROFILE_EDITOR',
   COMPANY_DASHBOARD = 'COMPANY_DASHBOARD',
+  FREELANCER_DASHBOARD = 'FREELANCER_DASHBOARD',
   MARKETPLACE = 'MARKETPLACE',
+  SERVICES = 'SERVICES',
   ASSESSMENT = 'ASSESSMENT'
 }
 

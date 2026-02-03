@@ -209,8 +209,12 @@ export const useUserProfile = () => {
                         const isExternalPage = pathname === '/podminky-uziti' || pathname === '/ochrana-osobnich-udaju' || pathname === '/enterprise' || pathname.startsWith('/assessment/');
 
                         if (!isJobDetail && !isExternalPage) {
-                            setViewState(ViewState.COMPANY_DASHBOARD);
-                            console.log("✅ Recruiter logged in, dashboard loaded.");
+                            if (company.industry === 'Freelancer') {
+                                setViewState(ViewState.FREELANCER_DASHBOARD);
+                            } else {
+                                setViewState(ViewState.COMPANY_DASHBOARD);
+                            }
+                            console.log("✅ Recruiter/Freelancer logged in, dashboard loaded.");
                         } else {
                             console.log("🔗 Recruiter logged in on deep link/external page, maintaining current view.");
                         }

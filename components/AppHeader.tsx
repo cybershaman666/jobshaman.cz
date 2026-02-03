@@ -5,7 +5,8 @@ import {
     Moon,
     LogOut,
     UserCircle,
-    ShoppingBag
+    ShoppingBag,
+    Handshake
 } from 'lucide-react';
 import { ViewState, UserProfile, CompanyProfile } from '../types';
 import SubscriptionStatusBadge from './SubscriptionStatusBadge';
@@ -100,6 +101,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 <ShoppingBag className="w-4 h-4" />
                                 {t('nav.marketplace')}
                             </button>
+                            <button
+                                onClick={() => setViewState(ViewState.SERVICES)}
+                                className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.SERVICES ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                            >
+                                <Handshake className="w-4 h-4" />
+                                {t('nav.services')}
+                            </button>
                         </>
                     )}
                     <button
@@ -122,9 +130,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 setShowCompanyLanding(true);
                             }
                         }}
-                        className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                        className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD || viewState === ViewState.FREELANCER_DASHBOARD ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                     >
-                        <Briefcase size={14} /> {showCompanyLanding ? t('nav.back') : t('nav.for_companies')}
+                        <Briefcase size={14} />
+                        {showCompanyLanding ? t('nav.back') : (companyProfile?.industry === 'Freelancer' ? 'Můj Freelance Účet' : t('nav.for_companies'))}
                     </button>
                 </nav>
 

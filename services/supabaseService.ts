@@ -1006,6 +1006,235 @@ export const createCompany = async (companyData: any, userId?: string): Promise<
     return data;
 };
 
+// ========================================
+// FREELANCER / MARKETPLACE HELPERS
+// ========================================
+
+export const createFreelancerProfile = async (userId: string, payload: Partial<Record<string, any>>) => {
+    if (!supabase) throw new Error('Supabase not configured');
+
+    await verifyAuthSession('createFreelancerProfile');
+
+    const record = {
+        id: userId,
+        headline: payload.headline || null,
+        bio: payload.bio || null,
+        presentation: payload.presentation || null,
+        hourly_rate: payload.hourly_rate ?? null,
+        currency: payload.currency || 'CZK',
+        skills: payload.skills || [],
+        tags: payload.tags || [],
+        portfolio: payload.portfolio || [],
+        work_type: payload.work_type || 'remote',
+        availability: payload.availability || null,
+        address: payload.address || null,
+        lat: payload.lat ?? null,
+        lng: payload.lng ?? null,
+        website: payload.website || null,
+        contact_email: payload.contact_email || null,
+        contact_phone: payload.contact_phone || null,
+        updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+        .from('freelancer_profiles')
+        .upsert(record, { onConflict: 'id', returning: 'representation' })
+        .select()
+        .maybeSingle();
+
+    if (error) {
+        console.error('Failed to upsert freelancer_profile:', error);
+        throw error;
+    }
+
+    return data;
+};
+
+export const updateFreelancerProfile = async (userId: string, updates: Partial<Record<string, any>>) => {
+    if (!supabase) throw new Error('Supabase not configured');
+
+    await verifyAuthSession('updateFreelancerProfile');
+
+    const payload: any = { ...updates, updated_at: new Date().toISOString() };
+
+    const { data, error } = await supabase
+        .from('freelancer_profiles')
+        .update(payload)
+        .eq('id', userId)
+        .select()
+        .maybeSingle();
+
+    if (error) {
+        console.error('Failed to update freelancer_profile:', error);
+        throw error;
+    }
+
+    return data;
+};
+
+export const getFreelancerProfile = async (freelancerId: string) => {
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+        .from('freelancer_profiles')
+        .select(`*, freelancer_services(*), freelancer_portfolio_items(*), freelancer_skills(*)`)
+        .eq('id', freelancerId)
+        .maybeSingle();
+
+    if (error) {
+        console.error('Error fetching freelancer profile:', error);
+        return null;
+    }
+
+    return data;
+};
+
+export const createFreelancerService = async (freelancerId: string, payload: Partial<Record<string, any>>) => {
+    if (!supabase) throw new Error('Supabase not configured');
+
+    await verifyAuthSession('createFreelancerService');
+
+    // Optionally, you can check auth.uid() client-side to ensure the user is the owner.
+    const record: any = {
+        freelancer_id: freelancerId,
+        title: payload.title || null,
+        description: payload.description || null,
+        price_min: payload.price_min ?? null,
+        price_max: payload.price_max ?? null,
+        currency: payload.currency || 'CZK',
+        is_active: payload.is_active !== undefined ? payload.is_active : true,
+        category: payload.category || null,
+        tags: payload.tags || [],
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+        .from('freelancer_services')
+        .insert(record)
+        .select()
+        .maybeSingle();
+
+    if (error) {
+        console.error('Failed to create freelancer service:', error);
+        throw error;
+    }
+
+    return data;
+};
+
+export const updateFreelancerService = async (serviceId: string, updates: Partial<Record<string, any>>) => {
+    if (!supabase) throw new Error('Supabase not configured');
+
+    await verifyAuthSession('updateFreelancerService');
+
+    const payload: any = { ...updates, updated_at: new Date().toISOString() };
+
+    const { data, error } = await supabase
+        .from('freelancer_services')
+        .update(payload)
+        .eq('id', serviceId)
+        .select()
+        .maybeSingle();
+
+    if (error) {
+        console.error('Failed to update freelancer service:', error);
+        throw error;
+    }
+
+    return data;
+};
+
+export const deleteFreelancerService = async (serviceId: string) => {
+    if (!supabase) throw new Error('Supabase not configured');
+
+    await verifyAuthSession('deleteFreelancerService');
+
+    const { error } = await supabase
+        .from('freelancer_services')
+        .delete()
+        .eq('id', serviceId);
+
+    if (error) {
+        console.error('Failed to delete freelancer service:', error);
+        throw error;
+    }
+
+    return true;
+};
+
+/**
+ * Search freelancers with optional geo filter. If `location` is provided (lat/lng/radiusMeters),
+ * the function will call the RPC `freelancer_search_nearby` (created by migration) which uses PostGIS.
+ */
+export const searchFreelancers = async (opts: {
+    q?: string;
+    skills?: string[];
+    tags?: string[];
+    work_type?: string;
+    location?: { lat: number; lng: number; radiusMeters?: number } | null;
+    limit?: number;
+    offset?: number;
+}) => {
+    if (!supabase) return [];
+
+    const { q, skills, tags, work_type, location, limit = 20, offset = 0 } = opts;
+
+    try {
+        if (location && typeof location.lat === 'number' && typeof location.lng === 'number') {
+            // Use RPC which returns rows with distance_m when available
+            const radius = location.radiusMeters ?? 50000; // default 50km
+            const { data, error } = await supabase.rpc('freelancer_search_nearby', {
+                p_lat: location.lat,
+                p_lng: location.lng,
+                p_radius_m: radius,
+                p_skills: skills || null,
+                p_work_type: work_type || null,
+                p_q: q || null,
+                p_limit: limit,
+                p_offset: offset
+            });
+
+            if (error) {
+                console.error('RPC freelancer_search_nearby error:', error);
+                return [];
+            }
+
+            return data || [];
+        }
+
+        // Non-geo search using array contains and ilike
+        let query = supabase.from('freelancer_profiles').select('id,headline,bio,presentation,hourly_rate,currency,skills,tags,work_type,lat,lng,website,contact_email').limit(limit).offset(offset);
+
+        if (q) {
+            query = query.ilike('headline', `%${q}%`);
+        }
+
+        if (skills && skills.length > 0) {
+            query = query.contains('skills', skills);
+        }
+
+        if (tags && tags.length > 0) {
+            query = query.contains('tags', tags);
+        }
+
+        if (work_type) {
+            query = query.eq('work_type', work_type);
+        }
+
+        const { data, error } = await query;
+        if (error) {
+            console.error('searchFreelancers query error:', error);
+            return [];
+        }
+
+        return data || [];
+    } catch (err) {
+        console.error('searchFreelancers unexpected error:', err);
+        return [];
+    }
+};
+
 
 
 
@@ -1090,6 +1319,42 @@ export const inviteRecruiter = async (companyId: string, email: string, invitedB
         console.error('Invite recruiter error:', error);
         return false;
     }
+};
+
+/**
+ * Create an inquiry / contact record for a freelancer/service provider.
+ * Allows both logged-in users (company or regular) and anonymous contacts (with email)
+ */
+export const createServiceInquiry = async (payload: {
+    service_id?: string | null;
+    freelancer_id?: string | null;
+    from_user_id?: string | null;
+    from_email?: string | null;
+    message?: string | null;
+}) => {
+    if (!supabase) throw new Error('Supabase not configured');
+
+    const record = {
+        service_id: payload.service_id || null,
+        freelancer_id: payload.freelancer_id || null,
+        from_user_id: payload.from_user_id || null,
+        from_email: payload.from_email || null,
+        message: payload.message || null,
+        created_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase
+        .from('service_inquiries')
+        .insert(record)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Failed to create service inquiry:', error);
+        throw error;
+    }
+
+    return data;
 };
 
 export const uploadCVFile = async (_userId: string, file: File): Promise<string> => {

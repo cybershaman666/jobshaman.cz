@@ -92,6 +92,7 @@
         "saved": "Uložené",
         "profile": "Profil",
         "marketplace": "Kurzy a rekvalifikácia",
+        "services": "Služby a Spolupráca",
         "for_companies": "Pre Firmy",
         "back": "Späť",
         "home": "Domov",
@@ -493,7 +494,7 @@
                 "ai_editor": "Editor ponúk",
                 "assessments": "Assessmenty",
                 "candidates": "Kandidáti",
-                "marketplace": "Marketplace kurzov"
+                "marketplace": "Freelanceri"
             },
             "all_recruiters": "Všetci Náboroví Pracovníci",
             "create_ad_btn": "Vytvoriť Pracovný Inzerát",
@@ -952,5 +953,171 @@
                 "excerpt": "Ako efektívne využiť Career Pathfinder a AI analýzu k posunu vo vašej profesijnej dráhe."
             }
         }
+    },
+    "freelancer": {
+        "dashboard": {
+            "title": "Freelancer Dashboard",
+            "tabs": {
+                "services": "My Services",
+                "portfolio": "Portfolio",
+                "settings": "Settings"
+            },
+            "services": {
+                "create_title": "Create Service",
+                "title_label": "Service Title",
+                "title_placeholder": "e.g. Logo Design",
+                "desc_label": "Description",
+                "desc_placeholder": "Describe what you offer...",
+                "price_label": "Price (CZK)",
+                "price_placeholder": "5000",
+                "location_label": "Location",
+                "location_placeholder": "Remote, Prague...",
+                "category_label": "Category",
+                "publish_btn": "Publish Service",
+                "delete_confirm": "Are you sure you want to delete this service?",
+                "limit_alert": "As a freelancer with a Free plan, you can have a maximum of 3 active services. Upgrade to PRO for more.",
+                "success_alert": "Service published successfully!",
+                "error_alert": "Error publishing service.",
+                "empty_title": "No services",
+                "empty_desc": "You don't offer any services yet. Create your first one!",
+                "price": "Price",
+                "list_title": "List of Services",
+                "add_btn": "Add Service",
+                "no_reviews": "No reviews yet"
+            },
+            "upgrade_cta": "Activate Premium",
+            "active_plan": "Active Plan",
+            "free_plan": "Free Plan",
+            "premium_plan": "Freelance Premium",
+            "benefits_title": "Premium Benefits",
+            "benefit_1": "Unlimited services",
+            "benefit_2": "Priority listing",
+            "benefit_3": "'Verified Freelancer' badge",
+            "benefit_4": "Traffic statistics"
+        },
+        "marketplace": {
+            "title": "Services & Cooperation",
+            "subtitle": "Find experts for your project or offer your services.",
+            "search_placeholder": "Search services, freelancers...",
+            "offer_service": "Offer Service",
+            "categories": {
+                "all": "All Services",
+                "crafts": "Crafts",
+                "it": "IT & Development",
+                "design": "Design & Creative",
+                "marketing": "Marketing",
+                "writing": "Writing & Translation",
+                "consulting": "Consulting"
+            },
+            "card": {
+                "verified": "Verified",
+                "rating": "rating",
+                "reviews": "reviews",
+                "starting_at": "from",
+                "response_time": "Responds within 24h"
+            },
+            "filters": {
+                "search_title": "Search"
+            },
+            "promo": {
+                "title": "Ste profesionál?",
+                "desc": "Zaregistrujte sa ako freelancer, vybudujte si portfólio a získajte nových klientov.",
+                "highlight": "Prvé 3 inzeráty mesačne zadarmo!",
+                "cta": "Začať ponúkať služby"
+            },
+            "freelancer_marketplace": {
+                "title": "Freelanceri a Remeselníci",
+                "subtitle": "Nájdite a najímajte kvalitných freelancerov a remeselníkov zo spoločnosti JobShaman.",
+                "search_placeholder": "Hľadajte freelancerov, zručnosti...",
+                "categories": {
+                    "all": "Všetky",
+                    "it": "IT a Vývoj",
+                    "design": "Dizajn",
+                    "crafts": "Remeslá",
+                    "marketing": "Marketing"
+                },
+                "results": "Nájdeno {{count}} freelancerov",
+                "no_results": "Nenájdení freelanceri",
+                "no_results_desc": "Skúste zmeniť filtre alebo hľadaný výraz.",
+                "reviews": "recenzií",
+                "hourly_rate": "Sazba:",
+                "contact_btn": "Kontaktovať"
+            }
+        }
+    },
+    "freelancer_registration": {
+        "step_1_title": "Registrácia Freelancera - Krok 1",
+        "step_2_title": "Profil Freelancera - Krok 2",
+        "step_3_title": "Dokončenie Registrácie",
+        "success_title": "Vitajte na palube!",
+        "success_desc": "Váš profil bol úspešne vytvorený. Teraz môžete ponúkať svoje služby.",
+        "intro_desc": "Vytvorte profil a začnite ponúkať svoje služby firmám a jednotlivcom.",
+        "email_label": "E-mail",
+        "password_label": "Heslo",
+        "password_placeholder": "Min. 8 znakov",
+        "fullname_label": "Meno a Priezvisko (alebo Názov Značky)",
+        "fullname_placeholder": "Ján Novák",
+        "ico_label": "IČO (Voliteľné)",
+        "website_label": "Web / Portfólio (Voliteľné)",
+        "terms_agree": "Súhlasím s Podmienkami Poskytovania Služieb",
+        "privacy_agree": "Súhlasím so Spracovaním Osobných Údajov",
+        "go_to_profile": "Prejsť na Môj Profil",
+        "back": "Späť",
+        "finish": "Dokončiť",
+        "continue": "Pokračovať",
+        "info_box": "Dostanete 3 bezplatné inzeráty služieb mesačne. Neskôr môžete prejsť na Premium.",
+        "error_too_many": "Príliš veľa pokusov o registráciu. Prosím čakajte.",
+        "error_exists": "Používateľ s týmto e-mailom už existuje. Prosím prihláste sa.",
+        "error_generic": "Registrácia zlyhala.",
+        "pricing_title": "Plány pre Freelancerov",
+        "plan_basic": "Základný Účet",
+        "plan_basic_desc": "Zadarmo",
+        "plan_basic_offers": "3 aktívne ponuky mesačne",
+        "plan_basic_inquiries": "3 požiadavky mesačne",
+        "plan_premium": "Premium",
+        "plan_premium_desc": "Neobmedzené",
+        "plan_premium_badge": "POPULÁRNE",
+        "plan_premium_offers": "Neobmedzené ponuky",
+        "plan_premium_inquiries": "Neobmedzené požiadavky",
+        "plan_premium_priority": "Vyššia viditeľnosť v hľadaní",
+        "confirm_email_instructions": "Poslali sme potvrdzovací odkaz na váš e‑mail. Po potvrdení kliknite na tlačidlo nižšie pre dokončenie registrácie.",
+        "confirm_email_not_found": "Nepodarilo sa overiť potvrdenie e‑mailu. Skúste to znova po potvrdení.",
+        "error_finalize": "Dokončenie registrácie zlyhalo. Kontaktujte podporu.",
+        "waiting_for_confirmation": "Čakám na potvrdenie e‑mailu a automaticky dokončím…",
+        "check_email_magic": "Poslali sme vám prihlasovací odkaz (magic link). Skontrolujte svoju e‑mailovú schránku.",
+        "resend_confirmation": "Poslať prihlasovací odkaz znova",
+        "error_resend": "Nepodarilo sa odoslať potvrdenie. Skúste to neskôr.",
+        "check_email_help": "Ak e‑mail nepríde, skontrolujte nastavenia SMTP, šablóny e‑mailov a zložku spam."
+    },
+    "freelancer_marketplace_extra": {
+        "empty_state_title": "Zatiaľ tu nie sú žiadne služby",
+        "empty_state_desc": "Buďte prvý, kto ponúka služby v tejto kategórii.",
+        "create_offer_btn": "Vytvoriť Ponuku",
+        "inquire_btn": "Opýtať sa",
+        "wip_alert": "Zobraziť Detail (WIP)"
+    },
+    "freelancer_marketplace": {
+        "title": "Freelanceri a Remeselníci",
+        "subtitle": "Nájdite a najímajte kvalitných freelancerov a remeselníkov z komunity JobShaman.",
+        "search_placeholder": "Hľadať freelancerov, zručnosti...",
+        "categories": {
+            "all": "Všetci",
+            "it": "IT & Vývoj",
+            "design": "Design",
+            "crafts": "Remesla",
+            "marketing": "Marketing"
+        },
+        "results": "Nájdených {{count}} freelancerov",
+        "no_results": "Žiaden freelancer nenájdený",
+        "no_results_desc": "Skúste zmeniť filtre alebo hľadaný výraz.",
+                "reviews": "recenzie",
+                "hourly_rate": "Sadzba:",
+                "contact_btn": "Kontaktovať",
+                "contact_placeholder": "Napíšte správu freelancerovi...",
+                "contact_send": "Odoslať",
+                "contact_cancel": "Zrušiť",
+                "contact_sending": "Odosielam...",
+                "contact_sent": "Správa bola odoslaná. Freelancer bude kontaktovaný.",
+                "contact_failed": "Odoslanie zlyhalo. Skúste to neskôr."
     }
 }

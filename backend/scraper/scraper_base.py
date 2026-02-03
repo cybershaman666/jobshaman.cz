@@ -325,6 +325,35 @@ def extract_benefits(
     return unique_benefits if unique_benefits else ["Benefity nespecifikovány"]
 
 
+def is_low_quality(job_data: Dict) -> bool:
+    """
+    Checks if a job is low quality based on description length and blacklisted phrases.
+    """
+    description = job_data.get("description", "")
+    if not description:
+        return True
+    
+    # 1. Length check (500 chars ~ 80 words)
+    # Using 300 checks for now to be safe across languages, or keep 500 as per user request
+    if len(description) < 500:
+        return True
+        
+    # 2. Blacklisted phrases (Extendable list)
+    # These are Czech phrases, but won't hurt to check in others. 
+    # Ideally should be localized, but user asked to apply "this" logic.
+    blacklist = [
+        "První kontakt: e-mail přes odpovědní formulář",
+        "První kontakt: e-mail"
+    ]
+    
+    desc_lower = description.lower()
+    for phrase in blacklist:
+        if phrase.lower() in desc_lower:
+            return True
+            
+    return False
+
+
 def detect_work_type(title: str, description: str, location: str) -> str:
     """
     Detect work type (Remote/Hybrid/On-site) from job text
