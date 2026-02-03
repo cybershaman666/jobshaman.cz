@@ -37,6 +37,8 @@ const CompanyFreelancerMarketplace: React.FC = () => {
     const [showContactModal, setShowContactModal] = useState(false);
     const [contacting, setContacting] = useState(false);
     const [contactMessage, setContactMessage] = useState('');
+    const [contactEmail, setContactEmail] = useState('');
+    const [contactPhone, setContactPhone] = useState('');
     const [contactTarget, setContactTarget] = useState<Freelancer | null>(null);
     const [freelancers, setFreelancers] = useState<Freelancer[]>([]);
     const [loading, setLoading] = useState(true);
@@ -45,6 +47,24 @@ const CompanyFreelancerMarketplace: React.FC = () => {
     useEffect(() => {
         loadFreelancers();
     }, []);
+
+    useEffect(() => {
+        if (!showContactModal) return;
+        let isMounted = true;
+        (async () => {
+            try {
+                const user = await getCurrentUser();
+                if (!isMounted) return;
+                setContactEmail(user?.email || '');
+                setContactPhone('');
+            } catch {
+                if (!isMounted) return;
+                setContactEmail('');
+                setContactPhone('');
+            }
+        })();
+        return () => { isMounted = false; };
+    }, [showContactModal]);
 
     const loadFreelancers = async () => {
         try {
@@ -141,13 +161,16 @@ const CompanyFreelancerMarketplace: React.FC = () => {
                 service_id: null,
                 freelancer_id: contactTarget.id,
                 from_user_id: user?.id || null,
-                from_email: user?.email || null,
-                message: contactMessage || null
+                from_email: contactEmail || null,
+                message: contactMessage || null,
+                metadata: contactPhone ? { contact_phone: contactPhone } : null
             };
             await createServiceInquiry(payload);
             setContacting(false);
             setShowContactModal(false);
             setContactMessage('');
+            setContactEmail('');
+            setContactPhone('');
             setContactTarget(null);
             alert(t('freelancer_marketplace.contact_sent') || 'Zpráva byla odeslána. Freelancer bude kontaktován.');
         } catch (err) {
@@ -319,6 +342,23 @@ const CompanyFreelancerMarketplace: React.FC = () => {
                             <button onClick={() => setShowContactModal(false)} className="text-slate-500 hover:text-slate-700">✕</button>
                         </div>
 
+                        <input
+                            type="email"
+                            value={contactEmail}
+                            onChange={(e) => setContactEmail(e.target.value)}
+                            placeholder={t('freelancer_marketplace.contact_email_placeholder') || 'Váš e-mail (povinný)'}
+                            className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white mb-3"
+                            required
+                        />
+
+                        <input
+                            type="tel"
+                            value={contactPhone}
+                            onChange={(e) => setContactPhone(e.target.value)}
+                            placeholder={t('freelancer_marketplace.contact_phone_placeholder') || 'Telefon (nepovinný)'}
+                            className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm text-slate-900 dark:text-white mb-3"
+                        />
+
                         <textarea
                             value={contactMessage}
                             onChange={(e) => setContactMessage(e.target.value)}
@@ -328,7 +368,11 @@ const CompanyFreelancerMarketplace: React.FC = () => {
 
                         <div className="flex justify-end gap-3">
                             <button onClick={() => setShowContactModal(false)} className="px-4 py-2 rounded-lg border text-sm">{t('freelancer_marketplace.contact_cancel') || 'Zrušit'}</button>
-                            <button onClick={sendContact} disabled={contacting || !contactMessage.trim()} className="px-4 py-2 rounded-lg bg-cyan-600 text-white disabled:opacity-50">
+                            <button
+                                onClick={sendContact}
+                                disabled={contacting || !contactMessage.trim() || !contactEmail.trim()}
+                                className="px-4 py-2 rounded-lg bg-cyan-600 text-white disabled:opacity-50"
+                            >
                                 {contacting ? t('freelancer_marketplace.contact_sending') || 'Odesílám...' : t('freelancer_marketplace.contact_send') || 'Odeslat'}
                             </button>
                         </div>

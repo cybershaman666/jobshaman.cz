@@ -596,6 +596,12 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                             ? (t('freelancer.dashboard.inquiries.sender_user') || 'Uživatel')
                                             : (t('freelancer.dashboard.inquiries.sender_anon') || 'Anonym');
 
+                                        const replyEmail =
+                                            inq.from_email ||
+                                            senderProfile?.email ||
+                                            senderCompany?.contact_email ||
+                                            null;
+
                                         return (
                                             <div key={inq.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
                                                 <div className="flex items-start gap-3">
@@ -612,6 +618,16 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                                         )}
                                                         {inq.message && (
                                                             <p className="mt-2 text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap">{inq.message}</p>
+                                                        )}
+                                                        {replyEmail && (
+                                                            <div className="mt-3">
+                                                                <a
+                                                                    href={`mailto:${replyEmail}?subject=${encodeURIComponent('Re: Poptávka z JobShaman')}`}
+                                                                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold transition-colors"
+                                                                >
+                                                                    {t('freelancer.dashboard.inquiries.reply_btn') || 'Odpovědět'}
+                                                                </a>
+                                                            </div>
                                                         )}
                                                     </div>
                                                     <div className="text-xs text-slate-400">
