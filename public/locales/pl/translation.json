@@ -123,7 +123,8 @@
     "marketplace": {
         "title": "Kursy i przekwalifikowanie",
         "subtitle": "Inwestuj w swoją przyszłość. Znajdź idealny kurs dla swojej kariery.",
-        "demo_data": "Dane demo: To są przykładowe kursy do celów demonstracyjnych. Prawdziwe kursy będą dostępne wkrótce.",
+        "demo_label": "Dane demo:",
+        "demo_data": "To są przykładowe kursy do celów demonstracyjnych. Prawdziwe kursy będą dostępne wkrótce.",
         "offer_course": "Zaproponuj kurs",
         "all_courses": "Wszystkie kursy",
         "retraining_courses": "Kursy przekwalifikujące",
@@ -934,6 +935,15 @@
     "freelancer": {
         "dashboard": {
             "title": "Freelancer Dashboard",
+            "loading": "Ładowanie profilu freelancera…",
+            "logout": "Wyloguj się",
+            "stats": {
+                "services": "Aktywne usługi",
+                "free_this_month": "Darmowe w tym miesiącu",
+                "profile_views": "Wyświetlenia profilu",
+                "last_30_days": "Ostatnie 30 dni",
+                "rating": "Ocena"
+            },
             "tabs": {
                 "services": "Moje usługi",
                 "portfolio": "Portfolio",
@@ -960,7 +970,9 @@
                 "price": "Cena",
                 "list_title": "Lista usług",
                 "add_btn": "Dodaj usługę",
-                "no_reviews": "Brak recenzji"
+                "no_reviews": "Brak recenzji",
+                "edit": "Edytuj",
+                "delete": "Usuń"
             },
             "portfolio": {
                 "title": "Moje portfolio",
@@ -983,6 +995,26 @@
                 "delete_error": "Błąd podczas usuwania elementu portfolio.",
                 "uploading": "Przesyłanie..."
             },
+            "subscription": {
+                "title": "Twoja subskrypcja",
+                "status_premium": "Premium Freelancer",
+                "status_free": "Free Plan",
+                "premium_active_title": "Masz aktywny plan Premium!",
+                "premium_active_desc": "Korzystaj z nieograniczonej liczby usług i wyróżnienia profilu.",
+                "manage": "Zarządzaj subskrypcją",
+                "manage_alert": "Aby anulować subskrypcję, skontaktuj się z nami: podpora@jobshaman.cz",
+                "upgrade_title": "Przejdź na Freelance Premium",
+                "benefit_1": "Nieograniczona liczba aktywnych usług",
+                "benefit_2": "Odznaka „Zweryfikowany Freelancer”",
+                "benefit_3": "Priorytetowe wyświetlanie w wyszukiwaniu",
+                "price": "499 CZK",
+                "per_month": "miesięcznie",
+                "upgrade_cta": "Aktywuj Premium",
+                "payment_note": "Bezpieczna płatność przez Stripe. Możesz anulować w dowolnym momencie."
+            },
+            "settings": {
+                "wip_title": "Dane osobowe (WIP)"
+            },
             "upgrade_cta": "Activate Premium",
             "active_plan": "Active Plan",
             "free_plan": "Free Plan",
@@ -1004,6 +1036,7 @@
                 "it": "IT & Development",
                 "design": "Design & Creative",
                 "marketing": "Marketing",
+                "admin": "Administracja",
                 "writing": "Writing & Translation",
                 "consulting": "Consulting"
             },
@@ -1117,5 +1150,21 @@
                 "contact_sending": "Wysyłanie...",
                 "contact_sent": "Wiadomość wysłana. Freelancer zostanie powiadomiony.",
                 "contact_failed": "Wysyłanie nie powiodło się. Spróbuj ponownie później."
+    },
+    "skillsGap": {
+        "hero_title": "Zyskaj przewagę dzięki celowanym kursom",
+        "hero_subtitle": "Rekomendacje dopasowane do profilu i popytu na rynku",
+        "benefit_1_title": "Skoncentrowany rozwój",
+        "benefit_1_desc": "Kursy zgodne z Twoim CV i bieżącym zapotrzebowaniem",
+        "benefit_2_title": "Rozwój kariery",
+        "benefit_2_desc": "Zwiększ potencjał zarobków dzięki poszukiwanym umiejętnościom",
+        "benefit_3_title": "Zweryfikowane przez pracodawców",
+        "benefit_3_desc": "Certyfikaty, których rekruterzy naprawdę szukają",
+        "funding_title": "Możliwe finansowanie publiczne",
+        "funding_desc": "W niektórych przypadkach można otrzymać do 50 000 CZK na kurs przekwalifikowania przez Urząd Pracy.",
+        "funding_note": "Sprawdź aktualne warunki w lokalnym Urzędzie Pracy.",
+        "cta_title": "Zaloguj się, aby odblokować rekomendacje",
+        "cta_desc": "Uzupełnij profil i otrzymaj spersonalizowaną analizę luk kompetencyjnych.",
+        "cta_note": "Zaawansowana analiza po zalogowaniu"
     }
 }

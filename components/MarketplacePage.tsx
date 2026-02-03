@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   ShoppingBag,
-  Users,
   Star,
   Clock,
   Target,
@@ -279,28 +278,21 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
       {/* Header */}
       <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="flex items-start gap-4">
-            <div className="p-3 bg-slate-100 dark:bg-slate-800 rounded-xl flex-shrink-0">
-              <ShoppingBag className="w-8 h-8 text-slate-600 dark:text-slate-400" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                {t('marketplace.title')}
-              </h1>
-              <p className="text-slate-600 dark:text-slate-300 text-lg mt-2">
-                {t('marketplace.subtitle')}
-              </p>
-              <div className="mt-3 p-3 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <div className="p-1 bg-slate-500 rounded-full flex-shrink-0">
-                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </div>
-                  <div className="text-sm min-w-0 flex-1">
-                    <span className="font-semibold text-slate-800 dark:text-slate-200">Demo data:</span>
-                    <span className="text-slate-700 dark:text-slate-300 ml-1">{t('marketplace.demo_data')}</span>
-                  </div>
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+            <div className="flex items-start gap-4 flex-1 min-w-0">
+              <div className="p-3 bg-cyan-50 dark:bg-slate-800 rounded-xl flex-shrink-0 border border-cyan-100 dark:border-slate-700">
+                <ShoppingBag className="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
+              </div>
+              <div className="min-w-0">
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+                  {t('marketplace.title')}
+                </h1>
+                <p className="text-slate-600 dark:text-slate-300 text-lg mt-2">
+                  {t('marketplace.subtitle')}
+                </p>
+                <div className="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 text-sm text-slate-600 dark:text-slate-300">
+                  <span className="font-semibold">{t('marketplace.demo_label')}</span>
+                  <span className="opacity-90">{t('marketplace.demo_data')}</span>
                 </div>
               </div>
             </div>
@@ -309,13 +301,13 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
               {userProfile.isLoggedIn ? (
                 <button
                   onClick={() => setShowPartnerModal(true)}
-                  className="px-4 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+                  className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
                   {t('marketplace.offer_course')}
                 </button>
               ) : (
-                <div className="w-[calc(100%+2rem)] h-10"></div>
+                <div className="w-full h-10"></div>
               )}
             </div>
           </div>
@@ -324,12 +316,12 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
 
       {/* View Mode Tabs */}
       <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="flex gap-2 p-1 bg-white/60 dark:bg-slate-800/60 backdrop-blur rounded-xl border border-cyan-100 dark:border-slate-700 shadow-lg">
+        <div className="flex gap-2 p-1 bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm">
           <button
             onClick={() => setViewMode('browse')}
             className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${viewMode === 'browse'
-              ? 'bg-gradient-to-r from-slate-500 to-blue-600 text-white shadow-md'
-              : 'text-slate-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/30'
+              ? 'bg-cyan-600 text-white shadow-md'
+              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'
               }`}
           >
             <Briefcase className="w-5 h-5" />
@@ -338,8 +330,8 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
           <button
             onClick={() => setViewMode('government')}
             className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${viewMode === 'government'
-              ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md'
-              : 'text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/30'
+              ? 'bg-cyan-600 text-white shadow-md'
+              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'
               }`}
           >
             <Building className="w-5 h-5" />
@@ -348,8 +340,8 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
           <button
             onClick={() => setViewMode('commercial')}
             className={`flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${viewMode === 'commercial'
-              ? 'bg-gradient-to-r from-purple-500 to-indigo-600 text-white shadow-md'
-              : 'text-purple-700 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/30'
+              ? 'bg-cyan-600 text-white shadow-md'
+              : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700/50'
               }`}
           >
             <ShoppingBag className="w-5 h-5" />
@@ -361,31 +353,28 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
       {/* Government Funding Highlight (only on browse view) */}
       {viewMode === 'browse' && (
         <div className="max-w-7xl mx-auto px-4 pb-6">
-          <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl p-6 border border-emerald-200 dark:border-emerald-700">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg">
-                <CheckCircle className="w-6 h-6 text-white" />
+          <div className="rounded-xl p-6 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800">
+            <div className="flex items-start gap-4">
+              <div className="p-3 bg-cyan-50 dark:bg-slate-700/40 rounded-lg border border-cyan-100 dark:border-slate-700">
+                <CheckCircle className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
               </div>
               <div className="flex-1">
-                <h3 className="text-2xl font-bold text-emerald-900 dark:text-emerald-100 mb-2">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
                   {t('marketplace.funding_title')}
                 </h3>
-                <p className="text-emerald-700 dark:text-emerald-300 text-lg">
+                <p className="text-slate-600 dark:text-slate-300">
                   {t('marketplace.funding_desc')}
                 </p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                  <div className="bg-white/80 dark:bg-emerald-900/20 backdrop-blur rounded-lg p-4">
-                    <h4 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">{t('marketplace_extra.funding_categories.technical_professions')}</h4>
-                    <p className="text-emerald-700 dark:text-emerald-300 text-sm">{t('marketplace_extra.funding_categories.technical_professions_desc')}</p>
-                  </div>
-                  <div className="bg-white/80 dark:bg-emerald-900/20 backdrop-blur rounded-lg p-4">
-                    <h4 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">{t('marketplace_extra.funding_categories.technical_courses')}</h4>
-                    <p className="text-emerald-700 dark:text-emerald-300 text-sm">{t('marketplace_extra.funding_categories.technical_courses_desc')}</p>
-                  </div>
-                  <div className="bg-white/80 dark:bg-emerald-900/20 backdrop-blur rounded-lg p-4">
-                    <h4 className="font-semibold text-emerald-900 dark:text-emerald-100 mb-2">{t('marketplace_extra.funding_categories.language_courses')}</h4>
-                    <p className="text-emerald-700 dark:text-emerald-300 text-sm">{t('marketplace_extra.funding_categories.language_courses_desc')}</p>
-                  </div>
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300">
+                    {t('marketplace_extra.funding_categories.technical_professions')}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300">
+                    {t('marketplace_extra.funding_categories.technical_courses')}
+                  </span>
+                  <span className="px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300">
+                    {t('marketplace_extra.funding_categories.language_courses')}
+                  </span>
                 </div>
               </div>
             </div>
@@ -407,7 +396,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                   placeholder={t('marketplace.search_placeholder')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500"
+                  className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500"
                 />
               </div>
             </div>
@@ -418,7 +407,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-500"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
               >
                 {categories.map(category => (
                   <option key={category.id} value={category.id}>{category.name}</option>
@@ -432,7 +421,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
               <select
                 value={selectedDifficulty}
                 onChange={(e) => setSelectedDifficulty(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-slate-500"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
               >
                 <option value="all">{t('marketplace.all_diffs')}</option>
                 <option value="Beginner">{t('marketplace.beginner')}</option>
@@ -447,7 +436,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
               <select
                 value={priceRange}
                 onChange={(e) => setPriceRange(e.target.value as 'free' | 'paid' | 'all')}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-purple-200 dark:border-purple-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
               >
                 <option value="all">{t('marketplace.all_courses')}</option>
                 <option value="free">{t('marketplace.free_retraining')}</option>
@@ -491,7 +480,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                     {/* Funding Badges */}
                     <div className="flex flex-wrap gap-2 mb-3">
                       {course.is_government_funded && (
-                        <span className="px-2 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-sm">
+                        <span className="px-2 py-1 bg-cyan-600 text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-sm">
                           <CheckCircle className="w-3 h-3" />
                           {t('marketplace.retraining_courses')}
                         </span>
@@ -502,7 +491,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                         </span>
                       )}
                       {userProfile.isLoggedIn && course.user_is_verified_graduate && (
-                        <span className="px-2 py-1 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-sm">
+                        <span className="px-2 py-1 bg-cyan-600 text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-sm">
                           <CheckCircle className="w-3 h-3" />
                           {t('marketplace.verified_graduate')}
                         </span>
@@ -517,18 +506,18 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                   {/* Course Features */}
                   <div className="flex flex-wrap gap-1.5 mb-4 flex-shrink-0">
                     {course.job_placement_assistance && (
-                      <span className="px-2 py-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 rounded text-xs font-medium flex items-center gap-1">
+                      <span className="px-2 py-1 bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400 rounded text-xs font-medium flex items-center gap-1">
                         <Target className="w-3 h-3" />
                         {t('marketplace.placement_guarantee')}
                       </span>
                     )}
                     {course.flexible_payment && (
-                      <span className="px-2 py-1 bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 rounded text-xs font-medium">
+                      <span className="px-2 py-1 bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-300 rounded text-xs font-medium">
                         {t('marketplace.flexible_payment')}
                       </span>
                     )}
                     {course.location && (
-                      <span className="px-2 py-1 bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400 rounded text-xs font-medium flex items-center gap-1">
+                      <span className="px-2 py-1 bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300 rounded text-xs font-medium flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
                         <span className="truncate max-w-24">{course.location}</span>
                       </span>
@@ -557,7 +546,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                 </div>
 
                 {/* Bottom Section - Separated into distinct areas */}
-                <div className="border-t border-cyan-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="border-t border-slate-200 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
                   {/* Stats Row */}
                   <div className="px-6 py-3 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400 border-b border-slate-100 dark:border-slate-700">
                     <div className="flex items-center gap-4">
@@ -569,16 +558,9 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                         <Star className="w-3 h-3 text-amber-500" />
                         {course.rating}/5
                       </span>
-                      {course.enrollment_count && (
-                        <span className="flex items-center gap-1">
-                          <Users className="w-3 h-3" />
-                          {course.enrollment_count > 999 ? '999+' : course.enrollment_count}
-                        </span>
-                      )}
                     </div>
                     {course.reviews_count > 0 && (
-                      <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-                        <Star className="w-3 h-3" />
+                      <span className="flex items-center gap-1 text-slate-500 dark:text-slate-400">
                         {course.reviews_count} {t('marketplace.reviews')}
                       </span>
                     )}
@@ -593,12 +575,12 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                           <div className="text-xs text-slate-500 line-through">
                             {formatPrice(course.price, course.currency)}
                           </div>
-                          <div className="text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+                          <div className="text-lg font-bold text-cyan-600 dark:text-cyan-400">
                             {t('marketplace.free').toUpperCase()}
                           </div>
                         </>
                       ) : (
-                        <div className="text-xl font-bold bg-gradient-to-r from-cyan-600 to-blue-600 bg-clip-text text-transparent">
+                        <div className="text-xl font-bold text-cyan-600 dark:text-cyan-400">
                           {formatPrice(course.price, course.currency)}
                         </div>
                       )}
@@ -612,7 +594,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                             setSelectedReviewCourse(course);
                             setShowReviewModal(true);
                           }}
-                          className="px-3 py-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-medium rounded-lg hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-all flex items-center gap-1 flex-shrink-0 border border-amber-200 dark:border-amber-700"
+                          className="px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-all flex items-center gap-1 flex-shrink-0 border border-slate-200 dark:border-slate-600"
                         >
                           <Star className="w-3 h-3" />
                           {t('marketplace.reviews_btn')}
@@ -628,7 +610,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
                             alert(t('marketplace.login_to_enroll_alert'));
                           }
                         }}
-                        className="px-6 py-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-slate-700 hover:to-blue-700 text-white text-sm font-medium rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-1.5 flex-shrink-0"
+                        className="px-6 py-2 bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-medium rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-1.5 flex-shrink-0"
                       >
                         {userProfile.isLoggedIn ? t('marketplace.enroll') : t('marketplace.detail')}
                         <ChevronRight className="w-3 h-3" />

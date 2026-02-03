@@ -123,7 +123,8 @@
     "marketplace": {
         "title": "Courses and Retraining",
         "subtitle": "Invest in your future. Find the perfect course for your career.",
-        "demo_data": "Demo data: These are sample courses for demonstration. Real courses will be available soon.",
+        "demo_label": "Demo data:",
+        "demo_data": "These are sample courses for demonstration. Real courses will be available soon.",
         "offer_course": "Offer a Course",
         "all_courses": "All Courses",
         "retraining_courses": "Retraining Courses",
@@ -936,6 +937,15 @@
     "freelancer": {
         "dashboard": {
             "title": "Freelancer Dashboard",
+            "loading": "Loading freelancer profile...",
+            "logout": "Log out",
+            "stats": {
+                "services": "Active services",
+                "free_this_month": "Free this month",
+                "profile_views": "Profile views",
+                "last_30_days": "Last 30 days",
+                "rating": "Rating"
+            },
             "tabs": {
                 "services": "My Services",
                 "portfolio": "Portfolio",
@@ -962,7 +972,9 @@
                 "price": "Price",
                 "list_title": "List of Services",
                 "add_btn": "Add Service",
-                "no_reviews": "No reviews yet"
+                "no_reviews": "No reviews yet",
+                "edit": "Edit",
+                "delete": "Delete"
             },
             "portfolio": {
                 "title": "My Portfolio",
@@ -985,6 +997,26 @@
                 "delete_error": "Error deleting portfolio item.",
                 "uploading": "Uploading..."
             },
+            "subscription": {
+                "title": "Your subscription",
+                "status_premium": "Premium Freelancer",
+                "status_free": "Free Plan",
+                "premium_active_title": "You have an active Premium plan!",
+                "premium_active_desc": "Enjoy unlimited service listings and profile highlights.",
+                "manage": "Manage subscription",
+                "manage_alert": "To cancel your subscription, please contact podpora@jobshaman.cz",
+                "upgrade_title": "Upgrade to Freelance Premium",
+                "benefit_1": "Unlimited active services",
+                "benefit_2": "\"Verified Freelancer\" badge",
+                "benefit_3": "Priority placement in search",
+                "price": "499 CZK",
+                "per_month": "per month",
+                "upgrade_cta": "Activate Premium",
+                "payment_note": "Secure payments via Stripe. Cancel anytime."
+            },
+            "settings": {
+                "wip_title": "Personal details (WIP)"
+            },
             "upgrade_cta": "Activate Premium",
             "active_plan": "Active Plan",
             "free_plan": "Free Plan",
@@ -1006,6 +1038,7 @@
                 "it": "IT & Development",
                 "design": "Design & Creative",
                 "marketing": "Marketing",
+                "admin": "Administration",
                 "writing": "Writing & Translation",
                 "consulting": "Consulting"
             },
@@ -1101,5 +1134,21 @@
         "create_offer_btn": "Create Offer",
         "inquire_btn": "Inquire",
         "wip_alert": "View Detail (WIP)"
+    },
+    "skillsGap": {
+        "hero_title": "Get ahead with targeted courses",
+        "hero_subtitle": "Personalized recommendations based on your profile and market demand",
+        "benefit_1_title": "Focused growth",
+        "benefit_1_desc": "Courses aligned with your CV and current demand",
+        "benefit_2_title": "Career lift",
+        "benefit_2_desc": "Improve salary potential with in-demand skills",
+        "benefit_3_title": "Employer-verified",
+        "benefit_3_desc": "Certificates that recruiters actually search for",
+        "funding_title": "Public funding available",
+        "funding_desc": "In some cases you can receive up to 50,000 CZK for retraining courses via the Labour Office.",
+        "funding_note": "Check eligibility with your local Labour Office.",
+        "cta_title": "Log in to unlock recommendations",
+        "cta_desc": "Complete your profile to get a personalized skills gap analysis.",
+        "cta_note": "Advanced analysis after sign in"
     }
 }

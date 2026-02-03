@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { BookOpen, Clock, Award, TrendingUp, ShoppingBag, Star, Users, Target, Sparkles, ChevronRight, Lock, AlertCircle, CheckCircle, MapPin } from 'lucide-react';
 import { LearningResource, SkillsGapAnalysis } from '../types';
+import { useTranslation } from 'react-i18next';
 
 interface SkillsGapBoxProps {
   skillsGapAnalysis: SkillsGapAnalysis | null;
@@ -39,6 +40,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
   onShowMarketplace,
   onShowProfile
 }) => {
+  const { t } = useTranslation();
   const [selectedTab, setSelectedTab] = useState<'courses' | 'marketplace'>('courses');
 
   // Sample marketplace data (in real app, this would come from API)
@@ -166,80 +168,80 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
   if (!userProfile.isLoggedIn) {
     return (
       <div className="bg-white dark:bg-slate-800 rounded-xl p-6 border border-slate-200 dark:border-slate-700">
-        <div className="text-center space-y-6">
+        <div className="space-y-6">
           {/* Header */}
-          <div className="flex items-center justify-center gap-3">
-            <div className="p-3 bg-gradient-to-br slate-100 dark:bg-slate-800 rounded-xl">
-              <Sparkles className="w-8 h-8 text-slate-600 dark:text-slate-400" />
+          <div className="flex items-start gap-4">
+            <div className="p-3 rounded-xl bg-cyan-50 dark:bg-slate-700/40 border border-cyan-100 dark:border-slate-700">
+              <Sparkles className="w-6 h-6 text-cyan-600 dark:text-cyan-400" />
             </div>
-            <div className="text-left">
-              <h3 className="text-xl font-bold text-slate-900 dark:text-white">
-                Přestaňte jen snít o lepší práci
+            <div>
+              <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
+                {t('skillsGap.hero_title') || 'Get ahead with targeted courses'}
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-300">
-                Získejte konkurenční výhodu s kurzy šitými na míru
+                {t('skillsGap.hero_subtitle') || 'Personalized learning recommendations based on your profile and market demand'}
               </p>
             </div>
           </div>
 
           {/* Benefits */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <Target className="w-6 h-6 text-slate-600 dark:text-slate-400 mb-2" />
-              <h4 className="font-semibold text-slate-900 dark:text-slate-400 mb-1">Cílený rozvoj</h4>
-              <p className="text-xs text-slate-600 dark:text-slate-300">Kurzy na míru podle vašeho CV a požadavků trhu</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="rounded-lg p-4 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+              <Target className="w-5 h-5 text-cyan-600 dark:text-cyan-400 mb-2" />
+              <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-200 mb-1">
+                {t('skillsGap.benefit_1_title') || 'Focused growth'}
+              </h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {t('skillsGap.benefit_1_desc') || 'Courses aligned with your CV and current demand'}
+              </p>
             </div>
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <TrendingUp className="w-6 h-6 text-slate-600 dark:text-slate-400 mb-2" />
-              <h4 className="font-semibold text-slate-900 dark:text-slate-400 mb-1">Kariérní růst</h4>
-              <p className="text-xs text-slate-600 dark:text-slate-300">Zvyšte si mzdu až o 40% novými dovednostmi</p>
+            <div className="rounded-lg p-4 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+              <TrendingUp className="w-5 h-5 text-cyan-600 dark:text-cyan-400 mb-2" />
+              <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-200 mb-1">
+                {t('skillsGap.benefit_2_title') || 'Career lift'}
+              </h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {t('skillsGap.benefit_2_desc') || 'Improve salary potential with in-demand skills'}
+              </p>
             </div>
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur rounded-lg p-4 border border-slate-200 dark:border-slate-700">
-              <Users className="w-6 h-6 text-slate-600 dark:text-slate-400 mb-2" />
-              <h4 className="font-semibold text-slate-900 dark:text-slate-400 mb-1">Ověřeno zaměstnavateli</h4>
-              <p className="text-xs text-slate-600 dark:text-slate-300">Certifikace, které skutečně hledají</p>
+            <div className="rounded-lg p-4 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60">
+              <Users className="w-5 h-5 text-cyan-600 dark:text-cyan-400 mb-2" />
+              <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-200 mb-1">
+                {t('skillsGap.benefit_3_title') || 'Employer-verified'}
+              </h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {t('skillsGap.benefit_3_desc') || 'Certificates that recruiters actually search for'}
+              </p>
             </div>
           </div>
 
-          {/* Government Funding Info */}
-          <div className="bg-gradient-to-r from-emerald-600 to-teal-600 rounded-xl p-6 text-slate-600 dark:text-slate-400">
-            <h4 className="text-lg font-bold mb-2 flex items-center gap-2">
-              <CheckCircle className="w-5 h-5" />
-              Rekvalifikační kurzy od Úřadu práce
+          {/* Funding info - compact */}
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4">
+            <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-200 mb-2 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+              {t('skillsGap.funding_title') || 'Public funding available'}
             </h4>
-            <p className="text-sm opacity-90 mb-4">
-              Jako nezaměstnaný můžete získat <span className="font-bold">až 50 000 Kč</span> na rekvalifikační kurz!
-              Řidičské průkazy, svářečské certifikace, a další kurzy mohou být hrazeny státem.
+            <p className="text-xs text-slate-600 dark:text-slate-400">
+              {t('skillsGap.funding_desc') || 'In some cases you can receive up to 50,000 CZK for retraining courses via the Labour Office.'}
             </p>
-            <div className="bg-white/20 backdrop-blur rounded-lg p-4 space-y-2">
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-200" />
-                <span className="text-sm font-medium">Řidičské průkazy (B, C, C+E)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-200" />
-                <span className="text-sm font-medium">Svářečské a průmyslové certifikace</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-200" />
-                <span className="text-sm font-medium">IT kurzy a jazykové vzdělání</span>
-              </div>
-            </div>
-            <div className="mt-4 text-center">
-              <span className="text-xs opacity-75">Pro výběr rekvalifikačního kurzu se přihlaste na Úřadu práce</span>
+            <div className="mt-2 text-xs text-slate-500 dark:text-slate-500">
+              {t('skillsGap.funding_note') || 'Ask your local Labour Office for current eligibility.'}
             </div>
           </div>
 
           {/* CTA */}
-          <div className="bg-gradient-to-r slate-600 rounded-xl p-6 text-slate-600 dark:text-slate-400">
-            <h4 className="text-lg font-bold mb-2">Přihlaste se a vyplňte své CV</h4>
-            <p className="text-sm opacity-90 mb-4">
-              Získáte personalizovanou analýzu dovednostních mezer a doporučení na kurzy,
-              které vám pomohou získat vysněnou práci.
-            </p>
-            <div className="flex items-center justify-center gap-2">
+          <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-4 flex items-center justify-between gap-4">
+            <div>
+              <h4 className="text-sm font-semibold text-slate-900 dark:text-slate-200">
+                {t('skillsGap.cta_title') || 'Log in to unlock personalized recommendations'}
+              </h4>
+              <p className="text-xs text-slate-600 dark:text-slate-400">
+                {t('skillsGap.cta_desc') || 'Fill in your profile and get a tailored skills gap analysis.'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
               <Lock className="w-4 h-4" />
-              <span className="text-sm font-medium">Po přihlášení se odemkne pokročilá analýza</span>
+              <span>{t('skillsGap.cta_note') || 'Advanced analysis after sign in'}</span>
             </div>
           </div>
         </div>

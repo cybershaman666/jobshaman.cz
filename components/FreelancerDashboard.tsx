@@ -160,23 +160,23 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
         }
     };
 
-    if (!companyProfile) return <div className="p-8 text-center text-slate-500">Načítám profil freelancera...</div>;
+    if (!companyProfile) return <div className="p-8 text-center text-slate-500">{t('freelancer.dashboard.loading')}</div>;
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900 pb-20">
             {/* Top Bar */}
             <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between sticky top-0 z-20">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
+                    <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-sky-600 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg">
                         {companyProfile.name.charAt(0)}
                     </div>
                     <div>
                         <h1 className="font-bold text-slate-900 dark:text-white leading-tight">{companyProfile.name}</h1>
-                        <p className="text-xs text-slate-500 font-medium">Freelancer Dashboard</p>
+                        <p className="text-xs text-slate-500 font-medium">{t('freelancer.dashboard.title')}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <button onClick={onLogout} className="p-2 text-slate-400 hover:text-rose-500 transition-colors" title="Odhlásit se">
+                    <button onClick={onLogout} className="p-2 text-slate-400 hover:text-rose-500 transition-colors" title={t('freelancer.dashboard.logout')}>
                         <LogOut size={20} />
                     </button>
                 </div>
@@ -187,23 +187,23 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col justify-between">
                         <div>
-                            <p className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Aktivní Služby</p>
+                            <p className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">{t('freelancer.dashboard.stats.services')}</p>
                             <h3 className="text-3xl font-black text-slate-900 dark:text-white">{services.length} / 3</h3>
                         </div>
-                        <div className="mt-4 flex items-center gap-2 text-xs font-medium text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 rounded-lg w-fit">
+                        <div className="mt-4 flex items-center gap-2 text-xs font-medium text-cyan-600 bg-cyan-50 dark:bg-cyan-900/20 px-3 py-1.5 rounded-lg w-fit">
                             <CheckCircle size={14} />
-                            Zdarma tento měsíc
+                            {t('freelancer.dashboard.stats.free_this_month')}
                         </div>
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                        <p className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Zobrazení profilu</p>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">{t('freelancer.dashboard.stats.profile_views')}</p>
                         <h3 className="text-3xl font-black text-slate-900 dark:text-white">0</h3>
-                        <p className="text-xs text-slate-400 mt-2">Za posledních 30 dní</p>
+                        <p className="text-xs text-slate-400 mt-2">{t('freelancer.dashboard.stats.last_30_days')}</p>
                     </div>
 
                     <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700">
-                        <p className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">Hodnocení</p>
+                        <p className="text-slate-500 dark:text-slate-400 text-sm font-bold uppercase tracking-wider mb-2">{t('freelancer.dashboard.stats.rating')}</p>
                         <h3 className="text-3xl font-black text-amber-500 flex items-center gap-2">
                             5.0 <Star fill="currentColor" size={24} />
                         </h3>
@@ -215,19 +215,19 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                 <div className="flex gap-4 border-b border-slate-200 dark:border-slate-700 mb-6">
                     <button
                         onClick={() => setActiveTab('services')}
-                        className={`pb-4 px-2 font-bold text-sm transition-all border-b-2 ${activeTab === 'services' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`}
+                        className={`pb-4 px-2 font-bold text-sm transition-all border-b-2 ${activeTab === 'services' ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`}
                     >
                         {t('freelancer.dashboard.tabs.services')}
                     </button>
                     <button
                         onClick={() => setActiveTab('portfolio')}
-                        className={`pb-4 px-2 font-bold text-sm transition-all border-b-2 ${activeTab === 'portfolio' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`}
+                        className={`pb-4 px-2 font-bold text-sm transition-all border-b-2 ${activeTab === 'portfolio' ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`}
                     >
                         {t('freelancer.dashboard.tabs.portfolio')}
                     </button>
                     <button
                         onClick={() => setActiveTab('settings')}
-                        className={`pb-4 px-2 font-bold text-sm transition-all border-b-2 ${activeTab === 'settings' ? 'border-emerald-500 text-emerald-600 dark:text-emerald-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`}
+                        className={`pb-4 px-2 font-bold text-sm transition-all border-b-2 ${activeTab === 'settings' ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`}
                     >
                         {t('freelancer.dashboard.tabs.settings')}
                     </button>
@@ -260,7 +260,7 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                             required
                                             value={formData.title}
                                             onChange={e => setFormData({ ...formData, title: e.target.value })}
-                                            className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-emerald-500"
+                                            className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-cyan-500"
                                             placeholder={t('freelancer.dashboard.services.title_placeholder')}
                                         />
                                     </div>
@@ -272,7 +272,7 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                                 required
                                                 value={formData.price}
                                                 onChange={e => setFormData({ ...formData, price: e.target.value })}
-                                                className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-emerald-500"
+                                                className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-cyan-500"
                                                 placeholder={t('freelancer.dashboard.services.price_placeholder')}
                                             />
                                         </div>
@@ -282,7 +282,7 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                                 type="text"
                                                 value={formData.location}
                                                 onChange={e => setFormData({ ...formData, location: e.target.value })}
-                                                className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-emerald-500"
+                                                className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-cyan-500"
                                                 placeholder={t('freelancer.dashboard.services.location_placeholder')}
                                             />
                                         </div>
@@ -293,7 +293,7 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                             required
                                             value={formData.description}
                                             onChange={e => setFormData({ ...formData, description: e.target.value })}
-                                            className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-emerald-500 h-32"
+                                            className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-cyan-500 h-32"
                                             placeholder={t('freelancer.dashboard.services.desc_placeholder')}
                                         />
                                     </div>
@@ -307,7 +307,7 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                         </button>
                                         <button
                                             type="submit"
-                                            className="px-6 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition-colors shadow-lg"
+                                            className="px-6 py-2 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700 transition-colors shadow-lg"
                                         >
                                             {t('freelancer.dashboard.services.publish_btn')}
                                         </button>
@@ -334,10 +334,10 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <button className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors" title="Upravit">
+                                                <button className="p-2 text-slate-400 hover:text-cyan-600 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded-lg transition-colors" title={t('freelancer.dashboard.services.edit')}>
                                                     <PenTool size={18} />
                                                 </button>
-                                                <button onClick={() => handleDeleteService(service.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors" title="Smazat">
+                                                <button onClick={() => handleDeleteService(service.id)} className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors" title={t('freelancer.dashboard.services.delete')}>
                                                     <Trash2 size={18} />
                                                 </button>
                                             </div>
@@ -376,7 +376,7 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                             required
                                             value={portfolioFormData.title}
                                             onChange={e => setPortfolioFormData({ ...portfolioFormData, title: e.target.value })}
-                                            className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-emerald-500"
+                                            className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-cyan-500"
                                             placeholder={t('freelancer.dashboard.portfolio.title_placeholder')}
                                         />
                                     </div>
@@ -386,7 +386,7 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                             required
                                             value={portfolioFormData.description}
                                             onChange={e => setPortfolioFormData({ ...portfolioFormData, description: e.target.value })}
-                                            className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-emerald-500 h-24"
+                                            className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-cyan-500 h-24"
                                             placeholder={t('freelancer.dashboard.portfolio.desc_placeholder')}
                                         />
                                     </div>
@@ -396,13 +396,13 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                             type="url"
                                             value={portfolioFormData.url}
                                             onChange={e => setPortfolioFormData({ ...portfolioFormData, url: e.target.value })}
-                                            className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-emerald-500"
+                                            className="w-full p-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 focus:ring-2 focus:ring-cyan-500"
                                             placeholder={t('freelancer.dashboard.portfolio.url_placeholder')}
                                         />
                                     </div>
                                     <div>
                                         <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('freelancer.dashboard.portfolio.image_label')}</label>
-                                        <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-6 text-center hover:border-emerald-400 transition-colors cursor-pointer bg-slate-50 dark:bg-slate-900">
+                                        <div className="relative border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-lg p-6 text-center hover:border-cyan-400 transition-colors cursor-pointer bg-slate-50 dark:bg-slate-900">
                                             <input
                                                 type="file"
                                                 accept="image/*"
@@ -434,7 +434,7 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                         <button
                                             type="submit"
                                             disabled={uploadProgress}
-                                            className="px-6 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition-colors shadow-lg disabled:opacity-50"
+                                            className="px-6 py-2 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700 transition-colors shadow-lg disabled:opacity-50"
                                         >
                                             {uploadProgress ? t('freelancer.dashboard.portfolio.uploading') : t('freelancer.dashboard.portfolio.add_btn')}
                                         </button>
@@ -469,7 +469,7 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                                             href={item.url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="text-xs text-emerald-600 dark:text-emerald-400 hover:underline flex items-center gap-1"
+                                                            className="text-xs text-cyan-600 dark:text-cyan-400 hover:underline flex items-center gap-1"
                                                         >
                                                             <LinkIcon size={12} />
                                                             {t('freelancer.dashboard.portfolio.view_link')}
@@ -505,10 +505,10 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                             <div className="bg-slate-50 dark:bg-slate-800/50 px-6 py-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
                                 <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                     <Crown className="text-amber-500" size={20} />
-                                    Vaše předplatné
+                                    {t('freelancer.dashboard.subscription.title')}
                                 </h3>
                                 <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${companyProfile?.subscription?.tier === 'freelance_premium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300'}`}>
-                                    {companyProfile?.subscription?.tier === 'freelance_premium' ? 'Premium Freelancer' : 'Free Plan'}
+                                    {companyProfile?.subscription?.tier === 'freelance_premium' ? t('freelancer.dashboard.subscription.status_premium') : t('freelancer.dashboard.subscription.status_free')}
                                 </span>
                             </div>
 
@@ -520,16 +520,16 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                                 <Zap className="text-amber-500" size={24} />
                                             </div>
                                             <div>
-                                                <h4 className="font-bold text-slate-900 dark:text-white text-lg">Máte aktivní Premium členství!</h4>
-                                                <p className="text-slate-500 dark:text-slate-400">Užívejte si neomezené vkládání služeb a zvýraznění profilu.</p>
+                                                <h4 className="font-bold text-slate-900 dark:text-white text-lg">{t('freelancer.dashboard.subscription.premium_active_title')}</h4>
+                                                <p className="text-slate-500 dark:text-slate-400">{t('freelancer.dashboard.subscription.premium_active_desc')}</p>
                                             </div>
                                         </div>
                                         <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
                                             <button
-                                                onClick={() => alert("Pro zrušení předplatného nás prosím kontaktujte na podpora@jobshaman.cz")}
+                                                onClick={() => alert(t('freelancer.dashboard.subscription.manage_alert'))}
                                                 className="text-sm text-slate-500 hover:text-slate-800 dark:hover:text-slate-300 underline"
                                             >
-                                                Spravovat předplatné
+                                                {t('freelancer.dashboard.subscription.manage')}
                                             </button>
                                         </div>
                                     </div>
@@ -537,25 +537,25 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                     <div className="space-y-6">
                                         <div className="flex flex-col md:flex-row gap-6 items-center">
                                             <div className="flex-1">
-                                                <h4 className="font-bold text-xl text-slate-900 dark:text-white mb-2">Přejděte na Freelance Premium</h4>
+                                                <h4 className="font-bold text-xl text-slate-900 dark:text-white mb-2">{t('freelancer.dashboard.subscription.upgrade_title')}</h4>
                                                 <ul className="space-y-2 mb-4">
                                                     <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                                                        <CheckCircle size={16} className="text-emerald-500" />
-                                                        <span>Neomezený počet aktivních služeb</span>
+                                                        <CheckCircle size={16} className="text-cyan-500" />
+                                                        <span>{t('freelancer.dashboard.subscription.benefit_1')}</span>
                                                     </li>
                                                     <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                                                        <CheckCircle size={16} className="text-emerald-500" />
-                                                        <span>Odznak "Ověřený Freelancer"</span>
+                                                        <CheckCircle size={16} className="text-cyan-500" />
+                                                        <span>{t('freelancer.dashboard.subscription.benefit_2')}</span>
                                                     </li>
                                                     <li className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                                                        <CheckCircle size={16} className="text-emerald-500" />
-                                                        <span>Přednostní zobrazení ve vyhledávání</span>
+                                                        <CheckCircle size={16} className="text-cyan-500" />
+                                                        <span>{t('freelancer.dashboard.subscription.benefit_3')}</span>
                                                     </li>
                                                 </ul>
                                             </div>
                                             <div className="text-center md:text-right">
-                                                <div className="text-3xl font-black text-slate-900 dark:text-white">499 Kč</div>
-                                                <div className="text-sm text-slate-500">měsíčně</div>
+                                                <div className="text-3xl font-black text-slate-900 dark:text-white">{t('freelancer.dashboard.subscription.price')}</div>
+                                                <div className="text-sm text-slate-500">{t('freelancer.dashboard.subscription.per_month')}</div>
                                             </div>
                                         </div>
 
@@ -564,9 +564,9 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                             className="w-full py-4 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
                                         >
                                             <CreditCard size={20} />
-                                            Aktivovat Premium
+                                            {t('freelancer.dashboard.subscription.upgrade_cta')}
                                         </button>
-                                        <p className="text-xs text-center text-slate-400">Platba probíhá bezpečně přes Stripe. Kdykoliv můžete zrušit.</p>
+                                        <p className="text-xs text-center text-slate-400">{t('freelancer.dashboard.subscription.payment_note')}</p>
                                     </div>
                                 )}
                             </div>
@@ -574,7 +574,7 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
 
                         {/* Other Settings (Simplified) */}
                         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 opacity-60 pointer-events-none grayscale">
-                            <h3 className="font-bold text-slate-900 dark:text-white mb-4">Osobní údaje (WIP)</h3>
+                            <h3 className="font-bold text-slate-900 dark:text-white mb-4">{t('freelancer.dashboard.settings.wip_title')}</h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <input disabled value={companyProfile?.name} className="p-3 rounded-lg bg-slate-100 border-none" />
                                 <input disabled value={userProfile.email} className="p-3 rounded-lg bg-slate-100 border-none" />

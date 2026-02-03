@@ -107,7 +107,7 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
         { id: 'it', name: t('freelancer.marketplace.categories.it'), icon: Code2 },
         { id: 'design', name: t('freelancer.marketplace.categories.design'), icon: Palette },
         { id: 'marketing', name: t('freelancer.marketplace.categories.marketing'), icon: Target },
-        { id: 'admin', name: 'Administrativa', icon: Users }
+        { id: 'admin', name: t('freelancer.marketplace.categories.admin'), icon: Users }
     ];
 
     const filteredServices = services.filter(service => {
@@ -128,20 +128,20 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                         <div>
                             <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
-                                Služby a Spolupráce
+                                {t('freelancer.marketplace.title')}
                             </h1>
                             <p className="text-slate-600 dark:text-slate-300 text-lg mt-2 font-medium">
-                                Najděte ověřené freelancery a řemeslníky pro váš projekt
+                                {t('freelancer.marketplace.subtitle')}
                             </p>
                         </div>
 
                         <div className="flex items-center gap-3">
                             <button
                                 onClick={() => setShowFreelancerModal(true)}
-                                className="px-6 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+                                className="px-6 py-3 bg-cyan-600 hover:bg-cyan-700 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
                             >
                                 <Plus className="w-5 h-5" />
-                                Nabídnout své služby
+                                {t('freelancer.marketplace.offer_service')}
                             </button>
                         </div>
                     </div>
@@ -186,7 +186,7 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
                                     placeholder={t('freelancer.marketplace.search_placeholder')}
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                                    className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500"
                                 />
                             </div>
                         </div>
@@ -211,14 +211,14 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
                         {loading ? (
                             <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
                                 <div className="inline-block">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
                                 </div>
                                 <p className="text-slate-500 mt-4">{t('app.loading')}</p>
                             </div>
                         ) : filteredServices.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {filteredServices.map(service => (
-                                    <div key={service.id} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-all shadow-sm group flex flex-col h-full">
+                                    <div key={service.id} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-cyan-500 dark:hover:border-cyan-500 transition-all shadow-sm group flex flex-col h-full">
                                         <div className="p-6 flex-1">
                                             <div className="flex justify-between items-start mb-4">
                                                 <div className="flex items-center gap-3">
@@ -235,14 +235,14 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
                                                     </div>
                                                 </div>
                                                 {service.is_verified && (
-                                                    <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
+                                                    <span className="bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-400 text-xs px-2 py-1 rounded-full font-bold flex items-center gap-1">
                                                         <CheckCircle size={12} />
                                                         {t('freelancer.marketplace.card.verified')}
                                                     </span>
                                                 )}
                                             </div>
 
-                                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 leading-tight group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+                                            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 leading-tight group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
                                                 {service.title}
                                             </h3>
 
@@ -281,11 +281,11 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
                         ) : (
                             <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
                                 <ShoppingBag size={48} className="mx-auto text-slate-300 mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Zatím nejsou žádní živnostníci</h3>
-                                <p className="text-slate-500 mb-6">Jakmile se někdo zaregistruje se svými službami, najdete je zde. Buďte prvním!</p>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('freelancer_marketplace_extra.empty_state_title')}</h3>
+                                <p className="text-slate-500 mb-6">{t('freelancer_marketplace_extra.empty_state_desc')}</p>
                                 <button
                                     onClick={() => setShowFreelancerModal(true)}
-                                    className="px-6 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition-colors"
+                                    className="px-6 py-2 bg-cyan-600 text-white font-bold rounded-lg hover:bg-cyan-700 transition-colors"
                                 >
                                     {t('freelancer_marketplace_extra.create_offer_btn')}
                                 </button>
@@ -344,7 +344,7 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
                                     setContacting(false);
                                     alert(t('freelancer_marketplace.contact_failed') || 'Odeslání se nezdařilo. Zkuste to prosím později.');
                                 }
-                            }} disabled={contacting || !contactMessage.trim()} className="px-4 py-2 rounded-lg bg-emerald-600 text-white disabled:opacity-50">{contacting ? (t('freelancer_marketplace.contact_sending') || 'Odesílám...') : (t('freelancer_marketplace.contact_send') || 'Odeslat')}</button>
+                            }} disabled={contacting || !contactMessage.trim()} className="px-4 py-2 rounded-lg bg-cyan-600 text-white disabled:opacity-50">{contacting ? (t('freelancer_marketplace.contact_sending') || 'Odesílám...') : (t('freelancer_marketplace.contact_send') || 'Odeslat')}</button>
                         </div>
                     </div>
                 </div>
