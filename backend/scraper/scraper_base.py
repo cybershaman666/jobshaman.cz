@@ -11,7 +11,7 @@ import time
 from dotenv import load_dotenv
 from supabase import create_client, Client
 import os
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, urlunparse, parse_qsl, urlencode
 import re
 from datetime import datetime
 import sys
@@ -75,6 +75,17 @@ def guess_currency(country_code: str) -> str:
         return 'PLN'
     return 'Kč'
 
+
+# --- HTTP Session (reuse connections + more realistic headers) ---
+
+_SESSION = requests.Session()
+_SESSION.headers.update({
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                  "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9,cs;q=0.8,sk;q=0.7,de;q=0.7,pl;q=0.7",
+    "Connection": "keep-alive",
+})
 
 # --- Utility Functions ---
 
@@ -219,7 +230,7 @@ def filter_out_junk(text: str) -> str:
     return result if result else "Popis není dostupný"
 
 
-def scrape_page(url: str) -> Optional[BeautifulSoup]:
+def scrape_page(url: str, max_retries: int = 2) -> Optional[BeautifulSoup]:
     """
     Download and parse a web page
     
@@ -229,17 +240,58 @@ def scrape_page(url: str) -> Optional[BeautifulSoup]:
     Returns:
         BeautifulSoup object or None on error
     """
-    try:
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                         "(KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
-        }
-        resp = requests.get(url, headers=headers, timeout=12)
-        resp.raise_for_status()
-        return BeautifulSoup(resp.content, "html.parser")
-    except Exception as e:
-        print(f"❌ Chyba při stahování {url}: {e}")
-        return None
+    backoff = 1.5
+    for attempt in range(max_retries + 1):
+        try:
+            resp = _SESSION.get(url, timeout=15)
+            if resp.status_code in (403, 429, 503):
+                print(f"⚠️  Blokace/limit ({resp.status_code}) pro {url}, pokus {attempt + 1}/{max_retries + 1}")
+                time.sleep(backoff)
+                backoff *= 1.8
+                continue
+            resp.raise_for_status()
+            return BeautifulSoup(resp.content, "html.parser")
+        except Exception as e:
+            if attempt < max_retries:
+                time.sleep(backoff)
+                backoff *= 1.8
+                continue
+            print(f"❌ Chyba při stahování {url}: {e}")
+            return None
+
+
+def build_page_url(base_url: str, page_num: int) -> str:
+    """
+    Build a page URL from a base URL by replacing/adding pagination params.
+
+    Supports:
+    - Template: "{page}" in base_url
+    - Query params: page, page_num, pn, p, pageNum, pageNumber, strana
+    """
+    if "{page}" in base_url:
+        return base_url.format(page=page_num)
+
+    parsed = urlparse(base_url)
+    query_pairs = parse_qsl(parsed.query, keep_blank_values=True)
+    query = dict(query_pairs)
+
+    # Map lower-case keys to original keys to preserve casing
+    lower_map = {k.lower(): k for k in query.keys()}
+    candidates = ["page", "page_num", "pn", "p", "pagenum", "pagenumber", "strana"]
+
+    chosen_key = None
+    for cand in candidates:
+        if cand in lower_map:
+            chosen_key = lower_map[cand]
+            break
+
+    if not chosen_key:
+        chosen_key = "page"
+
+    query[chosen_key] = str(page_num)
+    new_query = urlencode(query, doseq=True)
+    rebuilt = parsed._replace(query=new_query)
+    return urlunparse(rebuilt)
 
 
 def build_description(soup: BeautifulSoup, selectors: Dict[str, List]) -> str:
@@ -333,9 +385,15 @@ def is_low_quality(job_data: Dict) -> bool:
     if not description:
         return True
     
-    # 1. Length check (500 chars ~ 80 words)
-    # Using 300 checks for now to be safe across languages, or keep 500 as per user request
-    if len(description) < 500:
+    # 1. Length check (tune by country; some DE/PL sources are shorter in practice)
+    country = (job_data.get("country_code") or "").lower()
+    min_len = 500
+    if country in {"de", "at", "pl"}:
+        min_len = 350
+    elif country in {"sk"}:
+        min_len = 450
+
+    if len(description) < min_len:
         return True
         
     # 2. Blacklisted phrases (Extendable list)
@@ -575,10 +633,7 @@ class BaseScraper:
         
         for page_num in range(1, max_pages + 1):
             # Build page URL (different sites use different pagination formats)
-            if '?' in base_url:
-                url = f"{base_url}&page={page_num}"
-            else:
-                url = f"{base_url}?page={page_num}"
+            url = build_page_url(base_url, page_num)
             
             print(f"\n📄 Scrapuji stránku {page_num}/{max_pages}: {url}")
             

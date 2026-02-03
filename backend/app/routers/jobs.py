@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, Query
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header
-from ..models.requests import JobCheckRequest, JobStatusUpdateRequest
+from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest
 from ..models.responses import JobCheckResponse
 from ..services.legality import check_legality_rules
 from ..services.matching import calculate_candidate_match
@@ -101,6 +101,33 @@ async def delete_job(job_id: str, request: Request, user: dict = Depends(get_cur
         raise HTTPException(status_code=403, detail="CSRF validation failed")
     supabase.table("jobs").delete().eq("id", job_id).execute()
     return {"status": "success"}
+
+@router.post("/jobs/interactions")
+@limiter.limit("120/minute")
+async def log_job_interaction(payload: JobInteractionRequest, request: Request, user: dict = Depends(get_current_user)):
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    try:
+        insert_data = {
+            "user_id": user_id,
+            "job_id": payload.job_id,
+            "event_type": payload.event_type,
+            "dwell_time_ms": payload.dwell_time_ms,
+            "session_id": payload.session_id,
+            "metadata": payload.metadata or {}
+        }
+        res = supabase.table("job_interactions").insert(insert_data).execute()
+        if not res.data:
+            return {"status": "error", "message": "No data inserted"}
+        return {"status": "success"}
+    except Exception as e:
+        print(f"❌ Error logging job interaction: {e}")
+        raise HTTPException(status_code=500, detail="Failed to log interaction")
 
 @router.post("/match-candidates")
 @limiter.limit("10/minute")

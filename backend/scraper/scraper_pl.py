@@ -570,13 +570,15 @@ def run_poland_scraper():
     websites = [
         {
             'name': 'Pracuj.pl',
+            # Full market (no keyword filter)
             'base_url': 'https://www.pracuj.pl/praca',
-            'max_pages': 15
+            'max_pages': 30
         },
         {
             'name': 'NoFluffJobs',
+            # Full market listing
             'base_url': 'https://nofluffjobs.com/pl/jobs',
-            'max_pages': 10
+            'max_pages': 20
         },
         # {
         #     'name': 'JustJoin.it',

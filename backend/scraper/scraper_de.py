@@ -488,13 +488,15 @@ def run_germany_scraper():
     websites = [
         {
             'name': 'Stellenanzeigen.de',
-            'base_url': 'https://www.stellenanzeigen.de/suche/?q=software',
-            'max_pages': 20
+            # Full market (no keyword filter)
+            'base_url': 'https://www.stellenanzeigen.de/suche/?q=',
+            'max_pages': 50
         },
         {
             'name': 'Karriere.at',
+            # Full market listing
             'base_url': 'https://www.karriere.at/jobs',
-            'max_pages': 30
+            'max_pages': 50
         }
     ]
     
