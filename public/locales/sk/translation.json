@@ -114,7 +114,8 @@
     "marketplace": {
         "title": "Kurzy a Rekvalifikácia",
         "subtitle": "Investujte do svojej budúcnosti. Nájdite si dokonalý kurz pre vašu kariéru.",
-        "demo_data": "Demo dáta: Toto sú ukážkové kurzy pre demonštráciu. Reálne kurzy budú dostupné čoskoro.",
+        "demo_label": "Demo data:",
+        "demo_data": "Toto sú ukážkové kurzy pre demonštráciu. Reálne kurzy budú dostupné čoskoro.",
         "offer_course": "Ponúknuť kurz",
         "all_courses": "Všetky kurzy",
         "retraining_courses": "Rekvalifikačné kurzy",
@@ -988,6 +989,15 @@
     "freelancer": {
         "dashboard": {
             "title": "Freelancer Dashboard",
+            "loading": "Načítavam profil freelancera…",
+            "logout": "Odhlásiť sa",
+            "stats": {
+                "services": "Aktívne služby",
+                "free_this_month": "Zdarma tento mesiac",
+                "profile_views": "Zobrazenia profilu",
+                "last_30_days": "Za posledných 30 dní",
+                "rating": "Hodnotenie"
+            },
             "tabs": {
                 "services": "Moje služby",
                 "portfolio": "Portfólio",
@@ -1014,7 +1024,9 @@
                 "price": "Cena",
                 "list_title": "Zoznam služieb",
                 "add_btn": "Pridať službu",
-                "no_reviews": "Zatiaľ žiadne recenzie"
+                "no_reviews": "Zatiaľ žiadne recenzie",
+                "edit": "Upraviť",
+                "delete": "Vymazať"
             },
             "portfolio": {
                 "title": "Moje portfólio",
@@ -1037,6 +1049,26 @@
                 "delete_error": "Chyba pri mazaní položky portfólia.",
                 "uploading": "Nahrávam..."
             },
+            "subscription": {
+                "title": "Vaše predplatné",
+                "status_premium": "Premium Freelancer",
+                "status_free": "Free Plan",
+                "premium_active_title": "Máte aktívne Premium členstvo!",
+                "premium_active_desc": "Užívajte si neobmedzené vkladanie služieb a zvýraznenie profilu.",
+                "manage": "Spravovať predplatné",
+                "manage_alert": "Pre zrušenie predplatného nás prosím kontaktujte na podpora@jobshaman.cz",
+                "upgrade_title": "Prejdite na Freelance Premium",
+                "benefit_1": "Neobmedzený počet aktívnych služieb",
+                "benefit_2": "Odznak \"Overený Freelancer\"",
+                "benefit_3": "Prednostné zobrazenie vo vyhľadávaní",
+                "price": "499 Kč",
+                "per_month": "mesačne",
+                "upgrade_cta": "Aktivovať Premium",
+                "payment_note": "Platba prebieha bezpečne cez Stripe. Kedykoľvek môžete zrušiť."
+            },
+            "settings": {
+                "wip_title": "Osobné údaje (WIP)"
+            },
             "upgrade_cta": "Activate Premium",
             "active_plan": "Active Plan",
             "free_plan": "Free Plan",
@@ -1047,10 +1079,10 @@
             "benefit_3": "'Verified Freelancer' badge",
             "benefit_4": "Traffic statistics"
         },
-        "marketplace": {
-            "title": "Services & Cooperation",
-            "subtitle": "Find experts for your project or offer your services.",
-            "search_placeholder": "Search services, freelancers...",
+    "marketplace": {
+        "title": "Services & Cooperation",
+        "subtitle": "Find experts for your project or offer your services.",
+        "search_placeholder": "Search services, freelancers...",
             "offer_service": "Offer Service",
             "categories": {
                 "all": "All Services",
@@ -1058,6 +1090,7 @@
                 "it": "IT & Development",
                 "design": "Design & Creative",
                 "marketing": "Marketing",
+                "admin": "Administratíva",
                 "writing": "Writing & Translation",
                 "consulting": "Consulting"
             },
@@ -1171,5 +1204,21 @@
                 "contact_sending": "Odosielam...",
                 "contact_sent": "Správa bola odoslaná. Freelancer bude kontaktovaný.",
                 "contact_failed": "Odoslanie zlyhalo. Skúste to neskôr."
+    },
+    "skillsGap": {
+        "hero_title": "Získajte náskok s cielenými kurzami",
+        "hero_subtitle": "Odporúčania na mieru podľa vášho profilu a dopytu na trhu",
+        "benefit_1_title": "Cielený rozvoj",
+        "benefit_1_desc": "Kurzy zosúladené s vaším CV a aktuálnym dopytom",
+        "benefit_2_title": "Kariérny rast",
+        "benefit_2_desc": "Zvýšte svoj potenciál vďaka žiadaným zručnostiam",
+        "benefit_3_title": "Overené zamestnávateľmi",
+        "benefit_3_desc": "Certifikácie, ktoré personalisti skutočne hľadajú",
+        "funding_title": "Možné verejné financovanie",
+        "funding_desc": "V niektorých prípadoch môžete získať až 50 000 Kč na rekvalifikačný kurz cez Úrad práce.",
+        "funding_note": "Overte si aktuálne podmienky na miestnom Úrade práce.",
+        "cta_title": "Prihláste sa a odomknite odporúčania",
+        "cta_desc": "Vyplňte profil a získajte personalizovanú analýzu zručností.",
+        "cta_note": "Pokročilá analýza po prihlásení"
     }
 }

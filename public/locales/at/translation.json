@@ -121,7 +121,8 @@
     "marketplace": {
         "title": "Kurse und Umschulung",
         "subtitle": "Investieren Sie in Ihre Zukunft. Finden Sie den perfekten Kurs für Ihre Karriere.",
-        "demo_data": "Demodaten: Dies sind Beispielkurse zu Demonstrationszwecken. Echte Kurse sind in Kürze verfügbar.",
+        "demo_label": "Demodaten:",
+        "demo_data": "Dies sind Beispielkurse zu Demonstrationszwecken. Echte Kurse sind in Kürze verfügbar.",
         "offer_course": "Einen Kurs anbieten",
         "all_courses": "Alle Kurse",
         "retraining_courses": "Umschulungskurse",

@@ -123,7 +123,8 @@
     "marketplace": {
         "title": "Kurse und Umschulung",
         "subtitle": "Investieren Sie in Ihre Zukunft. Finden Sie den perfekten Kurs für Ihre Karriere.",
-        "demo_data": "Demodaten: Dies sind Beispielkurse zu Demonstrationszwecken. Echte Kurse sind in Kürze verfügbar.",
+        "demo_label": "Demodaten:",
+        "demo_data": "Dies sind Beispielkurse zu Demonstrationszwecken. Echte Kurse sind in Kürze verfügbar.",
         "offer_course": "Einen Kurs anbieten",
         "all_courses": "Alle Kurse",
         "retraining_courses": "Umschulungskurse",
@@ -916,6 +917,15 @@
     "freelancer": {
         "dashboard": {
             "title": "Freelancer Dashboard",
+            "loading": "Freelancer-Profil wird geladen…",
+            "logout": "Abmelden",
+            "stats": {
+                "services": "Aktive Dienste",
+                "free_this_month": "Diesen Monat kostenlos",
+                "profile_views": "Profilaufrufe",
+                "last_30_days": "Letzte 30 Tage",
+                "rating": "Bewertung"
+            },
             "tabs": {
                 "services": "Meine Dienste",
                 "portfolio": "Portfolio",
@@ -942,7 +952,9 @@
                 "price": "Preis",
                 "list_title": "Dienste-Liste",
                 "add_btn": "Dienst hinzufügen",
-                "no_reviews": "Noch keine Bewertungen"
+                "no_reviews": "Noch keine Bewertungen",
+                "edit": "Bearbeiten",
+                "delete": "Löschen"
             },
             "portfolio": {
                 "title": "Mein Portfolio",
@@ -965,6 +977,26 @@
                 "delete_error": "Fehler beim Löschen des Portfolio-Elements.",
                 "uploading": "Wird hochgeladen..."
             },
+            "subscription": {
+                "title": "Ihr Abonnement",
+                "status_premium": "Premium Freelancer",
+                "status_free": "Free Plan",
+                "premium_active_title": "Sie haben ein aktives Premium-Abo!",
+                "premium_active_desc": "Genießen Sie unbegrenzte Serviceangebote und Profil-Highlights.",
+                "manage": "Abo verwalten",
+                "manage_alert": "Um das Abo zu kündigen, kontaktieren Sie bitte podpora@jobshaman.cz",
+                "upgrade_title": "Wechseln Sie zu Freelance Premium",
+                "benefit_1": "Unbegrenzte aktive Dienste",
+                "benefit_2": "„Verifizierter Freelancer“-Badge",
+                "benefit_3": "Priorisierte Sichtbarkeit in der Suche",
+                "price": "499 CZK",
+                "per_month": "pro Monat",
+                "upgrade_cta": "Premium aktivieren",
+                "payment_note": "Sichere Zahlung über Stripe. Jederzeit kündbar."
+            },
+            "settings": {
+                "wip_title": "Persönliche Daten (WIP)"
+            },
             "upgrade_cta": "Activate Premium",
             "active_plan": "Active Plan",
             "free_plan": "Free Plan",
@@ -986,6 +1018,7 @@
                 "it": "IT & Development",
                 "design": "Design & Creative",
                 "marketing": "Marketing",
+                "admin": "Administration",
                 "writing": "Writing & Translation",
                 "consulting": "Consulting"
             },
@@ -1099,5 +1132,21 @@
         "create_offer_btn": "Angebot Erstellen",
         "inquire_btn": "Anfragen",
         "wip_alert": "Detail Anzeigen (WIP)"
+    },
+    "skillsGap": {
+        "hero_title": "Vorsprung durch gezielte Kurse",
+        "hero_subtitle": "Personalisierte Empfehlungen basierend auf Profil und Marktnachfrage",
+        "benefit_1_title": "Fokussiertes Wachstum",
+        "benefit_1_desc": "Kurse abgestimmt auf Ihren Lebenslauf und aktuelle Nachfrage",
+        "benefit_2_title": "Karriere-Boost",
+        "benefit_2_desc": "Steigern Sie Ihr Gehaltspotenzial mit gefragten Skills",
+        "benefit_3_title": "Von Arbeitgebern geprüft",
+        "benefit_3_desc": "Zertifikate, nach denen Recruiter tatsächlich suchen",
+        "funding_title": "Öffentliche Förderung möglich",
+        "funding_desc": "In einigen Fällen sind bis zu 50.000 CZK für Umschulungskurse über das Arbeitsamt möglich.",
+        "funding_note": "Bitte aktuelle Voraussetzungen beim zuständigen Arbeitsamt prüfen.",
+        "cta_title": "Anmelden und Empfehlungen freischalten",
+        "cta_desc": "Profil vervollständigen und eine personalisierte Skill-Analyse erhalten.",
+        "cta_note": "Erweiterte Analyse nach der Anmeldung"
     }
 }

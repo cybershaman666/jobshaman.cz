@@ -134,7 +134,8 @@
     "marketplace": {
         "title": "Kurzy a Rekvalifikace",
         "subtitle": "Investujte do své budoucnosti. Najděte si dokonalý kurz pro vaši kariéru.",
-        "demo_data": "Demo data: Toto jsou ukázkové kurzy pro demonstraci. Reálné kurzy budou dostupné brzy.",
+        "demo_label": "Demo data:",
+        "demo_data": "Toto jsou ukázkové kurzy pro demonstraci. Reálné kurzy budou dostupné brzy.",
         "offer_course": "Nabídnout kurz",
         "all_courses": "Všechny kurzy",
         "retraining_courses": "Rekvalifikační kurzy",
@@ -1097,6 +1098,15 @@
     "freelancer": {
         "dashboard": {
             "title": "Freelancer Dashboard",
+            "loading": "Načítám profil freelancera…",
+            "logout": "Odhlásit se",
+            "stats": {
+                "services": "Aktivní služby",
+                "free_this_month": "Zdarma tento měsíc",
+                "profile_views": "Zobrazení profilu",
+                "last_30_days": "Za posledních 30 dní",
+                "rating": "Hodnocení"
+            },
             "tabs": {
                 "services": "Moje Služby",
                 "portfolio": "Portfolio",
@@ -1123,7 +1133,9 @@
                 "price": "Cena",
                 "list_title": "Seznam služeb",
                 "add_btn": "Přidat službu",
-                "no_reviews": "Zatím žádné hodnocení"
+                "no_reviews": "Zatím žádné hodnocení",
+                "edit": "Upravit",
+                "delete": "Smazat"
             },
             "portfolio": {
                 "title": "Moje Portfolio",
@@ -1146,6 +1158,26 @@
                 "delete_error": "Chyba při mazání položky portfolia.",
                 "uploading": "Nahrávám..."
             },
+            "subscription": {
+                "title": "Vaše předplatné",
+                "status_premium": "Premium Freelancer",
+                "status_free": "Free Plan",
+                "premium_active_title": "Máte aktivní Premium členství!",
+                "premium_active_desc": "Užívejte si neomezené vkládání služeb a zvýraznění profilu.",
+                "manage": "Spravovat předplatné",
+                "manage_alert": "Pro zrušení předplatného nás prosím kontaktujte na podpora@jobshaman.cz",
+                "upgrade_title": "Přejděte na Freelance Premium",
+                "benefit_1": "Neomezený počet aktivních služeb",
+                "benefit_2": "Odznak \"Ověřený Freelancer\"",
+                "benefit_3": "Přednostní zobrazení ve vyhledávání",
+                "price": "499 Kč",
+                "per_month": "měsíčně",
+                "upgrade_cta": "Aktivovat Premium",
+                "payment_note": "Platba probíhá bezpečně přes Stripe. Kdykoliv můžete zrušit."
+            },
+            "settings": {
+                "wip_title": "Osobní údaje (WIP)"
+            },
             "upgrade_cta": "Aktivovat Premium",
             "active_plan": "Aktivní Plán",
             "free_plan": "Free Plan",
@@ -1167,6 +1199,7 @@
                 "it": "IT & Vývoj",
                 "design": "Design & Kreativa",
                 "marketing": "Marketing",
+                "admin": "Administrativa",
                 "writing": "Psaní & Překlady",
                 "consulting": "Konzultace"
             },
@@ -1287,5 +1320,21 @@
         "contact_sending": "Odesílám...",
         "contact_sent": "Zpráva byla odeslána. Freelancer bude kontaktován.",
         "contact_failed": "Odeslání se nezdařilo. Zkuste to prosím později."
+    },
+    "skillsGap": {
+        "hero_title": "Získejte náskok s cílenými kurzy",
+        "hero_subtitle": "Doporučení na míru podle vašeho profilu a poptávky na trhu",
+        "benefit_1_title": "Cílený rozvoj",
+        "benefit_1_desc": "Kurzy sladěné s vaším CV a aktuální poptávkou",
+        "benefit_2_title": "Kariérní růst",
+        "benefit_2_desc": "Zvyšte svůj potenciál díky žádaným dovednostem",
+        "benefit_3_title": "Ověřeno zaměstnavateli",
+        "benefit_3_desc": "Certifikace, které personalisté skutečně hledají",
+        "funding_title": "Možné veřejné financování",
+        "funding_desc": "V některých případech lze získat až 50 000 Kč na rekvalifikační kurz přes Úřad práce.",
+        "funding_note": "Ověřte aktuální podmínky na místním Úřadu práce.",
+        "cta_title": "Přihlaste se a odemkněte doporučení",
+        "cta_desc": "Vyplňte profil a získejte personalizovanou analýzu dovedností.",
+        "cta_note": "Pokročilá analýza po přihlášení"
     }
 }
