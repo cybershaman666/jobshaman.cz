@@ -333,6 +333,13 @@ export default function App() {
             // If viewState is LIST and they should be in a dashboard, restore it
             if (viewState === ViewState.LIST) {
                 // Check if they are a freelancer or regular recruiter
+                console.log("🔄 [NavRestore] Checking profile to restore dashboard. companyProfile:", {
+                    id: companyProfile?.id,
+                    name: companyProfile?.name,
+                    industry: companyProfile?.industry,
+                    isFreelancer: companyProfile?.industry === 'Freelancer'
+                });
+                
                 if (companyProfile?.industry === 'Freelancer') {
                     setViewState(ViewState.FREELANCER_DASHBOARD);
                     console.log("✅ Restored FREELANCER_DASHBOARD after returning from job detail");

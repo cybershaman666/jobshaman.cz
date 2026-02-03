@@ -142,6 +142,13 @@ export const useUserProfile = () => {
                     metaIco = user?.user_metadata?.ico;
                     metaWebsite = user?.user_metadata?.website;
                     metaIsFreelancer = user?.user_metadata?.is_freelancer === true || user?.user_metadata?.is_freelancer === 'true';
+                    console.log("📋 [Metadata] Extracted:", {
+                        metaRole,
+                        metaCompany,
+                        metaIsFreelancer,
+                        rawIsFreelancer: user?.user_metadata?.is_freelancer,
+                        allMetadata: user?.user_metadata
+                    });
                 }
 
                 // If user registered as recruiter (via metadata) but profile says 'candidate' (default trigger), fix it.
@@ -158,8 +165,9 @@ export const useUserProfile = () => {
                 }
 
                 // If they are a recruiter (or just became one), but have no company, check metadata for company name and create it.
+                let company: any = null; // Declare company at function scope so it can be used later
                 if (profile.role === 'recruiter') {
-                    let company = await getRecruiterCompany(userId);
+                    company = await getRecruiterCompany(userId);
 
                     if (!company && metaCompany) {
                         console.log("🛠️ Recruiter has no company, but metadata has company_name. Auto-creating company...");
@@ -211,7 +219,12 @@ export const useUserProfile = () => {
 
                     // Only set dashboard view if not on special pages
                     if (!isJobDetail && !isExternalPage) {
-                        if (metaIsFreelancer) {
+                        console.log("🔍 [ViewState Decision] metaIsFreelancer:", metaIsFreelancer, "company.industry:", company?.industry);
+                        
+                        // Check if freelancer by metadata OR by company industry
+                        const isFreelancer = metaIsFreelancer || company?.industry === 'Freelancer';
+                        
+                        if (isFreelancer) {
                             // Freelancers ALWAYS go to FREELANCER_DASHBOARD
                             setViewState(ViewState.FREELANCER_DASHBOARD);
                             console.log("✅ Freelancer logged in, FREELANCER_DASHBOARD set.");
