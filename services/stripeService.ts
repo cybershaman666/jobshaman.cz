@@ -10,19 +10,9 @@ if (!STRIPE_PUBLIC_KEY) {
     );
 }
 
-// Backend URL configuration - fail explicitly if not set
-const BACKEND_URL = import.meta.env.VITE_API_URL;
+import { BACKEND_URL } from '../constants';
 
-if (!BACKEND_URL) {
-    console.error('❌ CRITICAL: VITE_API_URL environment variable not set!');
-    // In production, this should fail. In development, provide helpful error
-    if (import.meta.env.MODE === 'production') {
-        throw new Error('VITE_API_URL must be configured in production environment');
-    }
-    console.warn('⚠️ Using fallback URL for development only');
-}
-
-const API_URL = BACKEND_URL || 'http://localhost:8000';
+const API_URL = BACKEND_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 /**
  * Initiates a Stripe Checkout session for a specific subscription tier.

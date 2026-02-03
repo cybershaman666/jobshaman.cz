@@ -21,36 +21,81 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
     clearCsrfToken();
     // console.log('🔄 Fetching fresh CSRF token...');
 
-    try {
-        const response = await fetch(`${BACKEND_URL}/csrf-token`, {
-            method: 'GET',
-            headers: {
-                'Authorization': `Bearer ${authToken}`,
-                'Content-Type': 'application/json'
+    const maxRetries = 3;
+    let lastError: any = null;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            // console.log(`🔄 Fetching fresh CSRF token (attempt ${attempt}/${maxRetries})...`);
+
+            // Create abort controller for timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => {
+                console.warn(`⏱️ CSRF fetch attempt ${attempt} timed out after 90s. The server might be waking up.`);
+                controller.abort();
+            }, 90000); // 90 second timeout for Render cold starts
+
+            const response = await fetch(`${BACKEND_URL}/csrf-token`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${authToken}`,
+                    'Content-Type': 'application/json'
+                },
+                signal: controller.signal
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                const statusText = response.statusText;
+                const status = response.status;
+                console.warn(`⚠️ Failed to fetch CSRF token (Attempt ${attempt}): ${status} ${statusText}`);
+
+                // If it's a server error (5xx), we might want to retry
+                if (status >= 500) {
+                    lastError = new Error(`Server error: ${status}`);
+                    if (attempt < maxRetries) {
+                        const delay = Math.pow(2, attempt) * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue;
+                    }
+                } else {
+                    return null;
+                }
             }
-        });
 
-        if (!response.ok) {
-            console.warn(`Failed to fetch CSRF token: ${response.status} ${response.statusText}`);
-            return null;
+            const data = await response.json();
+
+            if (!data.csrf_token) {
+                console.warn('No CSRF token in response');
+                return null;
+            }
+
+            // Store token with expiry time
+            setCsrfToken(data.csrf_token, data.expiry || 3600);
+            // console.log(`✅ CSRF token obtained successfully`);
+
+            return data.csrf_token;
+        } catch (error) {
+            lastError = error;
+            const isAborted = error instanceof Error && error.name === 'AbortError';
+
+            if (isAborted) {
+                console.error(`❌ CSRF token fetch ABORTED (timeout) on attempt ${attempt}`);
+            } else {
+                console.error(`❌ Error fetching CSRF token (Attempt ${attempt}):`, error);
+            }
+
+            if (attempt < maxRetries) {
+                const delay = Math.pow(2, attempt) * 1000;
+                // console.log(`🔄 Retrying in ${delay/1000}s...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
         }
-
-        const data = await response.json();
-
-        if (!data.csrf_token) {
-            console.warn('No CSRF token in response');
-            return null;
-        }
-
-        // Store token with expiry time
-        setCsrfToken(data.csrf_token, data.expiry || 3600);
-        // console.log(`✅ CSRF token obtained successfully`);
-
-        return data.csrf_token;
-    } catch (error) {
-        console.error('Error fetching CSRF token:', error);
-        return null;
     }
+
+    console.error('❌ Failed to fetch CSRF token after multiple attempts:', lastError);
+    return null;
 };
 
 /**
@@ -240,7 +285,10 @@ export const authenticatedFetch = async (
 
     // Create abort controller for timeout
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    const timeoutId = setTimeout(() => {
+        console.warn(`⏱️ Authenticated fetch to ${url} timed out after 90s. The server might be waking up.`);
+        controller.abort();
+    }, 90000); // 90 second timeout for Render cold starts
 
     try {
         const response = await fetch(url, {
