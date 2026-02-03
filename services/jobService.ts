@@ -2,6 +2,7 @@ import { supabase, isSupabaseConfigured } from './supabaseService';
 import { Job, NoiseMetrics } from '../types';
 import { contextualRelevanceScorer, ContextualRelevanceScorer } from './contextualRelevanceService';
 import { calculateJHI } from '../utils/jhiCalculator';
+import { detectCurrencyFromLocation } from './financialService';
 import i18n from '../src/i18n';
 
 // Loose interface to accept whatever Supabase returns
@@ -80,6 +81,58 @@ const estimateNoise = (description: string): NoiseMetrics => {
     };
 };
 
+const getNumberLocale = (): string => {
+    const lang = (i18n.language || 'cs').split('-')[0];
+    switch (lang) {
+        case 'de':
+            return 'de-DE';
+        case 'pl':
+            return 'pl-PL';
+        case 'sk':
+            return 'sk-SK';
+        case 'en':
+            return 'en-US';
+        default:
+            return 'cs-CZ';
+    }
+};
+
+const resolveCurrency = (currency?: string, location?: string, countryCode?: string): string => {
+    if (currency && currency !== 'Kč' && currency !== 'CZK') return currency;
+    if (countryCode) {
+        const cc = countryCode.toUpperCase();
+        if (cc === 'PL') return 'PLN';
+        if (cc === 'CH') return 'CHF';
+        if (cc === 'CZ') return 'CZK';
+        if (['DE', 'AT', 'SK', 'FR', 'IT', 'ES', 'NL', 'IE', 'BE', 'PT'].includes(cc)) return '€';
+    }
+    const inferred = detectCurrencyFromLocation(location || '');
+    if (currency && (currency === 'Kč' || currency === 'CZK') && inferred && inferred !== 'CZK') {
+        return inferred;
+    }
+    return currency || inferred || 'CZK';
+};
+
+const formatSalaryRange = (
+    salaryFrom?: number,
+    salaryTo?: number,
+    currency?: string,
+    location?: string,
+    countryCode?: string
+): string => {
+    const locale = getNumberLocale();
+    const resolvedCurrency = resolveCurrency(currency, location, countryCode);
+
+    if (salaryFrom) {
+        if (salaryTo) {
+            return `${salaryFrom.toLocaleString(locale)} - ${salaryTo.toLocaleString(locale)} ${resolvedCurrency}`;
+        }
+        return `${salaryFrom.toLocaleString(locale)} ${resolvedCurrency}`;
+    }
+
+    return i18n.t('job.salary_not_specified');
+};
+
 const getRelativeTime = (dateString?: string): string => {
     if (!dateString) return '';
     const date = new Date(dateString);
@@ -117,26 +170,23 @@ const formatDescription = (desc?: string): string => {
 };
 
 const BENEFIT_PATTERNS = [
-    { regex: /flexibiln[íi]|pružn[áa] prac|flexible/i, label: 'Flexibilní pracovní doba' },
-    { regex: /dovolen[áa] [5-9]|5 t[ýy]dn[ůu]|25 dn[ůu]|weeks of vacation/i, label: '5 týdnů dovolené' },
-    { regex: /home office|práce z domova|remote/i, label: 'Home Office' },
-    { regex: /stravenk|e-stravenk|meal voucher/i, label: 'Stravenky' },
-    { regex: /multisport/i, label: 'Multisport karta' },
-    { regex: /sick days|zdravotn[íi] volno/i, label: 'Sick days' },
-    { regex: /notebook|počítač|laptop/i, label: 'Notebook' },
-    { regex: /telefon|mobil/i, label: 'Mobilní telefon' },
-    { regex: /vzděláv|školen[íi]|training|education/i, label: 'Vzdělávací kurzy' }
+    { regex: /flexibiln[íi]|pružn[áa] prac|flexible|flexibel|gleitzeit|elastyczn/i, label: 'Flexibilní pracovní doba' },
+    { regex: /dovolen[áa] [5-9]|5 t[ýy]dn[ůu]|25 dn[ůu]|weeks of vacation|urlaub|urlop/i, label: '5 týdnů dovolené' },
+    { regex: /home office|práce z domova|remote|homeoffice|arbeit von zu hause|praca zdalna/i, label: 'Home Office' },
+    { regex: /stravenk|e-stravenk|meal voucher|essens|mittagessen|kantine|bony żywieniowe|karta lunchowa/i, label: 'Stravenky' },
+    { regex: /multisport|sportpaket|karta multisport|pakiet sportowy/i, label: 'Multisport karta' },
+    { regex: /sick days|zdravotn[íi] volno|krankentage|dni chorobowe/i, label: 'Sick days' },
+    { regex: /notebook|počítač|laptop|arbeitslaptop/i, label: 'Notebook' },
+    { regex: /telefon|mobil|diensthandy|firmenhandy|telefon służbowy/i, label: 'Mobilní telefon' },
+    { regex: /vzděláv|školen[íi]|training|education|weiterbildung|szkolen|kursy/i, label: 'Vzdělávací kurzy' }
 ];
 
 // Job transformation helper
 const transformJob = (scrapedJob: any): Job => {
     const salaryFrom = safeParseInt(scrapedJob.salary_from);
     const salaryTo = safeParseInt(scrapedJob.salary_to);
-    const currency = scrapedJob.salary_currency || scrapedJob.currency || 'Kč';
-
-    const salaryRange = salaryFrom && salaryTo ? `${salaryFrom.toLocaleString('cs-CZ')} - ${salaryTo.toLocaleString('cs-CZ')} ${currency}` :
-        salaryFrom ? `od ${salaryFrom.toLocaleString('cs-CZ')} ${currency}` :
-            salaryTo ? `až ${salaryTo.toLocaleString('cs-CZ')} ${currency}` : (i18n.language === 'en' ? 'Salary not specified' : 'Mzda neuvedena');
+    const currency = scrapedJob.salary_currency || scrapedJob.currency;
+    const salaryRange = formatSalaryRange(salaryFrom, salaryTo, currency, scrapedJob.location, scrapedJob.country_code);
 
     // Extract contract type and work type from raw fields
     const jobType = scrapedJob.contract_type || scrapedJob.type || 'Neuvedeno';
@@ -872,17 +922,8 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
                 salaryTo = salaryTo * 1000;
             }
 
-            let salaryRange = undefined;
-            const currency = scraped.salary_currency || scraped.currency || 'Kč';
-
-            if (salaryFrom) {
-                salaryRange = `${salaryFrom.toLocaleString()} ${currency}`;
-                if (salaryTo) {
-                    salaryRange += ` - ${salaryTo.toLocaleString()} ${currency}`;
-                }
-            } else {
-                salaryRange = "Mzda neuvedena";
-            }
+            const currency = scraped.salary_currency || scraped.currency;
+            const salaryRange = formatSalaryRange(salaryFrom, salaryTo, currency, scraped.location, scraped.country_code);
 
             // 3. Job Type Inference
             let jobType: 'Remote' | 'Hybrid' | 'On-site' = 'On-site';

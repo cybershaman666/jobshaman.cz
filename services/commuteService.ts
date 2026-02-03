@@ -357,15 +357,20 @@ export const calculateTimeScore = (
     }
 
     // 4. Schedule flexibility
-    if (desc.includes('flexibilní úprava') || desc.includes('gliding time') || desc.includes('flexibilní')) {
+    if (desc.includes('flexibilní úprava') || desc.includes('gliding time') || desc.includes('flexibilní') ||
+        desc.includes('flexibel') || desc.includes('gleitzeit') || desc.includes('elastyczn')) {
         score += 10;
     }
-    if (desc.includes('pružný rozvrh')) {
+    if (desc.includes('pružný rozvrh') || desc.includes('flexibler arbeitszeit') || desc.includes('elastyczny grafik')) {
         score += 8;
     }
 
     // 5. Vacation/time off
-    if (desc.includes('dovolená') && (desc.includes('25') || desc.includes('30') || desc.includes('více'))) {
+    if (
+        (desc.includes('dovolená') && (desc.includes('25') || desc.includes('30') || desc.includes('více'))) ||
+        (desc.includes('urlaub') && (desc.includes('25') || desc.includes('30') || desc.includes('mehr'))) ||
+        (desc.includes('urlop') && (desc.includes('26') || desc.includes('30') || desc.includes('więcej')))
+    ) {
         score += 8; // Good vacation allowance
     }
 
@@ -388,33 +393,55 @@ export const calculateValuesScore = (job: Job, benefits: string[]): number => {
     const benefitStr = benefits.join(' ').toLowerCase();
 
     // 1. Family-friendly indicators
-    if (desc.includes('rodina') || desc.includes('mateřství') || desc.includes('otcovství') || desc.includes('péče')) {
+    if (
+        desc.includes('rodina') || desc.includes('mateřství') || desc.includes('otcovství') || desc.includes('péče') ||
+        desc.includes('familienfreund') || desc.includes('elternzeit') || desc.includes('mutterschutz') ||
+        desc.includes('rodzin') || desc.includes('opieka') || desc.includes('urlop macierzy') || desc.includes('urlop ojc')
+    ) {
         score += 12; // Family-focused
     }
-    if (desc.includes('home office') || desc.includes('práce z domu')) {
+    if (desc.includes('home office') || desc.includes('práce z domu') || desc.includes('homeoffice') ||
+        desc.includes('arbeit von zu hause') || desc.includes('praca zdalna')) {
         score += 10; // Enables family time
     }
-    if (desc.includes('flexibilní') || desc.includes('work-life')) {
+    if (desc.includes('flexibilní') || desc.includes('work-life') || desc.includes('flexibel') || desc.includes('work life balance')) {
         score += 8;
     }
 
     // 2. Personal benefits supporting life balance
-    if (benefitStr.includes('pojiští') || benefitStr.includes('zdraví')) {
+    if (
+        benefitStr.includes('pojiští') || benefitStr.includes('zdraví') ||
+        benefitStr.includes('krankenvers') || benefitStr.includes('gesund') ||
+        benefitStr.includes('opieka medycz') || benefitStr.includes('ubezpieczenie')
+    ) {
         score += 5; // Health insurance
     }
-    if (benefitStr.includes('penzij') || benefitStr.includes('spoření')) {
+    if (
+        benefitStr.includes('penzij') || benefitStr.includes('spoření') ||
+        benefitStr.includes('altersvorsorge') || benefitStr.includes('renten') ||
+        benefitStr.includes('emerytal')
+    ) {
         score += 5; // Retirement benefits
     }
-    if (benefitStr.includes('pension') || benefitStr.includes('volný čas')) {
+    if (benefitStr.includes('pension') || benefitStr.includes('volný čas') || benefitStr.includes('czas wolny')) {
         score += 5;
     }
-    if (benefitStr.includes('příspěv') && (benefitStr.includes('sport') || benefitStr.includes('relax'))) {
+    if (
+        benefitStr.includes('příspěv') && (benefitStr.includes('sport') || benefitStr.includes('relax')) ||
+        benefitStr.includes('sport') || benefitStr.includes('fitness') || benefitStr.includes('wellness') ||
+        benefitStr.includes('multisport')
+    ) {
         score += 5; // Wellness benefits
     }
 
     // 3. Meaningful work (purpose-driven)
-    if (desc.includes('sociální') || desc.includes('zdravotnick') || desc.includes('charitativní') ||
-        desc.includes('vzdělávání') || desc.includes('věd') || desc.includes('životní prostředí')) {
+    if (
+        desc.includes('sociální') || desc.includes('zdravotnick') || desc.includes('charitativní') ||
+        desc.includes('vzdělávání') || desc.includes('věd') || desc.includes('životní prostředí') ||
+        desc.includes('sozial') || desc.includes('gesundheits') || desc.includes('charity') ||
+        desc.includes('bildung') || desc.includes('wissenschaft') || desc.includes('umwelt') ||
+        desc.includes('społecz') || desc.includes('zdrowotn') || desc.includes('edukac') || desc.includes('nauk') || desc.includes('środowisk')
+    ) {
         score += 10; // Purpose-driven sectors
     }
 

@@ -11,6 +11,13 @@ const BENEFIT_VALUES: Record<string, number> = {
   'Straveny': 88,
   'Obědy': 88,
   'Jídelny': 88,
+  'Essensgutscheine': 88,
+  'Essenszuschuss': 88,
+  'Mittagessen': 88,
+  'Kantine': 88,
+  'Bony żywieniowe': 88,
+  'Dofinansowanie posiłków': 88,
+  'Karta lunchowa': 88,
 
   // Pension - Penzijní: 1,000 Kč = 40 EUR  
   'Penzijní připojištění': 40,
@@ -18,12 +25,20 @@ const BENEFIT_VALUES: Record<string, number> = {
   'Penzíjko': 40,
   'Doplňkové penzijní': 40,
   'Životní pojištění': 40,
+  'Betriebliche Altersvorsorge': 40,
+  'Rentenversicherung': 40,
+  'Zusatzrente': 40,
+  'Emerytalne': 40,
+  'Ubezpieczenie emerytalne': 40,
 
   // Phone - Mobilní telefon: 500 Kč = 20 EUR
   'Mobilní telefon': 20,
   'Telefon': 20,
   'Mobil': 20,
   'Služební telefon': 20,
+  'Diensthandy': 20,
+  'Firmenhandy': 20,
+  'Telefon służbowy': 20,
 
   // Sports - MultiSport: 500 Kč = 20 EUR
   'MultiSport': 20,
@@ -31,38 +46,72 @@ const BENEFIT_VALUES: Record<string, number> = {
   'Multisport': 20,
   'Sport': 20,
   'Sportovní karta': 20,
+  'Sportpaket': 20,
+  'Fitness': 20,
+  'Karta Multisport': 20,
+  'Pakiet sportowy': 20,
 
   // Other benefits - Conservative estimates
   'Služební auto': 400, // ~10,000 Kč
   'Auto': 400,
+  'Dienstwagen': 400,
+  'Firmenwagen': 400,
+  'Samochód służbowy': 400,
   '5 týdnů dovolené': 100, // ~2,500 Kč extra week
   '25 dní dovolené': 100,
   'Týden dovolené navíc': 100,
+  '30 Tage Urlaub': 100,
+  '25 Tage Urlaub': 100,
+  'Dodatkowy urlop': 100,
+  '26 dni urlopu': 100,
   'Sick Days': 20, // ~500 Kč
   'Sick days': 20,
+  'Krankentage': 20,
+  'Dni chorobowe': 20,
   'Cafeteria': 40, // ~1,000 Kč
   'Kafeterie': 40,
+  'Cafeteria system': 40,
+  'Kafeteria': 40,
   'Zaměstnanecké akcie': 200, // Stock options (conservative)
   'Akcie': 200,
   'ESOP': 200, // Stock options (conservative)
+  'Mitarbeiteraktien': 200,
+  'Aktienoptionen': 200,
+  'Opcje na akcje': 200,
   'Home Office': 40, // ~1,000 Kč allowance
+  'Homeoffice': 40,
   'Remote First': 60, // ~1,500 Kč savings
+  'Mobiles Arbeiten': 60,
+  'Praca zdalna': 60,
   'Sleva': 20, // ~500 Kč
   'Občerstvení': 20, // ~500 Kč (coffee, fruit)
+  'Obst': 20,
+  'Getränke': 20,
+  'Przekąski': 20,
   'Lítačka': 40, // ~1,000 Kč
+  'ÖPNV-Ticket': 40,
+  'Bilet komunikacji miejskiej': 40,
   'Školka': 200, // ~5,000 Kč subsidy
+  'Kinderbetreuung': 200,
+  'Opieka nad dziećmi': 200,
+  'Prywatna opieka medyczna': 80,
+  'Privatkrankenversicherung': 80
 };
 
 const CURRENCY_MULTIPLIERS: Record<string, number> = {
   '€': 1,
   '$': 1,
   '£': 1.15,
+  'CHF': 1.05,
   'Kč': 25, // 1 EUR = 25 CZK (Approx)
-  'CZK': 25
+  'CZK': 25,
+  'PLN': 4.3,
+  'zł': 4.3
 };
 
 export const detectCurrency = (text: string): string => {
   if (text.includes('Kč') || text.includes('CZK')) return 'Kč';
+  if (text.includes('zł') || text.includes('PLN')) return 'PLN';
   if (text.includes('£')) return '£';
   if (text.includes('$')) return '$';
   return '€'; // Default
@@ -76,6 +125,7 @@ export const detectCurrencyFromLocation = (location: string): string => {
   if (locLower.includes('usa') || locLower.includes('spojené státy') || locLower.includes('new york') || locLower.includes('san francisco')) return '$';
   if (locLower.includes('uk') || locLower.includes('británie') || locLower.includes('london') || locLower.includes('londýn') || locLower.includes('united kingdom')) return '£';
   if (locLower.includes('švýcarsko') || locLower.includes('switzerland') || locLower.includes('zürich') || locLower.includes('geneva')) return 'CHF';
+  if (locLower.includes('polsko') || locLower.includes('poland') || locLower.includes('warszawa') || locLower.includes('kraków') || locLower.includes('wroclaw') || locLower.includes('gdańsk')) return 'PLN';
 
   // 2. Eurozone keywords
   if (locLower.includes('německo') || locLower.includes('germany') || locLower.includes('deutschland') ||

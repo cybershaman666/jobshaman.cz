@@ -72,7 +72,11 @@ def is_low_quality(job_data):
     # 2. Blacklisted phrases
     blacklist = [
         "První kontakt: e-mail přes odpovědní formulář",
-        "První kontakt: e-mail"
+        "První kontakt: e-mail",
+        "kontakt telefonem",
+        "konec inzerátu",
+        "konec inzeratu",
+        "telefonem"
     ]
     
     desc_lower = description.lower()
@@ -80,6 +84,42 @@ def is_low_quality(job_data):
         if phrase.lower() in desc_lower:
             return True
             
+    return False
+
+
+def is_external_listing(detail_soup, allowed_domains):
+    """
+    Heuristic detection of external (offsite) job listings.
+    Returns True if canonical/og URL or apply links point outside allowed domains.
+    """
+    try:
+        # Canonical / OG URL checks
+        canonical = detail_soup.find("link", rel="canonical")
+        if canonical and canonical.get("href"):
+            canon_domain = urlparse(canonical["href"]).netloc.lower()
+            if canon_domain and not any(d in canon_domain for d in allowed_domains):
+                return True
+
+        og_url = detail_soup.find("meta", property="og:url")
+        if og_url and og_url.get("content"):
+            og_domain = urlparse(og_url["content"]).netloc.lower()
+            if og_domain and not any(d in og_domain for d in allowed_domains):
+                return True
+
+        # Apply / redirect links to external domains
+        apply_keywords = ["apply", "odpoved", "odpově", "career", "job", "position", "recruitee",
+                          "greenhouse", "workday", "icims", "successfactors", "taleo",
+                          "smartrecruiters", "lever", "personio", "teamio", "nelisa"]
+        for a in detail_soup.find_all("a", href=True):
+            href = a["href"]
+            if href.startswith("http"):
+                domain = urlparse(href).netloc.lower()
+                if domain and not any(d in domain for d in allowed_domains):
+                    text = (a.get_text() or "").lower()
+                    if any(k in href.lower() for k in apply_keywords) or any(k in text for k in apply_keywords):
+                        return True
+    except Exception:
+        pass
     return False
 
 def now_iso():
@@ -412,6 +452,11 @@ def scrape_jobs_cz(soup):
             "salary_to": salary_to,
         }
 
+        # Skip external listings with missing/short content
+        if is_external_listing(detail_soup, {"jobs.cz"}) and (not description or len(description) < 400):
+            print(f"    ⚠️ Externí inzerát bez popisu, přeskakuji: {title}")
+            continue
+
         # Quality Check
         if is_low_quality(job_data):
             print(f"    ⚠️ Nízká kvalita, přeskakuji: {title}")
@@ -528,6 +573,15 @@ def scrape_prace_cz(soup):
             "salary_to": salary_to,
         }
 
+        # Skip external listings with missing/short content
+        if is_external_listing(detail_soup, {"prace.cz"}) and (not description or len(description) < 400):
+            print(f"    ⚠️ Externí inzerát bez popisu, přeskakuji: {title}")
+            continue
+
+        if is_low_quality(job_data):
+            print(f"    ⚠️ Nízká kvalita, přeskakuji: {title}")
+            continue
+
         if save_job_to_supabase(job_data):
             jobs_saved += 1
         time.sleep(0.3)
@@ -633,6 +687,9 @@ def scrape_jenprace_cz(soup):
             "salary_from": salary_from,
             "salary_to": salary_to,
         }
+        if is_low_quality(job_data):
+            print(f"    ⚠️ Nízká kvalita, přeskakuji: {title}")
+            continue
         if save_job_to_supabase(job_data):
             jobs_saved += 1
         time.sleep(0.3)

@@ -46,200 +46,206 @@ class PolandScraper(BaseScraper):
         """Scrape Pracuj.pl (via __NEXT_DATA__)"""
         jobs_saved = 0
         
+        offers = []
+
         next_data = soup.select_one('#__NEXT_DATA__')
-        if not next_data:
-            print("    ⚠️ Pracuj.pl: __NEXT_DATA__ not found")
-            return 0
-            
-        try:
-            data = json.loads(next_data.get_text())
-            props = data.get('props', {}).get('pageProps', {})
-            queries = props.get('dehydratedState', {}).get('queries', [])
-            
-            offers = []
-            
-            # Find the query that contains job offers
-            for q in queries:
-                # Query key for offers usually contains 'jobOffers'
-                # e.g. ['jobOffers', {'pn': 1, ...}, ...]
-                query_key = q.get('queryKey', [])
-                if isinstance(query_key, list) and len(query_key) > 0 and query_key[0] == 'jobOffers':
-                    state_data = q.get('state', {}).get('data', {})
-                    if 'groupedOffers' in state_data:
-                        offers = state_data['groupedOffers']
-                        break
-            
-            print(f"    ℹ️ Nalezeno {len(offers)} nabídek v JSON datech.")
-            
-            for offer in offers:
-                try:
-                    # Pracuj.pl groups offers, sometimes valid offer is inside a group
-                    # But usually 'groupedOffers' is a list of offers directly
-                    
-                    # Extract basic info
-                    title = offer.get('jobTitle')
-                    company = offer.get('companyName')
-                    
-                    # URL construction
-                    offer_url = None
-                    offer_objs = offer.get('offers', [{}])
-                    if offer_objs and len(offer_objs) > 0:
-                        offer_url = offer_objs[0].get('offerUrl') or offer_objs[0].get('offerAbsoluteUri')
-                    
-                    if not offer_url:
-                        # Fallback
-                        slug = offer.get('companyProfileUrl')
-                        if slug:
-                            offer_url = f"https://www.pracuj.pl{slug}"
-                    
-                    if not offer_url or not title:
-                        continue
-                        
-                    # Normalize URL
-                    if offer_url.startswith('/'):
-                        offer_url = f"https://www.pracuj.pl{offer_url}"
-                        
-                    if self.is_duplicate(offer_url):
-                        continue
-                        
-                    print(f"    📄 Zpracovávám: {title}")
-                    
-                    # Extract details from JSON object directly (no need to fetch detail page mostly!)
-                    # But description is usually NOT in the list view JSON.
-                    # We might need to fetch detail.
-                    
-                    # Location
-                    location = offer.get('displayWorkplace')
-                    if not location and offer_objs:
-                        location = offer_objs[0].get('displayWorkplace')
-                    
-                    if not location:
-                        location = 'Polska'
-                    
-                    # Salary
-                    salary_txt = offer.get('salaryText', '')
-                    salary_from, salary_to, _ = extract_salary(salary_txt, currency='PLN')
-                    
-                    # Fetch Detail Page for Description
-                    detail_soup = scrape_page(offer_url)
-                    description = "Popis není dostupný"
-                    benefits = []
-                    contract_type = "Nespecifikováno"
-                    work_type = detect_work_type(title, "", location) # initial check
-                    
-                    if detail_soup:
-                        # Parse Detail Page
-                        # Pracuj detail also has __NEXT_DATA__ usually, but let's use selectors for fallback or JSON if consistent
-                        
-                        # Try JSON-LD on detail page first
-                        json_ld = None
-                        scripts = detail_soup.find_all('script', type='application/ld+json')
-                        for s in scripts:
-                            try:
-                                ld = json.loads(s.get_text())
-                                if isinstance(ld, list):
-                                    for item in ld:
-                                        if item.get('@type') == 'JobPosting':
-                                            json_ld = item
-                                            break
-                                elif ld.get('@type') == 'JobPosting':
-                                    json_ld = ld
-                                    break
-                            except: pass
-                            
-                        if json_ld:
-                            if 'description' in json_ld and json_ld['description']:
-                                desc_html = json_ld['description']
-                                desc_soup = BeautifulSoup(desc_html, 'html.parser')
+        if next_data:
+            try:
+                data = json.loads(next_data.get_text())
+                props = data.get('props', {}).get('pageProps', {})
+                queries = props.get('dehydratedState', {}).get('queries', [])
+
+                for q in queries:
+                    query_key = q.get('queryKey', [])
+                    if isinstance(query_key, list) and len(query_key) > 0 and query_key[0] == 'jobOffers':
+                        state_data = q.get('state', {}).get('data', {})
+                        if 'groupedOffers' in state_data:
+                            offers = state_data['groupedOffers']
+                            break
+                        if 'offers' in state_data:
+                            offers = state_data['offers']
+                            break
+            except Exception as e:
+                print(f"    ❌ Chyba při parsování Pracuj.pl JSON: {e}")
+
+        if not offers:
+            try:
+                scripts = soup.find_all('script')
+                for s in scripts:
+                    txt = s.get_text() or ""
+                    if '"jobTitle"' in txt and '"offerAbsoluteUri"' in txt:
+                        data = json.loads(txt)
+                        def _collect(d):
+                            found = []
+                            if isinstance(d, dict):
+                                for v in d.values():
+                                    found.extend(_collect(v))
+                            elif isinstance(d, list):
+                                for v in d:
+                                    found.extend(_collect(v))
+                            return [d] if isinstance(d, dict) and d.get('jobTitle') else found
+                        offers = [o for o in _collect(data) if isinstance(o, dict) and o.get('jobTitle')]
+                        if offers:
+                            break
+            except Exception:
+                pass
+
+        if not offers:
+            for a in soup.find_all('a', href=True):
+                href = a['href']
+                if '/praca/' in href:
+                    offers.append({
+                        'jobTitle': norm_text(a.get_text()),
+                        'offerUrl': href
+                    })
+
+        print(f"    ℹ️ Nalezeno {len(offers)} nabídek v datech.")
+
+        for offer in offers:
+            try:
+                title = offer.get('jobTitle') or offer.get('title')
+                company = offer.get('companyName') or offer.get('company')
+
+                offer_url = None
+                offer_objs = offer.get('offers', [{}]) if isinstance(offer.get('offers'), list) else []
+                if offer_objs and len(offer_objs) > 0:
+                    offer_url = offer_objs[0].get('offerUrl') or offer_objs[0].get('offerAbsoluteUri')
+
+                if not offer_url:
+                    offer_url = offer.get('offerUrl') or offer.get('offerAbsoluteUri')
+
+                if not offer_url:
+                    slug = offer.get('companyProfileUrl')
+                    if slug:
+                        offer_url = f"https://www.pracuj.pl{slug}"
+
+                if not offer_url or not title:
+                    continue
+
+                if offer_url.startswith('/'):
+                    offer_url = f"https://www.pracuj.pl{offer_url}"
+
+                if self.is_duplicate(offer_url):
+                    continue
+
+                print(f"    📄 Zpracovávám: {title}")
+
+                location = offer.get('displayWorkplace')
+                if not location and offer_objs:
+                    location = offer_objs[0].get('displayWorkplace')
+                if not location:
+                    location = 'Polska'
+
+                salary_txt = offer.get('salaryText', '')
+                salary_from, salary_to, _ = extract_salary(salary_txt, currency='PLN')
+
+                detail_soup = scrape_page(offer_url)
+                description = "Popis není dostupný"
+                benefits = []
+                contract_type = "Nespecifikováno"
+                work_type = detect_work_type(title, "", location)
+
+                if detail_soup:
+                    json_ld = None
+                    scripts = detail_soup.find_all('script', type='application/ld+json')
+                    for s in scripts:
+                        try:
+                            ld = json.loads(s.get_text())
+                            if isinstance(ld, list):
+                                for item in ld:
+                                    if item.get('@type') == 'JobPosting':
+                                        json_ld = item
+                                        break
+                            elif ld.get('@type') == 'JobPosting':
+                                json_ld = ld
+                                break
+                        except:
+                            pass
+
+                    if json_ld:
+                        if 'description' in json_ld and json_ld['description']:
+                            desc_html = json_ld['description']
+                            desc_soup = BeautifulSoup(desc_html, 'html.parser')
+                            parts = []
+                            for elem in desc_soup.find_all(['p', 'li', 'h2', 'h3']):
+                                txt = norm_text(elem.get_text())
+                                if len(txt) > 2:
+                                    if elem.name == 'li': parts.append(f"- {txt}")
+                                    elif elem.name in ['h2', 'h3']: parts.append(f"\n### {txt}")
+                                    else: parts.append(txt)
+                            description = filter_out_junk("\n\n".join(parts)) if parts else filter_out_junk(desc_soup.get_text('\n\n'))
+
+                        if 'employmentType' in json_ld:
+                            contract_type = str(json_ld['employmentType'])
+                    else:
+                        description = build_description(
+                            detail_soup,
+                            {
+                                'paragraphs': ['[data-test="section-responsibilities"] p', '[data-test="section-requirements"] p', '.job-description p', '.offer-description p', '.content p', 'main p', 'article p'],
+                                'lists': ['[data-test="section-responsibilities"] ul', '[data-test="section-requirements"] ul', '.job-description ul', '.offer-description ul']
+                            }
+                        )
+
+                        if description == "Popis není dostupný" or len(description) < 100:
+                            candidates = []
+                            for div in detail_soup.find_all(['div', 'main', 'article', 'section']):
+                                txt = div.get_text(strip=True)
+                                if 200 < len(txt) < 15000:
+                                    score = len(txt)
+                                    candidates.append((div, score))
+                            if candidates:
+                                candidates.sort(key=lambda x: x[1], reverse=True)
+                                best_div = candidates[0][0]
                                 parts = []
-                                for elem in desc_soup.find_all(['p', 'li', 'h2', 'h3']):
+                                for elem in best_div.find_all(['p', 'li', 'h2', 'h3']):
                                     txt = norm_text(elem.get_text())
                                     if len(txt) > 2:
                                         if elem.name == 'li': parts.append(f"- {txt}")
                                         elif elem.name in ['h2', 'h3']: parts.append(f"\n### {txt}")
                                         else: parts.append(txt)
-                                description = filter_out_junk("\n\n".join(parts)) if parts else filter_out_junk(desc_soup.get_text('\n\n'))
-                            
-                            if 'employmentType' in json_ld:
-                                contract_type = str(json_ld['employmentType'])
-                                
-                        else:
-                            # Fallback HTML extraction with multiple selector strategies
-                            description = build_description(
-                                detail_soup,
-                                {
-                                    'paragraphs': ['[data-test="section-responsibilities"] p', '[data-test="section-requirements"] p', '.job-description p', '.offer-description p', '.content p', 'main p', 'article p'],
-                                    'lists': ['[data-test="section-responsibilities"] ul', '[data-test="section-requirements"] ul', '.job-description ul', '.offer-description ul']
-                                }
-                            )
-                            
-                            # Last resort: find largest content container
-                            if description == "Popis není dostupný" or len(description) < 100:
-                                candidates = []
-                                for div in detail_soup.find_all(['div', 'main', 'article', 'section']):
-                                    txt = div.get_text(strip=True)
-                                    if 200 < len(txt) < 15000:
-                                        score = len(txt)
-                                        candidates.append((div, score))
-                                
-                                if candidates:
-                                    candidates.sort(key=lambda x: x[1], reverse=True)
-                                    best_div = candidates[0][0]
-                                    parts = []
-                                    for elem in best_div.find_all(['p', 'li', 'h2', 'h3']):
-                                        txt = norm_text(elem.get_text())
-                                        if len(txt) > 2:
-                                            if elem.name == 'li': parts.append(f"- {txt}")
-                                            elif elem.name in ['h2', 'h3']: parts.append(f"\n### {txt}")
-                                            else: parts.append(txt)
-                                    if parts:
-                                        description = filter_out_junk("\n\n".join(parts))
-                            
-                        # Benefits from detail - enhanced selectors
-                        benefits = extract_benefits(detail_soup, [
-                            '[data-test="section-benefits"] li', 
-                            '.benefits-list li',
-                            '.job-benefits li',
-                            '[data-test="benefits"] li',
-                            '.offer-benefits li'
-                        ])
-                        if not benefits:
-                            benefits = []
-                        
-                        # Refine work type
-                        work_type = detect_work_type(title, description, location)
+                                if parts:
+                                    description = filter_out_junk("\n\n".join(parts))
 
-                    job_data = {
-                        'title': title,
-                        'url': offer_url,
-                        'company': company,
-                        'location': location,
-                        'description': description,
-                        'benefits': benefits,
-                        'contract_type': contract_type,
-                        'work_type': work_type,
-                        'salary_from': salary_from,
-                        'salary_to': salary_to,
-                        'salary_currency': 'PLN',
-                        'country_code': 'pl'
-                    }
-                    
-                    if is_low_quality(job_data):
-                        print(f"       ⚠️ Nízká kvalita, přeskakuji.")
-                        continue
+                    benefits = extract_benefits(detail_soup, [
+                        '[data-test="section-benefits"] li',
+                        '.benefits-list li',
+                        '.job-benefits li',
+                        '[data-test="benefits"] li',
+                        '.offer-benefits li'
+                    ])
+                    if not benefits:
+                        benefits = []
 
-                    if save_job_to_supabase(self.supabase, job_data):
-                        jobs_saved += 1
-                        
-                    time.sleep(0.2)
-                    
-                except Exception as e:
-                    print(f"       ❌ Chyba u nabídky: {e}")
+                    work_type = detect_work_type(title, description, location)
+
+                job_data = {
+                    'title': title,
+                    'url': offer_url,
+                    'company': company,
+                    'location': location,
+                    'description': description,
+                    'benefits': benefits,
+                    'contract_type': contract_type,
+                    'work_type': work_type,
+                    'salary_from': salary_from,
+                    'salary_to': salary_to,
+                    'salary_currency': 'PLN',
+                    'country_code': 'pl'
+                }
+
+                if is_low_quality(job_data):
+                    print(f"       ⚠️ Nízká kvalita, přeskakuji.")
                     continue
 
-        except Exception as e:
-            print(f"    ❌ Chyba při parsování Pracuj.pl JSON: {e}")
-            
+                if save_job_to_supabase(self.supabase, job_data):
+                    jobs_saved += 1
+
+                time.sleep(0.2)
+
+            except Exception as e:
+                print(f"       ❌ Chyba u nabídky: {e}")
+                continue
+
         return jobs_saved
     
     def scrape_nofluffjobs(self, soup):
@@ -571,13 +577,13 @@ def run_poland_scraper():
         {
             'name': 'Pracuj.pl',
             # Full market (no keyword filter)
-            'base_url': 'https://www.pracuj.pl/praca',
+            'base_url': 'https://www.pracuj.pl/praca?pn={page}',
             'max_pages': 30
         },
         {
             'name': 'NoFluffJobs',
             # Full market listing
-            'base_url': 'https://nofluffjobs.com/pl/jobs',
+            'base_url': 'https://nofluffjobs.com/pl/jobs?page={page}',
             'max_pages': 20
         },
         # {

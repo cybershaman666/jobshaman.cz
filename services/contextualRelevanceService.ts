@@ -2,13 +2,31 @@ import { ContextualRelevanceScore, FlaggedBenefit, WorkMode, JobType, LocationTy
 
 // Benefit categories and their typical relevance patterns
 const BENEFIT_CATEGORIES = {
-  FLEXIBILITY: ['flexibilní začátek/konec', 'home office', 'remote work', 'flexibilní doba', 'práce z domova'],
-  OFFICE_ENVIRONMENT: ['kávovar', 'ovoce', 'pizza', 'občerstvení', 'relax', 'fotbálek', 'table football', 'pes', 'dog', 'psí', 'pet', 'herna', 'playstation', 'office'],
-  COMMUTING: ['služební auto', 'příspěvek na dopravu', 'parkovací místo', 'karta na MHD'],
-  HEALTH_WELLNESS: ['multisport', 'sick days', 'zdravotní volno', 'penzijní připojištění', 'životní pojištění'],
-  GROWTH: ['školení', 'kurzy', 'konference', 'vzdělávání', 'rozpočet na vzdělávání', 'kariérní růst'],
-  FINANCIAL: ['esop', 'zaměstnanecké akcie', 'roční bonusy', '13. plat', 'stravenky', 'cafeteria'],
-  EQUIPMENT: ['notebook', 'telefon', 'hardware', 'macbook']
+  FLEXIBILITY: [
+    'flexibilní začátek/konec', 'home office', 'remote work', 'flexibilní doba', 'práce z domova',
+    'homeoffice', 'mobiles arbeiten', 'flexibel', 'gleitzeit', 'praca zdalna', 'elastyczne godziny'
+  ],
+  OFFICE_ENVIRONMENT: [
+    'kávovar', 'ovoce', 'pizza', 'občerstvení', 'relax', 'fotbálek', 'table football', 'pes', 'dog',
+    'psí', 'pet', 'herna', 'playstation', 'office', 'obst', 'getränke', 'kantine', 'kawa', 'owoce'
+  ],
+  COMMUTING: [
+    'služební auto', 'příspěvek na dopravu', 'parkovací místo', 'karta na MHD',
+    'dienstwagen', 'firmenwagen', 'parkplatz', 'öpnv', 'bilet komunikacji', 'samochód służbowy'
+  ],
+  HEALTH_WELLNESS: [
+    'multisport', 'sick days', 'zdravotní volno', 'penzijní připojištění', 'životní pojištění',
+    'krankenversicherung', 'privatkrankenversicherung', 'opieka medyczna', 'ubezpieczenie'
+  ],
+  GROWTH: [
+    'školení', 'kurzy', 'konference', 'vzdělávání', 'rozpočet na vzdělávání', 'kariérní růst',
+    'weiterbildung', 'training', 'szkolenia', 'kursy', 'rozwoj kariery'
+  ],
+  FINANCIAL: [
+    'esop', 'zaměstnanecké akcie', 'roční bonusy', '13. plat', 'stravenky', 'cafeteria',
+    'mitarbeiteraktien', 'aktienoptionen', 'bonus', 'premia', 'trzynasta pensja'
+  ],
+  EQUIPMENT: ['notebook', 'telefon', 'hardware', 'macbook', 'diensthandy', 'firmenhandy', 'laptop']
 };
 
 // Rule engine for benefit relevance scoring
