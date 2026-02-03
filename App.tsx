@@ -25,6 +25,7 @@ import OchranaSoukromi from './pages/OchranaSoukromi';
 import SavedJobsPage from './components/SavedJobsPage';
 import JobListSidebar from './components/JobListSidebar';
 import JobDetailView from './components/JobDetailView';
+import MobileSwipeJobBrowser from './components/MobileSwipeJobBrowser';
 
 import InvitationLanding from './pages/InvitationLanding';
 import PremiumUpgradeModal from './components/PremiumUpgradeModal';
@@ -62,13 +63,35 @@ import {
 export default function App() {
     const { t, i18n } = useTranslation();
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
-    const [selectedJobId, setSelectedJobId] = useState<string | null>(() => {
+    const [selectedJobId, setSelectedJobIdState] = useState<string | null>(() => {
         const path = window.location.pathname;
-        if (path.startsWith('/jobs/')) {
-            return path.split('/jobs/')[1] || null;
-        }
+        const parts = path.split('/').filter(Boolean);
+        const supported = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
+        // If first segment is a locale, drop it
+        if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
+        if (parts[0] === 'jobs') return parts[1] || null;
         return null;
     });
+
+    // Wrapper to update selectedJobId state and keep URL in sync with locale-prefixed routes
+    const setSelectedJobId = (id: string | null) => {
+        setSelectedJobIdState(id);
+        try {
+            const supported = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            let lng = (i18n && i18n.language) || 'cs';
+            if (parts.length > 0 && supported.includes(parts[0])) lng = parts[0];
+
+            let newPath = `/${lng}/`;
+            if (id) newPath = `/${lng}/jobs/${id}`;
+            // Preserve query and hash
+            const search = window.location.search || '';
+            const hash = window.location.hash || '';
+            window.history.replaceState({}, '', newPath + search + hash);
+        } catch (err) {
+            console.warn('Failed to sync job id with URL', err);
+        }
+    };
     const [selectedBlogPostSlug, setSelectedBlogPostSlug] = useState<string | null>(() => {
         const path = window.location.pathname;
         if (path.startsWith('/blog/')) {
@@ -100,6 +123,8 @@ export default function App() {
     const [showCompanyLanding, setShowCompanyLanding] = useState(false);
     const [commuteAnalysis, setCommuteAnalysis] = useState<CommuteAnalysis | null>(null);
     const [showFinancialMethodology, setShowFinancialMethodology] = useState(false);
+    const [isMobileSwipeView, setIsMobileSwipeView] = useState(false);
+
 
     // Use custom hooks
     const {
@@ -154,6 +179,18 @@ export default function App() {
     // Prevent layout flash on first render by waiting for client mount
     const [mounted, setMounted] = useState(false);
     useEffect(() => { setMounted(true); }, []);
+
+    // Detect mobile screen size and auto-enable mobile swipe view
+    useEffect(() => {
+        const handleResize = () => {
+            const isMobile = window.innerWidth < 1024; // lg breakpoint
+            setIsMobileSwipeView(isMobile && userProfile.isLoggedIn);
+        };
+
+        handleResize(); // Check on mount
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [userProfile.isLoggedIn]);
 
     const selectedJob = filteredJobs.find(j => j.id === selectedJobId) || directlyFetchedJob;
 
@@ -269,10 +306,13 @@ export default function App() {
                 }
             });
 
-            // Deep Link Handling for /jobs/:id
+            // Deep Link Handling for /jobs/:id and /{lng}/jobs/:id
             const path = window.location.pathname;
-            if (path.startsWith('/jobs/')) {
-                const jobId = path.split('/jobs/')[1];
+            const parts = path.split('/').filter(Boolean);
+            const supported = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
+            if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
+            if (parts[0] === 'jobs') {
+                const jobId = parts[1];
                 if (jobId) {
                     setViewState(ViewState.LIST);
                     setShowCompanyLanding(false);
@@ -912,80 +952,99 @@ export default function App() {
             <>
                 {/* Vercel Analytics */}
                 <Analytics />
-                {/* LEFT COLUMN: Sidebar (Fixed Filters + Scrollable List) */}
-                <JobListSidebar
-                    selectedJobId={selectedJobId}
-                    searchTerm={searchTerm}
-                    setSearchTerm={setSearchTerm}
-                    performSearch={performSearch}
-                    showFilters={showFilters}
-                    setShowFilters={setShowFilters}
-                    expandedSections={expandedSections}
-                    toggleSection={toggleSection}
-                    filterCity={filterCity}
-                    setFilterCity={setFilterCity}
-                    enableCommuteFilter={enableCommuteFilter}
-                    setEnableCommuteFilter={setEnableCommuteFilter}
-                    filterMaxDistance={filterMaxDistance}
-                    setFilterMaxDistance={setFilterMaxDistance}
-                    filterContractType={filterContractType}
-                    toggleContractTypeFilter={toggleContractTypeFilter}
-                    filterDate={filterDate}
-                    setFilterDate={setFilterDate}
-                    filterMinSalary={filterMinSalary}
-                    setFilterMinSalary={setFilterMinSalary}
-                    filterExperience={filterExperience}
-                    toggleExperienceFilter={toggleExperienceFilter}
-                    filterBenefits={filterBenefits}
-                    toggleBenefitFilter={toggleBenefitFilter}
-                    isLoadingJobs={isLoadingJobs}
-                    isSearching={isSearching}
-                    filteredJobs={filteredJobs}
-                    savedJobIds={savedJobIds}
-                    handleToggleSave={handleToggleSave}
-                    handleJobSelect={handleJobSelect}
-                    theme={theme}
-                    userProfile={userProfile}
-                    jobListRef={jobListRef}
-                    loadingMore={loadingMore}
-                    hasMore={hasMore}
-                    totalCount={totalCount}
-                    loadRealJobs={loadRealJobs}
-                    backendPolling={backendPolling}
-                    globalSearch={globalSearch}
-                    setGlobalSearch={setGlobalSearch}
-                />
 
-                {/* RIGHT COLUMN: Detail View (or Welcome Guide) */}
-                <JobDetailView
-                    mounted={mounted}
-                    selectedJobId={selectedJobId}
-                    selectedJob={selectedJob || null}
-                    dynamicJHI={dynamicJHI}
-                    savedJobIds={savedJobIds}
-                    handleToggleSave={handleToggleSave}
-                    setSelectedJobId={handleJobSelect}
-                    setIsApplyModalOpen={setIsApplyModalOpen}
-                    detailScrollRef={detailScrollRef}
-                    userProfile={userProfile}
-                    commuteAnalysis={commuteAnalysis}
-                    showCommuteDetails={showCommuteDetails}
-                    showLoginPrompt={showLoginPrompt}
-                    showAddressPrompt={showAddressPrompt}
-                    handleAuthAction={handleAuthAction}
-                    setViewState={setViewState}
-                    showFinancialMethodology={showFinancialMethodology}
-                    setShowFinancialMethodology={setShowFinancialMethodology}
-                    getTransportIcon={getTransportIcon}
-                    formatJobDescription={formatJobDescription}
-                    theme={theme}
-                    pathfinderAnalysis={pathfinderAnalysis}
-                    aiAnalysis={aiAnalysis}
-                    analyzing={analyzing}
-                    handleAnalyzeJob={handleAnalyzeJob}
-                    selectedBlogPostSlug={selectedBlogPostSlug}
-                    handleBlogPostSelect={handleBlogPostSelect}
-                />
+                {/* MOBILE SWIPE VIEW - Only show for logged-in users on mobile */}
+                {isMobileSwipeView && userProfile.isLoggedIn ? (
+                    <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
+                        <MobileSwipeJobBrowser
+                            jobs={filteredJobs}
+                            savedJobIds={savedJobIds}
+                            onToggleSave={handleToggleSave}
+                            onJobSelect={handleJobSelect}
+                            isLoadingMore={loadingMore}
+                            hasMore={hasMore}
+                            onLoadMore={loadMoreJobs}
+                            theme={theme}
+                        />
+                    </div>
+                ) : (
+                    <>
+                        {/* DESKTOP VIEW: LEFT COLUMN: Sidebar (Fixed Filters + Scrollable List) */}
+                        <JobListSidebar
+                            selectedJobId={selectedJobId}
+                            searchTerm={searchTerm}
+                            setSearchTerm={setSearchTerm}
+                            performSearch={performSearch}
+                            showFilters={showFilters}
+                            setShowFilters={setShowFilters}
+                            expandedSections={expandedSections}
+                            toggleSection={toggleSection}
+                            filterCity={filterCity}
+                            setFilterCity={setFilterCity}
+                            enableCommuteFilter={enableCommuteFilter}
+                            setEnableCommuteFilter={setEnableCommuteFilter}
+                            filterMaxDistance={filterMaxDistance}
+                            setFilterMaxDistance={setFilterMaxDistance}
+                            filterContractType={filterContractType}
+                            toggleContractTypeFilter={toggleContractTypeFilter}
+                            filterDate={filterDate}
+                            setFilterDate={setFilterDate}
+                            filterMinSalary={filterMinSalary}
+                            setFilterMinSalary={setFilterMinSalary}
+                            filterExperience={filterExperience}
+                            toggleExperienceFilter={toggleExperienceFilter}
+                            filterBenefits={filterBenefits}
+                            toggleBenefitFilter={toggleBenefitFilter}
+                            isLoadingJobs={isLoadingJobs}
+                            isSearching={isSearching}
+                            filteredJobs={filteredJobs}
+                            savedJobIds={savedJobIds}
+                            handleToggleSave={handleToggleSave}
+                            handleJobSelect={handleJobSelect}
+                            theme={theme}
+                            userProfile={userProfile}
+                            jobListRef={jobListRef}
+                            loadingMore={loadingMore}
+                            hasMore={hasMore}
+                            totalCount={totalCount}
+                            loadRealJobs={loadRealJobs}
+                            backendPolling={backendPolling}
+                            globalSearch={globalSearch}
+                            setGlobalSearch={setGlobalSearch}
+                        />
+
+                        {/* DESKTOP VIEW: RIGHT COLUMN: Detail View (or Welcome Guide) */}
+                        <JobDetailView
+                            mounted={mounted}
+                            selectedJobId={selectedJobId}
+                            selectedJob={selectedJob || null}
+                            dynamicJHI={dynamicJHI}
+                            savedJobIds={savedJobIds}
+                            handleToggleSave={handleToggleSave}
+                            setSelectedJobId={handleJobSelect}
+                            setIsApplyModalOpen={setIsApplyModalOpen}
+                            detailScrollRef={detailScrollRef}
+                            userProfile={userProfile}
+                            commuteAnalysis={commuteAnalysis}
+                            showCommuteDetails={showCommuteDetails}
+                            showLoginPrompt={showLoginPrompt}
+                            showAddressPrompt={showAddressPrompt}
+                            handleAuthAction={handleAuthAction}
+                            setViewState={setViewState}
+                            showFinancialMethodology={showFinancialMethodology}
+                            setShowFinancialMethodology={setShowFinancialMethodology}
+                            getTransportIcon={getTransportIcon}
+                            formatJobDescription={formatJobDescription}
+                            theme={theme}
+                            pathfinderAnalysis={pathfinderAnalysis}
+                            aiAnalysis={aiAnalysis}
+                            analyzing={analyzing}
+                            handleAnalyzeJob={handleAnalyzeJob}
+                            selectedBlogPostSlug={selectedBlogPostSlug}
+                            handleBlogPostSelect={handleBlogPostSelect}
+                        />
+                    </>
+                )}
             </>
         );
     };

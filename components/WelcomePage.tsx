@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, TrendingUp, Eye, CheckCircle, Heart, Target, Brain, BarChart3, Zap } from 'lucide-react';
+import { MapPin, Clock, TrendingUp, Eye, CheckCircle, Heart, Target, Brain, BarChart3, Zap, Smartphone, GripHorizontal } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getJobCount } from '../services/jobService';
 import BlogSection from './BlogSection';
@@ -318,7 +318,75 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
         <div className="h-px bg-slate-200 dark:bg-slate-800"></div>
       </div>
 
-      {/* SECTION: PROČ TO VZNIKLO */}
+      {/* SECTION: MOBILE SWIPE BROWSING */}
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          {/* Left: Graphics */}
+          <div className="flex flex-col gap-6 order-2 lg:order-1">
+            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-xl border border-cyan-200 dark:border-cyan-800 p-8 hover:shadow-lg transition-all">
+              <div className="flex items-start gap-4">
+                <GripHorizontal className="w-8 h-8 text-cyan-600 dark:text-cyan-400 flex-shrink-0 mt-1" />
+                <div>
+                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">{t('welcome.page_mobile.swipe_title')}</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{t('welcome.page_mobile.swipe_desc')}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-800 p-8 hover:shadow-lg transition-all">
+              <div className="flex items-start gap-4">
+                <Smartphone className="w-8 h-8 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-1" />
+                <div>
+                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">{t('welcome.page_mobile.mobile_title')}</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{t('welcome.page_mobile.mobile_desc')}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800 p-8 hover:shadow-lg transition-all">
+              <div className="flex items-start gap-4">
+                <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-1" />
+                <div>
+                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">{t('welcome.page_mobile.progress_title')}</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{t('welcome.page_mobile.progress_desc')}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Text */}
+          <div className="order-1 lg:order-2">
+            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-6">
+              {t('welcome.page_mobile.title_browse')}<span className="text-cyan-600">{t('welcome.page_mobile.title_jobs')}</span> {t('welcome.page_mobile.title_like')}
+            </h2>
+
+            <div className="space-y-6 text-lg text-slate-600 dark:text-slate-400 leading-relaxed mb-8">
+              <p>
+                {t('welcome.page_mobile.desc_1')}
+              </p>
+              <p>
+                {t('welcome.page_mobile.desc_2')}
+              </p>
+              <p>
+                {t('welcome.page_mobile.desc_3')}
+              </p>
+            </div>
+
+            <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4">
+              <p className="text-sm text-cyan-900 dark:text-cyan-200">
+                <span className="font-bold">{t('welcome.page_mobile.tip_label')}</span> {t('welcome.page_mobile.tip_text')}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* DIVIDER */}
+      <div className="max-w-7xl mx-auto px-4 lg:px-8 my-6">
+        <div className="h-px bg-slate-200 dark:bg-slate-800"></div>
+      </div>
+
+      {/* PROČ TO VZNIKLO SECTION STARTS HERE */}
       <section className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Left: Text */}

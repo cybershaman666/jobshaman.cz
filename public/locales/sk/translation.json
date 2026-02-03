@@ -234,6 +234,22 @@
             "money_desc": "Dochádzanie nie je len o čase. Každý kilometer stojí peniaze, ktoré by ste mohli využiť lepšie.",
             "reason": "Rozdiel je podstatný: tam, kde je možné realitu vypočítať, ju neodhadujeme."
         },
+        "page_mobile": {
+            "title_browse": "Prehliadajte ",
+            "title_jobs": "pracovné ponuky",
+            "title_like": "ako profesionál",
+            "desc_1": "Na mobilnom telefóne? JobShaman teraz ponúka prehliadanie pracovných miest podobne ako Tinder.",
+            "desc_2": "Potiahnite doľava, aby ste pracovné miesto odamietli, potiahnite doprava, aby ste ho uložili. Jedno pracovné miesto naraz. Bez nekonečného posúvania. Bez preťaženia informáciami.",
+            "desc_3": "Vidite svoj pokrok s krásnym čítačom a ukazovateľom pokroku. Keď ste hotový, dostanete zhrnutie prehliadaných miest a koľko ste si ich uložili.",
+            "swipe_title": "Intuitívne Potiahnite",
+            "swipe_desc": "Potiahnite doľava, aby ste odamietli pracovné miesto, potiahnite doprava, aby ste ho uložili. Jednoduché, rýchle a prirodzené.",
+            "mobile_title": "Optimalizované pre Mobilné Zariadenia",
+            "mobile_desc": "Automaticky sa aktivuje na mobilných a tabletových zariadeniach. Rozloženie počítača je stále dostupné, keď ho potrebujete.",
+            "progress_title": "Sledujte Svoj Pokrok",
+            "progress_desc": "Vidzte, ktoré pracovné miesto prehliadate, indikátor pokroku a štatistiku dokončenia. Zostanete motivovaní počas prehliadania.",
+            "tip_label": "Profi tip:",
+            "tip_text": "Dotknite sa karty pracovného miesta, aby ste videli úplné podrobnosti v rozšírenom zobrazení. Vždy máte prístup ku všetkým filtrom a uloženým miestam z hornej ponuky."
+        },
         "page_ai": {
             "title": "Kedy používame AI – a kedy nie",
             "intro_job": "Job",

@@ -243,6 +243,22 @@
             "money_desc": "Dojazdy to nie tylko czas. Każdy kilometr kosztuje pieniądze, które mógłbyś wykorzystać lepiej.",
             "reason": "Różnica jest istotna: tam, gdzie rzeczywistość można obliczyć, nie szacujemy jej."
         },
+        "page_mobile": {
+            "title_browse": "Przeglądaj ",
+            "title_jobs": "oferty pracy",
+            "title_like": "jak profesjonalista",
+            "desc_1": "Na telefonie? JobShaman oferuje teraz przeglądanie ofert pracy na zasadzie Tindera.",
+            "desc_2": "Przesuwanie w lewo, aby odrzucić pracę, przesuwanie w prawo, aby ją zapisać. Jedna oferta naraz. Brak nieskończonego przewijania. Brak przeładowania informacjami.",
+            "desc_3": "Widź swój postęp dzięki pięknym licznikowi i pasowi postępu. Kiedy skończysz, otrzymasz podsumowanie przeglądanych ofert i ile ich zapisałeś.",
+            "swipe_title": "Intuicyjne Przesuwanie",
+            "swipe_desc": "Przesuwaj w lewo, aby odrzucić pracę, przesuwaj w prawo, aby ją zapisać. Proste, szybkie i naturalne.",
+            "mobile_title": "Zoptymalizowane na Urządzenia Mobilne",
+            "mobile_desc": "Automatycznie aktywuje się na urządzeniach mobilnych i tabletach. Układ pulpitu jest dostępny, gdy go potrzebujesz.",
+            "progress_title": "Śledź Swój Postęp",
+            "progress_desc": "Widź, którą pracę przeglądasz, pasek postępu i statystyki ukończenia. Pozostań zmotywowany podczas przeglądania.",
+            "tip_label": "Wskazówka profesjonalisty:",
+            "tip_text": "Dotknij karty pracy, aby zobaczyć pełne szczegóły w widoku rozszerzonym. Zawsze masz dostęp do wszystkich filtrów i zapisanych prac z górnego menu."
+        },
         "page_ai": {
             "title": "Kiedy używamy AI – a kiedy nie",
             "intro_job": "Job",
