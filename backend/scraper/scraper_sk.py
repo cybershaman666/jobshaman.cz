@@ -35,6 +35,8 @@ class SlovakiaScraper(BaseScraper):
             return self.scrape_profesia_sk(soup)
         elif 'kariera' in site_name.lower():
             return self.scrape_kariera_sk(soup)
+        elif 'prace' in site_name.lower():
+            return self.scrape_prace_sk(soup)
         else:
             print(f"⚠️ Neznámý portál: {site_name}")
             return 0
@@ -129,32 +131,62 @@ class SlovakiaScraper(BaseScraper):
                 if main_content:
                     # Try structured extraction with build_description
                     description = build_description(detail_soup, {
-                        'paragraphs': ['.details p', '.description p', '.job-description p', '.details-desc p', '.offer-text p'],
-                        'lists': ['.details ul', '.description ul', '.job-description ul', '.details-desc ul', '.details li', '.offer-text ul']
+                        'paragraphs': ['.details p', '.description p', '.job-description p', '.details-desc p', '.offer-text p', 'main p', 'article p'],
+                        'lists': ['.details ul', '.description ul', '.job-description ul', '.details-desc ul', '.offer-text ul', 'main ul', 'article ul']
                     })
                     
                     if len(description) < 150:
                         # Fallback to raw text extraction (filtering out footer junk)
                         description = filter_out_junk(norm_text(main_content.get_text()))
 
-                # Benefits
-                benefits = extract_benefits(detail_soup, ['.benefits li', '.employment-benefits li', '.job-benefits li', '.details-desc li'])
+                # Last resort: find largest text container
+                if description == "Popis nenalezen" or len(description) < 100:
+                    candidates = []
+                    for div in detail_soup.find_all(['div', 'main', 'article', 'section']):
+                        txt = div.get_text(strip=True)
+                        if 200 < len(txt) < 20000:
+                            score = len(txt)
+                            candidates.append((div, score))
+                    
+                    if candidates:
+                        candidates.sort(key=lambda x: x[1], reverse=True)
+                        best_div = candidates[0][0]
+                        parts = []
+                        for elem in best_div.find_all(['p', 'li', 'h2', 'h3']):
+                            txt = norm_text(elem.get_text())
+                            if len(txt) > 2:
+                                if elem.name == 'li': parts.append(f"- {txt}")
+                                elif elem.name in ['h2', 'h3']: parts.append(f"\n### {txt}")
+                                else: parts.append(txt)
+                        if parts:
+                            description = filter_out_junk("\n\n".join(parts))
+
+                # Benefits - More specific extraction (separate from description)
+                benefits = extract_benefits(detail_soup, [
+                    '.benefits li', 
+                    '.employment-benefits li', 
+                    '.job-benefits li',
+                    '[data-test="benefits"] li',
+                    '.offer-benefits li'
+                ])
+                
+                # Try marker-based extraction if not found
                 if not benefits or len(benefits) < 1:
-                    benefit_marker = detail_soup.find(string=lambda x: x and ("Zamestnanecké výhody" in x or "Benefits" in x))
+                    benefit_marker = detail_soup.find(string=lambda x: x and ("Zamestnanecké výhody" in x or "Benefits" in x or "Výhody" in x))
                     if benefit_marker:
                         curr = benefit_marker.parent
-                        for _ in range(3):
+                        for _ in range(5):
                             if curr:
-                                next_ul = curr.find_next(['ul', 'div'])
-                                if next_ul and (next_ul.name == 'ul' or (next_ul.name == 'div' and 'details-desc' in next_ul.get('class', []))):
-                                    lis = next_ul.find_all('li')
-                                    if lis:
+                                next_ul = curr.find_next(['ul'])
+                                if next_ul and next_ul.name == 'ul':
+                                    lis = next_ul.find_all('li', recursive=False)
+                                    if lis and len(lis) > 0 and len(lis) < 20:  # Sanity check
                                         benefits = [norm_text(li.get_text()) for li in lis if len(li.get_text()) > 3]
                                         break
                             if curr: curr = curr.parent
                 
                 if not benefits:
-                    benefits = ["Benefity nespecifikovány"]
+                    benefits = []
 
                 # Salary
                 salary_from, salary_to = None, None
@@ -332,6 +364,142 @@ class SlovakiaScraper(BaseScraper):
                 continue
         
         return jobs_saved
+    
+    def scrape_prace_sk(self, soup):
+        """Scrape Prace.sk (Slovak job portal)"""
+        jobs_saved = 0
+        
+        # Prace.sk uses standard job listing links
+        job_links = soup.select('a[href*="/pozicia/"], a.job-link, a[data-cy="job-link"]')
+        
+        if not job_links:
+            # Try more generic selectors
+            job_links = []
+            for a in soup.find_all('a', href=True):
+                href = a['href']
+                if '/pozicia/' in href or '/job/' in href:
+                    job_links.append(a)
+        
+        print(f"    🔍 Nalezeno {len(job_links)} nabídek na stránce")
+        
+        for link in job_links:
+            try:
+                url = link.get('href', '')
+                if not url.startswith('http'):
+                    url = urljoin('https://www.prace.sk', url)
+                
+                if not url or 'prace.sk' not in url:
+                    continue
+                
+                clean_url = url.split('?')[0]
+                
+                if self.is_duplicate(clean_url):
+                    continue
+                
+                print(f"    📄 Stahuji detail: {clean_url}")
+                detail_soup = scrape_page(url)
+                if not detail_soup:
+                    continue
+                
+                # Title
+                title = "Neznámá pozice"
+                h1 = detail_soup.find("h1")
+                if h1:
+                    title = norm_text(h1.get_text())
+                
+                # Company
+                company = "Neznámá společnost"
+                comp_el = detail_soup.select_one('.company-name, .employer-name, [itemprop="hiringOrganization"], .pozicia-firma')
+                if comp_el:
+                    company = norm_text(comp_el.get_text())
+                
+                # Location
+                location = "Slovensko"
+                loc_el = detail_soup.select_one('[data-cy="job-location"], .job-location, .pozicia-miesto, [itemprop="jobLocation"]')
+                if loc_el:
+                    location = norm_text(loc_el.get_text())
+                
+                # Description
+                description = "Popis nenalezen"
+                description = build_description(detail_soup, {
+                    'paragraphs': ['.job-description p', '.pozicia-popis p', '[data-cy="job-description"] p', '[itemprop="description"] p', 'main p', 'article p'],
+                    'lists': ['.job-description ul', '.pozicia-popis ul', '[data-cy="job-description"] ul', '[itemprop="description"] ul', 'main ul', 'article ul']
+                })
+                
+                # Last resort
+                if description == "Popis nenalezen" or len(description) < 100:
+                    candidates = []
+                    for div in detail_soup.find_all(['div', 'main', 'article', 'section']):
+                        txt = div.get_text(strip=True)
+                        if 200 < len(txt) < 20000:
+                            score = len(txt)
+                            candidates.append((div, score))
+                    
+                    if candidates:
+                        candidates.sort(key=lambda x: x[1], reverse=True)
+                        best_div = candidates[0][0]
+                        parts = []
+                        for elem in best_div.find_all(['p', 'li', 'h2', 'h3']):
+                            txt = norm_text(elem.get_text())
+                            if len(txt) > 2:
+                                if elem.name == 'li': parts.append(f"- {txt}")
+                                elif elem.name in ['h2', 'h3']: parts.append(f"\n### {txt}")
+                                else: parts.append(txt)
+                        if parts:
+                            description = filter_out_junk("\n\n".join(parts))
+                
+                # Benefits
+                benefits = extract_benefits(detail_soup, [
+                    '.benefits li',
+                    '[data-cy="benefits"] li',
+                    '.pozicia-vyhody li',
+                    '[itemprop="benefits"] li'
+                ])
+                
+                # Salary
+                salary_from, salary_to = None, None
+                sal_text = detail_soup.select_one('.salary, [data-cy="salary"], .pozicia-mzda')
+                if sal_text:
+                    salary_from, salary_to, _ = extract_salary(sal_text.get_text(), currency='EUR')
+                
+                # Contract type
+                contract_type = "Nespecifikováno"
+                contract_el = detail_soup.select_one('.contract-type, [data-cy="contract-type"], .pozicia-typ')
+                if contract_el:
+                    contract_type = norm_text(contract_el.get_text())
+                
+                # Work type
+                work_type = detect_work_type(title, description, location)
+                
+                job_data = {
+                    'title': title,
+                    'url': clean_url,
+                    'company': company,
+                    'location': location,
+                    'description': description,
+                    'benefits': benefits if benefits else [],
+                    'contract_type': contract_type,
+                    'work_type': work_type,
+                    'salary_from': salary_from,
+                    'salary_to': salary_to,
+                    'salary_currency': 'EUR',
+                    'country_code': 'sk'
+                }
+                
+                if is_low_quality(job_data):
+                    print(f"       ⚠️ Nízká kvalita, přeskakuji.")
+                    continue
+                
+                if save_job_to_supabase(self.supabase, job_data):
+                    jobs_saved += 1
+                
+                time.sleep(0.3)
+                
+            except Exception as e:
+                print(f"       ❌ Chyba: {e}")
+                continue
+        
+        return jobs_saved
 
 
 def run_slovakia_scraper():
@@ -343,13 +511,18 @@ def run_slovakia_scraper():
     websites = [
         {
             'name': 'Profesia.sk',
-            'base_url': 'https://www.profesia.sk/praca/?page_num=1', # Start at first page
-            'max_pages': 5
+            'base_url': 'https://www.profesia.sk/praca/?page_num=1',
+            'max_pages': 15
         },
         {
             'name': 'Kariera.sk',
-            'base_url': 'https://kariera.zoznam.sk/pracovne-ponuky/za-1-den', # Use verified list page
-            'max_pages': 5
+            'base_url': 'https://kariera.zoznam.sk/pracovne-ponuky/za-1-den',
+            'max_pages': 10
+        },
+        {
+            'name': 'Prace.sk',
+            'base_url': 'https://www.prace.sk/pozicie',
+            'max_pages': 10
         }
     ]
     

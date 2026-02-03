@@ -1,6 +1,7 @@
 import React from 'react';
 import { Job, UserProfile } from '../types';
 import { Bookmark, X, Search } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 import JobCard from './JobCard';
 
@@ -9,6 +10,7 @@ interface SavedJobsPageProps {
   savedJobIds: string[];
   onToggleSave: (jobId: string) => void;
   onJobSelect: (jobId: string) => void;
+  onApplyToJob: (job: Job) => void;
   selectedJobId: string | null;
   userProfile: UserProfile;
   searchTerm: string;
@@ -20,11 +22,13 @@ const SavedJobsPage: React.FC<SavedJobsPageProps> = ({
   savedJobIds,
   onToggleSave,
   onJobSelect,
+  onApplyToJob,
   selectedJobId,
   userProfile,
   searchTerm,
   onSearchChange
 }) => {
+  const { t } = useTranslation();
 
   const filteredSavedJobs = savedJobs.filter(job =>
     job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -126,6 +130,21 @@ const SavedJobsPage: React.FC<SavedJobsPageProps> = ({
                     onToggleSave={() => onToggleSave(job.id)}
                     userProfile={userProfile}
                   />
+
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      onClick={() => onJobSelect(job.id)}
+                      className="flex-1 px-3 py-2 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    >
+                      {t('job.details') || 'Detail'}
+                    </button>
+                    <button
+                      onClick={() => onApplyToJob(job)}
+                      className="flex-1 px-3 py-2 text-sm font-semibold rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 transition-colors"
+                    >
+                      {t('app.i_am_interested') || 'Mám zájem'}
+                    </button>
+                  </div>
                   
                   {/* Quick remove button */}
                   <button

@@ -2,6 +2,37 @@
 -- Created: 2026-02-03
 -- Purpose: Implement better search functionality with typo tolerance and partial matching
 
+-- CRITICAL: Drop ALL versions of the function with their exact signatures
+DROP FUNCTION IF EXISTS public.search_jobs_with_filters(
+    user_lat double precision, user_lng double precision, radius_km double precision, 
+    filter_city text, filter_contract_types text[], filter_benefits text[], filter_min_salary integer, 
+    filter_date_posted text, filter_experience_levels text[], limit_count integer, offset_val integer, 
+    filter_country_code character varying
+) CASCADE;
+
+DROP FUNCTION IF EXISTS public.search_jobs_with_filters(
+    user_lat double precision, user_lng double precision, radius_km double precision, 
+    filter_city text, filter_contract_types text[], filter_benefits text[], filter_min_salary integer, 
+    filter_date_posted text, filter_experience_levels text[], limit_count integer, offset_val integer, 
+    filter_country_codes text[], search_term text
+) CASCADE;
+
+DROP FUNCTION IF EXISTS public.search_jobs_with_filters(
+    user_lat double precision, user_lng double precision, radius_km double precision, 
+    filter_city text, filter_contract_types text[], filter_benefits text[], filter_min_salary integer, 
+    filter_date_posted text, filter_experience_levels text[], limit_count integer, offset_val integer, 
+    filter_country_code character varying, search_term text
+) CASCADE;
+
+DROP FUNCTION IF EXISTS public.search_jobs_with_filters(
+    search_term text, user_lat double precision, user_lng double precision, radius_km double precision, 
+    filter_city text, filter_contract_types text[], filter_benefits text[], filter_min_salary numeric, 
+    filter_date_posted text, filter_experience_levels text[], limit_count integer, offset_val integer, 
+    filter_country_codes text[]
+) CASCADE;
+
+DROP FUNCTION IF EXISTS public.calculate_job_relevance_score CASCADE;
+
 -- Enable required extensions if not already enabled
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS unaccent;
@@ -84,27 +115,26 @@ CREATE OR REPLACE FUNCTION search_jobs_with_filters(
     filter_country_codes text[] DEFAULT NULL
 )
 RETURNS TABLE (
-    id bigint,
+    id integer,
     title text,
     company text,
     location text,
     description text,
     benefits text[],
     contract_type text,
-    salary_from numeric,
-    salary_to numeric,
+    salary_from integer,
+    salary_to integer,
     work_type text,
-    scraped_at timestamp with time zone,
+    scraped_at timestamp without time zone,
     source text,
     education_level text,
     url text,
     lat double precision,
     lng double precision,
-    country_code text,
+    country_code character varying,
     legality_status text,
     verification_notes text,
     distance_km numeric,
-    tags text[],
     total_count bigint,
     relevance_score numeric
 ) AS $$
@@ -160,8 +190,7 @@ BEGIN
             WHEN user_lat IS NOT NULL AND user_lng IS NOT NULL 
             THEN 6371 * acos(cos(radians(user_lat)) * cos(radians(j.lat)) * cos(radians(j.lng) - radians(user_lng)) + sin(radians(user_lat)) * sin(radians(j.lat)))
             ELSE NULL 
-        END as distance_km,
-        j.tags,
+        END::numeric as distance_km,
         v_total as total_count,
         CASE
             WHEN search_term IS NULL OR search_term = '' THEN 0
@@ -200,9 +229,9 @@ END;
 $$ LANGUAGE plpgsql STABLE;
 
 -- Grant execute to authenticated role
-GRANT EXECUTE ON FUNCTION search_jobs_with_filters(text, double precision, double precision, double precision, text, text[], text[], numeric, text, text[], int, int, text[]) TO authenticated;
+GRANT EXECUTE ON FUNCTION search_jobs_with_filters(text, double precision, double precision, double precision, text, text[], text[], numeric, text, text[], integer, integer, text[]) TO authenticated;
 
 -- Grant execute to anonymous role (for public searches)
-GRANT EXECUTE ON FUNCTION search_jobs_with_filters(text, double precision, double precision, double precision, text, text[], text[], numeric, text, text[], int, int, text[]) TO anon;
+GRANT EXECUTE ON FUNCTION search_jobs_with_filters(text, double precision, double precision, double precision, text, text[], text[], numeric, text, text[], integer, integer, text[]) TO anon;
 
 -- End of migration

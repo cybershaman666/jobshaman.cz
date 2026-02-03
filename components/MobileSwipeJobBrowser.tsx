@@ -9,6 +9,7 @@ interface MobileSwipeJobBrowserProps {
     savedJobIds: string[];
     onToggleSave: (jobId: string) => void;
     onJobSelect: (jobId: string | null) => void;
+    onOpenDetails: (jobId: string) => void;
     isLoadingMore: boolean;
     hasMore: boolean;
     onLoadMore: () => void;
@@ -26,6 +27,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     savedJobIds,
     onToggleSave,
     onJobSelect,
+    onOpenDetails,
     isLoadingMore,
     hasMore,
     onLoadMore,
@@ -40,9 +42,13 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     });
     const [exitAnimation, setExitAnimation] = useState<'left' | 'right' | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const justSwipedRef = useRef(false);
 
     const currentJob = jobs[currentIndex];
     const isSaved = currentJob && savedJobIds.includes(currentJob.id);
+    const jhiScore = currentJob?.jhi?.score;
+    const dragDelta = Math.abs(swipeState.currentX - swipeState.startX);
+    const isTap = !swipeState.isDragging && dragDelta < 10;
 
     // Keyboard support
     useEffect(() => {
@@ -78,6 +84,11 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
         }
     };
 
+    const handleOpenDetails = () => {
+        if (!currentJob) return;
+        onOpenDetails(currentJob.id);
+    };
+
     const handleTouchStart = (e: React.TouchEvent) => {
         setSwipeState({
             startX: e.touches[0].clientX,
@@ -102,6 +113,8 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
         const threshold = 50; // pixels
 
         if (Math.abs(deltaX) > threshold) {
+            justSwipedRef.current = true;
+            setTimeout(() => { justSwipedRef.current = false; }, 300);
             if (deltaX > 0) {
                 // Right swipe - save
                 handleSave();
@@ -142,6 +155,8 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
         const threshold = 50;
 
         if (Math.abs(deltaX) > threshold) {
+            justSwipedRef.current = true;
+            setTimeout(() => { justSwipedRef.current = false; }, 300);
             if (deltaX > 0) {
                 handleSave();
             } else {
@@ -189,7 +204,10 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                 <div className="text-5xl mb-4">🎉</div>
                 <h2 className="text-xl font-bold mb-2">{t('job.all_reviewed') || 'You\'ve reviewed all jobs'}</h2>
                 <p className={`mb-6 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {t('job.swiped_count', { defaultValue: `You swiped through ${currentIndex} jobs` })}
+                    {t('job.swiped_count', {
+                        count: currentIndex,
+                        defaultValue: `You swiped through ${currentIndex} jobs`
+                    })}
                 </p>
                 <button
                     onClick={() => setCurrentIndex(0)}
@@ -269,6 +287,17 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                     : 'bg-white border border-slate-200 shadow-xl'
                             }`}
                             drag={swipeState.isDragging ? 'x' : false}
+                            role="button"
+                            tabIndex={0}
+                            onClick={() => {
+                                if (isTap && !justSwipedRef.current) handleOpenDetails();
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault();
+                                    handleOpenDetails();
+                                }
+                            }}
                         >
                             {/* Job Title and Company */}
                             <div className="mb-4">
@@ -285,7 +314,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                             </div>
 
                             {/* Quick Info */}
-                            <div className="grid grid-cols-2 gap-3 mb-6">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
                                 {currentJob.location && (
                                     <div className={`p-3 rounded-lg ${
                                         theme === 'dark' ? 'bg-slate-800' : 'bg-slate-100'
@@ -295,7 +324,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                         }`}>
                                             {t('job.location') || 'Location'}
                                         </p>
-                                        <p className={`font-medium ${
+                                        <p className={`text-sm font-medium leading-snug break-words ${
                                             theme === 'dark' ? 'text-white' : 'text-slate-900'
                                         }`}>
                                             {currentJob.location}
@@ -311,7 +340,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                         }`}>
                                             {t('job.salary') || 'Salary'}
                                         </p>
-                                        <p className={`font-medium ${
+                                        <p className={`text-sm font-medium leading-snug break-words ${
                                             theme === 'dark' ? 'text-white' : 'text-slate-900'
                                         }`}>
                                             {currentJob.salaryRange}
@@ -327,24 +356,24 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                         }`}>
                                             {t('job.type') || 'Type'}
                                         </p>
-                                        <p className={`font-medium ${
+                                        <p className={`text-sm font-medium leading-snug break-words ${
                                             theme === 'dark' ? 'text-white' : 'text-slate-900'
                                         }`}>
                                             {currentJob.type}
                                         </p>
                                     </div>
                                 )}
-                                {currentJob.jhi?.score !== undefined && (
+                                {jhiScore !== undefined && (
                                     <div className={`p-3 rounded-lg ${
                                         theme === 'dark' ? 'bg-slate-800' : 'bg-slate-100'
                                     }`}>
                                         <p className={`text-xs font-semibold ${
                                             theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                                         }`}>
-                                            {t('job.jhi') || 'JHI Score'}
+                                            {t('job.jhi_score') || 'JHI Score'}
                                         </p>
-                                        <p className="font-medium text-cyan-600 text-lg">
-                                            {(currentJob.jhi.score * 100).toFixed(0)}%
+                                        <p className="text-sm font-semibold text-cyan-600">
+                                            {Math.round(jhiScore)} {t('job.points') || 'points'}
                                         </p>
                                     </div>
                                 )}
@@ -439,7 +468,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
 
                 {/* View Details */}
                 <button
-                    onClick={() => currentJob && onJobSelect(currentJob.id)}
+                    onClick={handleOpenDetails}
                     className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-all duration-200 border-2 ${
                         theme === 'dark'
                             ? 'bg-slate-800 hover:bg-slate-700 text-slate-100 border-slate-700 hover:border-slate-600'

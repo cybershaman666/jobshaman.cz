@@ -40,6 +40,7 @@ interface ProfileEditorProps {
   savedJobIds?: string[];
   onToggleSave?: (jobId: string) => void;
   onJobSelect?: (jobId: string) => void;
+  onApplyToJob?: (job: Job) => void;
   selectedJobId?: string | null;
   onDeleteAccount?: () => Promise<boolean>;
 }
@@ -53,6 +54,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   savedJobIds = [],
   onToggleSave,
   onJobSelect,
+  onApplyToJob,
   selectedJobId,
   onDeleteAccount
 }) => {
@@ -396,7 +398,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           <div className="flex gap-1">
             <button
               onClick={() => setActiveTab('profile')}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${activeTab === 'profile'
+              className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${activeTab === 'profile'
                 ? 'bg-cyan-600 text-white shadow-md'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
                 }`}
@@ -406,7 +408,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             </button>
             <button
               onClick={() => setActiveTab('saved')}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-lg font-medium transition-all ${activeTab === 'saved'
+              className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${activeTab === 'saved'
                 ? 'bg-cyan-600 text-white shadow-md'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
                 }`}
@@ -987,6 +989,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               savedJobIds={savedJobIds}
               onToggleSave={onToggleSave || (() => { })}
               onJobSelect={onJobSelect || (() => { })}
+              onApplyToJob={onApplyToJob || (() => { })}
               selectedJobId={selectedJobId || null}
               userProfile={profile}
               searchTerm=""

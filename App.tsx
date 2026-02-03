@@ -689,6 +689,20 @@ export default function App() {
         setSavedJobIds(prev => prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]);
     };
 
+    const handleOpenJobDetailsFromSwipe = (jobId: string) => {
+        handleJobSelect(jobId);
+        setIsMobileSwipeView(false);
+    };
+
+    const handleApplyToJob = (job: Job) => {
+        handleJobSelect(job.id);
+        if (job.source !== 'jobshaman.cz' && job.url) {
+            window.open(job.url, '_blank', 'noopener,noreferrer');
+            return;
+        }
+        setIsApplyModalOpen(true);
+    };
+
     const handleJobSelect = (jobId: string | null) => {
         setSelectedJobId(jobId);
         setSelectedBlogPostSlug(null); // Clear blog post when job selected
@@ -917,6 +931,7 @@ export default function App() {
                         savedJobIds={savedJobIds}
                         onToggleSave={handleToggleSave}
                         onJobSelect={handleJobSelect}
+                        onApplyToJob={handleApplyToJob}
                         selectedJobId={selectedJobId}
                     />
                 </div>
@@ -937,6 +952,7 @@ export default function App() {
                         userProfile={userProfile}
                         searchTerm={searchTerm}
                         onSearchChange={setSearchTerm}
+                        onApplyToJob={handleApplyToJob}
                     />
                 </div>
             );
@@ -1000,6 +1016,7 @@ export default function App() {
                             savedJobIds={savedJobIds}
                             onToggleSave={handleToggleSave}
                             onJobSelect={handleJobSelect}
+                            onOpenDetails={handleOpenJobDetailsFromSwipe}
                             isLoadingMore={loadingMore}
                             hasMore={hasMore}
                             onLoadMore={loadMoreJobs}
