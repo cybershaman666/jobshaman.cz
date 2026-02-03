@@ -31,7 +31,10 @@ i18n
         },
 
         detection: {
-            order: ['localStorage', 'navigator'],
+            // Prefer explicit path segment (e.g. /de/...) then localStorage and browser settings
+            order: ['path', 'localStorage', 'navigator'],
+            // When detecting from path, look at the first segment
+            lookupFromPathIndex: 0,
             caches: ['localStorage'],
         }
     });

@@ -241,6 +241,22 @@
             "money_desc": "Pendeln ist nicht nur eine Frage der Zeit. Jeder Kilometer kostet Geld, das Sie besser nutzen könnten.",
             "reason": "Der Unterschied ist wesentlich: Wo die Realität berechnet werden kann, schätzen wir sie nicht."
         },
+        "page_mobile": {
+            "title_browse": "Durchsuchen Sie ",
+            "title_jobs": "Stellenangebote",
+            "title_like": "wie ein Profi",
+            "desc_1": "Auf dem Handy? JobShaman bietet jetzt ein Tinder-ähnliches Wischen zum mühelosen Durchsuchen von Stellenangeboten.",
+            "desc_2": "Nach links wischen, um eine Stelle abzulehnen, nach rechts wischen, um sie zu speichern. Ein Job gleichzeitig. Kein endloses Scrollen. Keine Informationsüberflutung.",
+            "desc_3": "Sehen Sie Ihren Fortschritt mit einem schönen Zähler und Fortschrittsbalken. Wenn Sie fertig sind, erhalten Sie eine Zusammenfassung der überprüften Stellen und wie viele Sie gespeichert haben.",
+            "swipe_title": "Intuitives Wischen",
+            "swipe_desc": "Nach links wischen, um eine Stelle abzulehnen, nach rechts wischen, um sie zu speichern. Einfach, schnell und natürlich.",
+            "mobile_title": "Für Mobilgeräte optimiert",
+            "mobile_desc": "Wird automatisch auf mobilen und Tablet-Geräten aktiviert. Das Desktop-Layout ist weiterhin verfügbar, wenn Sie es benötigen.",
+            "progress_title": "Verfolgen Sie Ihren Fortschritt",
+            "progress_desc": "Sehen Sie, welche Stelle Sie gerade betrachten, einen Fortschrittsbalken und Abschlussstatistiken. Bleiben Sie motiviert beim Durchsuchen.",
+            "tip_label": "Pro-Tipp:",
+            "tip_text": "Tippen Sie auf die Stellenkarte, um die vollständigen Details in der erweiterten Ansicht zu sehen. Sie haben weiterhin Zugriff auf alle Filter und gespeicherten Stellen über das obere Menü."
+        },
         "page_ai": {
             "title": "Wann wir KI einsetzen – und wann nicht",
             "intro_job": "Job",

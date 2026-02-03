@@ -243,6 +243,22 @@
             "money_desc": "Commuting isn't just about time. Every kilometer costs money that you could use better.",
             "reason": "The difference is essential: where reality can be calculated, we don't estimate it."
         },
+        "page_mobile": {
+            "title_browse": "Browse ",
+            "title_jobs": "jobs",
+            "title_like": "like a pro",
+            "desc_1": "On mobile? JobShaman now offers Tinder-like swiping to browse jobs effortlessly.",
+            "desc_2": "Swipe left to pass, swipe right to save. One job at a time. No endless scrolling. No information overload.",
+            "desc_3": "See your progress with a beautiful counter and progress bar. When you're done, get a summary of what you've reviewed and how many you saved.",
+            "swipe_title": "Intuitive Swiping",
+            "swipe_desc": "Swipe left to pass on a job, swipe right to save it. Simple, fast, and feels natural.",
+            "mobile_title": "Mobile Optimized",
+            "mobile_desc": "Automatically enabled on mobile and tablet devices. The desktop layout is still available when you need it.",
+            "progress_title": "Track Your Progress",
+            "progress_desc": "See which job you're on, a progress bar, and completion stats. Stay motivated as you browse.",
+            "tip_label": "Pro Tip:",
+            "tip_text": "Tap the job card to view full details in the expanded view. You can still access all your filters and saved jobs from the top menu."
+        },
         "page_ai": {
             "title": "When we use AI – and when we don't",
             "intro_job": "Job",

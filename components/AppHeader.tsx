@@ -52,6 +52,20 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     ];
 
     const changeLanguage = (lng: string) => {
+        try {
+            // Update URL to include language prefix without reloading
+            const supported: string[] = (i18n.options.supportedLngs || []) as string[];
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            // If first segment is a supported locale, drop it
+            if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
+            // Prepend the chosen locale
+            const newPath = `/${lng}/${parts.join('/')}`.replace(/\/\/$/, '/');
+            // Use history API to avoid reload
+            window.history.replaceState({}, '', newPath + window.location.search + window.location.hash);
+        } catch (err) {
+            console.warn('Failed to update locale in path', err);
+        }
+
         i18n.changeLanguage(lng);
     };
 
