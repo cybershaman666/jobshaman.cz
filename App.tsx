@@ -325,6 +325,26 @@ export default function App() {
         }
     }, []);
 
+    // RESTORE DASHBOARD VIEW STATE when navigating back to home (selectedJobId becomes null)
+    // This fixes the issue where FreelancerDashboard doesn't load after returning from job details
+    useEffect(() => {
+        if (selectedJobId === null && userProfile.isLoggedIn && userProfile.role === 'recruiter') {
+            // User has navigated away from job detail view back to home
+            // If viewState is LIST and they should be in a dashboard, restore it
+            if (viewState === ViewState.LIST) {
+                // Check if they are a freelancer or regular recruiter
+                if (companyProfile?.industry === 'Freelancer') {
+                    setViewState(ViewState.FREELANCER_DASHBOARD);
+                    console.log("✅ Restored FREELANCER_DASHBOARD after returning from job detail");
+                } else if (companyProfile) {
+                    setViewState(ViewState.COMPANY_DASHBOARD);
+                    console.log("✅ Restored COMPANY_DASHBOARD after returning from job detail");
+                }
+            }
+        }
+    }, [selectedJobId, userProfile.isLoggedIn, userProfile.role, viewState, companyProfile?.industry]);
+
+    // REMOVE OLD HISTORY API PATCHING - replaced with selectedJobId effect above
     // Fetch job by ID for direct links (e.g., /jobs/18918)
     useEffect(() => {
         const fetchDirectJob = async () => {

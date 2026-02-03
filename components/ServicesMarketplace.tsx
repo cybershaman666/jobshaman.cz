@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     ShoppingBag,
     Users,
@@ -40,7 +40,7 @@ interface ServicesMarketplaceProps {
 }
 
 import { useTranslation } from 'react-i18next';
-import { createServiceInquiry, getCurrentUser } from '../services/supabaseService';
+import { createServiceInquiry, getCurrentUser, supabase } from '../services/supabaseService';
 
 const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
     const { t } = useTranslation();
@@ -51,54 +51,55 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
     const [contactTarget, setContactTarget] = useState<Service | null>(null);
     const [contactMessage, setContactMessage] = useState('');
     const [contacting, setContacting] = useState(false);
+    const [services, setServices] = useState<Service[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // Mock Data
-    const services: Service[] = [
-        {
-            id: 'srv-1',
-            title: 'Tvorba webových stránek na míru',
-            description: 'Nabízím kompletní tvorbu webu od grafického návrhu po nasazení. React, Next.js, Tailwind CSS.',
-            provider: 'Jan Novák',
-            provider_id: 'user-1',
-            price: 15000,
-            currency: 'Kč',
-            rating: 5.0,
-            reviews_count: 12,
-            category: 'it',
-            location: 'Remote',
-            created_at: new Date().toISOString(),
-            is_verified: true
-        },
-        {
-            id: 'srv-2',
-            title: 'Opravy a rekonstrukce elektroinstalace',
-            description: 'Provádím drobné opravy i kompletní rekonstrukce elektroinstalace v bytech a domech. Revize v ceně.',
-            provider: 'Petr Svoboda',
-            provider_id: 'user-2',
-            price: 500,
-            currency: 'Kč/hod',
-            rating: 4.8,
-            reviews_count: 45,
-            category: 'crafts',
-            location: 'Praha a okolí',
-            created_at: new Date().toISOString(),
-            is_verified: true
-        },
-        {
-            id: 'srv-3',
-            title: 'Grafický design a branding',
-            description: 'Logo, vizitky, bannery, kompletní vizuální identita pro vaši firmu.',
-            provider: 'Anna Dvořáková',
-            provider_id: 'user-3',
-            price: 5000,
-            currency: 'Kč',
-            rating: 4.9,
-            reviews_count: 28,
-            category: 'design',
-            location: 'Remote',
-            created_at: new Date().toISOString()
+    // Load services from Supabase
+    useEffect(() => {
+        loadServices();
+    }, []);
+
+    const loadServices = async () => {
+        try {
+            setLoading(true);
+            // Fetch all jobs with contract_type = 'freelance_service' that are published by freelancers
+            const { data, error } = await supabase
+                .from('jobs')
+                .select('id, title, description, company, user_id, salary_from, salary_to, location, created_at')
+                .eq('contract_type', 'freelance_service')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error loading services:', error);
+                setServices([]);
+                return;
+            }
+
+            // Transform the data to match Service interface
+            const transformedServices: Service[] = (data || []).map((job: any) => ({
+                id: job.id,
+                title: job.title,
+                description: job.description,
+                provider: job.company,
+                provider_id: job.user_id,
+                price: job.salary_from || 0,
+                currency: 'Kč',
+                rating: 5.0, // Default rating for now
+                reviews_count: 0, // Default
+                category: 'crafts', // Default category
+                location: job.location,
+                created_at: job.created_at,
+                is_verified: false
+            }));
+
+            setServices(transformedServices);
+        } catch (err) {
+            console.error('Error loading services:', err);
+            setServices([]);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
 
     const categories = [
         { id: 'all', name: t('freelancer.marketplace.categories.all'), icon: Briefcase },
@@ -207,7 +208,14 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
 
                     {/* Services Grid */}
                     <div className="lg:col-span-3">
-                        {filteredServices.length > 0 ? (
+                        {loading ? (
+                            <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700">
+                                <div className="inline-block">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+                                </div>
+                                <p className="text-slate-500 mt-4">{t('app.loading')}</p>
+                            </div>
+                        ) : filteredServices.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {filteredServices.map(service => (
                                     <div key={service.id} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-all shadow-sm group flex flex-col h-full">
@@ -273,8 +281,8 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
                         ) : (
                             <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-xl border border-dashed border-slate-300 dark:border-slate-700">
                                 <ShoppingBag size={48} className="mx-auto text-slate-300 mb-4" />
-                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('freelancer_marketplace_extra.empty_state_title')}</h3>
-                                <p className="text-slate-500 mb-6">{t('freelancer_marketplace_extra.empty_state_desc')}</p>
+                                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Zatím nejsou žádní živnostníci</h3>
+                                <p className="text-slate-500 mb-6">Jakmile se někdo zaregistruje se svými službami, najdete je zde. Buďte prvním!</p>
                                 <button
                                     onClick={() => setShowFreelancerModal(true)}
                                     className="px-6 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition-colors"

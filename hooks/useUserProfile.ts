@@ -127,73 +127,68 @@ export const useUserProfile = () => {
                     // The application can still work without CSRF token for GET requests
                 }
 
-                // --- NEW AUTO-RECOVERY LOGIC START ---
-                // Prepare metadata flags used across subsequent checks
+                // --- PREPARE METADATA FLAGS ---
+                // Extract metadata before any logic that depends on it
                 let metaIsFreelancer = false;
-                // If user registered as recruiter (via metadata) but profile says 'candidate' (default trigger), fix it.
+                let metaRole = null;
+                let metaCompany = null;
+                let metaIco = null;
+                let metaWebsite = null;
+
                 if (supabase) {
                     const { data: { user } } = await supabase.auth.getUser();
-                    const metaRole = user?.user_metadata?.role;
-                    const metaCompany = user?.user_metadata?.company_name;
-                    const metaIco = user?.user_metadata?.ico;
-                    const metaWebsite = user?.user_metadata?.website;
+                    metaRole = user?.user_metadata?.role;
+                    metaCompany = user?.user_metadata?.company_name;
+                    metaIco = user?.user_metadata?.ico;
+                    metaWebsite = user?.user_metadata?.website;
                     metaIsFreelancer = user?.user_metadata?.is_freelancer === true || user?.user_metadata?.is_freelancer === 'true';
+                }
 
-                    if (metaRole === 'recruiter' && profile.role !== 'recruiter') {
-                        console.log("🛠️ Fixing profile role mismatch: Metadata says recruiter, DB says candidate. Updating...");
-                        try {
-                            await updateUserProfileService(userId, { role: 'recruiter' });
-                            // Update local state immediately
-                            profile.role = 'recruiter';
-                            setUserProfile(prev => ({ ...prev, role: 'recruiter' }));
-                        } catch (err) {
-                            console.error("❌ Failed to auto-fix profile role:", err);
-                        }
-                    }
-
-                    // If they are a recruiter (or just became one), but have no company, check metadata for company name and create it.
-                    if (profile.role === 'recruiter') {
-                        let company = await getRecruiterCompany(userId);
-
-                        if (!company && metaCompany) {
-                            console.log("🛠️ Recruiter has no company, but metadata has company_name. Auto-creating company...");
-                            try {
-                                const newCompanyData = {
-                                    name: metaCompany,
-                                    // Use metadata values if available
-                                    ico: metaIco || '',
-                                    address: '',
-                                    description: '',
-                                    contact_email: user?.email,
-                                    contact_phone: '',
-                                    website: metaWebsite || '',
-                                    industry: metaIsFreelancer ? 'Freelancer' : '',
-                                    logo_url: ''
-                                };
-
-                                // createCompany in supabaseService now handles duplicates by ICO/owner_id
-                                company = await createCompany(newCompanyData, userId);
-                                console.log("✅ Company auto-created or retrieved from metadata:", company?.id);
-                            } catch (err) {
-                                console.error("❌ Failed to auto-create company from metadata:", err);
-                            }
-                        }
-
-                        if (company) {
-                            setCompanyProfile(company);
-                            const pathname = window.location.pathname;
-                            if (!pathname.startsWith('/jobs/') && pathname !== '/podminky-uziti' && pathname !== '/ochrana-osobnich-udaju' && pathname !== '/enterprise' && !pathname.startsWith('/assessment/')) {
-                                // If metadata marks user as freelancer, prefer freelancer dashboard
-                                if (metaIsFreelancer) {
-                                    setViewState(ViewState.FREELANCER_DASHBOARD);
-                                } else {
-                                    setViewState(ViewState.COMPANY_DASHBOARD);
-                                }
-                            }
-                        }
+                // If user registered as recruiter (via metadata) but profile says 'candidate' (default trigger), fix it.
+                if (metaRole === 'recruiter' && profile.role !== 'recruiter') {
+                    console.log("🛠️ Fixing profile role mismatch: Metadata says recruiter, DB says candidate. Updating...");
+                    try {
+                        await updateUserProfileService(userId, { role: 'recruiter' });
+                        // Update local state immediately
+                        profile.role = 'recruiter';
+                        setUserProfile(prev => ({ ...prev, role: 'recruiter' }));
+                    } catch (err) {
+                        console.error("❌ Failed to auto-fix profile role:", err);
                     }
                 }
-                // --- NEW AUTO-RECOVERY LOGIC END ---
+
+                // If they are a recruiter (or just became one), but have no company, check metadata for company name and create it.
+                if (profile.role === 'recruiter') {
+                    let company = await getRecruiterCompany(userId);
+
+                    if (!company && metaCompany) {
+                        console.log("🛠️ Recruiter has no company, but metadata has company_name. Auto-creating company...");
+                        try {
+                            const newCompanyData = {
+                                name: metaCompany,
+                                // Use metadata values if available
+                                ico: metaIco || '',
+                                address: '',
+                                description: '',
+                                contact_email: supabase ? (await supabase.auth.getUser()).data.user?.email : undefined,
+                                contact_phone: '',
+                                website: metaWebsite || '',
+                                industry: metaIsFreelancer ? 'Freelancer' : '',
+                                logo_url: ''
+                            };
+
+                            // createCompany in supabaseService now handles duplicates by ICO/owner_id
+                            company = await createCompany(newCompanyData, userId);
+                            console.log("✅ Company auto-created or retrieved from metadata:", company?.id);
+                        } catch (err) {
+                            console.error("❌ Failed to auto-create company from metadata:", err);
+                        }
+                    }
+
+                    if (company) {
+                        setCompanyProfile(company);
+                    }
+                }
 
                 // Auto-Upgrade Logic for Admin Tester - REMOVED for Strict Separation conformance
                 // Admin can manually switch roles if needed via DB or specific admin tool, 
@@ -205,40 +200,37 @@ export const useUserProfile = () => {
                     // Note: This will be handled by the useAppFilters hook
                 }
 
-                // --- STRICT ROLE SEPARATION ---
-                // Only load company data if the user is explicitly a recruiter
+                // --- SET VIEW STATE FOR RECRUITER/FREELANCER ---
+                // At this point: metaIsFreelancer is set, profile.role is corrected, company is loaded
+                // Now determine the correct viewState based on consolidated logic
                 if (profile.role === 'recruiter') {
-                    const company = await getRecruiterCompany(userId);
-                    if (company) {
-                        setCompanyProfile(company);
-                        // Force view state to dashboard if they are a recruiter logging in
-                        // unless they are on a specific page that allows otherwise (like job detail or marketplace)
-                        const pathname = window.location.pathname;
-                        const isJobDetail = pathname.startsWith('/jobs/');
-                        const isExternalPage = pathname === '/podminky-uziti' || pathname === '/ochrana-osobnich-udaju' || pathname === '/enterprise' || pathname.startsWith('/assessment/');
+                    // User is a recruiter (or freelancer acting as recruiter)
+                    const pathname = window.location.pathname;
+                    const isJobDetail = pathname.startsWith('/jobs/');
+                    const isExternalPage = pathname === '/podminky-uziti' || pathname === '/ochrana-osobnich-udaju' || pathname === '/enterprise' || pathname.startsWith('/assessment/');
 
-                        if (!isJobDetail && !isExternalPage) {
-                            if (metaIsFreelancer || company.industry === 'Freelancer') {
-                                setViewState(ViewState.FREELANCER_DASHBOARD);
-                            } else {
-                                setViewState(ViewState.COMPANY_DASHBOARD);
-                            }
-                            console.log("✅ Recruiter/Freelancer logged in, dashboard loaded.");
+                    // Only set dashboard view if not on special pages
+                    if (!isJobDetail && !isExternalPage) {
+                        if (metaIsFreelancer) {
+                            // Freelancers ALWAYS go to FREELANCER_DASHBOARD
+                            setViewState(ViewState.FREELANCER_DASHBOARD);
+                            console.log("✅ Freelancer logged in, FREELANCER_DASHBOARD set.");
                         } else {
-                            console.log("🔗 Recruiter logged in on deep link/external page, maintaining current view.");
+                            // Regular recruiters go to COMPANY_DASHBOARD
+                            setViewState(ViewState.COMPANY_DASHBOARD);
+                            console.log("✅ Recruiter logged in, COMPANY_DASHBOARD set.");
                         }
-                    }
-                    else {
-                        // Recruiter without company? They might need to finish onboarding
-                        console.log("⚠️ Recruiter role but no company found.");
+                    } else {
+                        console.log("🔗 Logged in on deep link/external page, maintaining current view.");
                     }
                 } else {
-                    // Start as candidate
+                    // Candidate: no company profile, no dashboard
                     setCompanyProfile(null);
                     // Ensure view state isn't stuck on dashboard
                     if (viewState === ViewState.COMPANY_DASHBOARD) {
                         setViewState(ViewState.LIST);
                     }
+                    console.log("✅ Candidate logged in, view state set to LIST.");
                 }
             }
         } catch (error) {
