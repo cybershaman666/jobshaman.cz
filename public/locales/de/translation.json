@@ -929,7 +929,18 @@
             "tabs": {
                 "services": "Meine Dienste",
                 "portfolio": "Portfolio",
+                "inquiries": "Anfragen",
                 "settings": "Einstellungen"
+            },
+            "inquiries": {
+                "title": "Anfragen",
+                "refresh": "Aktualisieren",
+                "loading": "Wird geladen...",
+                "empty": "Noch keine Anfragen.",
+                "unknown_sender": "Unbekannter Absender",
+                "sender_company": "Firma",
+                "sender_user": "Nutzer",
+                "sender_anon": "Anonym"
             },
             "services": {
                 "create_title": "Dienst erstellen",

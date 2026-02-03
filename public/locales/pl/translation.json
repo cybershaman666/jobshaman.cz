@@ -947,7 +947,18 @@
             "tabs": {
                 "services": "Moje usługi",
                 "portfolio": "Portfolio",
+                "inquiries": "Zapytania",
                 "settings": "Ustawienia"
+            },
+            "inquiries": {
+                "title": "Zapytania",
+                "refresh": "Odśwież",
+                "loading": "Ładowanie...",
+                "empty": "Brak zapytań.",
+                "unknown_sender": "Nieznany nadawca",
+                "sender_company": "Firma",
+                "sender_user": "Użytkownik",
+                "sender_anon": "Anonim"
             },
             "services": {
                 "create_title": "Utwórz usługę",

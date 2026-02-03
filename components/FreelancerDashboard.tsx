@@ -29,9 +29,11 @@ interface FreelancerDashboardProps {
 
 export default function FreelancerDashboard({ userProfile, companyProfile, onLogout }: FreelancerDashboardProps) {
     const { t } = useTranslation();
-    const [activeTab, setActiveTab] = useState<'services' | 'portfolio' | 'settings'>('services');
+    const [activeTab, setActiveTab] = useState<'services' | 'portfolio' | 'inquiries' | 'settings'>('services');
     const [services, setServices] = useState<Job[]>([]);
     const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
+    const [inquiries, setInquiries] = useState<any[]>([]);
+    const [loadingInquiries, setLoadingInquiries] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
     const [isCreatingPortfolio, setIsCreatingPortfolio] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(false);
@@ -57,8 +59,9 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
         if (companyProfile?.id) {
             loadServices();
             loadPortfolio();
+            loadInquiries();
         }
-    }, [companyProfile?.id]);
+    }, [companyProfile?.id, userProfile?.id]);
 
     const loadServices = async () => {
         if (!companyProfile?.id) return;
@@ -120,6 +123,27 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
         if (!companyProfile?.id) return;
         const items = await getPortfolioItems(companyProfile.id);
         setPortfolio(items as PortfolioItem[]);
+    };
+
+    const loadInquiries = async () => {
+        if (!userProfile?.id) return;
+        try {
+            setLoadingInquiries(true);
+            const { data, error } = await supabase
+                .from('service_inquiries')
+                .select('id, from_user_id, from_email, message, metadata, created_at, service_id')
+                .eq('freelancer_id', userProfile.id)
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Failed to load inquiries:', error);
+                setInquiries([]);
+                return;
+            }
+            setInquiries(data || []);
+        } finally {
+            setLoadingInquiries(false);
+        }
     };
 
     const handleAddPortfolioItem = async (e: React.FormEvent) => {
@@ -224,6 +248,12 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                         className={`pb-4 px-2 font-bold text-sm transition-all border-b-2 ${activeTab === 'portfolio' ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`}
                     >
                         {t('freelancer.dashboard.tabs.portfolio')}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('inquiries')}
+                        className={`pb-4 px-2 font-bold text-sm transition-all border-b-2 ${activeTab === 'inquiries' ? 'border-cyan-500 text-cyan-600 dark:text-cyan-400' : 'border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`}
+                    >
+                        {t('freelancer.dashboard.tabs.inquiries') || 'Poptávky'}
                     </button>
                     <button
                         onClick={() => setActiveTab('settings')}
@@ -489,6 +519,74 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                 )}
                             </div>
                         )}
+                    </div>
+                )}
+
+                {/* Tab: Inquiries */}
+                {activeTab === 'inquiries' && (
+                    <div className="animate-in fade-in slide-in-from-bottom-4">
+                        <div className="flex items-center justify-between mb-6">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                                {t('freelancer.dashboard.inquiries.title') || 'Poptávky'}
+                            </h2>
+                            <button
+                                onClick={loadInquiries}
+                                className="text-xs font-semibold text-cyan-600 hover:text-cyan-700"
+                            >
+                                {t('freelancer.dashboard.inquiries.refresh') || 'Obnovit'}
+                            </button>
+                        </div>
+
+                        <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-lg">
+                            {loadingInquiries ? (
+                                <div className="text-sm text-slate-500">{t('freelancer.dashboard.inquiries.loading') || 'Načítání...'}</div>
+                            ) : inquiries.length === 0 ? (
+                                <div className="text-sm text-slate-500">{t('freelancer.dashboard.inquiries.empty') || 'Zatím žádné poptávky.'}</div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {inquiries.map((inq) => {
+                                        const senderProfile = inq.metadata?.sender_profile;
+                                        const senderCompany = inq.metadata?.sender_company;
+                                        const senderName =
+                                            senderCompany?.name ||
+                                            senderProfile?.full_name ||
+                                            inq.from_email ||
+                                            (t('freelancer.dashboard.inquiries.unknown_sender') || 'Neznámý odesílatel');
+
+                                        const senderTypeLabel = senderCompany
+                                            ? (t('freelancer.dashboard.inquiries.sender_company') || 'Firma')
+                                            : senderProfile
+                                            ? (t('freelancer.dashboard.inquiries.sender_user') || 'Uživatel')
+                                            : (t('freelancer.dashboard.inquiries.sender_anon') || 'Anonym');
+
+                                        return (
+                                            <div key={inq.id} className="p-4 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900">
+                                                <div className="flex items-start gap-3">
+                                                    <div className="w-10 h-10 rounded-full bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center text-cyan-700 font-bold">
+                                                        {senderName?.charAt(0) || '?'}
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <h3 className="font-semibold text-slate-900 dark:text-white">{senderName}</h3>
+                                                            <span className="text-xs text-slate-500">{senderTypeLabel}</span>
+                                                        </div>
+                                                        {senderProfile?.email && (
+                                                            <div className="text-xs text-slate-500">{senderProfile.email}</div>
+                                                        )}
+                                                        {inq.message && (
+                                                            <p className="mt-2 text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap">{inq.message}</p>
+                                                        )}
+                                                    </div>
+                                                    <div className="text-xs text-slate-400">
+                                                        {new Date(inq.created_at).toLocaleDateString()}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 )}
 

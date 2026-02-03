@@ -649,11 +649,13 @@ export const trackAnalyticsEvent = async (event: {
     if (!supabase) return;
 
     try {
+        const { data: { user } } = await supabase.auth.getUser();
+        const safeUserId = user?.id || null;
         const { error } = await supabase
             .from('analytics_events')
             .insert({
                 event_type: event.event_type,
-                user_id: event.user_id || null,
+                user_id: safeUserId,
                 company_id: event.company_id || null,
                 feature: event.feature || null,
                 tier: event.tier || null,
@@ -1347,15 +1349,56 @@ export const createServiceInquiry = async (payload: {
     from_user_id?: string | null;
     from_email?: string | null;
     message?: string | null;
+    metadata?: any;
 }) => {
     if (!supabase) throw new Error('Supabase not configured');
+
+    let senderProfile: any = null;
+    let senderCompany: any = null;
+    let resolvedUserId = payload.from_user_id || null;
+    let resolvedEmail = payload.from_email || null;
+
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            resolvedUserId = resolvedUserId || user.id;
+            resolvedEmail = resolvedEmail || user.email || null;
+
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('id, full_name, avatar_url, email')
+                .eq('id', user.id)
+                .single();
+            senderProfile = profile || null;
+
+            const { data: membership } = await supabase
+                .from('company_members')
+                .select('company_id, companies(id, name)')
+                .eq('user_id', user.id)
+                .limit(1)
+                .maybeSingle();
+            if (membership?.companies) {
+                senderCompany = membership.companies;
+            } else if (membership?.company_id) {
+                senderCompany = { id: membership.company_id };
+            }
+        }
+    } catch (err) {
+        console.warn('Failed to enrich service inquiry sender metadata:', err);
+    }
 
     const record = {
         service_id: payload.service_id || null,
         freelancer_id: payload.freelancer_id || null,
-        from_user_id: payload.from_user_id || null,
-        from_email: payload.from_email || null,
+        from_user_id: resolvedUserId,
+        from_email: resolvedEmail,
         message: payload.message || null,
+        metadata: {
+            ...(payload.metadata || {}),
+            sender_profile: senderProfile,
+            sender_company: senderCompany,
+            sender_type: senderCompany ? 'company' : (resolvedUserId ? 'user' : 'anon')
+        },
         created_at: new Date().toISOString()
     };
 

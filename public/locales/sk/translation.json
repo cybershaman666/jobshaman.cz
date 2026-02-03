@@ -1001,7 +1001,18 @@
             "tabs": {
                 "services": "Moje služby",
                 "portfolio": "Portfólio",
+                "inquiries": "Dopyty",
                 "settings": "Nastavenia"
+            },
+            "inquiries": {
+                "title": "Dopyty",
+                "refresh": "Obnoviť",
+                "loading": "Načítavam...",
+                "empty": "Zatiaľ žiadne dopyty.",
+                "unknown_sender": "Neznámy odosielateľ",
+                "sender_company": "Firma",
+                "sender_user": "Užívateľ",
+                "sender_anon": "Anonym"
             },
             "services": {
                 "create_title": "Vytvoriť službu",

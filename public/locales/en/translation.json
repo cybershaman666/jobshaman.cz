@@ -949,7 +949,18 @@
             "tabs": {
                 "services": "My Services",
                 "portfolio": "Portfolio",
+                "inquiries": "Inquiries",
                 "settings": "Settings"
+            },
+            "inquiries": {
+                "title": "Inquiries",
+                "refresh": "Refresh",
+                "loading": "Loading...",
+                "empty": "No inquiries yet.",
+                "unknown_sender": "Unknown sender",
+                "sender_company": "Company",
+                "sender_user": "User",
+                "sender_anon": "Anonymous"
             },
             "services": {
                 "create_title": "Create Service",
