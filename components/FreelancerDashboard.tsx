@@ -451,10 +451,10 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                 ) : (
                                     portfolio.map(item => (
                                         <div key={item.id} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden hover:shadow-md transition-shadow group">
-                                            {item.image_url && (
+                                            {item.imageUrl && (
                                                 <div className="aspect-square overflow-hidden bg-slate-100 dark:bg-slate-900">
                                                     <img
-                                                        src={item.image_url}
+                                                        src={item.imageUrl}
                                                         alt={item.title}
                                                         className="w-full h-full object-cover group-hover:scale-105 transition-transform"
                                                     />
@@ -477,7 +477,7 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                                                     )}
                                                 </div>
                                                 <button
-                                                    onClick={() => handleDeletePortfolioItem(item.id, item.file_name || '')}
+                                                    onClick={() => handleDeletePortfolioItem(item.id, item.fileName || '')}
                                                     className="mt-3 w-full p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors text-sm font-medium flex items-center justify-center gap-2"
                                                 >
                                                     <Trash2 size={16} />

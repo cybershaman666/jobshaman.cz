@@ -1694,7 +1694,7 @@ export const uploadPortfolioImage = async (
         const fileName = `${freelancerId}/${timestamp}-${file.name}`;
 
         // Upload to 'portfolio' bucket
-        const { data, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
             .from('portfolio')
             .upload(fileName, file);
 

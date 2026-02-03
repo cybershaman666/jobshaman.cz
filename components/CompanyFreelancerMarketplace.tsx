@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     Search,
     MapPin,
@@ -13,7 +13,7 @@ import {
     TrendingUp
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { createServiceInquiry, getCurrentUser } from '../services/supabaseService';
+import { createServiceInquiry, getCurrentUser, supabase } from '../services/supabaseService';
 
 interface Freelancer {
     id: string;
@@ -38,85 +38,53 @@ const CompanyFreelancerMarketplace: React.FC = () => {
     const [contacting, setContacting] = useState(false);
     const [contactMessage, setContactMessage] = useState('');
     const [contactTarget, setContactTarget] = useState<Freelancer | null>(null);
+    const [freelancers, setFreelancers] = useState<Freelancer[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // Mock Freelancer Data
-    const freelancers: Freelancer[] = [
-        {
-            id: 'fl-1',
-            name: 'Jan Novák',
-            title: 'Full Stack Developer',
-            description: 'Odborník na React, Node.js a moderní webové technologie. Více než 8 let zkušeností.',
-            category: 'it',
-            location: 'Remote',
-            rating: 5.0,
-            reviews_count: 12,
-            hourly_rate: 800,
-            verified: true,
-            badge: 'Top Developer'
-        },
-        {
-            id: 'fl-2',
-            name: 'Petr Svoboda',
-            title: 'Elektrikář a Instalatér',
-            description: 'Kompletní opravy a rekonstrukce elektroinstalací. Revize, údržba, nové instalace.',
-            category: 'crafts',
-            location: 'Praha a okolí',
-            rating: 4.8,
-            reviews_count: 45,
-            hourly_rate: 500,
-            verified: true,
-            badge: 'Top Craftsman'
-        },
-        {
-            id: 'fl-3',
-            name: 'Anna Dvořáková',
-            title: 'Grafický Designér',
-            description: 'Logo, vizuální identita, bannery, UI/UX design. Trendové a moderní řešení.',
-            category: 'design',
-            location: 'Remote',
-            rating: 4.9,
-            reviews_count: 28,
-            hourly_rate: 600,
-            verified: true,
-            badge: 'Pro Designer'
-        },
-        {
-            id: 'fl-4',
-            name: 'Tomáš Krejčí',
-            title: 'SEO Specialista',
-            description: 'Optimalizace webů pro vyhledávače, content marketing, analýza konkurence.',
-            category: 'marketing',
-            location: 'Remote',
-            rating: 4.7,
-            reviews_count: 18,
-            hourly_rate: 450,
-            verified: true
-        },
-        {
-            id: 'fl-5',
-            name: 'Michaela Svobodová',
-            title: 'Copywriter',
-            description: 'Tvorba kvalitních textů pro weby, sociální sítě, emailové kampáně.',
-            category: 'marketing',
-            location: 'Remote',
-            rating: 4.9,
-            reviews_count: 32,
-            hourly_rate: 350,
-            verified: true
-        },
-        {
-            id: 'fl-6',
-            name: 'David Morávek',
-            title: 'Tesař a Truhlář',
-            description: 'Truhlářské práce, stavba nábytku na míru, renovace starého nábytku.',
-            category: 'crafts',
-            location: 'Brno a okolí',
-            rating: 4.6,
-            reviews_count: 21,
-            hourly_rate: 400,
-            verified: true
+    // Load freelancers from Supabase
+    useEffect(() => {
+        loadFreelancers();
+    }, []);
+
+    const loadFreelancers = async () => {
+        try {
+            setLoading(true);
+            // Get all companies with industry = 'Freelancer'
+            const { data, error } = await supabase
+                .from('companies')
+                .select('id, name, description, address, website')
+                .eq('industry', 'Freelancer')
+                .order('created_at', { ascending: false });
+
+            if (error) {
+                console.error('Error loading freelancers:', error);
+                setFreelancers([]);
+                return;
+            }
+
+            // Transform data to match Freelancer interface
+            const transformedFreelancers: Freelancer[] = (data || []).map((company: any) => ({
+                id: company.id,
+                name: company.name,
+                title: company.name, // Use name as title for now
+                description: company.description || 'Kvalitný freelancer',
+                category: 'crafts', // Default category
+                location: company.address,
+                rating: 5.0, // Default rating
+                reviews_count: 0,
+                hourly_rate: 500, // Default rate
+                verified: false,
+                badge: undefined
+            }));
+
+            setFreelancers(transformedFreelancers);
+        } catch (err) {
+            console.error('Error loading freelancers:', err);
+            setFreelancers([]);
+        } finally {
+            setLoading(false);
         }
-    ];
+    };
 
     const categories = [
         { id: 'all', name: t('freelancer_marketplace.categories.all') || 'Všechny', icon: Briefcase },
@@ -219,7 +187,14 @@ const CompanyFreelancerMarketplace: React.FC = () => {
             </div>
 
             {/* Freelancers Grid */}
-            {filteredFreelancers.length > 0 ? (
+            {loading ? (
+                <div className="text-center py-20">
+                    <div className="inline-block">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-600"></div>
+                    </div>
+                    <p className="text-slate-500 mt-4">{t('app.loading')}</p>
+                </div>
+            ) : filteredFreelancers.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {filteredFreelancers.map(freelancer => {
                         const IconComponent = getCategoryIcon(freelancer.category);
@@ -299,10 +274,10 @@ const CompanyFreelancerMarketplace: React.FC = () => {
                         <Users className="text-slate-400" size={32} />
                     </div>
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-1">
-                        {t('freelancer_marketplace.no_results') || 'Žádní freelanceři nenalezeni'}
+                        Zatím nejsou žádní živnostníci
                     </h3>
                     <p className="text-slate-600 dark:text-slate-400">
-                        {t('freelancer_marketplace.no_results_desc') || 'Zkuste změnit filtry nebo hledaný výraz.'}
+                        Jakmile se někdo zaregistruje, uvidíte jej zde.
                     </p>
                 </div>
             )}
