@@ -94,6 +94,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
                 {/* Navigation */}
                 <nav className="flex items-center gap-1 bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700/50 overflow-x-auto">
+                    {(() => { console.log("🧭 [AppHeader] showCompanyLanding:", showCompanyLanding, "viewState:", viewState); return null; })()}
                     {!showCompanyLanding && (
                         <>
                             <button
@@ -109,14 +110,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 {t('nav.profile')}
                             </button>
                             <button
-                                onClick={() => setViewState(ViewState.MARKETPLACE)}
+                                onClick={() => { console.log("🔄 [Header] Switching to MARKETPLACE"); setViewState(ViewState.MARKETPLACE); }}
                                 className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.MARKETPLACE ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                             >
                                 <ShoppingBag className="w-4 h-4" />
                                 {t('nav.marketplace')}
                             </button>
                             <button
-                                onClick={() => setViewState(ViewState.SERVICES)}
+                                onClick={() => { console.log("🔄 [Header] Switching to SERVICES"); setViewState(ViewState.SERVICES); }}
                                 className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.SERVICES ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                             >
                                 <Handshake className="w-4 h-4" />

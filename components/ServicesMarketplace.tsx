@@ -65,7 +65,7 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
             // Fetch all jobs with contract_type = 'freelance_service' that are published by freelancers
             const { data, error } = await supabase
                 .from('jobs')
-                .select('id, title, description, company, user_id, salary_from, salary_to, location, created_at')
+                .select('id, title, description, company, company_id, salary_from, salary_to, location, created_at')
                 .eq('contract_type', 'freelance_service')
                 .order('created_at', { ascending: false });
 
