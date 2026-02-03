@@ -1113,16 +1113,17 @@
                 "inquiries": "Poptávky",
                 "settings": "Nastavení"
             },
-            "inquiries": {
-                "title": "Poptávky",
-                "refresh": "Obnovit",
-                "loading": "Načítání...",
-                "empty": "Zatím žádné poptávky.",
-                "unknown_sender": "Neznámý odesílatel",
-                "sender_company": "Firma",
-                "sender_user": "Uživatel",
-                "sender_anon": "Anonym"
-            },
+        "inquiries": {
+            "title": "Poptávky",
+            "refresh": "Obnovit",
+            "loading": "Načítání...",
+            "empty": "Zatím žádné poptávky.",
+            "unknown_sender": "Neznámý odesílatel",
+            "sender_company": "Firma",
+            "sender_user": "Uživatel",
+            "sender_anon": "Anonym",
+            "reply_btn": "Odpovědět"
+        },
             "services": {
                 "create_title": "Vytvořit Službu",
                 "title_label": "Název služby",

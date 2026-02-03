@@ -940,7 +940,8 @@
                 "unknown_sender": "Unbekannter Absender",
                 "sender_company": "Firma",
                 "sender_user": "Nutzer",
-                "sender_anon": "Anonym"
+                "sender_anon": "Anonym",
+                "reply_btn": "Antworten"
             },
             "services": {
                 "create_title": "Dienst erstellen",
