@@ -25,6 +25,7 @@ interface AppHeaderProps {
     toggleTheme: () => void;
     theme: 'light' | 'dark';
     setIsOnboardingCompany: (show: boolean) => void;
+    onIntentionalListClick?: () => void;
 }
 
 const AppHeader: React.FC<AppHeaderProps> = ({
@@ -38,7 +39,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     handleAuthAction,
     toggleTheme,
     theme,
-    setIsOnboardingCompany
+    setIsOnboardingCompany,
+    onIntentionalListClick
 }) => {
     const { t, i18n } = useTranslation();
 
@@ -93,12 +95,17 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 </div>
 
                 {/* Navigation */}
-                <nav className="flex items-center gap-1 bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700/50 overflow-x-auto">
+                <nav className="flex items-center gap-1 bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700/50 overflow-visible flex-wrap">
                     {(() => { console.log("🧭 [AppHeader] showCompanyLanding:", showCompanyLanding, "viewState:", viewState); return null; })()}
                     {!showCompanyLanding && (
                         <>
+                            {(() => { console.log("✅ [AppHeader] Rendering job navigation buttons"); return null; })()}
                             <button
-                                onClick={() => { setViewState(ViewState.LIST); setSelectedJobId(null); }}
+                                onClick={() => { 
+                                    onIntentionalListClick?.();
+                                    setViewState(ViewState.LIST); 
+                                    setSelectedJobId(null); 
+                                }}
                                 className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap ${viewState === ViewState.LIST ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                             >
                                 {t('nav.offers')}
@@ -110,15 +117,25 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 {t('nav.profile')}
                             </button>
                             <button
-                                onClick={() => { console.log("🔄 [Header] Switching to MARKETPLACE"); setViewState(ViewState.MARKETPLACE); }}
+                                onClick={() => { 
+                                    console.log("🔄 [Header] Switching to MARKETPLACE"); 
+                                    setViewState(ViewState.MARKETPLACE);
+                                    // Don't clear selectedJobId - that would trigger path restoration
+                                }}
                                 className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.MARKETPLACE ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                title="Marketplace - kliknutelné"
                             >
                                 <ShoppingBag className="w-4 h-4" />
                                 {t('nav.marketplace')}
                             </button>
                             <button
-                                onClick={() => { console.log("🔄 [Header] Switching to SERVICES"); setViewState(ViewState.SERVICES); }}
+                                onClick={() => { 
+                                    console.log("🔄 [Header] Switching to SERVICES"); 
+                                    setViewState(ViewState.SERVICES);
+                                    // Don't clear selectedJobId - that would trigger path restoration
+                                }}
                                 className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.SERVICES ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                title="Services - kliknutelné"
                             >
                                 <Handshake className="w-4 h-4" />
                                 {t('nav.services')}
@@ -131,7 +148,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 setShowCompanyLanding(false);
                                 setViewState(ViewState.LIST);
                             } else if (userProfile.isLoggedIn) {
-                                if (userProfile.role === 'recruiter') {
+                                // Check if they are a freelancer FIRST
+                                if (companyProfile?.industry === 'Freelancer') {
+                                    // Freelancer - show freelancer dashboard
+                                    setViewState(ViewState.FREELANCER_DASHBOARD);
+                                } else if (userProfile.role === 'recruiter') {
+                                    // Regular recruiter/company
                                     if (companyProfile) {
                                         setViewState(ViewState.COMPANY_DASHBOARD);
                                     } else {
@@ -139,6 +161,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                         setIsOnboardingCompany(true);
                                     }
                                 } else {
+                                    // Not logged in as recruiter, show company landing
                                     setShowCompanyLanding(true);
                                 }
                             } else {

@@ -114,6 +114,9 @@ export default function App() {
     const hasAutoEnabledCommuteFilter = useRef(false);
     const deferredAutoEnableRef = useRef(false);
 
+    // Track if user intentionally clicked on LIST (to prevent NavRestore from auto-restoring dashboard)
+    const userIntentionallyClickedListRef = useRef(false);
+
     // UI State
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isOnboardingCompany, setIsOnboardingCompany] = useState(false);
@@ -327,11 +330,13 @@ export default function App() {
 
     // RESTORE DASHBOARD VIEW STATE when navigating back to home (selectedJobId becomes null)
     // This fixes the issue where FreelancerDashboard doesn't load after returning from job details
+    // BUT: Only restore if we're coming from a job detail view, NOT from other views like MARKETPLACE
     useEffect(() => {
         if (selectedJobId === null && userProfile.isLoggedIn && userProfile.role === 'recruiter') {
             // User has navigated away from job detail view back to home
             // If viewState is LIST and they should be in a dashboard, restore it
-            if (viewState === ViewState.LIST) {
+            // CRITICAL: Only restore if we were previously viewing a job detail (not MARKETPLACE/SERVICES)
+            if (viewState === ViewState.LIST && !userIntentionallyClickedListRef.current) {
                 // Check if they are a freelancer or regular recruiter
                 console.log("🔄 [NavRestore] Checking profile to restore dashboard. companyProfile:", {
                     id: companyProfile?.id,
@@ -347,7 +352,14 @@ export default function App() {
                     setViewState(ViewState.COMPANY_DASHBOARD);
                     console.log("✅ Restored COMPANY_DASHBOARD after returning from job detail");
                 }
+            } else if (userIntentionallyClickedListRef.current && viewState !== ViewState.LIST) {
+                // User clicked LIST button, ensure we stay on LIST
+                setViewState(ViewState.LIST);
+                console.log("✅ Staying on LIST after user clicked the button");
             }
+            
+            // Reset the flag for next navigation
+            userIntentionallyClickedListRef.current = false;
         }
     }, [selectedJobId, userProfile.isLoggedIn, userProfile.role, viewState, companyProfile?.industry]);
 
@@ -1090,6 +1102,7 @@ export default function App() {
                 toggleTheme={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
                 theme={theme}
                 setIsOnboardingCompany={setIsOnboardingCompany}
+                onIntentionalListClick={() => { userIntentionallyClickedListRef.current = true; }}
             />
 
             <main className="flex-1 max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 overflow-hidden">
