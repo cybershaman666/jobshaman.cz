@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Euro, Car, Home, TrendingUp, Calculator, Info, ChevronDown, ChevronUp, Bus, Bike, Footprints, Zap, TrendingDown } from 'lucide-react';
 import { FinancialReality } from '../types';
 
@@ -17,6 +18,7 @@ const FinancialRealityComponent: React.FC<FinancialRealityComponentProps> = ({
   error = null
 }) => {
   const [showMethodology, setShowMethodology] = useState(false);
+  const { t } = useTranslation();
 
 
   if (isLoading) {
