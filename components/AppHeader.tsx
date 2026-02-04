@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     Briefcase,
     Sun,
     Moon,
-    LogOut,
     UserCircle,
     ShoppingBag,
     Handshake,
     Menu,
-    X
+    X,
+    User,
+    ArrowLeftRight,
+    LogOut
 } from 'lucide-react';
 import { ViewState, UserProfile, CompanyProfile } from '../types';
 import SubscriptionStatusBadge from './SubscriptionStatusBadge';
@@ -46,6 +48,19 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 }) => {
     const { t, i18n } = useTranslation();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [profileMenuOpen, setProfileMenuOpen] = useState(false);
+    const profileMenuRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        if (!profileMenuOpen) return;
+        const handleClickOutside = (event: MouseEvent) => {
+            if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+                setProfileMenuOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [profileMenuOpen]);
 
     const languages = [
         { code: 'cs', name: 'CZ', flag: '🇨🇿' },
@@ -94,7 +109,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                             className="w-6 h-6 bg-transparent"
                         />
                     </div>
-                    <span className="text-lg sm:text-xl font-bold tracking-tight hidden sm:block"><span className="text-cyan-600 dark:text-cyan-400">JobShaman</span></span>
+                    <span className="text-lg sm:text-xl font-bold tracking-tight hidden sm:block">
+                        <span className="text-slate-900 dark:text-white">Job</span>
+                        <span className="text-cyan-600 dark:text-cyan-400">Shaman</span>
+                    </span>
                 </div>
 
                 {/* Mobile Menu Button */}
@@ -121,12 +139,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap ${viewState === ViewState.LIST ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                             >
                                 {t('nav.offers')}
-                            </button>
-                            <button
-                                onClick={() => userProfile.isLoggedIn ? setViewState(ViewState.PROFILE) : handleAuthAction()}
-                                className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap ${viewState === ViewState.PROFILE ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'} ${userProfile.role === 'recruiter' ? 'hidden' : ''}`}
-                            >
-                                {t('nav.profile')}
                             </button>
                             <button
                                 onClick={() => { 
@@ -226,20 +238,69 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
 
                         {userProfile.isLoggedIn ? (
-                            <div className="flex items-center gap-3 pl-2">
+                            <div className="flex items-center gap-3 pl-2" ref={profileMenuRef}>
+                                <button
+                                    onClick={() => setProfileMenuOpen((prev) => !prev)}
+                                    className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-500 hover:ring-2 hover:ring-cyan-500/40 transition-all"
+                                    title={t('nav.profile')}
+                                >
+                                    {userProfile.photo ? (
+                                        <img src={userProfile.photo} alt={userProfile.name} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span>{userProfile.name?.charAt(0) || 'U'}</span>
+                                    )}
+                                </button>
                                 <div className="text-right hidden md:block">
                                     <div className="text-sm font-bold text-slate-900 dark:text-white leading-none mb-1">{userProfile.name}</div>
                                     <div className="flex items-center gap-2">
                                         <SubscriptionStatusBadge userId={userProfile.id} />
                                     </div>
                                 </div>
-                                <button
-                                    onClick={handleAuthAction}
-                                    className="text-slate-400 hover:text-rose-500 transition-colors"
-                                    title={t('header.logout')}
-                                >
-                                    <LogOut size={20} />
-                                </button>
+                                {profileMenuOpen && (
+                                    <div className="absolute right-4 top-[64px] w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-2 z-50">
+                                        {userProfile.role !== 'recruiter' && (
+                                            <button
+                                                onClick={() => {
+                                                    setViewState(ViewState.PROFILE);
+                                                    setProfileMenuOpen(false);
+                                                }}
+                                                className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                                            >
+                                                <User size={16} />
+                                                {t('header.open_profile', { defaultValue: t('nav.profile') })}
+                                            </button>
+                                        )}
+                                        {userProfile.role !== 'recruiter' && (
+                                            <button
+                                                onClick={() => {
+                                                    if (viewState === ViewState.FREELANCER_DASHBOARD) {
+                                                        setViewState(ViewState.PROFILE);
+                                                    } else {
+                                                        setViewState(ViewState.FREELANCER_DASHBOARD);
+                                                    }
+                                                    setProfileMenuOpen(false);
+                                                }}
+                                                className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
+                                            >
+                                                <ArrowLeftRight size={16} />
+                                                {viewState === ViewState.FREELANCER_DASHBOARD
+                                                    ? t('header.switch_to_candidate', { defaultValue: 'Přepnout na uchazeče' })
+                                                    : t('header.switch_to_freelancer', { defaultValue: 'Přepnout na freelancera' })}
+                                            </button>
+                                        )}
+                                        <div className="my-1 h-px bg-slate-200 dark:bg-slate-800"></div>
+                                        <button
+                                            onClick={() => {
+                                                setProfileMenuOpen(false);
+                                                handleAuthAction();
+                                            }}
+                                            className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center gap-2"
+                                        >
+                                            <LogOut size={16} />
+                                            {t('header.logout')}
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <button
@@ -270,15 +331,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all ${viewState === ViewState.LIST ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                                 >
                                     {t('nav.offers')}
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        userProfile.isLoggedIn ? setViewState(ViewState.PROFILE) : handleAuthAction();
-                                        setMobileMenuOpen(false);
-                                    }}
-                                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all ${viewState === ViewState.PROFILE ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'} ${userProfile.role === 'recruiter' ? 'hidden' : ''}`}
-                                >
-                                    {t('nav.profile')}
                                 </button>
                                 <button
                                     onClick={() => { 

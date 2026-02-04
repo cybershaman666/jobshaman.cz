@@ -96,7 +96,7 @@
     "saved": "Gespeichert",
     "profile": "Profil",
     "marketplace": "Bildung",
-    "services": "Services & Zusammenarbeit",
+    "services": "Aufträge",
     "for_companies": "Für Unternehmen",
     "back": "Zurück",
     "home": "Home",
@@ -334,7 +334,12 @@
     "swiped_count": "Du hast {{count}} Jobs durchgesehen",
     "start_over": "Neu starten",
     "remove_save": "Von Gespeicherten entfernen",
-    "transparent_eu": "EU-Transparent"
+    "transparent_eu": "EU-Transparent",
+    "swipe_tutorial_title": "So funktioniert das Swipen",
+    "swipe_tutorial_desc": "Nach rechts wischen zum Speichern, nach links zum Überspringen.",
+    "swipe_tutorial_cta": "Verstanden",
+    "list_view": "Listenansicht",
+    "swipe_view": "Swipe-Ansicht"
   },
   "profile": {
     "personal_info": "Persönliche Informationen",
@@ -418,7 +423,10 @@
     "terms": "Nutzungsbedingungen",
     "privacy": "Datenschutz",
     "toggle_theme": "Thema umschalten",
-    "logout": "Abmelden"
+    "logout": "Abmelden",
+    "switch_to_freelancer": "Zu Freelancer wechseln",
+    "switch_to_candidate": "Zu Bewerber wechseln",
+    "open_profile": "Profil öffnen"
   },
   "seo": {
     "base_title": "JobShaman - Intelligente Stellenangebote in Tschechien",
@@ -1083,7 +1091,7 @@
       "benefit_4": "Traffic statistics"
     },
     "marketplace": {
-      "title": "Services & Cooperation",
+      "title": "Aufträge",
       "subtitle": "Find experts for your project or offer your services.",
       "search_placeholder": "Search services, freelancers...",
       "offer_service": "Offer Service",

@@ -127,6 +127,8 @@ export default function App() {
     const [commuteAnalysis, setCommuteAnalysis] = useState<CommuteAnalysis | null>(null);
     const [showFinancialMethodology, setShowFinancialMethodology] = useState(false);
     const [isMobileSwipeView, setIsMobileSwipeView] = useState(false);
+    const [isMobileScreen, setIsMobileScreen] = useState(false);
+    const [mobileViewOverride, setMobileViewOverride] = useState<'swipe' | 'list' | null>(null);
     const [openedFromSwipe, setOpenedFromSwipe] = useState(false);
 
 
@@ -188,13 +190,22 @@ export default function App() {
     useEffect(() => {
         const handleResize = () => {
             const isMobile = window.innerWidth < 1024; // lg breakpoint
-            setIsMobileSwipeView(isMobile && userProfile.isLoggedIn);
+            setIsMobileScreen(isMobile);
+            if (!isMobile) {
+                setIsMobileSwipeView(false);
+                return;
+            }
+            if (mobileViewOverride) {
+                setIsMobileSwipeView(mobileViewOverride === 'swipe');
+            } else {
+                setIsMobileSwipeView(userProfile.isLoggedIn);
+            }
         };
 
         handleResize(); // Check on mount
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
-    }, [userProfile.isLoggedIn]);
+    }, [userProfile.isLoggedIn, mobileViewOverride]);
 
     const selectedJob = filteredJobs.find(j => j.id === selectedJobId) || directlyFetchedJob;
 
@@ -1022,6 +1033,10 @@ export default function App() {
                             savedJobIds={savedJobIds}
                             onToggleSave={handleToggleSave}
                             onOpenDetails={handleOpenJobDetailsFromSwipe}
+                            onSwitchToList={() => {
+                                setMobileViewOverride('list');
+                                setIsMobileSwipeView(false);
+                            }}
                             isLoadingMore={loadingMore}
                             hasMore={hasMore}
                             onLoadMore={loadMoreJobs}
@@ -1030,6 +1045,19 @@ export default function App() {
                     </div>
                 ) : (
                     <>
+                        {isMobileScreen && userProfile.isLoggedIn && (
+                            <div className="lg:hidden px-3 pt-2">
+                                <button
+                                    onClick={() => {
+                                        setMobileViewOverride('swipe');
+                                        setIsMobileSwipeView(true);
+                                    }}
+                                    className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 text-sm font-semibold shadow-sm hover:bg-white dark:hover:bg-slate-900 transition-colors"
+                                >
+                                    {t('job.swipe_view') || 'Swipe view'}
+                                </button>
+                            </div>
+                        )}
                         {/* DESKTOP VIEW: LEFT COLUMN: Sidebar (Fixed Filters + Scrollable List) */}
                         <JobListSidebar
                             selectedJobId={selectedJobId}
