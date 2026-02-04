@@ -35,7 +35,7 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
     const [inquiries, setInquiries] = useState<any[]>([]);
     const [loadingInquiries, setLoadingInquiries] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
-    const [editingServiceId, setEditingServiceId] = useState<number | null>(null);
+    const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
     const [isCreatingPortfolio, setIsCreatingPortfolio] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(false);
     const [freelancerProfile, setFreelancerProfile] = useState<any | null>(null);
