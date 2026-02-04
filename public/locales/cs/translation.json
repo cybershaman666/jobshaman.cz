@@ -59,6 +59,7 @@
     "reality_title": "Finanční Realita",
     "unlock_title": "Odemkněte Finanční Realitu",
     "unlock_desc": "Přihlaste se a zjistěte, kolik vám skutečně zbude v kapse po odečtení daní a dojezdu.",
+    "unlock_commute_address": "Pro odemčení dojezdové reality je nutné vyplnit adresu ve svém profilu.",
     "login_button": "Přihlásit se",
     "missing_address": "Chybí nám startovní bod",
     "set_address_desc": "Nastavte svou adresu v profilu, abychom mohli spočítat čas a náklady na cestu.",

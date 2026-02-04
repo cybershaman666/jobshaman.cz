@@ -79,6 +79,9 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                     <p className="text-slate-400 max-w-sm mb-6 text-sm">
                         {t('financial.unlock_desc')}
                     </p>
+                    <p className="text-slate-500 max-w-sm mb-6 text-xs">
+                        {t('financial.unlock_commute_address')}
+                    </p>
                     <button onClick={handleAuthAction} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold transition-colors">
                         {t('financial.login_button')}
                     </button>
@@ -92,6 +95,9 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                     <h4 className="text-white font-bold text-lg mb-2">{t('financial.missing_address')}</h4>
                     <p className="text-slate-400 max-w-sm mb-6 text-sm">
                         {t('financial.set_address_desc')}
+                    </p>
+                    <p className="text-slate-500 max-w-sm mb-6 text-xs">
+                        {t('financial.unlock_commute_address')}
                     </p>
                     <button onClick={() => setViewState(ViewState.PROFILE)} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold transition-colors">
                         {t('financial.set_address_button')}
