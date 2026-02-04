@@ -195,7 +195,7 @@ const FinancialRealityComponent: React.FC<FinancialRealityComponentProps> = ({
         >
           <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
           <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Jak se počítají JHI a doprava?
+            {t('financial.methodology.title') || 'Jak se počítají JHI a doprava?'}
           </span>
           {showMethodology ? (
             <ChevronUp className="w-4 h-4 ml-auto text-slate-600 dark:text-slate-400 flex-shrink-0" />
@@ -211,32 +211,32 @@ const FinancialRealityComponent: React.FC<FinancialRealityComponentProps> = ({
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Zap className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
-                <h5 className="font-bold text-slate-900 dark:text-white">JHI Score - Job Health Index</h5>
+                <h5 className="font-bold text-slate-900 dark:text-white">{t('financial.methodology.jhi_title') || 'JHI Score - Job Health Index'}</h5>
               </div>
               <p className="text-sm text-slate-700 dark:text-slate-300 mb-3">
-                Číselný index který měří "zdraví" konkrétní pracovní nabídky. Počítá se z mnoha faktorů:
+                {t('financial.methodology.jhi_desc') || 'Číselný index který měří \"zdraví\" konkrétní pracovní nabídky. Počítá se z mnoha faktorů:'}
               </p>
               <div className="space-y-2 ml-4">
                 <div className="text-sm text-slate-700 dark:text-slate-300">
-                  <strong>Finanční dopad (Financial):</strong> Jak mzda + benefity - doprava ovlivní vaše celkové příjmy
+                  <strong>{t('financial.methodology.pillar_financial_title') || 'Finanční dopad (Financial):'}</strong> {t('financial.methodology.pillar_financial_desc') || 'Jak mzda + benefity - doprava ovlivní vaše celkové příjmy'}
                 </div>
                 <div className="text-sm text-slate-700 dark:text-slate-300">
-                  <strong>Čas:</strong> Jak se změny v dojížďce a typu práce (remote/hybrid/on-site) odrazí na vašem volném čase
+                  <strong>{t('financial.methodology.pillar_time_title') || 'Čas:'}</strong> {t('financial.methodology.pillar_time_desc') || 'Jak se změny v dojížďce a typu práce (remote/hybrid/on-site) odrazí na vašem volném čase'}
                 </div>
                 <div className="text-sm text-slate-700 dark:text-slate-300">
-                  <strong>Psychická zátěž:</strong> Slova jako "dynamické prostředí", "na sobě závislý", "stres" snižují skóre
+                  <strong>{t('financial.methodology.pillar_mental_title') || 'Psychická zátěž:'}</strong> {t('financial.methodology.pillar_mental_desc') || 'Slova jako \"dynamické prostředí\", \"na sobě závislý\", \"stres\" snižují skóre'}
                 </div>
                 <div className="text-sm text-slate-700 dark:text-slate-300">
-                  <strong>Růst a rozvoj:</strong> Školení, kurzy a vzdělávání zvyšují skóre
+                  <strong>{t('financial.methodology.pillar_growth_title') || 'Růst a rozvoj:'}</strong> {t('financial.methodology.pillar_growth_desc') || 'Školení, kurzy a vzdělávání zvyšují skóre'}
                 </div>
               </div>
 
               <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded border border-yellow-200 dark:border-yellow-800">
                 <p className="text-sm text-yellow-900 dark:text-yellow-200">
-                  <strong>Vzorec dopadu dopravy:</strong> Procent změny příjmu z dopravy × 1.5 = JHI body
+                  <strong>{t('financial.methodology.jhi_formula_title') || 'Vzorec dopadu dopravy:'}</strong> {t('financial.methodology.jhi_formula') || 'Procent změny příjmu z dopravy × 1.5 = JHI body'}
                 </p>
                 <p className="text-xs text-yellow-800 dark:text-yellow-300 mt-2">
-                  Příklad: Pokud doprava sníží čistý příjem o 1%, JHI klesne o ~1.5 bodů. Kappován na -20 až +15 bodů.
+                  {t('financial.methodology.jhi_example_long') || 'Příklad: Pokud doprava sníží čistý příjem o 1%, JHI klesne o ~1.5 bodů. Kappován na -20 až +15 bodů.'}
                 </p>
               </div>
             </div>
@@ -245,10 +245,10 @@ const FinancialRealityComponent: React.FC<FinancialRealityComponentProps> = ({
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <Car className="w-5 h-5 text-red-600 dark:text-red-400" />
-                <h5 className="font-bold text-slate-900 dark:text-white">Výpočet Ceny Dopravy</h5>
+                <h5 className="font-bold text-slate-900 dark:text-white">{t('financial.methodology.transport_title') || 'Výpočet Ceny Dopravy'}</h5>
               </div>
               <p className="text-sm text-slate-700 dark:text-slate-300 mb-3">
-                Systém počítá s vašou preferovanou dopravou a bezvýsledně sníží náklady:
+                {t('financial.methodology.transport_desc') || 'Systém počítá s vašou preferovanou dopravou a bezvýsledně sníží náklady:'}
               </p>
 
               <div className="space-y-3">
@@ -256,7 +256,7 @@ const FinancialRealityComponent: React.FC<FinancialRealityComponentProps> = ({
                 <div className="border-l-4 border-red-600 pl-3">
                   <div className="flex items-center gap-2 mb-1">
                     <Car className="w-4 h-4 text-red-600" />
-                    <span className="font-semibold text-slate-900 dark:text-white text-sm">Autem</span>
+                    <span className="font-semibold text-slate-900 dark:text-white text-sm">{t('financial.methodology.transport_car_title') || 'Autem'}</span>
                   </div>
                   <p className="text-xs text-slate-700 dark:text-slate-300">
                     5 CZK/km × vzdálenost × 2 (tam+zpět) × 22 pracovních dnů
@@ -270,10 +270,10 @@ const FinancialRealityComponent: React.FC<FinancialRealityComponentProps> = ({
                 <div className="border-l-4 border-blue-600 pl-3">
                   <div className="flex items-center gap-2 mb-1">
                     <Bus className="w-4 h-4 text-blue-600" />
-                    <span className="font-semibold text-slate-900 dark:text-white text-sm">Veřejná doprava (MHD)</span>
+                    <span className="font-semibold text-slate-900 dark:text-white text-sm">{t('financial.methodology.transport_public_title') || 'Veřejná doprava (MHD)'}</span>
                   </div>
                   <p className="text-xs text-slate-700 dark:text-slate-300 mb-1">
-                    <strong>Město-specifická letenka (preferováno):</strong> Praha 1500 Kč, Brno 1300 Kč, Plzeň 1000 Kč...
+                  <strong>{t('financial.methodology.transport_public_example_title') || 'Město-specifická letenka (preferováno):'}</strong> {t('financial.methodology.transport_public_example') || 'Praha 1500 Kč, Brno 1300 Kč, Plzeň 1000 Kč...'}
                   </p>
                   <p className="text-xs text-slate-700 dark:text-slate-300">
                     <strong>Nebo lineární:</strong> 2.5 CZK/km × vzdálenost × 2 × 22 dnů

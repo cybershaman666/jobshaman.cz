@@ -205,7 +205,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                                 className="w-full flex items-center gap-2 px-3 py-2 rounded text-slate-300 hover:bg-slate-800/50 transition-colors text-xs font-semibold"
                             >
                                 <Info size={14} className="text-blue-400 flex-shrink-0" />
-                                <span>Jak se počítá JHI a doprava?</span>
+                                <span>{t('financial.methodology.title') || 'Jak se počítá JHI a doprava?'}</span>
                                 {showFinancialMethodology ? (
                                     <ChevronUp size={12} className="ml-auto text-slate-500" />
                                 ) : (
@@ -218,32 +218,33 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                                     {/* JHI Explanation */}
                                     <div>
                                         <div className="font-bold text-white mb-1 flex items-center gap-1">
-                                            <Zap size={11} className="text-yellow-400" /> JHI Impact Formula
+                                            <Zap size={11} className="text-yellow-400" /> {t('financial.methodology.jhi_title') || 'JHI Impact Formula'}
                                         </div>
                                         <p className="text-slate-400">
-                                            Procent změny příjmu z dopravy × 1.5 = JHI body<br />
-                                            <span className="text-[10px]">Příklad: Pokud doprava sníží příjem o 1%, JHI klesne o ~1.5 bodů</span>
+                                            {t('financial.methodology.jhi_formula') || 'Procent změny příjmu z dopravy × 1.5 = JHI body'}
+                                            <br />
+                                            <span className="text-[10px]">{t('financial.methodology.jhi_example') || 'Příklad: Pokud doprava sníží příjem o 1%, JHI klesne o ~1.5 bodů'}</span>
                                         </p>
                                     </div>
 
                                     {/* Transport Costs */}
                                     <div>
                                         <div className="font-bold text-white mb-1 flex items-center gap-1">
-                                            <Bus size={11} className="text-blue-400" /> Výpočet Dopravy
+                                            <Bus size={11} className="text-blue-400" /> {t('financial.methodology.transport_title') || 'Výpočet Dopravy'}
                                         </div>
                                         <div className="space-y-1 text-slate-400 text-[10px]">
-                                            <div>🚗 Auto: 5 CZK/km × 2 × 22 dnů</div>
-                                            <div>🚌 MHD: Město letenka (Praha 1500 Kč) - nejlevnější</div>
-                                            <div>🚴 Kolo: 0.05 CZK/km × 2 × 22 dnů</div>
-                                            <div>🚶 Pěšky: 0 Kč (zdarma)</div>
+                                            <div>{t('financial.methodology.transport_car') || '🚗 Auto: 5 CZK/km × 2 × 22 dnů'}</div>
+                                            <div>{t('financial.methodology.transport_public') || '🚌 MHD: Město letenka (Praha 1500 Kč) - nejlevnější'}</div>
+                                            <div>{t('financial.methodology.transport_bike') || '🚴 Kolo: 0.05 CZK/km × 2 × 22 dnů'}</div>
+                                            <div>{t('financial.methodology.transport_walk') || '🚶 Pěšky: 0 Kč (zdarma)'}</div>
                                         </div>
                                     </div>
 
                                     {/* Final Calculation */}
                                     <div>
-                                        <div className="font-bold text-white mb-1">Vzorec Čisté Reality</div>
+                                        <div className="font-bold text-white mb-1">{t('financial.methodology.final_title') || 'Vzorec Čisté Reality'}</div>
                                         <p className="text-slate-400 text-[10px]">
-                                            Čistý základ + Benefity - Doprava = Reálný Příjem
+                                            {t('financial.methodology.final_formula') || 'Čistý základ + Benefity - Doprava = Reálný Příjem'}
                                         </p>
                                     </div>
                                 </div>

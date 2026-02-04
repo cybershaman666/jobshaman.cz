@@ -75,7 +75,36 @@
     "per_month": "měsíc",
     "gross_monthly": "Hrubá měsíční mzda",
     "reality_vs_income": "Čistý Příjem vs Realita",
-    "ai_estimation_hint": "Odhad AI (mzda není uvedena)"
+    "ai_estimation_hint": "Odhad AI (mzda není uvedena)",
+    "methodology": {
+      "title": "Jak se počítá JHI a doprava?",
+      "jhi_title": "JHI Impact Formula",
+      "jhi_formula": "Procent změny příjmu z dopravy × 1.5 = JHI body",
+      "jhi_example": "Příklad: Pokud doprava sníží příjem o 1%, JHI klesne o ~1.5 bodů",
+      "transport_title": "Výpočet Dopravy",
+      "transport_car": "🚗 Auto: 5 Kč/km × 2 × 22 dnů",
+      "transport_public": "🚌 MHD: měsíční kupon (Praha 1500 Kč) - nejlevnější",
+      "transport_bike": "🚴 Kolo: 0.05 Kč/km × 2 × 22 dnů",
+      "transport_walk": "🚶 Pěšky: 0 Kč (zdarma)",
+      "final_title": "Vzorec Čisté Reality",
+      "final_formula": "Čistý základ + Benefity - Doprava = Reálný Příjem",
+      "jhi_desc": "Číselný index který měří \"zdraví\" konkrétní pracovní nabídky. Počítá se z mnoha faktorů:",
+      "pillar_financial_title": "Finanční dopad (Financial):",
+      "pillar_financial_desc": "Jak mzda + benefity - doprava ovlivní vaše celkové příjmy",
+      "pillar_time_title": "Čas:",
+      "pillar_time_desc": "Jak se změny v dojížďce a typu práce (remote/hybrid/on-site) odrazí na vašem volném čase",
+      "pillar_mental_title": "Psychická zátěž:",
+      "pillar_mental_desc": "Slova jako \"dynamické prostředí\", \"na sobě závislý\", \"stres\" snižují skóre",
+      "pillar_growth_title": "Růst a rozvoj:",
+      "pillar_growth_desc": "Školení, kurzy a vzdělávání zvyšují skóre",
+      "jhi_formula_title": "Vzorec dopadu dopravy:",
+      "jhi_example_long": "Příklad: Pokud doprava sníží čistý příjem o 1%, JHI klesne o ~1.5 bodů. Kappován na -20 až +15 bodů.",
+      "transport_desc": "Systém počítá s vašou preferovanou dopravou a bezvýsledně sníží náklady:",
+      "transport_car_title": "Autem",
+      "transport_public_title": "Veřejná doprava (MHD)",
+      "transport_public_example_title": "Město-specifická letenka (preferováno):",
+      "transport_public_example": "Praha 1500 Kč, Brno 1300 Kč, Plzeň 1000 Kč..."
+    }
   },
   "job_detail": {
     "benefits_title": "Benefity a výhody",
@@ -363,7 +392,7 @@
     "remove_save": "Odstranit z uložených",
     "transparent_eu": "EU Transparentní",
     "swipe_tutorial_title": "Jak funguje swipování",
-    "swipe_tutorial_desc": "Táhni kartu doprava pro uložení, doleva pro přeskočení.",
+    "swipe_tutorial_desc": "Táhni kartu doleva pro zamítnutí, doprava pro uložení.",
     "swipe_tutorial_cta": "Rozumím",
     "list_view": "Klasické zobrazení",
     "swipe_view": "Swipe zobrazení"
@@ -1269,7 +1298,10 @@
       "benefit_1": "Neomezený počet služeb",
       "benefit_2": "Prioritní řazení v katalogu",
       "benefit_3": "Odznak 'Ověřený Freelancer'",
-      "benefit_4": "Statistiky návštěvnosti"
+      "benefit_4": "Statistiky návštěvnosti",
+      "register_title": "Staňte se freelancerem",
+      "register_desc": "Pro vytvoření freelancer profilu je potřeba krátká registrace (IČO a základní údaje).",
+      "register_cta": "Zaregistrovat se jako freelancer"
     },
     "marketplace": {
       "title": "Zakázky",

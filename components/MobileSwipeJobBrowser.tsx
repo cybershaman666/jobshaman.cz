@@ -362,7 +362,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                     {t('job.swipe_tutorial_title') || 'Jak funguje swipování'}
                                 </div>
                                 <div className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                                    {t('job.swipe_tutorial_desc') || 'Táhni kartu doprava pro uložení, doleva pro přeskočení.'}
+                                    {t('job.swipe_tutorial_desc') || 'Táhni kartu doleva pro zamítnutí, doprava pro uložení.'}
                                 </div>
                                 <div className="relative h-16 mb-4 flex items-center justify-center">
                                     <motion.div
