@@ -77,7 +77,36 @@
     "per_month": "mesiac",
     "gross_monthly": "Hrubá mesačná mzda",
     "reality_vs_income": "Čistý Príjem vs Realita",
-    "ai_estimation_hint": "Odhad AI (mzda nie je uvedená)"
+    "ai_estimation_hint": "Odhad AI (mzda nie je uvedená)",
+    "methodology": {
+      "title": "Ako sa počíta JHI a doprava?",
+      "jhi_title": "JHI Impact Formula",
+      "jhi_formula": "Percentuálna zmena príjmu z dopravy × 1.5 = JHI body",
+      "jhi_example": "Príklad: Ak doprava zníži príjem o 1 %, JHI klesne o ~1.5 bodu",
+      "transport_title": "Výpočet dopravy",
+      "transport_car": "🚗 Auto: 0.20 €/km × 2 × 22 dní",
+      "transport_public": "🚌 MHD: mesačný lístok (Bratislava 30 €) - najlacnejší",
+      "transport_bike": "🚴 Bicykel: 0.05 €/km × 2 × 22 dní",
+      "transport_walk": "🚶 Pešo: 0 € (zadarmo)",
+      "final_title": "Vzorec čistej reality",
+      "final_formula": "Čistý základ + benefity - doprava = reálny príjem",
+      "jhi_desc": "Číselný index, ktorý meria \"zdravie\" konkrétnej pracovnej ponuky. Počíta sa z viacerých faktorov:",
+      "pillar_financial_title": "Finančný dopad (Financial):",
+      "pillar_financial_desc": "Ako mzda + benefity - doprava ovplyvní vaše celkové príjmy",
+      "pillar_time_title": "Čas:",
+      "pillar_time_desc": "Ako sa zmeny v dochádzaní a type práce (remote/hybrid/on-site) odrazia na vašom voľnom čase",
+      "pillar_mental_title": "Psychická záťaž:",
+      "pillar_mental_desc": "Slová ako \"dynamické prostredie\", \"na sebe závislý\", \"stres\" znižujú skóre",
+      "pillar_growth_title": "Rast a rozvoj:",
+      "pillar_growth_desc": "Školenia, kurzy a vzdelávanie zvyšujú skóre",
+      "jhi_formula_title": "Vzorec dopadu dopravy:",
+      "jhi_example_long": "Príklad: Ak doprava zníži čistý príjem o 1 %, JHI klesne o ~1.5 bodu. Kappované na -20 až +15 bodov.",
+      "transport_desc": "Systém počíta s vašou preferovanou dopravou a zohľadní najnižšie náklady:",
+      "transport_car_title": "Autom",
+      "transport_public_title": "Verejná doprava (MHD)",
+      "transport_public_example_title": "Mesto-špecifický lístok (preferované):",
+      "transport_public_example": "Bratislava 30 €..."
+    }
   },
   "job_detail": {
     "benefits_title": "Benefity a výhody",
@@ -327,7 +356,7 @@
     "remove_save": "Odstrániť z uložených",
     "transparent_eu": "EÚ Transparentné",
     "swipe_tutorial_title": "Ako funguje swipovanie",
-    "swipe_tutorial_desc": "Potiahni kartu doprava pre uloženie, doľava pre preskočenie.",
+    "swipe_tutorial_desc": "Potiahni kartu doľava pre zamietnutie, doprava pre uloženie.",
     "swipe_tutorial_cta": "Rozumiem",
     "list_view": "Klasické zobrazenie",
     "swipe_view": "Swipe zobrazenie"
@@ -1160,7 +1189,10 @@
       "benefit_1": "Unlimited services",
       "benefit_2": "Priority listing",
       "benefit_3": "'Verified Freelancer' badge",
-      "benefit_4": "Traffic statistics"
+      "benefit_4": "Traffic statistics",
+      "register_title": "Staňte sa freelancerom",
+      "register_desc": "Na vytvorenie freelancer profilu je potrebná krátka registrácia (IČO a základné údaje).",
+      "register_cta": "Zaregistrovať sa ako freelancer"
     },
     "marketplace": {
       "title": "Zákazky",

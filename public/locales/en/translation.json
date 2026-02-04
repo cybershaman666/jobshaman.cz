@@ -75,7 +75,36 @@
     "per_month": "month",
     "gross_monthly": "Gross Monthly Wage",
     "reality_vs_income": "Net Income vs Reality",
-    "ai_estimation_hint": "AI Estimate (wage not specified)"
+    "ai_estimation_hint": "AI Estimate (wage not specified)",
+    "methodology": {
+      "title": "How JHI and transport are calculated",
+      "jhi_title": "JHI Impact Formula",
+      "jhi_formula": "Percent change in income from commute × 1.5 = JHI points",
+      "jhi_example": "Example: If commute reduces income by 1%, JHI drops by ~1.5 points",
+      "transport_title": "Transport Calculation",
+      "transport_car": "🚗 Car: €0.20/km × 2 × 22 days",
+      "transport_public": "🚌 Public transport: monthly pass (Berlin €49) - cheapest",
+      "transport_bike": "🚴 Bike: €0.05/km × 2 × 22 days",
+      "transport_walk": "🚶 Walk: €0 (free)",
+      "final_title": "Net Reality Formula",
+      "final_formula": "Net base + Benefits - Commute = Real Income",
+      "jhi_desc": "A numeric index that measures the \"health\" of a job offer. It is calculated from multiple factors:",
+      "pillar_financial_title": "Financial impact:",
+      "pillar_financial_desc": "How salary + benefits - commute affects your total income",
+      "pillar_time_title": "Time:",
+      "pillar_time_desc": "How commuting and work type (remote/hybrid/on-site) affects your free time",
+      "pillar_mental_title": "Mental load:",
+      "pillar_mental_desc": "Words like \"fast-paced\", \"stress\" or \"high pressure\" reduce the score",
+      "pillar_growth_title": "Growth & development:",
+      "pillar_growth_desc": "Training, courses and education increase the score",
+      "jhi_formula_title": "Commute impact formula:",
+      "jhi_example_long": "Example: If commute reduces net income by 1%, JHI drops by ~1.5 points. Capped to -20 to +15 points.",
+      "transport_desc": "The system uses your preferred transport and applies the lowest cost option:",
+      "transport_car_title": "By car",
+      "transport_public_title": "Public transport",
+      "transport_public_example_title": "City pass (preferred):",
+      "transport_public_example": "Berlin €49..."
+    }
   },
   "job_detail": {
     "benefits_title": "Benefits and Advantages",
@@ -336,7 +365,7 @@
     "remove_save": "Remove from Saved",
     "transparent_eu": "EU Transparent",
     "swipe_tutorial_title": "How swiping works",
-    "swipe_tutorial_desc": "Swipe right to save, left to skip.",
+    "swipe_tutorial_desc": "Swipe left to reject, right to save.",
     "swipe_tutorial_cta": "Got it",
     "list_view": "List view",
     "swipe_view": "Swipe view"
@@ -1108,7 +1137,10 @@
       "benefit_1": "Unlimited services",
       "benefit_2": "Priority listing",
       "benefit_3": "'Verified Freelancer' badge",
-      "benefit_4": "Traffic statistics"
+      "benefit_4": "Traffic statistics",
+      "register_title": "Become a freelancer",
+      "register_desc": "To create a freelancer profile, a short registration is required (company ID and basic details).",
+      "register_cta": "Register as a freelancer"
     },
     "marketplace": {
       "title": "Projects",

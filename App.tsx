@@ -901,6 +901,26 @@ export default function App() {
         }
 
         if (viewState === ViewState.FREELANCER_DASHBOARD) {
+            if (!companyProfile) {
+                return (
+                    <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+                        <div className="max-w-xl mx-auto mt-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center shadow-sm">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                                {t('freelancer.dashboard.register_title') || 'Staňte se freelancerem'}
+                            </h2>
+                            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                                {t('freelancer.dashboard.register_desc') || 'Pro vytvoření freelancer profilu je potřeba krátká registrace (IČO a základní údaje).'}
+                            </p>
+                            <button
+                                onClick={() => setIsFreelancerRegistrationOpen(true)}
+                                className="px-5 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-colors"
+                            >
+                                {t('freelancer.dashboard.register_cta') || 'Zaregistrovat se jako freelancer'}
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
             return (
                 <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
                     <FreelancerDashboard
@@ -1180,15 +1200,6 @@ export default function App() {
                 onSuccess={() => {
                     setIsCompanyRegistrationOpen(false);
                     console.log('Company registration successful');
-                }}
-            />
-
-            <FreelancerRegistrationModal
-                isOpen={isFreelancerRegistrationOpen}
-                onClose={() => setIsFreelancerRegistrationOpen(false)}
-                onSuccess={() => {
-                    setIsFreelancerRegistrationOpen(false);
-                    window.location.reload();
                 }}
             />
 

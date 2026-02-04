@@ -15,6 +15,8 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
     const [pollingFinalize, setPollingFinalize] = useState(false);
+    const [isExistingUser, setIsExistingUser] = useState(false);
+    const [existingUserId, setExistingUserId] = useState<string | null>(null);
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -25,6 +27,42 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
         agreedToPrivacy: false
     });
     const [showPassword, setShowPassword] = useState(false);
+
+    React.useEffect(() => {
+        let isMounted = true;
+        const initialize = async () => {
+            try {
+                if (!supabase) return;
+                const { data, error } = await supabase.auth.getUser();
+                if (!isMounted) return;
+                if (!error && data?.user) {
+                    setIsExistingUser(true);
+                    setExistingUserId(data.user.id);
+                    setFormData(prev => ({
+                        ...prev,
+                        email: data.user.email || prev.email
+                    }));
+                    setStep(2);
+                } else {
+                    setIsExistingUser(false);
+                    setExistingUserId(null);
+                    setStep(1);
+                }
+            } catch {
+                if (!isMounted) return;
+                setIsExistingUser(false);
+                setExistingUserId(null);
+                setStep(1);
+            }
+        };
+        if (isOpen) {
+            setNeedsEmailConfirmation(false);
+            setPollingFinalize(false);
+            setIsSubmitting(false);
+            initialize();
+        }
+        return () => { isMounted = false; };
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -41,32 +79,43 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
         setIsSubmitting(true);
 
         try {
-            // 1. Sign up with Supabase Auth
+            // 1. Sign up with Supabase Auth (skip if user already logged in)
             if (!supabase) throw new Error("Supabase not initialized");
 
-            const { data: authData, error: authError } = await supabase.auth.signUp({
-                email: formData.email,
-                password: formData.password,
-                options: {
-                    data: {
-                        role: 'recruiter', // Freelancers share 'recruiter' role for now to access dashboard features
-                        company_name: formData.fullName, // Use personal name as company name
-                        ico: formData.ico,
-                        website: formData.website,
-                        is_freelancer: true // Flag to distinguish
-                    },
-                    // Ensure the confirmation / magic link redirects back to the app
-                    emailRedirectTo: window.location.origin
+            let userId = existingUserId;
+            let userEmail = formData.email;
+
+            if (!isExistingUser) {
+                const { data: authData, error: authError } = await supabase.auth.signUp({
+                    email: formData.email,
+                    password: formData.password,
+                    options: {
+                        data: {
+                            role: 'recruiter', // Freelancers share 'recruiter' role for now to access dashboard features
+                            company_name: formData.fullName, // Use personal name as company name
+                            ico: formData.ico,
+                            website: formData.website,
+                            is_freelancer: true // Flag to distinguish
+                        },
+                        // Ensure the confirmation / magic link redirects back to the app
+                        emailRedirectTo: window.location.origin
+                    }
+                });
+
+                if (authError) throw authError;
+
+                const user = authData.user;
+                const session = authData.session;
+                userId = user?.id || null;
+                userEmail = user?.email || userEmail;
+
+                if (user && !session) {
+                    console.log('ℹ️ Signup created but no session (email confirmation required)');
+                    setNeedsEmailConfirmation(true);
                 }
-            });
+            }
 
-            if (authError) throw authError;
-
-            const user = authData.user;
-            const session = authData.session;
-
-            if (user && session) {
-                const userId = user.id;
+            if (userId) {
                 console.log("✅ Freelancer Registration successful, initializing profile for:", userId);
 
                 try {
@@ -74,7 +123,7 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
 
                     // Initialize User Profile
                     await updateUserProfile(userId, { role: 'recruiter' }).catch(async () => {
-                        await createBaseProfile(userId, formData.email, formData.fullName, 'recruiter');
+                        await createBaseProfile(userId, userEmail || formData.email, formData.fullName, 'recruiter');
                     });
 
                     const { getUserProfile } = await import('../services/supabaseService');
@@ -91,7 +140,7 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                         name: formData.fullName,
                         ico: formData.ico,
                         website: formData.website,
-                        contact_email: formData.email,
+                        contact_email: userEmail || formData.email,
                         description: 'Freelancer / OSVČ',
                         industry: 'Freelancer'
                     }, userId);
@@ -106,7 +155,7 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                         try {
                             const { createFreelancerProfile } = await import('../services/supabaseService');
                             await createFreelancerProfile(userId, {
-                                contact_email: formData.email,
+                                contact_email: userEmail || formData.email,
                                 website: formData.website,
                                 presentation: '',
                                 work_type: 'remote'
@@ -120,11 +169,6 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                     console.error("❌ Failed to create freelancer record:", err);
                     throw err;
                 }
-            } else if (user && !session) {
-                // Supabase requires email confirmation and no session was returned.
-                // Notify the UI to instruct the user to confirm their email.
-                console.log('ℹ️ Signup created but no session (email confirmation required)');
-                setNeedsEmailConfirmation(true);
             }
 
             setStep('success');
@@ -159,7 +203,7 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                 {typeof step === 'number' && (
                     <div className="w-full bg-slate-100 dark:bg-slate-800 h-1.5">
                         <div
-                            className="h-full bg-emerald-600 transition-all duration-300"
+                            className="h-full bg-cyan-600 transition-all duration-300"
                             style={{ width: `${(step / 3) * 100}%` }}
                         ></div>
                     </div>
@@ -193,7 +237,7 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                                             type="email"
                                             name="email"
                                             required
-                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
                                             placeholder="vas@email.cz"
                                             value={formData.email}
                                             onChange={handleChange}
@@ -212,7 +256,7 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                                             name="password"
                                             required
                                             minLength={8}
-                                            className="w-full pl-10 pr-12 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                            className="w-full pl-10 pr-12 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
                                             placeholder={t('freelancer_registration.password_placeholder')}
                                             value={formData.password}
                                             onChange={handleChange}
@@ -241,7 +285,7 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                                             type="text"
                                             name="fullName"
                                             required
-                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                            className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
                                             placeholder={t('freelancer_registration.fullname_placeholder')}
                                             value={formData.fullName}
                                             onChange={handleChange}
@@ -257,7 +301,7 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                                         <input
                                             type="text"
                                             name="ico"
-                                            className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                            className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
                                             placeholder="12345678"
                                             value={formData.ico}
                                             onChange={handleChange}
@@ -270,7 +314,7 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                                         <input
                                             type="url"
                                             name="website"
-                                            className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
+                                            className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 focus:ring-2 focus:ring-cyan-500 outline-none transition-all"
                                             placeholder="https://..."
                                             value={formData.website}
                                             onChange={handleChange}
@@ -282,9 +326,9 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
 
                         {step === 3 && (
                             <div className="space-y-6 animate-in fade-in slide-in-from-right-8">
-                                <div className="bg-emerald-50 dark:bg-emerald-900/20 p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50 flex gap-3">
-                                    <Info className="shrink-0 text-emerald-600 dark:text-emerald-400" size={20} />
-                                    <p className="text-sm text-emerald-800 dark:text-emerald-300">
+                                <div className="bg-cyan-50 dark:bg-cyan-900/20 p-4 rounded-xl border border-cyan-100 dark:border-cyan-900/50 flex gap-3">
+                                    <Info className="shrink-0 text-cyan-600 dark:text-cyan-400" size={20} />
+                                    <p className="text-sm text-cyan-800 dark:text-cyan-300">
                                         {t('freelancer_registration.info_box')}
                                     </p>
                                 </div>
@@ -307,15 +351,15 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                                                         {t('freelancer_registration.plan_basic_desc') || 'Zdarma'}
                                                     </p>
                                                 </div>
-                                                <span className="text-lg font-bold text-emerald-600 dark:text-emerald-400">0 Kč</span>
+                                                <span className="text-lg font-bold text-cyan-600 dark:text-cyan-400">0 Kč</span>
                                             </div>
                                             <div className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
                                                 <div className="flex items-start gap-2">
-                                                    <CheckCircle className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                                                    <CheckCircle className="w-4 h-4 text-cyan-500 mt-0.5 shrink-0" />
                                                     <span>{t('freelancer_registration.plan_basic_offers') || '3 aktivní nabídky měsíčně'}</span>
                                                 </div>
                                                 <div className="flex items-start gap-2">
-                                                    <CheckCircle className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                                                    <CheckCircle className="w-4 h-4 text-cyan-500 mt-0.5 shrink-0" />
                                                     <span>{t('freelancer_registration.plan_basic_inquiries') || '3 poptávky měsíčně'}</span>
                                                 </div>
                                             </div>
@@ -339,15 +383,15 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                                             </div>
                                             <div className="space-y-1 text-sm text-slate-700 dark:text-slate-300">
                                                 <div className="flex items-start gap-2">
-                                                    <CheckCircle className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                                                    <CheckCircle className="w-4 h-4 text-cyan-500 mt-0.5 shrink-0" />
                                                     <span>{t('freelancer_registration.plan_premium_offers') || 'Neomezené nabídky'}</span>
                                                 </div>
                                                 <div className="flex items-start gap-2">
-                                                    <CheckCircle className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                                                    <CheckCircle className="w-4 h-4 text-cyan-500 mt-0.5 shrink-0" />
                                                     <span>{t('freelancer_registration.plan_premium_inquiries') || 'Neomezené poptávky'}</span>
                                                 </div>
                                                 <div className="flex items-start gap-2">
-                                                    <CheckCircle className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                                                    <CheckCircle className="w-4 h-4 text-cyan-500 mt-0.5 shrink-0" />
                                                     <span>{t('freelancer_registration.plan_premium_priority') || 'Vyšší viditelnost v hledání'}</span>
                                                 </div>
                                             </div>
@@ -362,7 +406,7 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                                             name="agreedToTerms"
                                             checked={formData.agreedToTerms}
                                             onChange={handleChange}
-                                            className="mt-1 w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-gray-300"
+                                            className="mt-1 w-4 h-4 text-cyan-600 rounded focus:ring-cyan-500 border-gray-300"
                                         />
                                         <span className="text-sm text-slate-600 dark:text-slate-400">
                                             {t('freelancer_registration.terms_agree')}
@@ -375,7 +419,7 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                                             name="agreedToPrivacy"
                                             checked={formData.agreedToPrivacy}
                                             onChange={handleChange}
-                                            className="mt-1 w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 border-gray-300"
+                                            className="mt-1 w-4 h-4 text-cyan-600 rounded focus:ring-cyan-500 border-gray-300"
                                         />
                                         <span className="text-sm text-slate-600 dark:text-slate-400">
                                             {t('freelancer_registration.privacy_agree')}
@@ -387,7 +431,7 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
 
                                         {step === 'success' && (
                                             <div className="py-8 flex flex-col items-center animate-in zoom-in-95">
-                                                <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center text-emerald-600 dark:text-emerald-400 mb-6">
+                                                <div className="w-20 h-20 bg-cyan-100 dark:bg-cyan-900/30 rounded-full flex items-center justify-center text-cyan-600 dark:text-cyan-400 mb-6">
                                                     <CheckCircle size={40} />
                                                 </div>
                                                 {needsEmailConfirmation ? (
@@ -544,7 +588,14 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                 <div className="p-8 pt-4 bg-slate-50/50 dark:bg-slate-900/30 border-t border-slate-100 dark:border-slate-800 flex gap-4">
                     {typeof step === 'number' && step > 1 && (
                         <button
-                            onClick={() => setStep((typeof step === 'number' ? step : 1) - 1)}
+                            onClick={() => {
+                                const nextStep = (typeof step === 'number' ? step : 1) - 1;
+                                if (isExistingUser && nextStep < 2) {
+                                    setStep(2);
+                                } else {
+                                    setStep(nextStep);
+                                }
+                            }}
                             className="px-6 py-3 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold rounded-xl hover:bg-white dark:hover:bg-slate-800 transition-all flex items-center gap-2"
                         >
                             {t('freelancer_registration.back')}
@@ -555,8 +606,8 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                             if (step === 3) handleSubmit(e);
                             else setStep((step as number) + 1);
                         }}
-                        disabled={(step === 1 && (!formData.email || !formData.password)) || (step === 2 && !formData.fullName) || (step === 3 && (!formData.agreedToTerms || !formData.agreedToPrivacy)) || isSubmitting}
-                        className={`flex-1 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 disabled:opacity-50 disabled:cursor-not-allowed ${step === 'success' ? 'hidden' : ''}`}
+                        disabled={(!isExistingUser && step === 1 && (!formData.email || !formData.password)) || (step === 2 && !formData.fullName) || (step === 3 && (!formData.agreedToTerms || !formData.agreedToPrivacy)) || isSubmitting}
+                        className={`flex-1 py-3 bg-cyan-600 text-white font-bold rounded-xl hover:bg-cyan-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20 disabled:opacity-50 disabled:cursor-not-allowed ${step === 'success' ? 'hidden' : ''}`}
                     >
                         {isSubmitting ? <Loader2 className="animate-spin" /> : null}
                         {step === 3 ? t('freelancer_registration.finish') : t('freelancer_registration.continue')}

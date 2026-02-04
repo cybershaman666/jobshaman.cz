@@ -73,7 +73,36 @@
     "per_month": "Monat",
     "gross_monthly": "Bruttomonatslohn",
     "reality_vs_income": "Nettoeinkommen vs. Realität",
-    "ai_estimation_hint": "KI-Schätzung (Lohn nicht angegeben)"
+    "ai_estimation_hint": "KI-Schätzung (Lohn nicht angegeben)",
+    "methodology": {
+      "title": "Wie JHI und Verkehr berechnet werden",
+      "jhi_title": "JHI Impact Formula",
+      "jhi_formula": "Prozentuale Einkommensänderung durch Pendeln × 1.5 = JHI-Punkte",
+      "jhi_example": "Beispiel: Reduziert Pendeln das Einkommen um 1%, sinkt JHI um ~1.5 Punkte",
+      "transport_title": "Berechnung der Mobilität",
+      "transport_car": "🚗 Auto: 0,20 €/km × 2 × 22 Tage",
+      "transport_public": "🚌 ÖPNV: Monatskarte (Wien 51 €) - günstigste Option",
+      "transport_bike": "🚴 Fahrrad: 0,05 €/km × 2 × 22 Tage",
+      "transport_walk": "🚶 Zu Fuß: 0 € (gratis)",
+      "final_title": "Formel der Netto-Realität",
+      "final_formula": "Netto-Basis + Benefits - Pendeln = Reales Einkommen",
+      "jhi_desc": "Ein numerischer Index, der die \"Gesundheit\" eines Jobangebots misst. Er wird aus mehreren Faktoren berechnet:",
+      "pillar_financial_title": "Finanzieller Einfluss:",
+      "pillar_financial_desc": "Wie Gehalt + Benefits - Pendeln Ihr Gesamteinkommen beeinflusst",
+      "pillar_time_title": "Zeit:",
+      "pillar_time_desc": "Wie Pendelzeit und Arbeitsform (remote/hybrid/on-site) Ihre Freizeit beeinflussen",
+      "pillar_mental_title": "Psychische Belastung:",
+      "pillar_mental_desc": "Wörter wie \"dynamisch\", \"stressig\" senken den Score",
+      "pillar_growth_title": "Wachstum & Entwicklung:",
+      "pillar_growth_desc": "Schulungen, Kurse und Weiterbildung erhöhen den Score",
+      "jhi_formula_title": "Pendelformel:",
+      "jhi_example_long": "Beispiel: Wenn Pendeln das Nettoeinkommen um 1% senkt, fällt JHI um ~1,5 Punkte. Gedeckelt auf -20 bis +15 Punkte.",
+      "transport_desc": "Das System nutzt Ihre bevorzugte Transportart und die günstigste Option:",
+      "transport_car_title": "Mit dem Auto",
+      "transport_public_title": "ÖPNV",
+      "transport_public_example_title": "Stadtkarte (bevorzugt):",
+      "transport_public_example": "Wien 51 €..."
+    }
   },
   "job_detail": {
     "benefits_title": "Benefits und Vorteile",
@@ -334,7 +363,7 @@
     "remove_save": "Von Gespeicherten entfernen",
     "transparent_eu": "EU-Transparent",
     "swipe_tutorial_title": "So funktioniert das Swipen",
-    "swipe_tutorial_desc": "Nach rechts wischen zum Speichern, nach links zum Überspringen.",
+    "swipe_tutorial_desc": "Nach links wischen zum Ablehnen, nach rechts zum Speichern.",
     "swipe_tutorial_cta": "Verstanden",
     "list_view": "Listenansicht",
     "swipe_view": "Swipe-Ansicht"
@@ -1082,7 +1111,10 @@
       "benefit_1": "Unbegrenzte Dienstleistungen",
       "benefit_2": "Prioritäts-Listing",
       "benefit_3": "'Verifizierter Freelancer'-Badge",
-      "benefit_4": "Verkehrsstatistiken"
+      "benefit_4": "Verkehrsstatistiken",
+      "register_title": "Freelancer werden",
+      "register_desc": "Für ein Freelancer-Profil ist eine kurze Registrierung nötig (Firmen-ID und Basisdaten).",
+      "register_cta": "Als Freelancer registrieren"
     }
   },
   "freelancer_registration": {

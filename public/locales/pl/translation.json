@@ -75,7 +75,36 @@
     "per_month": "miesiąc",
     "gross_monthly": "Miesięczne wynagrodzenie brutto",
     "reality_vs_income": "Dochód netto vs Rzeczywistość",
-    "ai_estimation_hint": "Szacunek AI (wynagrodzenie nieujawnione)"
+    "ai_estimation_hint": "Szacunek AI (wynagrodzenie nieujawnione)",
+    "methodology": {
+      "title": "Jak liczymy JHI i dojazdy",
+      "jhi_title": "JHI Impact Formula",
+      "jhi_formula": "Procentowa zmiana dochodu z dojazdów × 1.5 = punkty JHI",
+      "jhi_example": "Przykład: Jeśli dojazdy obniżą dochód o 1%, JHI spadnie o ~1.5 punktu",
+      "transport_title": "Obliczanie transportu",
+      "transport_car": "🚗 Auto: 0,90 PLN/km × 2 × 22 dni",
+      "transport_public": "🚌 Transport publiczny: bilet miesięczny (Warszawa 119 PLN) - najtaniej",
+      "transport_bike": "🚴 Rower: 0,20 PLN/km × 2 × 22 dni",
+      "transport_walk": "🚶 Pieszo: 0 PLN (za darmo)",
+      "final_title": "Wzór realnego dochodu",
+      "final_formula": "Podstawa netto + benefity - dojazd = realny dochód",
+      "jhi_desc": "Indeks liczbowy, który mierzy „zdrowie” oferty pracy. Jest liczony z wielu czynników:",
+      "pillar_financial_title": "Wpływ finansowy:",
+      "pillar_financial_desc": "Jak pensja + benefity - dojazd wpływa na całkowity dochód",
+      "pillar_time_title": "Czas:",
+      "pillar_time_desc": "Jak dojazdy i tryb pracy (remote/hybrid/on-site) wpływają na czas wolny",
+      "pillar_mental_title": "Obciążenie psychiczne:",
+      "pillar_mental_desc": "Słowa jak „dynamiczne środowisko”, „stres” obniżają wynik",
+      "pillar_growth_title": "Rozwój:",
+      "pillar_growth_desc": "Szkolenia, kursy i edukacja podnoszą wynik",
+      "jhi_formula_title": "Wzór wpływu dojazdów:",
+      "jhi_example_long": "Przykład: Jeśli dojazdy obniżą dochód netto o 1%, JHI spadnie o ~1,5 punktu. Limit -20 do +15 punktów.",
+      "transport_desc": "System uwzględnia preferowany transport i najtańszą opcję:",
+      "transport_car_title": "Samochodem",
+      "transport_public_title": "Transport publiczny",
+      "transport_public_example_title": "Bilet miejski (preferowane):",
+      "transport_public_example": "Warszawa 119 PLN..."
+    }
   },
   "job_detail": {
     "benefits_title": "Benefity i zalety",
@@ -336,7 +365,7 @@
     "remove_save": "Usuń z zapisanych",
     "transparent_eu": "Przejrzystość UE",
     "swipe_tutorial_title": "Jak działa swipe",
-    "swipe_tutorial_desc": "Przesuń w prawo, aby zapisać, w lewo, aby pominąć.",
+    "swipe_tutorial_desc": "Przesuń w lewo, aby odrzucić, w prawo, aby zapisać.",
     "swipe_tutorial_cta": "Rozumiem",
     "list_view": "Widok listy",
     "swipe_view": "Widok swipe"
@@ -1106,7 +1135,10 @@
       "benefit_1": "Unlimited services",
       "benefit_2": "Priority listing",
       "benefit_3": "'Verified Freelancer' badge",
-      "benefit_4": "Traffic statistics"
+      "benefit_4": "Traffic statistics",
+      "register_title": "Zostań freelancerem",
+      "register_desc": "Aby utworzyć profil freelancera, potrzebna jest krótka rejestracja (NIP/REGON i podstawowe dane).",
+      "register_cta": "Zarejestruj się jako freelancer"
     },
     "marketplace": {
       "title": "Zlecenia",
