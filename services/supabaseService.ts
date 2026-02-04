@@ -347,6 +347,16 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     }
 };
 
+export const ensureCandidateProfile = async (userId: string) => {
+    if (!supabase) throw new Error("Supabase not configured");
+
+    const { error } = await supabase
+        .from('candidate_profiles')
+        .upsert({ id: userId, created_at: new Date().toISOString() }, { onConflict: 'id' });
+
+    if (error) throw error;
+};
+
 export const getCompanyProfile = async (userId: string): Promise<CompanyProfile | null> => {
     if (!supabase) return null;
 

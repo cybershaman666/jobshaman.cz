@@ -950,7 +950,8 @@ export default function App() {
 
         if (viewState === ViewState.PROFILE) {
             // STRICT SEPARATION: Recruiters cannot access candidate profile editor
-            if (userProfile.role === 'recruiter') {
+            // Exception: Freelancers (industry=Freelancer) can also manage candidate profile
+            if (userProfile.role === 'recruiter' && companyProfile?.industry !== 'Freelancer') {
                 // Defer state update to next tick to avoid render-phase update warning
                 setTimeout(() => setViewState(ViewState.COMPANY_DASHBOARD), 0);
                 return null;
