@@ -606,7 +606,7 @@
         "ai_editor": "Editor nabídek",
         "assessments": "Assessmenty",
         "candidates": "Kandidáti",
-        "marketplace": "Freelanceři"
+        "marketplace": "Odborníci a zakázky"
       },
       "all_recruiters": "Všichni Náboráři",
       "create_ad_btn": "Vytvořit Pracovní Inzerát",
@@ -1315,6 +1315,10 @@
         "design": "Design & Kreativa",
         "marketing": "Marketing",
         "admin": "Administrativa",
+        "real_estate": "Realitní služby",
+        "finance": "Finanční služby",
+        "security": "Bezpečnost",
+        "legal": "Právo & legislativa",
         "writing": "Psaní & Překlady",
         "consulting": "Konzultace"
       },
@@ -1328,8 +1332,10 @@
       "filters": {
         "search_title": "Vyhledávání"
       },
+      "scroll_left": "Posunout kategorie doleva",
+      "scroll_right": "Posunout kategorie doprava",
       "promo": {
-        "title": "Jste profík?",
+        "title": "Jste profesionál?",
         "desc": "Zaregistrujte se jako freelancer, vytvořte si portfolio a získejte nové klienty.",
         "highlight": "První 3 inzeráty měsíčně zdarma!",
         "cta": "Začít nabízet služby"
@@ -1339,12 +1345,18 @@
       "title": "Freelanceři a Živnostníci",
       "subtitle": "Najděte a najímejte kvalitní freelancery a řemeslníky z komunity JobShaman.",
       "search_placeholder": "Hledat freelancery, dovednosti...",
+      "no_bio": "Kvalitní freelancer",
       "categories": {
         "all": "Všechny",
         "it": "IT & Vývoj",
         "design": "Design",
         "crafts": "Řemesla",
-        "marketing": "Marketing"
+        "marketing": "Marketing",
+        "admin": "Administrativa",
+        "real_estate": "Realitní služby",
+        "finance": "Finanční služby",
+        "security": "Bezpečnost",
+        "legal": "Právo & legislativa"
       },
       "results": "Nalezeno {{count}} freelancerů",
       "no_results": "Žádní freelanceři nenalezeni",
@@ -1426,15 +1438,21 @@
     "wip_alert": "Zobrazit detail (WIP)"
   },
   "freelancer_marketplace": {
-    "title": "Freelanceři a Živnostníci",
-    "subtitle": "Najděte a najímejte kvalitní freelancery a řemeslníky z komunity JobShaman.",
+    "title": "Odborníci a zakázky",
+    "subtitle": "Najděte ověřené odborníky a zadávejte zakázky z komunity JobShaman.",
     "search_placeholder": "Hledat freelancery, dovednosti...",
+    "no_bio": "Uživatel nemá vyplněné bio ve svém profilu.",
     "categories": {
       "all": "Všechny",
       "it": "IT & Vývoj",
       "design": "Design",
       "crafts": "Řemesla",
-      "marketing": "Marketing"
+      "marketing": "Marketing",
+      "admin": "Administrativa",
+      "real_estate": "Realitní služby",
+      "finance": "Finanční služby",
+      "security": "Bezpečnost",
+      "legal": "Právo & legislativa"
     },
     "results": "Nalezeno {{count}} freelancerů",
     "no_results": "Žádní freelanceři nenalezeni",

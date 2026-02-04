@@ -374,7 +374,11 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
         { id: 'it', label: t('freelancer.marketplace.categories.it') || 'IT & Vývoj' },
         { id: 'design', label: t('freelancer.marketplace.categories.design') || 'Design' },
         { id: 'marketing', label: t('freelancer.marketplace.categories.marketing') || 'Marketing' },
-        { id: 'admin', label: t('freelancer.marketplace.categories.admin') || 'Administrativa' }
+        { id: 'admin', label: t('freelancer.marketplace.categories.admin') || 'Administrativa' },
+        { id: 'real_estate', label: t('freelancer.marketplace.categories.real_estate') || 'Realitní služby' },
+        { id: 'finance', label: t('freelancer.marketplace.categories.finance') || 'Finanční služby' },
+        { id: 'security', label: t('freelancer.marketplace.categories.security') || 'Bezpečnost' },
+        { id: 'legal', label: t('freelancer.marketplace.categories.legal') || 'Právo & legislativa' }
     ];
 
     return (

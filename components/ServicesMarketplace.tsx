@@ -13,7 +13,11 @@ import {
     CheckCircle,
     Hammer,
     Palette,
-    Code2
+    Code2,
+    Building2,
+    Landmark,
+    ShieldCheck,
+    Gavel
 } from 'lucide-react';
 import { UserProfile } from '../types';
 import FreelancerRegistrationModal from './FreelancerRegistrationModal';
@@ -68,6 +72,17 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
     const [reviewComment, setReviewComment] = useState('');
     const [reviewSubmitting, setReviewSubmitting] = useState(false);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const categoryScrollRef = React.useRef<HTMLDivElement | null>(null);
+
+    const scrollCategories = (direction: 'left' | 'right') => {
+        const container = categoryScrollRef.current;
+        if (!container) return;
+        const amount = Math.max(240, container.clientWidth * 0.6);
+        container.scrollBy({
+            left: direction === 'left' ? -amount : amount,
+            behavior: 'smooth'
+        });
+    };
 
     // Load services from Supabase
     useEffect(() => {
@@ -196,7 +211,11 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
         { id: 'it', name: t('freelancer.marketplace.categories.it'), icon: Code2 },
         { id: 'design', name: t('freelancer.marketplace.categories.design'), icon: Palette },
         { id: 'marketing', name: t('freelancer.marketplace.categories.marketing'), icon: Target },
-        { id: 'admin', name: t('freelancer.marketplace.categories.admin'), icon: Users }
+        { id: 'admin', name: t('freelancer.marketplace.categories.admin'), icon: Users },
+        { id: 'real_estate', name: t('freelancer.marketplace.categories.real_estate'), icon: Building2 },
+        { id: 'finance', name: t('freelancer.marketplace.categories.finance'), icon: Landmark },
+        { id: 'security', name: t('freelancer.marketplace.categories.security'), icon: ShieldCheck },
+        { id: 'legal', name: t('freelancer.marketplace.categories.legal'), icon: Gavel }
     ];
 
     const filteredServices = services.filter(service => {
@@ -311,8 +330,27 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
             </div>
 
             {/* Category Pills */}
-            <div className="max-w-7xl mx-auto px-4 py-6 overflow-x-auto">
-                <div className="flex gap-2 pb-2">
+            <div className="max-w-7xl mx-auto px-4 py-6 relative">
+                <div className="pointer-events-none absolute left-0 top-0 h-full w-12 bg-gradient-to-r from-slate-50 dark:from-slate-900 to-transparent" />
+                <div className="pointer-events-none absolute right-0 top-0 h-full w-12 bg-gradient-to-l from-slate-50 dark:from-slate-900 to-transparent" />
+                <button
+                    type="button"
+                    onClick={() => scrollCategories('left')}
+                    aria-label={t('freelancer.marketplace.scroll_left') || 'Scroll left'}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800/90 shadow-sm flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800 transition"
+                >
+                    <span aria-hidden>‹</span>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => scrollCategories('right')}
+                    aria-label={t('freelancer.marketplace.scroll_right') || 'Scroll right'}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 z-10 h-9 w-9 rounded-full border border-slate-200 dark:border-slate-700 bg-white/90 dark:bg-slate-800/90 shadow-sm flex items-center justify-center text-slate-700 dark:text-slate-200 hover:bg-white dark:hover:bg-slate-800 transition"
+                >
+                    <span aria-hidden>›</span>
+                </button>
+                <div ref={categoryScrollRef} className="overflow-x-auto">
+                    <div className="flex gap-2 pb-2 w-max">
                     {categories.map(cat => {
                         const Icon = cat.icon;
                         const isSelected = selectedCategory === cat.id;
@@ -330,6 +368,7 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
                             </button>
                         );
                     })}
+                    </div>
                 </div>
             </div>
 

@@ -1134,6 +1134,10 @@
         "design": "Design & Creative",
         "marketing": "Marketing",
         "admin": "Administration",
+        "real_estate": "Immobilien",
+        "finance": "Finanzen",
+        "security": "Sicherheit",
+        "legal": "Recht & Compliance",
         "writing": "Writing & Translation",
         "consulting": "Consulting"
       },
@@ -1147,8 +1151,10 @@
       "filters": {
         "search_title": "Search"
       },
+      "scroll_left": "Kategorien nach links scrollen",
+      "scroll_right": "Kategorien nach rechts scrollen",
       "promo": {
-        "title": "Sind Sie ein Profi?",
+        "title": "Sind Sie Profi?",
         "desc": "Registrieren Sie sich als Freiberufler, bauen Sie Ihr Portfolio auf und gewinnen Sie neue Kunden.",
         "highlight": "Erste 3 Anzeigen pro Monat kostenlos!",
         "cta": "Dienste anbieten"
@@ -1232,15 +1238,21 @@
     "check_email_help": "Wenn die E‑Mail nicht ankommt, prüfen Sie bitte SMTP‑Einstellungen, E‑Mail‑Vorlagen und den Spam‑Ordner."
   },
   "freelancer_marketplace": {
-    "title": "Freelancer und Handwerker",
-    "subtitle": "Finden und stellen Sie qualitativ hochwertige Freelancer und Handwerker aus der JobShaman-Gemeinschaft ein.",
-    "search_placeholder": "Freelancer, Handwerker suchen...",
+    "title": "Experten & Aufträge",
+    "subtitle": "Finden Sie geprüfte Experten und veröffentlichen Sie Aufträge aus der JobShaman‑Community.",
+    "search_placeholder": "Experten, Fähigkeiten suchen...",
+    "no_bio": "Qualifizierter Freelancer",
     "categories": {
       "all": "Alle",
       "it": "IT & Entwicklung",
       "design": "Design",
       "crafts": "Handwerk",
-      "marketing": "Marketing"
+      "marketing": "Marketing",
+      "admin": "Administration",
+      "real_estate": "Immobilien",
+      "finance": "Finanzen",
+      "security": "Sicherheit",
+      "legal": "Recht & Compliance"
     },
     "results": "{{count}} Freelancer gefunden",
     "no_results": "Keine Freelancer gefunden",

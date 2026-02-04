@@ -1206,6 +1206,10 @@
         "design": "Design & Creative",
         "marketing": "Marketing",
         "admin": "Administratíva",
+        "real_estate": "Reality",
+        "finance": "Financie",
+        "security": "Bezpečnosť",
+        "legal": "Právo & legislatíva",
         "writing": "Writing & Translation",
         "consulting": "Consulting"
       },
@@ -1219,6 +1223,8 @@
       "filters": {
         "search_title": "Search"
       },
+      "scroll_left": "Posunúť kategórie doľava",
+      "scroll_right": "Posunúť kategórie doprava",
       "promo": {
         "title": "Ste profesionál?",
         "desc": "Zaregistrujte sa ako freelancer, vybudujte si portfólio a získajte nových klientov.",
@@ -1232,10 +1238,15 @@
         "categories": {
           "all": "Všetky",
           "it": "IT a Vývoj",
-          "design": "Dizajn",
-          "crafts": "Remeslá",
-          "marketing": "Marketing"
-        },
+        "design": "Dizajn",
+        "crafts": "Remeslá",
+        "marketing": "Marketing",
+        "admin": "Administratíva",
+        "real_estate": "Reality",
+        "finance": "Financie",
+        "security": "Bezpečnosť",
+        "legal": "Právo & legislatíva"
+      },
         "results": "Nájdeno {{count}} freelancerov",
         "no_results": "Nenájdení freelanceri",
         "no_results_desc": "Skúste zmeniť filtre alebo hľadaný výraz.",
@@ -1311,15 +1322,21 @@
     "wip_alert": "Zobraziť Detail (WIP)"
   },
   "freelancer_marketplace": {
-    "title": "Freelanceri a Remeselníci",
-    "subtitle": "Nájdite a najímajte kvalitných freelancerov a remeselníkov z komunity JobShaman.",
-    "search_placeholder": "Hľadať freelancerov, zručnosti...",
+    "title": "Odborníci a zákazky",
+    "subtitle": "Nájdite overených odborníkov a zadávajte zákazky z komunity JobShaman.",
+    "search_placeholder": "Hľadať odborníkov, zručnosti...",
+    "no_bio": "Kvalitný freelancer",
     "categories": {
       "all": "Všetci",
       "it": "IT & Vývoj",
       "design": "Design",
       "crafts": "Remesla",
-      "marketing": "Marketing"
+      "marketing": "Marketing",
+      "admin": "Administratíva",
+      "real_estate": "Reality",
+      "finance": "Financie",
+      "security": "Bezpečnosť",
+      "legal": "Právo & legislatíva"
     },
     "results": "Nájdených {{count}} freelancerov",
     "no_results": "Žiaden freelancer nenájdený",
