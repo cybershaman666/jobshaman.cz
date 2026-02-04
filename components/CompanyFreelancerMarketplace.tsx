@@ -11,7 +11,11 @@ import {
     Users,
     Award,
     TrendingUp,
-    Link as LinkIcon
+    Link as LinkIcon,
+    Building2,
+    Landmark,
+    ShieldCheck,
+    Gavel
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { createServiceInquiry, getCurrentUser, getFreelancerProfile, getFreelancerReviewStats, getFreelancerReviews, createFreelancerReview, voteFreelancerReview, supabase } from '../services/supabaseService';
@@ -202,7 +206,12 @@ const CompanyFreelancerMarketplace: React.FC = () => {
         { id: 'it', name: t('freelancer_marketplace.categories.it') || 'IT & Vývoj', icon: Code2 },
         { id: 'design', name: t('freelancer_marketplace.categories.design') || 'Design', icon: Palette },
         { id: 'crafts', name: t('freelancer_marketplace.categories.crafts') || 'Řemesla', icon: Hammer },
-        { id: 'marketing', name: t('freelancer_marketplace.categories.marketing') || 'Marketing', icon: TrendingUp }
+        { id: 'marketing', name: t('freelancer_marketplace.categories.marketing') || 'Marketing', icon: TrendingUp },
+        { id: 'admin', name: t('freelancer_marketplace.categories.admin') || 'Administrativa', icon: Users },
+        { id: 'real_estate', name: t('freelancer_marketplace.categories.real_estate') || 'Realitní služby', icon: Building2 },
+        { id: 'finance', name: t('freelancer_marketplace.categories.finance') || 'Finanční služby', icon: Landmark },
+        { id: 'security', name: t('freelancer_marketplace.categories.security') || 'Bezpečnost', icon: ShieldCheck },
+        { id: 'legal', name: t('freelancer_marketplace.categories.legal') || 'Právo & legislativa', icon: Gavel }
     ];
 
     const filteredFreelancers = freelancers.filter(freelancer => {

@@ -1152,6 +1152,10 @@
         "design": "Design & Creative",
         "marketing": "Marketing",
         "admin": "Administracja",
+        "real_estate": "Nieruchomości",
+        "finance": "Finanse",
+        "security": "Bezpieczeństwo",
+        "legal": "Prawo i legislacja",
         "writing": "Writing & Translation",
         "consulting": "Consulting"
       },
@@ -1165,6 +1169,8 @@
       "filters": {
         "search_title": "Search"
       },
+      "scroll_left": "Przewiń kategorie w lewo",
+      "scroll_right": "Przewiń kategorie w prawo",
       "promo": {
         "title": "Jesteś profesjonalistą?",
         "desc": "Zarejestruj się jako freelancer, zbuduj swoje portfolio i zdobywaj nowych klientów.",
@@ -1180,7 +1186,12 @@
           "it": "IT i Rozwój",
           "design": "Design",
           "crafts": "Rzemiosło",
-          "marketing": "Marketing"
+          "marketing": "Marketing",
+          "admin": "Administracja",
+          "real_estate": "Nieruchomości",
+          "finance": "Finanse",
+          "security": "Bezpieczeństwo",
+          "legal": "Prawo i legislacja"
         },
         "results": "Znaleziono {{count}} freelancerów",
         "no_results": "Nie znaleziono freelancerów",
@@ -1257,15 +1268,21 @@
     "wip_alert": "Wyświetl Szczegóły (WIP)"
   },
   "freelancer_marketplace": {
-    "title": "Freelancerzy i Rzemieślnicy",
-    "subtitle": "Znajdź i zatrudniaj wysokiej jakości freelancerów i rzemieślników ze społeczności JobShaman.",
-    "search_placeholder": "Szukaj freelancerów, umiejętności...",
+    "title": "Eksperci i zlecenia",
+    "subtitle": "Znajdź zweryfikowanych ekspertów i publikuj zlecenia ze społeczności JobShaman.",
+    "search_placeholder": "Szukaj ekspertów, umiejętności...",
+    "no_bio": "Sprawdzony freelancer",
     "categories": {
       "all": "Wszyscy",
       "it": "IT & Rozwój",
       "design": "Design",
       "crafts": "Rękodzieło",
-      "marketing": "Marketing"
+      "marketing": "Marketing",
+      "admin": "Administracja",
+      "real_estate": "Nieruchomości",
+      "finance": "Finanse",
+      "security": "Bezpieczeństwo",
+      "legal": "Prawo i legislacja"
     },
     "results": "Znaleziono {{count}} freelancerów",
     "no_results": "Nie znaleziono freelancerów",

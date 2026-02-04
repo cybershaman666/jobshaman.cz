@@ -1154,6 +1154,10 @@
         "design": "Design & Creative",
         "marketing": "Marketing",
         "admin": "Administration",
+        "real_estate": "Real Estate",
+        "finance": "Finance",
+        "security": "Security",
+        "legal": "Legal & Compliance",
         "writing": "Writing & Translation",
         "consulting": "Consulting"
       },
@@ -1167,8 +1171,10 @@
       "filters": {
         "search_title": "Search"
       },
+      "scroll_left": "Scroll categories left",
+      "scroll_right": "Scroll categories right",
       "promo": {
-        "title": "Are you a pro?",
+        "title": "Are you a professional?",
         "desc": "Register as a freelancer, build your portfolio and get new clients.",
         "highlight": "First 3 ads per month free!",
         "cta": "Start Offering Services"
@@ -1220,16 +1226,22 @@
     "check_email_help": "If the email doesn't arrive, check your SMTP settings, email templates, and your spam folder."
   },
   "freelancer_marketplace": {
-    "title": "Freelancers & Craftspeople",
-    "subtitle": "Find and hire quality freelancers and craftspeople from the JobShaman community.",
+    "title": "Experts & Projects",
+    "subtitle": "Find vetted experts and post projects from the JobShaman community.",
     "search_placeholder": "Search freelancers, skills...",
-    "categories": {
-      "all": "All",
-      "it": "IT & Development",
-      "design": "Design",
-      "crafts": "Crafts",
-      "marketing": "Marketing"
-    },
+    "no_bio": "Quality freelancer",
+      "categories": {
+        "all": "All",
+        "it": "IT & Development",
+        "design": "Design",
+        "crafts": "Crafts",
+        "marketing": "Marketing",
+        "admin": "Administration",
+        "real_estate": "Real Estate",
+        "finance": "Finance",
+        "security": "Security",
+        "legal": "Legal & Compliance"
+      },
     "results": "Found {{count}} freelancers",
     "no_results": "No freelancers found",
     "no_results_desc": "Try changing your filters or search term.",
