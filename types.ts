@@ -42,6 +42,7 @@ export interface CompanyProfile {
   address?: string;
   website?: string;
   description?: string;
+  logo_url?: string;
   members?: RecruiterMember[];
   subscription?: {
     tier: CompanyServiceTier;

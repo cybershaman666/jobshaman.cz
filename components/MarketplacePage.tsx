@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   ShoppingBag,
   Star,
@@ -15,7 +15,9 @@ import {
 import { UserProfile } from '../types';
 import PartnerOfferModal from './PartnerOfferModal';
 import CourseReviewModal from './CourseReviewModal';
+import ReviewDisplay from './ReviewDisplay';
 import { useTranslation } from 'react-i18next';
+import { getCourseReviewStats, getCourseReviews, voteCourseReview } from '../services/supabaseService';
 
 interface Course {
   id: string;
@@ -65,9 +67,15 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
   const [showPartnerModal, setShowPartnerModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [selectedReviewCourse, setSelectedReviewCourse] = useState<Course | null>(null);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [courseReviews, setCourseReviews] = useState<any[]>([]);
+  const [courseReviewsLoading, setCourseReviewsLoading] = useState(false);
+  const [courseReviewAvg, setCourseReviewAvg] = useState(0);
+  const [courseReviewCount, setCourseReviewCount] = useState(0);
+  const [showCourseReviewForm, setShowCourseReviewForm] = useState(false);
 
   // Sample marketplace data (in real app, this would come from API)
-  const allCourses: Course[] = [
+  const allCourses: Course[] = useMemo(() => [
     // Government funded courses
     {
       id: 'gov-1',
@@ -205,7 +213,28 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
       completion_rate: 91,
       user_is_verified_graduate: true
     }
-  ];
+  ], [t]);
+
+  useEffect(() => {
+    setCourses(allCourses);
+  }, [allCourses]);
+
+  useEffect(() => {
+    const loadStats = async () => {
+      const courseIds = allCourses.map((c) => c.id);
+      const stats = await getCourseReviewStats(courseIds);
+      const statsMap = (stats || []).reduce((acc: any, s: any) => {
+        acc[s.course_id] = { avg_rating: s.avg_rating, reviews_count: s.reviews_count };
+        return acc;
+      }, {});
+      setCourses(allCourses.map((course) => ({
+        ...course,
+        rating: statsMap[course.id]?.avg_rating ?? course.rating,
+        reviews_count: statsMap[course.id]?.reviews_count ?? course.reviews_count
+      })));
+    };
+    loadStats();
+  }, [allCourses]);
 
   const categories = [
     { id: 'all', name: t('marketplace.categories.all') },
@@ -247,7 +276,7 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
     }
   };
 
-  const filteredCourses = allCourses.filter(course => {
+  const filteredCourses = courses.filter(course => {
     const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       course.skill_tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -270,6 +299,24 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
 
     return matchesSearch && matchesCategory && matchesDifficulty && matchesPrice && matchesViewMode;
   });
+
+  const openCourseReviews = async (course: Course) => {
+    setSelectedReviewCourse(course);
+    setShowReviewModal(true);
+    setShowCourseReviewForm(false);
+    setCourseReviews([]);
+    setCourseReviewsLoading(true);
+    try {
+      const reviews = await getCourseReviews(course.id);
+      setCourseReviews(reviews || []);
+      const total = (reviews || []).length;
+      const avg = total > 0 ? (reviews.reduce((sum: number, r: any) => sum + (r.rating || 0), 0) / total) : 0;
+      setCourseReviewAvg(avg);
+      setCourseReviewCount(total);
+    } finally {
+      setCourseReviewsLoading(false);
+    }
+  };
 
 
 
@@ -588,12 +635,9 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
 
                     {/* Action Buttons */}
                     <div className="flex gap-2">
-                      {course.reviews_count > 0 && (
+                      {(course.reviews_count > 0 || userProfile.isLoggedIn) && (
                         <button
-                          onClick={() => {
-                            setSelectedReviewCourse(course);
-                            setShowReviewModal(true);
-                          }}
+                          onClick={() => openCourseReviews(course)}
                           className="px-3 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600 transition-all flex items-center gap-1 flex-shrink-0 border border-slate-200 dark:border-slate-600"
                         >
                           <Star className="w-3 h-3" />
@@ -635,16 +679,73 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
         onClose={() => setShowPartnerModal(false)}
       />
 
+      {/* Course Reviews Modal */}
+      {showReviewModal && selectedReviewCourse && (
+        <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40" onClick={() => {
+            setShowReviewModal(false);
+            setShowCourseReviewForm(false);
+            setSelectedReviewCourse(null);
+          }}></div>
+          <div className="relative w-full max-w-4xl z-10">
+            {courseReviewsLoading ? (
+              <div className="bg-white dark:bg-slate-900 rounded-xl p-10 text-center text-slate-500">
+                {t('app.loading')}
+              </div>
+            ) : (
+              <ReviewDisplay
+                reviews={courseReviews}
+                resourceTitle={selectedReviewCourse.title}
+                averageRating={courseReviewAvg || selectedReviewCourse.rating || 0}
+                totalReviews={courseReviewCount || selectedReviewCourse.reviews_count || 0}
+                canVote={userProfile.isLoggedIn}
+                onVote={async (reviewId, isHelpful) => {
+                  if (!userProfile.id) return;
+                  await voteCourseReview({ review_id: reviewId, voter_id: userProfile.id, is_helpful: isHelpful });
+                  if (selectedReviewCourse) {
+                    await openCourseReviews(selectedReviewCourse);
+                  }
+                }}
+              />
+            )}
+            <div className="mt-4 flex items-center justify-between">
+              <button
+                onClick={() => {
+                  setShowReviewModal(false);
+                  setShowCourseReviewForm(false);
+                  setSelectedReviewCourse(null);
+                }}
+                className="px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-sm"
+              >
+                {t('app.close') || 'Zavřít'}
+              </button>
+              {userProfile.isLoggedIn && (
+                <button
+                  onClick={() => setShowCourseReviewForm(true)}
+                  className="px-4 py-2 rounded-lg bg-cyan-600 text-white text-sm font-semibold"
+                >
+                  {t('marketplace.reviews_add') || 'Napsat recenzi'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Course Review Modal */}
       {selectedReviewCourse && (
         <CourseReviewModal
-          isOpen={showReviewModal}
+          isOpen={showCourseReviewForm}
           onClose={() => {
-            setShowReviewModal(false);
-            setSelectedReviewCourse(null);
+            setShowCourseReviewForm(false);
           }}
           course={selectedReviewCourse}
           isVerifiedGraduate={true} // This would come from career_tracks table
+          reviewerId={userProfile.id}
+          onSubmitted={async () => {
+            if (!selectedReviewCourse) return;
+            await openCourseReviews(selectedReviewCourse);
+          }}
         />
       )}
     </div>

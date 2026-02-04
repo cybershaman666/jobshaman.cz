@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import i18n from '../src/i18n';
 import { CompanyProfile, RecruiterMember } from '../types';
-import { inviteRecruiter } from '../services/supabaseService';
+import { inviteRecruiter, uploadCompanyLogo, updateCompanyProfile } from '../services/supabaseService';
 import { Save, Sparkles, MessageSquare, Heart, Target, Users, Mail, UserPlus, Shield, X, Briefcase, Building2, AlertCircle, Trash2 } from 'lucide-react';
 
 interface CompanySettingsProps {
@@ -21,6 +21,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
     const [isInviting, setIsInviting] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [logoUploading, setLogoUploading] = useState(false);
 
     // Team Management State
     const [inviteEmail, setInviteEmail] = useState('');
@@ -31,9 +32,31 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            await onSave({ ...localProfile, members });
+            if (profile.id) {
+                const updated = await updateCompanyProfile(profile.id, { ...localProfile, members });
+                setLocalProfile(updated);
+                await onSave({ ...updated, members });
+            } else {
+                await onSave({ ...localProfile, members });
+            }
         } finally {
             setIsSaving(false);
+        }
+    };
+
+    const handleLogoUpload = async (file: File | null) => {
+        if (!file || !profile.id) return;
+        try {
+            setLogoUploading(true);
+            const logoUrl = await uploadCompanyLogo(profile.id, file);
+            const updated = await updateCompanyProfile(profile.id, { logo_url: logoUrl });
+            setLocalProfile(updated);
+            await onSave({ ...updated, members });
+        } catch (err) {
+            console.error('Logo upload failed:', err);
+            alert(t('company.settings.logo_error') || 'Nepodařilo se nahrát logo.');
+        } finally {
+            setLogoUploading(false);
         }
     };
 
@@ -123,6 +146,37 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                         </div>
 
                         <div className="space-y-6">
+                            {/* Company Logo */}
+                            <div>
+                                <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                    <Building2 size={16} /> {t('company.settings.logo')}
+                                </label>
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 flex items-center justify-center">
+                                        {localProfile.logo_url ? (
+                                            <img src={localProfile.logo_url} alt={localProfile.name} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <span className="text-lg font-bold text-slate-500">{localProfile.name?.charAt(0) || 'C'}</span>
+                                        )}
+                                    </div>
+                                    <div>
+                                        <label className="inline-flex items-center px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg text-sm font-semibold cursor-pointer">
+                                            {logoUploading ? (t('company.settings.logo_uploading') || 'Nahrávám...') : (t('company.settings.logo_btn') || 'Nahrát logo')}
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                disabled={logoUploading}
+                                                onChange={(e) => handleLogoUpload(e.target.files?.[0] || null)}
+                                            />
+                                        </label>
+                                        <div className="text-xs text-slate-500 mt-1">
+                                            {t('company.settings.logo_hint') || 'Doporučeno: čtverec, min. 300×300 px'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
                             {/* Mission / Philosophy */}
                             <div>
                                 <label htmlFor="company-mission" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">

@@ -11,6 +11,8 @@ interface ResourceReview {
   created_at: string;
   candidate_name?: string;
   candidate_avatar?: string;
+  helpful_count?: number;
+  unhelpful_count?: number;
 }
 
 interface ReviewDisplayProps {
@@ -18,13 +20,17 @@ interface ReviewDisplayProps {
   resourceTitle: string;
   averageRating: number;
   totalReviews: number;
+  onVote?: (reviewId: string, isHelpful: boolean) => void;
+  canVote?: boolean;
 }
 
 const ReviewDisplay: React.FC<ReviewDisplayProps> = ({ 
   reviews, 
   resourceTitle, 
   averageRating, 
-  totalReviews 
+  totalReviews,
+  onVote,
+  canVote = false
 }) => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('cs-CZ', {
@@ -180,13 +186,21 @@ const ReviewDisplay: React.FC<ReviewDisplayProps> = ({
 
                 {/* Helpful Indicator */}
                 <div className="flex items-center gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
-                  <button className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+                  <button
+                    onClick={() => onVote?.(review.id, true)}
+                    disabled={!canVote}
+                    className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors disabled:opacity-50"
+                  >
                     <Star size={14} />
-                    <span>Užitečné (0)</span>
+                    <span>Užitečné ({(review as any).helpful_count || 0})</span>
                   </button>
-                  <button className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors">
+                  <button
+                    onClick={() => onVote?.(review.id, false)}
+                    disabled={!canVote}
+                    className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors disabled:opacity-50"
+                  >
                     <div className="w-4 h-4 border-2 border-slate-300 rounded"></div>
-                    <span>Není užitečné (0)</span>
+                    <span>Není užitečné ({(review as any).unhelpful_count || 0})</span>
                   </button>
                 </div>
               </div>

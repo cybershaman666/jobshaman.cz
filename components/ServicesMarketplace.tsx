@@ -24,6 +24,7 @@ interface Service {
     description: string;
     provider: string; // Freelancer Name
     provider_id: string;
+    provider_avatar_url?: string | null;
     price: number;
     currency: string;
     rating: number;
@@ -40,7 +41,7 @@ interface ServicesMarketplaceProps {
 }
 
 import { useTranslation } from 'react-i18next';
-import { createServiceInquiry, getCurrentUser, supabase } from '../services/supabaseService';
+import { createServiceInquiry, getCurrentUser, getFreelancerProfile, getFreelancerReviewStats, getFreelancerReviews, createFreelancerReview, voteFreelancerReview, supabase } from '../services/supabaseService';
 
 const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
     const { t } = useTranslation();
@@ -56,6 +57,17 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
     const [requireContact, setRequireContact] = useState(true);
     const [services, setServices] = useState<Service[]>([]);
     const [loading, setLoading] = useState(true);
+    const [showProfileModal, setShowProfileModal] = useState(false);
+    const [profileTarget, setProfileTarget] = useState<Service | null>(null);
+    const [profileDetails, setProfileDetails] = useState<any | null>(null);
+    const [profileLoading, setProfileLoading] = useState(false);
+    const [profileError, setProfileError] = useState<string | null>(null);
+    const [profileReviews, setProfileReviews] = useState<any[]>([]);
+    const [profileReviewsLoading, setProfileReviewsLoading] = useState(false);
+    const [reviewRating, setReviewRating] = useState(0);
+    const [reviewComment, setReviewComment] = useState('');
+    const [reviewSubmitting, setReviewSubmitting] = useState(false);
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
     // Load services from Supabase
     useEffect(() => {
@@ -110,7 +122,7 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
             // Fetch all jobs with contract_type = 'freelance_service' that are published by freelancers
             const { data, error } = await supabase
                 .from('jobs')
-                .select('id, title, description, company, company_id, salary_from, salary_to, location, created_at')
+                .select('id, title, description, company, company_id, recruiter_id, salary_from, salary_to, location, created_at, category, posted_by')
                 .eq('contract_type', 'freelance_service')
                 .order('created_at', { ascending: false });
 
@@ -121,21 +133,53 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
             }
 
             // Transform the data to match Service interface
-            const transformedServices: Service[] = (data || []).map((job: any) => ({
+            const providerIds = (data || []).map((job: any) => job.posted_by || job.recruiter_id).filter(Boolean);
+            let reviewStatsMap: Record<string, { avg_rating?: number; reviews_count?: number }> = {};
+            if (providerIds.length > 0) {
+                const stats = await getFreelancerReviewStats(providerIds);
+                reviewStatsMap = (stats || []).reduce((acc: any, s: any) => {
+                    acc[s.freelancer_id] = { avg_rating: s.avg_rating, reviews_count: s.reviews_count };
+                    return acc;
+                }, {});
+            }
+
+            let profileMap: Record<string, { full_name?: string; avatar_url?: string }> = {};
+            if (providerIds.length > 0) {
+                const { data: profilesData, error: profilesError } = await supabase
+                    .from('profiles')
+                    .select('id, full_name, avatar_url')
+                    .in('id', providerIds);
+
+                if (!profilesError && profilesData) {
+                    profileMap = profilesData.reduce((acc: any, p: any) => {
+                        acc[p.id] = { full_name: p.full_name, avatar_url: p.avatar_url };
+                        return acc;
+                    }, {});
+                } else if (profilesError) {
+                    console.warn('Profiles enrichment failed (non-fatal):', profilesError);
+                }
+            }
+
+            const transformedServices: Service[] = (data || []).map((job: any) => {
+                const providerId = job.posted_by || job.recruiter_id;
+                const profile = providerId ? profileMap[providerId] : undefined;
+                const stats = reviewStatsMap[providerId] || {};
+                return {
                 id: job.id,
                 title: job.title,
                 description: job.description,
-                provider: job.company,
-                provider_id: job.user_id,
+                provider: job.company || profile?.full_name || (t('freelancer_marketplace.unknown_name') || 'Freelancer'),
+                provider_id: providerId,
+                provider_avatar_url: profile?.avatar_url || null,
                 price: job.salary_from || 0,
                 currency: 'Kč',
-                rating: 5.0, // Default rating for now
-                reviews_count: 0, // Default
-                category: 'crafts', // Default category
+                rating: stats.avg_rating || 0,
+                reviews_count: stats.reviews_count || 0,
+                category: job.category || 'crafts', // Default category
                 location: job.location,
                 created_at: job.created_at,
                 is_verified: false
-            }));
+            }});
 
             setServices(transformedServices);
         } catch (err) {
@@ -164,6 +208,79 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
 
         return matchesSearch && matchesCategory;
     });
+
+    const openProfile = async (service: Service) => {
+        setProfileTarget(service);
+        setShowProfileModal(true);
+        setProfileLoading(true);
+        setProfileError(null);
+        setProfileDetails(null);
+        setProfileReviews([]);
+        setProfileReviewsLoading(true);
+        setReviewRating(0);
+        setReviewComment('');
+        if (!service.provider_id) {
+            setProfileError(t('freelancer_marketplace.profile_error') || 'Profil se nepodařilo načíst.');
+            setProfileLoading(false);
+            setProfileReviewsLoading(false);
+            return;
+        }
+        try {
+            const user = await getCurrentUser();
+            setCurrentUserId(user?.id || null);
+            const details = await getFreelancerProfile(service.provider_id);
+            setProfileDetails(details);
+            const reviews = await getFreelancerReviews(service.provider_id);
+            setProfileReviews(reviews || []);
+        } catch (err) {
+            console.error('Failed to load freelancer profile details:', err);
+            setProfileError(t('freelancer_marketplace.profile_error') || 'Profil se nepodařilo načíst.');
+        } finally {
+            setProfileLoading(false);
+            setProfileReviewsLoading(false);
+        }
+    };
+
+    const submitReview = async () => {
+        if (!profileTarget || !currentUserId || reviewRating === 0) return;
+        try {
+            setReviewSubmitting(true);
+            await createFreelancerReview({
+                freelancer_id: profileTarget.provider_id,
+                reviewer_id: currentUserId,
+                rating: reviewRating,
+                comment: reviewComment
+            });
+            const reviews = await getFreelancerReviews(profileTarget.provider_id);
+            setProfileReviews(reviews || []);
+            setReviewRating(0);
+            setReviewComment('');
+        } catch (err) {
+            console.error('Failed to submit freelancer review:', err);
+            alert(t('freelancer_marketplace.review_submit_error') || 'Recenzi se nepodařilo odeslat.');
+        } finally {
+            setReviewSubmitting(false);
+        }
+    };
+
+    const createFreelancerReviewVote = async (isHelpful: boolean, reviewId: string) => {
+        if (!currentUserId) return;
+        try {
+            await voteFreelancerReview({
+                review_id: reviewId,
+                voter_id: currentUserId,
+                is_helpful: isHelpful
+            });
+            if (profileTarget?.provider_id) {
+                const reviews = await getFreelancerReviews(profileTarget.provider_id);
+                setProfileReviews(reviews || []);
+            }
+        } catch (err) {
+            console.error('Freelancer review vote error:', err);
+        }
+    };
+
+    // (removed duplicate openProfile)
 
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -263,12 +380,28 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
                         ) : filteredServices.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {filteredServices.map(service => (
-                                    <div key={service.id} className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-cyan-500 dark:hover:border-cyan-500 transition-all shadow-sm group flex flex-col h-full">
+                                    <div
+                                        key={service.id}
+                                        onClick={() => openProfile(service)}
+                                        role="button"
+                                        tabIndex={0}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                openProfile(service);
+                                            }
+                                        }}
+                                        className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 hover:border-cyan-500 dark:hover:border-cyan-500 transition-all shadow-sm group flex flex-col h-full cursor-pointer"
+                                    >
                                         <div className="p-6 flex-1">
                                             <div className="flex justify-between items-start mb-4">
                                                 <div className="flex items-center gap-3">
-                                                    <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500 font-bold text-lg">
-                                                        {service.provider.charAt(0)}
+                                                    <div className="w-10 h-10 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center text-slate-500 font-bold text-lg overflow-hidden">
+                                                        {service.provider_avatar_url ? (
+                                                            <img src={service.provider_avatar_url} alt={service.provider} className="w-full h-full object-cover" />
+                                                        ) : (
+                                                            <span>{service.provider.charAt(0)}</span>
+                                                        )}
                                                     </div>
                                                     <div>
                                                         <h4 className="font-bold text-slate-900 dark:text-white text-sm">{service.provider}</h4>
@@ -314,7 +447,11 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
                                                 {service.price.toLocaleString()} {service.currency}
                                             </div>
                                             <button
-                                                onClick={() => { setContactTarget(service); setShowContactModal(true); }}
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setContactTarget(service);
+                                                    setShowContactModal(true);
+                                                }}
                                                 className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-sm font-bold rounded-lg hover:opacity-90 transition-opacity"
                                             >
                                                 {t('freelancer_marketplace_extra.inquire_btn')}
@@ -344,6 +481,231 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
                 isOpen={showFreelancerModal}
                 onClose={() => setShowFreelancerModal(false)}
             />
+
+            {/* Profile Modal */}
+            {showProfileModal && profileTarget && (
+                <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/40" onClick={() => setShowProfileModal(false)}></div>
+                    <div className="relative w-full max-w-5xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl p-6 md:p-8 z-10 max-h-[90vh] overflow-y-auto">
+                        <div className="flex items-start justify-between gap-4 mb-6">
+                            <div className="flex items-center gap-4">
+                                <div className="w-14 h-14 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center overflow-hidden text-slate-500 font-bold text-xl">
+                                    {profileTarget.provider_avatar_url ? (
+                                        <img src={profileTarget.provider_avatar_url} alt={profileTarget.provider} className="w-full h-full object-cover" />
+                                    ) : (
+                                        <span>{profileTarget.provider.charAt(0)}</span>
+                                    )}
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{profileTarget.provider}</h3>
+                                    <p className="text-sm text-cyan-600 dark:text-cyan-400 font-semibold">{profileTarget.title}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setShowProfileModal(false)} className="text-slate-500 hover:text-slate-700">✕</button>
+                        </div>
+
+                        {profileLoading ? (
+                            <div className="py-12 text-center text-slate-500">{t('app.loading')}</div>
+                        ) : profileError ? (
+                            <div className="py-12 text-center text-rose-500">{profileError}</div>
+                        ) : (
+                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                <div className="lg:col-span-2 space-y-6">
+                                    <section>
+                                        <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                                            {t('freelancer_marketplace.profile.about') || 'O mně'}
+                                        </h4>
+                                        <p className="text-slate-600 dark:text-slate-300 whitespace-pre-wrap">
+                                            {profileDetails?.presentation || profileDetails?.bio || profileTarget.description}
+                                        </p>
+                                    </section>
+
+                                    {(profileDetails?.skills?.length || profileDetails?.tags?.length) ? (
+                                        <section>
+                                            <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                                                {t('freelancer_marketplace.profile.skills') || 'Dovednosti'}
+                                            </h4>
+                                            <div className="flex flex-wrap gap-2">
+                                                {(profileDetails?.skills || []).map((skill: string) => (
+                                                    <span key={`skill-${skill}`} className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200">
+                                                        {skill}
+                                                    </span>
+                                                ))}
+                                                {(profileDetails?.tags || []).map((tag: string) => (
+                                                    <span key={`tag-${tag}`} className="px-3 py-1 rounded-full text-xs font-semibold bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300">
+                                                        {tag}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </section>
+                                    ) : null}
+
+                                    <section>
+                                        <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                                            {t('freelancer_marketplace.profile.portfolio') || 'Portfolio'}
+                                        </h4>
+                                        {(profileDetails?.freelancer_portfolio_items || []).length === 0 ? (
+                                            <div className="text-sm text-slate-500">{t('freelancer_marketplace.profile.no_portfolio') || 'Zatím bez položek.'}</div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                {profileDetails?.freelancer_portfolio_items?.map((item: any) => {
+                                                    const imageSrc = item.image_url || item.imageUrl || item.media_url || item.mediaUrl || item.metadata?.image_url;
+                                                    return (
+                                                        <div key={item.id} className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900">
+                                                            {imageSrc && (
+                                                                <div className="aspect-video bg-slate-100 dark:bg-slate-800">
+                                                                    <img src={imageSrc} alt={item.title || 'Portfolio'} className="w-full h-full object-cover" />
+                                                                </div>
+                                                            )}
+                                                            <div className="p-3">
+                                                                <div className="font-semibold text-slate-900 dark:text-white">{item.title || t('freelancer_marketplace.profile.portfolio_item') || 'Ukázka'}</div>
+                                                                {item.description && (
+                                                                    <p className="text-xs text-slate-500 mt-1 line-clamp-3">{item.description}</p>
+                                                                )}
+                                                                {item.url && (
+                                                                    <a
+                                                                        href={item.url}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="inline-flex items-center gap-1 text-xs text-cyan-600 dark:text-cyan-400 mt-2 hover:underline"
+                                                                    >
+                                                                        {t('freelancer_marketplace.profile.view_link') || 'Otevřít'}
+                                                                    </a>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </section>
+
+                                    <section>
+                                        <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-2">
+                                            {t('freelancer_marketplace.profile.reviews') || 'Recenze'}
+                                        </h4>
+                                        {profileReviewsLoading ? (
+                                            <div className="text-sm text-slate-500">{t('app.loading')}</div>
+                                        ) : profileReviews.length === 0 ? (
+                                            <div className="text-sm text-slate-500">{t('freelancer_marketplace.profile.no_reviews') || 'Zatím žádné recenze.'}</div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {profileReviews.map((review) => (
+                                                    <div key={review.id} className="p-3 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900">
+                                                        <div className="flex items-center justify-between mb-1">
+                                                            <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                                                                {review.candidate_name || t('freelancer_marketplace.profile.review_anon') || 'Anonym'}
+                                                            </div>
+                                                            <div className="text-xs font-bold text-amber-500">{review.rating}/5</div>
+                                                        </div>
+                                                        {review.is_verified_customer && (
+                                                            <div className="text-[10px] font-semibold text-emerald-600 mb-1">
+                                                                {t('freelancer_marketplace.profile.verified_customer') || 'Ověřený zákazník'}
+                                                            </div>
+                                                        )}
+                                                        {review.comment && (
+                                                            <div className="text-sm text-slate-600 dark:text-slate-300 whitespace-pre-wrap">
+                                                                {review.comment}
+                                                            </div>
+                                                        )}
+                                                        <div className="flex items-center gap-3 mt-2 text-xs text-slate-500">
+                                                            <button
+                                                                onClick={() => createFreelancerReviewVote(true, review.id)}
+                                                                disabled={!currentUserId}
+                                                                className="hover:text-slate-700 disabled:opacity-50"
+                                                            >
+                                                                {t('freelancer_marketplace.profile.helpful') || 'Užitečné'} ({review.helpful_count || 0})
+                                                            </button>
+                                                            <button
+                                                                onClick={() => createFreelancerReviewVote(false, review.id)}
+                                                                disabled={!currentUserId}
+                                                                className="hover:text-slate-700 disabled:opacity-50"
+                                                            >
+                                                                {t('freelancer_marketplace.profile.not_helpful') || 'Není užitečné'} ({review.unhelpful_count || 0})
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+
+                                        {currentUserId ? (
+                                            <div className="mt-4 rounded-lg border border-slate-200 dark:border-slate-800 p-3">
+                                                <div className="text-sm font-semibold text-slate-900 dark:text-white mb-2">
+                                                    {t('freelancer_marketplace.profile.add_review') || 'Přidat recenzi'}
+                                                </div>
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    {[1, 2, 3, 4, 5].map((star) => (
+                                                        <button
+                                                            key={star}
+                                                            type="button"
+                                                            onClick={() => setReviewRating(star)}
+                                                            className={`text-sm font-bold px-2 py-1 rounded ${reviewRating >= star ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}
+                                                        >
+                                                            {star}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                                <textarea
+                                                    value={reviewComment}
+                                                    onChange={(e) => setReviewComment(e.target.value)}
+                                                    placeholder={t('freelancer_marketplace.profile.review_placeholder') || 'Napište krátké hodnocení...'}
+                                                    className="w-full p-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+                                                />
+                                                <div className="flex justify-end mt-2">
+                                                    <button
+                                                        onClick={submitReview}
+                                                        disabled={reviewSubmitting || reviewRating === 0}
+                                                        className="px-3 py-2 bg-cyan-600 text-white text-xs font-bold rounded-lg disabled:opacity-50"
+                                                    >
+                                                        {reviewSubmitting ? (t('freelancer_marketplace.profile.review_sending') || 'Odesílám...') : (t('freelancer_marketplace.profile.review_submit') || 'Odeslat recenzi')}
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div className="mt-4 text-xs text-slate-500">
+                                                {t('freelancer_marketplace.profile.review_login') || 'Pro přidání recenze se prosím přihlaste.'}
+                                            </div>
+                                        )}
+                                    </section>
+                                </div>
+
+                                <aside className="space-y-4">
+                                    <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50">
+                                        <div className="text-sm text-slate-500">{t('freelancer_marketplace.profile.rate') || 'Sazba'}</div>
+                                        <div className="text-2xl font-black text-slate-900 dark:text-white">
+                                            {profileDetails?.hourly_rate
+                                                ? `${profileDetails?.hourly_rate} ${profileDetails?.currency || 'CZK'}`
+                                                : (t('freelancer_marketplace.profile.rate_on_request') || 'Dohodou')}
+                                            {profileDetails?.hourly_rate && (
+                                                <span className="text-sm font-semibold text-slate-500">/hod</span>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {profileDetails?.availability && (
+                                        <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                                            <div className="text-sm text-slate-500">{t('freelancer_marketplace.profile.availability') || 'Dostupnost'}</div>
+                                            <div className="font-semibold text-slate-900 dark:text-white">{profileDetails.availability}</div>
+                                        </div>
+                                    )}
+
+                                    <button
+                                        onClick={() => {
+                                            setShowProfileModal(false);
+                                            setContactTarget(profileTarget);
+                                            setShowContactModal(true);
+                                        }}
+                                        className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-colors"
+                                    >
+                                        {t('freelancer_marketplace.contact_btn') || 'Kontaktovat'}
+                                    </button>
+                                </aside>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Contact Modal for Services */}
             {showContactModal && contactTarget && (
