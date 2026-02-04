@@ -258,7 +258,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 </div>
                                 {profileMenuOpen && (
                                     <div className="absolute right-4 top-[64px] w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-2 z-50">
-                                        {userProfile.role !== 'recruiter' && (
+                                        {(userProfile.role !== 'recruiter' || companyProfile?.industry === 'Freelancer') && (
                                             <button
                                                 onClick={() => {
                                                     setViewState(ViewState.PROFILE);
@@ -270,7 +270,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                                 {t('header.open_profile', { defaultValue: t('nav.profile') })}
                                             </button>
                                         )}
-                                        {userProfile.role !== 'recruiter' && (
+                                        {(userProfile.role !== 'recruiter' || companyProfile?.industry === 'Freelancer') && (
                                             <button
                                                 onClick={() => {
                                                     if (viewState === ViewState.FREELANCER_DASHBOARD) {

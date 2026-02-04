@@ -119,12 +119,13 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                 console.log("✅ Freelancer Registration successful, initializing profile for:", userId);
 
                 try {
-                    const { createBaseProfile, updateUserProfile } = await import('../services/supabaseService');
+                    const { createBaseProfile, updateUserProfile, ensureCandidateProfile } = await import('../services/supabaseService');
 
                     // Initialize User Profile
                     await updateUserProfile(userId, { role: 'recruiter' }).catch(async () => {
                         await createBaseProfile(userId, userEmail || formData.email, formData.fullName, 'recruiter');
                     });
+                    await ensureCandidateProfile(userId);
 
                     const { getUserProfile } = await import('../services/supabaseService');
                     const profileCheck = await getUserProfile(userId);
