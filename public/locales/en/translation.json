@@ -96,7 +96,7 @@
     "saved": "Saved",
     "profile": "Profile",
     "marketplace": "Education",
-    "services": "Services & Collaboration",
+    "services": "Projects",
     "for_companies": "For Companies",
     "back": "Back",
     "home": "Home",
@@ -334,7 +334,12 @@
     "swiped_count": "You swiped through {{count}} jobs",
     "start_over": "Start over",
     "remove_save": "Remove from Saved",
-    "transparent_eu": "EU Transparent"
+    "transparent_eu": "EU Transparent",
+    "swipe_tutorial_title": "How swiping works",
+    "swipe_tutorial_desc": "Swipe right to save, left to skip.",
+    "swipe_tutorial_cta": "Got it",
+    "list_view": "List view",
+    "swipe_view": "Swipe view"
   },
   "profile": {
     "personal_info": "Personal Information",
@@ -889,7 +894,10 @@
   },
   "header": {
     "toggle_theme": "Toggle Theme",
-    "logout": "Logout"
+    "logout": "Logout",
+    "switch_to_freelancer": "Switch to freelancer",
+    "switch_to_candidate": "Switch to candidate",
+    "open_profile": "Open profile"
   },
   "assessment": {
     "taker": {
@@ -1103,7 +1111,7 @@
       "benefit_4": "Traffic statistics"
     },
     "marketplace": {
-      "title": "Services & Cooperation",
+      "title": "Projects",
       "subtitle": "Find experts for your project or offer your services.",
       "search_placeholder": "Search services, freelancers...",
       "offer_service": "Offer Service",

@@ -361,7 +361,12 @@
     "swiped_count": "Prošli jste {{count}} nabídek",
     "start_over": "Začít znovu",
     "remove_save": "Odstranit z uložených",
-    "transparent_eu": "EU Transparentní"
+    "transparent_eu": "EU Transparentní",
+    "swipe_tutorial_title": "Jak funguje swipování",
+    "swipe_tutorial_desc": "Táhni kartu doprava pro uložení, doleva pro přeskočení.",
+    "swipe_tutorial_cta": "Rozumím",
+    "list_view": "Klasické zobrazení",
+    "swipe_view": "Swipe zobrazení"
   },
   "profile": {
     "title": "Profil",
@@ -1050,7 +1055,10 @@
   },
   "header": {
     "toggle_theme": "Změnit režim",
-    "logout": "Odhlásit se"
+    "logout": "Odhlásit se",
+    "switch_to_freelancer": "Přepnout na freelancera",
+    "switch_to_candidate": "Přepnout na uchazeče",
+    "open_profile": "Otevřít profil"
   },
   "assessment": {
     "taker": {

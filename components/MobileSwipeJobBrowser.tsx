@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Job } from '../types';
-import { Bookmark, X, Check, ChevronDown, Sparkles } from 'lucide-react';
+import { Bookmark, X, Check, ChevronDown, Sparkles, List } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { trackJobInteraction } from '../services/jobInteractionService';
@@ -10,6 +10,7 @@ interface MobileSwipeJobBrowserProps {
     savedJobIds: string[];
     onToggleSave: (jobId: string) => void;
     onOpenDetails: (jobId: string) => void;
+    onSwitchToList: () => void;
     isLoadingMore: boolean;
     hasMore: boolean;
     onLoadMore: () => void;
@@ -27,6 +28,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     savedJobIds,
     onToggleSave,
     onOpenDetails,
+    onSwitchToList,
     isLoadingMore,
     hasMore,
     onLoadMore,
@@ -39,6 +41,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
         currentX: 0,
         isDragging: false
     });
+    const [showSwipeCoach, setShowSwipeCoach] = useState(false);
     const [exitAnimation, setExitAnimation] = useState<'left' | 'right' | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const justSwipedRef = useRef(false);
@@ -51,6 +54,16 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     const jhiScore = currentJob?.jhi?.score;
     const dragDelta = Math.abs(swipeState.currentX - swipeState.startX);
     const isTap = !swipeState.isDragging && dragDelta < 10;
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const key = 'swipe_tutorial_seen';
+        const hasSeen = window.localStorage.getItem(key);
+        if (!hasSeen) {
+            setShowSwipeCoach(true);
+            window.localStorage.setItem(key, '1');
+        }
+    }, []);
 
     // Keyboard support
     useEffect(() => {
@@ -330,6 +343,59 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
             {/* Card Stack */}
             <div className="flex-1 flex items-center justify-center p-4 relative overflow-hidden">
                 <AnimatePresence>
+                    {showSwipeCoach && (
+                        <motion.div
+                            className="absolute inset-0 z-30 flex items-center justify-center"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                        >
+                            <div className="absolute inset-0 bg-black/40" onClick={() => setShowSwipeCoach(false)}></div>
+                            <motion.div
+                                initial={{ scale: 0.96, opacity: 0, y: 10 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.96, opacity: 0, y: 10 }}
+                                transition={{ duration: 0.2 }}
+                                className="relative z-10 w-[90%] max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-5 text-center"
+                            >
+                                <div className="text-sm font-bold text-slate-900 dark:text-white mb-1">
+                                    {t('job.swipe_tutorial_title') || 'Jak funguje swipování'}
+                                </div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                                    {t('job.swipe_tutorial_desc') || 'Táhni kartu doprava pro uložení, doleva pro přeskočení.'}
+                                </div>
+                                <div className="relative h-16 mb-4 flex items-center justify-center">
+                                    <motion.div
+                                        className="absolute left-4 text-rose-500 text-2xl font-bold"
+                                        animate={{ x: [-4, -12, -4], opacity: [0.6, 1, 0.6] }}
+                                        transition={{ duration: 1.4, repeat: Infinity }}
+                                    >
+                                        ←
+                                    </motion.div>
+                                    <motion.div
+                                        className="absolute right-4 text-emerald-500 text-2xl font-bold"
+                                        animate={{ x: [4, 12, 4], opacity: [0.6, 1, 0.6] }}
+                                        transition={{ duration: 1.4, repeat: Infinity }}
+                                    >
+                                        →
+                                    </motion.div>
+                                    <motion.div
+                                        className="w-24 h-14 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 shadow-sm"
+                                        animate={{ x: [0, 18, 0, -18, 0], rotate: [0, 2, 0, -2, 0] }}
+                                        transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                                    />
+                                </div>
+                                <button
+                                    onClick={() => setShowSwipeCoach(false)}
+                                    className="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold transition-colors"
+                                >
+                                    {t('job.swipe_tutorial_cta') || 'Rozumím'}
+                                </button>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+                <AnimatePresence>
                     {!exitAnimation && currentJob && (
                         <motion.div
                             key={currentJob.id}
@@ -540,6 +606,20 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                 >
                     <Sparkles size={20} />
                     <span className="hidden sm:inline">{t('job.details') || 'Details'}</span>
+                </button>
+
+                {/* List View */}
+                <button
+                    onClick={onSwitchToList}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-lg font-semibold transition-all duration-200 border-2 ${
+                        theme === 'dark'
+                            ? 'bg-slate-800 hover:bg-slate-700 text-slate-100 border-slate-700 hover:border-slate-600'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-900 border-slate-300 hover:border-slate-400'
+                    }`}
+                    title="Switch to list view"
+                >
+                    <List size={20} />
+                    <span className="hidden sm:inline">{t('job.list_view') || 'List'}</span>
                 </button>
             </div>
 

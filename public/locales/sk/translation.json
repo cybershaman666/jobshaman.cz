@@ -98,7 +98,7 @@
     "saved": "Uložené",
     "profile": "Profil",
     "marketplace": "Vzdelávanie",
-    "services": "Služby a Spolupráca",
+    "services": "Zákazky",
     "for_companies": "Pre Firmy",
     "back": "Späť",
     "home": "Domov",
@@ -325,7 +325,12 @@
     "swiped_count": "Prešli ste {{count}} ponúk",
     "start_over": "Začať znovu",
     "remove_save": "Odstrániť z uložených",
-    "transparent_eu": "EÚ Transparentné"
+    "transparent_eu": "EÚ Transparentné",
+    "swipe_tutorial_title": "Ako funguje swipovanie",
+    "swipe_tutorial_desc": "Potiahni kartu doprava pre uloženie, doľava pre preskočenie.",
+    "swipe_tutorial_cta": "Rozumiem",
+    "list_view": "Klasické zobrazenie",
+    "swipe_view": "Swipe zobrazenie"
   },
   "profile": {
     "title": "Profil",
@@ -941,7 +946,10 @@
   },
   "header": {
     "toggle_theme": "Zmeniť režim",
-    "logout": "Odhlásiť sa"
+    "logout": "Odhlásiť sa",
+    "switch_to_freelancer": "Prepnúť na freelancera",
+    "switch_to_candidate": "Prepnúť na uchádzača",
+    "open_profile": "Otvoriť profil"
   },
   "assessment": {
     "taker": {
@@ -1155,7 +1163,7 @@
       "benefit_4": "Traffic statistics"
     },
     "marketplace": {
-      "title": "Services & Cooperation",
+      "title": "Zákazky",
       "subtitle": "Find experts for your project or offer your services.",
       "search_placeholder": "Search services, freelancers...",
       "offer_service": "Offer Service",

@@ -96,7 +96,7 @@
     "saved": "Zapisane",
     "profile": "Profil",
     "marketplace": "Edukacja",
-    "services": "Usługi i Współpraca",
+    "services": "Zlecenia",
     "for_companies": "Dla firm",
     "back": "Wstecz",
     "home": "Start",
@@ -334,7 +334,12 @@
     "swiped_count": "Przejrzano {{count}} ofert",
     "start_over": "Zacznij od nowa",
     "remove_save": "Usuń z zapisanych",
-    "transparent_eu": "Przejrzystość UE"
+    "transparent_eu": "Przejrzystość UE",
+    "swipe_tutorial_title": "Jak działa swipe",
+    "swipe_tutorial_desc": "Przesuń w prawo, aby zapisać, w lewo, aby pominąć.",
+    "swipe_tutorial_cta": "Rozumiem",
+    "list_view": "Widok listy",
+    "swipe_view": "Widok swipe"
   },
   "profile": {
     "personal_info": "Dane osobowe",
@@ -912,7 +917,10 @@
   },
   "header": {
     "toggle_theme": "Zmień motyw",
-    "logout": "Wyloguj się"
+    "logout": "Wyloguj się",
+    "switch_to_freelancer": "Przełącz na freelancera",
+    "switch_to_candidate": "Przełącz na kandydata",
+    "open_profile": "Otwórz profil"
   },
   "assessment": {
     "taker": {
@@ -1101,7 +1109,7 @@
       "benefit_4": "Traffic statistics"
     },
     "marketplace": {
-      "title": "Services & Cooperation",
+      "title": "Zlecenia",
       "subtitle": "Find experts for your project or offer your services.",
       "search_placeholder": "Search services, freelancers...",
       "offer_service": "Offer Service",
