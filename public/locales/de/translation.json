@@ -59,6 +59,7 @@
     "reality_title": "Finanzielle Realität",
     "unlock_title": "Finanzielle Realität freischalten",
     "unlock_desc": "Melden Sie sich an und finden Sie heraus, wie viel Ihnen nach Steuern und Arbeitsweg wirklich im Portemonnaie bleibt.",
+    "unlock_commute_address": "Um die Pendelrealität freizuschalten, müssen Sie Ihre Adresse im Profil ausfüllen.",
     "login_button": "Anmelden",
     "missing_address": "Uns fehlt ein Startpunkt",
     "set_address_desc": "Geben Sie Ihre Adresse in Ihrem Profil an, damit wir Pendelzeit und -kosten berechnen können.",

@@ -59,6 +59,7 @@
     "reality_title": "Financial Reality",
     "unlock_title": "Unlock Financial Reality",
     "unlock_desc": "Log in and find out how much you really have left in your wallet after taxes and commute.",
+    "unlock_commute_address": "To unlock commute reality, you must fill in your address in your profile.",
     "login_button": "Log In",
     "missing_address": "We are missing a starting point",
     "set_address_desc": "Set your address in your profile so we can calculate commute time and costs.",

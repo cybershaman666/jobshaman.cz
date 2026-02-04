@@ -58,7 +58,8 @@
   "financial": {
     "reality_title": "Rzeczywistość finansowa",
     "unlock_title": "Odblokuj rzeczywistość finansową",
-    "unlock_desc": "Zaloguj se i dowiedz się, ile naprawdę zostanie Ci w portfelu po odliczeniu podatków i kosztów dojazdu.",
+    "unlock_desc": "Zaloguj się i dowiedz się, ile naprawdę zostanie Ci w portfelu po odliczeniu podatków i kosztów dojazdu.",
+    "unlock_commute_address": "Aby odblokować rzeczywistość dojazdów, musisz uzupełnić adres w swoim profilu.",
     "login_button": "Zaloguj się",
     "missing_address": "Brakuje nam punktu startowego",
     "set_address_desc": "Ustaw swój adres w profilu, abyśmy mogli obliczyć czas i koszty dojazdu.",

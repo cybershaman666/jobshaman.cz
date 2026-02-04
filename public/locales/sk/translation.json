@@ -61,6 +61,7 @@
     "reality_title": "Finančná Realita",
     "unlock_title": "Odomknite Finančnú Realitu",
     "unlock_desc": "Prihláste sa a zistite, koľko vám skutočne zostane v peňaženke po odpočítaní daní a dojazdu.",
+    "unlock_commute_address": "Pre odomknutie dojazdovej reality je potrebné vyplniť adresu vo svojom profile.",
     "login_button": "Prihlásiť sa",
     "missing_address": "Chýba nám štartovací bod",
     "set_address_desc": "Nastavte svoju adresu v profile, aby sme mohli spočítať čas a náklady na cestu.",
