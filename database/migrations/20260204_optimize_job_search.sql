@@ -72,6 +72,7 @@ RETURNS TABLE (
 DECLARE
     v_total bigint;
 BEGIN
+    RETURN QUERY
     WITH base AS (
         SELECT
             j.*,
@@ -117,13 +118,13 @@ BEGIN
                       AND ji.event_type = 'swipe_left'
                 )
             )
-    )
-    SELECT COUNT(*)::bigint INTO v_total
-    FROM base
-    WHERE (radius_km IS NULL OR distance_km IS NULL OR distance_km <= radius_km);
-
-    RETURN QUERY
-    WITH user_prefs AS (
+    ),
+    counted AS (
+        SELECT COUNT(*)::bigint AS total_count
+        FROM base b
+        WHERE (radius_km IS NULL OR b.distance_km IS NULL OR b.distance_km <= radius_km)
+    ),
+    user_prefs AS (
         SELECT
             (SELECT j.contract_type
              FROM public.job_interactions ji
@@ -177,12 +178,13 @@ BEGIN
         j.legality_status,
         j.verification_notes,
         j.distance_km,
-        v_total as total_count,
+        counted.total_count as total_count,
         CASE
             WHEN search_term IS NULL OR search_term = '' THEN 0
             ELSE calculate_job_relevance_score(j.title, j.description, search_term)
         END as relevance_score
     FROM base j
+    CROSS JOIN counted
     CROSS JOIN user_prefs p
     WHERE (radius_km IS NULL OR j.distance_km IS NULL OR j.distance_km <= radius_km)
     ORDER BY
