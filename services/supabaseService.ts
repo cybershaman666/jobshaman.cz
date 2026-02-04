@@ -358,6 +358,8 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
             ico,
             dic,
             address,
+            legal_address,
+            registry_info,
             description,
             industry,
             website,
@@ -396,6 +398,23 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
             } : undefined
         }
     } as CompanyProfile;
+};
+
+export const getCompanyPublicInfo = async (companyId: string) => {
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+        .from('companies')
+        .select('id, name, ico, dic, address, legal_address, registry_info, website')
+        .eq('id', companyId)
+        .maybeSingle();
+
+    if (error) {
+        console.error('Company public info fetch error:', error);
+        return null;
+    }
+
+    return data;
 };
 
 export const getRecruiterCompany = async (userId: string): Promise<any> => {
@@ -1802,9 +1821,43 @@ export const uploadPortfolioImage = async (
     if (!supabase) throw new Error("Supabase not configured");
 
     try {
+        const { data: authData, error: authError } = await supabase.auth.getUser();
+        if (authError) {
+            console.error('Portfolio upload auth error:', authError);
+        }
+        const authUserId = authData?.user?.id || null;
+        if (!authUserId) {
+            throw new Error('User is not authenticated');
+        }
+        if (freelancerId !== authUserId) {
+            console.warn('Portfolio upload: freelancerId differs from auth uid, using auth uid', {
+                freelancerId,
+                authUserId
+            });
+            freelancerId = authUserId;
+        }
+
+        const sanitizeFileName = (name: string) => {
+            const normalized = name
+                .normalize('NFKD')
+                .replace(/[\u0300-\u036f]/g, '');
+            const parts = normalized.split('.');
+            const ext = parts.length > 1 ? parts.pop() : '';
+            const base = parts.join('.') || 'portfolio-file';
+            const safeBase = base
+                .replace(/\s+/g, '-')
+                .replace(/[^a-zA-Z0-9._-]/g, '')
+                .replace(/-+/g, '-')
+                .replace(/^[-_.]+|[-_.]+$/g, '')
+                .toLowerCase() || 'portfolio-file';
+            const safeExt = ext ? ext.replace(/[^a-zA-Z0-9]/g, '').toLowerCase() : '';
+            return safeExt ? `${safeBase}.${safeExt}` : safeBase;
+        };
+
         // Generate unique filename
         const timestamp = Date.now();
-        const fileName = `${freelancerId}/${timestamp}-${file.name}`;
+        const safeName = sanitizeFileName(file.name);
+        const fileName = `${freelancerId}/${timestamp}-${safeName}`;
 
         // Upload to 'portfolio' bucket
         const { error: uploadError } = await supabase.storage

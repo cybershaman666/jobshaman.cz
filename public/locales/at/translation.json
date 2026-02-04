@@ -81,7 +81,13 @@
     "jhi_desc": "Zusammengesetzter Qualitätswert",
     "ai_analysis": "KI-Analyse",
     "run_ai_analysis": "KI-Analyse starten",
-    "analyzing": "Analysiere..."
+    "analyzing": "Analysiere...",
+    "company_legal_title": "Rechtliche Informationen zum Unternehmen",
+    "company_ico": "Unternehmens-ID",
+    "company_dic": "USt-IdNr.",
+    "company_legal_address": "Rechtliche Adresse",
+    "company_registry": "Registereintrag",
+    "gdpr_consent": "Mit dem Absenden stimmen Sie der Verarbeitung personenbezogener Daten gemäß DSGVO zu."
   },
   "nav": {
     "offers": "Angebote",
@@ -536,7 +542,19 @@
       "logo_btn": "Logo hochladen",
       "logo_uploading": "Logo wird hochgeladen...",
       "logo_error": "Logo konnte nicht hochgeladen werden",
-      "logo_hint": "Empfohlen: quadratisch, PNG/JPG, max. 2 MB."
+      "logo_hint": "Empfohlen: quadratisch, PNG/JPG, max. 2 MB.",
+      "name": "Firmenname",
+      "name_placeholder": "z. B. JobShaman GmbH",
+      "ico": "Firmen-ID",
+      "ico_placeholder": "12345678",
+      "dic": "USt-IdNr.",
+      "dic_placeholder": "ATU12345678",
+      "website": "Webseite",
+      "website_placeholder": "https://...",
+      "legal_address": "Rechtliche Adresse",
+      "legal_address_placeholder": "z. B. Straße 1, 1010 Wien",
+      "registry_info": "Registereintrag",
+      "registry_info_placeholder": "z. B. eingetragen beim Handelsgericht, Abteilung C, Blatt 123456"
     },
     "subscription": {
       "title": "Unternehmens-Abonnement",

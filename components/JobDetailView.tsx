@@ -10,7 +10,7 @@ import ContextualRelevance from './ContextualRelevance';
 import { ArrowUpRight, Bookmark, Gift, Zap, Share2, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Markdown from 'markdown-to-jsx';
-import { getCompanyLogoUrl, trackAnalyticsEvent } from '../services/supabaseService';
+import { getCompanyLogoUrl, getCompanyPublicInfo, trackAnalyticsEvent } from '../services/supabaseService';
 import { useEffect } from 'react';
 import { removeAccents } from '../utils/benefits';
 
@@ -102,6 +102,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     };
     const [shareTooltip, setShareTooltip] = React.useState(false);
     const [companyLogoUrl, setCompanyLogoUrl] = React.useState<string | null>(null);
+    const [companyPublicInfo, setCompanyPublicInfo] = React.useState<any | null>(null);
 
     const handleShare = async () => {
         if (!selectedJob) return;
@@ -137,10 +138,13 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
         const loadLogo = async () => {
             if (!selectedJob?.company_id) {
                 if (isMounted) setCompanyLogoUrl(null);
+                if (isMounted) setCompanyPublicInfo(null);
                 return;
             }
             const logo = await getCompanyLogoUrl(selectedJob.company_id);
             if (isMounted) setCompanyLogoUrl(logo);
+            const info = await getCompanyPublicInfo(selectedJob.company_id);
+            if (isMounted) setCompanyPublicInfo(info);
         };
         loadLogo();
         return () => { isMounted = false; };
@@ -259,6 +263,34 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                     <Markdown options={{ forceBlock: true }}>{formatJobDescription(selectedJob.description)}</Markdown>
                                 </div>
                             )}
+
+                            {/* Company Legal Info */}
+                            {(companyPublicInfo?.legal_address || companyPublicInfo?.registry_info || companyPublicInfo?.ico || companyPublicInfo?.dic) && (
+                                <div className="bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+                                    <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">
+                                        {t('job_detail.company_legal_title')}
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-slate-700 dark:text-slate-300">
+                                        {companyPublicInfo?.ico && (
+                                            <div><span className="font-semibold">{t('job_detail.company_ico')}:</span> {companyPublicInfo.ico}</div>
+                                        )}
+                                        {companyPublicInfo?.dic && (
+                                            <div><span className="font-semibold">{t('job_detail.company_dic')}:</span> {companyPublicInfo.dic}</div>
+                                        )}
+                                        {companyPublicInfo?.legal_address && (
+                                            <div className="md:col-span-2"><span className="font-semibold">{t('job_detail.company_legal_address')}:</span> {companyPublicInfo.legal_address}</div>
+                                        )}
+                                        {companyPublicInfo?.registry_info && (
+                                            <div className="md:col-span-2"><span className="font-semibold">{t('job_detail.company_registry')}:</span> {companyPublicInfo.registry_info}</div>
+                                        )}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* GDPR Consent Notice */}
+                            <div className="text-xs text-slate-500 dark:text-slate-400">
+                                {t('job_detail.gdpr_consent')}
+                            </div>
                         </div>
 
                         {/* Bottom section with JHI Chart and Analysis */}

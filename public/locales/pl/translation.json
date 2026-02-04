@@ -83,7 +83,13 @@
     "jhi_desc": "Złożony wynik jakości",
     "ai_analysis": "Analiza AI",
     "run_ai_analysis": "Uruchom analizę AI",
-    "analyzing": "Analyzuję..."
+    "analyzing": "Analyzuję...",
+    "company_legal_title": "Informacje prawne o firmie",
+    "company_ico": "NIP / REGON",
+    "company_dic": "VAT ID",
+    "company_legal_address": "Adres prawny",
+    "company_registry": "Wpis do rejestru",
+    "gdpr_consent": "Wysyłając zgłoszenie, wyrażasz zgodę na przetwarzanie danych osobowych zgodnie z RODO."
   },
   "nav": {
     "offers": "Oferty",
@@ -513,7 +519,19 @@
       "logo_btn": "Prześlij logo",
       "logo_uploading": "Przesyłanie logo...",
       "logo_error": "Nie udało się przesłać logo",
-      "logo_hint": "Zalecane: kwadrat, PNG/JPG, maks. 2 MB."
+      "logo_hint": "Zalecane: kwadrat, PNG/JPG, maks. 2 MB.",
+      "name": "Nazwa firmy",
+      "name_placeholder": "np. JobShaman sp. z o.o.",
+      "ico": "NIP / REGON",
+      "ico_placeholder": "1234567890",
+      "dic": "VAT ID",
+      "dic_placeholder": "PL1234567890",
+      "website": "Strona www",
+      "website_placeholder": "https://...",
+      "legal_address": "Adres prawny",
+      "legal_address_placeholder": "np. Ulica 1, 00-001 Warszawa",
+      "registry_info": "Wpis do rejestru",
+      "registry_info_placeholder": "np. wpis do KRS, dział, numer 123456"
     },
     "subscription": {
       "title": "Subskrypcja firmy",

@@ -83,7 +83,13 @@
     "jhi_desc": "Composite quality score",
     "ai_analysis": "AI Analysis",
     "run_ai_analysis": "Run AI Analysis",
-    "analyzing": "Analyzing..."
+    "analyzing": "Analyzing...",
+    "company_legal_title": "Company legal information",
+    "company_ico": "Company ID",
+    "company_dic": "VAT ID",
+    "company_legal_address": "Legal address",
+    "company_registry": "Registry entry",
+    "gdpr_consent": "By submitting, you consent to the processing of personal data in accordance with GDPR."
   },
   "nav": {
     "offers": "Offers",
@@ -511,7 +517,19 @@
       "remove_from_team": "Remove from team",
       "save_changes": "Save Changes",
       "invite_success": "Invitation for {{email}} has been sent!",
-      "invite_failed": "Failed to send invitation."
+      "invite_failed": "Failed to send invitation.",
+      "name": "Company name",
+      "name_placeholder": "e.g. JobShaman Ltd.",
+      "ico": "Company ID",
+      "ico_placeholder": "12345678",
+      "dic": "VAT ID",
+      "dic_placeholder": "CZ12345678",
+      "website": "Website",
+      "website_placeholder": "https://...",
+      "legal_address": "Legal address",
+      "legal_address_placeholder": "e.g. Street 1, City, ZIP",
+      "registry_info": "Registry entry",
+      "registry_info_placeholder": "e.g. registered at City Court, section C, file 123456"
     },
     "subscription": {
       "title": "Company Subscription",
