@@ -40,6 +40,8 @@ export interface CompanyProfile {
   ico?: string;
   dic?: string;
   address?: string;
+  legal_address?: string;
+  registry_info?: string;
   website?: string;
   description?: string;
   logo_url?: string;

@@ -85,7 +85,13 @@
     "jhi_desc": "Kompozitné skóre kvality",
     "ai_analysis": "AI Analýza",
     "run_ai_analysis": "Spustiť AI Analýzu",
-    "analyzing": "Analyzujem..."
+    "analyzing": "Analyzujem...",
+    "company_legal_title": "Právne informácie o firme",
+    "company_ico": "IČO",
+    "company_dic": "DIČ",
+    "company_legal_address": "Právna adresa",
+    "company_registry": "Zápis v registri",
+    "gdpr_consent": "Odoslaním odpovede súhlasíte so spracovaním osobných údajov v súlade s GDPR."
   },
   "nav": {
     "offers": "Ponuky",
@@ -620,7 +626,19 @@
       "logo_btn": "Nahrať logo",
       "logo_uploading": "Nahrávanie loga...",
       "logo_error": "Logo sa nepodarilo nahrať",
-      "logo_hint": "Odporúčané: štvorcový formát, PNG/JPG, max. 2 MB."
+      "logo_hint": "Odporúčané: štvorcový formát, PNG/JPG, max. 2 MB.",
+      "name": "Názov firmy",
+      "name_placeholder": "Napr. JobShaman s.r.o.",
+      "ico": "IČO",
+      "ico_placeholder": "12345678",
+      "dic": "DIČ",
+      "dic_placeholder": "SK12345678",
+      "website": "Web",
+      "website_placeholder": "https://...",
+      "legal_address": "Právna adresa",
+      "legal_address_placeholder": "Napr. Ulica 1, 811 01 Bratislava",
+      "registry_info": "Zápis v registri",
+      "registry_info_placeholder": "Napr. zapísané v Obchodnom registri, oddiel Sro, vložka 12345"
     },
     "subscription": {
       "title": "Predplatné Firmy",

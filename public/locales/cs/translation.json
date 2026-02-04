@@ -83,7 +83,13 @@
     "jhi_desc": "Kompozitní skóre kvality",
     "ai_analysis": "AI Analýza",
     "run_ai_analysis": "Spustit AI Analýzu",
-    "analyzing": "Analyzuji..."
+    "analyzing": "Analyzuji...",
+    "company_legal_title": "Právní informace o firmě",
+    "company_ico": "IČO",
+    "company_dic": "DIČ",
+    "company_legal_address": "Právní adresa",
+    "company_registry": "Zápis v rejstříku",
+    "gdpr_consent": "Odesláním odpovědi souhlasíte se zpracováním osobních údajů v souladu s GDPR."
   },
   "nav": {
     "offers": "Nabídky",
@@ -671,7 +677,19 @@
       "remove_from_team": "Odebrat z týmu",
       "save_changes": "Uložit Změny",
       "invite_success": "Pozvání pro {{email}} bylo odesláno!",
-      "invite_failed": "Nepodařilo se odeslat pozvání."
+      "invite_failed": "Nepodařilo se odeslat pozvání.",
+      "name": "Název firmy",
+      "name_placeholder": "Např. JobShaman s.r.o.",
+      "ico": "IČO",
+      "ico_placeholder": "12345678",
+      "dic": "DIČ",
+      "dic_placeholder": "CZ12345678",
+      "website": "Web",
+      "website_placeholder": "https://...",
+      "legal_address": "Právní adresa",
+      "legal_address_placeholder": "Např. Ulice 1, 110 00 Praha 1",
+      "registry_info": "Zápis v rejstříku",
+      "registry_info_placeholder": "Např. zapsáno u Městského soudu v Praze, oddíl C, vložka 123456"
     },
     "subscription": {
       "title": "Předplatné Firmy",

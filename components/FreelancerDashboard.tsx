@@ -222,8 +222,8 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
     };
 
     const loadPortfolio = async () => {
-        if (!companyProfile?.id) return;
-        const items = await getPortfolioItems(companyProfile.id);
+        if (!userProfile?.id) return;
+        const items = await getPortfolioItems(userProfile.id);
         setPortfolio(items as PortfolioItem[]);
     };
 
@@ -331,12 +331,12 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
 
     const handleAddPortfolioItem = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!companyProfile?.id || !portfolioFormData.file) return;
+        if (!userProfile?.id || !portfolioFormData.file) return;
 
         setUploadProgress(true);
         try {
             await uploadPortfolioImage(
-                companyProfile.id,
+                userProfile.id,
                 portfolioFormData.file,
                 portfolioFormData.title,
                 portfolioFormData.description,

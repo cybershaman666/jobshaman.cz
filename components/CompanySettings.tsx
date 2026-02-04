@@ -177,6 +177,94 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                                 </div>
                             </div>
 
+                            {/* Basic Company Info */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label htmlFor="company-name" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                        <Building2 size={16} /> {t('company.settings.name')}
+                                    </label>
+                                    <input
+                                        id="company-name"
+                                        name="company-name"
+                                        type="text"
+                                        placeholder={t('company.settings.name_placeholder')}
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
+                                        value={localProfile.name || ''}
+                                        onChange={(e) => setLocalProfile({ ...localProfile, name: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="company-ico" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                        <Shield size={16} /> {t('company.settings.ico')}
+                                    </label>
+                                    <input
+                                        id="company-ico"
+                                        name="company-ico"
+                                        type="text"
+                                        placeholder={t('company.settings.ico_placeholder')}
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
+                                        value={localProfile.ico || ''}
+                                        onChange={(e) => setLocalProfile({ ...localProfile, ico: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="company-dic" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                        <Shield size={16} /> {t('company.settings.dic')}
+                                    </label>
+                                    <input
+                                        id="company-dic"
+                                        name="company-dic"
+                                        type="text"
+                                        placeholder={t('company.settings.dic_placeholder')}
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
+                                        value={localProfile.dic || ''}
+                                        onChange={(e) => setLocalProfile({ ...localProfile, dic: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="company-website" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                        <Briefcase size={16} /> {t('company.settings.website')}
+                                    </label>
+                                    <input
+                                        id="company-website"
+                                        name="company-website"
+                                        type="url"
+                                        placeholder={t('company.settings.website_placeholder')}
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
+                                        value={localProfile.website || ''}
+                                        onChange={(e) => setLocalProfile({ ...localProfile, website: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="company-legal-address" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                        <Building2 size={16} /> {t('company.settings.legal_address')}
+                                    </label>
+                                    <input
+                                        id="company-legal-address"
+                                        name="company-legal-address"
+                                        type="text"
+                                        placeholder={t('company.settings.legal_address_placeholder')}
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
+                                        value={localProfile.legal_address || ''}
+                                        onChange={(e) => setLocalProfile({ ...localProfile, legal_address: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label htmlFor="company-registry" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
+                                        <Shield size={16} /> {t('company.settings.registry_info')}
+                                    </label>
+                                    <input
+                                        id="company-registry"
+                                        name="company-registry"
+                                        type="text"
+                                        placeholder={t('company.settings.registry_info_placeholder')}
+                                        className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 focus:ring-2 focus:ring-cyan-500 outline-none text-slate-700 dark:text-slate-300"
+                                        value={localProfile.registry_info || ''}
+                                        onChange={(e) => setLocalProfile({ ...localProfile, registry_info: e.target.value })}
+                                    />
+                                </div>
+                            </div>
+
                             {/* Mission / Philosophy */}
                             <div>
                                 <label htmlFor="company-mission" className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">

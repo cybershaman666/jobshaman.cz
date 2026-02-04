@@ -83,7 +83,13 @@
     "jhi_desc": "Zusammengesetzter Qualitätswert",
     "ai_analysis": "KI-Analyse",
     "run_ai_analysis": "KI-Analyse starten",
-    "analyzing": "Analysiere..."
+    "analyzing": "Analysiere...",
+    "company_legal_title": "Rechtliche Informationen zum Unternehmen",
+    "company_ico": "Unternehmens-ID",
+    "company_dic": "USt-IdNr.",
+    "company_legal_address": "Rechtliche Adresse",
+    "company_registry": "Registereintrag",
+    "gdpr_consent": "Mit dem Absenden stimmen Sie der Verarbeitung personenbezogener Daten gemäß DSGVO zu."
   },
   "nav": {
     "offers": "Angebote",
@@ -538,7 +544,19 @@
       "remove_from_team": "Aus Team entfernen",
       "save_changes": "Änderungen speichern",
       "invite_success": "Einladung für {{email}} wurde gesendet!",
-      "invite_failed": "Einladung konnte nicht gesendet werden."
+      "invite_failed": "Einladung konnte nicht gesendet werden.",
+      "name": "Firmenname",
+      "name_placeholder": "z. B. JobShaman GmbH",
+      "ico": "Firmen-ID",
+      "ico_placeholder": "12345678",
+      "dic": "USt-IdNr.",
+      "dic_placeholder": "CZ12345678",
+      "website": "Webseite",
+      "website_placeholder": "https://...",
+      "legal_address": "Rechtliche Adresse",
+      "legal_address_placeholder": "z. B. Straße 1, 11000 Prag",
+      "registry_info": "Registereintrag",
+      "registry_info_placeholder": "z. B. eingetragen beim Stadtgericht, Abteilung C, Blatt 123456"
     },
     "subscription": {
       "title": "Unternehmens-Abonnement",
