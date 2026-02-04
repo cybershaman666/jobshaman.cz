@@ -1449,6 +1449,60 @@ export const uploadProfilePhoto = async (userId: string, file: File): Promise<st
     return publicUrl;
 };
 
+export const uploadCompanyLogo = async (companyId: string, file: File): Promise<string> => {
+    if (!supabase) throw new Error("Supabase not configured");
+
+    const sanitizedName = sanitizeFileName(file.name);
+    const fileName = `${companyId}/${Date.now()}-${sanitizedName}`;
+    const { error } = await supabase.storage
+        .from('logo')
+        .upload(fileName, file);
+
+    if (error) throw error;
+
+    const { data: { publicUrl } } = supabase.storage
+        .from('logo')
+        .getPublicUrl(fileName);
+
+    return publicUrl;
+};
+
+export const updateCompanyProfile = async (companyId: string, updates: Partial<Record<string, any>>) => {
+    if (!supabase) throw new Error("Supabase not configured");
+
+    const payload: any = { ...updates };
+    const { data, error } = await supabase
+        .from('companies')
+        .update(payload)
+        .eq('id', companyId)
+        .select('*')
+        .single();
+
+    if (error) {
+        console.error('Failed to update company profile:', error);
+        throw error;
+    }
+
+    return data;
+};
+
+export const getCompanyLogoUrl = async (companyId: string): Promise<string | null> => {
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+        .from('companies')
+        .select('logo_url')
+        .eq('id', companyId)
+        .maybeSingle();
+
+    if (error) {
+        console.error('Company logo fetch error:', error);
+        return null;
+    }
+
+    return data?.logo_url || null;
+};
+
 export const checkCompanyAssessment = async (companyId: string): Promise<boolean> => {
     if (!supabase) return false;
 
@@ -1850,4 +1904,273 @@ export const deletePortfolioItem = async (itemId: string, fileName: string) => {
         console.error('Portfolio deletion failed:', error);
         throw error;
     }
-};;
+};
+
+// ========================================
+// REVIEWS (COURSES + FREELANCERS)
+// ========================================
+
+export const getCourseReviewStats = async (courseIds: string[]) => {
+    if (!supabase || courseIds.length === 0) return [];
+
+    const { data, error } = await supabase
+        .from('course_review_stats')
+        .select('course_id, avg_rating, reviews_count')
+        .in('course_id', courseIds);
+
+    if (error) {
+        console.error('Course review stats error:', error);
+        return [];
+    }
+
+    return data || [];
+};
+
+export const getCourseReviews = async (courseId: string) => {
+    if (!supabase) return [];
+
+    const { data, error } = await supabase
+        .from('course_reviews')
+        .select('id, course_id, reviewer_id, rating, comment, is_verified_graduate, created_at')
+        .eq('course_id', courseId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Course reviews fetch error:', error);
+        return [];
+    }
+
+    const reviewerIds = (data || []).map((r: any) => r.reviewer_id).filter(Boolean);
+    let profileMap: Record<string, { full_name?: string; avatar_url?: string }> = {};
+    if (reviewerIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name, avatar_url')
+            .in('id', reviewerIds);
+        if (!profilesError && profiles) {
+            profileMap = profiles.reduce((acc: any, p: any) => {
+                acc[p.id] = { full_name: p.full_name, avatar_url: p.avatar_url };
+                return acc;
+            }, {});
+        }
+    }
+
+    const reviewIds = (data || []).map((r: any) => r.id).filter(Boolean);
+    let voteStatsMap: Record<string, { helpful_count?: number; unhelpful_count?: number }> = {};
+    if (reviewIds.length > 0) {
+        const { data: voteStats } = await supabase
+            .from('course_review_vote_stats')
+            .select('review_id, helpful_count, unhelpful_count')
+            .in('review_id', reviewIds);
+        voteStatsMap = (voteStats || []).reduce((acc: any, s: any) => {
+            acc[s.review_id] = { helpful_count: s.helpful_count, unhelpful_count: s.unhelpful_count };
+            return acc;
+        }, {});
+    }
+
+    return (data || []).map((r: any) => ({
+        ...r,
+        candidate_name: profileMap[r.reviewer_id]?.full_name,
+        candidate_avatar: profileMap[r.reviewer_id]?.avatar_url,
+        helpful_count: voteStatsMap[r.id]?.helpful_count || 0,
+        unhelpful_count: voteStatsMap[r.id]?.unhelpful_count || 0
+    }));
+};
+
+export const createCourseReview = async (payload: {
+    course_id: string;
+    reviewer_id: string;
+    rating: number;
+    comment?: string;
+    is_verified_graduate?: boolean;
+}) => {
+    if (!supabase) throw new Error('Supabase not configured');
+
+    let isVerified = payload.is_verified_graduate ?? false;
+    // If course_id is a UUID and the user completed the course (career_tracks), mark as verified
+    if (!isVerified) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(payload.course_id)) {
+            const { data: ct } = await supabase
+                .from('career_tracks')
+                .select('id')
+                .eq('candidate_id', payload.reviewer_id)
+                .eq('resource_id', payload.course_id)
+                .limit(1);
+            if (ct && ct.length > 0) {
+                isVerified = true;
+            }
+        }
+    }
+
+    const { data, error } = await supabase
+        .from('course_reviews')
+        .insert({
+            course_id: payload.course_id,
+            reviewer_id: payload.reviewer_id,
+            rating: payload.rating,
+            comment: payload.comment || null,
+            is_verified_graduate: isVerified,
+            created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Create course review error:', error);
+        throw error;
+    }
+
+    return data;
+};
+
+export const voteCourseReview = async (payload: { review_id: string; voter_id: string; is_helpful: boolean }) => {
+    if (!supabase) throw new Error('Supabase not configured');
+
+    const { data, error } = await supabase
+        .from('course_review_votes')
+        .upsert({
+            review_id: payload.review_id,
+            voter_id: payload.voter_id,
+            is_helpful: payload.is_helpful,
+            created_at: new Date().toISOString()
+        }, { onConflict: 'review_id,voter_id' })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Course review vote error:', error);
+        throw error;
+    }
+
+    return data;
+};
+
+export const getFreelancerReviewStats = async (freelancerIds: string[]) => {
+    if (!supabase || freelancerIds.length === 0) return [];
+
+    const { data, error } = await supabase
+        .from('freelancer_review_stats')
+        .select('freelancer_id, avg_rating, reviews_count')
+        .in('freelancer_id', freelancerIds);
+
+    if (error) {
+        console.error('Freelancer review stats error:', error);
+        return [];
+    }
+
+    return data || [];
+};
+
+export const getFreelancerReviews = async (freelancerId: string) => {
+    if (!supabase) return [];
+
+    const { data, error } = await supabase
+        .from('freelancer_reviews')
+        .select('id, freelancer_id, reviewer_id, rating, comment, is_verified_customer, created_at')
+        .eq('freelancer_id', freelancerId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Freelancer reviews fetch error:', error);
+        return [];
+    }
+
+    const reviewerIds = (data || []).map((r: any) => r.reviewer_id).filter(Boolean);
+    let profileMap: Record<string, { full_name?: string; avatar_url?: string }> = {};
+    if (reviewerIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+            .from('profiles')
+            .select('id, full_name, avatar_url')
+            .in('id', reviewerIds);
+        if (!profilesError && profiles) {
+            profileMap = profiles.reduce((acc: any, p: any) => {
+                acc[p.id] = { full_name: p.full_name, avatar_url: p.avatar_url };
+                return acc;
+            }, {});
+        }
+    }
+
+    const reviewIds = (data || []).map((r: any) => r.id).filter(Boolean);
+    let voteStatsMap: Record<string, { helpful_count?: number; unhelpful_count?: number }> = {};
+    if (reviewIds.length > 0) {
+        const { data: voteStats } = await supabase
+            .from('freelancer_review_vote_stats')
+            .select('review_id, helpful_count, unhelpful_count')
+            .in('review_id', reviewIds);
+        voteStatsMap = (voteStats || []).reduce((acc: any, s: any) => {
+            acc[s.review_id] = { helpful_count: s.helpful_count, unhelpful_count: s.unhelpful_count };
+            return acc;
+        }, {});
+    }
+
+    return (data || []).map((r: any) => ({
+        ...r,
+        candidate_name: profileMap[r.reviewer_id]?.full_name,
+        candidate_avatar: profileMap[r.reviewer_id]?.avatar_url,
+        helpful_count: voteStatsMap[r.id]?.helpful_count || 0,
+        unhelpful_count: voteStatsMap[r.id]?.unhelpful_count || 0
+    }));
+};
+
+export const createFreelancerReview = async (payload: {
+    freelancer_id: string;
+    reviewer_id: string;
+    rating: number;
+    comment?: string;
+}) => {
+    if (!supabase) throw new Error('Supabase not configured');
+
+    let isVerified = false;
+    const { data: inquiries } = await supabase
+        .from('service_inquiries')
+        .select('id')
+        .eq('freelancer_id', payload.freelancer_id)
+        .eq('from_user_id', payload.reviewer_id)
+        .limit(1);
+    if (inquiries && inquiries.length > 0) {
+        isVerified = true;
+    }
+
+    const { data, error } = await supabase
+        .from('freelancer_reviews')
+        .insert({
+            freelancer_id: payload.freelancer_id,
+            reviewer_id: payload.reviewer_id,
+            rating: payload.rating,
+            comment: payload.comment || null,
+            is_verified_customer: isVerified,
+            created_at: new Date().toISOString()
+        })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Create freelancer review error:', error);
+        throw error;
+    }
+
+    return data;
+};
+
+export const voteFreelancerReview = async (payload: { review_id: string; voter_id: string; is_helpful: boolean }) => {
+    if (!supabase) throw new Error('Supabase not configured');
+
+    const { data, error } = await supabase
+        .from('freelancer_review_votes')
+        .upsert({
+            review_id: payload.review_id,
+            voter_id: payload.voter_id,
+            is_helpful: payload.is_helpful,
+            created_at: new Date().toISOString()
+        }, { onConflict: 'review_id,voter_id' })
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Freelancer review vote error:', error);
+        throw error;
+    }
+
+    return data;
+};

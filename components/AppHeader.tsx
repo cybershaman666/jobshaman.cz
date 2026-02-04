@@ -147,7 +147,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     // Don't clear selectedJobId - that would trigger path restoration
                                 }}
                                 className={`hidden lg:flex px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap items-center gap-1.5 ${viewState === ViewState.SERVICES ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                                title="Services - kliknutelné"
+                                title="Zakázky - kliknutelné"
                             >
                                 <Handshake className="w-4 h-4" />
                                 <span className="hidden xl:inline">{t('nav.services')}</span>

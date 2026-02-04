@@ -10,7 +10,7 @@ import ContextualRelevance from './ContextualRelevance';
 import { ArrowUpRight, Bookmark, Gift, Zap, Share2, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Markdown from 'markdown-to-jsx';
-import { trackAnalyticsEvent } from '../services/supabaseService';
+import { getCompanyLogoUrl, trackAnalyticsEvent } from '../services/supabaseService';
 import { useEffect } from 'react';
 import { removeAccents } from '../utils/benefits';
 
@@ -101,6 +101,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
         return highValueKeywords.some(keyword => normalized.includes(keyword));
     };
     const [shareTooltip, setShareTooltip] = React.useState(false);
+    const [companyLogoUrl, setCompanyLogoUrl] = React.useState<string | null>(null);
 
     const handleShare = async () => {
         if (!selectedJob) return;
@@ -131,6 +132,20 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
         }
     }, [selectedJobId, selectedJob?.id]);
 
+    useEffect(() => {
+        let isMounted = true;
+        const loadLogo = async () => {
+            if (!selectedJob?.company_id) {
+                if (isMounted) setCompanyLogoUrl(null);
+                return;
+            }
+            const logo = await getCompanyLogoUrl(selectedJob.company_id);
+            if (isMounted) setCompanyLogoUrl(logo);
+        };
+        loadLogo();
+        return () => { isMounted = false; };
+    }, [selectedJob?.company_id]);
+
     return (
         <section className={`lg:col-span-8 xl:col-span-9 flex flex-col min-h-0 h-full ${!mounted ? 'flex' : (!selectedJobId ? 'hidden lg:flex' : 'flex')}`}>
             {selectedJob && dynamicJHI ? (
@@ -141,6 +156,9 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                 <button className="lg:hidden mb-4 flex items-center gap-1 text-slate-500 text-sm hover:text-slate-900 dark:hover:text-white" onClick={() => setSelectedJobId(null)}>&larr; {t('app.back')}</button>
                                 <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight leading-tight">{selectedJob.title}</h1>
                                 <div className="flex flex-wrap items-center gap-2 mt-3 text-slate-500 dark:text-slate-400 font-medium">
+                                    {companyLogoUrl && (
+                                        <img src={companyLogoUrl} alt={selectedJob.company} className="w-7 h-7 rounded-md object-cover border border-slate-200 dark:border-slate-700" />
+                                    )}
                                     <span className="text-cyan-600 dark:text-cyan-400">{selectedJob.company}</span>
                                     <span className="w-1 h-1 bg-slate-400 rounded-full"></span>
                                     <span className="text-slate-600 dark:text-slate-300">{selectedJob.location}</span>

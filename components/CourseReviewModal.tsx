@@ -15,6 +15,8 @@ interface CourseReviewModalProps {
   onClose: () => void;
   course: Course;
   isVerifiedGraduate: boolean;
+  reviewerId?: string | null;
+  onSubmitted?: () => void;
 }
 
 type Step = 'form' | 'submitting' | 'success';
@@ -23,7 +25,9 @@ const CourseReviewModal: React.FC<CourseReviewModalProps> = ({
   isOpen, 
   onClose, 
   course, 
-  isVerifiedGraduate 
+  isVerifiedGraduate,
+  reviewerId,
+  onSubmitted
 }) => {
   const [step, setStep] = useState<Step>('form');
   const [rating, setRating] = useState(0);
@@ -39,6 +43,7 @@ const CourseReviewModal: React.FC<CourseReviewModalProps> = ({
 
   if (!isOpen) return null;
   if (!isVerifiedGraduate) return null;
+  if (!reviewerId) return null;
 
   const handleSubmit = async () => {
     if (rating === 0) return;
@@ -47,20 +52,17 @@ const CourseReviewModal: React.FC<CourseReviewModalProps> = ({
     
     // Simulate API call to save review
     try {
-      const reviewData = {
-        resource_id: course.id,
+      const { createCourseReview } = await import('../services/supabaseService');
+      await createCourseReview({
+        course_id: course.id,
+        reviewer_id: reviewerId,
         rating,
         comment,
         is_verified_graduate: true
-      };
-
-      // API call would go here
-      console.log('Submitting review:', reviewData);
-      
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      });
       
       setStep('success');
+      if (onSubmitted) onSubmitted();
     } catch (error) {
       console.error('Error submitting review:', error);
       setStep('form');

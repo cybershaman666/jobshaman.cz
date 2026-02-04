@@ -11,12 +11,14 @@ export interface PublishJobRequest {
     salary_from?: number;
     salary_to?: number;
     contract_type?: string;
+    category?: string;
     benefits?: string[];
     source?: string;
     contact_email?: string;
     workplace_address?: string;
     company_id?: string;
     work_type?: string;
+    posted_by?: string;
 }
 
 export const publishJob = async (jobData: PublishJobRequest) => {
