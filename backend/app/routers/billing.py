@@ -25,6 +25,7 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
         "free": {"assessments": 0, "job_postings": 3, "name": "Free"},
         "premium": {"assessments": 0, "job_postings": 10, "name": "Premium"},
         "business": {"assessments": 10, "job_postings": 999, "name": "Business"},
+        "freelance_premium": {"assessments": 0, "job_postings": 999, "name": "Freelance Premium"},
         "trial": {"assessments": 10, "job_postings": 999, "name": "Business Plan (Trial)"},
         "enterprise": {"assessments": 999999, "job_postings": 999, "name": "Enterprise"},
         "assessment_bundle": {"assessments": 10, "job_postings": 0, "name": "Assessment Bundle"},
@@ -41,10 +42,17 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
                 # Fallback or error? For now, if no company_id, we can't fetch company subscription.
                 # But is_company_admin is only true if company_name exists, implying company_id exists in our security logic.
                 target_company_id = userId # Fallback to request param if something is weird, but risky.
-            
+            is_freelancer_company = False
+            try:
+                company_resp = supabase.table("companies").select("industry").eq("id", target_company_id).maybe_single().execute()
+                if company_resp.data and company_resp.data.get("industry") == "Freelancer":
+                    is_freelancer_company = True
+            except Exception as e:
+                print(f"⚠️ Failed to fetch company industry for {target_company_id}: {e}")
+
             sub_response = supabase.table("subscriptions").select("*").eq("company_id", target_company_id).execute()
-            if not sub_response.data:
-                # Auto-trial
+            if not sub_response.data and not is_freelancer_company:
+                # Auto-trial for companies (not freelancers)
                 trial_end = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
                 trial_data = {
                     "company_id": target_company_id,
