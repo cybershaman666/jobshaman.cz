@@ -1504,7 +1504,7 @@ export const uploadCompanyLogo = async (companyId: string, file: File): Promise<
 export const updateCompanyProfile = async (companyId: string, updates: Partial<Record<string, any>>) => {
     if (!supabase) throw new Error("Supabase not configured");
 
-    const { members, subscription, ...rest } = updates as any;
+    const { members, subscription, subscriptions, ...rest } = updates as any;
     const payload: any = { ...rest };
     const { data, error } = await supabase
         .from('companies')
