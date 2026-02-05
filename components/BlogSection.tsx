@@ -54,25 +54,49 @@ const BlogSection: React.FC<BlogSectionProps> = ({
     });
 
     useEffect(() => {
+        let isMounted = true;
         const fetchStats = async () => {
             try {
                 const { data, error } = await supabase.rpc('get_global_stats');
                 if (error) throw error;
-                if (data) {
+                if (data && isMounted) {
                     setGlobalStats(data);
                 }
             } catch (err) {
                 console.error('Error fetching global stats:', err);
                 // Fallback to placeholders if RPC is not yet available in DB
-                setGlobalStats({
-                    active_jobs: 4200,
-                    transparency_rate: 94,
-                    avg_jhi: 78
+                if (isMounted) {
+                    setGlobalStats({
+                        active_jobs: 4200,
+                        transparency_rate: 94,
+                        avg_jhi: 78
+                    });
+                }
+            }
+        };
+
+        const fetchAvgJhiFromJobs = async () => {
+            try {
+                const { fetchJobsWithFilters } = await import('../services/jobService');
+                const result = await fetchJobsWithFilters({
+                    page: 0,
+                    pageSize: 500
                 });
+                const scores = result.jobs
+                    .map(job => job.jhi?.score)
+                    .filter((score): score is number => typeof score === 'number' && !Number.isNaN(score));
+                if (scores.length > 0 && isMounted) {
+                    const avg = Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length);
+                    setGlobalStats(prev => ({ ...prev, avg_jhi: avg }));
+                }
+            } catch (err) {
+                console.error('Error computing average JHI from jobs:', err);
             }
         };
 
         fetchStats();
+        fetchAvgJhiFromJobs();
+        return () => { isMounted = false; };
     }, []);
     const [copied, setCopied] = useState(false);
 
