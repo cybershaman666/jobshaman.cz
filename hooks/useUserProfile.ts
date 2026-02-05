@@ -55,6 +55,18 @@ export const useUserProfile = () => {
                 return;
             }
 
+            // Block unconfirmed emails from entering the app
+            const { data: { user: authUser } } = await supabase.auth.getUser();
+            if (authUser && !authUser.email_confirmed_at) {
+                console.warn('🟠 [SessionRestoration] Email not confirmed. Signing out.');
+                await signOut();
+                setUserProfile(DEFAULT_USER_PROFILE);
+                setCompanyProfile(null);
+                setViewState(ViewState.LIST);
+                restorationInProgressRef.current = null;
+                return;
+            }
+
             // 2. Try to fetch profile
             let profile = await getUserProfile(userId);
 

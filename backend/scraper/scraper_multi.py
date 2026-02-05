@@ -132,6 +132,154 @@ def norm_text(s):
     return re.sub(r"\s+", " ", s).strip()
 
 
+def detect_salary_timeframe_cz(text):
+    if not text:
+        return None
+    low = text.lower()
+    if any(tok in low for tok in ["kč/h", "kc/h", "/hod", "hodin", "hod."]):
+        return "hour"
+    if any(tok in low for tok in ["/den", "denně", "denne"]):
+        return "day"
+    if any(tok in low for tok in ["/týd", "/tyd", "týden", "tyden"]):
+        return "week"
+    if any(tok in low for tok in ["/měs", "/mes", "měsíc", "mesiac", "měsíčně", "mesicne"]):
+        return "month"
+    if any(tok in low for tok in ["/rok", "roč", "roc", "p.a."]):
+        return "year"
+    return None
+
+
+def detect_working_time_cz(text):
+    if not text:
+        return None
+    low = text.lower()
+    if "plný" in low or "full" in low:
+        return "full_time"
+    if any(tok in low for tok in ["zkrácen", "zkracen", "částeč", "castec", "part"]):
+        return "part_time"
+    if any(tok in low for tok in ["brigád", "brigad", "dpp", "dpč", "dpc"]):
+        return "temporary"
+    if any(tok in low for tok in ["živnost", "zivnost", "ičo", "ico", "osvč", "osvc", "freelance"]):
+        return "contract"
+    if any(tok in low for tok in ["stáž", "staz", "intern", "trainee"]):
+        return "internship"
+    if any(tok in low for tok in ["učň", "ucn", "apprentice"]):
+        return "apprenticeship"
+    return None
+
+
+def detect_work_model_cz(location, title, description):
+    text = " ".join([location or "", title or "", description or ""]).lower()
+    if any(tok in text for tok in ["hybrid", "částečně z domova", "castecne z domova", "kombinovan"]):
+        return "hybrid"
+    if any(tok in text for tok in ["home office", "homeoffice", "práce z domova", "praca z domu", "remote", "na dálku", "na dalku", "dálkov"]):
+        return "remote"
+    if location:
+        return "onsite"
+    return None
+
+
+def detect_job_level_cz(title):
+    if not title:
+        return None
+    low = title.lower()
+    if any(tok in low for tok in ["stáž", "staz", "intern", "trainee"]):
+        return "internship"
+    if any(tok in low for tok in ["učň", "ucn", "apprentice"]):
+        return "apprenticeship"
+    if any(tok in low for tok in ["student", "diplom", "diserta", "phd", "doktorand"]):
+        return "student"
+    if any(tok in low for tok in ["junior", "jr.", "jr ", "absolvent", "bez praxe"]):
+        return "junior"
+    if any(tok in low for tok in ["mid", "medior"]):
+        return "mid"
+    if any(tok in low for tok in ["senior", "sr."]):
+        return "senior"
+    if any(tok in low for tok in ["lead", "head", "director", "vedouc", "veduci"]):
+        return "lead"
+    if any(tok in low for tok in ["chief", "ceo", "cto", "cfo"]):
+        return "executive"
+    if any(tok in low for tok in ["živnost", "zivnost", "freelance", "self-employed"]):
+        return "self_employed"
+    return None
+
+
+def extract_required_skills_cz(detail_soup, description):
+    """
+    Extract required skills/requirements from CZ detail pages or description.
+    Returns list of strings.
+    """
+    skills = []
+    seen = set()
+
+    def add_line(txt):
+        if not txt:
+            return
+        if txt in seen:
+            return
+        if len(txt) > 200:
+            return
+        seen.add(txt)
+        skills.append(txt)
+
+    def collect_from_heading(head):
+        lines = []
+        for sib in head.next_siblings:
+            name = getattr(sib, "name", None)
+            if name in ["h2", "h3", "h4"]:
+                break
+            if name in ["ul", "ol"]:
+                for li in sib.find_all("li"):
+                    txt = norm_text(li.get_text())
+                    if txt:
+                        lines.append(txt)
+            elif name in ["p", "div", "span"]:
+                txt = norm_text(sib.get_text())
+                if txt:
+                    lines.append(txt)
+        return lines
+
+    if detail_soup:
+        keywords = [
+            "požadujeme", "pozadujeme", "požadavky", "pozadavky",
+            "požadavky na", "pozadavky na", "co od vás očekáváme", "co od vas ocekavame",
+            "znalosti", "dovednosti", "schopnosti", "kvalifikace",
+            "profil", "requirements", "your profile", "skills"
+        ]
+        for head in detail_soup.find_all(["h2", "h3", "h4", "strong", "b"]):
+            htxt = norm_text(head.get_text()).lower()
+            if not htxt:
+                continue
+            if any(k in htxt for k in keywords):
+                lines = collect_from_heading(head)
+                for line in lines:
+                    add_line(line)
+                if skills:
+                    break
+
+    # Fallback: parse description bullets after keyword line
+    if not skills and description:
+        lines = [l.strip() for l in description.split("\n") if l.strip()]
+        hit = False
+        for line in lines:
+            low = line.lower()
+            if any(k in low for k in ["požadujeme", "pozadujeme", "požadavky", "pozadavky", "requirements", "your profile", "skills"]):
+                hit = True
+                continue
+            if hit:
+                if line.startswith("- "):
+                    add_line(line[2:].strip())
+                elif line.startswith("### "):
+                    break
+        # If still empty, take bullet lines that look like skills
+        if not skills:
+            for line in lines:
+                if line.startswith("- "):
+                    add_line(line[2:].strip())
+
+    return skills
+
+
 def extract_salary_range(stxt):
     """
     Centralizovaná funkce pro extrakci platu z textu.
@@ -369,54 +517,66 @@ def scrape_jobs_cz(soup):
         benefits = []
         salary_from = None
         salary_to = None
+        salary_timeframe = None
         contract_type = "Nespecifikováno"
+        employment_type = None
+        job_level_notes = []
 
         if detail_soup:
             try:
-                # Popis - Jobs.cz uses RichContent class for job descriptions
-                # This is the main container with all the formatted job description content
-                main_content = detail_soup.find("div", class_="RichContent")
-                
-                # Fallback to older selectors if RichContent not found
-                if not main_content:
-                    main_content = detail_soup.find("div", class_="JobDescriptionSection") or detail_soup.find("div", class_="JobDescription")
-                
-                parts = []
-                if main_content:
-                    # Extract all meaningful content: paragraphs, headings, and list items
-                    for elem in main_content.find_all(['p', 'li', 'h2', 'h3', 'h4', 'ul', 'ol']):
-                        # Skip ul/ol containers themselves, we only want their li children
-                        if elem.name in ['ul', 'ol']:
+                def extract_rich_text(container):
+                    extracted = []
+                    if not container:
+                        return extracted
+                    for elem in container.find_all(["p", "li", "h2", "h3", "h4", "ul", "ol"]):
+                        if elem.name in ["ul", "ol"]:
                             continue
-                            
                         txt = norm_text(elem.get_text())
                         if not txt:
                             continue
-                        
-                        # Format based on element type
-                        if elem.name == 'li':
-                            parts.append(f"- {txt}")
-                        elif elem.name in ['h2', 'h3', 'h4']:
-                            parts.append(f"\n### {txt}")
-                        else:  # p tags
-                            parts.append(txt)
+                        if elem.name == "li":
+                            extracted.append(f"- {txt}")
+                        elif elem.name in ["h2", "h3", "h4"]:
+                            extracted.append(f"\n### {txt}")
+                        else:
+                            extracted.append(txt)
+                    return extracted
+
+                parts = []
+                header_intro = detail_soup.find("div", attrs={"data-test": "jd-header-text"})
+                body_content = detail_soup.find("div", attrs={"data-jobad": "body"}) or detail_soup.find(
+                    "div", attrs={"data-test": "jd-body-richtext"}
+                )
+                if not body_content:
+                    body_content = detail_soup.find("div", class_="RichContent")
+                if not body_content:
+                    body_content = detail_soup.find("div", class_="JobDescriptionSection") or detail_soup.find(
+                        "div", class_="JobDescription"
+                    )
+
+                parts.extend(extract_rich_text(header_intro))
+                parts.extend(extract_rich_text(body_content))
 
                 if parts:
                     description = filter_out_junk("\n\n".join(parts))
 
 
                 # Benefity
-                btitle = detail_soup.find(
-                    "p",
-                    class_="typography-body-medium-text-regular JobDescriptionBenefits__title mb-600 text-secondary",
-                )
-                if btitle:
-                    bdivs = btitle.find_next_siblings("div", class_="IconWithText")
-                    benefits = [
-                        norm_text(d.get_text())
-                        for d in bdivs
-                        if norm_text(d.get_text())
-                    ]
+                benefit_items = detail_soup.select("div.JobDescriptionBenefits [data-test='jd-benefits']")
+                if benefit_items:
+                    benefits = [norm_text(b.get_text()) for b in benefit_items if norm_text(b.get_text())]
+                else:
+                    btitle = detail_soup.find(
+                        "p",
+                        class_="typography-body-medium-text-regular JobDescriptionBenefits__title mb-600 text-secondary",
+                    )
+                    if btitle:
+                        bdivs = btitle.find_next_siblings("div", class_="IconWithText")
+                        benefits = [
+                            norm_text(d.get_text())
+                            for d in bdivs
+                            if norm_text(d.get_text())
+                        ]
 
                 # Plat
                 sal_div = detail_soup.find("div", {"data-test": "jd-salary"})
@@ -425,20 +585,43 @@ def scrape_jobs_cz(soup):
                     if p:
                         stxt = p.get_text(" ", strip=True)
                         salary_from, salary_to = extract_salary_range(stxt)
+                        salary_timeframe = detect_salary_timeframe_cz(stxt)
 
-                # Typ smluvního vztahu
+                # Lokalita
+                loc_link = detail_soup.find("a", {"data-test": "jd-info-location"})
+                if loc_link:
+                    location = norm_text(loc_link.get_text())
+
+                # Typ smluvního vztahu / poměru + firma
                 info_items = detail_soup.find_all("div", {"data-test": "jd-info-item"})
                 for item in info_items:
                     label = item.find("span", class_="accessibility-hidden")
                     val = item.find("p")
-                    if label and "Typ smluvního vztahu" in label.get_text():
-                        if val:
-                            contract_type = norm_text(val.get_text())
+                    if not (label and val):
+                        continue
+                    ltxt = label.get_text()
+                    vtxt = norm_text(val.get_text())
+                    if "Typ smluvního vztahu" in ltxt:
+                        contract_type = vtxt
+                    elif "Typ pracovního poměru" in ltxt:
+                        employment_type = vtxt
+                    elif "Společnost" in ltxt and vtxt:
+                        company = vtxt
+                    elif "Info" in ltxt and vtxt:
+                        job_level_notes.append(vtxt)
+
+                if not salary_timeframe and description:
+                    salary_timeframe = detect_salary_timeframe_cz(description)
             except Exception as e:
                 print(f"    ❌ Chyba detailu {odkaz}: {e}")
 
         if not benefits:
             benefits = ["Benefity nespecifikovány"]
+
+        working_time = detect_working_time_cz(employment_type or contract_type)
+        work_model = detect_work_model_cz(location, title, description)
+        job_level = detect_job_level_cz(f"{title} {description} {' '.join(job_level_notes)}")
+        required_skills = extract_required_skills_cz(detail_soup, description)
 
         job_data = {
             "title": title,
@@ -450,6 +633,14 @@ def scrape_jobs_cz(soup):
             "contract_type": contract_type,
             "salary_from": salary_from,
             "salary_to": salary_to,
+            "salary_min": salary_from,
+            "salary_max": salary_to,
+            "salary_timeframe": salary_timeframe,
+            "working_time": working_time,
+            "work_model": work_model,
+            "job_level": job_level,
+            "required_skills": required_skills if required_skills else [],
+            "salary_currency": "CZK",
         }
 
         # Skip external listings with missing/short content
@@ -489,6 +680,7 @@ def scrape_prace_cz(soup):
         description = "Popis nenalezen"
         salary_from = None
         salary_to = None
+        salary_timeframe = None
 
         if detail_soup:
             try:
@@ -536,6 +728,7 @@ def scrape_prace_cz(soup):
                 if sal_h3:
                     stxt = sal_h3.get_text(" ", strip=True)
                     salary_from, salary_to = extract_salary_range(stxt)
+                    salary_timeframe = detect_salary_timeframe_cz(stxt)
 
                 # Popis
                 desc_el = detail_soup.find("div", class_="advert__richtext")
@@ -560,6 +753,11 @@ def scrape_prace_cz(soup):
         if not benefits:
             benefits = ["Benefity nespecifikovány"]
 
+        working_time = detect_working_time_cz(contract_type or employment_type)
+        work_model = detect_work_model_cz(location, title, description)
+        job_level = detect_job_level_cz(title)
+        required_skills = extract_required_skills_cz(detail_soup, description)
+
         job_data = {
             "title": title,
             "url": odkaz,
@@ -571,6 +769,14 @@ def scrape_prace_cz(soup):
             "work_type": employment_type,
             "salary_from": salary_from,
             "salary_to": salary_to,
+            "salary_min": salary_from,
+            "salary_max": salary_to,
+            "salary_timeframe": salary_timeframe,
+            "working_time": working_time,
+            "work_model": work_model,
+            "job_level": job_level,
+            "required_skills": required_skills if required_skills else [],
+            "salary_currency": "CZK",
         }
 
         # Skip external listings with missing/short content
@@ -634,6 +840,7 @@ def scrape_jenprace_cz(soup):
         benefits = []
         salary_from = None
         salary_to = None
+        salary_timeframe = None
 
         if detail_soup:
             # Popis
@@ -674,6 +881,9 @@ def scrape_jenprace_cz(soup):
             if sal_div:
                 stxt = sal_div.get_text(" ", strip=True)
                 salary_from, salary_to = extract_salary_range(stxt)
+                salary_timeframe = detect_salary_timeframe_cz(stxt)
+
+        required_skills = extract_required_skills_cz(detail_soup, description)
 
         job_data = {
             "title": title,
@@ -686,6 +896,14 @@ def scrape_jenprace_cz(soup):
             "education_level": education_level,
             "salary_from": salary_from,
             "salary_to": salary_to,
+            "salary_min": salary_from,
+            "salary_max": salary_to,
+            "salary_timeframe": salary_timeframe,
+            "working_time": detect_working_time_cz(contract_type),
+            "work_model": detect_work_model_cz(location, title, description),
+            "job_level": detect_job_level_cz(title),
+            "required_skills": required_skills if required_skills else [],
+            "salary_currency": "CZK",
         }
         if is_low_quality(job_data):
             print(f"    ⚠️ Nízká kvalita, přeskakuji: {title}")

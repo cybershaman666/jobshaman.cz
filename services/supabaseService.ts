@@ -76,6 +76,11 @@ export const signInWithEmail = async (email: string, pass: string) => {
     if (!supabase) throw new Error("Supabase not configured");
     const result = await supabase.auth.signInWithPassword({ email, password: pass });
 
+    if (result.data.user && !result.data.user.email_confirmed_at) {
+        await supabase.auth.signOut();
+        throw new Error('Email not confirmed. Please confirm your email before signing in.');
+    }
+
     // Explicitly check for profile existence after login to fix missing profile issues
     if (result.data.user && result.data.session) {
         const profile = await getUserProfile(result.data.user.id);

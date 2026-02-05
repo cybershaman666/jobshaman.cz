@@ -224,7 +224,9 @@
     "login_button": "Login",
     "register_button": "Register",
     "signup": "Sign Up",
-    "forgot_password": "Forgot Password?"
+    "forgot_password": "Forgot Password?",
+    "email_confirm_notice_title": "Please confirm your email before signing in",
+    "email_confirm_notice_body": "If you just registered, confirm your email from the message we sent you."
   },
   "logistics": {
     "title": "Commute Logistics",

@@ -224,7 +224,9 @@
     "login_button": "Anmelden",
     "register_button": "Registrieren",
     "signup": "Registrieren",
-    "forgot_password": "Passwort vergessen?"
+    "forgot_password": "Passwort vergessen?",
+    "email_confirm_notice_title": "Bitte bestätigen Sie Ihre E‑Mail vor dem Login",
+    "email_confirm_notice_body": "Wenn Sie sich gerade registriert haben, bestätigen Sie Ihre E‑Mail über die Nachricht, die wir gesendet haben."
   },
   "logistics": {
     "title": "Pendellogistik",

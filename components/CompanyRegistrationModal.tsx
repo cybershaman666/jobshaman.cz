@@ -14,6 +14,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
   const { t } = useTranslation();
 
   const [step, setStep] = useState<number | 'success'>(1);
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
@@ -65,6 +66,14 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
       const session = authData.session;
 
       // Setup immediately if we have a session (e.g. no email confirmation required or auto-login)
+      if (user && !session) {
+        console.log('ℹ️ Signup created but no session (email confirmation required)');
+        setNeedsEmailConfirmation(true);
+        setStep('success');
+        setIsSubmitting(false);
+        return;
+      }
+
       if (user && session) {
         const userId = user.id;
         console.log("✅ Registration successful, initializing company profile for:", userId);
@@ -318,15 +327,45 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                 <div className="w-20 h-20 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center text-green-600 dark:text-green-400 mb-6">
                   <CheckCircle size={40} />
                 </div>
+                {needsEmailConfirmation && (
+                  <div className="text-center mb-6">
+                    <p className="text-slate-700 dark:text-slate-300">
+                      {t('freelancer_registration.confirm_email_instructions', { defaultValue: 'Na váš e‑mail jsme poslali odkaz pro potvrzení. Po potvrzení klikněte na tlačítko níže pro dokončení registrace.' })}
+                    </p>
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={() => {
+                    if (needsEmailConfirmation) {
+                      (async () => {
+                        setIsSubmitting(true);
+                        try {
+                          const { data: { session }, error } = await supabase.auth.getSession();
+                          if (error) throw error;
+                          if (!session) {
+                            alert(t('freelancer_registration.confirm_email_not_found', { defaultValue: 'Nepodařilo se ověřit potvrzení e‑mailu. Zkuste to po potvrzení znovu.' }));
+                            setIsSubmitting(false);
+                            return;
+                          }
+                          setNeedsEmailConfirmation(false);
+                          if (onSuccess) onSuccess();
+                          else window.location.reload();
+                        } catch (err) {
+                          console.error('Email confirmation check failed', err);
+                          alert(t('freelancer_registration.confirm_email_not_found', { defaultValue: 'Nepodařilo se ověřit potvrzení e‑mailu. Zkuste to po potvrzení znovu.' }));
+                        } finally {
+                          setIsSubmitting(false);
+                        }
+                      })();
+                      return;
+                    }
                     if (onSuccess) onSuccess();
                     else window.location.reload();
                   }}
                   className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg"
                 >
-                  {t('company_registration.success_button')}
+                  {needsEmailConfirmation ? (t('freelancer_registration.go_to_profile', { defaultValue: 'Potvrdit a pokračovat' })) : t('company_registration.success_button')}
                   <ArrowRight size={20} />
                 </button>
               </div>

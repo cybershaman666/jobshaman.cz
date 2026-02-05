@@ -1,6 +1,6 @@
 """
 JobShaman Scraper - Poland (PL)
-Scrapes Polish job portals: Pracuj.pl, NoFluffJobs, JustJoin.it
+Scrapes Polish job portals: Pracuj.pl, Praca.pl, NoFluffJobs, JustJoin.it
 """
 
 try:
@@ -32,11 +32,14 @@ class PolandScraper(BaseScraper):
     
     def scrape_page_jobs(self, soup, site_name):
         """Route to appropriate site scraper"""
-        if 'pracuj' in site_name.lower():
+        site_lower = site_name.lower()
+        if 'pracuj' in site_lower:
             return self.scrape_pracuj_pl(soup)
-        elif 'nofluff' in site_name.lower():
+        elif 'praca.pl' in site_lower or site_lower.strip() == 'praca.pl':
+            return self.scrape_praca_pl(soup)
+        elif 'nofluff' in site_lower:
             return self.scrape_nofluffjobs(soup)
-        elif 'justjoin' in site_name.lower():
+        elif 'justjoin' in site_lower:
             return self.scrape_justjoin_it(soup)
         else:
             print(f"⚠️ Neznámý portál: {site_name}")
@@ -244,6 +247,268 @@ class PolandScraper(BaseScraper):
 
             except Exception as e:
                 print(f"       ❌ Chyba u nabídky: {e}")
+                continue
+
+        return jobs_saved
+
+    def scrape_praca_pl(self, soup):
+        """Scrape Praca.pl listing page"""
+        jobs_saved = 0
+
+        def _clean_text(text: str) -> str:
+            return norm_text(text).replace("\xa0", " ")
+
+        def _extract_from_details(details_text: str) -> dict:
+            low = details_text.lower()
+            contract_type = "Nespecifikováno"
+            if "umowa o pracę tymczasową" in low:
+                contract_type = "umowa o pracę tymczasową"
+            elif "umowa o pracę" in low:
+                contract_type = "umowa o pracę"
+            elif "umowa zlecenie" in low:
+                contract_type = "umowa zlecenie"
+            elif "umowa o dzieło" in low:
+                contract_type = "umowa o dzieło"
+            elif "umowa agencyjna" in low:
+                contract_type = "umowa agencyjna"
+            elif "kontrakt b2b" in low or "b2b" in low:
+                contract_type = "B2B"
+
+            return {
+                "contract_type": contract_type
+            }
+
+        items = soup.select("li.listing__item")
+        if not items:
+            print("    ⚠️ Praca.pl: žádné položky v listingu nenalezeny")
+            return 0
+
+        for item in items:
+            try:
+                title_el = item.select_one("a.listing__title")
+                title_btn = item.select_one("button.listing__title")
+
+                title = ""
+                if title_el:
+                    title = _clean_text(title_el.get_text())
+                elif title_btn:
+                    title = _clean_text(title_btn.get_text())
+
+                if not title:
+                    continue
+
+                # company
+                company = "Nieznana firma"
+                origin = item.select_one(".listing__origin")
+                if origin:
+                    origin_text = _clean_text(origin.get_text(" "))
+                    # Try to split by dot separator
+                    company = origin_text.split("•")[0].strip() if "•" in origin_text else origin_text.split(".")[0].strip()
+                    if not company:
+                        company = "Nieznana firma"
+
+                # salary + contract/work time from main details
+                details_el = item.select_one(".listing__main-details")
+                details_text = _clean_text(details_el.get_text(" ")) if details_el else ""
+                salary_from, salary_to, _ = extract_salary(details_text, currency="PLN")
+                details_parsed = _extract_from_details(details_text)
+                contract_type = details_parsed["contract_type"]
+
+                # teaser description (short)
+                teaser = item.select_one(".listing__teaser")
+                description = _clean_text(teaser.get_text(" ")) if teaser else "Popis není dostupný"
+
+                # handle multiple locations
+                location_links = item.select(".listing__locations a")
+                if location_links:
+                    targets = []
+                    for loc_link in location_links:
+                        href = loc_link.get("href", "")
+                        if href:
+                            targets.append((href, _clean_text(loc_link.get_text())))
+                else:
+                    href = title_el.get("href", "") if title_el else ""
+                    loc_el = item.select_one(".listing__location-name")
+                    loc = _clean_text(loc_el.get_text(" ")) if loc_el else "Polska"
+                    targets = [(href, loc)]
+
+                for href, loc in targets:
+                    if not href:
+                        continue
+                    url = href if href.startswith("http") else urljoin("https://www.praca.pl", href)
+
+                    if self.is_duplicate(url):
+                        continue
+                    
+                    # Praca.pl is rate-limited; slow down before detail fetch
+                    time.sleep(1.0)
+
+                    # fetch detail for full description when possible
+                    detail_soup = scrape_page(url, max_retries=4)
+                    full_description = description
+                    benefits = []
+                    detail_company = None
+                    detail_location = None
+                    detail_salary_from = None
+                    detail_salary_to = None
+                    detail_contract_type = None
+                    detail_job_level = None
+                    detail_working_time = None
+                    detail_work_model = None
+                    detail_salary_timeframe = None
+
+                    if detail_soup:
+                        json_ld = None
+                        scripts = detail_soup.find_all("script", type="application/ld+json")
+                        for s in scripts:
+                            try:
+                                ld = json.loads(s.get_text())
+                                if isinstance(ld, list):
+                                    for item_ld in ld:
+                                        if isinstance(item_ld, dict) and item_ld.get("@type") == "JobPosting":
+                                            json_ld = item_ld
+                                            break
+                                elif isinstance(ld, dict) and ld.get("@type") == "JobPosting":
+                                    json_ld = ld
+                            except Exception:
+                                continue
+                            if json_ld:
+                                break
+
+                        if json_ld and json_ld.get("description"):
+                            desc_html = json_ld["description"]
+                            desc_soup = BeautifulSoup(desc_html, "html.parser")
+                            parts = []
+                            for elem in desc_soup.find_all(["p", "li", "h2", "h3"]):
+                                txt = norm_text(elem.get_text())
+                                if len(txt) > 2:
+                                    if elem.name == "li":
+                                        parts.append(f"- {txt}")
+                                    elif elem.name in ["h2", "h3"]:
+                                        parts.append(f"\n### {txt}")
+                                    else:
+                                        parts.append(txt)
+                            full_description = filter_out_junk("\n\n".join(parts)) if parts else filter_out_junk(desc_soup.get_text("\n\n"))
+                        else:
+                            full_description = build_description(
+                                detail_soup,
+                                {
+                                    "paragraphs": [
+                                        ".app-offer__content p",
+                                        ".szcont p",
+                                        ".content p",
+                                        ".offer-description p",
+                                        ".job-description p",
+                                        "main p",
+                                        "article p"
+                                    ],
+                                    "lists": [
+                                        ".app-offer__content ul",
+                                        ".szcont ul",
+                                        ".content ul",
+                                        ".offer-description ul",
+                                        ".job-description ul",
+                                        "main ul",
+                                        "article ul"
+                                    ],
+                                },
+                            )
+
+                        if not full_description or len(full_description) < 100:
+                            # Last resort: extract from app-offer__content
+                            offer_content = detail_soup.select_one(".app-offer__content")
+                            if offer_content:
+                                for tag in offer_content.find_all(["style", "script"]):
+                                    tag.decompose()
+                                full_description = filter_out_junk(norm_text(offer_content.get_text(" ")))
+                            if not full_description or len(full_description) < 100:
+                                full_description = description
+
+                        # Detail: company, location, salary, contract type
+                        comp_el = detail_soup.select_one(".app-offer__employer-data, .app-offer__profile-employer")
+                        if comp_el:
+                            detail_company = _clean_text(comp_el.get_text())
+
+                        loc_el = detail_soup.select_one(".app-offer__main-item--location")
+                        if loc_el:
+                            detail_location = _clean_text(loc_el.get_text())
+
+                        sal_el = detail_soup.select_one(".app-offer__salary")
+                        if sal_el:
+                            detail_salary_from, detail_salary_to, _ = extract_salary(sal_el.get_text(), currency="PLN")
+                            if "mies" in sal_el.get_text().lower():
+                                detail_salary_timeframe = "monthly"
+                            elif "rok" in sal_el.get_text().lower() or "rocznie" in sal_el.get_text().lower():
+                                detail_salary_timeframe = "yearly"
+
+                        contract_el = detail_soup.select_one(".app-offer__header-item--employment-type")
+                        if contract_el:
+                            detail_contract_type = _clean_text(contract_el.get_text())
+
+                        job_level_el = detail_soup.select_one(".app-offer__header-item--job-level")
+                        if job_level_el:
+                            detail_job_level = _clean_text(job_level_el.get_text())
+
+                        working_time_el = detail_soup.select_one(".app-offer__header-item--working-time")
+                        if working_time_el:
+                            detail_working_time = _clean_text(working_time_el.get_text())
+
+                        work_model_el = detail_soup.select_one(".app-offer__header-item--home")
+                        if work_model_el:
+                            detail_work_model = _clean_text(work_model_el.get_text())
+
+                        benefits = extract_benefits(detail_soup, [
+                            ".benefits li",
+                            ".offer-benefits li",
+                            ".job-benefits li"
+                        ]) or []
+
+                    if detail_company:
+                        company = detail_company
+                    if detail_location:
+                        loc = detail_location
+                    if detail_salary_from:
+                        salary_from = detail_salary_from
+                        salary_to = detail_salary_to
+                    if detail_contract_type:
+                        contract_type = detail_contract_type
+                    job_level = detail_job_level
+                    working_time = detail_working_time
+                    work_model = detail_work_model
+                    salary_timeframe = detail_salary_timeframe
+
+                    work_type = detect_work_type(title, full_description, loc)
+
+                    job_data = {
+                        "title": title,
+                        "url": url,
+                        "company": company,
+                        "location": loc,
+                        "description": full_description,
+                        "benefits": benefits,
+                        "contract_type": contract_type,
+                        "work_type": work_type,
+                        "salary_from": salary_from,
+                        "salary_to": salary_to,
+                        "job_level": job_level,
+                        "working_time": working_time,
+                        "work_model": work_model,
+                        "salary_timeframe": salary_timeframe,
+                        "salary_currency": "PLN",
+                        "country_code": "pl",
+                    }
+
+                    if is_low_quality(job_data):
+                        print(f"       ⚠️ Nízká kvalita, přeskakuji.")
+                        continue
+
+                    if save_job_to_supabase(self.supabase, job_data):
+                        jobs_saved += 1
+
+                    time.sleep(0.2)
+
+            except Exception as e:
+                print(f"       ❌ Chyba u Praca.pl nabídky: {e}")
                 continue
 
         return jobs_saved
@@ -579,6 +844,12 @@ def run_poland_scraper():
             # Full market (no keyword filter)
             'base_url': 'https://www.pracuj.pl/praca?pn={page}',
             'max_pages': 30
+        },
+        {
+            'name': 'Praca.pl',
+            # Full market listing
+            'base_url': 'https://www.praca.pl/oferty-pracy.html',
+            'max_pages': 20
         },
         {
             'name': 'NoFluffJobs',

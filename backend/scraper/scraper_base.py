@@ -245,8 +245,16 @@ def scrape_page(url: str, max_retries: int = 2) -> Optional[BeautifulSoup]:
         try:
             resp = _SESSION.get(url, timeout=15)
             if resp.status_code in (403, 429, 503):
-                print(f"⚠️  Blokace/limit ({resp.status_code}) pro {url}, pokus {attempt + 1}/{max_retries + 1}")
-                time.sleep(backoff)
+                wait = backoff
+                if resp.status_code == 429:
+                    retry_after = resp.headers.get("Retry-After")
+                    if retry_after:
+                        try:
+                            wait = min(int(retry_after), 120)
+                        except ValueError:
+                            wait = backoff
+                print(f"⚠️  Blokace/limit ({resp.status_code}) pro {url}, pokus {attempt + 1}/{max_retries + 1} (čekám {wait}s)")
+                time.sleep(wait)
                 backoff *= 1.8
                 continue
             resp.raise_for_status()

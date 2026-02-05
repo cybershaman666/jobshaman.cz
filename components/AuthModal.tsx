@@ -93,6 +93,16 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
                     </p>
                 </div>
 
+                {isLogin && (
+                    <div className="mb-6 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-start gap-2 text-sm text-amber-700 dark:text-amber-300">
+                        <AlertCircle size={16} className="mt-0.5" />
+                        <div>
+                            <div className="font-semibold">{t('auth.email_confirm_notice_title')}</div>
+                            <div>{t('auth.email_confirm_notice_body')}</div>
+                        </div>
+                    </div>
+                )}
+
                 {error && (
                     <div className="mb-6 p-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-lg flex items-center gap-2 text-sm text-rose-600 dark:text-rose-400">
                         <AlertCircle size={16} />
