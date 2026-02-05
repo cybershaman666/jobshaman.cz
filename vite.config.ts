@@ -19,8 +19,8 @@ export default defineConfig({
   root: process.cwd(), // Explicitly set root to current directory
   publicDir: 'public',
   define: {
-    // Polyfill process.env for local development if needed by some libs
-    'process.env': process.env
+    // Avoid leaking full process.env into client bundle
+    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
   },
   server: {
     port: 3000,
