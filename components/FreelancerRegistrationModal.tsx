@@ -112,6 +112,9 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                 if (user && !session) {
                     console.log('ℹ️ Signup created but no session (email confirmation required)');
                     setNeedsEmailConfirmation(true);
+                    setStep('success');
+                    setIsSubmitting(false);
+                    return;
                 }
             }
 

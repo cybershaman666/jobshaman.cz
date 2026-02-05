@@ -215,7 +215,9 @@
     "login_button": "Prihlásiť",
     "register_button": "Registrovať",
     "signup": "Zaregistrovať sa",
-    "forgot_password": "Zabudli ste heslo?"
+    "forgot_password": "Zabudli ste heslo?",
+    "email_confirm_notice_title": "Pred prihlásením potvrďte e‑mail",
+    "email_confirm_notice_body": "Ak ste sa práve zaregistrovali, potvrďte e‑mail v správe, ktorú sme poslali."
   },
   "logistics": {
     "title": "Logistika dochádzania",
