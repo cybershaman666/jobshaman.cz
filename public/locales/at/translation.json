@@ -370,7 +370,9 @@
     "swipe_tutorial_desc": "Nach links wischen zum Ablehnen, nach rechts zum Speichern.",
     "swipe_tutorial_cta": "Verstanden",
     "list_view": "Listenansicht",
-    "swipe_view": "Swipe-Ansicht"
+    "swipe_view": "Swipe-Ansicht",
+    "distance_air_label": "Luftlinie",
+    "distance_air_hint": "Der Entfernungsfilter nutzt die Luftlinie. Die reale Pendelstrecke kann länger sein."
   },
   "profile": {
     "personal_info": "Persönliche Informationen",

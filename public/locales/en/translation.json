@@ -370,7 +370,9 @@
     "swipe_tutorial_desc": "Swipe left to reject, right to save.",
     "swipe_tutorial_cta": "Got it",
     "list_view": "List view",
-    "swipe_view": "Swipe view"
+    "swipe_view": "Swipe view",
+    "distance_air_label": "as the crow flies",
+    "distance_air_hint": "Distance filter uses straight-line distance. Real commute can be longer."
   },
   "profile": {
     "personal_info": "Personal Information",

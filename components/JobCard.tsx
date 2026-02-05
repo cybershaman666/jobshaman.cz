@@ -2,7 +2,7 @@
 import React from 'react';
 import { Job, UserProfile } from '../types';
 import { MapPin, Briefcase, Banknote, Clock, Bookmark, Car, Sparkles, Euro } from 'lucide-react';
-import { calculateCommuteReality } from '../services/commuteService';
+import { calculateCommuteReality, calculateDistanceKm, getCoordinates } from '../services/commuteService';
 import { useTranslation } from 'react-i18next';
 
 interface JobCardProps {
@@ -36,10 +36,27 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
   let distanceBadge = null;
   if (userProfile && userProfile.isLoggedIn && userProfile.address) {
     const commute = calculateCommuteReality(job, userProfile);
+    const userCoords = userProfile.coordinates || getCoordinates(userProfile.address);
+    let airDistanceKm: number | null = null;
+    if (userCoords) {
+      const jobCoords = (job.lat !== undefined && job.lng !== undefined && job.lat !== null && job.lng !== null)
+        ? { lat: job.lat, lon: job.lng }
+        : getCoordinates(job.location);
+      if (jobCoords) {
+        const rawAir = calculateDistanceKm(userCoords.lat, userCoords.lon, jobCoords.lat, jobCoords.lon);
+        airDistanceKm = Math.floor(rawAir * 10) / 10; // truncate to 0.1 km to avoid rounding above filter
+      }
+    }
+
     if (commute && !commute.isRelocation && commute.distanceKm !== -1) {
+      const badgeDistance = airDistanceKm ?? commute.distanceKm;
+      const badgeLabel = airDistanceKm !== null ? `${badgeDistance} km · ${t('job.distance_air_label') || 'vzdušně'}` : `${badgeDistance} km`;
       distanceBadge = (
-        <div className="flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 ml-2">
-          <Car size={12} /> {commute.distanceKm} km
+        <div
+          className="flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 ml-2"
+          title={airDistanceKm !== null ? (t('job.distance_air_hint') || 'Filtr vzdálenosti používá vzdušnou čarou. Reálný dojezd může být vyšší.') : undefined}
+        >
+          <Car size={12} /> {badgeLabel}
         </div>
       );
     } else if (commute && commute.isRelocation) {
