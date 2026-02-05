@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Building, Mail, Phone, User, Globe, Send, CheckCircle, Loader2, FileText, Percent, MapPin, Users, TrendingUp, Calendar } from 'lucide-react';
 import { sendEmail, EmailTemplates } from '../services/emailService';
+import { createMarketplacePartner } from '../services/supabaseService';
 
 interface PartnerOfferModalProps {
   isOpen: boolean;
@@ -56,6 +57,27 @@ const PartnerOfferModal: React.FC<PartnerOfferModalProps> = ({ isOpen, onClose }
     setStep('submitting');
     
     try {
+      try {
+        const rate = formData.commissionRate
+          ? Number(String(formData.commissionRate).replace(',', '.'))
+          : null;
+        await createMarketplacePartner({
+          name: formData.companyName,
+          contact_email: formData.email,
+          contact_name: formData.contactName,
+          contact_phone: formData.phone,
+          website: formData.website || null,
+          address: formData.address || null,
+          description: formData.description || null,
+          offer: formData.offer || null,
+          course_categories: formData.courseCategories,
+          commission_rate: Number.isFinite(rate as number) ? (rate as number) : null,
+          partner_type: formData.partnerType
+        });
+      } catch (e) {
+        console.warn('Partner create failed, continuing with email fallback:', e);
+      }
+
       // Send email notification
       const emailResult = await sendEmail({
         to: 'floki@jobshaman.cz',

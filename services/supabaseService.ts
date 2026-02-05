@@ -1,5 +1,6 @@
 // Updated Supabase service functions for new paywall schema
 import { supabase } from './supabaseClient';
+import { geocodeWithCaching } from './geocodingService';
 export { supabase };
 import { UserProfile, CompanyProfile, CVDocument } from '../types';
 
@@ -293,6 +294,23 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
 export const updateUserProfile = async (userId: string, updates: Partial<UserProfile>): Promise<void> => {
     if (!supabase) throw new Error("Supabase not configured");
 
+    let resolvedCoords: { lat: number; lng: number } | null | undefined = undefined;
+    if (updates.address !== undefined) {
+        const trimmed = typeof updates.address === 'string' ? updates.address.trim() : '';
+        if (!trimmed) {
+            resolvedCoords = null;
+        } else {
+            try {
+                const geo = await geocodeWithCaching(trimmed);
+                if (geo) {
+                    resolvedCoords = { lat: geo.lat, lng: geo.lon };
+                }
+            } catch (e) {
+                console.warn('Candidate address geocoding failed:', e);
+            }
+        }
+    }
+
     // Update profiles table
     const profileUpdates: any = {};
     if (updates.email !== undefined) profileUpdates.email = updates.email;
@@ -315,7 +333,15 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     if (updates.jobTitle !== undefined) candidateUpdates.job_title = updates.jobTitle;
     if (updates.phone !== undefined) candidateUpdates.phone = updates.phone;
     if (updates.address !== undefined) candidateUpdates.address = updates.address;
-    if (updates.coordinates !== undefined) {
+    if (resolvedCoords !== undefined) {
+        if (resolvedCoords === null) {
+            candidateUpdates.lat = null;
+            candidateUpdates.lng = null;
+        } else {
+            candidateUpdates.lat = resolvedCoords.lat;
+            candidateUpdates.lng = resolvedCoords.lng;
+        }
+    } else if (updates.coordinates !== undefined) {
         candidateUpdates.lat = updates.coordinates.lat;
         candidateUpdates.lng = updates.coordinates.lon;
     }
@@ -1026,10 +1052,29 @@ export const createCompany = async (companyData: any, userId?: string): Promise<
         }
     }
 
+    let payload: any = { ...companyData };
+    if (payload.address !== undefined) {
+        const trimmed = typeof payload.address === 'string' ? payload.address.trim() : '';
+        if (!trimmed) {
+            payload.lat = null;
+            payload.lng = null;
+        } else {
+            try {
+                const geo = await geocodeWithCaching(trimmed);
+                if (geo) {
+                    payload.lat = geo.lat;
+                    payload.lng = geo.lon;
+                }
+            } catch (e) {
+                console.warn('Company address geocoding failed during create:', e);
+            }
+        }
+    }
+
     const { data, error } = await supabase
         .from('companies')
         .insert({
-            ...companyData,
+            ...payload,
             owner_id: userId,
             created_by: userId,
             created_at: new Date().toISOString(),
@@ -1058,6 +1103,67 @@ export const updateCompanyIndustry = async (companyId: string, industry: string)
     return data;
 };
 
+export const createMarketplacePartner = async (payload: {
+    name: string;
+    contact_email?: string | null;
+    contact_name?: string | null;
+    contact_phone?: string | null;
+    website?: string | null;
+    address?: string | null;
+    description?: string | null;
+    offer?: string | null;
+    course_categories?: string[] | null;
+    commission_rate?: number | null;
+    partner_type?: string | null;
+}) => {
+    if (!supabase) throw new Error('Supabase not configured');
+
+    const record: any = {
+        name: payload.name,
+        contact_email: payload.contact_email ?? null,
+        contact_name: payload.contact_name ?? null,
+        contact_phone: payload.contact_phone ?? null,
+        website: payload.website ?? null,
+        address: payload.address ?? null,
+        description: payload.description ?? null,
+        offer: payload.offer ?? null,
+        course_categories: payload.course_categories ?? null,
+        commission_rate: payload.commission_rate ?? null,
+        partner_type: payload.partner_type ?? null
+    };
+
+    if (payload.address !== undefined) {
+        const trimmed = typeof payload.address === 'string' ? payload.address.trim() : '';
+        if (!trimmed) {
+            record.lat = null;
+            record.lng = null;
+        } else {
+            try {
+                const geo = await geocodeWithCaching(trimmed);
+                if (geo) {
+                    record.lat = geo.lat;
+                    record.lng = geo.lon;
+                }
+            } catch (e) {
+                console.warn('Marketplace partner address geocoding failed:', e);
+            }
+        }
+    }
+
+    const { data, error } = await supabase
+        .from('marketplace_partners')
+        .insert(record)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Marketplace partner create error:', error);
+        throw error;
+    }
+
+    return data;
+};
+
 // ========================================
 // FREELANCER / MARKETPLACE HELPERS
 // ========================================
@@ -1066,6 +1172,23 @@ export const createFreelancerProfile = async (userId: string, payload: Partial<R
     if (!supabase) throw new Error('Supabase not configured');
 
     await verifyAuthSession('createFreelancerProfile');
+
+    let resolvedCoords: { lat: number; lng: number } | null | undefined = undefined;
+    if (payload.address !== undefined) {
+        const trimmed = typeof payload.address === 'string' ? payload.address.trim() : '';
+        if (!trimmed) {
+            resolvedCoords = null;
+        } else {
+            try {
+                const geo = await geocodeWithCaching(trimmed);
+                if (geo) {
+                    resolvedCoords = { lat: geo.lat, lng: geo.lon };
+                }
+            } catch (e) {
+                console.warn('Freelancer address geocoding failed during create:', e);
+            }
+        }
+    }
 
     const record = {
         id: userId,
@@ -1080,8 +1203,8 @@ export const createFreelancerProfile = async (userId: string, payload: Partial<R
         work_type: payload.work_type || 'remote',
         availability: payload.availability || null,
         address: payload.address || null,
-        lat: payload.lat ?? null,
-        lng: payload.lng ?? null,
+        lat: resolvedCoords ? resolvedCoords.lat : (resolvedCoords === null ? null : (payload.lat ?? null)),
+        lng: resolvedCoords ? resolvedCoords.lng : (resolvedCoords === null ? null : (payload.lng ?? null)),
         website: payload.website || null,
         contact_email: payload.contact_email || null,
         contact_phone: payload.contact_phone || null,
@@ -1108,6 +1231,31 @@ export const updateFreelancerProfile = async (userId: string, updates: Partial<R
     await verifyAuthSession('updateFreelancerProfile');
 
     const payload: any = { ...updates, updated_at: new Date().toISOString() };
+    let resolvedCoords: { lat: number; lng: number } | null | undefined = undefined;
+    if (updates.address !== undefined) {
+        const trimmed = typeof updates.address === 'string' ? updates.address.trim() : '';
+        if (!trimmed) {
+            resolvedCoords = null;
+        } else {
+            try {
+                const geo = await geocodeWithCaching(trimmed);
+                if (geo) {
+                    resolvedCoords = { lat: geo.lat, lng: geo.lon };
+                }
+            } catch (e) {
+                console.warn('Freelancer address geocoding failed during update:', e);
+            }
+        }
+    }
+    if (resolvedCoords !== undefined) {
+        if (resolvedCoords === null) {
+            payload.lat = null;
+            payload.lng = null;
+        } else {
+            payload.lat = resolvedCoords.lat;
+            payload.lng = resolvedCoords.lng;
+        }
+    }
 
     const { data, error } = await supabase
         .from('freelancer_profiles')
@@ -1506,6 +1654,24 @@ export const updateCompanyProfile = async (companyId: string, updates: Partial<R
 
     const { members, subscription, subscriptions, ...rest } = updates as any;
     const payload: any = { ...rest };
+
+    if (payload.address !== undefined) {
+        const trimmed = typeof payload.address === 'string' ? payload.address.trim() : '';
+        if (!trimmed) {
+            payload.lat = null;
+            payload.lng = null;
+        } else {
+            try {
+                const geo = await geocodeWithCaching(trimmed);
+                if (geo) {
+                    payload.lat = geo.lat;
+                    payload.lng = geo.lon;
+                }
+            } catch (e) {
+                console.warn('Company address geocoding failed:', e);
+            }
+        }
+    }
     const { data, error } = await supabase
         .from('companies')
         .update(payload)
@@ -1572,6 +1738,79 @@ export const fetchLearningResources = async (skillName?: string) => {
     }
 
     return data || [];
+};
+
+export const createLearningResource = async (payload: Partial<Record<string, any>>) => {
+    if (!supabase) throw new Error('Supabase not configured');
+
+    const record: any = { ...payload };
+    if (record.location !== undefined) {
+        const trimmed = typeof record.location === 'string' ? record.location.trim() : '';
+        if (!trimmed) {
+            record.lat = null;
+            record.lng = null;
+        } else {
+            try {
+                const geo = await geocodeWithCaching(trimmed);
+                if (geo) {
+                    record.lat = geo.lat;
+                    record.lng = geo.lon;
+                }
+            } catch (e) {
+                console.warn('Learning resource geocoding failed during create:', e);
+            }
+        }
+    }
+
+    const { data, error } = await supabase
+        .from('learning_resources')
+        .insert(record)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Learning resource create error:', error);
+        throw error;
+    }
+
+    return data;
+};
+
+export const updateLearningResource = async (resourceId: string, updates: Partial<Record<string, any>>) => {
+    if (!supabase) throw new Error('Supabase not configured');
+
+    const payload: any = { ...updates };
+    if (updates.location !== undefined) {
+        const trimmed = typeof updates.location === 'string' ? updates.location.trim() : '';
+        if (!trimmed) {
+            payload.lat = null;
+            payload.lng = null;
+        } else {
+            try {
+                const geo = await geocodeWithCaching(trimmed);
+                if (geo) {
+                    payload.lat = geo.lat;
+                    payload.lng = geo.lon;
+                }
+            } catch (e) {
+                console.warn('Learning resource geocoding failed during update:', e);
+            }
+        }
+    }
+
+    const { data, error } = await supabase
+        .from('learning_resources')
+        .update(payload)
+        .eq('id', resourceId)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Learning resource update error:', error);
+        throw error;
+    }
+
+    return data;
 };
 
 export const fetchBenefitValuations = async () => {

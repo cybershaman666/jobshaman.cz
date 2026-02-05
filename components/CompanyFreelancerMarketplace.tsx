@@ -18,7 +18,7 @@ import {
     Gavel
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { createServiceInquiry, getCurrentUser, getFreelancerProfile, getFreelancerReviewStats, getFreelancerReviews, createFreelancerReview, voteFreelancerReview, supabase } from '../services/supabaseService';
+import { createServiceInquiry, getCurrentUser, getFreelancerProfile, getFreelancerReviewStats, getFreelancerReviews, createFreelancerReview, voteFreelancerReview, searchFreelancers, getRecruiterCompany, supabase } from '../services/supabaseService';
 
 interface Freelancer {
     id: string;
@@ -79,10 +79,31 @@ const CompanyFreelancerMarketplace: React.FC = () => {
     const [reviewComment, setReviewComment] = useState('');
     const [reviewSubmitting, setReviewSubmitting] = useState(false);
     const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+    const [companyLocation, setCompanyLocation] = useState<{ lat: number; lng: number } | null>(null);
 
     // Load freelancers from Supabase
     useEffect(() => {
         loadFreelancers();
+    }, [companyLocation]);
+
+    useEffect(() => {
+        let isMounted = true;
+        (async () => {
+            try {
+                const user = await getCurrentUser();
+                if (!user?.id || !isMounted) return;
+                const company = await getRecruiterCompany(user.id);
+                if (!isMounted) return;
+                if (company?.lat != null && company?.lng != null) {
+                    setCompanyLocation({ lat: Number(company.lat), lng: Number(company.lng) });
+                } else {
+                    setCompanyLocation(null);
+                }
+            } catch {
+                if (isMounted) setCompanyLocation(null);
+            }
+        })();
+        return () => { isMounted = false; };
     }, []);
 
     useEffect(() => {
@@ -130,11 +151,24 @@ const CompanyFreelancerMarketplace: React.FC = () => {
     const loadFreelancers = async () => {
         try {
             setLoading(true);
-            // Base query: freelancer_profiles only (public read via RLS)
-            const { data, error } = await supabase
-                .from('freelancer_profiles')
-                .select('id, headline, bio, hourly_rate, address, tags, contact_email, website')
-                .order('created_at', { ascending: false });
+            let data: any[] | null = null;
+            let error: any = null;
+
+            if (companyLocation) {
+                data = await searchFreelancers({
+                    location: { ...companyLocation, radiusMeters: 50000 },
+                    limit: 50,
+                    offset: 0
+                });
+            } else {
+                // Base query: freelancer_profiles only (public read via RLS)
+                const resp = await supabase
+                    .from('freelancer_profiles')
+                    .select('id, headline, bio, hourly_rate, address, tags, contact_email, website')
+                    .order('created_at', { ascending: false });
+                data = resp.data;
+                error = resp.error;
+            }
 
             if (error) {
                 console.error('Error loading freelancers:', error);
