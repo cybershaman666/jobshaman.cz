@@ -379,7 +379,26 @@
     "list_view": "List view",
     "swipe_view": "Swipe view",
     "distance_air_label": "as the crow flies",
-    "distance_air_hint": "Distance filter uses straight-line distance. Real commute can be longer."
+    "distance_air_hint": "Distance filter uses straight-line distance. Real commute can be longer.",
+    "contract_types": {
+      "unknown": "Not specified",
+      "full_time": "Full-time",
+      "part_time": "Part-time",
+      "contract": "Contract",
+      "temporary": "Temporary",
+      "internship": "Internship",
+      "freelance": "Freelance",
+      "freelance_service": "Freelance service",
+      "hpp": "Full-time (HPP)",
+      "dpp": "DPP",
+      "dpc": "DPČ",
+      "ico": "IČO",
+      "osvc": "Self-employed (OSVČ)",
+      "b2b": "B2B",
+      "remote": "Remote",
+      "hybrid": "Hybrid",
+      "on_site": "On-site"
+    }
   },
   "profile": {
     "personal_info": "Personal Information",
@@ -997,7 +1016,7 @@
   },
   "blog": {
     "title": "Shamanic Insights",
-    "subtitle": "Analysis, data and reality of the Czech job market without the gloss.",
+    "subtitle": "Analysis, data and reality of the job market without the gloss.",
     "read_more": "Read more",
     "all_articles": "All articles",
     "stats": {

@@ -379,7 +379,26 @@
     "list_view": "Widok listy",
     "swipe_view": "Widok swipe",
     "distance_air_label": "w linii prostej",
-    "distance_air_hint": "Filtr odległości używa dystansu w linii prostej. Rzeczywisty dojazd może być dłuższy."
+    "distance_air_hint": "Filtr odległości używa dystansu w linii prostej. Rzeczywisty dojazd może być dłuższy.",
+    "contract_types": {
+      "unknown": "Nie podano",
+      "full_time": "Pełny etat",
+      "part_time": "Część etatu",
+      "contract": "Umowa",
+      "temporary": "Tymczasowe",
+      "internship": "Staź",
+      "freelance": "Freelance",
+      "freelance_service": "Usługa freelance",
+      "hpp": "Umowa o pracę",
+      "dpp": "DPP",
+      "dpc": "DPČ",
+      "ico": "IČO",
+      "osvc": "Samozatrudnienie",
+      "b2b": "B2B",
+      "remote": "Zdalnie",
+      "hybrid": "Hybrydowo",
+      "on_site": "Na miejscu"
+    }
   },
   "profile": {
     "personal_info": "Dane osobowe",
@@ -876,7 +895,7 @@
     },
     "blog": {
       "title": "Shamanic Insights",
-      "subtitle": "Analiza, dane i rzeczywistość czeskiego rynku pracy bez upiększeń.",
+      "subtitle": "Analiza, dane i rzeczywistość rynku pracy bez upiększeń.",
       "read_more": "Czytaj więcej",
       "all_articles": "Wszystkie artykuły",
       "stats": {

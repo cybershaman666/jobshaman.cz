@@ -21,6 +21,40 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
   // Defensive check for JHI score
   const jhiScore = job.jhi?.score || 0;
 
+  const formatJobTypeLabel = (raw: string) => {
+    if (!raw) return t('job.contract_types.unknown') || 'Neuvedeno';
+    const normalized = raw.trim().toLowerCase();
+    const key = normalized
+      .replace(/\s+/g, '_')
+      .replace(/-+/g, '_')
+      .replace(/[^\wáčďéěíňóřšťúůýž]+/g, '');
+
+    const labelMap: Record<string, string> = {
+      full_time: t('job.contract_types.full_time') || 'Full-time',
+      part_time: t('job.contract_types.part_time') || 'Part-time',
+      contract: t('job.contract_types.contract') || 'Contract',
+      temporary: t('job.contract_types.temporary') || 'Temporary',
+      internship: t('job.contract_types.internship') || 'Internship',
+      freelance: t('job.contract_types.freelance') || 'Freelance',
+      freelance_service: t('job.contract_types.freelance_service') || 'Freelance Service',
+      hpp: t('job.contract_types.hpp') || 'HPP',
+      dpp: t('job.contract_types.dpp') || 'DPP',
+      dpc: t('job.contract_types.dpc') || 'DPČ',
+      dpč: t('job.contract_types.dpc') || 'DPČ',
+      ico: t('job.contract_types.ico') || 'IČO',
+      ičo: t('job.contract_types.ico') || 'IČO',
+      osvc: t('job.contract_types.osvc') || 'OSVČ',
+      osvč: t('job.contract_types.osvc') || 'OSVČ',
+      b2b: t('job.contract_types.b2b') || 'B2B',
+      remote: t('job.contract_types.remote') || 'Remote',
+      hybrid: t('job.contract_types.hybrid') || 'Hybrid',
+      on_site: t('job.contract_types.on_site') || 'On-site',
+      onsite: t('job.contract_types.on_site') || 'On-site'
+    };
+
+    return labelMap[key] || raw;
+  };
+
 
 
   const handleSaveClick = (e: React.MouseEvent) => {
@@ -165,7 +199,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
           <MapPin size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{job.location}</span>
         </div>
         <div className="flex items-center gap-1.5 min-w-0">
-          <Briefcase size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{job.type}</span>
+          <Briefcase size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{formatJobTypeLabel(job.type)}</span>
         </div>
 
         {/* Salary Display Logic */}
