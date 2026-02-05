@@ -23,6 +23,9 @@ const ICO_PATTERNS = [
     /i[čc]o/i,
     /b2b/i,
     /contractor/i,
+    /self[-\s]?employed/i,
+    /freelanc/i,
+    /independent\s*contractor/i,
     /fakturac/i,
     /živnost/i,
     /osvč/i
@@ -30,12 +33,27 @@ const ICO_PATTERNS = [
 
 const COMMISSION_PATTERNS = [
     /proviz/i,
+    /prowizj/i,
+    /kommission/i,
+    /provision/i,
+    /commission/i,
     /nezastropovan/i,
     /neomezen/i,
     /bez\s*stropu/i,
     /neexistuje\s*strop/i,
     /finanční\s*nezávislost/i,
+    /financial\s*independence/i,
+    /finanzielle\s*unabh[aä]ngigkeit/i,
+    /niezależno[sś][cć]\s*finansow/i,
+    /uncapped/i,
+    /no\s*cap/i,
+    /unlimited\s*commissions?/i,
+    /unbegrenzte\s*provision(en)?/i,
+    /nieograniczone?\s*prowizje?/i,
     /výkonnostn/i,
+    /performance[-\s]?based/i,
+    /leistungsabh[aä]ngig/i,
+    /wynagrodzenie\s*za\s*wynik/i,
     /odměn[aě]\s*za\s*výkon/i,
     /na\s*procenta/i,
     /%+\s*z/i
@@ -43,12 +61,39 @@ const COMMISSION_PATTERNS = [
 
 const ACQUISITION_PATTERNS = [
     /akvizic/i,
+    /akwizycj/i,
+    /acquisition/i,
+    /lead\s*generation/i,
     /cold\s*call/i,
+    /cold\s*calls/i,
     /telefonát/i,
+    /telefonát(y)?/i,
+    /telefonate/i,
     /call\s*center/i,
+    /callcenter/i,
     /lead(y|ů|ů|y)/i,
-    /nových\s*klient/i
+    /nových\s*klient/i,
+    /new\s*clients?/i,
+    /neukunden/i,
+    /nowych\s*klient/i
 ];
+
+const isCommissionRole = (job: Partial<Job>): boolean => {
+    const title = (job.title || '').toLowerCase();
+    const desc = (job.description || '').toLowerCase();
+    return COMMISSION_PATTERNS.some(p => p.test(desc)) || COMMISSION_PATTERNS.some(p => p.test(title));
+};
+
+const isIcoRole = (job: Partial<Job>): boolean => {
+    const title = (job.title || '').toLowerCase();
+    const desc = (job.description || '').toLowerCase();
+    return ICO_PATTERNS.some(p => p.test(desc)) || ICO_PATTERNS.some(p => p.test(title));
+};
+
+const hasFixedBase = (job: Partial<Job>): boolean => {
+    const desc = (job.description || '').toLowerCase();
+    return /fixn[ií]\s*mzd/i.test(desc) || /základn[ií]\s*mzd/i.test(desc);
+};
 
 const STRESS_ROLES = [
     { pattern: /sales|prodej|obchod/i, penalty: 20, label: 'Sales (pressure-driven)' },
@@ -169,14 +214,13 @@ const calculateFinancialReality = (job: Partial<Job>): number => {
 
     // Variable/commission-heavy comp volatility (especially on IČO)
     const description = (job.description || '').toLowerCase();
-    const title = (job.title || '').toLowerCase();
-    const hasCommission = COMMISSION_PATTERNS.some(p => p.test(description)) || COMMISSION_PATTERNS.some(p => p.test(title));
-    const isIco = ICO_PATTERNS.some(p => p.test(description)) || ICO_PATTERNS.some(p => p.test(title));
-    const hasFixed = /fixn[ií]\s*mzd/i.test(description) || /základn[ií]\s*mzd/i.test(description);
+    const hasCommission = isCommissionRole(job);
+    const isIco = isIcoRole(job);
+    const hasFixed = hasFixedBase(job);
     if (hasCommission) {
-        salaryScore -= 25; // volatile income
-        if (isIco) salaryScore -= 15; // no standard protections
-        if (!hasFixed) salaryScore -= 15; // commission-only risk
+        salaryScore -= 35; // volatile income (primary penalty)
+        if (isIco) salaryScore -= 20; // no standard protections
+        if (!hasFixed) salaryScore -= 20; // commission-only risk
     }
 
     // Transparency bonus (EU compliant)
@@ -209,6 +253,14 @@ const calculateTimeAllocation = (job: Partial<Job>): number => {
         if (/modern[íi]\s*kancel[áa]ř/i.test(description) && /centr/i.test(description)) {
             score -= 10; // Hidden costs + rigidity
         }
+    }
+
+    // Sales / acquisition time tax (meetings, calls, networking)
+    const titleLower = (job.title || '').toLowerCase();
+    const descLower = (job.description || '').toLowerCase();
+    const isSalesRole = /sales|prodej|obchod|akvizic/i.test(titleLower) || /akvizic|schůzk|schuzk|telefon|call\s*center|lead(y|ů|u)/i.test(descLower);
+    if (isSalesRole) {
+        score -= 15;
     }
 
     // Sick Days bonus (directly affects available time)
@@ -247,12 +299,13 @@ const calculateMentalWellbeing = (job: Partial<Job>, aiRiskScore: number = 0): n
 
     // Sales-specific volatility + acquisition pressure
     const descLower = (job.description || '').toLowerCase();
-    const hasCommission = COMMISSION_PATTERNS.some(p => p.test(descLower)) || COMMISSION_PATTERNS.some(p => p.test(title));
-    const isIco = ICO_PATTERNS.some(p => p.test(descLower)) || ICO_PATTERNS.some(p => p.test(title));
+    const hasCommission = isCommissionRole(job);
+    const isIco = isIcoRole(job);
     const hasAquisition = ACQUISITION_PATTERNS.some(p => p.test(descLower)) || ACQUISITION_PATTERNS.some(p => p.test(title));
-    if (hasCommission) baseLoad -= 20;
+    if (hasCommission) baseLoad -= 28;
     if (hasAquisition) baseLoad -= 12;
-    if (hasCommission && isIco) baseLoad -= 10;
+    if (hasCommission && isIco) baseLoad -= 12;
+    if (hasCommission && hasAquisition) baseLoad -= 8;
 
     // Toxic Pattern Analysis
     TOXIC_PATTERNS.forEach(p => {
@@ -350,6 +403,15 @@ export const calculateJHI = (job: Partial<Job>, aiRiskScore: number = 0): JHI =>
     const minPillar = Math.min(F, T, W, G);
     if (minPillar < 20) {
         totalScore *= 0.7; // 30% global penalty for a "broken" job aspect (e.g. highly toxic)
+    }
+
+    // Commission uncertainty should be the heaviest driver of risk
+    const commissionRole = isCommissionRole(job);
+    if (commissionRole) {
+        totalScore *= 0.78; // strong global penalty for volatile income
+        if (!hasFixedBase(job)) {
+            totalScore *= 0.9; // additional penalty for commission-only
+        }
     }
 
     return {
