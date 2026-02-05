@@ -1,21 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import AnalyticsService, { PopularFilterCombination } from '../services/analyticsService';
+import { UserProfile } from '../types';
 
 interface FilterSuggestionsProps {
     onApplyFilter: (filters: PopularFilterCombination['filters']) => void;
     hasActiveFilters: boolean;
+    userProfile: UserProfile;
 }
 
-export const FilterSuggestions: React.FC<FilterSuggestionsProps> = ({ onApplyFilter, hasActiveFilters }) => {
+export const FilterSuggestions: React.FC<FilterSuggestionsProps> = ({ onApplyFilter, hasActiveFilters, userProfile }) => {
     const [suggestions, setSuggestions] = useState<PopularFilterCombination[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         loadSuggestions();
-    }, []);
+    }, [userProfile.isLoggedIn, userProfile.id]);
 
     const loadSuggestions = async () => {
         try {
+            if (userProfile.isLoggedIn) {
+                const personal = await AnalyticsService.getUserPopularFilterCombinations(5);
+                if (personal.length > 0) {
+                    setSuggestions(personal);
+                    return;
+                }
+            }
+
             const popular = await AnalyticsService.getPopularFilterCombinations(5);
             setSuggestions(popular);
         } catch (error) {
@@ -40,7 +50,9 @@ export const FilterSuggestions: React.FC<FilterSuggestionsProps> = ({ onApplyFil
 
     return (
         <div className="filter-suggestions">
-            <h4 className="suggestions-title">🔥 Popular Searches</h4>
+            <h4 className="suggestions-title">
+                {userProfile.isLoggedIn ? '🔥 Často hledané pro vás' : '🔥 Nejčastější hledání'}
+            </h4>
             <div className="suggestion-chips">
                 {suggestions.map((suggestion, index) => (
                     <button

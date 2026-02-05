@@ -193,6 +193,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                     if (filters.filterBenefits) filters.filterBenefits.forEach(benefit => toggleBenefitFilter(benefit));
                                 }}
                                 hasActiveFilters={!!(filterCity || filterContractType.length > 0 || filterBenefits.length > 0)}
+                                userProfile={userProfile}
                             />
 
                             {/* FILTER: Location & Commute */}
