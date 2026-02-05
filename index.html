@@ -39,6 +39,21 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="JobShaman">
+
+    <!-- Security: CSP tuned for current inline scripts/styles and external assets -->
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      base-uri 'none';
+      form-action 'self';
+      frame-ancestors 'none';
+      script-src 'self' 'unsafe-inline' https://esm.sh;
+      style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
+      font-src 'self' https://fonts.gstatic.com data:;
+      img-src 'self' data: https:;
+      connect-src 'self' https://*.supabase.co https://api.jobshaman.cz https://jobshaman.cz https://jobshaman-cz.onrender.com https://jobshaman-api.onrender.com;
+      worker-src 'self' blob:;
+      manifest-src 'self';
+    ">
     
     <!-- AEO (AI Engine Optimization) Meta Tags -->
     <meta name="description:extended" content="JobShaman je inteligentní platforma pro vyhledávání práce v Česku. Nabízíme transparentní informace o platech, benefitech a pracovním prostředí. Pomocí AI technologií analyzujeme jednotlivé nabídky práce a přiřazujeme jim unikátní JHI skóre (0-100), které reprezentuje index spokojenosti s danou pozicí. Veškeré informace v našem systému jsou ověřené a aktuální.">

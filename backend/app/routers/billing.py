@@ -114,6 +114,7 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
 @limiter.limit("100/minute")
 async def verify_billing(billing_request: BillingVerificationRequest, request: Request, user: dict = Depends(verify_subscription)):
     user_tier = user.get("subscription_tier", "free")
+    is_active = user.get("is_subscription_active", False)
     
     feature_access = {
         "basic": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS"],
@@ -121,6 +122,9 @@ async def verify_billing(billing_request: BillingVerificationRequest, request: R
         "assessment_bundle": ["COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS"],
     }
     
+    if user_tier in feature_access and not is_active:
+        return {"hasAccess": False, "reason": "Inactive subscription"}
+
     allowed_features = feature_access.get(user_tier, [])
     if billing_request.feature in allowed_features:
         return {"hasAccess": True}

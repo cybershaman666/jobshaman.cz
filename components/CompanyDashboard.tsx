@@ -205,7 +205,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             });
 
                             setJobStats(stats);
-                            console.log("📊 Real-time Dashboard Stats Loaded:", stats);
                         }
                     }
                 }

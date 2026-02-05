@@ -64,7 +64,6 @@ const PartnerOfferModal: React.FC<PartnerOfferModalProps> = ({ isOpen, onClose }
 
       if (emailResult.success) {
         setStep('success');
-        console.log('Partner offer data:', formData);
         
         // Clear form after delay
         setTimeout(() => {

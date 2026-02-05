@@ -26,7 +26,9 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 RESEND_API_KEY = os.getenv("RESEND_API_KEY") or os.getenv("VITE_RESEND_API_KEY")
 
 # Security
-SECRET_KEY = os.getenv("JWT_SECRET", os.getenv("SECRET_KEY", "your-fallback-secret-key-for-dev"))
+SECRET_KEY = os.getenv("JWT_SECRET", os.getenv("SECRET_KEY"))
+if not SECRET_KEY:
+    raise RuntimeError("Missing SECRET_KEY/JWT_SECRET environment variable")
 
 # CSRF
 CSRF_TOKEN_EXPIRY = 3600  # 1 hour

@@ -19,12 +19,14 @@ async def create_assessment_invitation(invitation_req: AssessmentInvitationReque
     if not supabase:
         raise HTTPException(status_code=503, detail="Database unavailable")
 
-    company_id = user.get("id") or user.get("auth_id")
+    company_id = user.get("company_id")
     if not company_id:
         raise HTTPException(status_code=401, detail="User not authenticated")
 
     if not user.get("company_name"):
         raise HTTPException(status_code=403, detail="Only company admins can send invitations")
+    if company_id not in user.get("authorized_ids", []):
+        raise HTTPException(status_code=403, detail="Unauthorized")
 
     # Assessment verification
     assessment_check = supabase.table("assessments").select("id").eq("id", invitation_req.assessment_id).single().execute()
@@ -85,7 +87,7 @@ async def get_invitation_details(invitation_id: str, token: str = Query(...)):
     
     invitation = inv_resp.data[0]
     if invitation.get("invitation_token") != token:
-        raise HTTPException(status_code=403, detail="Invalid token")
+        raise HTTPException(status_code=404, detail="Invitation not found")
 
     expires_at = datetime.fromisoformat(invitation["expires_at"].replace("Z", "+00:00"))
     if datetime.now(timezone.utc) > expires_at:
@@ -107,7 +109,14 @@ async def submit_assessment_result(request: Request, invitation_id: str, result_
     
     invitation = inv_resp.data[0]
     if invitation["invitation_token"] != token:
-        raise HTTPException(status_code=403, detail="Invalid token")
+        raise HTTPException(status_code=404, detail="Invitation not found")
+
+    expires_at = datetime.fromisoformat(invitation["expires_at"].replace("Z", "+00:00"))
+    if datetime.now(timezone.utc) > expires_at:
+        raise HTTPException(status_code=410, detail="Invitation has expired")
+
+    if invitation["status"] in ["completed", "revoked"]:
+        raise HTTPException(status_code=410, detail="Invitation is no longer valid")
 
     # Create assessment result
     result_response = supabase.table("assessment_results").insert({

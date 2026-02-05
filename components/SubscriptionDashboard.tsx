@@ -43,8 +43,6 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
         setLoading(true);
         setError(null);
 
-        console.log('🔄 Fetching subscription status for userId:', userId);
-
         // Add a timeout to prevent hanging requests
         const timeoutPromise = new Promise((_, reject) =>
           setTimeout(() => reject(new Error('Subscription fetch timeout')), 10000)
@@ -53,7 +51,6 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
         const dataPromise = getSubscriptionStatus(userId);
         const data = await Promise.race([dataPromise, timeoutPromise]);
 
-        console.log('✅ Subscription status fetched:', data);
         setSubscription(data as SubscriptionData);
         setError(null);
       } catch (err) {

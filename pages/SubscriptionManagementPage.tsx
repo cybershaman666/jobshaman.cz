@@ -33,16 +33,6 @@ export const SubscriptionManagementPage: React.FC<SubscriptionManagementPageProp
   const isLoading = !user?.isLoggedIn || !user?.id;
   const [showUpgradeModal, setShowUpgradeModal] = React.useState(false);
 
-  console.log('📄 SubscriptionManagementPage - user:', {
-    propsReceived: !!propsUser,
-    usingProps: !!propsUser,
-    usingHook: !propsUser,
-    isLoggedIn: user?.isLoggedIn,
-    hasId: !!user?.id,
-    userId: user?.id,
-    email: user?.email
-  });
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50 p-4">
