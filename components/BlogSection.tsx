@@ -15,7 +15,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
     selectedBlogPostSlug,
     setSelectedBlogPostSlug
 }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [posts, setPosts] = useState<BlogPost[]>(blogPosts);
     const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
 
@@ -78,9 +78,20 @@ const BlogSection: React.FC<BlogSectionProps> = ({
         const fetchAvgJhiFromJobs = async () => {
             try {
                 const { fetchJobsWithFilters } = await import('../services/jobService');
+                const lang = (i18n.language || 'cs').split('-')[0].toLowerCase();
+                const countryMap: Record<string, string[] | undefined> = {
+                    cs: ['cs'],
+                    sk: ['sk'],
+                    de: ['de'],
+                    at: ['at'],
+                    pl: ['pl'],
+                    en: undefined
+                };
+                const countryCodes = countryMap[lang];
                 const result = await fetchJobsWithFilters({
                     page: 0,
-                    pageSize: 500
+                    pageSize: 500,
+                    countryCodes
                 });
                 const scores = result.jobs
                     .map(job => job.jhi?.score)
@@ -97,7 +108,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
         fetchStats();
         fetchAvgJhiFromJobs();
         return () => { isMounted = false; };
-    }, []);
+    }, [i18n.language]);
     const [copied, setCopied] = useState(false);
 
     // Stats (can be derived or kept separate)
