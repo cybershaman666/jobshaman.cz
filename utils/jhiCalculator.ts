@@ -31,6 +31,10 @@ const ICO_PATTERNS = [
 const COMMISSION_PATTERNS = [
     /proviz/i,
     /nezastropovan/i,
+    /neomezen/i,
+    /bez\s*stropu/i,
+    /neexistuje\s*strop/i,
+    /finanční\s*nezávislost/i,
     /výkonnostn/i,
     /odměn[aě]\s*za\s*výkon/i,
     /na\s*procenta/i,
@@ -170,9 +174,9 @@ const calculateFinancialReality = (job: Partial<Job>): number => {
     const isIco = ICO_PATTERNS.some(p => p.test(description)) || ICO_PATTERNS.some(p => p.test(title));
     const hasFixed = /fixn[ií]\s*mzd/i.test(description) || /základn[ií]\s*mzd/i.test(description);
     if (hasCommission) {
-        salaryScore -= 15; // volatile income
-        if (isIco) salaryScore -= 10; // no standard protections
-        if (!hasFixed) salaryScore -= 10; // commission-only risk
+        salaryScore -= 25; // volatile income
+        if (isIco) salaryScore -= 15; // no standard protections
+        if (!hasFixed) salaryScore -= 15; // commission-only risk
     }
 
     // Transparency bonus (EU compliant)
@@ -246,9 +250,9 @@ const calculateMentalWellbeing = (job: Partial<Job>, aiRiskScore: number = 0): n
     const hasCommission = COMMISSION_PATTERNS.some(p => p.test(descLower)) || COMMISSION_PATTERNS.some(p => p.test(title));
     const isIco = ICO_PATTERNS.some(p => p.test(descLower)) || ICO_PATTERNS.some(p => p.test(title));
     const hasAquisition = ACQUISITION_PATTERNS.some(p => p.test(descLower)) || ACQUISITION_PATTERNS.some(p => p.test(title));
-    if (hasCommission) baseLoad -= 12;
-    if (hasAquisition) baseLoad -= 10;
-    if (hasCommission && isIco) baseLoad -= 8;
+    if (hasCommission) baseLoad -= 20;
+    if (hasAquisition) baseLoad -= 12;
+    if (hasCommission && isIco) baseLoad -= 10;
 
     // Toxic Pattern Analysis
     TOXIC_PATTERNS.forEach(p => {
