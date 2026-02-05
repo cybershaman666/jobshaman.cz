@@ -142,6 +142,14 @@ export default function App() {
         handleSessionRestoration
     } = useUserProfile();
 
+    useEffect(() => {
+        if (viewState === ViewState.COMPANY_DASHBOARD && userProfile.role === 'recruiter' && !companyProfile) {
+            if (!isOnboardingCompany) {
+                setIsOnboardingCompany(true);
+            }
+        }
+    }, [viewState, userProfile.role, companyProfile?.id, isOnboardingCompany]);
+
     const isCompanyProfile = userProfile.role === 'recruiter' && companyProfile?.industry !== 'Freelancer';
     const companyCoordinates = (companyProfile?.lat != null && companyProfile?.lng != null)
         ? { lat: Number(companyProfile.lat), lon: Number(companyProfile.lng) }
@@ -1009,8 +1017,7 @@ export default function App() {
 
         if (viewState === ViewState.COMPANY_DASHBOARD) {
             if (!companyProfile && userProfile.role === 'recruiter') {
-                // If recruiter somehow got here without a profile, show onboarding
-                setIsOnboardingCompany(true);
+                // If recruiter got here without a profile, show onboarding via effect
                 return null;
             }
 
