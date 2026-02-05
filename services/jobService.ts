@@ -19,6 +19,7 @@ interface ScrapedJob {
     currency?: string;
     salary_currency?: string;
     work_type?: string;
+    work_model?: string;
     scraped_at?: string;
     source?: string;
     education_level?: string;
@@ -980,10 +981,17 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
             // 3. Job Type Inference
             let jobType: 'Remote' | 'Hybrid' | 'On-site' = 'On-site';
             const wt = String(scraped.work_type || '').toLowerCase();
+            const wm = String(scraped.work_model || '').toLowerCase();
             const descLower = fullDesc.toLowerCase();
             const titleLower = (scraped.title || '').toLowerCase();
 
-            if (wt.includes('remote') || wt.includes('home') || descLower.includes('remote') || descLower.includes('full-remote')) {
+            if (wm.includes('remote')) {
+                jobType = 'Remote';
+            } else if (wm.includes('hybrid')) {
+                jobType = 'Hybrid';
+            } else if (wm.includes('onsite') || wm.includes('on-site')) {
+                jobType = 'On-site';
+            } else if (wt.includes('remote') || wt.includes('home') || descLower.includes('remote') || descLower.includes('full-remote')) {
                 jobType = 'Remote';
             } else if (wt.includes('hybrid') || descLower.includes('hybrid')) {
                 jobType = 'Hybrid';
@@ -1006,6 +1014,7 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
             else if (locLower.includes('liberec')) locationTags.push('Liberec');
 
             if (locLower.includes('remote')) locationTags.push('Remote');
+            if (jobType === 'Remote' && !locationTags.includes('Remote')) locationTags.push('Remote');
 
             if (titleLower.includes('react') || descLower.includes('react')) techTags.push('React');
             if (titleLower.includes('node') || descLower.includes('node.js')) techTags.push('Node.js');
@@ -1041,7 +1050,11 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
             }
 
             // 6. Contextual Relevance Scoring
-            const workMode = ContextualRelevanceScorer.inferWorkMode(String(scraped.work_type || ''), fullDesc);
+            const workMode = ContextualRelevanceScorer.inferWorkMode(
+                String(scraped.work_type || ''),
+                fullDesc,
+                String(scraped.work_model || '')
+            );
             const jobCategory = ContextualRelevanceScorer.inferJobType(String(scraped.title || ''), fullDesc);
             const contextualRelevance = contextualRelevanceScorer.calculateRelevanceScore(
                 benefits,
@@ -1067,6 +1080,7 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
                 company: scraped.company || 'Neznámá společnost',
                 location: locationString,
                 type: jobType,
+                work_model: scraped.work_model,
                 salaryRange: salaryRange,
                 description: fullDesc,
                 postedAt: getRelativeTime(scraped.scraped_at),

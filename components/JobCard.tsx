@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Job, UserProfile } from '../types';
-import { MapPin, Briefcase, Banknote, Clock, Bookmark, Car, Sparkles, Euro } from 'lucide-react';
+import { MapPin, Briefcase, Banknote, Clock, Bookmark, Car, Sparkles, Euro, Home } from 'lucide-react';
 import { calculateCommuteReality, calculateDistanceKm, getCoordinates } from '../services/commuteService';
 import { useTranslation } from 'react-i18next';
 
@@ -50,6 +50,24 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
       hybrid: t('job.contract_types.hybrid') || 'Hybrid',
       on_site: t('job.contract_types.on_site') || 'On-site',
       onsite: t('job.contract_types.on_site') || 'On-site'
+    };
+
+    return labelMap[key] || raw;
+  };
+
+  const formatWorkModelLabel = (raw: string) => {
+    if (!raw) return t('job.work_model.unknown') || t('job.contract_types.unknown') || 'Neuvedeno';
+    const normalized = raw.trim().toLowerCase();
+    const key = normalized
+      .replace(/\s+/g, '_')
+      .replace(/-+/g, '_')
+      .replace(/[^\wáčďéěíňóřšťúůýž]+/g, '');
+
+    const labelMap: Record<string, string> = {
+      remote: t('job.work_model.remote') || 'Remote',
+      hybrid: t('job.work_model.hybrid') || 'Hybrid',
+      on_site: t('job.work_model.on_site') || 'On-site',
+      onsite: t('job.work_model.on_site') || 'On-site'
     };
 
     return labelMap[key] || raw;
@@ -201,6 +219,12 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
         <div className="flex items-center gap-1.5 min-w-0">
           <Briefcase size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{formatJobTypeLabel(job.type)}</span>
         </div>
+        {job.work_model && (
+          <div className="flex items-center gap-1.5 min-w-0">
+            <Home size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" />
+            <span className="truncate">{formatWorkModelLabel(job.work_model)}</span>
+          </div>
+        )}
 
         {/* Salary Display Logic */}
         {job.salaryRange && job.salaryRange !== "Mzda neuvedena" && job.salaryRange !== "Salary not specified" ? (

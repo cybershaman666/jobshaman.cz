@@ -7,7 +7,7 @@ import SkillsGapBox from './SkillsGapBox';
 import BullshitMeter from './BullshitMeter';
 import TransparencyCard from './TransparencyCard';
 import ContextualRelevance from './ContextualRelevance';
-import { ArrowUpRight, Bookmark, Gift, Zap, Share2, Sparkles } from 'lucide-react';
+import { ArrowUpRight, Bookmark, Gift, Zap, Share2, Sparkles, Home, Briefcase } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Markdown from 'markdown-to-jsx';
 import { getCompanyLogoUrl, getCompanyPublicInfo, trackAnalyticsEvent } from '../services/supabaseService';
@@ -104,6 +104,24 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     const [companyLogoUrl, setCompanyLogoUrl] = React.useState<string | null>(null);
     const [companyPublicInfo, setCompanyPublicInfo] = React.useState<any | null>(null);
 
+    const formatWorkModelLabel = (raw: string) => {
+        if (!raw) return t('job.work_model.unknown') || t('job.contract_types.unknown') || 'Neuvedeno';
+        const normalized = raw.trim().toLowerCase();
+        const key = normalized
+            .replace(/\s+/g, '_')
+            .replace(/-+/g, '_')
+            .replace(/[^\wáčďéěíňóřšťúůýž]+/g, '');
+
+        const labelMap: Record<string, string> = {
+            remote: t('job.work_model.remote') || 'Remote',
+            hybrid: t('job.work_model.hybrid') || 'Hybrid',
+            on_site: t('job.work_model.on_site') || 'On-site',
+            onsite: t('job.work_model.on_site') || 'On-site'
+        };
+
+        return labelMap[key] || raw;
+    };
+
     const handleShare = async () => {
         if (!selectedJob) return;
 
@@ -166,6 +184,16 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                     <span className="text-cyan-600 dark:text-cyan-400">{selectedJob.company}</span>
                                     <span className="w-1 h-1 bg-slate-400 rounded-full"></span>
                                     <span className="text-slate-600 dark:text-slate-300">{selectedJob.location}</span>
+                                </div>
+                                <div className="flex flex-wrap items-center gap-2 mt-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                        <Briefcase size={12} /> {selectedJob.type}
+                                    </span>
+                                    {selectedJob.work_model && (
+                                        <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                            <Home size={12} /> {formatWorkModelLabel(selectedJob.work_model)}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                             <div className="flex items-center gap-2 flex-none">

@@ -280,6 +280,223 @@ def extract_required_skills_cz(detail_soup, description):
     return skills
 
 
+def normalize_required_skills_cz(skills):
+    """
+    Normalize and clean skill list for CZ market.
+    Returns tuple (hard_skills, soft_skills).
+    """
+    if not skills:
+        return [], []
+
+    canonical_map = {
+        "ms excel": "Excel",
+        "microsoft excel": "Excel",
+        "excel": "Excel",
+        "ms word": "Word",
+        "microsoft word": "Word",
+        "word": "Word",
+        "powerpoint": "PowerPoint",
+        "ms powerpoint": "PowerPoint",
+        "microsoft powerpoint": "PowerPoint",
+        "ms office": "MS Office",
+        "microsoft office": "MS Office",
+        "office": "MS Office",
+        "sql": "SQL",
+        "mysql": "MySQL",
+        "postgres": "PostgreSQL",
+        "postgresql": "PostgreSQL",
+        "mssql": "MS SQL",
+        "t-sql": "MS SQL",
+        "python": "Python",
+        "java": "Java",
+        "javascript": "JavaScript",
+        "js": "JavaScript",
+        "typescript": "TypeScript",
+        "ts": "TypeScript",
+        "c++": "C++",
+        "c#": "C#",
+        "c": "C",
+        "php": "PHP",
+        "html": "HTML",
+        "css": "CSS",
+        "html/css": "HTML, CSS",
+        "react": "React",
+        "react.js": "React",
+        "angular": "Angular",
+        "vue": "Vue.js",
+        "node": "Node.js",
+        "node.js": "Node.js",
+        "docker": "Docker",
+        "kubernetes": "Kubernetes",
+        "k8s": "Kubernetes",
+        "aws": "AWS",
+        "azure": "Azure",
+        "gcp": "GCP",
+        "git": "Git",
+        "linux": "Linux",
+        "windows": "Windows",
+        "jira": "Jira",
+        "sap": "SAP",
+        "erp": "ERP",
+        "crm": "CRM",
+        "autocad": "AutoCAD",
+        "solidworks": "SolidWorks",
+        "matlab": "MATLAB",
+        "excel (pokročilý)": "Excel (pokročilý)",
+        "angličtina": "Angličtina",
+        "němčina": "Němčina",
+        "nemcina": "Němčina",
+        "ruština": "Ruština",
+        "rustina": "Ruština",
+        "čeština": "Čeština",
+        "cestina": "Čeština",
+        "slovenština": "Slovenština",
+        "slovencina": "Slovenština",
+    }
+
+    soft_keywords = [
+        "komunikativ", "samostatn", "spolehliv", "pečliv", "pecliv",
+        "zodpovědn", "zodpovedn", "flexibil", "proaktiv", "týmov", "tymov",
+        "odolnost", "asertiv", "organizac", "time management", "leadership",
+        "prezentac", "motivac", "adaptabil", "kreativ", "loajal",
+        "preciz", "empati", "multitasking"
+    ]
+
+    language_aliases = {
+        "en": ["aj", "angličtina", "anglictina", "english", "en"],
+        "de": ["nj", "němčina", "nemcina", "nemčina", "german", "de"],
+        "fr": ["francouzština", "francouzstina", "fr", "french"],
+        "es": ["španělština", "spanelstina", "es", "spanish"],
+        "it": ["italština", "italstina", "it", "italian"],
+        "ru": ["ruština", "rustina", "ru", "russian"],
+        "cs": ["čeština", "cestina", "cz", "czech"],
+        "sk": ["slovenština", "slovencina", "sk", "slovak"],
+        "pl": ["polština", "polstina", "pl", "polish"],
+    }
+    language_names = {
+        "en": "Angličtina",
+        "de": "Němčina",
+        "fr": "Francouzština",
+        "es": "Španělština",
+        "it": "Italština",
+        "ru": "Ruština",
+        "cs": "Čeština",
+        "sk": "Slovenština",
+        "pl": "Polština",
+    }
+
+    hard_skills = []
+    soft_skills = []
+    seen_hard = set()
+    seen_soft = set()
+
+    def clean_token(t):
+        t = norm_text(t)
+        t = re.sub(r"^[\-\•\*\d\)\.\s]+", "", t)
+        t = t.strip()
+        return t
+
+    def is_noise(t):
+        low = t.lower()
+        if len(low) < 2:
+            return True
+        if len(low) > 120:
+            return True
+        noise_tokens = [
+            "praxe", "zkušenost", "zkušenosti", "vzdelani", "vzdělání",
+            "min.", "minim", "nutná", "nutne", "požadujeme", "požadavky",
+            "pozadujeme", "pozadavky", "výhodou", "vyhodou"
+        ]
+        if any(tok in low for tok in noise_tokens):
+            return True
+        return False
+
+    def parse_language_skill(t):
+        low = t.lower()
+        # Detect language
+        lang_code = None
+        for code, aliases in language_aliases.items():
+            for alias in aliases:
+                if re.search(rf"\b{re.escape(alias)}\b", low):
+                    lang_code = code
+                    break
+            if lang_code:
+                break
+        if not lang_code:
+            return None
+
+        # Detect level (CEFR or descriptive)
+        level = None
+        levels = re.findall(r"\b([abc][12])\b", low)
+        if levels:
+            level = "/".join([l.upper() for l in levels])
+        else:
+            if re.search(r"rodil|native", low):
+                level = "Native"
+            elif re.search(r"plynul|fluent", low):
+                level = "C1"
+            elif re.search(r"pokroči|pokrocil", low):
+                if re.search(r"středn|stredn", low):
+                    level = "B2"
+                elif re.search(r"mírn|mirn", low):
+                    level = "B1"
+                else:
+                    level = "C1"
+            elif re.search(r"aktivn", low):
+                level = "B2"
+            elif re.search(r"pasivn", low):
+                level = "B1"
+            elif re.search(r"základ|zaklad|beginner|basic", low):
+                level = "A1/A2"
+
+        name = language_names.get(lang_code, lang_code.upper())
+        if level:
+            return f"{name} ({level})"
+        return name
+
+    def add_skill(t):
+        t = clean_token(t)
+        if is_noise(t):
+            return
+        low = t.lower()
+        # Language skills with levels
+        lang_skill = parse_language_skill(t)
+        if lang_skill:
+            if lang_skill not in seen_hard:
+                seen_hard.add(lang_skill)
+                hard_skills.append(lang_skill)
+            return
+        mapped = canonical_map.get(low, t)
+        if mapped == "HTML, CSS":
+            for part in ["HTML", "CSS"]:
+                if part not in seen_hard:
+                    seen_hard.add(part)
+                    hard_skills.append(part)
+            return
+        if any(k in low for k in soft_keywords):
+            if mapped not in seen_soft:
+                seen_soft.add(mapped)
+                soft_skills.append(mapped)
+        else:
+            if mapped not in seen_hard:
+                seen_hard.add(mapped)
+                hard_skills.append(mapped)
+
+    for skill in skills:
+        if not skill:
+            continue
+        # split by common separators
+        parts = [skill]
+        if any(sep in skill for sep in [",", ";", " | ", "/", " / "]):
+            if "http" not in skill.lower():
+                tmp = skill.replace(" / ", "/")
+                parts = re.split(r"[;,]|\s\|\s|/", tmp)
+        for p in parts:
+            add_skill(p)
+
+    return hard_skills, soft_skills
+
+
 def extract_salary_range(stxt):
     """
     Centralizovaná funkce pro extrakci platu z textu.
@@ -621,7 +838,9 @@ def scrape_jobs_cz(soup):
         working_time = detect_working_time_cz(employment_type or contract_type)
         work_model = detect_work_model_cz(location, title, description)
         job_level = detect_job_level_cz(f"{title} {description} {' '.join(job_level_notes)}")
-        required_skills = extract_required_skills_cz(detail_soup, description)
+        required_skills_raw = extract_required_skills_cz(detail_soup, description)
+        hard_skills, soft_skills = normalize_required_skills_cz(required_skills_raw)
+        required_skills = hard_skills + soft_skills
 
         job_data = {
             "title": title,
@@ -756,7 +975,9 @@ def scrape_prace_cz(soup):
         working_time = detect_working_time_cz(contract_type or employment_type)
         work_model = detect_work_model_cz(location, title, description)
         job_level = detect_job_level_cz(title)
-        required_skills = extract_required_skills_cz(detail_soup, description)
+        required_skills_raw = extract_required_skills_cz(detail_soup, description)
+        hard_skills, soft_skills = normalize_required_skills_cz(required_skills_raw)
+        required_skills = hard_skills + soft_skills
 
         job_data = {
             "title": title,
@@ -883,7 +1104,9 @@ def scrape_jenprace_cz(soup):
                 salary_from, salary_to = extract_salary_range(stxt)
                 salary_timeframe = detect_salary_timeframe_cz(stxt)
 
-        required_skills = extract_required_skills_cz(detail_soup, description)
+        required_skills_raw = extract_required_skills_cz(detail_soup, description)
+        hard_skills, soft_skills = normalize_required_skills_cz(required_skills_raw)
+        required_skills = hard_skills + soft_skills
 
         job_data = {
             "title": title,

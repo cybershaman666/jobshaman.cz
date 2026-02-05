@@ -305,6 +305,7 @@ class GermanyScraper(BaseScraper):
                 
                 # Work type
                 work_type = detect_work_type(title, description, location)
+                work_model = self._detect_work_model_de(detail_soup.get_text(" "))
                 
                 # Benefits
                 benefits = self._extract_benefits_from_text(description)
@@ -1069,6 +1070,7 @@ class GermanyScraper(BaseScraper):
                     "benefits": benefits,
                     "contract_type": contract_type,
                     "work_type": work_type,
+                    "work_model": work_model,
                     "salary_from": salary_from,
                     "salary_to": salary_to,
                     "country_code": "at",

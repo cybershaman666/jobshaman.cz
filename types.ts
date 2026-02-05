@@ -83,6 +83,7 @@ export interface Job {
   company: string;
   location: string;
   type: 'Remote' | 'Hybrid' | 'On-site';
+  work_model?: string;
   salaryRange?: string;
   aiEstimatedSalary?: SalaryEstimate;
   aiAnalysis?: AIAnalysisResult; // Cached analysis from DB

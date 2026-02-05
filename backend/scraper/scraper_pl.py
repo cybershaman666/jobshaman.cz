@@ -30,6 +30,24 @@ class PolandScraper(BaseScraper):
     def __init__(self, supabase=None):
         super().__init__('PL', supabase)
     
+    def _detect_work_model_pl(self, title, location, description, explicit_text=None):
+        text = " ".join([explicit_text or "", title or "", location or "", description or ""]).lower()
+        # Remote / Home-office
+        if any(tok in text for tok in [
+            "praca zdalna", "zdalnie", "zdalna", "remote", "home office", "homeoffice",
+            "work from home", "wfh", "na odległość", "na odleglosc"
+        ]):
+            return "remote"
+        # Hybrid
+        if any(tok in text for tok in [
+            "hybryd", "hybrid", "częściowo zdal", "czesciowo zdal", "częściowo", "czesciowo"
+        ]):
+            return "hybrid"
+        # On-site
+        if any(tok in text for tok in ["stacjonarn", "on-site", "onsite", "biuro"]):
+            return "onsite"
+        return None
+    
     def scrape_page_jobs(self, soup, site_name):
         """Route to appropriate site scraper"""
         site_lower = site_name.lower()
@@ -220,6 +238,7 @@ class PolandScraper(BaseScraper):
                         benefits = []
 
                     work_type = detect_work_type(title, description, location)
+                    work_model = self._detect_work_model_pl(title, location, description)
 
                 job_data = {
                     'title': title,
@@ -230,6 +249,7 @@ class PolandScraper(BaseScraper):
                     'benefits': benefits,
                     'contract_type': contract_type,
                     'work_type': work_type,
+                    'work_model': work_model,
                     'salary_from': salary_from,
                     'salary_to': salary_to,
                     'salary_currency': 'PLN',
@@ -474,7 +494,7 @@ class PolandScraper(BaseScraper):
                         contract_type = detail_contract_type
                     job_level = detail_job_level
                     working_time = detail_working_time
-                    work_model = detail_work_model
+                    work_model = self._detect_work_model_pl(title, loc, full_description, detail_work_model)
                     salary_timeframe = detail_salary_timeframe
 
                     work_type = detect_work_type(title, full_description, loc)
@@ -693,7 +713,16 @@ class PolandScraper(BaseScraper):
                         ])
                     
                     work_type = 'On-site'
-                    if job.get('fullyRemote'): work_type = 'Remote'
+                    if job.get('fullyRemote'):
+                        work_type = 'Remote'
+
+                    explicit_work_model = 'Remote' if job.get('fullyRemote') else None
+                    work_model = self._detect_work_model_pl(
+                        title,
+                        location,
+                        description,
+                        explicit_work_model
+                    )
                     
                     job_data = {
                         'title': title,
@@ -704,6 +733,7 @@ class PolandScraper(BaseScraper):
                         'benefits': benefits,
                         'contract_type': 'B2B/Contract', # NoFluff default often
                         'work_type': work_type,
+                        'work_model': work_model,
                         'salary_from': salary_from,
                         'salary_to': salary_to,
                         'salary_currency': 'PLN',
@@ -802,6 +832,7 @@ class PolandScraper(BaseScraper):
                 
                 # Work type
                 work_type = detect_work_type(title, description, location)
+                work_model = self._detect_work_model_pl(title, location, description)
                 
                 job_data = {
                     'title': title,
@@ -812,6 +843,7 @@ class PolandScraper(BaseScraper):
                     'benefits': benefits,
                     'contract_type': contract_type,
                     'work_type': work_type,
+                    'work_model': work_model,
                     'salary_from': salary_from,
                     'salary_to': salary_to,
                     'salary_currency': 'PLN',

@@ -347,9 +347,14 @@ class ContextualRelevanceScorer {
   /**
    * Helper function to infer work mode from existing job data
    */
-  static inferWorkMode(jobType: string, description: string): WorkMode {
+  static inferWorkMode(jobType: string, description: string, workModel?: string): WorkMode {
     const lowerDesc = description.toLowerCase();
     const lowerType = jobType.toLowerCase();
+    const lowerModel = (workModel || '').toLowerCase();
+
+    if (lowerModel.includes('remote')) return 'remote';
+    if (lowerModel.includes('hybrid')) return 'hybrid';
+    if (lowerModel.includes('onsite') || lowerModel.includes('on-site')) return 'onsite';
 
     if (lowerType.includes('remote') || lowerDesc.includes('remote') || lowerDesc.includes('home office')) {
       return 'remote';
