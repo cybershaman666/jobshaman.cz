@@ -248,6 +248,40 @@ class AnalyticsService {
     }
 
     /**
+     * Get user-specific popular filter combinations from the last 30 days
+     * Falls back to empty if user is not authenticated
+     */
+    static async getUserPopularFilterCombinations(limit: number = 5): Promise<PopularFilterCombination[]> {
+        const { supabase } = await import('./supabaseService');
+
+        if (!supabase) {
+            console.warn('Supabase not configured');
+            return [];
+        }
+
+        try {
+            const { data, error } = await supabase.rpc('get_user_popular_filter_combinations', {
+                limit_count: limit
+            });
+
+            if (error) {
+                console.error('Failed to fetch user popular filters:', error);
+                return [];
+            }
+
+            return (data || []).map((item: any) => ({
+                combinationKey: item.combination_key,
+                usageCount: item.usage_count,
+                avgResults: item.avg_results,
+                filters: item.filters
+            }));
+        } catch (error) {
+            console.error('Error fetching user popular filters:', error);
+            return [];
+        }
+    }
+
+    /**
      * Format filter combination as human-readable text
      */
     static formatFilterCombination(filters: PopularFilterCombination['filters']): string {
