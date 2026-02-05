@@ -220,12 +220,12 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                         href={selectedJob.url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="flex items-center gap-2 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 text-white dark:text-slate-900 px-6 py-2.5 rounded-lg font-bold transition-all shadow-sm active:scale-95"
+                                        className="flex items-center gap-2 bg-slate-900 dark:bg-cyan-500/15 hover:bg-slate-800 dark:hover:bg-cyan-500/25 text-white dark:text-cyan-200 px-6 py-2.5 rounded-lg font-bold transition-all shadow-sm dark:ring-1 dark:ring-cyan-500/50 active:scale-95"
                                     >
                                         {t('app.i_am_interested')} <ArrowUpRight size={18} />
                                     </a>
                                 ) : (
-                                    <button onClick={() => setIsApplyModalOpen(true)} className="flex items-center gap-2 bg-slate-900 dark:bg-slate-100 hover:bg-slate-800 text-white dark:text-slate-900 px-6 py-2.5 rounded-lg font-bold transition-all shadow-sm active:scale-95">
+                                    <button onClick={() => setIsApplyModalOpen(true)} className="flex items-center gap-2 bg-slate-900 dark:bg-cyan-500/15 hover:bg-slate-800 dark:hover:bg-cyan-500/25 text-white dark:text-cyan-200 px-6 py-2.5 rounded-lg font-bold transition-all shadow-sm dark:ring-1 dark:ring-cyan-500/50 active:scale-95">
                                         {t('app.i_am_interested')} <ArrowUpRight size={18} />
                                     </button>
                                 )}
