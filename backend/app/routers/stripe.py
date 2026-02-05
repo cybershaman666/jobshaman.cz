@@ -80,8 +80,9 @@ async def stripe_webhook(request: Request):
 
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception:
+        # Avoid leaking signature validation details
+        raise HTTPException(status_code=400, detail="Invalid signature")
 
     if not supabase:
         raise HTTPException(status_code=503, detail="Database unavailable")
@@ -93,7 +94,7 @@ async def stripe_webhook(request: Request):
         tier = metadata.get("tier")
 
         if not user_id or not tier:
-            raise HTTPException(status_code=400, detail="Missing metadata")
+            raise HTTPException(status_code=400, detail="Invalid metadata")
 
         if supabase:
             if tier in ["premium", "basic"]:
