@@ -117,5 +117,52 @@ AI není náhrada za vaši osobnost, je to nástroj, který vám umožní vynikn
             { question: 'Jak funguje Career Pathfinder?', answer: 'Pathfinder využívá velké jazykové modely k analýze vašeho CV a požadavků trhu, čímž identifikuje "skryté" shody, které tradiční vyhledávání přehlédne.' },
             { question: 'Může AI napsat můj motivační dopis?', answer: 'Ano, ale v JobShaman doporučujeme AI používat jako asistenta pro strukturu a argumentaci, zatímco finální tón by měl zůstat váš vlastní.' }
         ]
+    },
+    {
+        id: 4,
+        slug: 'financni-svoboda-nebo-past-na-naivitu',
+        title: 'Finanční svoboda, nebo past na naivitu? Jak číst mezi řádky inzerátů',
+        excerpt: '„Neomezený výdělek“ zní skvěle, ale často znamená nulový fix a vysoké riziko. Naučte se číst varovné signály.',
+        content: `
+# Finanční svoboda, nebo past na naivitu? Jak číst mezi řádky inzerátů
+
+Vítejte u dalšího dílu našeho blogu, kde si posvítíme na to, co se nám trh práce snaží prodat. Dnes jsme v síti JobShamana ulovili „exemplární kousek“ – nabídku pro obchodní zástupce, která slibuje hory doly, ale zapomíná na to nejdůležitější: realitu.
+
+## „Neomezený výdělek“ jako první varovné znamení
+
+Inzerát láká na finanční nezávislost a tvrdí, že „neexistuje strop“. Zní to skvěle, že? V řeči dat a transparentnosti, kterou prosazujeme v JobShamanovi, to ale často znamená: „Nemáme pro vás žádný fixní plat.“ Pokud nic neprodáte, nedostanete ani korunu. Žádný strop sice neexistuje, ale podlaha může být proklatě nízko.
+
+## Emoce místo faktů
+
+- „Pozitivně ovlivníme váš život“ – To je věta, kterou čekáte od motivačního kouče, ne od seriózního zaměstnavatele.
+- „Obchodník tělem i duší“ – Fráze, která má zakrýt fakt, že v inzerátu chybí jakákoliv zmínka o produktu nebo oboru, ve kterém budete působit.
+
+## Co v inzerátu chybí? (A JobShaman to ví)
+
+Když náš algoritmus analyzuje takovou nabídku, okamžitě mu naskočí nízké JHI skóre. Proč?
+
+- Chybí mzdové rozmezí: „Provize“ nejsou mzda. Transparentní trh vyžaduje jasná čísla.
+- Chybí specifikace: Co se vlastně prodává? Je to pojištění, hrnce, nebo software?
+- Vysoké riziko: „Nulový vstupní kapitál“ není benefit, ale standardní vlastnost jakéhokoliv legálního zaměstnání.
+
+## Jak z toho ven? Hledejte kvalitu, ne slogany
+
+V sekci Služby a Spolupráce na JobShamanovi razíme jinou cestu. Například odborníci na BOZP a legislativu (jako jsou moji rodiče) nenabízejí „změnu života“, ale jasně definované služby: audity, školení a zákonnou ochranu firem. Tam není potřeba swipovat mezi řádky, abyste našli pravdu.
+
+## Závěr
+
+Nenechte se opít „motivačními bonusy“ u firem, které vám neřeknou ani to, co budete dělat. V JobShamanovi věříme, že nejkratší cesta k úspěchu vede přes data a upřímnost.
+    `,
+        date: '5. února 2026',
+        readTime: '6 min čtení',
+        category: 'Analýzy',
+        image: 'https://assets-global.website-files.com/619c916dd7a3fa284adc0b27/65fab957bd9f6fc7035b5198_6413b2e3-0a75-423d-944a-79f426f72cef.jpeg',
+        author: 'Šaman Michal',
+        keywords: ['finanční svoboda', 'provize', 'obchodní pozice', 'JHI skóre', 'transparentnost'],
+        shamanSummary: '„Neomezený výdělek“ často znamená nulový fix a vysoké riziko. Naučte se rozpoznat varovné signály v inzerátech a hledejte nabídky s jasnými čísly a popisem práce.',
+        qa: [
+            { question: 'Proč je „neomezený výdělek“ varovný signál?', answer: 'Často jde o provizní model bez fixu. Bez prodeje není výdělek a riziko nese výhradně kandidát.' },
+            { question: 'Co by měl férový inzerát uvádět?', answer: 'Jasné mzdové rozmezí, popis produktu/služby a realistické očekávání výkonu.' }
+        ]
     }
 ];
