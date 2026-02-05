@@ -80,7 +80,10 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                         {t('financial.unlock_desc')}
                     </p>
                     <p className="text-slate-500 max-w-sm mb-6 text-xs">
-                        {t('financial.unlock_commute_address')}
+                        {t(
+                            'financial.unlock_commute_address',
+                            'Pro odemčení dojezdové reality je nutné vyplnit adresu ve svém profilu.'
+                        )}
                     </p>
                     <button onClick={handleAuthAction} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold transition-colors">
                         {t('financial.login_button')}
@@ -97,7 +100,10 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                         {t('financial.set_address_desc')}
                     </p>
                     <p className="text-slate-500 max-w-sm mb-6 text-xs">
-                        {t('financial.unlock_commute_address')}
+                        {t(
+                            'financial.unlock_commute_address',
+                            'Pro odemčení dojezdové reality je nutné vyplnit adresu ve svém profilu.'
+                        )}
                     </p>
                     <button onClick={() => setViewState(ViewState.PROFILE)} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold transition-colors">
                         {t('financial.set_address_button')}
