@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../services/supabaseService';
 import { initialBlogPosts as blogPosts, BlogPost } from '../src/data/blogPosts';
 import Markdown from 'markdown-to-jsx';
+import { formatJobDescription } from '../utils/formatters';
 
 interface BlogSectionProps {
     selectedBlogPostSlug?: string | null;
@@ -410,7 +411,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                             </div>
 
                             <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed text-lg mb-12">
-                                <Markdown options={{ forceBlock: true }}>{selectedPost.content}</Markdown>
+                                <Markdown options={{ forceBlock: true }}>{formatJobDescription(selectedPost.content)}</Markdown>
                             </div>
 
                             {/* AEO: Key Takeaways (FAQ) */}
