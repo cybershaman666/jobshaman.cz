@@ -1,5 +1,6 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import * as Sentry from '@sentry/browser';
 import App from './App';
 import './index.css';
 import './styles/filter-components.css';
@@ -25,6 +26,9 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Uncaught error:", error, errorInfo);
+    if (SENTRY_ENABLED) {
+      Sentry.captureException(error, { extra: { componentStack: errorInfo.componentStack } });
+    }
   }
 
   render() {
@@ -52,6 +56,18 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 
     return this.props.children;
   }
+}
+
+const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined;
+const SENTRY_ENV = (import.meta.env.VITE_SENTRY_ENV as string | undefined) || import.meta.env.MODE;
+const SENTRY_ENABLED = Boolean(SENTRY_DSN);
+
+if (SENTRY_ENABLED) {
+  Sentry.init({
+    dsn: SENTRY_DSN,
+    environment: SENTRY_ENV,
+    tracesSampleRate: 0.1,
+  });
 }
 
 try {

@@ -1,5 +1,7 @@
 import os
 from fastapi import FastAPI, Request
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 from slowapi.errors import RateLimitExceeded
@@ -9,6 +11,16 @@ from starlette.responses import JSONResponse
 from .core.limiter import limiter
 from .routers import jobs, billing, stripe, assessments, scraper, auth
 from .core.security import add_security_headers
+
+SENTRY_DSN = os.getenv("SENTRY_DSN")
+SENTRY_ENV = os.getenv("SENTRY_ENV", os.getenv("ENVIRONMENT", "production"))
+if SENTRY_DSN:
+    sentry_sdk.init(
+        dsn=SENTRY_DSN,
+        environment=SENTRY_ENV,
+        integrations=[FastApiIntegration()],
+        traces_sample_rate=0.1,
+    )
 
 app = FastAPI(title="JobShaman Backend Services")
 app.state.limiter = limiter

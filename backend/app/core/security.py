@@ -112,6 +112,11 @@ def verify_supabase_token(token: str) -> dict:
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
 
+def require_company_access(user: dict, company_id: str) -> str:
+    if not company_id or company_id not in user.get("authorized_ids", []):
+        raise HTTPException(status_code=403, detail="Unauthorized")
+    return company_id
+
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     return verify_supabase_token(credentials.credentials)
 

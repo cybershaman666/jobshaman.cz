@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, Query
 import stripe
 from ..core.limiter import limiter
-from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header
+from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access
 from ..models.requests import BillingVerificationRequest
 from ..core.database import supabase
 from ..services.email import send_email
@@ -18,7 +18,7 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
     is_company_admin = bool(user.get("company_name"))
     
     if userId not in authorized_ids:
-        print(f"🚫 [AUTH] Access denied: {userId} not in authorized list {authorized_ids}")
+        print("🚫 [AUTH] Access denied to subscription status")
         raise HTTPException(status_code=403, detail="Unauthorized")
 
     tier_limits = {
@@ -34,21 +34,16 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
 
     sub_details = {"tier": "free", "status": "active"}
     try:
-        if is_company_admin:
-            # Use the company_id from the user profile, not the passed userId (which might be the user's ID)
-            target_company_id = user.get("company_id")
-            if not target_company_id:
-                print(f"⚠️ Company Admin {user_id} has no company_id associated")
-                # Fallback or error? For now, if no company_id, we can't fetch company subscription.
-                # But is_company_admin is only true if company_name exists, implying company_id exists in our security logic.
-                target_company_id = userId # Fallback to request param if something is weird, but risky.
-            is_freelancer_company = False
-            try:
-                company_resp = supabase.table("companies").select("industry").eq("id", target_company_id).maybe_single().execute()
-                if company_resp.data and company_resp.data.get("industry") == "Freelancer":
-                    is_freelancer_company = True
+    if is_company_admin:
+        # Use the company_id from the user profile, not the passed userId (which might be the user's ID)
+        target_company_id = require_company_access(user, user.get("company_id"))
+        is_freelancer_company = False
+        try:
+            company_resp = supabase.table("companies").select("industry").eq("id", target_company_id).maybe_single().execute()
+            if company_resp.data and company_resp.data.get("industry") == "Freelancer":
+                is_freelancer_company = True
             except Exception as e:
-                print(f"⚠️ Failed to fetch company industry for {target_company_id}: {e}")
+                print(f"⚠️ Failed to fetch company industry: {e}")
 
             sub_response = supabase.table("subscriptions").select("*").eq("company_id", target_company_id).execute()
             if not sub_response.data and not is_freelancer_company:
@@ -70,14 +65,14 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
         if sub_response and sub_response.data:
             sub_details = sub_response.data[0]
     except Exception as e:
-        print(f"❌ Error fetching/creating subscription for {userId}: {e}")
+        print(f"❌ Error fetching/creating subscription: {e}")
         # Fallback to free tier on database error instead of crashing
     tier = sub_details.get("tier", "free")
     limits = tier_limits.get(tier, tier_limits["free"])
 
     if is_company_admin:
         try:
-            target_company_id = user.get("company_id") or userId
+            target_company_id = require_company_access(user, user.get("company_id"))
             jobs_resp = supabase.table("jobs").select("id", count="exact").eq("company_id", target_company_id).execute()
             real_job_count = jobs_resp.count if jobs_resp.count is not None else 0
         except: real_job_count = 0
@@ -139,8 +134,14 @@ async def cancel_subscription(request: Request, user: dict = Depends(verify_subs
     
     user_id = user.get("id") or user.get("auth_id")
     is_company = user.get("company_name") is not None
+
+    if is_company:
+        company_id = require_company_access(user, user.get("company_id"))
     
-    sub_resp = supabase.table("subscriptions").select("*").eq("company_id" if is_company else "user_id", user_id).eq("status", "active").execute()
+    sub_resp = supabase.table("subscriptions").select("*").eq(
+        "company_id" if is_company else "user_id",
+        company_id if is_company else user_id
+    ).eq("status", "active").execute()
     if not sub_resp.data: raise HTTPException(status_code=404, detail="No active subscription")
     
     sub = sub_resp.data[0]

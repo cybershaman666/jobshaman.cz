@@ -36,7 +36,7 @@ async def delete_account(request: Request, user: dict = Depends(get_current_user
     if not user_id:
         raise HTTPException(status_code=401, detail="User not authenticated")
 
-    print(f"🗑️ Deleting account for user: {user_id}")
+    print("🗑️ Deleting account")
 
     try:
         # 1. Stripe Cancellation
@@ -47,9 +47,9 @@ async def delete_account(request: Request, user: dict = Depends(get_current_user
                 subs = stripe.Subscription.list(customer=customer_id, status='active')
                 for sub in subs.data:
                     stripe.Subscription.delete(sub.id)
-                print(f"✅ Cancelled Stripe subscriptions for {user_id}")
+                print("✅ Cancelled Stripe subscriptions")
         except Exception as se:
-            print(f"⚠️ Stripe cleanup failed for {user_id}: {se}")
+            print(f"⚠️ Stripe cleanup failed: {se}")
 
         # 2. Storage Cleanup
         # CVs
@@ -57,9 +57,9 @@ async def delete_account(request: Request, user: dict = Depends(get_current_user
             cv_files = supabase.storage.from_("cvs").list(user_id)
             if cv_files:
                 supabase.storage.from_("cvs").remove([f"{user_id}/{f['name']}" for f in cv_files])
-            print(f"✅ Cleaned up CV storage for {user_id}")
+            print("✅ Cleaned up CV storage")
         except Exception as fe:
-            print(f"⚠️ File cleanup failed (CVs) for {user_id}: {fe}")
+            print(f"⚠️ File cleanup failed (CVs): {fe}")
 
         # Avatars
         try:
@@ -67,9 +67,9 @@ async def delete_account(request: Request, user: dict = Depends(get_current_user
             if profile_photo and "avatars" in profile_photo:
                 filename = profile_photo.split("/")[-1]
                 supabase.storage.from_("avatars").remove([f"{user_id}/{filename}"])
-            print(f"✅ Cleaned up Avatar storage for {user_id}")
+            print("✅ Cleaned up Avatar storage")
         except Exception as fe:
-            print(f"⚠️ File cleanup failed (Avatars) for {user_id}: {fe}")
+            print(f"⚠️ File cleanup failed (Avatars): {fe}")
 
         # 3. DB Deletion (Order matters)
         user_email = user.get("email")
@@ -95,7 +95,7 @@ async def delete_account(request: Request, user: dict = Depends(get_current_user
         if user_email:
             try:
                 supabase.table("enterprise_leads").delete().eq("contact_email", user_email).execute()
-                print(f"✅ Deleted from enterprise_leads")
+                print("✅ Deleted from enterprise_leads")
             except Exception as ele:
                 print(f"⚠️ Enterprise leads cleanup failed: {ele}")
         
@@ -114,16 +114,16 @@ async def delete_account(request: Request, user: dict = Depends(get_current_user
                 members = supabase.table("company_members").select("id").eq("company_id", company["id"]).execute()
                 if not members.data:
                     supabase.table("companies").delete().eq("id", company["id"]).execute()
-                    print(f"✅ Deleted orphan company {company['id']}")
+                    print("✅ Deleted orphan company")
         except Exception as ce:
-            print(f"⚠️ Company cleanup failed for {user_id}: {ce}")
+            print(f"⚠️ Company cleanup failed: {ce}")
 
         # 5. Auth Deletion (Last step)
         try:
             supabase.auth.admin.delete_user(user_id)
-            print(f"✅ Deleted auth user {user_id}")
+            print("✅ Deleted auth user")
         except Exception as ae:
-            print(f"⚠️ Auth deletion failed for {user_id}: {ae}")
+            print(f"⚠️ Auth deletion failed: {ae}")
             # This step is critical but might fail if admin permissions are missing.
             # We don't raise here but log it.
 

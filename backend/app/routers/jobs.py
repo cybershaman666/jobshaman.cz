@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, Query
 from ..core.limiter import limiter
-from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header
+from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access
 from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest
 from ..models.responses import JobCheckResponse
 from ..services.legality import check_legality_rules
@@ -16,7 +16,6 @@ def _normalize_job_id(job_id: str):
 
 def _require_job_access(user: dict, job_id: str):
     """Ensure the current user is authorized to manage the given job."""
-    authorized_ids = user.get("authorized_ids", [])
     job_id_norm = _normalize_job_id(job_id)
 
     job_resp = supabase.table("jobs").select("id, company_id").eq("id", job_id_norm).maybe_single().execute()
@@ -24,8 +23,7 @@ def _require_job_access(user: dict, job_id: str):
         raise HTTPException(status_code=404, detail="Job not found")
 
     company_id = job_resp.data.get("company_id")
-    if not company_id or company_id not in authorized_ids:
-        raise HTTPException(status_code=403, detail="Unauthorized")
+    require_company_access(user, company_id)
 
     return job_resp.data
 
@@ -37,8 +35,7 @@ async def root(request: Request):
 @limiter.limit("5/minute")
 async def check_job_legality(job: JobCheckRequest, request: Request, user: dict = Depends(verify_subscription)):
     print(f"🔥 [CRITICAL] check_job_legality REACHED for job {job.id}")
-    print(f"   Auth User: {user.get('email', 'unknown')}")
-    print(f"   Payload: title={job.title}, company={job.company}")
+    _require_job_access(user, str(job.id))
     risk_score, is_legal, reasons, needs_review = check_legality_rules(
         job.title,
         job.company,
@@ -100,7 +97,7 @@ async def check_job_legality(job: JobCheckRequest, request: Request, user: dict 
             job_data = supabase.table("jobs").select("contact_email, title").eq("id", job.id).single().execute()
             if job_data.data and job_data.data.get("contact_email"):
                 rec_email = job_data.data["contact_email"]
-                print(f"📧 Sending status update to recruiter: {rec_email}")
+                print("📧 Sending status update to recruiter.")
                 send_recruiter_legality_email(rec_email, job_data.data["title"], result)
             else:
                 print(f"⚠️ Could not find recruiter email for job {job.id}")
@@ -120,8 +117,7 @@ async def update_job_status(job_id: str, update: JobStatusUpdateRequest, request
 
 @router.delete("/{job_id}")
 async def delete_job(job_id: str, request: Request, user: dict = Depends(get_current_user)):
-    print(f"🗑️ [REQUEST] Delete job {job_id} by user {user.get('email', 'unknown')}")
-    print(f"🔑 [AUTH] Verifying CSRF token for user {user.get('email', 'unknown')}")
+    print(f"🗑️ [REQUEST] Delete job {job_id}")
     if not verify_csrf_token_header(request, user):
         raise HTTPException(status_code=403, detail="CSRF validation failed")
     _require_job_access(user, job_id)
