@@ -34,14 +34,14 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
 
     sub_details = {"tier": "free", "status": "active"}
     try:
-    if is_company_admin:
-        # Use the company_id from the user profile, not the passed userId (which might be the user's ID)
-        target_company_id = require_company_access(user, user.get("company_id"))
-        is_freelancer_company = False
-        try:
-            company_resp = supabase.table("companies").select("industry").eq("id", target_company_id).maybe_single().execute()
-            if company_resp.data and company_resp.data.get("industry") == "Freelancer":
-                is_freelancer_company = True
+        if is_company_admin:
+            # Use the company_id from the user profile, not the passed userId (which might be the user's ID)
+            target_company_id = require_company_access(user, user.get("company_id"))
+            is_freelancer_company = False
+            try:
+                company_resp = supabase.table("companies").select("industry").eq("id", target_company_id).maybe_single().execute()
+                if company_resp.data and company_resp.data.get("industry") == "Freelancer":
+                    is_freelancer_company = True
             except Exception as e:
                 print(f"⚠️ Failed to fetch company industry: {e}")
 
@@ -61,7 +61,7 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
                 sub_response = supabase.table("subscriptions").insert(trial_data).execute()
         else:
             sub_response = supabase.table("subscriptions").select("*").eq("user_id", user_id).execute()
-        
+
         if sub_response and sub_response.data:
             sub_details = sub_response.data[0]
     except Exception as e:
