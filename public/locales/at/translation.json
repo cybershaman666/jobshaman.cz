@@ -379,7 +379,26 @@
     "list_view": "Listenansicht",
     "swipe_view": "Swipe-Ansicht",
     "distance_air_label": "Luftlinie",
-    "distance_air_hint": "Der Entfernungsfilter nutzt die Luftlinie. Die reale Pendelstrecke kann länger sein."
+    "distance_air_hint": "Der Entfernungsfilter nutzt die Luftlinie. Die reale Pendelstrecke kann länger sein.",
+    "contract_types": {
+      "unknown": "Nicht angegeben",
+      "full_time": "Vollzeit",
+      "part_time": "Teilzeit",
+      "contract": "Vertrag",
+      "temporary": "Befristet",
+      "internship": "Praktikum",
+      "freelance": "Freelance",
+      "freelance_service": "Freelance-Service",
+      "hpp": "Vollzeit (HPP)",
+      "dpp": "DPP",
+      "dpc": "DPČ",
+      "ico": "IČO",
+      "osvc": "Selbstständig (OSVČ)",
+      "b2b": "B2B",
+      "remote": "Remote",
+      "hybrid": "Hybrid",
+      "on_site": "Vor Ort"
+    }
   },
   "profile": {
     "personal_info": "Persönliche Informationen",
@@ -890,7 +909,7 @@
     },
     "blog": {
       "title": "Shamanic Insights",
-      "subtitle": "Analyse, Daten und Realität des tschechischen Arbeitsmarktes ohne Schnörkel.",
+      "subtitle": "Analyse, Daten und Realität des Arbeitsmarktes ohne Schnörkel.",
       "read_more": "Weiterlesen",
       "all_articles": "Alle Artikel",
       "stats": {

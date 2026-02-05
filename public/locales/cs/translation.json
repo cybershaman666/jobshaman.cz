@@ -406,7 +406,26 @@
     "list_view": "Klasické zobrazení",
     "swipe_view": "Swipe zobrazení",
     "distance_air_label": "vzdušně",
-    "distance_air_hint": "Filtr vzdálenosti používá vzdušnou čarou. Reálný dojezd může být vyšší."
+    "distance_air_hint": "Filtr vzdálenosti používá vzdušnou čarou. Reálný dojezd může být vyšší.",
+    "contract_types": {
+      "unknown": "Neuvedeno",
+      "full_time": "Plný úvazek",
+      "part_time": "Zkrácený úvazek",
+      "contract": "Smlouva",
+      "temporary": "Dočasně",
+      "internship": "Stáž",
+      "freelance": "Freelance",
+      "freelance_service": "Freelance služba",
+      "hpp": "HPP",
+      "dpp": "DPP",
+      "dpc": "DPČ",
+      "ico": "IČO",
+      "osvc": "OSVČ",
+      "b2b": "B2B",
+      "remote": "Remote",
+      "hybrid": "Hybrid",
+      "on_site": "Na místě"
+    }
   },
   "profile": {
     "title": "Profil",
@@ -1158,7 +1177,7 @@
   },
   "blog": {
     "title": "Shamanic Insights",
-    "subtitle": "Analýza, dáta a realita českého pracovného trhu bez příkras.",
+    "subtitle": "Analýza, dáta a realita pracovního trhu bez příkras.",
     "read_more": "Číst více",
     "all_articles": "Všechny články",
     "stats": {
