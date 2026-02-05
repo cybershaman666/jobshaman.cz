@@ -19,6 +19,33 @@ const TOXIC_PATTERNS = [
     { pattern: /vysoce\s*motivovan/i, penalty: 10 }
 ];
 
+const ICO_PATTERNS = [
+    /i[čc]o/i,
+    /b2b/i,
+    /contractor/i,
+    /fakturac/i,
+    /živnost/i,
+    /osvč/i
+];
+
+const COMMISSION_PATTERNS = [
+    /proviz/i,
+    /nezastropovan/i,
+    /výkonnostn/i,
+    /odměn[aě]\s*za\s*výkon/i,
+    /na\s*procenta/i,
+    /%+\s*z/i
+];
+
+const ACQUISITION_PATTERNS = [
+    /akvizic/i,
+    /cold\s*call/i,
+    /telefonát/i,
+    /call\s*center/i,
+    /lead(y|ů|ů|y)/i,
+    /nových\s*klient/i
+];
+
 const STRESS_ROLES = [
     { pattern: /sales|prodej|obchod/i, penalty: 20, label: 'Sales (pressure-driven)' },
     { pattern: /manažer|manager|vedoucí/i, penalty: 15, label: 'Management (responsibility)' },
@@ -136,8 +163,19 @@ const calculateFinancialReality = (job: Partial<Job>): number => {
         salaryScore -= 20;
     }
 
-    // Transparency bonus (EU compliant)
+    // Variable/commission-heavy comp volatility (especially on IČO)
     const description = (job.description || '').toLowerCase();
+    const title = (job.title || '').toLowerCase();
+    const hasCommission = COMMISSION_PATTERNS.some(p => p.test(description)) || COMMISSION_PATTERNS.some(p => p.test(title));
+    const isIco = ICO_PATTERNS.some(p => p.test(description)) || ICO_PATTERNS.some(p => p.test(title));
+    const hasFixed = /fixn[ií]\s*mzd/i.test(description) || /základn[ií]\s*mzd/i.test(description);
+    if (hasCommission) {
+        salaryScore -= 15; // volatile income
+        if (isIco) salaryScore -= 10; // no standard protections
+        if (!hasFixed) salaryScore -= 10; // commission-only risk
+    }
+
+    // Transparency bonus (EU compliant)
     if (job.salary_from && job.salary_to && !/dohodou/i.test(description)) {
         salaryScore += 10; // Reward transparency
     }
@@ -203,11 +241,18 @@ const calculateMentalWellbeing = (job: Partial<Job>, aiRiskScore: number = 0): n
         }
     });
 
-    // Toxic Pattern Analysis
-    const description = (job.description || '').toLowerCase();
+    // Sales-specific volatility + acquisition pressure
+    const descLower = (job.description || '').toLowerCase();
+    const hasCommission = COMMISSION_PATTERNS.some(p => p.test(descLower)) || COMMISSION_PATTERNS.some(p => p.test(title));
+    const isIco = ICO_PATTERNS.some(p => p.test(descLower)) || ICO_PATTERNS.some(p => p.test(title));
+    const hasAquisition = ACQUISITION_PATTERNS.some(p => p.test(descLower)) || ACQUISITION_PATTERNS.some(p => p.test(title));
+    if (hasCommission) baseLoad -= 12;
+    if (hasAquisition) baseLoad -= 10;
+    if (hasCommission && isIco) baseLoad -= 8;
 
+    // Toxic Pattern Analysis
     TOXIC_PATTERNS.forEach(p => {
-        if (p.pattern.test(description)) {
+        if (p.pattern.test(descLower)) {
             baseLoad -= p.penalty;
             toxicCount++;
         }
