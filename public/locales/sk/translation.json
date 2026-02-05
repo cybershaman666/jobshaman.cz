@@ -757,6 +757,33 @@
     "standard_package": "Štandardný balík",
     "search": "Hľadať"
   },
+  "seo": {
+    "base_title": "JobShaman - Inteligentné ponuky práce",
+    "home_description": "Nájdite si ideálnu prácu s AI analýzou.",
+    "marketplace_title": "Vzdelávanie - JobShaman",
+    "marketplace_description": "Vzdelávanie pre vašu kariéru. Rekvalifikácia, certifikácie a vzdelávacie programy.",
+    "services_title": "Zákazky a služby - JobShaman",
+    "services_description": "Nájdite expertov na projekty alebo ponúknite svoje služby. Freelance marketplace JobShaman.",
+    "freelancer_dashboard_title": "Freelancer profil | JobShaman",
+    "freelancer_dashboard_description": "Spravujte svoje služby, portfólio a dopyty.",
+    "saved_title": "Uložené ponuky | JobShaman",
+    "saved_description": "Váš zoznam uložených pracovných ponúk a obľúbených pozícií.",
+    "assessment_title": "Assessment centrum | JobShaman",
+    "assessment_description": "Testy kandidátov a hodnotenie s AI analýzou.",
+    "profile_title": "Môj Profil | JobShaman",
+    "profile_description": "Spravujte svoj profil.",
+    "company_dashboard_title": "Pre Firmy - JobShaman",
+    "company_dashboard_description": "Publikujte ponuky s AI.",
+    "job_detail_suffix": "JobShaman",
+    "job_detail_description": "Pracovná pozícia {{title}}.",
+    "ai_summary_home": "JobShaman - AI platforma pre hľadanie práce.",
+    "ai_summary_job": "Pozícia {{title}}.",
+    "ai_summary_company": "JobShaman pre firmy.",
+    "ai_summary_services": "Marketplace služieb a freelance projektov na JobShaman.",
+    "ai_summary_freelancer": "Freelancer dashboard pre správu služieb, portfólia a dopytov.",
+    "ai_summary_saved": "Zoznam uložených pracovných ponúk používateľa.",
+    "ai_summary_default": "JobShaman - moderné hľadanie práce."
+  },
   "welcome_extra": {
     "metrics": {
       "time_label": "Čas",

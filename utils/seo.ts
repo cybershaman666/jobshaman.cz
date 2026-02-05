@@ -36,7 +36,7 @@ export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetada
           benefits: data?.benefits?.join(', ') || t('common.none')
         }),
         keywords: [data?.title, data?.company, data?.location, 'práce', 'nabídka', 'volné místo'],
-        canonical: `${baseUrl}/job/${data?.id}`,
+        canonical: `${baseUrl}/jobs/${data?.id}`,
         ogImage: data?.logo || `${baseUrl}/og-image.jpg`,
         structuredData: generateJobPostingStructuredData(data)
       };
@@ -55,6 +55,38 @@ export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetada
         description: t('seo.marketplace_description'),
         keywords: ["kurzy", "rekvalifikace", "školení", "vzdělávání", "online kurzy", "certifikace", "kariérní růst"],
         canonical: `${baseUrl}/kurzy-a-rekvalifikace`
+      };
+
+    case 'services':
+      return {
+        title: t('seo.services_title'),
+        description: t('seo.services_description'),
+        keywords: ["zakázky", "freelance", "služby", "experti", "spolupráce", "projekty"],
+        canonical: `${baseUrl}/sluzby`
+      };
+
+    case 'freelancer-dashboard':
+      return {
+        title: t('seo.freelancer_dashboard_title'),
+        description: t('seo.freelancer_dashboard_description'),
+        keywords: ["freelancer", "profil", "služby", "portfolio", "zakázky"],
+        canonical: `${baseUrl}/freelancer`
+      };
+
+    case 'saved':
+      return {
+        title: t('seo.saved_title'),
+        description: t('seo.saved_description'),
+        keywords: ["uložené nabídky", "oblíbené pozice", "můj seznam", "práce"],
+        canonical: `${baseUrl}/ulozene`
+      };
+
+    case 'assessment':
+      return {
+        title: t('seo.assessment_title'),
+        description: t('seo.assessment_description'),
+        keywords: ["assessment", "testy", "hodnocení kandidátů", "nábory", "psychometrie"],
+        canonical: `${baseUrl}/assessment-centrum`
       };
 
     case 'profile':
@@ -86,6 +118,12 @@ export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetada
 
 // Generate structured data for job posting
 export const generateJobPostingStructuredData = (job: any) => {
+  const minSalary = job?.salary?.min ?? job?.salary_from ?? null;
+  const maxSalary = job?.salary?.max ?? job?.salary_to ?? null;
+  const currency = job?.salary?.currency || job?.salary_currency || job?.currency || "CZK";
+  const country = (job?.country_code || "CZ").toUpperCase();
+  const datePosted = job?.scrapedAt || job?.scraped_at || job?.postedAt;
+
   return {
     "@context": "https://schema.org",
     "@type": "JobPosting",
@@ -96,9 +134,9 @@ export const generateJobPostingStructuredData = (job: any) => {
       "name": "Job ID",
       "value": job.id
     },
-    "datePosted": job.postedAt,
+    "datePosted": datePosted,
     "validThrough": job.validUntil,
-    "employmentType": job.contractType,
+    "employmentType": job.contract_type || job.contractType || job.employmentType,
     "hiringOrganization": {
       "@type": "Organization",
       "name": job.company,
@@ -110,16 +148,16 @@ export const generateJobPostingStructuredData = (job: any) => {
       "address": {
         "@type": "PostalAddress",
         "addressLocality": job.location,
-        "addressCountry": "CZ"
+        "addressCountry": country
       }
     },
-    "baseSalary": job.salary ? {
+    "baseSalary": (minSalary || maxSalary) ? {
       "@type": "MonetaryAmount",
-      "currency": job.salary.currency || "CZK",
+      "currency": currency,
       "value": {
         "@type": "QuantitativeValue",
-        "minValue": job.salary.min,
-        "maxValue": job.salary.max,
+        "minValue": minSalary || undefined,
+        "maxValue": maxSalary || undefined,
         "unitText": "MONTH"
       }
     } : undefined,
@@ -258,8 +296,11 @@ export const updatePageMeta = (metadata: SEOMetadata) => {
   }
 
   // hreflang alternate links
-  const languages = ['cs', 'en', 'de', 'pl', 'sk'];
-  const currentUrl = window.location.href.split('?')[0];
+  const languages = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
+  const url = new URL(window.location.href);
+  const segments = url.pathname.split('/').filter(Boolean);
+  const hasLangPrefix = segments.length > 0 && languages.includes(segments[0]);
+  const pathWithoutLang = `/${(hasLangPrefix ? segments.slice(1) : segments).join('/')}`.replace(/\/+$/, '') || '/';
 
   languages.forEach(lang => {
     let link = document.querySelector(`link[hreflang="${lang}"]`) as HTMLLinkElement;
@@ -269,8 +310,7 @@ export const updatePageMeta = (metadata: SEOMetadata) => {
       link.hreflang = lang;
       document.head.appendChild(link);
     }
-    // Simple implementation: append lang as param
-    link.href = `${currentUrl}?lng=${lang}`;
+    link.href = `${url.origin}/${lang}${pathWithoutLang === '/' ? '' : pathWithoutLang}`;
   });
 
   // Canonical URL
@@ -288,12 +328,14 @@ export const updatePageMeta = (metadata: SEOMetadata) => {
   updateMeta('og:title', metadata.title);
   updateMeta('og:description', metadata.description);
   updateMeta('og:image', metadata.ogImage || '');
+  updateMeta('og:url', metadata.canonical || window.location.href);
 
   // Twitter Card
   updateMeta('twitter:card', 'summary_large_image');
   updateMeta('twitter:title', metadata.title);
   updateMeta('twitter:description', metadata.description);
   updateMeta('twitter:image', metadata.ogImage || '');
+  updateMeta('twitter:url', metadata.canonical || window.location.href);
 
   // Structured data
   if (metadata.structuredData) {
@@ -344,6 +386,12 @@ export const generateAISummary = (page: string, t: any, data?: any): string => {
       return `${data?.title}: ${data?.shamanSummary || data?.excerpt}`;
     case 'company-dashboard':
       return t('seo.ai_summary_company');
+    case 'services':
+      return t('seo.ai_summary_services');
+    case 'freelancer-dashboard':
+      return t('seo.ai_summary_freelancer');
+    case 'saved':
+      return t('seo.ai_summary_saved');
     default:
       return t('seo.ai_summary_default');
   }

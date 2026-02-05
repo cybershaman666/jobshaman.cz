@@ -248,12 +248,29 @@ export const useUserProfile = () => {
                 // Now determine the correct viewState based on consolidated logic
                 if (profile.role === 'recruiter') {
                     // User is a recruiter (or freelancer acting as recruiter)
-                    const pathname = window.location.pathname;
-                    const isJobDetail = pathname.startsWith('/jobs/');
-                    const isExternalPage = pathname === '/podminky-uziti' || pathname === '/ochrana-osobnich-udaju' || pathname === '/enterprise' || pathname.startsWith('/assessment/');
+                    const supported = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
+                    const parts = window.location.pathname.split('/').filter(Boolean);
+                    if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
+                    const base = parts[0] || '';
+                    const isJobDetail = base === 'jobs' && !!parts[1];
+                    const isBlogDetail = base === 'blog' && !!parts[1];
+                    const isExternalPage = base === 'podminky-uziti'
+                        || base === 'ochrana-osobnich-udaju'
+                        || base === 'enterprise'
+                        || base === 'assessment';
+                    const isNonDashboardRoute = base === 'kurzy-a-rekvalifikace'
+                        || base === 'sluzby'
+                        || base === 'ulozene'
+                        || base === 'assessment-centrum'
+                        || base === 'profil'
+                        || base === 'pro-firmy'
+                        || base === 'freelancer-dashboard'
+                        || base === 'company-dashboard'
+                        || base === 'dashboard'
+                        || isBlogDetail;
 
-                    // Only set dashboard view if not on special pages
-                    if (!isJobDetail && !isExternalPage) {
+                    // Only set dashboard view if we're on the root route (no explicit page)
+                    if (!isJobDetail && !isExternalPage && !isNonDashboardRoute && parts.length === 0) {
                         console.log("🔍 [ViewState Decision] metaIsFreelancer:", metaIsFreelancer, "company.industry:", company?.industry);
                         
                         // Check if freelancer by metadata OR by company industry
@@ -269,7 +286,7 @@ export const useUserProfile = () => {
                             console.log("✅ Recruiter logged in, COMPANY_DASHBOARD set.");
                         }
                     } else {
-                        console.log("🔗 Logged in on deep link/external page, maintaining current view.");
+                        console.log("🔗 Logged in on explicit route, maintaining current view.");
                     }
                 } else {
                     // Candidate: no company profile, no dashboard
