@@ -67,7 +67,6 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
 
       // Setup immediately if we have a session (e.g. no email confirmation required or auto-login)
       if (user && !session) {
-        console.log('ℹ️ Signup created but no session (email confirmation required)');
         setNeedsEmailConfirmation(true);
         setStep('success');
         setIsSubmitting(false);
@@ -76,7 +75,6 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
 
       if (user && session) {
         const userId = user.id;
-        console.log("✅ Registration successful, initializing company profile for:", userId);
 
         // 1. Ensure user profile exists as 'recruiter'
         try {
@@ -112,12 +110,10 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
             contact_email: formData.email,
             description: 'Nově registrovaná společnost'
           }, userId);
-          console.log("✅ Company record created successfully:", companyData?.id);
 
           if (companyData?.id) {
             const { initializeCompanySubscription } = await import('../services/supabaseService');
             await initializeCompanySubscription(companyData.id);
-            console.log("✅ Free subscription initialized.");
           }
         } catch (err) {
           console.error("❌ Failed to create company record:", err);

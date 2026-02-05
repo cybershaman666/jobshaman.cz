@@ -126,10 +126,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 
                 {/* Desktop Navigation */}
                 <nav className="hidden sm:flex items-center gap-1 bg-slate-100/50 dark:bg-slate-800/50 p-1 rounded-lg border border-slate-200 dark:border-slate-700/50">
-                    {(() => { console.log("🧭 [AppHeader] showCompanyLanding:", showCompanyLanding, "viewState:", viewState); return null; })()}
                     {!showCompanyLanding && (
                         <>
-                            {(() => { console.log("✅ [AppHeader] Rendering job navigation buttons"); return null; })()}
                             <button
                                 onClick={() => { 
                                     onIntentionalListClick?.();
@@ -142,7 +140,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                             </button>
                             <button
                                 onClick={() => { 
-                                    console.log("🔄 [Header] Switching to MARKETPLACE"); 
                                     setViewState(ViewState.MARKETPLACE);
                                     // Don't clear selectedJobId - that would trigger path restoration
                                 }}
@@ -154,7 +151,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                             </button>
                             <button
                                 onClick={() => { 
-                                    console.log("🔄 [Header] Switching to SERVICES"); 
                                     setViewState(ViewState.SERVICES);
                                     // Don't clear selectedJobId - that would trigger path restoration
                                 }}

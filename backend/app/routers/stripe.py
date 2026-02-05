@@ -52,6 +52,8 @@ async def create_checkout_session(req: CheckoutRequest, request: Request, user: 
         }
 
         price_id = prices.get(backend_tier)
+        if not price_id:
+            raise HTTPException(status_code=500, detail=f"Stripe price not configured for tier: {backend_tier}")
         mode = "subscription" if backend_tier in ["premium", "business", "freelance_premium"] else "payment"
 
         checkout_session = stripe.checkout.Session.create(
@@ -72,11 +74,16 @@ async def stripe_webhook(request: Request):
 
     payload = await request.body()
     sig_header = request.headers.get("stripe-signature")
+    if not sig_header:
+        raise HTTPException(status_code=400, detail="Missing stripe-signature header")
 
     try:
         event = stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
 
     if event["type"] == "checkout.session.completed":
         session = event.get("data", {}).get("object")

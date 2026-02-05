@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field, validator
 from typing import List, Optional, Any
 
 class JobStatusUpdateRequest(BaseModel):
-    status: str
+    status: str = Field(..., pattern=r"^(draft|active|paused|closed|archived)$")
 
 class JobCheckRequest(BaseModel):
     id: Any = Field(...)

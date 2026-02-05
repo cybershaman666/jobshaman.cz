@@ -118,7 +118,6 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
         // Simulate API call delay for UI feedback
         setTimeout(() => {
           setStep('success');
-          console.log('Application submitted:', { formData, job: job.title });
         }, 1500);
       } else {
         console.error('Failed to send application email:', emailResult.error);

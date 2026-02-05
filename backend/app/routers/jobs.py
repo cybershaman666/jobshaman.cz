@@ -11,6 +11,24 @@ from ..utils.helpers import now_iso
 
 router = APIRouter()
 
+def _normalize_job_id(job_id: str):
+    return int(job_id) if str(job_id).isdigit() else job_id
+
+def _require_job_access(user: dict, job_id: str):
+    """Ensure the current user is authorized to manage the given job."""
+    authorized_ids = user.get("authorized_ids", [])
+    job_id_norm = _normalize_job_id(job_id)
+
+    job_resp = supabase.table("jobs").select("id, company_id").eq("id", job_id_norm).maybe_single().execute()
+    if not job_resp.data:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    company_id = job_resp.data.get("company_id")
+    if not company_id or company_id not in authorized_ids:
+        raise HTTPException(status_code=403, detail="Unauthorized")
+
+    return job_resp.data
+
 @router.get("/")
 async def root(request: Request):
     return {"status": "JobShaman API is running"}
@@ -95,6 +113,7 @@ async def check_job_legality(job: JobCheckRequest, request: Request, user: dict 
 async def update_job_status(job_id: str, update: JobStatusUpdateRequest, request: Request, user: dict = Depends(get_current_user)):
     if not verify_csrf_token_header(request, user):
         raise HTTPException(status_code=403, detail="CSRF validation failed")
+    _require_job_access(user, job_id)
     # Query Supabase for job ownership and update status
     resp = supabase.table("jobs").update({"status": update.status}).eq("id", job_id).execute()
     return {"status": "success"}
@@ -105,6 +124,7 @@ async def delete_job(job_id: str, request: Request, user: dict = Depends(get_cur
     print(f"🔑 [AUTH] Verifying CSRF token for user {user.get('email', 'unknown')}")
     if not verify_csrf_token_header(request, user):
         raise HTTPException(status_code=403, detail="CSRF validation failed")
+    _require_job_access(user, job_id)
     supabase.table("jobs").delete().eq("id", job_id).execute()
     return {"status": "success"}
 
@@ -138,6 +158,9 @@ async def log_job_interaction(payload: JobInteractionRequest, request: Request, 
 @router.post("/match-candidates")
 @limiter.limit("10/minute")
 async def match_candidates_service(request: Request, job_id: str = Query(...), user: dict = Depends(verify_subscription)):
+    _require_job_access(user, job_id)
+    if not user.get("is_subscription_active"):
+        raise HTTPException(status_code=403, detail="Active subscription required")
     job_res = supabase.table("jobs").select("*").eq("id", job_id).single().execute()
     if not job_res.data: raise HTTPException(status_code=404, detail="Job not found")
     job = job_res.data

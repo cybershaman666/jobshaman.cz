@@ -110,7 +110,6 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                 userEmail = user?.email || userEmail;
 
                 if (user && !session) {
-                    console.log('ℹ️ Signup created but no session (email confirmation required)');
                     setNeedsEmailConfirmation(true);
                     setStep('success');
                     setIsSubmitting(false);
@@ -119,8 +118,6 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
             }
 
             if (userId) {
-                console.log("✅ Freelancer Registration successful, initializing profile for:", userId);
-
                 try {
                     const { createBaseProfile, updateUserProfile, ensureCandidateProfile } = await import('../services/supabaseService');
 
@@ -149,12 +146,9 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                         industry: 'Freelancer'
                     }, userId);
 
-                    console.log("✅ Freelancer company record created successfully:", companyData?.id);
-
                     if (companyData?.id) {
                         const { initializeCompanySubscription } = await import('../services/supabaseService');
                         await initializeCompanySubscription(companyData.id);
-                        console.log("✅ Free subscription initialized.");
                         // Also create a freelancer profile row so the user is recognized as freelancer
                         try {
                             const { createFreelancerProfile } = await import('../services/supabaseService');
@@ -164,7 +158,6 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                                 presentation: '',
                                 work_type: 'remote'
                             });
-                            console.log('✅ Freelancer profile created.');
                         } catch (err) {
                             console.warn('⚠️ Failed to create freelancer profile (non-fatal):', err);
                         }
@@ -493,7 +486,6 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                                                                                 presentation: '',
                                                                                 work_type: 'remote'
                                                                             });
-                                                                            console.log('✅ Freelancer profile created (finalize).');
                                                                         } catch (err) {
                                                                             console.warn('⚠️ Failed to create freelancer profile during finalize:', err);
                                                                         }

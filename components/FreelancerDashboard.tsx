@@ -110,7 +110,6 @@ export default function FreelancerDashboard({ userProfile, companyProfile, onLog
                             presentation: '',
                             work_type: 'remote'
                         });
-                        console.log('✅ Backfilled freelancer profile from existing services.');
                     }
                 } catch (err) {
                     console.warn('⚠️ Failed to backfill freelancer profile:', err);

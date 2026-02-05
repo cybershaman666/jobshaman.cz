@@ -154,9 +154,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       if (cvUrl) {
         // Trigger CV parsing immediately after upload
         try {
-          console.log('📄 Starting CV parsing for:', file.name);
           const parsedData = await parseProfileFromCVWithFallback(file);
-          console.log('✅ CV parsing result:', parsedData);
 
           // Merge parsed data into profile
           const updatedProfile = {

@@ -113,11 +113,58 @@ def verify_supabase_token(token: str) -> dict:
         raise HTTPException(status_code=401, detail=str(e))
 
 async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    print(f"🔑 [AUTH] Verifying token: {credentials.credentials[:10]}...")
     return verify_supabase_token(credentials.credentials)
 
+def _parse_iso_datetime(value: str) -> datetime | None:
+    if not value:
+        return None
+    try:
+        # Handle "Z" suffix
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except Exception:
+        return None
+
 def verify_subscription(user: dict = Depends(get_current_user), request: Request = None):
-    # Simplified for the sake of the refactor, will be refined in routers
+    """
+    Attach subscription info to the user context.
+    Does not block free users; enforcement happens in feature-specific routes.
+    """
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id or not supabase:
+        return user
+
+    is_company = bool(user.get("company_name"))
+    sub_resp = None
+    try:
+        if is_company:
+            company_id = user.get("company_id")
+            if company_id:
+                sub_resp = supabase.table("subscriptions").select("*").eq("company_id", company_id).execute()
+        else:
+            sub_resp = supabase.table("subscriptions").select("*").eq("user_id", user_id).execute()
+    except Exception:
+        sub_resp = None
+
+    sub = (sub_resp.data[0] if sub_resp and sub_resp.data else None)
+    tier = sub.get("tier") if sub else "free"
+    status = sub.get("status") if sub else "inactive"
+    expires_at_raw = sub.get("current_period_end") if sub else None
+    expires_at = _parse_iso_datetime(expires_at_raw)
+
+    is_active_status = status in ["active", "trialing"]
+    not_expired = True
+    if expires_at:
+        not_expired = datetime.now(timezone.utc) <= expires_at
+
+    user["subscription_tier"] = tier
+    user["subscription_status"] = status
+    user["subscription_expires_at"] = expires_at_raw
+    user["subscription_id"] = sub.get("id") if sub else None
+    user["is_subscription_active"] = bool(is_active_status and not_expired)
+
+    if not user["is_subscription_active"] and tier == "free":
+        user["subscription_status"] = "free"
+
     return user
 
 def verify_csrf_token_header(request: Request, user: dict) -> bool:
@@ -129,7 +176,13 @@ def verify_csrf_token_header(request: Request, user: dict) -> bool:
     user_id = user.get("id") or user.get("auth_id")
     if not user_id:
         return False
-    return validate_csrf_token(csrf_token, user_id)
+    is_valid = validate_csrf_token(csrf_token, user_id)
+    if not is_valid:
+        return False
+    # Consume token for state-changing requests to prevent replay
+    if request.method and request.method.upper() in ["POST", "PUT", "PATCH", "DELETE"]:
+        consume_csrf_token(csrf_token)
+    return True
 
 def cleanup_csrf_sessions():
     """Periodic task to remove expired CSRF tokens from Supabase"""
@@ -146,7 +199,20 @@ async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-Content-Type-Options"] = "nosniff"
+    # X-XSS-Protection is deprecated in modern browsers but harmless for legacy
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    # API-first CSP: disallow all content by default
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'none'; "
+        "base-uri 'none'; "
+        "form-action 'none'; "
+        "frame-ancestors 'none'"
+    )
+    # Reduce access to browser features
+    response.headers["Permissions-Policy"] = (
+        "camera=(), microphone=(), geolocation=(), payment=(), usb=(), "
+        "interest-cohort=()"
+    )
     return response

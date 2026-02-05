@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -14,16 +15,21 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Middlewares
-ALLOWED_ORIGINS = [
-    "https://jobshaman.cz",
-    "https://jobshaman.com",
-    "https://www.jobshaman.cz",
-    "https://www.jobshaman.com",
-    "https://jobshaman-api.onrender.com",
-    "https://jobshaman-cz.onrender.com",
-    "http://localhost:3000",
-    "http://localhost:5173",
-]
+raw_origins = os.getenv("ALLOWED_ORIGINS")
+ALLOWED_ORIGINS = (
+    [o.strip() for o in raw_origins.split(",") if o.strip()]
+    if raw_origins
+    else [
+        "https://jobshaman.cz",
+        "https://jobshaman.com",
+        "https://www.jobshaman.cz",
+        "https://www.jobshaman.com",
+        "https://jobshaman-api.onrender.com",
+        "https://jobshaman-cz.onrender.com",
+        "http://localhost:3000",
+        "http://localhost:5173",
+    ]
+)
 
 app.add_middleware(
     CORSMiddleware,
