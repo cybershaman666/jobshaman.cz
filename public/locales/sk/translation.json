@@ -55,7 +55,14 @@
     "junior": "Junior",
     "medior": "Medior",
     "senior": "Senior",
-    "lead": "Lead / Management"
+    "lead": "Lead / Management",
+    "sort_by": "Zoradiť podľa",
+    "sort_options": {
+      "default": "Odporúčané",
+      "newest": "Najnovšie",
+      "jhi_desc": "JHI od najvyššieho",
+      "jhi_asc": "JHI od najnižšieho"
+    }
   },
   "financial": {
     "reality_title": "Finančná Realita",

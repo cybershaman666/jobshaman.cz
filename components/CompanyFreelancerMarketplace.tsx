@@ -33,6 +33,7 @@ interface Freelancer {
     verified: boolean;
     image?: string;
     badge?: string;
+    isPremium?: boolean;
 }
 
 interface FreelancerProfileDetails {
@@ -153,16 +154,16 @@ const CompanyFreelancerMarketplace: React.FC = () => {
             }
 
             // Try to enrich with profiles (optional; may be blocked by RLS)
-            let profileMap: Record<string, { full_name?: string; avatar_url?: string }> = {};
+            let profileMap: Record<string, { full_name?: string; avatar_url?: string; subscription_tier?: string }> = {};
             if (freelancerIds.length > 0) {
                 const { data: profilesData, error: profilesError } = await supabase
                     .from('profiles')
-                    .select('id, full_name, avatar_url')
+                    .select('id, full_name, avatar_url, subscription_tier')
                     .in('id', freelancerIds);
 
                 if (!profilesError && profilesData) {
                     profileMap = profilesData.reduce((acc: any, p: any) => {
-                        acc[p.id] = { full_name: p.full_name, avatar_url: p.avatar_url };
+                        acc[p.id] = { full_name: p.full_name, avatar_url: p.avatar_url, subscription_tier: p.subscription_tier };
                         return acc;
                     }, {});
                 } else if (profilesError) {
@@ -176,6 +177,8 @@ const CompanyFreelancerMarketplace: React.FC = () => {
                 const emailName = freelancer.contact_email ? String(freelancer.contact_email).split('@')[0] : null;
                 const displayName = profile?.full_name || freelancer.headline || emailName || t('freelancer_marketplace.unknown_name') || 'Freelancer';
                 const stats = reviewStatsMap[freelancer.id] || {};
+                const tier = (profile?.subscription_tier || '').toLowerCase();
+                const isPremium = tier === 'premium' || tier === 'freelance_premium';
                 return {
                     id: freelancer.id,
                     name: displayName,
@@ -188,7 +191,8 @@ const CompanyFreelancerMarketplace: React.FC = () => {
                     hourly_rate: freelancer.hourly_rate || 500, // Default rate
                     verified: false,
                     badge: undefined,
-                    image: profile?.avatar_url || undefined
+                    image: profile?.avatar_url || undefined,
+                    isPremium
                 };
             });
 
@@ -214,13 +218,22 @@ const CompanyFreelancerMarketplace: React.FC = () => {
         { id: 'legal', name: t('freelancer_marketplace.categories.legal') || 'Právo & legislativa', icon: Gavel }
     ];
 
-    const filteredFreelancers = freelancers.filter(freelancer => {
-        const matchesSearch = freelancer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            freelancer.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                            freelancer.description.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesCategory = selectedCategory === 'all' || freelancer.category === selectedCategory;
-        return matchesSearch && matchesCategory;
-    });
+    const filteredFreelancers = freelancers
+        .filter(freelancer => {
+            const matchesSearch = freelancer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                freelancer.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                freelancer.description.toLowerCase().includes(searchTerm.toLowerCase());
+            const matchesCategory = selectedCategory === 'all' || freelancer.category === selectedCategory;
+            return matchesSearch && matchesCategory;
+        })
+        .sort((a, b) => {
+            const aPremium = a.isPremium ? 1 : 0;
+            const bPremium = b.isPremium ? 1 : 0;
+            if (aPremium !== bPremium) return bPremium - aPremium;
+            const ratingDiff = (b.rating || 0) - (a.rating || 0);
+            if (ratingDiff !== 0) return ratingDiff;
+            return (b.reviews_count || 0) - (a.reviews_count || 0);
+        });
 
     const getCategoryIcon = (categoryId: string) => {
         const cat = categories.find(c => c.id === categoryId);

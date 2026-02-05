@@ -53,7 +53,14 @@
     "junior": "Junior",
     "medior": "Medior",
     "senior": "Senior",
-    "lead": "Teamlead / Management"
+    "lead": "Teamlead / Management",
+    "sort_by": "Sortieren nach",
+    "sort_options": {
+      "default": "Empfohlen",
+      "newest": "Neueste",
+      "jhi_desc": "JHI absteigend",
+      "jhi_asc": "JHI aufsteigend"
+    }
   },
   "financial": {
     "reality_title": "Finanzielle Realität",
