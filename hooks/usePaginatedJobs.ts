@@ -110,9 +110,19 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             let lat = userProfile.coordinates?.lat;
             let lon = userProfile.coordinates?.lon;
 
+            // If user has an address but no coordinates yet, try to resolve it for radius filtering.
+            if ((lat == null || lon == null) && enableCommuteFilter && userProfile.address) {
+                const { getStaticCoordinates, geocodeWithCaching } = await import('../services/geocodingService');
+                const addrCoords = getStaticCoordinates(userProfile.address) || await geocodeWithCaching(userProfile.address);
+                if (addrCoords) {
+                    lat = addrCoords.lat;
+                    lon = addrCoords.lon;
+                }
+            }
+
             // If no user coordinates but we have a city and commute filter is requested,
             // try to get coordinates for the city to allow radius search.
-            if (!lat && !lon && filterCity && enableCommuteFilter) {
+            if ((lat == null || lon == null) && filterCity && enableCommuteFilter) {
                 const { getStaticCoordinates } = await import('../services/geocodingService');
                 const cityCoords = getStaticCoordinates(filterCity);
                 if (cityCoords) {
