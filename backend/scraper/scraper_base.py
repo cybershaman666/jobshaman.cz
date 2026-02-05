@@ -385,11 +385,14 @@ def is_low_quality(job_data: Dict) -> bool:
     if not description:
         return True
     
-    # 1. Length check (tune by country; some DE/PL sources are shorter in practice)
+    # 1. Length check (tune by country/source; some PL/AT sources are shorter in practice)
     country = (job_data.get("country_code") or "").lower()
+    url = (job_data.get("url") or "").lower()
     min_len = 500
-    if country in {"de", "at", "pl"}:
+    if country in {"de"}:
         min_len = 350
+    elif country in {"at", "pl"}:
+        min_len = 200
     elif country in {"sk"}:
         min_len = 450
 
