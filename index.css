@@ -5,6 +5,38 @@
 @tailwind components;
 @tailwind utilities;
 
+@keyframes swipeCardWiggle {
+  0% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(12px) rotate(2deg); }
+  50% { transform: translateX(0) rotate(0deg); }
+  75% { transform: translateX(-12px) rotate(-2deg); }
+  100% { transform: translateX(0) rotate(0deg); }
+}
+
+@keyframes swipeArrowLeft {
+  0% { transform: translateX(0); opacity: 0.6; }
+  50% { transform: translateX(-10px); opacity: 1; }
+  100% { transform: translateX(0); opacity: 0.6; }
+}
+
+@keyframes swipeArrowRight {
+  0% { transform: translateX(0); opacity: 0.6; }
+  50% { transform: translateX(10px); opacity: 1; }
+  100% { transform: translateX(0); opacity: 0.6; }
+}
+
+.swipe-coach-card {
+  animation: swipeCardWiggle 2.4s ease-in-out infinite;
+}
+
+.swipe-coach-arrow-left {
+  animation: swipeArrowLeft 1.4s ease-in-out infinite;
+}
+
+.swipe-coach-arrow-right {
+  animation: swipeArrowRight 1.4s ease-in-out infinite;
+}
+
 html, body {
   margin: 0;
   padding: 0;

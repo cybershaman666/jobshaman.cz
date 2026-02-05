@@ -5,12 +5,19 @@ import { Navigation, Globe } from 'lucide-react';
 const CrossBorderPromo: React.FC = () => {
     const { t } = useTranslation();
     const [activePath, setActivePath] = useState(0);
+    const [activeNode, setActiveNode] = useState(0);
 
     // Simple animation for the "path" connecting cities
     useEffect(() => {
         const interval = setInterval(() => {
             setActivePath(prev => (prev + 1) % 2);
         }, 3000);
+        return () => clearInterval(interval);
+    }, []);
+    useEffect(() => {
+        const interval = setInterval(() => {
+            setActiveNode(prev => (prev + 1) % 3); // 0: PL, 1: CZ, 2: Distance
+        }, 2200);
         return () => clearInterval(interval);
     }, []);
 
@@ -69,17 +76,25 @@ const CrossBorderPromo: React.FC = () => {
 
                         {/* City Nodes */}
                         <div className="absolute top-1/3 left-1/4 flex flex-col items-center group">
-                            <div className="w-12 h-12 bg-slate-700/80 rounded-full flex items-center justify-center border-2 border-slate-600 mb-2 z-10">
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 mb-2 z-10 transition-all duration-500 ${
+                                activeNode === 0
+                                    ? 'bg-cyan-900/80 border-cyan-400 shadow-[0_0_18px_rgba(6,182,212,0.6)]'
+                                    : 'bg-slate-700/80 border-slate-600'
+                            }`}>
                                 <span className="text-xl">PL</span>
                             </div>
-                            <span className="text-slate-400 font-bold">Rybnik</span>
+                            <span className={`font-bold transition-colors duration-500 ${activeNode === 0 ? 'text-white' : 'text-slate-400'}`}>Rybnik</span>
                         </div>
 
                         <div className="absolute bottom-1/3 right-1/4 flex flex-col items-center group">
-                            <div className="w-12 h-12 bg-cyan-900/80 rounded-full flex items-center justify-center border-2 border-cyan-500 mb-2 z-10 shadow-[0_0_15px_rgba(6,182,212,0.5)]">
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center border-2 mb-2 z-10 transition-all duration-500 ${
+                                activeNode === 1
+                                    ? 'bg-cyan-900/80 border-cyan-400 shadow-[0_0_18px_rgba(6,182,212,0.6)]'
+                                    : 'bg-slate-700/80 border-slate-600'
+                            }`}>
                                 <span className="text-xl">CZ</span>
                             </div>
-                            <span className="text-white font-bold">Ostrava</span>
+                            <span className={`font-bold transition-colors duration-500 ${activeNode === 1 ? 'text-white' : 'text-slate-400'}`}>Ostrava</span>
                         </div>
 
                         {/* Connection Line & Animation */}
@@ -111,7 +126,11 @@ const CrossBorderPromo: React.FC = () => {
                         </div>
 
                         {/* Distance Badge */}
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900/90 backdrop-blur border border-cyan-500/30 px-4 py-2 rounded-lg text-cyan-400 text-sm font-bold shadow-xl">
+                        <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-slate-900/90 backdrop-blur border px-4 py-2 rounded-lg text-sm font-bold shadow-xl transition-all duration-500 ${
+                            activeNode === 2
+                                ? 'border-cyan-400 text-cyan-300 shadow-[0_0_22px_rgba(6,182,212,0.45)]'
+                                : 'border-cyan-500/30 text-cyan-400'
+                        }`}>
                             35 min <span className="text-slate-500 mx-1">|</span> 28 km
                         </div>
                     </div>
