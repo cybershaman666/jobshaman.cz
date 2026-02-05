@@ -1,35 +1,7 @@
--- Migration: optimize job search function and add indexes
--- Created: 2026-02-04
+-- Migration: fix commute radius filtering when job distance is NULL
+-- Created: 2026-02-05
 
--- Extensions for text search
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
--- Install unaccent into default schema (public in this project)
-CREATE EXTENSION IF NOT EXISTS unaccent;
-
--- immutable wrapper for unaccent (required for index expressions)
-CREATE OR REPLACE FUNCTION public.immutable_unaccent(text)
-RETURNS text
-LANGUAGE sql
-IMMUTABLE
-AS $$
-  -- Use text-only unaccent variant (dictionary not available in this project)
-  SELECT public.unaccent($1)
-$$;
-
--- Indexes to speed up filtering + search
-CREATE INDEX IF NOT EXISTS idx_jobs_scraped_at_desc ON public.jobs (scraped_at DESC);
-CREATE INDEX IF NOT EXISTS idx_jobs_country_code ON public.jobs (country_code);
-CREATE INDEX IF NOT EXISTS idx_jobs_contract_type ON public.jobs (contract_type);
-CREATE INDEX IF NOT EXISTS idx_jobs_education_level ON public.jobs (education_level);
-CREATE INDEX IF NOT EXISTS idx_jobs_location_lower ON public.jobs (lower(location));
-CREATE INDEX IF NOT EXISTS idx_jobs_title_trgm ON public.jobs USING GIN (immutable_unaccent(title) gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_jobs_description_trgm ON public.jobs USING GIN (immutable_unaccent(description) gin_trgm_ops);
-
--- Speed up swipe-left exclusion
-CREATE INDEX IF NOT EXISTS idx_job_interactions_user_event_job
-  ON public.job_interactions (user_id, event_type, job_id);
-
--- Re-create search function with shared base CTE to avoid repeated scans
+-- Re-create search function to exclude jobs without distance when radius filter is active
 CREATE OR REPLACE FUNCTION search_jobs_with_filters(
     search_term text DEFAULT NULL,
     user_lat double precision DEFAULT NULL,
