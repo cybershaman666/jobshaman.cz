@@ -300,13 +300,18 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                 <div className="space-y-6">
                                     {/* JHI Chart with Spider Graph */}
                                     <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800 relative">
-                                        <div className="flex items-center justify-between mb-6">
+                                        <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 bg-emerald-100 dark:bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20"><Zap size={20} /></div>
                                                 <div><h3 className="text-slate-900 dark:text-slate-100 font-bold">{t('job_detail.jhi_title')}</h3><p className="text-slate-500 dark:text-slate-400 text-xs">{t('job_detail.jhi_desc')}</p></div>
                                             </div>
                                             <span className={`text-3xl font-mono font-bold ${commuteAnalysis ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400 dark:text-slate-300'}`}>{dynamicJHI.score}</span>
                                         </div>
+                                        {(!selectedJob?.salary_from && !selectedJob?.salary_to) && (
+                                            <div className="mb-4 text-[11px] text-amber-700 dark:text-amber-400">
+                                                {t('job_detail.jhi_missing_salary_hint') || 'Nízké JHI je způsobené chybějící mzdou v inzerátu.'}
+                                            </div>
+                                        )}
                                         <JHIChart
                                             jhi={dynamicJHI}
                                             theme={theme}

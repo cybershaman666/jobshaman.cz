@@ -111,6 +111,7 @@
     "benefits_title": "Benefits und Vorteile",
     "jhi_title": "Job Happiness Index (JHI)",
     "jhi_desc": "Zusammengesetzter Qualitätswert",
+    "jhi_missing_salary_hint": "Niedriges JHI wegen fehlender Gehaltsangabe in der Anzeige.",
     "ai_analysis": "KI-Analyse",
     "run_ai_analysis": "KI-Analyse starten",
     "analyzing": "Analysiere...",
