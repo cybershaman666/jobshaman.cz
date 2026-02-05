@@ -73,30 +73,24 @@ export default function App() {
         return null;
     });
 
-    // Wrapper to update selectedJobId state and keep URL in sync with locale-prefixed routes
+    // Wrapper to update selectedJobId state; URL sync handled in a dedicated effect
+    const getLocalePrefix = () => {
+        const supported = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
+        const parts = window.location.pathname.split('/').filter(Boolean);
+        let lng = (i18n && i18n.language) || 'cs';
+        if (parts.length > 0 && supported.includes(parts[0])) lng = parts[0];
+        return lng;
+    };
+
     const setSelectedJobId = (id: string | null) => {
         setSelectedJobIdState(id);
-        try {
-            const supported = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
-            const parts = window.location.pathname.split('/').filter(Boolean);
-            let lng = (i18n && i18n.language) || 'cs';
-            if (parts.length > 0 && supported.includes(parts[0])) lng = parts[0];
-
-            let newPath = `/${lng}/`;
-            if (id) newPath = `/${lng}/jobs/${id}`;
-            // Preserve query and hash
-            const search = window.location.search || '';
-            const hash = window.location.hash || '';
-            window.history.replaceState({}, '', newPath + search + hash);
-        } catch (err) {
-            console.warn('Failed to sync job id with URL', err);
-        }
     };
     const [selectedBlogPostSlug, setSelectedBlogPostSlug] = useState<string | null>(() => {
         const path = window.location.pathname;
-        if (path.startsWith('/blog/')) {
-            return path.split('/blog/')[1] || null;
-        }
+        const parts = path.split('/').filter(Boolean);
+        const supported = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
+        if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
+        if (parts[0] === 'blog') return parts[1] || null;
         return null;
     });
     const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
@@ -321,11 +315,12 @@ export default function App() {
                 }
             });
 
-            // Deep Link Handling for /jobs/:id and /{lng}/jobs/:id
+            // Deep Link Handling for /jobs/:id and locale-prefixed routes
             const path = window.location.pathname;
             const parts = path.split('/').filter(Boolean);
             const supported = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
             if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
+
             if (parts[0] === 'jobs') {
                 const jobId = parts[1];
                 if (jobId) {
@@ -334,6 +329,53 @@ export default function App() {
                     setSelectedJobId(jobId);
                     console.log('🔗 Deep link detected for job:', jobId);
                 }
+            } else if (parts[0] === 'blog') {
+                const slug = parts[1];
+                if (slug) {
+                    setViewState(ViewState.LIST);
+                    setShowCompanyLanding(false);
+                    setSelectedBlogPostSlug(slug);
+                    setSelectedJobId(null);
+                }
+            } else if (parts[0] === 'kurzy-a-rekvalifikace') {
+                setViewState(ViewState.MARKETPLACE);
+                setShowCompanyLanding(false);
+                setSelectedJobId(null);
+                setSelectedBlogPostSlug(null);
+            } else if (parts[0] === 'sluzby') {
+                setViewState(ViewState.SERVICES);
+                setShowCompanyLanding(false);
+                setSelectedJobId(null);
+                setSelectedBlogPostSlug(null);
+            } else if (parts[0] === 'ulozene') {
+                setViewState(ViewState.SAVED);
+                setShowCompanyLanding(false);
+                setSelectedJobId(null);
+                setSelectedBlogPostSlug(null);
+            } else if (parts[0] === 'assessment-centrum') {
+                setViewState(ViewState.ASSESSMENT);
+                setShowCompanyLanding(false);
+                setSelectedJobId(null);
+                setSelectedBlogPostSlug(null);
+            } else if (parts[0] === 'profil') {
+                setViewState(ViewState.PROFILE);
+                setShowCompanyLanding(false);
+                setSelectedJobId(null);
+                setSelectedBlogPostSlug(null);
+            } else if (parts[0] === 'pro-firmy') {
+                setShowCompanyLanding(true);
+                setSelectedJobId(null);
+                setSelectedBlogPostSlug(null);
+            } else if (parts[0] === 'freelancer-dashboard') {
+                setViewState(ViewState.FREELANCER_DASHBOARD);
+                setShowCompanyLanding(false);
+                setSelectedJobId(null);
+                setSelectedBlogPostSlug(null);
+            } else if (parts[0] === 'company-dashboard' || parts[0] === 'dashboard') {
+                setViewState(ViewState.COMPANY_DASHBOARD);
+                setShowCompanyLanding(false);
+                setSelectedJobId(null);
+                setSelectedBlogPostSlug(null);
             }
 
             return () => subscription.unsubscribe();
@@ -343,20 +385,23 @@ export default function App() {
     // RESTORE DASHBOARD VIEW STATE when navigating back to home (selectedJobId becomes null)
     // This fixes the issue where FreelancerDashboard doesn't load after returning from job details
     // BUT: Only restore if we're coming from a job detail view, NOT from other views like MARKETPLACE
+    const prevSelectedJobIdRef = useRef<string | null>(selectedJobId);
     useEffect(() => {
-        if (selectedJobId === null && userProfile.isLoggedIn && userProfile.role === 'recruiter') {
-            // User has navigated away from job detail view back to home
-            // If viewState is LIST and they should be in a dashboard, restore it
-            // CRITICAL: Only restore if we were previously viewing a job detail (not MARKETPLACE/SERVICES)
+        const prev = prevSelectedJobIdRef.current;
+        prevSelectedJobIdRef.current = selectedJobId;
+
+        // Only restore dashboards when user explicitly closes a job detail (prev -> null)
+        const closedJobDetail = !!prev && selectedJobId === null;
+
+        if (closedJobDetail && userProfile.isLoggedIn && userProfile.role === 'recruiter') {
             if (viewState === ViewState.LIST && !userIntentionallyClickedListRef.current) {
-                // Check if they are a freelancer or regular recruiter
                 console.log("🔄 [NavRestore] Checking profile to restore dashboard. companyProfile:", {
                     id: companyProfile?.id,
                     name: companyProfile?.name,
                     industry: companyProfile?.industry,
                     isFreelancer: companyProfile?.industry === 'Freelancer'
                 });
-                
+
                 if (companyProfile?.industry === 'Freelancer') {
                     setViewState(ViewState.FREELANCER_DASHBOARD);
                     console.log("✅ Restored FREELANCER_DASHBOARD after returning from job detail");
@@ -365,15 +410,63 @@ export default function App() {
                     console.log("✅ Restored COMPANY_DASHBOARD after returning from job detail");
                 }
             } else if (userIntentionallyClickedListRef.current && viewState !== ViewState.LIST) {
-                // User clicked LIST button, ensure we stay on LIST
                 setViewState(ViewState.LIST);
                 console.log("✅ Staying on LIST after user clicked the button");
             }
-            
-            // Reset the flag for next navigation
+
             userIntentionallyClickedListRef.current = false;
         }
     }, [selectedJobId, userProfile.isLoggedIn, userProfile.role, viewState, companyProfile?.industry]);
+
+    // Keep URL in sync with current view state (locale-prefixed routes)
+    useEffect(() => {
+        try {
+            const supported = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
+            const base = parts[0] || '';
+
+            // Do not override dedicated static/legal routes
+            const isExternalPage = base === 'podminky-uziti'
+                || base === 'ochrana-osobnich-udaju'
+                || base === 'enterprise'
+                || base === 'assessment';
+            if (isExternalPage) return;
+
+            const lng = getLocalePrefix();
+            let targetPath = `/${lng}/`;
+
+            if (selectedJobId) {
+                targetPath = `/${lng}/jobs/${selectedJobId}`;
+            } else if (selectedBlogPostSlug) {
+                targetPath = `/${lng}/blog/${selectedBlogPostSlug}`;
+            } else if (showCompanyLanding) {
+                targetPath = `/${lng}/pro-firmy`;
+            } else if (viewState === ViewState.MARKETPLACE) {
+                targetPath = `/${lng}/kurzy-a-rekvalifikace`;
+            } else if (viewState === ViewState.SERVICES) {
+                targetPath = `/${lng}/sluzby`;
+            } else if (viewState === ViewState.SAVED) {
+                targetPath = `/${lng}/ulozene`;
+            } else if (viewState === ViewState.ASSESSMENT) {
+                targetPath = `/${lng}/assessment-centrum`;
+            } else if (viewState === ViewState.PROFILE) {
+                targetPath = `/${lng}/profil`;
+            } else if (viewState === ViewState.FREELANCER_DASHBOARD) {
+                targetPath = `/${lng}/freelancer-dashboard`;
+            } else if (viewState === ViewState.COMPANY_DASHBOARD) {
+                targetPath = `/${lng}/company-dashboard`;
+            }
+
+            if (window.location.pathname !== targetPath) {
+                const search = window.location.search || '';
+                const hash = window.location.hash || '';
+                window.history.replaceState({}, '', targetPath + search + hash);
+            }
+        } catch (err) {
+            console.warn('Failed to sync URL with view state', err);
+        }
+    }, [selectedJobId, selectedBlogPostSlug, showCompanyLanding, viewState, i18n.language]);
 
     // REMOVE OLD HISTORY API PATCHING - replaced with selectedJobId effect above
     // Fetch job by ID for direct links (e.g., /jobs/18918)
@@ -552,7 +645,11 @@ export default function App() {
             viewState === ViewState.LIST ? 'home' :
                 viewState === ViewState.PROFILE ? 'profile' :
                     viewState === ViewState.MARKETPLACE ? 'marketplace' :
-                        viewState === ViewState.COMPANY_DASHBOARD ? 'company-dashboard' : 'home';
+                        viewState === ViewState.SERVICES ? 'services' :
+                            viewState === ViewState.FREELANCER_DASHBOARD ? 'freelancer-dashboard' :
+                                viewState === ViewState.SAVED ? 'saved' :
+                                    viewState === ViewState.ASSESSMENT ? 'assessment' :
+                                        viewState === ViewState.COMPANY_DASHBOARD ? 'company-dashboard' : 'home';
 
         // Wait until translations are ready to avoid raw keys in browser tab
         if (t('seo.base_title') === 'seo.base_title') return;
@@ -728,12 +825,6 @@ export default function App() {
             }
         }
 
-        if (jobId) {
-            window.history.pushState({}, '', `/jobs/${jobId}`);
-        } else {
-            window.history.pushState({}, '', '/');
-        }
-
         // Scroll ONLY the right column using setTimeout to ensure DOM is ready
         setTimeout(() => {
             if (detailScrollRef.current) {
@@ -747,12 +838,6 @@ export default function App() {
     const handleBlogPostSelect = (slug: string | null) => {
         setSelectedBlogPostSlug(slug);
         setSelectedJobId(null); // Clear job when blog selected
-
-        if (slug) {
-            window.history.pushState({}, '', `/blog/${slug}`);
-        } else {
-            window.history.pushState({}, '', '/');
-        }
 
         // Scroll to top
         setTimeout(() => {
