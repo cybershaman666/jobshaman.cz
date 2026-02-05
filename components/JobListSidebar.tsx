@@ -42,6 +42,8 @@ interface JobListSidebarProps {
     toggleExperienceFilter: (level: string) => void;
     filterBenefits: string[];
     toggleBenefitFilter: (benefit: string) => void;
+    sortBy: string;
+    setSortBy: (sortBy: string) => void;
     isLoadingJobs: boolean;
     isSearching: boolean;
     filteredJobs: Job[];
@@ -85,6 +87,8 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     toggleExperienceFilter,
     filterBenefits,
     toggleBenefitFilter,
+    sortBy,
+    setSortBy,
     isLoadingJobs,
     isSearching,
     filteredJobs,
@@ -136,6 +140,22 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                             >
                                 <Filter size={16} className={showFilters ? "fill-current" : ""} />
                             </button>
+                        </div>
+
+                        <div className="mt-3">
+                            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">
+                                {t('filters.sort_by')}
+                            </label>
+                            <select
+                                value={sortBy}
+                                onChange={(e) => setSortBy(e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500"
+                            >
+                                <option value="default">{t('filters.sort_options.default')}</option>
+                                <option value="newest">{t('filters.sort_options.newest')}</option>
+                                <option value="jhi_desc">{t('filters.sort_options.jhi_desc')}</option>
+                                <option value="jhi_asc">{t('filters.sort_options.jhi_asc')}</option>
+                            </select>
                         </div>
                     </div>
 

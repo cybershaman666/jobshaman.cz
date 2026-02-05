@@ -37,6 +37,7 @@ interface Service {
     location?: string;
     created_at: string;
     is_verified?: boolean;
+    isPremium?: boolean;
 }
 
 interface ServicesMarketplaceProps {
@@ -158,16 +159,16 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
                 }, {});
             }
 
-            let profileMap: Record<string, { full_name?: string; avatar_url?: string }> = {};
+            let profileMap: Record<string, { full_name?: string; avatar_url?: string; subscription_tier?: string }> = {};
             if (providerIds.length > 0) {
                 const { data: profilesData, error: profilesError } = await supabase
                     .from('profiles')
-                    .select('id, full_name, avatar_url')
+                    .select('id, full_name, avatar_url, subscription_tier')
                     .in('id', providerIds);
 
                 if (!profilesError && profilesData) {
                     profileMap = profilesData.reduce((acc: any, p: any) => {
-                        acc[p.id] = { full_name: p.full_name, avatar_url: p.avatar_url };
+                        acc[p.id] = { full_name: p.full_name, avatar_url: p.avatar_url, subscription_tier: p.subscription_tier };
                         return acc;
                     }, {});
                 } else if (profilesError) {
@@ -179,6 +180,8 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
                 const providerId = job.posted_by || job.recruiter_id;
                 const profile = providerId ? profileMap[providerId] : undefined;
                 const stats = reviewStatsMap[providerId] || {};
+                const tier = (profile?.subscription_tier || '').toLowerCase();
+                const isPremium = tier === 'premium' || tier === 'freelance_premium';
                 return {
                 id: job.id,
                 title: job.title,
@@ -193,7 +196,8 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
                 category: job.category || 'crafts', // Default category
                 location: job.location,
                 created_at: job.created_at,
-                is_verified: false
+                is_verified: false,
+                isPremium
             }});
 
             setServices(transformedServices);
@@ -218,15 +222,24 @@ const ServicesMarketplace: React.FC<ServicesMarketplaceProps> = () => {
         { id: 'legal', name: t('freelancer.marketplace.categories.legal'), icon: Gavel }
     ];
 
-    const filteredServices = services.filter(service => {
-        const matchesSearch = service.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            service.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            service.provider.toLowerCase().includes(searchTerm.toLowerCase());
+    const filteredServices = services
+        .filter(service => {
+            const matchesSearch = service.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                service.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                service.provider.toLowerCase().includes(searchTerm.toLowerCase());
 
-        const matchesCategory = selectedCategory === 'all' || service.category === selectedCategory;
+            const matchesCategory = selectedCategory === 'all' || service.category === selectedCategory;
 
-        return matchesSearch && matchesCategory;
-    });
+            return matchesSearch && matchesCategory;
+        })
+        .sort((a, b) => {
+            const aPremium = a.isPremium ? 1 : 0;
+            const bPremium = b.isPremium ? 1 : 0;
+            if (aPremium !== bPremium) return bPremium - aPremium;
+            const ratingDiff = (b.rating || 0) - (a.rating || 0);
+            if (ratingDiff !== 0) return ratingDiff;
+            return (b.reviews_count || 0) - (a.reviews_count || 0);
+        });
 
     const openProfile = async (service: Service) => {
         setProfileTarget(service);

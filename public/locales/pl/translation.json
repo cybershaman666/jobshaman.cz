@@ -53,7 +53,14 @@
     "junior": "Junior",
     "medior": "Medior",
     "senior": "Senior",
-    "lead": "Lead / Zarządzanie"
+    "lead": "Lead / Zarządzanie",
+    "sort_by": "Sortuj według",
+    "sort_options": {
+      "default": "Polecane",
+      "newest": "Najnowsze",
+      "jhi_desc": "JHI malejąco",
+      "jhi_asc": "JHI rosnąco"
+    }
   },
   "financial": {
     "reality_title": "Rzeczywistość finansowa",

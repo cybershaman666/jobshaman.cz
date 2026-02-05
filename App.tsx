@@ -173,7 +173,9 @@ export default function App() {
         toggleContractTypeFilter,
         toggleExperienceFilter,
         globalSearch,
-        setGlobalSearch
+        setGlobalSearch,
+        sortBy,
+        setSortBy
     } = usePaginatedJobs({ userProfile });
 
     // Prevent layout flash on first render by waiting for client mount
@@ -1190,6 +1192,8 @@ export default function App() {
                             toggleExperienceFilter={toggleExperienceFilter}
                             filterBenefits={filterBenefits}
                             toggleBenefitFilter={toggleBenefitFilter}
+                            sortBy={sortBy}
+                            setSortBy={setSortBy}
                             isLoadingJobs={isLoadingJobs}
                             isSearching={isSearching}
                             filteredJobs={filteredJobs}

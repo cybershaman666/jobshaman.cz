@@ -48,6 +48,7 @@ interface Course {
   partner_id?: string;
   partner_name?: string;
   user_is_verified_graduate?: boolean;
+  is_premium_partner?: boolean;
 }
 
 interface MarketplacePageProps {
@@ -276,29 +277,38 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
     }
   };
 
-  const filteredCourses = courses.filter(course => {
-    const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.skill_tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filteredCourses = courses
+    .filter(course => {
+      const matchesSearch = course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        course.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        course.skill_tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    const matchesCategory = selectedCategory === 'all' || course.skill_tags.some(tag =>
-      categories.find(cat => cat.id === selectedCategory)?.name.toLowerCase().includes(tag.toLowerCase())
-    );
+      const matchesCategory = selectedCategory === 'all' || course.skill_tags.some(tag =>
+        categories.find(cat => cat.id === selectedCategory)?.name.toLowerCase().includes(tag.toLowerCase())
+      );
 
-    const matchesDifficulty = selectedDifficulty === 'all' || course.difficulty === selectedDifficulty;
+      const matchesDifficulty = selectedDifficulty === 'all' || course.difficulty === selectedDifficulty;
 
-    // Apply view mode filtering
-    const matchesViewMode =
-      viewMode === 'browse' ? true :
-        viewMode === 'government' ? course.is_government_funded :
-          viewMode === 'commercial' ? !course.is_government_funded : false;
+      // Apply view mode filtering
+      const matchesViewMode =
+        viewMode === 'browse' ? true :
+          viewMode === 'government' ? course.is_government_funded :
+            viewMode === 'commercial' ? !course.is_government_funded : false;
 
-    const matchesPrice = priceRange === 'all' ||
-      (priceRange === 'free' && course.is_government_funded) ||
-      (priceRange === 'paid' && !course.is_government_funded);
+      const matchesPrice = priceRange === 'all' ||
+        (priceRange === 'free' && course.is_government_funded) ||
+        (priceRange === 'paid' && !course.is_government_funded);
 
-    return matchesSearch && matchesCategory && matchesDifficulty && matchesPrice && matchesViewMode;
-  });
+      return matchesSearch && matchesCategory && matchesDifficulty && matchesPrice && matchesViewMode;
+    })
+    .sort((a, b) => {
+      const aPremium = (a.is_premium_partner || a.company_sponsored || !!a.partner_id || !!a.partner_name) ? 1 : 0;
+      const bPremium = (b.is_premium_partner || b.company_sponsored || !!b.partner_id || !!b.partner_name) ? 1 : 0;
+      if (aPremium !== bPremium) return bPremium - aPremium;
+      const ratingDiff = (b.rating || 0) - (a.rating || 0);
+      if (ratingDiff !== 0) return ratingDiff;
+      return (b.reviews_count || 0) - (a.reviews_count || 0);
+    });
 
   const openCourseReviews = async (course: Course) => {
     setSelectedReviewCourse(course);

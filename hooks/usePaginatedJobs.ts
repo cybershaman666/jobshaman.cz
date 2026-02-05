@@ -61,6 +61,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [filterMinSalary, setFilterMinSalary] = useState<number>(0);
     const [filterExperience, setFilterExperience] = useState<string[]>([]); // Junior, Medior, Senior, Lead
     const [globalSearch, setGlobalSearch] = useState(() => !initialCountry); // Toggle for searching entire database
+    const [sortBy, setSortBy] = useState<string>('default'); // default | jhi_desc | jhi_asc | newest
 
     // Load saved job IDs from localStorage on mount
     const [savedJobIds, setSavedJobIds] = useState<string[]>(() => {
@@ -99,6 +100,23 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     // --- DATABASE FILTERING LOGIC ---
 
     // Use the RPC-based filtering function
+    const sortJobs = useCallback((items: Job[]): Job[] => {
+        if (sortBy === 'jhi_desc') {
+            return [...items].sort((a, b) => (b.jhi?.score || 0) - (a.jhi?.score || 0));
+        }
+        if (sortBy === 'jhi_asc') {
+            return [...items].sort((a, b) => (a.jhi?.score || 0) - (b.jhi?.score || 0));
+        }
+        if (sortBy === 'newest') {
+            return [...items].sort((a, b) => {
+                const aTime = a.scrapedAt ? new Date(a.scrapedAt).getTime() : 0;
+                const bTime = b.scrapedAt ? new Date(b.scrapedAt).getTime() : 0;
+                return bTime - aTime;
+            });
+        }
+        return items;
+    }, [sortBy]);
+
     const fetchFilteredJobs = useCallback(async (page: number, isLoadMore: boolean = false) => {
         setLoading(true);
         if (isLoadMore) setLoadingMore(true);
@@ -148,9 +166,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             });
 
             if (isLoadMore) {
-                setJobs(prev => dedupeJobs(result.jobs, prev));
+                setJobs(prev => sortJobs(dedupeJobs(result.jobs, prev)));
             } else {
-                setJobs(result.jobs);
+                setJobs(sortJobs(result.jobs));
             }
 
             setHasMore(result.hasMore);
@@ -182,7 +200,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [
         initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch
+        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch, sortJobs
     ]);
 
 
@@ -200,6 +218,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
         filterMaxDistance, countryCodes, globalSearch
     ]); // Excluded fetchFilteredJobs to avoid re-triggering when it's just redefined
+
+    // Re-apply sorting when sort option changes
+    useEffect(() => {
+        if (sortBy === 'default') {
+            setCurrentPage(0);
+            fetchFilteredJobs(0, false);
+            return;
+        }
+        setJobs(prev => sortJobs([...prev]));
+    }, [sortBy, fetchFilteredJobs, sortJobs]);
 
     // Load more jobs
     const loadMoreJobs = useCallback(() => {
@@ -294,6 +322,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         expandedSections,
         globalSearch,
         countryCodes,
+        sortBy,
 
         loadInitialJobs,
         loadMoreJobs,
@@ -312,6 +341,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setExpandedSections,
         setGlobalSearch,
         setCountryCodes,
+        setSortBy,
         toggleBenefitFilter,
         toggleContractTypeFilter,
         toggleExperienceFilter,
