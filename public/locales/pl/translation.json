@@ -370,7 +370,9 @@
     "swipe_tutorial_desc": "Przesuń w lewo, aby odrzucić, w prawo, aby zapisać.",
     "swipe_tutorial_cta": "Rozumiem",
     "list_view": "Widok listy",
-    "swipe_view": "Widok swipe"
+    "swipe_view": "Widok swipe",
+    "distance_air_label": "w linii prostej",
+    "distance_air_hint": "Filtr odległości używa dystansu w linii prostej. Rzeczywisty dojazd może być dłuższy."
   },
   "profile": {
     "personal_info": "Dane osobowe",

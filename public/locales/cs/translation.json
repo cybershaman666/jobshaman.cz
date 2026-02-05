@@ -397,7 +397,9 @@
     "swipe_tutorial_desc": "Táhni kartu doleva pro zamítnutí, doprava pro uložení.",
     "swipe_tutorial_cta": "Rozumím",
     "list_view": "Klasické zobrazení",
-    "swipe_view": "Swipe zobrazení"
+    "swipe_view": "Swipe zobrazení",
+    "distance_air_label": "vzdušně",
+    "distance_air_hint": "Filtr vzdálenosti používá vzdušnou čarou. Reálný dojezd může být vyšší."
   },
   "profile": {
     "title": "Profil",

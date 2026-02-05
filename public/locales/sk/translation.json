@@ -361,7 +361,9 @@
     "swipe_tutorial_desc": "Potiahni kartu doľava pre zamietnutie, doprava pre uloženie.",
     "swipe_tutorial_cta": "Rozumiem",
     "list_view": "Klasické zobrazenie",
-    "swipe_view": "Swipe zobrazenie"
+    "swipe_view": "Swipe zobrazenie",
+    "distance_air_label": "vzdušnou čiarou",
+    "distance_air_hint": "Filter vzdialenosti používa vzdušnú čiaru. Reálny dojazd môže byť dlhší."
   },
   "profile": {
     "title": "Profil",
