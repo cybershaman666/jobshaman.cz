@@ -34,18 +34,18 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ padding: '2rem', color: '#ef4444', backgroundColor: '#1e293b', height: '100vh', fontFamily: 'monospace', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ maxWidth: '800px', width: '100%' }}>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 'bold', marginBottom: '1rem', color: '#f87171' }}>Something went wrong.</h1>
-            <div style={{ backgroundColor: '#0f172a', padding: '1.5rem', borderRadius: '0.5rem', overflow: 'auto', border: '1px solid #334155', marginBottom: '1.5rem' }}>
-              <p style={{ color: '#e2e8f0', marginBottom: '0.5rem', fontWeight: 'bold' }}>{this.state.error?.message}</p>
-              <pre style={{ fontSize: '0.8rem', color: '#94a3b8', whiteSpace: 'pre-wrap' }}>
+        <div className="app-error">
+          <div className="app-error__panel">
+            <h1 className="app-error__title">Something went wrong.</h1>
+            <div className="app-error__details">
+              <p className="app-error__message">{this.state.error?.message}</p>
+              <pre className="app-error__stack">
                 {this.state.error?.stack}
               </pre>
             </div>
             <button
               onClick={() => window.location.reload()}
-              style={{ padding: '0.75rem 1.5rem', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.9rem' }}
+              className="app-error__button"
             >
               Reload Application
             </button>
