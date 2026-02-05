@@ -19,6 +19,7 @@ export interface PublishJobRequest {
     company_id?: string;
     work_type?: string;
     posted_by?: string;
+    country_code?: string;
 }
 
 export const publishJob = async (jobData: PublishJobRequest) => {
@@ -94,7 +95,8 @@ export const publishJob = async (jobData: PublishJobRequest) => {
                     title: data.title,
                     company: data.company,
                     description: data.description,
-                    location: data.location
+                    location: data.location,
+                    country_code: (data as any).country_code || jobData.country_code
                 }),
             });
 

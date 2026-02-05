@@ -92,7 +92,13 @@ const isIcoRole = (job: Partial<Job>): boolean => {
 
 const hasFixedBase = (job: Partial<Job>): boolean => {
     const desc = (job.description || '').toLowerCase();
-    return /fixn[ií]\s*mzd/i.test(desc) || /základn[ií]\s*mzd/i.test(desc);
+    return (
+        /fixn[ií]\s*mzd/i.test(desc) || /základn[ií]\s*mzd/i.test(desc) || // CS
+        /fixn[aá]\s*mzda/i.test(desc) || /z[aá]kladn[aá]\s*mzda/i.test(desc) || // SK
+        /basic\s*salary/i.test(desc) || /base\s*salary/i.test(desc) || /fixed\s*salary/i.test(desc) || // EN
+        /grundgehalt/i.test(desc) || /grundvergütung/i.test(desc) || /fixgehalt/i.test(desc) || // DE/AT
+        /podstawowe\s*wynagrodzenie/i.test(desc) || /stał[ea]\s*pensja/i.test(desc) || /wynagrodzenie\s*podstawowe/i.test(desc) // PL
+    );
 };
 
 const STRESS_ROLES = [

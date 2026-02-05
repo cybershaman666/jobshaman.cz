@@ -12,6 +12,7 @@ class JobCheckRequest(BaseModel):
     company: str = Field(..., min_length=1, max_length=500)
     location: Optional[str] = Field(None, max_length=500)
     description: str = Field(..., min_length=10, max_length=30000)
+    country_code: Optional[str] = Field(None, max_length=5)
     needs_manual_review: bool = False
 
     @validator("title", "company")
