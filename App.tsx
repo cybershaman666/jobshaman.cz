@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import './src/i18n'; // Initialize i18n
 import { useTranslation } from 'react-i18next';
 import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, CompanyProfile, CareerPathfinderResult } from './types';
@@ -139,6 +139,22 @@ export default function App() {
         handleSessionRestoration
     } = useUserProfile();
 
+    const isCompanyProfile = userProfile.role === 'recruiter' && companyProfile?.industry !== 'Freelancer';
+    const companyCoordinates = (companyProfile?.lat != null && companyProfile?.lng != null)
+        ? { lat: Number(companyProfile.lat), lon: Number(companyProfile.lng) }
+        : undefined;
+
+    const effectiveUserProfile = useMemo(() => {
+        if (isCompanyProfile && viewState === ViewState.LIST && companyProfile?.address && companyCoordinates) {
+            return {
+                ...userProfile,
+                address: companyProfile.address,
+                coordinates: companyCoordinates
+            };
+        }
+        return userProfile;
+    }, [userProfile, isCompanyProfile, viewState, companyProfile?.address, companyCoordinates?.lat, companyCoordinates?.lon]);
+
     const {
         jobs: filteredJobs,
         loadingMore,
@@ -176,7 +192,7 @@ export default function App() {
         setGlobalSearch,
         sortBy,
         setSortBy
-    } = usePaginatedJobs({ userProfile });
+    } = usePaginatedJobs({ userProfile: effectiveUserProfile });
 
     // Prevent layout flash on first render by waiting for client mount
     const [mounted, setMounted] = useState(false);
@@ -519,7 +535,7 @@ export default function App() {
         });
 
         // Only auto-enable once, and only if user hasn't manually disabled it
-        if (userProfile.address && userProfile.coordinates && !enableCommuteFilter && !hasAutoEnabledCommuteFilter.current) {
+        if (effectiveUserProfile.address && effectiveUserProfile.coordinates && !enableCommuteFilter && !hasAutoEnabledCommuteFilter.current) {
             // If we don't yet have jobs loaded, defer enabling commute filter to avoid hiding everything
             if (filteredJobs && filteredJobs.length === 0) {
                 console.log('🏠 Deferring auto-enable of commute filter until jobs load');
@@ -533,7 +549,7 @@ export default function App() {
             hasAutoEnabledCommuteFilter.current = true;
             deferredAutoEnableRef.current = false;
         }
-    }, [userProfile.address, userProfile.coordinates]);
+    }, [effectiveUserProfile.address, effectiveUserProfile.coordinates, isCompanyProfile]);
 
     // If we queued auto-enable because jobs weren't loaded yet, enable when jobs arrive
     useEffect(() => {
@@ -544,7 +560,16 @@ export default function App() {
             hasAutoEnabledCommuteFilter.current = true;
             deferredAutoEnableRef.current = false;
         }
-    }, [filteredJobs?.length]);
+    }, [filteredJobs?.length, isCompanyProfile]);
+
+    // Company profiles: if no coordinates, disable commute filter to avoid empty results
+    useEffect(() => {
+        if (isCompanyProfile && viewState === ViewState.LIST && !companyCoordinates && enableCommuteFilter) {
+            setEnableCommuteFilter(false);
+            deferredAutoEnableRef.current = false;
+            hasAutoEnabledCommuteFilter.current = false;
+        }
+    }, [isCompanyProfile, viewState, companyCoordinates?.lat, companyCoordinates?.lon, enableCommuteFilter]);
 
     // Reload jobs when user coordinates change (e.g., after profile update)
     useEffect(() => {
@@ -1022,7 +1047,7 @@ export default function App() {
         if (viewState === ViewState.MARKETPLACE) {
             return (
                 <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
-                    <MarketplacePage userProfile={userProfile} />
+                    <MarketplacePage userProfile={userProfile} companyProfile={companyProfile} />
                 </div>
             );
         }

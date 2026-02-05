@@ -131,6 +131,8 @@ CREATE TABLE public.companies (
   founded_year integer,
   field_of_business character varying,
   contact_person character varying,
+  legal_address text,
+  registry_info text,
   CONSTRAINT companies_pkey PRIMARY KEY (id),
   CONSTRAINT companies_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.profiles(id),
   CONSTRAINT companies_created_by_fkey FOREIGN KEY (created_by) REFERENCES public.profiles(id),
@@ -149,6 +151,27 @@ CREATE TABLE public.company_members (
   CONSTRAINT company_members_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id),
   CONSTRAINT company_members_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
   CONSTRAINT company_members_invited_by_fkey FOREIGN KEY (invited_by) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.course_review_votes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  review_id uuid NOT NULL,
+  voter_id uuid NOT NULL,
+  is_helpful boolean NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT course_review_votes_pkey PRIMARY KEY (id),
+  CONSTRAINT course_review_votes_review_id_fkey FOREIGN KEY (review_id) REFERENCES public.course_reviews(id),
+  CONSTRAINT course_review_votes_voter_id_fkey FOREIGN KEY (voter_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.course_reviews (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  course_id text NOT NULL,
+  reviewer_id uuid NOT NULL,
+  rating integer NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment text,
+  is_verified_graduate boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT course_reviews_pkey PRIMARY KEY (id),
+  CONSTRAINT course_reviews_reviewer_id_fkey FOREIGN KEY (reviewer_id) REFERENCES public.profiles(id)
 );
 CREATE TABLE public.csrf_sessions (
   id bigint NOT NULL DEFAULT nextval('csrf_sessions_id_seq'::regclass),
@@ -223,6 +246,10 @@ CREATE TABLE public.freelancer_portfolio_items (
   ordering integer DEFAULT 0,
   metadata jsonb,
   created_at timestamp with time zone DEFAULT now(),
+  image_url text,
+  file_name text,
+  url text,
+  updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT freelancer_portfolio_items_pkey PRIMARY KEY (id),
   CONSTRAINT freelancer_portfolio_items_freelancer_id_fkey FOREIGN KEY (freelancer_id) REFERENCES public.freelancer_profiles(id)
 );
@@ -248,6 +275,30 @@ CREATE TABLE public.freelancer_profiles (
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT freelancer_profiles_pkey PRIMARY KEY (id),
   CONSTRAINT freelancer_profiles_id_fkey FOREIGN KEY (id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.freelancer_review_votes (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  review_id uuid NOT NULL,
+  voter_id uuid NOT NULL,
+  is_helpful boolean NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT freelancer_review_votes_pkey PRIMARY KEY (id),
+  CONSTRAINT freelancer_review_votes_review_id_fkey FOREIGN KEY (review_id) REFERENCES public.freelancer_reviews(id),
+  CONSTRAINT freelancer_review_votes_voter_id_fkey FOREIGN KEY (voter_id) REFERENCES public.profiles(id)
+);
+CREATE TABLE public.freelancer_reviews (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  freelancer_id uuid NOT NULL,
+  reviewer_id uuid NOT NULL,
+  service_id integer,
+  rating integer NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  comment text,
+  created_at timestamp with time zone DEFAULT now(),
+  is_verified_customer boolean DEFAULT false,
+  CONSTRAINT freelancer_reviews_pkey PRIMARY KEY (id),
+  CONSTRAINT freelancer_reviews_freelancer_id_fkey FOREIGN KEY (freelancer_id) REFERENCES public.freelancer_profiles(id),
+  CONSTRAINT freelancer_reviews_reviewer_id_fkey FOREIGN KEY (reviewer_id) REFERENCES public.profiles(id),
+  CONSTRAINT freelancer_reviews_service_id_fkey FOREIGN KEY (service_id) REFERENCES public.jobs(id)
 );
 CREATE TABLE public.freelancer_services (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -311,6 +362,19 @@ CREATE TABLE public.job_candidate_matches (
   CONSTRAINT job_candidate_matches_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id),
   CONSTRAINT job_candidate_matches_candidate_id_fkey FOREIGN KEY (candidate_id) REFERENCES public.candidate_profiles(id)
 );
+CREATE TABLE public.job_interactions (
+  id bigint NOT NULL DEFAULT nextval('job_interactions_id_seq'::regclass),
+  user_id uuid NOT NULL,
+  job_id integer NOT NULL,
+  event_type text NOT NULL CHECK (event_type = ANY (ARRAY['impression'::text, 'swipe_left'::text, 'swipe_right'::text, 'open_detail'::text, 'apply_click'::text, 'save'::text, 'unsave'::text])),
+  dwell_time_ms integer,
+  session_id text,
+  metadata jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT job_interactions_pkey PRIMARY KEY (id),
+  CONSTRAINT job_interactions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.profiles(id),
+  CONSTRAINT job_interactions_job_id_fkey FOREIGN KEY (job_id) REFERENCES public.jobs(id)
+);
 CREATE TABLE public.jobs (
   id integer NOT NULL DEFAULT nextval('jobs_id_seq'::regclass),
   title text NOT NULL,
@@ -347,6 +411,12 @@ CREATE TABLE public.jobs (
   created_at timestamp with time zone DEFAULT now(),
   country_code character varying DEFAULT 'cs'::character varying CHECK (country_code::text = ANY (ARRAY['cs'::character varying, 'cz'::character varying, 'sk'::character varying, 'pl'::character varying, 'de'::character varying, 'at'::character varying]::text[])),
   ai_analysis jsonb,
+  category text,
+  updated_at timestamp with time zone DEFAULT now(),
+  job_level text,
+  working_time text,
+  work_model text,
+  salary_timeframe text,
   CONSTRAINT jobs_pkey PRIMARY KEY (id),
   CONSTRAINT jobs_company_id_fkey FOREIGN KEY (company_id) REFERENCES public.companies(id),
   CONSTRAINT jobs_recruiter_id_fkey FOREIGN KEY (recruiter_id) REFERENCES public.profiles(id),

@@ -12,7 +12,7 @@ import {
   Building,
   CheckCircle
 } from 'lucide-react';
-import { UserProfile } from '../types';
+import { CompanyProfile, UserProfile } from '../types';
 import PartnerOfferModal from './PartnerOfferModal';
 import CourseReviewModal from './CourseReviewModal';
 import ReviewDisplay from './ReviewDisplay';
@@ -54,10 +54,12 @@ interface Course {
 interface MarketplacePageProps {
   theme?: 'light' | 'dark';
   userProfile: UserProfile;
+  companyProfile?: CompanyProfile | null;
 }
 
 const MarketplacePage: React.FC<MarketplacePageProps> = ({
-  userProfile
+  userProfile,
+  companyProfile: _companyProfile
 }) => {
   const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<'browse' | 'commercial' | 'government'>('browse');
