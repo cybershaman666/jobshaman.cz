@@ -1,6 +1,24 @@
 import re
 
-def check_legality_rules(title: str, company: str, description: str):
+def _infer_country(country_code: str | None, location: str | None, full_text: str) -> str | None:
+    if country_code:
+        return country_code.lower()
+    loc = (location or "").lower()
+    if any(k in loc for k in ["österreich", "austria", "wien", "vienna", "salzburg", "graz", "linz", "innsbruck"]):
+        return "at"
+    if any(k in loc for k in ["polska", "poland", "warszawa", "kraków", "krakow", "wroclaw", "gdańsk", "gdansk"]):
+        return "pl"
+    if any(k in loc for k in ["deutschland", "germany", "berlin", "münchen", "munchen", "hamburg", "köln", "koln"]):
+        return "de"
+    if any(k in loc for k in ["slovensko", "slovakia", "bratislava", "košice", "kosice"]):
+        return "sk"
+    if any(k in loc for k in ["česko", "cesko", "czech", "praha", "brno", "ostrava"]):
+        return "cs"
+    if "österreich" in full_text or "austria" in full_text:
+        return "at"
+    return None
+
+def check_legality_rules(title: str, company: str, description: str, country_code: str | None = None, location: str | None = None):
     """
     Check job posting for illegal, scam, or suspicious content.
     Returns: (risk_score, is_legal, reasons, needs_manual_review)
@@ -15,6 +33,7 @@ def check_legality_rules(title: str, company: str, description: str):
     
     # Combine all text for checking
     full_text = f"{title} {company} {description}".lower()
+    country = _infer_country(country_code, location, full_text)
     
     # CRITICAL PATTERNS - Immediate rejection (1.0+ risk each)
     critical_patterns = [
@@ -79,6 +98,34 @@ def check_legality_rules(title: str, company: str, description: str):
         if re.search(pattern, full_text, re.IGNORECASE):
             risk_score += score
             reasons.append(reason)
+
+    # --- Country-specific rules ---
+    if country == "at":
+        # AT: salary disclosure is mandatory (Kollektivvertrag / Mindestgehalt)
+        salary_keywords = [
+            r"\b(€|eur)\b",
+            r"gehalt", r"lohn", r"entgelt", r"brutto",
+            r"kollektivvertrag", r"\bkv\b", r"mindestgehalt"
+        ]
+        has_salary_info = any(re.search(k, full_text, re.IGNORECASE) for k in salary_keywords) or re.search(r"\d{2,}\s*(€|eur)", full_text)
+        if not has_salary_info:
+            risk_score += 0.6
+            reasons.append("⚠️ AT: Chybí povinné údaje o mzdě (Kollektivvertrag/Mindestgehalt)")
+
+        # AT: potential Scheinselbständigkeit risk (single-client contractor)
+        contractor_markers = [
+            r"\bi[čc]o\b", r"\bb2b\b", r"contractor", r"self[-\s]?employed",
+            r"freelanc", r"selbst[äa]ndig", r"freier\s*dienstnehmer", r"werkvertrag"
+        ]
+        single_client_markers = [
+            r"exklusiv", r"nur\s*f[üu]r\s*uns", r"nur\s*einen\s*kunden",
+            r"for\s*one\s*client", r"single\s*client", r"pro\s*jednoho\s*klienta"
+        ]
+        has_contractor = any(re.search(k, full_text, re.IGNORECASE) for k in contractor_markers)
+        has_single_client = any(re.search(k, full_text, re.IGNORECASE) for k in single_client_markers)
+        if has_contractor and has_single_client:
+            risk_score += 0.6
+            reasons.append("⚠️ AT: Riziko Scheinselbständigkeit (contractor + jediný klient)")
     
     # Additional checks
     

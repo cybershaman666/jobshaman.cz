@@ -21,7 +21,13 @@ async def check_job_legality(job: JobCheckRequest, request: Request, user: dict 
     print(f"🔥 [CRITICAL] check_job_legality REACHED for job {job.id}")
     print(f"   Auth User: {user.get('email', 'unknown')}")
     print(f"   Payload: title={job.title}, company={job.company}")
-    risk_score, is_legal, reasons, needs_review = check_legality_rules(job.title, job.company, job.description)
+    risk_score, is_legal, reasons, needs_review = check_legality_rules(
+        job.title,
+        job.company,
+        job.description,
+        country_code=job.country_code,
+        location=job.location
+    )
     print(f"   [RESULT] Risk Score: {risk_score}, Is Legal: {is_legal}, Needs Review: {needs_review}")
     result = JobCheckResponse(risk_score=risk_score, is_legal=is_legal, reasons=reasons, needs_manual_review=needs_review)
     
