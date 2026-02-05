@@ -78,6 +78,63 @@ const ACQUISITION_PATTERNS = [
     /nowych\s*klient/i
 ];
 
+const PART_TIME_PATTERNS = [
+    /zkr[aá]cen[yý]\s*[úu]vazek/i,
+    /zkr[aá]cen[eé]\s*[úu]vazku/i,
+    /part[-\s]?time/i,
+    /teilzeit/i,
+    /teil\s*zeit/i,
+    /part\s*time/i,
+    /part[-\s]?time\s*job/i,
+    /mini\s*job/i,
+    /mini\-job/i,
+    /minijob/i,
+    /geringf[üu]gig/i,
+    /umowa\s*zlecenie/i,
+    /umowa\s*o\s*prac[eę]\s*na\s*czas\s*cz[eę]ściowy/i,
+    /niepełny\s*wymiar\s*czasu/i,
+    /czas\s*cz[eę]ściowy/i,
+    /\bč[aá]stečn[ýá]\s*[úu]vazek/i,
+    /m[eě]n[šs][íi]\s*[úu]vazek/i,
+    /contratto\s*part[-\s]?time/i,
+    /tempo\s*parziale/i,
+    /partial\s*time/i,
+    /reduced\s*hours/i,
+    /short\s*hours/i
+];
+
+const extractWeeklyHours = (text: string): number | null => {
+    const t = text.toLowerCase();
+    // e.g., "20 hod./týdně", "10 hodin týdně", "20h týdně", "20h/week", "20 Std./Woche", "20 godzin tygodniowo"
+    const patterns = [
+        /(\d{1,2})\s*(h|hod|hodin)[\.\s]*\/?\s*t[ýy]dn[ěe]/i,
+        /(\d{1,2})\s*(h|hrs?|hours?)\s*\/?\s*week/i,
+        /(\d{1,2})\s*std\.?\s*\/?\s*woche/i,
+        /(\d{1,2})\s*stunden\s*\/?\s*woche/i,
+        /(\d{1,2})\s*godzin(y|a)?\s*\/?\s*tygodniowo/i,
+        /(\d{1,2})\s*hodin(y|a)?\s*\/?\s*týden/i,
+        /(\d{1,2})\s*uur\s*\/?\s*week/i,
+        /(\d{1,2})\s*ore\s*\/?\s*settimana/i,
+        /(\d{1,2})\s*h\s*\/?\s*semaine/i
+    ];
+    for (const p of patterns) {
+        const m = t.match(p);
+        if (m) {
+            const hrs = parseInt(m[1], 10);
+            if (!isNaN(hrs) && hrs > 0 && hrs <= 40) return hrs;
+        }
+    }
+    return null;
+};
+
+const getPartTimeInfo = (job: Partial<Job>): { isPartTime: boolean; hoursPerWeek: number | null } => {
+    const desc = (job.description || '').toLowerCase();
+    const title = (job.title || '').toLowerCase();
+    const isPartTime = PART_TIME_PATTERNS.some(p => p.test(desc)) || PART_TIME_PATTERNS.some(p => p.test(title));
+    const hours = extractWeeklyHours(desc);
+    return { isPartTime, hoursPerWeek: hours };
+};
+
 const isCommissionRole = (job: Partial<Job>): boolean => {
     const title = (job.title || '').toLowerCase();
     const desc = (job.description || '').toLowerCase();
@@ -211,6 +268,13 @@ const calculateFinancialReality = (job: Partial<Job>): number => {
         salary = job.salary_to * 0.9; // Conservative estimate
     }
 
+    // Normalize salary for part-time (convert to full-time equivalent)
+    const { isPartTime, hoursPerWeek } = getPartTimeInfo(job);
+    if (salary && isPartTime && hoursPerWeek && hoursPerWeek > 0) {
+        const factor = 40 / hoursPerWeek;
+        salary = salary * factor;
+    }
+
     if (salary) {
         salaryScore = normalizeSalary(salary, currency);
     } else {
@@ -258,6 +322,17 @@ const calculateTimeAllocation = (job: Partial<Job>): number => {
         const description = (job.description || '').toLowerCase();
         if (/modern[íi]\s*kancel[áa]ř/i.test(description) && /centr/i.test(description)) {
             score -= 10; // Hidden costs + rigidity
+        }
+    }
+
+    // Part-time bonus (more personal time)
+    const { isPartTime, hoursPerWeek } = getPartTimeInfo(job);
+    if (isPartTime) {
+        if (hoursPerWeek && hoursPerWeek > 0) {
+            const reduction = Math.max(0, Math.min(30, 40 - hoursPerWeek));
+            score += Math.round((reduction / 40) * 30); // up to +22
+        } else {
+            score += 10; // generic part-time boost if hours not specified
         }
     }
 
