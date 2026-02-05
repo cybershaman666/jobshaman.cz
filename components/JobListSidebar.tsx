@@ -120,8 +120,9 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                 onChange={(e) => {
                                     const term = e.target.value;
                                     setSearchTerm(term);
-                                    if (term.trim()) {
-                                        performSearch(term);
+                                    performSearch(term);
+                                    if (!term.trim()) {
+                                        loadRealJobs();
                                     }
                                 }}
                                 onFocus={() => setShowFilters(true)}
