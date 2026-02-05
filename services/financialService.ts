@@ -240,6 +240,154 @@ export const estimateCzechNetSalary = (gross: number, isIco: boolean): { tax: nu
   }
 };
 
+const inferCountryCode = (location: string, currency: string, explicit?: string): 'CZ' | 'SK' | 'PL' | 'DE' | 'AT' => {
+  if (explicit) {
+    const code = explicit.toUpperCase();
+    if (code === 'CZ' || code === 'SK' || code === 'PL' || code === 'DE' || code === 'AT') return code;
+  }
+
+  const loc = (location || '').toLowerCase();
+  if (loc.includes('slovak') || loc.includes('slovensk') || loc.includes('bratislava') || loc.includes('kosice')) return 'SK';
+  if (loc.includes('polsk') || loc.includes('poland') || loc.includes('warsaw') || loc.includes('krakow') || loc.includes('kraków')) return 'PL';
+  if (loc.includes('germany') || loc.includes('deutsch') || loc.includes('berlin') || loc.includes('münchen') || loc.includes('munich')) return 'DE';
+  if (loc.includes('austria') || loc.includes('österreich') || loc.includes('wien') || loc.includes('vídeň')) return 'AT';
+  if (currency === 'PLN') return 'PL';
+  if (currency === 'EUR' || currency === '€') return 'DE';
+  return 'CZ';
+};
+
+// Approximate net salary by country (employee), using statutory contribution + simplified tax brackets.
+export const estimateNetSalaryByCountry = (
+  grossMonthly: number,
+  isIco: boolean,
+  countryCode?: string,
+  location: string = '',
+  currency: string = 'CZK'
+): { tax: number, net: number } => {
+  if (!grossMonthly) return { tax: 0, net: 0 };
+
+  const cc = inferCountryCode(location, currency, countryCode);
+
+  // Default: CZ logic
+  if (cc === 'CZ') {
+    return estimateCzechNetSalary(grossMonthly, isIco);
+  }
+
+  // For non-CZ contractor/IČO, use conservative flat effective deduction
+  if (isIco) {
+    const estimatedTax = grossMonthly * 0.22;
+    return { tax: Math.round(estimatedTax), net: Math.round(grossMonthly - estimatedTax) };
+  }
+
+  // Annualize for tax brackets
+  const annualGross = grossMonthly * 12;
+
+  if (cc === 'PL') {
+    // Poland: employee social 13.71%, health 9% of base (gross minus social),
+    // PIT 12% up to 120k PLN, 32% above, tax-free allowance 30k (tax reduction 3,600 PLN)
+    const annualSocial = annualGross * 0.1371;
+    const annualHealth = (annualGross - annualSocial) * 0.09;
+    const annualTaxable = Math.max(0, annualGross - annualSocial);
+    let annualTax = 0;
+    if (annualTaxable <= 120000) {
+      annualTax = Math.max(0, annualTaxable * 0.12 - 3600);
+    } else {
+      annualTax = 10800 + (annualTaxable - 120000) * 0.32;
+    }
+    const annualNet = annualGross - annualSocial - annualHealth - annualTax;
+    const monthlyTax = (annualSocial + annualHealth + annualTax) / 12;
+    return { tax: Math.round(monthlyTax), net: Math.round(annualNet / 12) };
+  }
+
+  if (cc === 'SK') {
+    // Slovakia: employee contributions ~14.4% in 2026, income tax progressive 19/25/30/35 (2026 brackets),
+    // basic allowance ~497.23 EUR/month (phases out at higher income; simplified here)
+    const annualSocial = annualGross * 0.144;
+    const monthlyAllowance = 497.23;
+    const annualTaxable = Math.max(0, (grossMonthly - monthlyAllowance) * 12 - annualSocial);
+
+    const thresholds = [43983.32, 60349.21, 75010.32];
+    const rates = [0.19, 0.25, 0.30, 0.35];
+    let remaining = annualTaxable;
+    let annualTax = 0;
+
+    const bracket1 = Math.min(remaining, thresholds[0]);
+    annualTax += bracket1 * rates[0];
+    remaining -= bracket1;
+
+    if (remaining > 0) {
+      const bracket2 = Math.min(remaining, thresholds[1] - thresholds[0]);
+      annualTax += bracket2 * rates[1];
+      remaining -= bracket2;
+    }
+    if (remaining > 0) {
+      const bracket3 = Math.min(remaining, thresholds[2] - thresholds[1]);
+      annualTax += bracket3 * rates[2];
+      remaining -= bracket3;
+    }
+    if (remaining > 0) {
+      annualTax += remaining * rates[3];
+    }
+
+    const annualNet = annualGross - annualSocial - annualTax;
+    const monthlyTax = (annualSocial + annualTax) / 12;
+    return { tax: Math.round(monthlyTax), net: Math.round(annualNet / 12) };
+  }
+
+  if (cc === 'AT') {
+    // Austria: employee social ~18.07%, income tax 0-55% (2026 brackets). Simplified with annual brackets.
+    const annualSocial = annualGross * 0.1807;
+    const annualTaxable = Math.max(0, annualGross - annualSocial);
+    let annualTax = 0;
+    const brackets = [
+      { upTo: 13539, rate: 0 },
+      { upTo: 21992, rate: 0.20 },
+      { upTo: 36458, rate: 0.30 },
+      { upTo: 70365, rate: 0.40 },
+      { upTo: 104859, rate: 0.48 },
+      { upTo: 1000000, rate: 0.50 },
+      { upTo: Infinity, rate: 0.55 }
+    ];
+    let prev = 0;
+    for (const b of brackets) {
+      if (annualTaxable <= prev) break;
+      const taxableInBracket = Math.min(annualTaxable, b.upTo) - prev;
+      annualTax += taxableInBracket * b.rate;
+      prev = b.upTo;
+    }
+    const annualNet = annualGross - annualSocial - annualTax;
+    const monthlyTax = (annualSocial + annualTax) / 12;
+    return { tax: Math.round(monthlyTax), net: Math.round(annualNet / 12) };
+  }
+
+  if (cc === 'DE') {
+    // Germany: employee social ~21.05% (incl. avg health add-on, LTC),
+    // progressive income tax with basic allowance (2025 brackets).
+    const annualSocial = annualGross * 0.2105;
+    const basicAllowance = 12096;
+    const annualTaxable = Math.max(0, annualGross - annualSocial - basicAllowance);
+    let annualTax = 0;
+    if (annualTaxable <= 0) {
+      annualTax = 0;
+    } else if (annualTaxable <= 68429 - basicAllowance) {
+      const lower = 0.14;
+      const upper = 0.42;
+      const span = (68429 - basicAllowance);
+      const rate = lower + ((upper - lower) * (annualTaxable / span));
+      annualTax = annualTaxable * rate;
+    } else if (annualTaxable <= 277825 - basicAllowance) {
+      annualTax = annualTaxable * 0.42;
+    } else {
+      annualTax = annualTaxable * 0.45;
+    }
+    const annualNet = annualGross - annualSocial - annualTax;
+    const monthlyTax = (annualSocial + annualTax) / 12;
+    return { tax: Math.round(monthlyTax), net: Math.round(annualNet / 12) };
+  }
+
+  return estimateCzechNetSalary(grossMonthly, isIco);
+};
+
 export const calculateFinancialScoreAdjustment = (
   netSalary: number,
   baseGross: number,
@@ -437,14 +585,26 @@ export const calculateFinancialReality = async (
     ? commuteDetails.monthlyCost
     : Math.round(commuteDetails.monthlyCost / (CURRENCY_MULTIPLIERS[currency] || 25));
 
-  // Calculate net monthly (using existing tax estimation)
+  // Calculate net monthly (using country-aware tax estimation)
   const grossMonthly = baseSalary + (benefitsValue / 12);
-  const { net: netMonthly } = estimateCzechNetSalary(grossMonthly, false);
+  const { net: netMonthly } = estimateNetSalaryByCountry(
+    grossMonthly,
+    false,
+    job.country_code,
+    job.location,
+    currency
+  );
   const netAfterCommute = netMonthly - convertedCommuteCost;
 
 
 
-  const { tax: estimatedTaxAndInsurance, net: netBaseSalary } = estimateCzechNetSalary(grossMonthly, false);
+  const { tax: estimatedTaxAndInsurance, net: netBaseSalary } = estimateNetSalaryByCountry(
+    grossMonthly,
+    false,
+    job.country_code,
+    job.location,
+    currency
+  );
 
   return {
     currency: currency === 'CZK' || currency === 'Kč' ? 'CZK' : currency,

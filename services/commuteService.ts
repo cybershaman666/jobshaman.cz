@@ -4,7 +4,7 @@ import {
     calculateBenefitsValue,
     detectCurrency,
     calculateFinancialScoreAdjustment,
-    estimateCzechNetSalary,
+    estimateNetSalaryByCountry,
     detectCurrencyFromLocation
 } from './financialService';
 import { geocodeWithCaching, getStaticCoordinates } from './geocodingService';
@@ -610,7 +610,13 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     // 3. Financial Analysis (NET Basis)
     const isIco = job.title.includes('IČO') || job.description.includes('IČO') || job.description.includes('contractor') || job.tags.includes('Contractor');
 
-    const { tax, net } = estimateCzechNetSalary(grossMonthlySalary, isIco);
+    const { tax, net } = estimateNetSalaryByCountry(
+        grossMonthlySalary,
+        isIco,
+        job.country_code,
+        job.location,
+        currency
+    );
     const benefitsValue = calculateBenefitsValue(job.benefits, currency, grossMonthlySalary);
 
     const realMonthlyCost = (distanceKm === -1 || isRelocation) ? 0 : monthlyCost;
