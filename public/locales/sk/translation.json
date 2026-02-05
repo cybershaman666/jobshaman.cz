@@ -391,6 +391,12 @@
       "remote": "Remote",
       "hybrid": "Hybrid",
       "on_site": "Na mieste"
+    },
+    "work_model": {
+      "unknown": "Neuvedené",
+      "remote": "Remote",
+      "hybrid": "Hybrid",
+      "on_site": "Na mieste"
     }
   },
   "profile": {
@@ -1297,15 +1303,15 @@
         "categories": {
           "all": "Všetky",
           "it": "IT a Vývoj",
-        "design": "Dizajn",
-        "crafts": "Remeslá",
-        "marketing": "Marketing",
-        "admin": "Administratíva",
-        "real_estate": "Reality",
-        "finance": "Financie",
-        "security": "Bezpečnosť",
-        "legal": "Právo & legislatíva"
-      },
+          "design": "Dizajn",
+          "crafts": "Remeslá",
+          "marketing": "Marketing",
+          "admin": "Administratíva",
+          "real_estate": "Reality",
+          "finance": "Financie",
+          "security": "Bezpečnosť",
+          "legal": "Právo & legislatíva"
+        },
         "results": "Nájdeno {{count}} freelancerov",
         "no_results": "Nenájdení freelanceri",
         "no_results_desc": "Skúste zmeniť filtre alebo hľadaný výraz.",

@@ -400,6 +400,12 @@
       "remote": "Remote",
       "hybrid": "Hybrid",
       "on_site": "On-site"
+    },
+    "work_model": {
+      "unknown": "Unknown",
+      "remote": "Remote",
+      "hybrid": "Hybrid",
+      "on_site": "On-site"
     }
   },
   "profile": {
@@ -1273,18 +1279,18 @@
     "subtitle": "Find vetted experts and post projects from the JobShaman community.",
     "search_placeholder": "Search freelancers, skills...",
     "no_bio": "Quality freelancer",
-      "categories": {
-        "all": "All",
-        "it": "IT & Development",
-        "design": "Design",
-        "crafts": "Crafts",
-        "marketing": "Marketing",
-        "admin": "Administration",
-        "real_estate": "Real Estate",
-        "finance": "Finance",
-        "security": "Security",
-        "legal": "Legal & Compliance"
-      },
+    "categories": {
+      "all": "All",
+      "it": "IT & Development",
+      "design": "Design",
+      "crafts": "Crafts",
+      "marketing": "Marketing",
+      "admin": "Administration",
+      "real_estate": "Real Estate",
+      "finance": "Finance",
+      "security": "Security",
+      "legal": "Legal & Compliance"
+    },
     "results": "Found {{count}} freelancers",
     "no_results": "No freelancers found",
     "no_results_desc": "Try changing your filters or search term.",

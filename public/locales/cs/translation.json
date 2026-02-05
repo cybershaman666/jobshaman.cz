@@ -427,6 +427,12 @@
       "remote": "Remote",
       "hybrid": "Hybrid",
       "on_site": "Na místě"
+    },
+    "work_model": {
+      "unknown": "Neuvedeno",
+      "remote": "Remote",
+      "hybrid": "Hybrid",
+      "on_site": "Na místě"
     }
   },
   "profile": {

@@ -400,6 +400,12 @@
       "remote": "Remote",
       "hybrid": "Hybrid",
       "on_site": "Vor Ort"
+    },
+    "work_model": {
+      "unknown": "Nicht angegeben",
+      "remote": "Remote",
+      "hybrid": "Hybrid",
+      "on_site": "Vor Ort"
     }
   },
   "profile": {

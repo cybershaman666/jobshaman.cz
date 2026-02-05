@@ -517,6 +517,7 @@ class SlovakiaScraper(BaseScraper):
                     'benefits': ["Benefity nespecifikovány"], 
                     'contract_type': "Nespecifikováno", # Default, ideally extract
                     'work_type': work_type,
+                    'work_model': work_model,
                     'salary_from': salary_from,
                     'salary_to': salary_to,
                     'salary_currency': 'EUR',
@@ -643,6 +644,7 @@ class SlovakiaScraper(BaseScraper):
                 
                 # Work type
                 work_type = detect_work_type(title, description, location)
+                work_model = self._detect_work_model(location, title, description)
                 
                 job_data = {
                     'title': title,
@@ -653,6 +655,7 @@ class SlovakiaScraper(BaseScraper):
                     'benefits': benefits if benefits else [],
                     'contract_type': contract_type,
                     'work_type': work_type,
+                    'work_model': work_model,
                     'salary_from': salary_from,
                     'salary_to': salary_to,
                     'salary_currency': 'EUR',
