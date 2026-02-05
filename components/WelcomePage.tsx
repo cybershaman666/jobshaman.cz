@@ -323,16 +323,19 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           {/* Left: Graphics */}
           <div className="flex flex-col gap-6 order-2 lg:order-1">
-            <div className="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 rounded-xl border border-cyan-200 dark:border-cyan-800 p-8 hover:shadow-lg transition-all">
-              <div className="flex items-start gap-4">
-                <GripHorizontal className="w-8 h-8 text-cyan-600 dark:text-cyan-400 flex-shrink-0 mt-1" />
-                <div>
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">{t('welcome.page_mobile.swipe_title')}</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">{t('welcome.page_mobile.swipe_desc')}</p>
-                </div>
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+              <div className="text-sm font-bold text-slate-900 dark:text-white mb-1">
+                {t('job.swipe_tutorial_title') || 'Jak funguje swipování'}
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                {t('job.swipe_tutorial_desc') || 'Táhni kartu doleva pro zamítnutí, doprava pro uložení.'}
+              </div>
+              <div className="relative h-16 flex items-center justify-center">
+                <div className="absolute left-4 text-rose-500 text-2xl font-bold swipe-coach-arrow-left">←</div>
+                <div className="absolute right-4 text-emerald-500 text-2xl font-bold swipe-coach-arrow-right">→</div>
+                <div className="w-24 h-14 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 shadow-sm swipe-coach-card"></div>
               </div>
             </div>
-
             <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-800 p-8 hover:shadow-lg transition-all">
               <div className="flex items-start gap-4">
                 <Smartphone className="w-8 h-8 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-1" />
