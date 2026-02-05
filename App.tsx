@@ -9,11 +9,13 @@ import AppHeader from './components/AppHeader';
 import { generateSEOMetadata, updatePageMeta } from './utils/seo';
 import CompanyDashboard from './components/CompanyDashboard';
 import FreelancerDashboard from './components/FreelancerDashboard';
+import CourseProviderDashboard from './components/CourseProviderDashboard';
 import CompanyOnboarding from './components/CompanyOnboarding';
 import ProfileEditor from './components/ProfileEditor';
 import AuthModal from './components/AuthModal';
 import CompanyRegistrationModal from './components/CompanyRegistrationModal';
 import FreelancerRegistrationModal from './components/FreelancerRegistrationModal';
+import CourseProviderRegistrationModal from './components/CourseProviderRegistrationModal';
 import ServicesMarketplace from './components/ServicesMarketplace';
 import MarketplacePage from './components/MarketplacePage';
 import EnterpriseSignup from './components/EnterpriseSignup';
@@ -117,6 +119,7 @@ export default function App() {
     const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
     const [isCompanyRegistrationOpen, setIsCompanyRegistrationOpen] = useState(false);
     const [isFreelancerRegistrationOpen, setIsFreelancerRegistrationOpen] = useState(false);
+    const [isCourseProviderRegistrationOpen, setIsCourseProviderRegistrationOpen] = useState(false);
     const [showCompanyLanding, setShowCompanyLanding] = useState(false);
     const [commuteAnalysis, setCommuteAnalysis] = useState<CommuteAnalysis | null>(null);
     const [showFinancialMethodology, setShowFinancialMethodology] = useState(false);
@@ -389,6 +392,11 @@ export default function App() {
                 setShowCompanyLanding(false);
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
+            } else if (parts[0] === 'course-provider-dashboard') {
+                setViewState(ViewState.COURSE_PROVIDER_DASHBOARD);
+                setShowCompanyLanding(false);
+                setSelectedJobId(null);
+                setSelectedBlogPostSlug(null);
             } else if (parts[0] === 'company-dashboard' || parts[0] === 'dashboard') {
                 setViewState(ViewState.COMPANY_DASHBOARD);
                 setShowCompanyLanding(false);
@@ -420,7 +428,10 @@ export default function App() {
                     isFreelancer: companyProfile?.industry === 'Freelancer'
                 });
 
-                if (companyProfile?.industry === 'Freelancer') {
+                if (companyProfile?.industry === 'Education') {
+                    setViewState(ViewState.COURSE_PROVIDER_DASHBOARD);
+                    console.log("✅ Restored COURSE_PROVIDER_DASHBOARD after returning from job detail");
+                } else if (companyProfile?.industry === 'Freelancer') {
                     setViewState(ViewState.FREELANCER_DASHBOARD);
                     console.log("✅ Restored FREELANCER_DASHBOARD after returning from job detail");
                 } else if (companyProfile) {
@@ -472,6 +483,8 @@ export default function App() {
                 targetPath = `/${lng}/profil`;
             } else if (viewState === ViewState.FREELANCER_DASHBOARD) {
                 targetPath = `/${lng}/freelancer-dashboard`;
+            } else if (viewState === ViewState.COURSE_PROVIDER_DASHBOARD) {
+                targetPath = `/${lng}/course-provider-dashboard`;
             } else if (viewState === ViewState.COMPANY_DASHBOARD) {
                 targetPath = `/${lng}/company-dashboard`;
             }
@@ -674,9 +687,10 @@ export default function App() {
                     viewState === ViewState.MARKETPLACE ? 'marketplace' :
                         viewState === ViewState.SERVICES ? 'services' :
                             viewState === ViewState.FREELANCER_DASHBOARD ? 'freelancer-dashboard' :
-                                viewState === ViewState.SAVED ? 'saved' :
-                                    viewState === ViewState.ASSESSMENT ? 'assessment' :
-                                        viewState === ViewState.COMPANY_DASHBOARD ? 'company-dashboard' : 'home';
+                                viewState === ViewState.COURSE_PROVIDER_DASHBOARD ? 'course-provider-dashboard' :
+                                    viewState === ViewState.SAVED ? 'saved' :
+                                        viewState === ViewState.ASSESSMENT ? 'assessment' :
+                                            viewState === ViewState.COMPANY_DASHBOARD ? 'company-dashboard' : 'home';
 
         // Wait until translations are ready to avoid raw keys in browser tab
         if (t('seo.base_title') === 'seo.base_title') return;
@@ -1044,10 +1058,46 @@ export default function App() {
             );
         }
 
+        if (viewState === ViewState.COURSE_PROVIDER_DASHBOARD) {
+            if (!companyProfile || companyProfile?.industry !== 'Education') {
+                return (
+                    <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+                        <div className="max-w-xl mx-auto mt-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center shadow-sm">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                                {t('course_provider.dashboard.register_title', { defaultValue: 'Staňte se poskytovatelem kurzů' })}
+                            </h2>
+                            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
+                                {t('course_provider.dashboard.register_desc', { defaultValue: 'Pro přístup do dashboardu je potřeba krátká registrace.' })}
+                            </p>
+                            <button
+                                onClick={() => setIsCourseProviderRegistrationOpen(true)}
+                                className="px-5 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-colors"
+                            >
+                                {t('course_provider.dashboard.register_cta', { defaultValue: 'Zaregistrovat se jako poskytovatel kurzů' })}
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+            return (
+                <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+                    <CourseProviderDashboard
+                        userProfile={userProfile}
+                        companyProfile={companyProfile}
+                        onLogout={signOut}
+                    />
+                </div>
+            );
+        }
+
         if (viewState === ViewState.MARKETPLACE) {
             return (
                 <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
-                    <MarketplacePage userProfile={userProfile} companyProfile={companyProfile} />
+                    <MarketplacePage
+                        userProfile={userProfile}
+                        companyProfile={companyProfile}
+                        onOpenProviderRegistration={() => setIsCourseProviderRegistrationOpen(true)}
+                    />
                 </div>
             );
         }
@@ -1323,6 +1373,15 @@ export default function App() {
                 onClose={() => setIsFreelancerRegistrationOpen(false)}
                 onSuccess={() => {
                     setIsFreelancerRegistrationOpen(false);
+                    window.location.reload();
+                }}
+            />
+
+            <CourseProviderRegistrationModal
+                isOpen={isCourseProviderRegistrationOpen}
+                onClose={() => setIsCourseProviderRegistrationOpen(false)}
+                onSuccess={() => {
+                    setIsCourseProviderRegistrationOpen(false);
                     window.location.reload();
                 }}
             />
