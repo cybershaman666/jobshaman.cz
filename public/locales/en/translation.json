@@ -111,6 +111,7 @@
     "benefits_title": "Benefits and Advantages",
     "jhi_title": "Job Happiness Index (JHI)",
     "jhi_desc": "Composite quality score",
+    "jhi_missing_salary_hint": "Low JHI is caused by missing salary in the listing.",
     "ai_analysis": "AI Analysis",
     "run_ai_analysis": "Run AI Analysis",
     "analyzing": "Analyzing...",

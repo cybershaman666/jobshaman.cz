@@ -31,7 +31,7 @@ const ICO_PATTERNS = [
     /osvč/i
 ];
 
-const COMMISSION_PATTERNS = [
+const COMMISSION_STRONG_PATTERNS = [
     /proviz/i,
     /prowizj/i,
     /kommission/i,
@@ -50,13 +50,24 @@ const COMMISSION_PATTERNS = [
     /unlimited\s*commissions?/i,
     /unbegrenzte\s*provision(en)?/i,
     /nieograniczone?\s*prowizje?/i,
+    /na\s*procenta/i,
+    /%+\s*z/i
+];
+
+const COMMISSION_SOFT_PATTERNS = [
     /výkonnostn/i,
     /performance[-\s]?based/i,
     /leistungsabh[aä]ngig/i,
     /wynagrodzenie\s*za\s*wynik/i,
-    /odměn[aě]\s*za\s*výkon/i,
-    /na\s*procenta/i,
-    /%+\s*z/i
+    /odměn[aě]\s*za\s*výkon/i
+];
+
+const COMMISSION_EXCLUSION_PATTERNS = [
+    /výkonnostn[íi]\s*př[ií]platek/i,
+    /výkonnostn[íi]\s*bonus/i,
+    /bonus\s*ke?\s*mzd[ěe]/i,
+    /př[ií]platek\s*ke?\s*mzd[ěe]/i,
+    /osobn[íi]\s*ohodnocen[íi]/i
 ];
 
 const ACQUISITION_PATTERNS = [
@@ -138,7 +149,19 @@ const getPartTimeInfo = (job: Partial<Job>): { isPartTime: boolean; hoursPerWeek
 const isCommissionRole = (job: Partial<Job>): boolean => {
     const title = (job.title || '').toLowerCase();
     const desc = (job.description || '').toLowerCase();
-    return COMMISSION_PATTERNS.some(p => p.test(desc)) || COMMISSION_PATTERNS.some(p => p.test(title));
+    const strongMatch = COMMISSION_STRONG_PATTERNS.some(p => p.test(desc)) || COMMISSION_STRONG_PATTERNS.some(p => p.test(title));
+    if (strongMatch) return true;
+
+    const softMatch = COMMISSION_SOFT_PATTERNS.some(p => p.test(desc)) || COMMISSION_SOFT_PATTERNS.some(p => p.test(title));
+    if (!softMatch) return false;
+
+    // If it's explicitly a performance bonus/add-on, don't treat as commission-only risk
+    const excluded = COMMISSION_EXCLUSION_PATTERNS.some(p => p.test(desc));
+    if (excluded) return false;
+
+    // Soft signals count as commission only if paired with sales/acquisition language
+    const salesContext = /prodej|obchod|sales|akvizic|lead(y|ů|u)|call\s*center|telefon/i.test(desc) || /prodej|obchod|sales|akvizic/i.test(title);
+    return salesContext;
 };
 
 const isIcoRole = (job: Partial<Job>): boolean => {

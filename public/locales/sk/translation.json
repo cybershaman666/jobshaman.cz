@@ -113,6 +113,7 @@
     "benefits_title": "Benefity a výhody",
     "jhi_title": "Index Šťastia (JHI)",
     "jhi_desc": "Kompozitné skóre kvality",
+    "jhi_missing_salary_hint": "Nízke JHI je spôsobené chýbajúcou mzdou v inzeráte.",
     "ai_analysis": "AI Analýza",
     "run_ai_analysis": "Spustiť AI Analýzu",
     "analyzing": "Analyzujem...",
