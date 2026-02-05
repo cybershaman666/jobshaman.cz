@@ -25,6 +25,9 @@ STRIPE_PRICE_FREELANCE_PREMIUM = os.getenv("STRIPE_PRICE_FREELANCE_PREMIUM", "pr
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 RESEND_API_KEY = os.getenv("RESEND_API_KEY") or os.getenv("VITE_RESEND_API_KEY")
 
+# Admin / internal
+SCRAPER_TOKEN = os.getenv("SCRAPER_TOKEN")
+
 # Security
 SECRET_KEY = os.getenv("JWT_SECRET", os.getenv("SECRET_KEY"))
 if not SECRET_KEY:

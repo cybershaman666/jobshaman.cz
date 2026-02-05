@@ -2,7 +2,7 @@ import secrets
 from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Request, Depends, HTTPException, Query
 from ..core.limiter import limiter
-from ..core.security import get_current_user
+from ..core.security import get_current_user, require_company_access
 from ..models.requests import AssessmentInvitationRequest, AssessmentResultRequest
 from ..core.database import supabase
 from ..services.email import send_email
@@ -19,7 +19,7 @@ async def create_assessment_invitation(invitation_req: AssessmentInvitationReque
     if not supabase:
         raise HTTPException(status_code=503, detail="Database unavailable")
 
-    company_id = user.get("company_id")
+    company_id = require_company_access(user, user.get("company_id"))
     if not company_id:
         raise HTTPException(status_code=401, detail="User not authenticated")
 
@@ -157,7 +157,8 @@ async def list_invitations(user: dict = Depends(get_current_user)):
     is_company = bool(user.get("company_name"))
     
     if is_company:
-        resp = supabase.table("assessment_invitations").select("*").eq("company_id", user_id).order("created_at", desc=True).execute()
+        company_id = require_company_access(user, user.get("company_id"))
+        resp = supabase.table("assessment_invitations").select("*").eq("company_id", company_id).order("created_at", desc=True).execute()
     else:
         resp = supabase.table("assessment_invitations").select("*").eq("candidate_email", user.get("email")).order("created_at", desc=True).execute()
     

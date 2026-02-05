@@ -6,10 +6,10 @@ if RESEND_API_KEY:
 
 def send_email(to_email: str, subject: str, html: str):
     if not RESEND_API_KEY:
-        print(f"⚠️ Resend API key missing. Would send to {to_email}: {subject}")
+        print("⚠️ Resend API key missing. Email not sent.")
         return False
     try:
-        print(f"📧 Attempting to send email to {to_email}: {subject}")
+        print("📧 Attempting to send email.")
         params = {
             "from": "JobShaman <noreply@jobshaman.cz>",
             "to": [to_email],
@@ -17,10 +17,10 @@ def send_email(to_email: str, subject: str, html: str):
             "html": html,
         }
         resend.Emails.send(params)
-        print(f"✅ Email sent successfully to {to_email}")
+        print("✅ Email sent successfully.")
         return True
     except Exception as e:
-        print(f"❌ Failed to send email to {to_email}: {e}")
+        print(f"❌ Failed to send email: {e}")
         return False
 
 def send_review_email(job, result, context=None):

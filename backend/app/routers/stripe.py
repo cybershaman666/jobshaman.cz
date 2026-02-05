@@ -21,7 +21,8 @@ async def create_checkout_session(req: CheckoutRequest, request: Request, user: 
         raise HTTPException(status_code=403, detail="CSRF token validation failed")
         
     is_valid_user = (user.get("id") == req.userId or user.get("auth_id") == req.userId)
-    is_valid_company = (user.get("company_id") == req.userId)
+    authorized_ids = user.get("authorized_ids", [])
+    is_valid_company = req.userId in authorized_ids
     
     if not (is_valid_user or is_valid_company):
         raise HTTPException(status_code=403, detail="User ID mismatch")
