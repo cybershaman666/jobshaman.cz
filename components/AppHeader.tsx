@@ -136,7 +136,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     setViewState(ViewState.LIST); 
                                     setSelectedJobId(null); 
                                 }}
-                                className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap ${viewState === ViewState.LIST ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap ${viewState === ViewState.LIST ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                             >
                                 {t('nav.offers')}
                             </button>
@@ -146,7 +146,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     setViewState(ViewState.MARKETPLACE);
                                     // Don't clear selectedJobId - that would trigger path restoration
                                 }}
-                                className={`hidden lg:flex px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap items-center gap-1.5 ${viewState === ViewState.MARKETPLACE ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                className={`hidden lg:flex px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap items-center gap-1.5 ${viewState === ViewState.MARKETPLACE ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                                 title="Marketplace - kliknutelné"
                             >
                                 <ShoppingBag className="w-4 h-4" />
@@ -158,7 +158,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     setViewState(ViewState.SERVICES);
                                     // Don't clear selectedJobId - that would trigger path restoration
                                 }}
-                                className={`hidden lg:flex px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap items-center gap-1.5 ${viewState === ViewState.SERVICES ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                className={`hidden lg:flex px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap items-center gap-1.5 ${viewState === ViewState.SERVICES ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                                 title="Zakázky - kliknutelné"
                             >
                                 <Handshake className="w-4 h-4" />
@@ -192,7 +192,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 setShowCompanyLanding(true);
                             }
                         }}
-                        className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD || viewState === ViewState.FREELANCER_DASHBOARD ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                        className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD || viewState === ViewState.FREELANCER_DASHBOARD ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                     >
                         <Briefcase size={14} />
                         <span className="hidden md:inline">{showCompanyLanding ? t('nav.back') : (companyProfile?.industry === 'Freelancer' ? 'Můj Účet' : t('nav.for_companies'))}</span>
@@ -305,7 +305,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         ) : (
                             <button
                                 onClick={handleAuthAction}
-                                className="flex items-center gap-2 text-sm font-bold text-white bg-slate-900 dark:bg-white dark:text-slate-900 px-4 py-2 rounded-lg hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
+                                className="flex items-center gap-2 text-sm font-bold text-white bg-slate-900 dark:bg-cyan-500/15 dark:text-cyan-200 px-4 py-2 rounded-lg hover:bg-slate-800 dark:hover:bg-cyan-500/25 transition-colors dark:ring-1 dark:ring-cyan-500/40"
                             >
                                 <UserCircle size={18} />
                                 {t('auth.login')}
@@ -328,7 +328,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                         setSelectedJobId(null);
                                         setMobileMenuOpen(false);
                                     }}
-                                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all ${viewState === ViewState.LIST ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all ${viewState === ViewState.LIST ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                                 >
                                     {t('nav.offers')}
                                 </button>
@@ -337,7 +337,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                         setViewState(ViewState.MARKETPLACE);
                                         setMobileMenuOpen(false);
                                     }}
-                                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${viewState === ViewState.MARKETPLACE ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${viewState === ViewState.MARKETPLACE ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                                 >
                                     <ShoppingBag className="w-4 h-4" />
                                     {t('nav.marketplace')}
@@ -347,7 +347,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                         setViewState(ViewState.SERVICES);
                                         setMobileMenuOpen(false);
                                     }}
-                                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${viewState === ViewState.SERVICES ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${viewState === ViewState.SERVICES ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                                 >
                                     <Handshake className="w-4 h-4" />
                                     {t('nav.services')}
@@ -376,7 +376,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 }
                                 setMobileMenuOpen(false);
                             }}
-                            className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD || viewState === ViewState.FREELANCER_DASHBOARD ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                            className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD || viewState === ViewState.FREELANCER_DASHBOARD ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                         >
                             <Briefcase size={14} />
                             {showCompanyLanding ? t('nav.back') : (companyProfile?.industry === 'Freelancer' ? 'Můj Účet' : t('nav.for_companies'))}
