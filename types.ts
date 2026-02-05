@@ -156,6 +156,7 @@ export enum ViewState {
   PROFILE_EDITOR = 'PROFILE_EDITOR',
   COMPANY_DASHBOARD = 'COMPANY_DASHBOARD',
   FREELANCER_DASHBOARD = 'FREELANCER_DASHBOARD',
+  COURSE_PROVIDER_DASHBOARD = 'COURSE_PROVIDER_DASHBOARD',
   MARKETPLACE = 'MARKETPLACE',
   SERVICES = 'SERVICES',
   ASSESSMENT = 'ASSESSMENT'
@@ -336,8 +337,18 @@ export interface MarketplacePartner {
   id: string;
   name: string;
   contact_email: string;
+  contact_name?: string;
+  contact_phone?: string;
+  website?: string;
+  address?: string;
+  description?: string;
+  offer?: string;
+  course_categories?: string[];
+  lat?: number | null;
+  lng?: number | null;
   commission_rate: number;
   partner_type: 'online_platform' | 'driving_school' | 'training_center';
+  owner_id?: string | null;
   created_at: string;
 }
 

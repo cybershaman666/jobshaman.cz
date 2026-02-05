@@ -1115,6 +1115,7 @@ export const createMarketplacePartner = async (payload: {
     course_categories?: string[] | null;
     commission_rate?: number | null;
     partner_type?: string | null;
+    owner_id?: string | null;
 }) => {
     if (!supabase) throw new Error('Supabase not configured');
 
@@ -1129,7 +1130,8 @@ export const createMarketplacePartner = async (payload: {
         offer: payload.offer ?? null,
         course_categories: payload.course_categories ?? null,
         commission_rate: payload.commission_rate ?? null,
-        partner_type: payload.partner_type ?? null
+        partner_type: payload.partner_type ?? null,
+        owner_id: payload.owner_id ?? null
     };
 
     if (payload.address !== undefined) {
@@ -1158,6 +1160,60 @@ export const createMarketplacePartner = async (payload: {
 
     if (error) {
         console.error('Marketplace partner create error:', error);
+        throw error;
+    }
+
+    return data;
+};
+
+export const getMarketplacePartnerByOwner = async (ownerId: string) => {
+    if (!supabase) return null;
+
+    const { data, error } = await supabase
+        .from('marketplace_partners')
+        .select('*')
+        .eq('owner_id', ownerId)
+        .maybeSingle();
+
+    if (error) {
+        console.error('Marketplace partner fetch error:', error);
+        return null;
+    }
+
+    return data;
+};
+
+export const updateMarketplacePartner = async (partnerId: string, updates: Partial<Record<string, any>>) => {
+    if (!supabase) throw new Error('Supabase not configured');
+
+    const payload: any = { ...updates };
+    if (updates.address !== undefined) {
+        const trimmed = typeof updates.address === 'string' ? updates.address.trim() : '';
+        if (!trimmed) {
+            payload.lat = null;
+            payload.lng = null;
+        } else {
+            try {
+                const geo = await geocodeWithCaching(trimmed);
+                if (geo) {
+                    payload.lat = geo.lat;
+                    payload.lng = geo.lon;
+                }
+            } catch (e) {
+                console.warn('Marketplace partner address geocoding failed:', e);
+            }
+        }
+    }
+
+    const { data, error } = await supabase
+        .from('marketplace_partners')
+        .update(payload)
+        .eq('id', partnerId)
+        .select()
+        .single();
+
+    if (error) {
+        console.error('Marketplace partner update error:', error);
         throw error;
     }
 
@@ -1459,7 +1515,7 @@ export const getCVDocuments = async (userId?: string): Promise<CVDocument[]> => 
         return [];
     }
 
-    return data || [];
+    return (data || []).map(mapLearningResourceRow);
 };
 
 export const createCVDocument = async (documentData: any): Promise<string> => {
@@ -1740,10 +1796,70 @@ export const fetchLearningResources = async (skillName?: string) => {
     return data || [];
 };
 
+const mapLearningResourceRow = (row: any) => {
+    const priceEstimate = row?.price_estimate || null;
+    return {
+        id: row.id,
+        title: row.title || '',
+        description: row.description || '',
+        skill_tags: row.skill_tags || row.skill_name || [],
+        url: row.url || row.affiliate_url || '',
+        provider: row.provider || '',
+        duration_hours: row.duration_hours || 0,
+        difficulty: row.difficulty || 'Beginner',
+        price: row.price || priceEstimate?.amount || 0,
+        currency: row.currency || priceEstimate?.currency || 'CZK',
+        rating: row.rating || 0,
+        reviews_count: row.reviews_count || 0,
+        created_at: row.created_at || new Date().toISOString(),
+        is_government_funded: row.is_government_funded || false,
+        funding_amount_czk: row.funding_amount_czk || null,
+        affiliate_url: row.affiliate_url || null,
+        location: row.location || null,
+        lat: row.lat ?? null,
+        lng: row.lng ?? null,
+        status: row.status || 'active',
+        partner_name: row.partner_name || row.provider || null,
+        partner_id: row.partner_id || null
+    };
+};
+
+const applyLearningResourcePayload = (payload: any) => {
+    const record: any = { ...payload };
+    if (payload.skill_tags && !payload.skill_name) {
+        record.skill_name = payload.skill_tags;
+        delete record.skill_tags;
+    }
+    if ((payload.price !== undefined || payload.currency !== undefined) && payload.price_estimate === undefined) {
+        const amount = typeof payload.price === 'number' ? payload.price : Number(payload.price || 0);
+        record.price_estimate = { amount: Number.isFinite(amount) ? amount : 0, currency: payload.currency || 'CZK' };
+        delete record.price;
+        delete record.currency;
+    }
+    return record;
+};
+
+export const fetchLearningResourcesByPartner = async (partnerId: string) => {
+    if (!supabase) return [];
+
+    const { data, error } = await supabase
+        .from('learning_resources')
+        .select('*')
+        .eq('partner_id', partnerId)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Learning resources by partner fetch error:', error);
+        return [];
+    }
+
+    return (data || []).map(mapLearningResourceRow);
+};
+
 export const createLearningResource = async (payload: Partial<Record<string, any>>) => {
     if (!supabase) throw new Error('Supabase not configured');
 
-    const record: any = { ...payload };
+    const record: any = applyLearningResourcePayload(payload);
     if (record.location !== undefined) {
         const trimmed = typeof record.location === 'string' ? record.location.trim() : '';
         if (!trimmed) {
@@ -1779,7 +1895,7 @@ export const createLearningResource = async (payload: Partial<Record<string, any
 export const updateLearningResource = async (resourceId: string, updates: Partial<Record<string, any>>) => {
     if (!supabase) throw new Error('Supabase not configured');
 
-    const payload: any = { ...updates };
+    const payload: any = applyLearningResourcePayload(updates);
     if (updates.location !== undefined) {
         const trimmed = typeof updates.location === 'string' ? updates.location.trim() : '';
         if (!trimmed) {
@@ -1811,6 +1927,39 @@ export const updateLearningResource = async (resourceId: string, updates: Partia
     }
 
     return data;
+};
+
+export const deleteLearningResource = async (resourceId: string) => {
+    if (!supabase) throw new Error('Supabase not configured');
+
+    const { error } = await supabase
+        .from('learning_resources')
+        .delete()
+        .eq('id', resourceId);
+
+    if (error) {
+        console.error('Learning resource delete error:', error);
+        throw error;
+    }
+
+    return true;
+};
+
+export const getCourseReviewsForCourses = async (courseIds: string[]) => {
+    if (!supabase || courseIds.length === 0) return [];
+
+    const { data, error } = await supabase
+        .from('course_reviews')
+        .select('id, course_id, reviewer_id, rating, comment, is_verified_graduate, created_at')
+        .in('course_id', courseIds)
+        .order('created_at', { ascending: false });
+
+    if (error) {
+        console.error('Course reviews fetch error:', error);
+        return [];
+    }
+
+    return data || [];
 };
 
 export const fetchBenefitValuations = async () => {

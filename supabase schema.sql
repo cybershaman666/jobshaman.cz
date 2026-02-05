@@ -453,10 +453,22 @@ CREATE TABLE public.marketplace_partners (
   id uuid NOT NULL DEFAULT uuid_generate_v4(),
   name text NOT NULL,
   contact_email text,
+  contact_name text,
+  contact_phone text,
+  website text,
+  address text,
+  description text,
+  offer text,
+  course_categories ARRAY,
+  lat double precision,
+  lng double precision,
   commission_rate double precision,
   partner_type text,
+  owner_id uuid,
   created_at timestamp with time zone DEFAULT now(),
   CONSTRAINT marketplace_partners_pkey PRIMARY KEY (id)
+  ,
+  CONSTRAINT marketplace_partners_owner_id_fkey FOREIGN KEY (owner_id) REFERENCES public.profiles(id)
 );
 CREATE TABLE public.premium_access_logs (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

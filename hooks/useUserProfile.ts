@@ -142,6 +142,7 @@ export const useUserProfile = () => {
                 // --- PREPARE METADATA FLAGS ---
                 // Extract metadata before any logic that depends on it
                 let metaIsFreelancer = false;
+                let metaIsCourseProvider = false;
                 let metaRole = null;
                 let metaCompany = null;
                 let metaIco = null;
@@ -154,10 +155,12 @@ export const useUserProfile = () => {
                     metaIco = user?.user_metadata?.ico;
                     metaWebsite = user?.user_metadata?.website;
                     metaIsFreelancer = user?.user_metadata?.is_freelancer === true || user?.user_metadata?.is_freelancer === 'true';
+                    metaIsCourseProvider = user?.user_metadata?.is_course_provider === true || user?.user_metadata?.is_course_provider === 'true';
                     console.log("📋 [Metadata] Extracted:", {
                         metaRole,
                         metaCompany,
                         metaIsFreelancer,
+                        metaIsCourseProvider,
                         rawIsFreelancer: user?.user_metadata?.is_freelancer,
                         allMetadata: user?.user_metadata
                     });
@@ -181,15 +184,16 @@ export const useUserProfile = () => {
                 if (profile.role === 'recruiter') {
                     company = await getRecruiterCompany(userId);
 
-                    // CRITICAL FIX: If freelancer but company.industry is not set, ensure it's marked as 'Freelancer'
-                    if (company && metaIsFreelancer && !company.industry) {
-                        console.log("🛠️ Freelancer company exists but industry is not set. Setting to 'Freelancer'...");
-                        company.industry = 'Freelancer';
+                    // CRITICAL FIX: If freelancer/course provider but company.industry is not set, ensure it's marked
+                    if (company && (metaIsFreelancer || metaIsCourseProvider) && !company.industry) {
+                        const industry = metaIsFreelancer ? 'Freelancer' : 'Education';
+                        console.log("🛠️ Company exists but industry is not set. Setting to:", industry);
+                        company.industry = industry;
                         // Also update in database
                         try {
                             const { updateCompanyIndustry } = await import('../services/supabaseService');
-                            await updateCompanyIndustry(company.id, 'Freelancer');
-                            console.log("✅ Company industry updated to 'Freelancer' in database");
+                            await updateCompanyIndustry(company.id, industry);
+                            console.log("✅ Company industry updated in database");
                         } catch (err) {
                             console.error("⚠️ Failed to update company industry in database:", err);
                         }
@@ -207,7 +211,7 @@ export const useUserProfile = () => {
                                 contact_email: supabase ? (await supabase.auth.getUser()).data.user?.email : undefined,
                                 contact_phone: '',
                                 website: metaWebsite || '',
-                                industry: metaIsFreelancer ? 'Freelancer' : '',
+                                industry: metaIsFreelancer ? 'Freelancer' : (metaIsCourseProvider ? 'Education' : ''),
                                 logo_url: ''
                             };
 
@@ -241,6 +245,29 @@ export const useUserProfile = () => {
                             }
                         } catch (err) {
                             console.warn('⚠️ Failed to ensure freelancer profile:', err);
+                        }
+                    }
+
+                    // Ensure marketplace partner row exists for course providers
+                    const isCourseProvider = metaIsCourseProvider || company?.industry === 'Education';
+                    if (isCourseProvider) {
+                        try {
+                            const { getMarketplacePartnerByOwner, createMarketplacePartner } = await import('../services/supabaseService');
+                            const existingPartner = await getMarketplacePartnerByOwner(userId);
+                            if (!existingPartner) {
+                                const { data: { user } } = await supabase.auth.getUser();
+                                await createMarketplacePartner({
+                                    name: metaCompany || company?.name || user?.user_metadata?.company_name || 'Vzdělávání',
+                                    contact_email: user?.email || profile.email,
+                                    website: user?.user_metadata?.website || null,
+                                    partner_type: 'education',
+                                    owner_id: userId,
+                                    course_categories: []
+                                });
+                                console.log('✅ Auto-created marketplace partner profile.');
+                            }
+                        } catch (err) {
+                            console.warn('⚠️ Failed to ensure marketplace partner profile:', err);
                         }
                     }
                 }
@@ -279,16 +306,21 @@ export const useUserProfile = () => {
                         || base === 'freelancer-dashboard'
                         || base === 'company-dashboard'
                         || base === 'dashboard'
+                        || base === 'course-provider-dashboard'
                         || isBlogDetail;
 
                     // Only set dashboard view if we're on the root route (no explicit page)
                     if (!isJobDetail && !isExternalPage && !isNonDashboardRoute && parts.length === 0) {
                         console.log("🔍 [ViewState Decision] metaIsFreelancer:", metaIsFreelancer, "company.industry:", company?.industry);
                         
-                        // Check if freelancer by metadata OR by company industry
+                        // Check if course provider by metadata OR by company industry
+                        const isCourseProvider = metaIsCourseProvider || company?.industry === 'Education';
                         const isFreelancer = metaIsFreelancer || company?.industry === 'Freelancer';
-                        
-                        if (isFreelancer) {
+
+                        if (isCourseProvider) {
+                            setViewState(ViewState.COURSE_PROVIDER_DASHBOARD);
+                            console.log("✅ Course provider logged in, COURSE_PROVIDER_DASHBOARD set.");
+                        } else if (isFreelancer) {
                             // Freelancers ALWAYS go to FREELANCER_DASHBOARD
                             setViewState(ViewState.FREELANCER_DASHBOARD);
                             console.log("✅ Freelancer logged in, FREELANCER_DASHBOARD set.");

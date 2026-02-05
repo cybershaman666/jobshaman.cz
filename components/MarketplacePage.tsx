@@ -55,11 +55,13 @@ interface MarketplacePageProps {
   theme?: 'light' | 'dark';
   userProfile: UserProfile;
   companyProfile?: CompanyProfile | null;
+  onOpenProviderRegistration?: () => void;
 }
 
 const MarketplacePage: React.FC<MarketplacePageProps> = ({
   userProfile,
-  companyProfile: _companyProfile
+  companyProfile: _companyProfile,
+  onOpenProviderRegistration
 }) => {
   const { t } = useTranslation();
   const [viewMode, setViewMode] = useState<'browse' | 'commercial' | 'government'>('browse');
@@ -356,18 +358,23 @@ const MarketplacePage: React.FC<MarketplacePageProps> = ({
               </div>
             </div>
 
-            <div className="flex-shrink-0">
-              {userProfile.isLoggedIn ? (
+            <div className="flex-shrink-0 flex flex-col gap-2">
+              {onOpenProviderRegistration && (
                 <button
-                  onClick={() => setShowPartnerModal(true)}
-                  className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+                  onClick={onOpenProviderRegistration}
+                  className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" />
-                  {t('marketplace.offer_course')}
+                  {t('marketplace.register_provider', { defaultValue: 'Registrace poskytovatele' })}
                 </button>
-              ) : (
-                <div className="w-full h-10"></div>
               )}
+              <button
+                onClick={() => setShowPartnerModal(true)}
+                className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white font-semibold rounded-lg transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+              >
+                <Plus className="w-4 h-4" />
+                {t('marketplace.offer_course')}
+              </button>
             </div>
           </div>
         </div>
