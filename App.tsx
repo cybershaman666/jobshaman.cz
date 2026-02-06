@@ -194,7 +194,6 @@ export default function App() {
         setEnableCommuteFilter,
         setFilterDate,
         setFilterMinSalary,
-        setFilterExperience,
         setFilterLanguage,
         setSavedJobIds,
         setShowFilters,
