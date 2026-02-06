@@ -19,7 +19,7 @@ export const JHI_TUNING = {
     },
 
     score: {
-        minFactorWeight: 0.3,   // how much the weakest dimension penalizes score
+        minFactorWeight: 0,     // keep headline score aligned with pillar average
     },
 };
 

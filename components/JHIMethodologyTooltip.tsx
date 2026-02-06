@@ -14,14 +14,14 @@ const JHIMethodologyTooltip: React.FC<JHIMethodologyTooltipProps> = () => {
         {
             id: 'financial',
             icon: <BarChart3 className="text-cyan-600 dark:text-cyan-400" size={18} />,
-            weight: '30%',
+            weight: '20%',
             title: t('jhi.methodology.financial_title', 'Finanční Realita'),
             desc: t('jhi.methodology.financial_desc', 'Mzda, bonusy, transparentnost a rozptyl nabídek.')
         },
         {
             id: 'time',
             icon: <Clock className="text-emerald-600 dark:text-emerald-400" size={18} />,
-            weight: '25%',
+            weight: '20%',
             title: t('jhi.methodology.time_title', 'Časová Dotace'),
             desc: t('jhi.methodology.time_desc', 'Typ úvazku, remote, hybrid a čas ztracený dojížděním.')
         },
@@ -35,14 +35,14 @@ const JHIMethodologyTooltip: React.FC<JHIMethodologyTooltipProps> = () => {
         {
             id: 'growth',
             icon: <Zap className="text-amber-600 dark:text-amber-400" size={18} />,
-            weight: '15%',
+            weight: '20%',
             title: t('jhi.methodology.growth_title', 'Možnost Růstu'),
             desc: t('jhi.methodology.growth_desc', 'Vzdělávací budgety, mentoring a kariérní vize.')
         },
         {
             id: 'values',
             icon: <Target className="text-rose-600 dark:text-rose-400" size={18} />,
-            weight: '10%',
+            weight: '20%',
             title: t('jhi.methodology.values_title', 'Soulad s Hodnotami'),
             desc: t('jhi.methodology.values_desc', 'Osobní shoda s kulturou a smyslem práce.')
         }
@@ -110,12 +110,12 @@ const JHIMethodologyTooltip: React.FC<JHIMethodologyTooltipProps> = () => {
                             </div>
 
                             <div className="mt-6 pt-4 border-t border-slate-100 dark:border-slate-800">
-                                <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/10 rounded-xl border border-red-100 dark:border-red-900/20">
-                                    <Zap className="text-red-500 flex-shrink-0" size={14} />
-                                    <p className="text-[10px] text-red-600 dark:text-red-400 font-medium leading-normal">
-                                        <span className="font-black uppercase">{t('jhi.methodology.penalty_label', 'Kritická penalizace:')}</span>
+                                <div className="flex items-start gap-2 p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800">
+                                    <Zap className="text-amber-500 flex-shrink-0" size={14} />
+                                    <p className="text-[10px] text-slate-600 dark:text-slate-300 font-medium leading-normal">
+                                        <span className="font-black uppercase">{t('jhi.methodology.penalty_label', 'Výpočet skóre:')}</span>
                                         <br />
-                                        {t('jhi.methodology.penalty_desc', 'Pokud jakýkoliv pilíř klesne pod 20 bodů, celkové JHI se propadá o 30% (Anti-BS ochrana).')}
+                                        {t('jhi.methodology.penalty_desc', 'Celkové JHI je průměr pěti pilířů zobrazených v grafu. Váhy jsou už promítnuté v číslech pilířů, žádná skrytá penalizace mimo ně.')}
                                     </p>
                                 </div>
                             </div>
