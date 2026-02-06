@@ -502,13 +502,14 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                         )}
                     </div>
 
-                    <div className="sticky bottom-3 mt-6 flex justify-center">
+                    <div className="sticky bottom-3 mt-6 flex justify-end">
                         <button
                             onClick={handleScrollToTop}
-                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 text-white text-xs font-bold shadow-lg shadow-slate-900/20 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white transition-colors"
+                            aria-label={t('app.back_to_top') || 'Nahoru'}
+                            title={t('app.back_to_top') || 'Nahoru'}
+                            className="flex items-center justify-center w-8 h-8 rounded-full border border-cyan-200 text-cyan-700 bg-cyan-50 hover:bg-cyan-100 hover:text-cyan-800 dark:border-cyan-500/40 dark:text-cyan-300 dark:bg-cyan-500/20 dark:hover:bg-cyan-500/30 transition-colors"
                         >
                             <ArrowUp size={14} />
-                            {t('app.back_to_top') || 'Nahoru'}
                         </button>
                     </div>
                 </div>
