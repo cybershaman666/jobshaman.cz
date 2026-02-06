@@ -361,7 +361,7 @@
     "label_values": "Hodnoty",
     "series_score": "Skóre",
     "methodology": {
-      "title": "Shamanova Formule V1.1",
+      "title": "Shamanova Formule V1.2",
       "info_button": "Jak se to počítá?",
       "financial_title": "Finanční Realita",
       "financial_desc": "Mzda, bonusy, transparentnost a rozptyl nabídek.",
@@ -373,8 +373,8 @@
       "growth_desc": "Vzdělávací budgety, mentoring a kariérní vize.",
       "values_title": "Soulad s Hodnotami",
       "values_desc": "Osobní shoda s kulturou a smyslem práce.",
-      "penalty_label": "Kritická penalizace:",
-      "penalty_desc": "Pokud jakýkoliv pilíř klesne pod 20 bodů, celkové JHI se propadá o 30% (Anti-BS ochrana)."
+      "penalty_label": "Výpočet skóre:",
+      "penalty_desc": "Celkové JHI je průměr pěti pilířů zobrazených v grafu. Váhy jsou už promítnuté v číslech pilířů, žádná skrytá penalizace mimo ně."
     }
   },
   "job": {

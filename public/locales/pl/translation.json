@@ -348,7 +348,23 @@
     "label_mental": "Psychika",
     "label_growth": "Rozwój",
     "label_values": "Wartości",
-    "series_score": "Wynik"
+    "series_score": "Wynik",
+    "methodology": {
+      "title": "Formuła Shamana V1.2",
+      "info_button": "Jak to liczymy?",
+      "financial_title": "Rzeczywistość finansowa",
+      "financial_desc": "Wynagrodzenie, bonusy, transparentność i rozpiętość ofert.",
+      "time_title": "Czas",
+      "time_desc": "Typ zatrudnienia, remote/hybrid i czas stracony na dojazdy.",
+      "mental_title": "Dobrostan psychiczny",
+      "mental_desc": "Toksyczność ogłoszenia, czynniki stresu i wsparcie zdrowia.",
+      "growth_title": "Rozwój",
+      "growth_desc": "Budżet szkoleniowy, mentoring i ścieżka kariery.",
+      "values_title": "Zgodność wartości",
+      "values_desc": "Dopasowanie do kultury i sensu pracy.",
+      "penalty_label": "Obliczanie wyniku:",
+      "penalty_desc": "Całkowite JHI to średnia pięciu filarów z wykresu. Wagi są już ujęte w wartościach filarów, bez ukrytych kar."
+    }
   },
   "job": {
     "jhi_score": "Wynik JHI",

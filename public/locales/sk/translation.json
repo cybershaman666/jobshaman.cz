@@ -339,7 +339,23 @@
     "label_mental": "Psychika",
     "label_growth": "Rast",
     "label_values": "Hodnoty",
-    "series_score": "Skóre"
+    "series_score": "Skóre",
+    "methodology": {
+      "title": "Šamanova Formula V1.2",
+      "info_button": "Ako sa to počíta?",
+      "financial_title": "Finančná Realita",
+      "financial_desc": "Mzda, bonusy, transparentnosť a rozpätie ponúk.",
+      "time_title": "Časová Dotácia",
+      "time_desc": "Typ úväzku, remote/hybrid a čas stratený dochádzaním.",
+      "mental_title": "Duševná Pohoda",
+      "mental_desc": "Toxicita inzerátu, stresové faktory a starostlivosť o zdravie.",
+      "growth_title": "Možnosť Rastu",
+      "growth_desc": "Vzdelávací budget, mentoring a kariérna vízia.",
+      "values_title": "Súlad s Hodnotami",
+      "values_desc": "Osobná zhoda s kultúrou a zmyslom práce.",
+      "penalty_label": "Výpočet skóre:",
+      "penalty_desc": "Celkové JHI je priemer piatich pilierov zobrazených v grafe. Váhy sú už premietnuté v číslach pilierov, bez skrytých penalizácií."
+    }
   },
   "job": {
     "jhi_score": "JHI Skóre",
