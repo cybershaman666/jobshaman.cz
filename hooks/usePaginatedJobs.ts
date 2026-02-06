@@ -184,6 +184,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 return;
             }
 
+            const effectiveCountryCodes = filterLanguage
+                ? undefined
+                : (globalSearch ? undefined : countryCodes);
+
             const result = await fetchJobsWithFilters({
                 page,
                 pageSize: initialPageSize,
@@ -197,7 +201,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 radiusKm: enableCommuteFilter ? filterMaxDistance : undefined,
                 userLat: lat,
                 userLng: lon,
-                countryCodes: globalSearch ? undefined : countryCodes,
+                countryCodes: effectiveCountryCodes,
                 filterLanguageCodes: filterLanguage ? [filterLanguage] : undefined
             });
 
@@ -293,6 +297,13 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             }
         }
     }, [globalSearch, countryCodes.length, userProfile.address]);
+
+    // If language filter is set, search across all countries
+    useEffect(() => {
+        if (filterLanguage && !globalSearch) {
+            setGlobalSearch(true);
+        }
+    }, [filterLanguage, globalSearch]);
 
     // When language changes, default to that country's jobs (unless cross-border is enabled)
     useEffect(() => {
