@@ -16,6 +16,7 @@ import re
 from datetime import datetime
 import sys
 from typing import Optional, Dict, List, Tuple, Callable, Any
+from langdetect import detect, LangDetectException
 
 # Add parent directory to path to import geocoding module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -99,6 +100,24 @@ def norm_text(s: str) -> str:
     if not s:
         return ""
     return re.sub(r"\s+", " ", s).strip()
+
+
+def detect_language_code(text: str) -> Optional[str]:
+    """
+    Detect language code (ISO 639-1) from text.
+    Returns None if text is too short or detection fails.
+    """
+    if not text:
+        return None
+    cleaned = norm_text(text)
+    if len(cleaned) < 80:
+        return None
+    try:
+        return detect(cleaned)
+    except LangDetectException:
+        return None
+    except Exception:
+        return None
 
 
 def extract_salary(
@@ -530,7 +549,15 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict) -> bool:
         job_data['salary_currency'] = job_data['currency']
     
     print(f"    🌍 Country code: {job_data['country_code']} (detected from {job_data.get('source', 'URL')})")
-    
+
+    # Detect language of the job text (title + description)
+    if "language_code" not in job_data:
+        lang_text = f"{job_data.get('title', '')} {job_data.get('description', '')}"
+        detected_lang = detect_language_code(lang_text)
+        if detected_lang:
+            job_data["language_code"] = detected_lang
+            print(f"    🈯 Detected language: {detected_lang}")
+
     # GEOCODE LOCATION: Convert location string to lat/lon for PostGIS
     if "location" in job_data and job_data["location"]:
         location_str = job_data["location"]

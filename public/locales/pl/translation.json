@@ -55,6 +55,8 @@
     "medior": "Medior",
     "senior": "Senior",
     "lead": "Lead / Zarządzanie",
+    "language": "Język ogłoszenia",
+    "language_all": "Wszystkie języki",
     "sort_by": "Sortuj według",
     "sort_options": {
       "default": "Polecane",

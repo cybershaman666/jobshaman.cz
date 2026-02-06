@@ -111,6 +111,7 @@ export interface Job {
   legality_status?: 'pending' | 'legal' | 'illegal' | 'review';
   legality_reasons?: string[];
   country_code?: string;
+  language_code?: string;
 }
 
 // Database representation of a job row (used when reading directly from Supabase)
@@ -132,6 +133,7 @@ export interface DatabaseJob {
   lat?: number | null;
   lng?: number | null;
   country_code?: string;
+  language_code?: string;
   [key: string]: any;
 }
 

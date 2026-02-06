@@ -55,6 +55,8 @@
     "medior": "Medior",
     "senior": "Senior",
     "lead": "Lead / Management",
+    "language": "Jazyk nabídky",
+    "language_all": "Všechny jazyky",
     "sort_by": "Řazení",
     "sort_options": {
       "default": "Doporučené",

@@ -60,6 +60,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [filterDate, setFilterDate] = useState<string>('all'); // all, 24h, 3d, 7d, 14d
     const [filterMinSalary, setFilterMinSalary] = useState<number>(0);
     const [filterExperience, setFilterExperience] = useState<string[]>([]); // Junior, Medior, Senior, Lead
+    const [filterLanguage, setFilterLanguage] = useState<string>(''); // ISO code or empty for all
     const [globalSearch, setGlobalSearch] = useState(() => !initialCountry); // Toggle for searching entire database
     const [sortBy, setSortBy] = useState<string>('default'); // default | jhi_desc | jhi_asc | newest
 
@@ -158,7 +159,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 filterDate !== 'all' ||
                 filterExperience.length > 0 ||
                 enableCommuteFilter ||
-                sortBy !== 'default';
+                sortBy !== 'default' ||
+                !!filterLanguage;
 
             if (!hasAnyFilters) {
                 const singleCountry = (!globalSearch && countryCodes.length === 1) ? countryCodes[0] : undefined;
@@ -195,7 +197,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 radiusKm: enableCommuteFilter ? filterMaxDistance : undefined,
                 userLat: lat,
                 userLng: lon,
-                countryCodes: globalSearch ? undefined : countryCodes
+                countryCodes: globalSearch ? undefined : countryCodes,
+                filterLanguageCodes: filterLanguage ? [filterLanguage] : undefined
             });
 
             if (isLoadMore) {
@@ -233,7 +236,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [
         initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch, sortJobs
+        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch, sortJobs, filterLanguage
     ]);
 
 
@@ -249,7 +252,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [
         searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, countryCodes, globalSearch
+        filterMaxDistance, countryCodes, globalSearch, filterLanguage
     ]); // Excluded fetchFilteredJobs to avoid re-triggering when it's just redefined
 
     // Re-apply sorting when sort option changes
@@ -328,6 +331,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setFilterMinSalary(0);
         setFilterExperience([]);
         setFilterMaxDistance(50);
+        setFilterLanguage('');
         // Reset page
         setCurrentPage(0);
     };
@@ -350,6 +354,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         filterDate,
         filterMinSalary,
         filterExperience,
+        filterLanguage,
         savedJobIds,
         showFilters,
         expandedSections,
@@ -369,6 +374,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setFilterDate,
         setFilterMinSalary,
         setFilterExperience,
+        setFilterLanguage,
         setSavedJobIds,
         setShowFilters,
         setExpandedSections,
