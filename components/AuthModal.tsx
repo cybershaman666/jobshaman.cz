@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { signInWithEmail, signUpWithEmail } from '../services/supabaseService';
-import { fetchCsrfToken } from '../services/csrfService';
+import { fetchCsrfToken, waitForSession } from '../services/csrfService';
 import { X, Mail, Lock, User, Loader2, AlertCircle } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
@@ -44,20 +44,24 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
                 userData = result.data?.user;
             }
 
-            // CSRF: Fetch CSRF token after successful authentication
+            // CSRF: Fetch token in the background to avoid blocking the modal close
             if (userData) {
-                try {
-                    // Get the actual session token
-                    const session = await (await import('../services/supabaseClient')).supabase?.auth.getSession();
-                    const accessToken = session?.data?.session?.access_token;
+                (async () => {
+                    try {
+                        const session = await (await import('../services/supabaseClient')).supabase?.auth.getSession();
+                        let accessToken = session?.data?.session?.access_token;
 
-                    if (accessToken) {
-                        await fetchCsrfToken(accessToken);
+                        if (!accessToken) {
+                            accessToken = await waitForSession(2000) || undefined;
+                        }
+
+                        if (accessToken) {
+                            await fetchCsrfToken(accessToken);
+                        }
+                    } catch (csrfError) {
+                        console.warn('⚠️ Could not fetch CSRF token:', csrfError);
                     }
-                } catch (csrfError) {
-                    console.warn('⚠️ Could not fetch CSRF token:', csrfError);
-                    // Don't fail login if CSRF token fetch fails
-                }
+                })();
             }
 
             onSuccess();
