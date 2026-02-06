@@ -299,6 +299,7 @@ const transformJob = (scrapedJob: any): Job => {
         salary_from: salaryFrom || undefined,
         salary_to: salaryTo || undefined,
         country_code: scrapedJob.country_code,
+        language_code: scrapedJob.language_code,
         // Map cached AI analysis if present
         aiAnalysis: scrapedJob.ai_analysis
     };
@@ -361,7 +362,7 @@ export const fetchJobsPaginated = async (
             if (error) {
                 console.error('Spatial query error:', error);
                 // Fallback to regular query if spatial function not ready
-                return fetchJobsPaginatedFallback(page, pageSize, userLat, userLng, radiusKm, countryCode);
+                return fetchJobsPaginatedFallback(page, pageSize, userLat, userLng, radiusKm, countryCode, undefined);
             }
 
             if (!data || data.length === 0) {
@@ -417,7 +418,7 @@ export const fetchJobsPaginated = async (
         }
 
         // Fallback: Regular pagination without location filter
-        return fetchJobsPaginatedFallback(page, pageSize, undefined, undefined, undefined, countryCode);
+        return fetchJobsPaginatedFallback(page, pageSize, undefined, undefined, undefined, countryCode, undefined);
 
     } catch (e) {
         console.error("Error in fetchJobsPaginated:", e);
@@ -432,7 +433,8 @@ const fetchJobsPaginatedFallback = async (
     userLat?: number,
     userLng?: number,
     _radiusKm?: number, // Not used in fallback
-    countryCode?: string
+    countryCode?: string,
+    languageCodes?: string[]
 ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
     try {
         // Get total count first
@@ -449,6 +451,9 @@ const fetchJobsPaginatedFallback = async (
         // Apply country code filter if provided
         if (countryCode) {
             query = query.eq('country_code', countryCode);
+        }
+        if (languageCodes && languageCodes.length > 0) {
+            query = query.in('language_code', languageCodes);
         }
 
         const { data, error } = await query
@@ -654,6 +659,8 @@ export interface JobFilterOptions {
 
     // Countries
     countryCodes?: string[];
+    // Languages
+    filterLanguageCodes?: string[];
     searchTerm?: string;
 }
 
@@ -683,6 +690,7 @@ export const fetchJobsWithFilters = async (
         page = 0,
         pageSize = 50,
         countryCodes,
+        filterLanguageCodes,
         searchTerm
     } = options;
 
@@ -741,7 +749,8 @@ export const fetchJobsWithFilters = async (
             filter_experience_levels: filterExperienceLevels && filterExperienceLevels.length > 0 ? filterExperienceLevels : null,
             limit_count: pageSize,
             offset_val: page * pageSize,
-            filter_country_codes: countryCodes && countryCodes.length > 0 ? countryCodes : null
+            filter_country_codes: countryCodes && countryCodes.length > 0 ? countryCodes : null,
+            filter_language_codes: filterLanguageCodes && filterLanguageCodes.length > 0 ? filterLanguageCodes : null
         });
 
         if (error) {
@@ -749,7 +758,15 @@ export const fetchJobsWithFilters = async (
             if ((error as any)?.code === '57014') {
                 console.warn('⏱️ Filtered jobs query timed out. Falling back to basic pagination.');
                 const fallbackCountry = countryCodes && countryCodes.length === 1 ? countryCodes[0] : undefined;
-                return await fetchJobsPaginatedFallback(page, pageSize, finalUserLat, finalUserLng, radiusKm, fallbackCountry);
+                return await fetchJobsPaginatedFallback(
+                    page,
+                    pageSize,
+                    finalUserLat,
+                    finalUserLng,
+                    radiusKm,
+                    fallbackCountry,
+                    filterLanguageCodes
+                );
             }
 
             console.error('❌ Error fetching filtered jobs:', error);
@@ -809,7 +826,15 @@ export const fetchJobsWithFilters = async (
         if (e?.code === '57014') {
             console.warn('⏱️ Filtered jobs query timed out (exception). Falling back to basic pagination.');
             const fallbackCountry = countryCodes && countryCodes.length === 1 ? countryCodes[0] : undefined;
-            return await fetchJobsPaginatedFallback(page, pageSize, finalUserLat, finalUserLng, radiusKm, fallbackCountry);
+            return await fetchJobsPaginatedFallback(
+                page,
+                pageSize,
+                finalUserLat,
+                finalUserLng,
+                radiusKm,
+                fallbackCountry,
+                filterLanguageCodes
+            );
         }
         console.error("Error in fetchJobsWithFilters:", e);
         return { jobs: [], hasMore: false, totalCount: 0 };

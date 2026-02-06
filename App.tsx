@@ -184,6 +184,7 @@ export default function App() {
         filterDate,
         filterMinSalary,
         filterExperience,
+        filterLanguage,
         savedJobIds,
         showFilters,
         expandedSections,
@@ -193,6 +194,8 @@ export default function App() {
         setEnableCommuteFilter,
         setFilterDate,
         setFilterMinSalary,
+        setFilterExperience,
+        setFilterLanguage,
         setSavedJobIds,
         setShowFilters,
         setExpandedSections,
@@ -1278,6 +1281,8 @@ export default function App() {
                             toggleExperienceFilter={toggleExperienceFilter}
                             filterBenefits={filterBenefits}
                             toggleBenefitFilter={toggleBenefitFilter}
+                            filterLanguage={filterLanguage}
+                            setFilterLanguage={setFilterLanguage}
                             sortBy={sortBy}
                             setSortBy={setSortBy}
                             isLoadingJobs={isLoadingJobs}

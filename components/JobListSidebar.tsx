@@ -43,6 +43,8 @@ interface JobListSidebarProps {
     toggleExperienceFilter: (level: string) => void;
     filterBenefits: string[];
     toggleBenefitFilter: (benefit: string) => void;
+    filterLanguage: string;
+    setFilterLanguage: (lang: string) => void;
     sortBy: string;
     setSortBy: (sortBy: string) => void;
     isLoadingJobs: boolean;
@@ -88,6 +90,8 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     toggleExperienceFilter,
     filterBenefits,
     toggleBenefitFilter,
+    filterLanguage,
+    setFilterLanguage,
     sortBy,
     setSortBy,
     isLoadingJobs,
@@ -144,6 +148,26 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                             >
                                 <Filter size={16} className={showFilters ? "fill-current" : ""} />
                             </button>
+                        </div>
+
+                        <div className="mt-3">
+                            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">
+                                {t('filters.language') || 'Jazyk nabídky'}
+                            </label>
+                            <select
+                                value={filterLanguage}
+                                onChange={(e) => setFilterLanguage(e.target.value)}
+                                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500"
+                            >
+                                <option value="">{t('filters.language_all') || 'Všechny jazyky'}</option>
+                                <option value="cs">Čeština</option>
+                                <option value="sk">Slovenština</option>
+                                <option value="en">English</option>
+                                <option value="de">Deutsch</option>
+                                <option value="pl">Polski</option>
+                                <option value="uk">Українська</option>
+                                <option value="ru">Русский</option>
+                            </select>
                         </div>
 
                         <div className="mt-3">

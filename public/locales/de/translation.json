@@ -55,6 +55,8 @@
     "medior": "Medior",
     "senior": "Senior",
     "lead": "Teamlead / Management",
+    "language": "Anzeigensprache",
+    "language_all": "Alle Sprachen",
     "sort_by": "Sortieren nach",
     "sort_options": {
       "default": "Empfohlen",

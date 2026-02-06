@@ -9,6 +9,7 @@ from urllib.parse import urljoin, urlparse
 import re
 from datetime import datetime
 import sys
+from langdetect import detect, LangDetectException
 
 # Add parent directory to path to import geocoding module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -130,6 +131,20 @@ def norm_text(s):
     if not s:
         return ""
     return re.sub(r"\s+", " ", s).strip()
+
+
+def detect_language_code(text: str):
+    if not text:
+        return None
+    cleaned = norm_text(text)
+    if len(cleaned) < 80:
+        return None
+    try:
+        return detect(cleaned)
+    except LangDetectException:
+        return None
+    except Exception:
+        return None
 
 
 def detect_salary_timeframe_cz(text):
@@ -586,6 +601,13 @@ def save_job_to_supabase(job_data):
         job_data["country_code"] = "cs"
     
     print(f"    🌍 Country code: {job_data['country_code']} (detected from {domain})")
+
+    if "language_code" not in job_data:
+        lang_text = f"{job_data.get('title', '')} {job_data.get('description', '')}"
+        detected_lang = detect_language_code(lang_text)
+        if detected_lang:
+            job_data["language_code"] = detected_lang
+            print(f"    🈯 Detected language: {detected_lang}")
     
     # GEOCODE LOCATION: Convert location string to lat/lon
     if "location" in job_data and job_data["location"]:
