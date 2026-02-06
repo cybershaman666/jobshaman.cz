@@ -490,33 +490,37 @@ const calculateValueAlignment = (_job: Partial<Job>): number => {
 
 // --- MAIN CALCULATOR ---
 
+const PILLAR_WEIGHTS = {
+    financial: 0.30,
+    time: 0.25,
+    mental: 0.20,
+    growth: 0.15,
+    values: 0.10
+};
+
+const applyWeight = (raw: number, weight: number): number => {
+    // Keep neutral baseline (50) stable, amplify/attenuate deviations by weight
+    const multiplier = weight / 0.20; // 0.20 = equal-weight baseline
+    return clamp(50 + (raw - 50) * multiplier);
+};
+
 export const calculateJHI = (job: Partial<Job>, aiRiskScore: number = 0): JHI => {
 
-    const F = calculateFinancialReality(job);
-    const T = calculateTimeAllocation(job);
-    const W = calculateMentalWellbeing(job, aiRiskScore);
-    const G = calculateGrowthOpportunity(job);
-    const V = calculateValueAlignment(job);
+    const rawF = calculateFinancialReality(job);
+    const rawT = calculateTimeAllocation(job);
+    const rawW = calculateMentalWellbeing(job, aiRiskScore);
+    const rawG = calculateGrowthOpportunity(job);
+    const rawV = calculateValueAlignment(job);
 
-    // Weighted Average
-    // F(30) + T(25) + W(20) + G(15) + V(10)
-    let totalScore = (F * 0.30) + (T * 0.25) + (W * 0.20) + (G * 0.15) + (V * 0.10);
+    // Apply weights directly to pillar values so users see their real impact
+    const F = applyWeight(rawF, PILLAR_WEIGHTS.financial);
+    const T = applyWeight(rawT, PILLAR_WEIGHTS.time);
+    const W = applyWeight(rawW, PILLAR_WEIGHTS.mental);
+    const G = applyWeight(rawG, PILLAR_WEIGHTS.growth);
+    const V = applyWeight(rawV, PILLAR_WEIGHTS.values);
 
-    // Critical Red Flag Penalty
-    // If any pillar is disastrously low (< 20), it drags the whole score down significantly
-    const minPillar = Math.min(F, T, W, G);
-    if (minPillar < 20) {
-        totalScore *= 0.7; // 30% global penalty for a "broken" job aspect (e.g. highly toxic)
-    }
-
-    // Commission uncertainty should be the heaviest driver of risk
-    const commissionRole = isCommissionRole(job);
-    if (commissionRole) {
-        totalScore *= 0.78; // strong global penalty for volatile income
-        if (!hasFixedBase(job)) {
-            totalScore *= 0.9; // additional penalty for commission-only
-        }
-    }
+    // Overall score = average of weighted pillars (transparent and consistent with UI)
+    const totalScore = (F + T + W + G + V) / 5;
 
     return {
         score: Math.round(totalScore),
