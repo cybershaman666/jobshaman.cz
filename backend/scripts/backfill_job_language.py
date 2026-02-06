@@ -39,7 +39,7 @@ def backfill() -> None:
         res = (
             supabase
             .table("jobs")
-            .select("id,title,description")
+            .select("id,title,description,country_code")
             .is_("language_code", "null")
             .gt("id", last_id)
             .order("id", desc=False)
@@ -55,6 +55,16 @@ def backfill() -> None:
             total_scanned += 1
             job_id = row.get("id")
             lang = detect_for_job(row.get("title"), row.get("description"))
+            if not lang:
+                cc = (row.get("country_code") or "").lower()
+                if cc in ("cz", "cs"):
+                    lang = "cs"
+                elif cc == "sk":
+                    lang = "sk"
+                elif cc == "pl":
+                    lang = "pl"
+                elif cc in ("de", "at"):
+                    lang = "de"
 
             if not lang:
                 total_skipped += 1

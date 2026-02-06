@@ -9,7 +9,14 @@ from urllib.parse import urljoin, urlparse
 import re
 from datetime import datetime
 import sys
-from langdetect import detect, LangDetectException
+try:
+    from langdetect import detect, detect_langs, LangDetectException
+    _LANGDETECT_AVAILABLE = True
+except Exception:
+    detect = None  # type: ignore
+    detect_langs = None  # type: ignore
+    LangDetectException = Exception  # type: ignore
+    _LANGDETECT_AVAILABLE = False
 
 # Add parent directory to path to import geocoding module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -134,12 +141,18 @@ def norm_text(s):
 
 
 def detect_language_code(text: str):
+    if not _LANGDETECT_AVAILABLE:
+        return None
     if not text:
         return None
     cleaned = norm_text(text)
-    if len(cleaned) < 80:
+    if len(cleaned) < 40:
         return None
     try:
+        if detect_langs:
+            langs = detect_langs(cleaned)
+            if langs:
+                return str(langs[0]).split(":")[0]
         return detect(cleaned)
     except LangDetectException:
         return None
@@ -573,10 +586,33 @@ def save_job_to_supabase(job_data):
 
     try:
         response = (
-            supabase.table("jobs").select("url").eq("url", job_data["url"]).execute()
+            supabase.table("jobs")
+            .select("id,language_code")
+            .eq("url", job_data["url"])
+            .execute()
         )
         if response.data:
             print(f"    --> Nabídka s URL {job_data['url']} již existuje, přeskočeno.")
+            row = response.data[0]
+            if row.get("language_code") is None:
+                lang_text = f"{job_data.get('title', '')} {job_data.get('description', '')}"
+                detected_lang = detect_language_code(lang_text)
+                if not detected_lang:
+                    cc = (job_data.get("country_code") or "").lower()
+                    if cc in ("cz", "cs"):
+                        detected_lang = "cs"
+                    elif cc == "sk":
+                        detected_lang = "sk"
+                    elif cc == "pl":
+                        detected_lang = "pl"
+                    elif cc in ("de", "at"):
+                        detected_lang = "de"
+                if detected_lang:
+                    try:
+                        supabase.table("jobs").update({"language_code": detected_lang}).eq("id", row["id"]).execute()
+                        print(f"    🈯 Language backfilled for existing job: {detected_lang}")
+                    except Exception as e:
+                        print(f"    ⚠️ Language backfill failed: {e}")
             return True
     except Exception as e:
         print(f"Chyba při kontrole duplicity: {e}")
@@ -605,6 +641,16 @@ def save_job_to_supabase(job_data):
     if "language_code" not in job_data:
         lang_text = f"{job_data.get('title', '')} {job_data.get('description', '')}"
         detected_lang = detect_language_code(lang_text)
+        if not detected_lang:
+            cc = (job_data.get("country_code") or "").lower()
+            if cc in ("cz", "cs"):
+                detected_lang = "cs"
+            elif cc == "sk":
+                detected_lang = "sk"
+            elif cc == "pl":
+                detected_lang = "pl"
+            elif cc in ("de", "at"):
+                detected_lang = "de"
         if detected_lang:
             job_data["language_code"] = detected_lang
             print(f"    🈯 Detected language: {detected_lang}")

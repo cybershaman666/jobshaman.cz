@@ -9,13 +9,13 @@ from datetime import datetime
 import sys
 import os
 
-# Import country scrapers
+# Import country scrapers (supports running as module or script)
 try:
-    from scraper_multi import run_all_scrapers as run_cz
-    from scraper_sk import run_slovakia_scraper as run_sk
-    from scraper_pl import run_poland_scraper as run_pl
-    from scraper_de import run_germany_scraper as run_de
-except ImportError:
+    from .scraper_multi import run_all_scrapers as run_cz  # type: ignore
+    from .scraper_sk import run_slovakia_scraper as run_sk  # type: ignore
+    from .scraper_pl import run_poland_scraper as run_pl  # type: ignore
+    from .scraper_de import run_germany_scraper as run_de  # type: ignore
+except Exception:
     # Handle if run as script from parent or elsewhere
     sys.path.append(os.path.dirname(os.path.abspath(__file__)))
     from scraper_multi import run_all_scrapers as run_cz
