@@ -348,7 +348,23 @@
     "label_mental": "Mental",
     "label_growth": "Growth",
     "label_values": "Values",
-    "series_score": "Score"
+    "series_score": "Score",
+    "methodology": {
+      "title": "Shaman Formula V1.2",
+      "info_button": "How is it calculated?",
+      "financial_title": "Financial Reality",
+      "financial_desc": "Salary, bonuses, transparency and spread of offers.",
+      "time_title": "Time Allocation",
+      "time_desc": "Type of contract, remote/hybrid and time lost to commuting.",
+      "mental_title": "Mental Well-being",
+      "mental_desc": "Toxicity of the ad, stress factors and health support.",
+      "growth_title": "Growth Opportunity",
+      "growth_desc": "Learning budget, mentoring and career path.",
+      "values_title": "Value Alignment",
+      "values_desc": "Personal fit with culture and meaning.",
+      "penalty_label": "Score calculation:",
+      "penalty_desc": "Overall JHI is the average of the five pillars shown in the chart. Weights are already reflected in the pillar values, with no hidden penalties."
+    }
   },
   "job": {
     "jhi_score": "JHI Score",

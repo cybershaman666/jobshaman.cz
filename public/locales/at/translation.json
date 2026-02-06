@@ -348,7 +348,23 @@
     "label_mental": "Psyche",
     "label_growth": "Entwicklung",
     "label_values": "Werte",
-    "series_score": "Score"
+    "series_score": "Score",
+    "methodology": {
+      "title": "Shaman-Formel V1.2",
+      "info_button": "Wie wird es berechnet?",
+      "financial_title": "Finanzielle Realität",
+      "financial_desc": "Gehalt, Boni, Transparenz und Bandbreite der Angebote.",
+      "time_title": "Zeitbudget",
+      "time_desc": "Beschäftigungsmodell, Remote/Hybrid und Zeitverlust durch Pendeln.",
+      "mental_title": "Psychisches Wohlbefinden",
+      "mental_desc": "Toxizität der Anzeige, Stressfaktoren und Gesundheitsförderung.",
+      "growth_title": "Wachstum",
+      "growth_desc": "Weiterbildungsbudget, Mentoring und Karrierepfad.",
+      "values_title": "Werte-Fit",
+      "values_desc": "Persönliche Passung zu Kultur und Sinn.",
+      "penalty_label": "Score-Berechnung:",
+      "penalty_desc": "Der JHI-Gesamtscore ist der Durchschnitt der fünf Säulen im Chart. Die Gewichte sind bereits in den Säulenwerten enthalten, ohne versteckte Abzüge."
+    }
   },
   "job": {
     "jhi_score": "JHI-Score",
