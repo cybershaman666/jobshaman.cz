@@ -744,6 +744,13 @@ export const fetchJobsWithFilters = async (
         });
 
         if (error) {
+            // Postgres statement timeout (57014) - fall back to simpler query
+            if ((error as any)?.code === '57014') {
+                console.warn('⏱️ Filtered jobs query timed out. Falling back to basic pagination.');
+                const fallbackCountry = countryCodes && countryCodes.length === 1 ? countryCodes[0] : undefined;
+                return await fetchJobsPaginatedFallback(page, pageSize, finalUserLat, finalUserLng, radiusKm, fallbackCountry);
+            }
+
             console.error('❌ Error fetching filtered jobs:', error);
             return { jobs: [], hasMore: false, totalCount: 0 };
         }
@@ -797,7 +804,12 @@ export const fetchJobsWithFilters = async (
             totalCount
         };
 
-    } catch (e) {
+    } catch (e: any) {
+        if (e?.code === '57014') {
+            console.warn('⏱️ Filtered jobs query timed out (exception). Falling back to basic pagination.');
+            const fallbackCountry = countryCodes && countryCodes.length === 1 ? countryCodes[0] : undefined;
+            return await fetchJobsPaginatedFallback(page, pageSize, finalUserLat, finalUserLng, radiusKm, fallbackCountry);
+        }
         console.error("Error in fetchJobsWithFilters:", e);
         return { jobs: [], hasMore: false, totalCount: 0 };
     }

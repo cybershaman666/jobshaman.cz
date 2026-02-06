@@ -122,7 +122,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         if (isLoadMore) setLoadingMore(true);
 
         try {
-            const { fetchJobsWithFilters } = await import('../services/jobService');
+            const { fetchJobsWithFilters, fetchJobsPaginated } = await import('../services/jobService');
 
             // Only use coordinates if we are doing a commute filter or proximity sort
             let lat = userProfile.coordinates?.lat;
@@ -147,6 +147,39 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                     lat = cityCoords.lat;
                     lon = cityCoords.lon;
                 }
+            }
+
+            const hasAnyFilters =
+                !!searchTerm ||
+                !!filterCity ||
+                filterContractType.length > 0 ||
+                filterBenefits.length > 0 ||
+                !!filterMinSalary ||
+                filterDate !== 'all' ||
+                filterExperience.length > 0 ||
+                enableCommuteFilter ||
+                sortBy !== 'default';
+
+            if (!hasAnyFilters) {
+                const singleCountry = (!globalSearch && countryCodes.length === 1) ? countryCodes[0] : undefined;
+                const basicResult = await fetchJobsPaginated(
+                    page,
+                    initialPageSize,
+                    undefined,
+                    undefined,
+                    50,
+                    singleCountry
+                );
+
+                if (isLoadMore) {
+                    setJobs(prev => sortJobs(dedupeJobs(basicResult.jobs, prev)));
+                } else {
+                    setJobs(sortJobs(basicResult.jobs));
+                }
+
+                setHasMore(basicResult.hasMore);
+                setTotalCount(basicResult.totalCount || 0);
+                return;
             }
 
             const result = await fetchJobsWithFilters({
