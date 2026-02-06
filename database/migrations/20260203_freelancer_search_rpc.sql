@@ -34,13 +34,21 @@ RETURNS TABLE(
   distance_m double precision
 ) LANGUAGE sql STABLE AS $$
 SELECT f.id, f.headline, f.bio, f.presentation, f.hourly_rate, f.currency, f.skills, f.tags, f.portfolio, f.work_type, f.availability, f.address, f.lat, f.lng, f.website, f.contact_email, f.contact_phone, f.created_at, f.updated_at,
-  ST_Distance(f.geom, ST_SetSRID(ST_MakePoint(p_lng, p_lat),4326)) as distance_m
+  ST_DistanceSphere(
+    ST_SetSRID(ST_MakePoint(f.lng, f.lat), 4326),
+    ST_SetSRID(ST_MakePoint(p_lng, p_lat), 4326)
+  ) as distance_m
 FROM public.freelancer_profiles f
 WHERE
-  (p_skills IS NULL OR array_length(p_skills,1) IS NULL OR p_skills = '{}' OR f.skills @> p_skills)
+  f.lat IS NOT NULL AND f.lng IS NOT NULL
+  AND (p_skills IS NULL OR array_length(p_skills,1) IS NULL OR p_skills = '{}' OR f.skills @> p_skills)
   AND (p_work_type IS NULL OR p_work_type = '' OR f.work_type = p_work_type)
   AND (p_q IS NULL OR p_q = '' OR (f.headline ILIKE '%'||p_q||'%' OR f.bio ILIKE '%'||p_q||'%' OR f.presentation ILIKE '%'||p_q||'%'))
-  AND ST_DWithin(f.geom, ST_SetSRID(ST_MakePoint(p_lng,p_lat),4326), p_radius_m)
+  AND ST_DWithin(
+    ST_SetSRID(ST_MakePoint(f.lng, f.lat), 4326)::geography,
+    ST_SetSRID(ST_MakePoint(p_lng, p_lat), 4326)::geography,
+    p_radius_m
+  )
 ORDER BY distance_m ASC
 LIMIT p_limit OFFSET p_offset;
 $$;
