@@ -333,6 +333,10 @@ export default function App() {
                 if (session) {
                     // Only restore if we have a valid session and it's a meaningful event
                     if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+                        if (event === 'SIGNED_IN') {
+                            // Ensure auth modal doesn't block onboarding/dashboard
+                            setIsAuthModalOpen(false);
+                        }
                         handleSessionRestoration(session.user.id);
                     }
                 } else if (event === 'SIGNED_OUT') {
