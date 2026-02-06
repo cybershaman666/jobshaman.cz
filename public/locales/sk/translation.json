@@ -24,7 +24,8 @@
     "beta_description": "Beta verzia - môže obsahovať chyby",
     "found_jobs": "Nájdených {{count}} ponúk",
     "share": "Zdieľať",
-    "link_copied": "Odkaz skopírovaný!"
+    "link_copied": "Odkaz skopírovaný!",
+    "back_to_top": "Na vrch"
   },
   "filters": {
     "location_commute": "Lokalita a Dojazd",

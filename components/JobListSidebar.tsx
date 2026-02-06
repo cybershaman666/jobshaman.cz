@@ -11,7 +11,8 @@ import {
     ChevronUp,
     CheckCircle,
     RefreshCw,
-    Globe
+    Globe,
+    ArrowUp
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { FilterSuggestions } from './FilterSuggestions';
@@ -107,6 +108,9 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     setGlobalSearch
 }) => {
     const { t } = useTranslation();
+    const handleScrollToTop = () => {
+        jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+    };
 
     return (
         <section className={`lg:col-span-4 xl:col-span-3 flex flex-col gap-4 min-h-0 ${selectedJobId ? 'hidden lg:flex' : 'flex'} h-full`}>
@@ -496,6 +500,16 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                 <p className="text-xs">Načítám další nabídky...</p>
                             </div>
                         )}
+                    </div>
+
+                    <div className="sticky bottom-3 mt-6 flex justify-center">
+                        <button
+                            onClick={handleScrollToTop}
+                            className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-900 text-white text-xs font-bold shadow-lg shadow-slate-900/20 hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white transition-colors"
+                        >
+                            <ArrowUp size={14} />
+                            {t('app.back_to_top') || 'Nahoru'}
+                        </button>
                     </div>
                 </div>
             </div>
