@@ -1,5 +1,6 @@
 // Updated Supabase service functions for new paywall schema
 import { supabase } from './supabaseClient';
+import { calculateDistanceKm } from './commuteService';
 import { geocodeWithCaching } from './geocodingService';
 export { supabase };
 import { UserProfile, CompanyProfile, CVDocument } from '../types';
@@ -1452,8 +1453,43 @@ export const searchFreelancers = async (opts: {
             });
 
             if (error) {
-                console.error('RPC freelancer_search_nearby error:', error);
-                return [];
+                const isMissingRpc = (error as any)?.code === 'PGRST202'
+                    || (error as any)?.message?.includes('Could not find the function public.freelancer_search_nearby');
+                if (!isMissingRpc) {
+                    console.error('RPC freelancer_search_nearby error:', error);
+                    return [];
+                }
+                console.warn('RPC freelancer_search_nearby missing. Falling back to non-geo search.');
+
+                // Fallback: basic query + client-side distance filtering
+                const maxFetch = Math.max(limit * 3, 100);
+                let query = supabase
+                    .from('freelancer_profiles')
+                    .select('id,headline,bio,presentation,hourly_rate,currency,skills,tags,work_type,lat,lng,website,contact_email')
+                    .limit(maxFetch)
+                    .offset(0);
+
+                if (q) query = query.ilike('headline', `%${q}%`);
+                if (skills && skills.length > 0) query = query.contains('skills', skills);
+                if (tags && tags.length > 0) query = query.contains('tags', tags);
+                if (work_type) query = query.eq('work_type', work_type);
+
+                const { data: fallbackData, error: fallbackError } = await query;
+                if (fallbackError) {
+                    console.error('searchFreelancers fallback query error:', fallbackError);
+                    return [];
+                }
+
+                const filtered = (fallbackData || [])
+                    .map((row: any) => {
+                        if (row.lat == null || row.lng == null) return null;
+                        const distanceKm = calculateDistanceKm(location.lat, location.lng, row.lat, row.lng);
+                        return { ...row, distance_m: distanceKm * 1000 };
+                    })
+                    .filter((row: any) => row && row.distance_m <= radius)
+                    .sort((a: any, b: any) => a.distance_m - b.distance_m);
+
+                return filtered.slice(0, limit);
             }
 
             return data || [];

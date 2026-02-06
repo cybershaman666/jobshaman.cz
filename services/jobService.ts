@@ -686,9 +686,10 @@ export const fetchJobsWithFilters = async (
         searchTerm
     } = options;
 
+    let finalUserLat = userLat;
+    let finalUserLng = userLng;
+
     try {
-        let finalUserLat = userLat;
-        let finalUserLng = userLng;
 
         // If city filter is provided but no coordinates, try to geocode
         if (filterCity && filterCity.trim() && (!userLat || !userLng)) {
