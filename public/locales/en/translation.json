@@ -22,7 +22,8 @@
     "beta_description": "Beta version - may contain mistakes",
     "found_jobs": "Found {{count}} offers",
     "share": "Share",
-    "link_copied": "Link copied!"
+    "link_copied": "Link copied!",
+    "back_to_top": "Back to top"
   },
   "filters": {
     "location_commute": "Location & Commute",
