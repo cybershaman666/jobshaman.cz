@@ -166,7 +166,6 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                 <option value="de">Deutsch</option>
                                 <option value="pl">Polski</option>
                                 <option value="uk">Українська</option>
-                                <option value="ru">Русский</option>
                             </select>
                         </div>
 
