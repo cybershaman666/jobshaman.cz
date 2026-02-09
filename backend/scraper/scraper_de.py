@@ -335,7 +335,7 @@ class GermanyScraper(BaseScraper):
                 if save_job_to_supabase(self.supabase, job_data):
                     jobs_saved += 1
                 
-                time.sleep(0.5)
+                time.sleep(3)
 
             except Exception as e:
                 print(f"       ❌ Chyba detailu {url}: {e}")
@@ -699,7 +699,7 @@ class GermanyScraper(BaseScraper):
                 if save_job_to_supabase(self.supabase, job_data):
                     jobs_saved += 1
                 
-                time.sleep(0.3)
+                time.sleep(3)
                 
             except Exception as e:
                 print(f"       ❌ Chyba: {e}")
@@ -1084,7 +1084,7 @@ class GermanyScraper(BaseScraper):
                 if save_job_to_supabase(self.supabase, job_data):
                     jobs_saved += 1
 
-                time.sleep(0.4)
+                time.sleep(3)
 
             except Exception as e:
                 print(f"       ❌ Chyba detailu {url}: {e}")
@@ -1123,19 +1123,19 @@ def run_germany_scraper():
             'name': 'Stellenanzeigen.de',
             # Full market (no keyword filter)
             'base_url': 'https://www.stellenanzeigen.de/suche/?q=',
-            'max_pages': 50
+            'max_pages': 10
         },
         {
             'name': 'Karriere.at',
             # Full market listing
             'base_url': 'https://www.karriere.at/jobs?focusResults=true&page={page}',
-            'max_pages': 50
+            'max_pages': 10
         },
         {
             'name': 'Willhaben.at',
             # Full market listing
             'base_url': 'https://www.willhaben.at/jobs/suche',
-            'max_pages': 50
+            'max_pages': 10
         }
     ]
     

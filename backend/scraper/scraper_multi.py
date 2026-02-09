@@ -44,6 +44,14 @@ SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 print(f"   SUPABASE_URL: {'✅ NAČTENO' if SUPABASE_URL else '❌ CHYBÍ'}")
 print(f"   SUPABASE_SERVICE_KEY: {'✅ NAČTENO' if SUPABASE_SERVICE_KEY else '❌ CHYBÍ'}")
 
+def _get_page_cap(default: int = 10):
+    raw = os.getenv("SCRAPER_MAX_PAGES", str(default)).strip()
+    try:
+        cap = int(raw)
+    except ValueError:
+        cap = default
+    return cap if cap > 0 else None
+
 
 def get_supabase_client():
     if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
@@ -1217,7 +1225,11 @@ def scrape_website(site_name, base_url, max_pages=10):
     if not scraper_func:
         print(f"❌ Nepodporovaný web: {site_name}")
         return 0
-    for page_num in range(1, max_pages + 1):
+    cap = _get_page_cap()
+    effective_max_pages = min(max_pages, cap) if cap else max_pages
+    if effective_max_pages != max_pages:
+        print(f"   ℹ️ Omezení stránek: {max_pages} → {effective_max_pages} (SCRAPER_MAX_PAGES={cap})")
+    for page_num in range(1, effective_max_pages + 1):
         url = (
             f"{base_url}&page={page_num}"
             if site_name == "jobs.cz"
@@ -1230,7 +1242,7 @@ def scrape_website(site_name, base_url, max_pages=10):
         total_saved += jobs
         if jobs == 0:
             break
-        time.sleep(2)
+        time.sleep(3)
     print(f"Scrapování {site_name} dokončeno. Celkem {total_saved}.")
     return total_saved
 
@@ -1257,17 +1269,17 @@ def run_all_scrapers():
         {
             "name": "jobs.cz",
             "base_url": "https://www.jobs.cz/prace/?language-skill=cs",
-            "max_pages": 15,
+            "max_pages": 10,
         },
         {
             "name": "prace.cz",
             "base_url": "https://www.prace.cz/nabidky",
-            "max_pages": 15,
+            "max_pages": 10,
         },
         {
             "name": "jenprace.cz",
             "base_url": "https://www.jenprace.cz/nabidky",
-            "max_pages": 15,
+            "max_pages": 10,
         },
     ]
 
