@@ -180,7 +180,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
 
                     return (
                       <div
-                        key={scenario.label}
+                        key={`${scenario.type}-${scenario.distanceKm}`}
                         className={`absolute inset-0 transition-all duration-700 ${idx === activeScenario ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-6 pointer-events-none'}`}
                       >
                         <div className="grid grid-cols-1 md:grid-cols-2">
