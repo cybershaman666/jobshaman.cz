@@ -28,24 +28,25 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Middlewares
 raw_origins = os.getenv("ALLOWED_ORIGINS")
-ALLOWED_ORIGINS = (
-    [o.strip() for o in raw_origins.split(",") if o.strip()]
-    if raw_origins
-    else [
-        "https://jobshaman.cz",
-        "https://jobshaman.com",
-        "https://www.jobshaman.cz",
-        "https://www.jobshaman.com",
-        "https://jobshaman-api.onrender.com",
-        "https://jobshaman-cz.onrender.com",
-        "http://localhost:3000",
-        "http://localhost:5173",
-    ]
-)
+base_origins = [
+    "https://jobshaman.cz",
+    "https://jobshaman.com",
+    "https://www.jobshaman.cz",
+    "https://www.jobshaman.com",
+    "https://jobshaman-api.onrender.com",
+    "https://jobshaman-cz.onrender.com",
+    "http://localhost:3000",
+    "http://localhost:5173",
+]
+ALLOWED_ORIGINS = [o.strip() for o in raw_origins.split(",") if o.strip()] if raw_origins else []
+for origin in base_origins:
+    if origin not in ALLOWED_ORIGINS:
+        ALLOWED_ORIGINS.append(origin)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
+    allow_origin_regex=r"^https?://(www\\.)?jobshaman\\.(cz|com)$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

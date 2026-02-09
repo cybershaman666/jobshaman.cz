@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { UserProfile } from '../types';
-import { getAdminNotifications, getAdminSubscriptionAudit, getAdminSubscriptions, updateAdminSubscription } from '../services/adminService';
+import { adminSearch, getAdminNotifications, getAdminStats, getAdminSubscriptionAudit, getAdminSubscriptions, updateAdminSubscription } from '../services/adminService';
 
 interface AdminDashboardProps {
   userProfile: UserProfile;
@@ -25,10 +25,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const [loading, setLoading] = useState(false);
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [loadingAudit, setLoadingAudit] = useState(false);
+  const [loadingStats, setLoadingStats] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
   const [selectedSub, setSelectedSub] = useState<any | null>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
+  const [stats, setStats] = useState<any | null>(null);
+  const [searchKind, setSearchKind] = useState<'company' | 'user'>('company');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   const [filters, setFilters] = useState({
     q: '',
@@ -106,6 +112,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     }
   };
 
+  const loadStats = async () => {
+    setLoadingStats(true);
+    try {
+      const data = await getAdminStats();
+      setStats(data);
+    } catch (err) {
+      setStats(null);
+    } finally {
+      setLoadingStats(false);
+    }
+  };
+
   const loadAudit = async (subscriptionId: string) => {
     setLoadingAudit(true);
     try {
@@ -122,6 +140,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     if (userProfile?.isLoggedIn) {
       loadSubscriptions();
       loadNotifications();
+      loadStats();
     }
   }, [filters.q, filters.tier, filters.status, filters.kind, filters.limit, filters.offset, userProfile?.isLoggedIn]);
 
@@ -232,6 +251,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       await loadNotifications();
     } catch (err: any) {
       setError(err?.message || 'Vytvoření selhalo');
+    }
+  };
+
+  const handleSearch = async () => {
+    if (searchQuery.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      const data = await adminSearch(searchQuery.trim(), searchKind);
+      setSearchResults(data.items || []);
+    } catch (err) {
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
     }
   };
 
@@ -362,6 +397,98 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               >
                 Vytvořit / upravit
               </button>
+            </div>
+            <div className="mt-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+              <div className="flex flex-wrap items-center gap-3">
+                <select
+                  value={searchKind}
+                  onChange={e => setSearchKind(e.target.value as 'company' | 'user')}
+                  className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900"
+                >
+                  <option value="company">Hledat firmu</option>
+                  <option value="user">Hledat uživatele</option>
+                </select>
+                <input
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Název firmy, jméno nebo email..."
+                  className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 flex-1 min-w-[220px]"
+                />
+                <button
+                  onClick={handleSearch}
+                  className="px-3 py-2 rounded-lg text-sm border border-slate-200 dark:border-slate-800"
+                >
+                  Vyhledat
+                </button>
+              </div>
+              {searchLoading && (
+                <div className="text-xs text-slate-500 mt-2">Hledám...</div>
+              )}
+              {searchResults.length > 0 && (
+                <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {searchResults.map(item => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setCreateForm(prev => ({
+                          ...prev,
+                          target_type: item.kind,
+                          target_id: item.id
+                        }));
+                      }}
+                      className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
+                    >
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white">{item.label}</div>
+                      <div className="text-xs text-slate-500">{item.secondary || item.id}</div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+            <div className="text-xs text-slate-500">Uživatelé celkem</div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+              {loadingStats ? '…' : stats?.users?.total ?? '—'}
+            </div>
+            <div className="text-xs text-slate-500 mt-1">+ {stats?.users?.new_7d ?? '—'} za 7 dní</div>
+          </div>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+            <div className="text-xs text-slate-500">Uživatelé 30 dní</div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+              {loadingStats ? '…' : stats?.users?.new_30d ?? '—'}
+            </div>
+            <div className="text-xs text-slate-500 mt-1">Noví za 30 dní</div>
+          </div>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+            <div className="text-xs text-slate-500">Firmy celkem</div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+              {loadingStats ? '…' : stats?.companies?.total ?? '—'}
+            </div>
+            <div className="text-xs text-slate-500 mt-1">+ {stats?.companies?.new_7d ?? '—'} za 7 dní</div>
+          </div>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+            <div className="text-xs text-slate-500">Firmy 30 dní</div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+              {loadingStats ? '…' : stats?.companies?.new_30d ?? '—'}
+            </div>
+            <div className="text-xs text-slate-500 mt-1">
+              Nové firmy za 30 dní
+            </div>
+          </div>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+            <div className="text-xs text-slate-500">Konverze na placené</div>
+            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+              {loadingStats ? '…' : `${stats?.conversion?.company_paid_percent ?? '—'}%`}
+            </div>
+            <div className="text-xs text-slate-500 mt-1">
+              Firmy {stats?.conversion?.paid_companies ?? '—'} / {stats?.companies?.total ?? '—'}
+            </div>
+            <div className="text-xs text-slate-500 mt-1">
+              Uživatelé {stats?.conversion?.user_paid_percent ?? '—'}%
             </div>
           </div>
         </div>

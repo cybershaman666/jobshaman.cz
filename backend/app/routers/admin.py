@@ -148,6 +148,88 @@ async def list_subscriptions(
         "offset": offset,
     }
 
+@router.get("/admin/search")
+async def admin_search(
+    request: Request,
+    user: dict = Depends(get_current_user),
+    query: str = Query(..., min_length=2),
+    kind: str = Query("company"),
+    limit: int = Query(10, ge=1, le=25),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+    safe_q = _safe_query(query)
+    if not safe_q:
+        return {"items": []}
+
+    if kind == "user":
+        resp = supabase.table("profiles").select("id, email, full_name, role").or_(f"email.ilike.%{safe_q}%,full_name.ilike.%{safe_q}%").limit(limit).execute()
+        items = [
+            {
+                "id": r.get("id"),
+                "label": r.get("full_name") or r.get("email") or r.get("id"),
+                "secondary": r.get("email"),
+                "kind": "user",
+            }
+            for r in (resp.data or [])
+        ]
+        return {"items": items}
+
+    resp = supabase.table("companies").select("id, name, industry").ilike("name", f"%{safe_q}%").limit(limit).execute()
+    items = [
+        {
+            "id": r.get("id"),
+            "label": r.get("name") or r.get("id"),
+            "secondary": r.get("industry"),
+            "kind": "company",
+        }
+        for r in (resp.data or [])
+    ]
+    return {"items": items}
+
+@router.get("/admin/stats")
+async def admin_stats(
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    now = datetime.now(timezone.utc)
+    last_7 = (now - timedelta(days=7)).isoformat()
+    last_30 = (now - timedelta(days=30)).isoformat()
+
+    # Users
+    users_total = supabase.table("profiles").select("id", count="exact").execute().count or 0
+    users_7 = supabase.table("profiles").select("id", count="exact").gte("created_at", last_7).execute().count or 0
+    users_30 = supabase.table("profiles").select("id", count="exact").gte("created_at", last_30).execute().count or 0
+
+    # Companies
+    companies_total = supabase.table("companies").select("id", count="exact").execute().count or 0
+    companies_7 = supabase.table("companies").select("id", count="exact").gte("created_at", last_7).execute().count or 0
+    companies_30 = supabase.table("companies").select("id", count="exact").gte("created_at", last_30).execute().count or 0
+
+    # Paid conversion (company)
+    paid_company = supabase.table("subscriptions").select("id", count="exact").neq("tier", "free").in_("status", ["active", "trialing"]).not_.is_("company_id", "null").execute().count or 0
+    company_conversion = (paid_company / companies_total * 100) if companies_total else 0
+
+    # Paid conversion (user)
+    paid_user = supabase.table("subscriptions").select("id", count="exact").neq("tier", "free").in_("status", ["active", "trialing"]).not_.is_("user_id", "null").execute().count or 0
+    user_conversion = (paid_user / users_total * 100) if users_total else 0
+
+    return {
+        "users": {"total": users_total, "new_7d": users_7, "new_30d": users_30},
+        "companies": {"total": companies_total, "new_7d": companies_7, "new_30d": companies_30},
+        "conversion": {
+            "company_paid_percent": round(company_conversion, 2),
+            "user_paid_percent": round(user_conversion, 2),
+            "paid_companies": paid_company,
+            "paid_users": paid_user,
+        }
+    }
+
 @router.get("/admin/notifications")
 async def admin_notifications(
     request: Request,
