@@ -263,7 +263,7 @@ class PolandScraper(BaseScraper):
                 if save_job_to_supabase(self.supabase, job_data):
                     jobs_saved += 1
 
-                time.sleep(0.2)
+                time.sleep(3)
 
             except Exception as e:
                 print(f"       ❌ Chyba u nabídky: {e}")
@@ -361,7 +361,7 @@ class PolandScraper(BaseScraper):
                         continue
                     
                     # Praca.pl is rate-limited; slow down before detail fetch
-                    time.sleep(1.0)
+                    time.sleep(3)
 
                     # fetch detail for full description when possible
                     detail_soup = scrape_page(url, max_retries=4)
@@ -525,7 +525,7 @@ class PolandScraper(BaseScraper):
                     if save_job_to_supabase(self.supabase, job_data):
                         jobs_saved += 1
 
-                    time.sleep(0.2)
+                    time.sleep(3)
 
             except Exception as e:
                 print(f"       ❌ Chyba u Praca.pl nabídky: {e}")
@@ -747,7 +747,7 @@ class PolandScraper(BaseScraper):
                     if save_job_to_supabase(self.supabase, job_data):
                         jobs_saved += 1
                         
-                    time.sleep(0.2)
+                    time.sleep(3)
                     
                 except Exception as e:
                     print(f"       ❌ Chyba u NoFluff nabídky: {e}")
@@ -857,7 +857,7 @@ class PolandScraper(BaseScraper):
                 if save_job_to_supabase(self.supabase, job_data):
                     jobs_saved += 1
                 
-                time.sleep(0.3)
+                time.sleep(3)
                 
             except Exception as e:
                 print(f"       ❌ Chyba: {e}")
@@ -875,19 +875,19 @@ def run_poland_scraper():
             'name': 'Pracuj.pl',
             # Full market (no keyword filter)
             'base_url': 'https://www.pracuj.pl/praca?pn={page}',
-            'max_pages': 30
+            'max_pages': 10
         },
         {
             'name': 'Praca.pl',
             # Full market listing
             'base_url': 'https://www.praca.pl/oferty-pracy.html',
-            'max_pages': 20
+            'max_pages': 10
         },
         {
             'name': 'NoFluffJobs',
             # Full market listing
             'base_url': 'https://nofluffjobs.com/pl/jobs?page={page}',
-            'max_pages': 20
+            'max_pages': 10
         },
         # {
         #     'name': 'JustJoin.it',

@@ -49,6 +49,17 @@ SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
 print(f"   SUPABASE_URL: {'✅ NAČTENO' if SUPABASE_URL else '❌ CHYBÍ'}")
 print(f"   SUPABASE_SERVICE_KEY: {'✅ NAČTENO' if SUPABASE_SERVICE_KEY else '❌ CHYBÍ'}")
 
+def _get_page_cap(default: int = 10) -> Optional[int]:
+    """
+    Read global max-pages cap from env. Return None if disabled or invalid.
+    """
+    raw = os.getenv("SCRAPER_MAX_PAGES", str(default)).strip()
+    try:
+        cap = int(raw)
+    except ValueError:
+        cap = default
+    return cap if cap > 0 else None
+
 
 # --- Supabase Client Initialization ---
 
@@ -717,12 +728,16 @@ class BaseScraper:
         """
         total_saved = 0
         consecutive_zero_pages = 0
+        cap = _get_page_cap()
+        effective_max_pages = min(max_pages, cap) if cap else max_pages
+        if effective_max_pages != max_pages:
+            print(f"   ℹ️ Omezení stránek: {max_pages} → {effective_max_pages} (SCRAPER_MAX_PAGES={cap})")
         
-        for page_num in range(1, max_pages + 1):
+        for page_num in range(1, effective_max_pages + 1):
             # Build page URL (different sites use different pagination formats)
             url = build_page_url(base_url, page_num)
             
-            print(f"\n📄 Scrapuji stránku {page_num}/{max_pages}: {url}")
+            print(f"\n📄 Scrapuji stránku {page_num}/{effective_max_pages}: {url}")
             
             soup = scrape_page(url)
             if not soup:
@@ -745,7 +760,7 @@ class BaseScraper:
                 consecutive_zero_pages = 0
             
             # Rate limiting between pages
-            time.sleep(2)
+            time.sleep(3)
         
         print(f"\n✅ Scrapování {site_name} dokončeno. Celkem uloženo: {total_saved}")
         return total_saved

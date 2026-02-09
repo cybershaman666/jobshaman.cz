@@ -688,7 +688,7 @@ def run_slovakia_scraper():
         {
             'name': 'Profesia.sk',
             'base_url': 'https://www.profesia.sk/praca/?page_num=1',
-            'max_pages': 15
+            'max_pages': 10
         },
         {
             'name': 'Kariera.sk',

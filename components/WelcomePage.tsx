@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, TrendingUp, Eye, CheckCircle, Heart, Target, Brain, BarChart3, Zap, Smartphone } from 'lucide-react';
+import { MapPin, Clock, TrendingUp, Eye, CheckCircle, Heart, Target, Brain, BarChart3, Zap, Smartphone, Wallet, Home, Calculator, Navigation } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getJobCount } from '../services/jobService';
 import BlogSection from './BlogSection';
@@ -19,7 +19,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   handleBlogPostSelect
 }) => {
   const { t } = useTranslation();
-  const [activeMetric, setActiveMetric] = useState(0);
+  const [activeScenario, setActiveScenario] = useState(0);
   const [jobCount, setJobCount] = useState<number | null>(null);
 
   useEffect(() => {
@@ -38,10 +38,37 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
 
   React.useEffect(() => {
     const interval = setInterval(() => {
-      setActiveMetric((prev) => (prev + 1) % 4);
-    }, 4000);
+      setActiveScenario((prev) => (prev + 1) % 2);
+    }, 5200);
     return () => clearInterval(interval);
   }, []);
+
+  const formatCurrency = (amount: number) => `${amount.toLocaleString('cs-CZ')} Kč`;
+
+  const showcaseScenarios = [
+    {
+      label: 'Home office',
+      headline: 'Nižší hrubá mzda, vyšší realita',
+      grossMonthly: 35000,
+      estimatedTax: 8000,
+      benefitsMonthly: 4200,
+      commuteCost: 0,
+      dailyMinutes: 0,
+      distanceKm: 0,
+      finalRealMonthly: 31200
+    },
+    {
+      label: 'Dojíždění 25 km',
+      headline: 'Vyšší hrubá mzda, nižší realita',
+      grossMonthly: 40000,
+      estimatedTax: 9200,
+      benefitsMonthly: 1200,
+      commuteCost: 5200,
+      dailyMinutes: 75,
+      distanceKm: 25,
+      finalRealMonthly: 26800
+    }
+  ];
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -78,65 +105,143 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
             </div>
           </div>
 
-          {/* Right column: Graphics - Animated Value Prop Carousel */}
+          {/* Right column: Financial & Commute Reality Showcase */}
           <div className="flex justify-center items-center">
-            <div className="relative w-full max-w-sm">
+            <div className="relative w-full max-w-xl">
               {/* Decorative elements behind */}
               <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-400/20 rounded-full blur-3xl -z-10"></div>
               <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-400/20 rounded-full blur-3xl -z-10"></div>
 
-              <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-8 shadow-2xl transition-all duration-500 min-h-[320px] flex flex-col justify-between relative overflow-hidden group hover:border-cyan-400/50 dark:hover:border-cyan-600/50">
-
-                {/* Progress Indicators */}
-                <div className="flex justify-center gap-2 mb-6">
-                  {[0, 1, 2, 3].map((idx) => (
-                    <div
-                      key={idx}
-                      className={`h-1.5 rounded-full transition-all duration-300 ${idx === activeMetric
-                        ? 'w-8 bg-cyan-600 dark:bg-cyan-400'
-                        : 'w-2 bg-slate-200 dark:bg-slate-800'
-                        }`}
-                    />
-                  ))}
+              <div className="bg-[#1e293b] text-slate-200 rounded-2xl overflow-hidden shadow-2xl border border-slate-700 relative">
+                <div className="p-6 border-b border-slate-700 flex justify-between items-start">
+                  <div>
+                    <h3 className="text-white text-lg font-bold flex items-center gap-2">
+                      <Wallet className="text-emerald-400" size={20} /> Finanční a dojezdová realita
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-1">
+                      I nižší hrubá mzda může vycházet finančně lépe.
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">SCÉNÁŘ</div>
+                    <div className="text-sm font-bold text-white">{showcaseScenarios[activeScenario].label}</div>
+                  </div>
                 </div>
 
-                {/* Carousel Content */}
-                <div className="flex-1 flex flex-col items-center text-center justify-center relative">
-                  {/* Item 0: JHI */}
-                  <div className={`transition-all duration-500 absolute inset-0 flex flex-col items-center justify-center ${activeMetric === 0 ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}>
-                    <div className="w-20 h-20 bg-rose-100 dark:bg-rose-900/30 rounded-full flex items-center justify-center mb-6 ring-4 ring-rose-50 dark:ring-rose-900/10">
-                      <Heart className="w-10 h-10 text-rose-600 dark:text-rose-400" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{t('welcome.benefits_carousel.jhi_title')}</h3>
-                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed max-w-[250px]">{t('welcome.benefits_carousel.jhi_desc')}</p>
-                  </div>
+                <div className="relative min-h-[380px] md:min-h-[340px]">
+                  {showcaseScenarios.map((scenario, idx) => {
+                    const otherScenario = showcaseScenarios[idx === 0 ? 1 : 0];
+                    const diff = scenario.finalRealMonthly - otherScenario.finalRealMonthly;
+                    const diffLabel = `${diff > 0 ? '+' : ''}${formatCurrency(diff)}`;
 
-                  {/* Item 1: Salary */}
-                  <div className={`transition-all duration-500 absolute inset-0 flex flex-col items-center justify-center ${activeMetric === 1 ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}>
-                    <div className="w-20 h-20 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mb-6 ring-4 ring-emerald-50 dark:ring-emerald-900/10">
-                      <TrendingUp className="w-10 h-10 text-emerald-600 dark:text-emerald-400" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{t('welcome.benefits_carousel.salary_title')}</h3>
-                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed max-w-[250px]">{t('welcome.benefits_carousel.salary_desc')}</p>
-                  </div>
+                    return (
+                      <div
+                        key={scenario.label}
+                        className={`absolute inset-0 transition-all duration-700 ${idx === activeScenario ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-6 pointer-events-none'}`}
+                      >
+                        <div className="grid grid-cols-1 md:grid-cols-2">
+                          <div className="p-6 md:border-r border-slate-700 flex flex-col justify-center">
+                            {scenario.distanceKm === 0 ? (
+                              <div className="text-center py-2">
+                                <Home size={40} className="text-emerald-400 mx-auto mb-3 opacity-80" />
+                                <h4 className="text-white font-bold text-lg mb-1">Home office</h4>
+                                <div className="text-emerald-400 text-sm font-medium mb-2">
+                                  Úspora za dojíždění
+                                </div>
+                                <div className="text-xs text-emerald-400 mb-3 text-center">
+                                  <div className="flex items-center gap-1 justify-center">
+                                    <span className="text-green-400">🏠</span>
+                                    <div>
+                                      <div>0 Kč / 0 min</div>
+                                      <div>Čas i peníze zůstávají vám.</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ) : (
+                              <>
+                                <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+                                  <MapPin size={12} /> Dojezdová realita
+                                </h4>
+                                <div className="relative h-12 mb-6">
+                                  <div className="absolute top-2 left-0 right-0 flex justify-between text-[10px] font-bold text-slate-400 uppercase">
+                                    <span>Domov</span>
+                                    <span>Práce</span>
+                                  </div>
+                                  <div className="absolute top-6 left-0 right-0 h-1.5 bg-slate-900/50 rounded-full overflow-hidden">
+                                    <div className="h-full bg-gradient-to-r from-emerald-500 to-rose-500" style={{ width: '42%' }}></div>
+                                  </div>
+                                  <div className="absolute top-4 p-1.5 bg-slate-600 border border-slate-500 rounded-full text-white shadow-md transition-all" style={{ left: '42%', transform: 'translateX(-50%)' }}>
+                                    <Navigation size={14} />
+                                  </div>
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                  <div>
+                                    <div className="text-2xl font-mono text-white font-light flex items-center gap-2">
+                                      <Clock size={20} className="text-slate-400" /> {scenario.dailyMinutes}
+                                      <span className="text-sm text-slate-400 font-sans font-bold">min</span>
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 mt-1">denně</div>
+                                  </div>
+                                  <div>
+                                    <div className="text-2xl font-mono text-white font-light">
+                                      {scenario.distanceKm} <span className="text-sm text-slate-400 font-sans font-bold">km</span>
+                                    </div>
+                                    <div className="text-[10px] text-slate-400 mt-1">jedna cesta</div>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </div>
 
-                  {/* Item 2: Commute */}
-                  <div className={`transition-all duration-500 absolute inset-0 flex flex-col items-center justify-center ${activeMetric === 2 ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}>
-                    <div className="w-20 h-20 bg-blue-100 dark:bg-blue-900/30 rounded-full flex items-center justify-center mb-6 ring-4 ring-blue-50 dark:ring-blue-900/10">
-                      <Clock className="w-10 h-10 text-blue-600 dark:text-blue-400" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{t('welcome.benefits_carousel.commute_title')}</h3>
-                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed max-w-[250px]">{t('welcome.benefits_carousel.commute_desc')}</p>
-                  </div>
+                          <div className="p-6 bg-slate-900/30 flex flex-col">
+                            <div className="flex-1">
+                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+                                <Calculator size={12} /> Realita vs. mzda
+                              </h4>
+                              <div className="space-y-1 text-sm font-mono">
+                                <div className="flex justify-between text-slate-300">
+                                  <span>Hrubá mzda</span>
+                                  <span>{formatCurrency(scenario.grossMonthly)}</span>
+                                </div>
+                                <div className="flex justify-between text-rose-300 text-xs">
+                                  <span>- Daně a pojištění</span>
+                                  <span>{formatCurrency(scenario.estimatedTax)}</span>
+                                </div>
+                                <div className="flex justify-between text-white font-bold pt-2 mt-1 border-t border-slate-700">
+                                  <span>Čistý základ</span>
+                                  <span>{formatCurrency(scenario.grossMonthly - scenario.estimatedTax)}</span>
+                                </div>
+                                <div className="flex justify-between text-emerald-400">
+                                  <span>+ Benefity</span>
+                                  <span>{formatCurrency(scenario.benefitsMonthly)}</span>
+                                </div>
+                                <div className="text-xs text-slate-400 mt-2 italic">
+                                  13. plat, stravenky, multisport karta
+                                </div>
+                                <div className="flex justify-between text-rose-400">
+                                  <span>- Doprava</span>
+                                  <span>{formatCurrency(scenario.commuteCost)}</span>
+                                </div>
+                                <div className="flex justify-between text-xl font-bold text-white pt-3 mt-3 border-t border-slate-700">
+                                  <span>Čistá realita</span>
+                                  <span>{formatCurrency(scenario.finalRealMonthly)}</span>
+                                </div>
+                              </div>
+                            </div>
 
-                  {/* Item 3: AI Coach */}
-                  <div className={`transition-all duration-500 absolute inset-0 flex flex-col items-center justify-center ${activeMetric === 3 ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-8 pointer-events-none'}`}>
-                    <div className="w-20 h-20 bg-purple-100 dark:bg-purple-900/30 rounded-full flex items-center justify-center mb-6 ring-4 ring-purple-50 dark:ring-purple-900/10">
-                      <Brain className="w-10 h-10 text-purple-600 dark:text-purple-400" />
-                    </div>
-                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{t('welcome.benefits_carousel.coach_title')}</h3>
-                    <p className="text-slate-600 dark:text-slate-400 leading-relaxed max-w-[250px]">{t('welcome.benefits_carousel.coach_desc')}</p>
-                  </div>
+                            <div className="mt-5 pt-4 border-t border-slate-700 text-xs text-slate-300 flex items-center gap-2">
+                              <TrendingUp size={12} className={`${diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}`} />
+                              <span>
+                                Rozdíl oproti druhému scénáři:
+                                <span className={`font-bold ml-1 ${diff >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>{diffLabel}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
