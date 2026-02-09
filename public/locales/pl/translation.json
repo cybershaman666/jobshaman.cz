@@ -335,6 +335,31 @@
       "title_end": "rzeczywistości, a nie obietnic",
       "button": "Wypróbuj za darmo",
       "subtitle": "Bez długich rejestracji. Bez klikania przez trzy strony. Tylko dane."
+    },
+    "reality_showcase": {
+      "title": "Finansowa i dojazdowa rzeczywistość",
+      "subtitle": "Niższe brutto może wyjść finansowo lepiej.",
+      "scenario_label": "Scenariusz",
+      "scenario_home": "Home office",
+      "scenario_commute": "Dojazd {{distance}} km",
+      "home_office_title": "Home office",
+      "home_office_subtitle": "Oszczędność na dojazdach",
+      "home_office_zero": "{{cost}} / {{minutes}} min",
+      "home_office_note": "Czas i pieniądze zostają u Ciebie.",
+      "commute_title": "Rzeczywistość dojazdu",
+      "commute_home": "Dom",
+      "commute_work": "Praca",
+      "commute_daily": "dziennie",
+      "commute_one_way": "w jedną stronę",
+      "reality_vs_salary": "Rzeczywistość vs. pensja",
+      "gross_salary": "Wynagrodzenie brutto",
+      "taxes_insurance": "Podatki i składki",
+      "net_base": "Podstawa netto",
+      "benefits": "Benefity",
+      "benefits_hint": "13. pensja, bony, karta sportowa",
+      "commute_costs": "Dojazdy",
+      "final_reality": "Realna kwota",
+      "diff_label": "Różnica względem drugiego scenariusza:"
     }
   },
   "promo": {

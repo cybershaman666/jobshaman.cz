@@ -335,6 +335,31 @@
       "title_end": "reality, not promises",
       "button": "Try for Free",
       "subtitle": "No lengthy registrations. No clicking through three pages. Just data."
+    },
+    "reality_showcase": {
+      "title": "Financial and commute reality",
+      "subtitle": "Even a lower gross salary can end up better financially.",
+      "scenario_label": "Scenario",
+      "scenario_home": "Home office",
+      "scenario_commute": "Commute {{distance}} km",
+      "home_office_title": "Home office",
+      "home_office_subtitle": "No commute cost",
+      "home_office_zero": "{{cost}} / {{minutes}} min",
+      "home_office_note": "Time and money stay with you.",
+      "commute_title": "Commute reality",
+      "commute_home": "Home",
+      "commute_work": "Work",
+      "commute_daily": "daily",
+      "commute_one_way": "one way",
+      "reality_vs_salary": "Reality vs. salary",
+      "gross_salary": "Gross salary",
+      "taxes_insurance": "Taxes and insurance",
+      "net_base": "Net base",
+      "benefits": "Benefits",
+      "benefits_hint": "13th salary, meal vouchers, sport card",
+      "commute_costs": "Commute",
+      "final_reality": "Real monthly value",
+      "diff_label": "Difference vs. the other scenario:"
     }
   },
   "promo": {

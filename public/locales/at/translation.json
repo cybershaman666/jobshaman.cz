@@ -335,6 +335,31 @@
       "title_end": "Realität, nicht nach Versprechen",
       "button": "Kostenlos testen",
       "subtitle": "Keine langen Registrierungen. Kein Durchklicken durch drei Seiten. Nur Daten."
+    },
+    "reality_showcase": {
+      "title": "Finanz- und Pendelrealität",
+      "subtitle": "Auch ein niedrigeres Bruttogehalt kann finanziell besser abschneiden.",
+      "scenario_label": "Szenario",
+      "scenario_home": "Homeoffice",
+      "scenario_commute": "Pendeln {{distance}} km",
+      "home_office_title": "Homeoffice",
+      "home_office_subtitle": "Ersparnis beim Pendeln",
+      "home_office_zero": "{{cost}} / {{minutes}} Min",
+      "home_office_note": "Zeit und Geld bleiben bei dir.",
+      "commute_title": "Pendelrealität",
+      "commute_home": "Zuhause",
+      "commute_work": "Arbeit",
+      "commute_daily": "täglich",
+      "commute_one_way": "einfache Strecke",
+      "reality_vs_salary": "Realität vs. Gehalt",
+      "gross_salary": "Bruttogehalt",
+      "taxes_insurance": "Steuern und Abgaben",
+      "net_base": "Netto-Basis",
+      "benefits": "Benefits",
+      "benefits_hint": "13. Gehalt, Essensgutscheine, Sportkarte",
+      "commute_costs": "Pendelkosten",
+      "final_reality": "Reale Monatsbilanz",
+      "diff_label": "Unterschied zum anderen Szenario:"
     }
   },
   "promo": {
