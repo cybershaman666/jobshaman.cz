@@ -1,0 +1,327 @@
+from fastapi import APIRouter, Request, Depends, HTTPException, Query
+from datetime import datetime, timezone, timedelta
+from typing import Optional, List
+import re
+
+from ..core.security import get_current_user, verify_csrf_token_header
+from ..core.database import supabase
+from ..models.requests import AdminSubscriptionUpdateRequest
+from ..utils.helpers import now_iso
+
+router = APIRouter()
+
+UUID_RE = re.compile(r"^[0-9a-fA-F-]{8,36}$")
+
+def _parse_iso_datetime(value: str) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+def _safe_query(value: str) -> str:
+    if not value:
+        return ""
+    return re.sub(r"[^a-zA-Z0-9@._\\- ]+", " ", value).strip()
+
+def require_admin_user(user: dict) -> dict:
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Authentication service unavailable")
+    user_id = user.get("id") or user.get("auth_id")
+    email = user.get("email")
+
+    if user_id:
+        try:
+            resp = supabase.table("admin_users").select("*").eq("user_id", user_id).eq("is_active", True).execute()
+            if resp.data:
+                return resp.data[0]
+        except Exception as e:
+            print(f"⚠️ Admin lookup by user_id failed: {e}")
+
+    if email:
+        try:
+            resp = supabase.table("admin_users").select("*").eq("email", email).eq("is_active", True).execute()
+            if resp.data:
+                return resp.data[0]
+        except Exception as e:
+            print(f"⚠️ Admin lookup by email failed: {e}")
+
+    raise HTTPException(status_code=403, detail="Admin access required")
+
+def _target_from_subscription(sub: dict) -> tuple[Optional[str], Optional[str]]:
+    if not sub:
+        return None, None
+    if sub.get("company_id"):
+        return "company", sub.get("company_id")
+    if sub.get("user_id"):
+        return "user", sub.get("user_id")
+    return None, None
+
+@router.get("/admin/me")
+async def admin_me(user: dict = Depends(get_current_user)):
+    admin = require_admin_user(user)
+    return {
+        "id": admin.get("id"),
+        "user_id": admin.get("user_id"),
+        "email": admin.get("email"),
+        "role": admin.get("role"),
+        "is_active": admin.get("is_active"),
+    }
+
+@router.get("/admin/subscriptions")
+async def list_subscriptions(
+    request: Request,
+    user: dict = Depends(get_current_user),
+    q: Optional[str] = Query(None),
+    tier: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    kind: Optional[str] = Query(None),
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    query = supabase.table("subscriptions").select(
+        "*, companies(name, industry), profiles(email, full_name)",
+        count="exact"
+    )
+
+    if tier:
+        query = query.eq("tier", tier)
+    if status:
+        query = query.eq("status", status)
+
+    safe_q = _safe_query(q or "")
+    if safe_q:
+        or_filters: List[str] = []
+
+        # Direct matches
+        or_filters.append(f"stripe_subscription_id.ilike.%{safe_q}%")
+        or_filters.append(f"stripe_customer_id.ilike.%{safe_q}%")
+
+        if UUID_RE.match(safe_q):
+            or_filters.append(f"id.eq.{safe_q}")
+            or_filters.append(f"user_id.eq.{safe_q}")
+            or_filters.append(f"company_id.eq.{safe_q}")
+
+        # Company name lookup
+        try:
+            companies = supabase.table("companies").select("id").ilike("name", f"%{safe_q}%").execute()
+            company_ids = [c["id"] for c in (companies.data or [])]
+            if company_ids:
+                or_filters.append(f"company_id.in.({','.join(company_ids)})")
+        except Exception as e:
+            print(f"⚠️ Company search failed: {e}")
+
+        # Profile email/full_name lookup
+        try:
+            profiles = supabase.table("profiles").select("id").or_(f"email.ilike.%{safe_q}%,full_name.ilike.%{safe_q}%").execute()
+            user_ids = [p["id"] for p in (profiles.data or [])]
+            if user_ids:
+                or_filters.append(f"user_id.in.({','.join(user_ids)})")
+        except Exception as e:
+            print(f"⚠️ Profile search failed: {e}")
+
+        if or_filters:
+            query = query.or_(",".join(or_filters))
+
+    query = query.order("created_at", desc=True).range(offset, offset + limit - 1)
+    resp = query.execute()
+    data = resp.data or []
+
+    if kind in ["company", "user"]:
+        if kind == "company":
+            data = [s for s in data if s.get("company_id")]
+        else:
+            data = [s for s in data if s.get("user_id")]
+
+    return {
+        "items": data,
+        "count": resp.count or 0,
+        "limit": limit,
+        "offset": offset,
+    }
+
+@router.get("/admin/notifications")
+async def admin_notifications(
+    request: Request,
+    user: dict = Depends(get_current_user),
+    days_ahead: int = Query(7, ge=1, le=30),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    now = datetime.now(timezone.utc)
+    horizon = now + timedelta(days=days_ahead)
+
+    resp = supabase.table("subscriptions").select(
+        "id, company_id, user_id, tier, status, current_period_end, companies(name, industry), profiles(email, full_name)"
+    ).eq("status", "trialing").execute()
+
+    items = []
+    for sub in resp.data or []:
+        end_raw = sub.get("current_period_end")
+        end_dt = _parse_iso_datetime(end_raw)
+        if not end_dt:
+            continue
+
+        if end_dt < now:
+            severity = "expired"
+        elif end_dt.date() == now.date():
+            severity = "today"
+        elif end_dt <= horizon:
+            severity = "soon"
+        else:
+            continue
+
+        items.append({
+            "subscription_id": sub.get("id"),
+            "company_id": sub.get("company_id"),
+            "user_id": sub.get("user_id"),
+            "company_name": (sub.get("companies") or {}).get("name"),
+            "company_industry": (sub.get("companies") or {}).get("industry"),
+            "user_email": (sub.get("profiles") or {}).get("email"),
+            "user_name": (sub.get("profiles") or {}).get("full_name"),
+            "tier": sub.get("tier"),
+            "status": sub.get("status"),
+            "current_period_end": end_raw,
+            "severity": severity,
+        })
+
+    items.sort(key=lambda x: x.get("current_period_end") or "")
+    return {"items": items, "count": len(items)}
+
+@router.get("/admin/subscriptions/{subscription_id}/audit")
+async def admin_subscription_audit(
+    subscription_id: str,
+    request: Request,
+    user: dict = Depends(get_current_user),
+    limit: int = Query(50, ge=1, le=200),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+    resp = supabase.table("admin_subscription_audit").select("*").eq("subscription_id", subscription_id).order("created_at", desc=True).limit(limit).execute()
+    return {"items": resp.data or []}
+
+@router.post("/admin/subscriptions/update")
+async def update_subscription(
+    payload: AdminSubscriptionUpdateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    admin = require_admin_user(user)
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    target_col = None
+    target_id = None
+    if payload.target_type and payload.target_id:
+        target_col = "company_id" if payload.target_type == "company" else "user_id"
+        target_id = payload.target_id
+
+    sub = None
+    if payload.subscription_id:
+        sub_resp = supabase.table("subscriptions").select("*").eq("id", payload.subscription_id).execute()
+        sub = sub_resp.data[0] if sub_resp.data else None
+    elif target_col and target_id:
+        sub_resp = supabase.table("subscriptions").select("*").eq(target_col, target_id).execute()
+        sub = sub_resp.data[0] if sub_resp.data else None
+    else:
+        raise HTTPException(status_code=400, detail="subscription_id or target_type/target_id required")
+
+    before_snapshot = sub.copy() if sub else None
+
+    update_data = {}
+    if payload.tier is not None:
+        update_data["tier"] = payload.tier
+    if payload.status is not None:
+        update_data["status"] = payload.status
+    if payload.current_period_start is not None:
+        update_data["current_period_start"] = payload.current_period_start
+    if payload.current_period_end is not None:
+        update_data["current_period_end"] = payload.current_period_end
+    if payload.cancel_at_period_end is not None:
+        update_data["cancel_at_period_end"] = payload.cancel_at_period_end
+
+    # Trial controls
+    if payload.set_trial_days or payload.set_trial_until:
+        start_dt = datetime.now(timezone.utc)
+        if payload.set_trial_until:
+            end_dt = _parse_iso_datetime(payload.set_trial_until)
+            if not end_dt:
+                raise HTTPException(status_code=400, detail="Invalid set_trial_until format")
+        else:
+            end_dt = start_dt + timedelta(days=payload.set_trial_days or 0)
+
+        update_data["current_period_start"] = start_dt.isoformat()
+        update_data["current_period_end"] = end_dt.isoformat()
+        update_data["status"] = "trialing"
+        if "tier" not in update_data:
+            update_data["tier"] = "business"
+
+    if payload.status == "canceled":
+        update_data["canceled_at"] = now_iso()
+
+    update_data["updated_at"] = now_iso()
+
+    if sub:
+        supabase.table("subscriptions").update(update_data).eq("id", sub["id"]).execute()
+        updated_resp = supabase.table("subscriptions").select("*").eq("id", sub["id"]).execute()
+        updated_sub = updated_resp.data[0] if updated_resp.data else None
+        target_type, target_id_value = _target_from_subscription(updated_sub or sub)
+        try:
+            supabase.table("admin_subscription_audit").insert({
+                "subscription_id": sub["id"],
+                "target_type": target_type,
+                "target_id": target_id_value,
+                "action": "update",
+                "admin_user_id": admin.get("user_id"),
+                "admin_email": admin.get("email") or user.get("email"),
+                "before": before_snapshot,
+                "after": updated_sub,
+            }).execute()
+        except Exception as e:
+            print(f"⚠️ Failed to write admin audit log: {e}")
+        return {"status": "updated", "subscription_id": sub["id"]}
+
+    # Create new subscription if missing
+    if not target_col or not target_id:
+        raise HTTPException(status_code=400, detail="Cannot create without target_type/target_id")
+
+    create_data = {
+        target_col: target_id,
+        "tier": update_data.get("tier", "free"),
+        "status": update_data.get("status", "inactive"),
+        "current_period_start": update_data.get("current_period_start"),
+        "current_period_end": update_data.get("current_period_end"),
+        "cancel_at_period_end": update_data.get("cancel_at_period_end", False),
+        "updated_at": now_iso(),
+    }
+
+    insert_resp = supabase.table("subscriptions").insert(create_data).execute()
+    new_sub = insert_resp.data[0] if insert_resp.data else None
+    try:
+        target_type, target_id_value = _target_from_subscription(new_sub)
+        supabase.table("admin_subscription_audit").insert({
+            "subscription_id": new_sub.get("id") if new_sub else None,
+            "target_type": target_type,
+            "target_id": target_id_value,
+            "action": "create",
+            "admin_user_id": admin.get("user_id"),
+            "admin_email": admin.get("email") or user.get("email"),
+            "before": None,
+            "after": new_sub,
+        }).execute()
+    except Exception as e:
+        print(f"⚠️ Failed to write admin audit log: {e}")
+    return {"status": "created", "subscription_id": new_sub.get("id") if new_sub else None}

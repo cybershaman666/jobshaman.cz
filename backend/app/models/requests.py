@@ -1,7 +1,7 @@
 import html
 import bleach
 from pydantic import BaseModel, Field, validator
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Literal
 
 class JobStatusUpdateRequest(BaseModel):
     status: str = Field(..., pattern=r"^(draft|active|paused|closed|archived)$")
@@ -67,3 +67,15 @@ class JobInteractionRequest(BaseModel):
     dwell_time_ms: Optional[int] = None
     session_id: Optional[str] = None
     metadata: Optional[dict] = None
+
+class AdminSubscriptionUpdateRequest(BaseModel):
+    subscription_id: Optional[str] = None
+    target_type: Optional[Literal["company", "user"]] = None
+    target_id: Optional[str] = None
+    tier: Optional[str] = Field(None, pattern=r"^(free|premium|business|freelance_premium|trial|enterprise|assessment_bundle|single_assessment)$")
+    status: Optional[str] = Field(None, pattern=r"^(active|trialing|inactive|canceled)$")
+    current_period_start: Optional[str] = None
+    current_period_end: Optional[str] = None
+    cancel_at_period_end: Optional[bool] = None
+    set_trial_days: Optional[int] = Field(None, ge=1, le=365)
+    set_trial_until: Optional[str] = None

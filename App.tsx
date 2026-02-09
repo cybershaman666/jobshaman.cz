@@ -24,6 +24,7 @@ import ApplicationModal from './components/ApplicationModal';
 import CookieBanner from './components/CookieBanner';
 import PodminkyUziti from './pages/PodminkyUziti';
 import OchranaSoukromi from './pages/OchranaSoukromi';
+import AdminDashboard from './pages/AdminDashboard';
 import SavedJobsPage from './components/SavedJobsPage';
 import JobListSidebar from './components/JobListSidebar';
 import JobDetailView from './components/JobDetailView';
@@ -978,6 +979,18 @@ export default function App() {
     const renderContent = () => {
         // Handle static pages based on pathname
         const pathname = window.location.pathname;
+        const supportedLocales = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
+        const pathParts = pathname.split('/').filter(Boolean);
+        if (pathParts.length > 0 && supportedLocales.includes(pathParts[0])) {
+            pathParts.shift();
+        }
+        const normalizedPath = `/${pathParts.join('/')}`;
+
+        if (normalizedPath === '/admin') {
+            return (
+                <AdminDashboard userProfile={userProfile} />
+            );
+        }
         if (pathname.startsWith('/assessment/')) {
             return (
                 <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
