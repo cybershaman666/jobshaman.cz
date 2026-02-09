@@ -1,5 +1,6 @@
 import os
 from fastapi import FastAPI, Request
+import re
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
 from fastapi.middleware.cors import CORSMiddleware
@@ -51,6 +52,21 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+_origin_regex = re.compile(r"^https?://(www\\.)?jobshaman\\.(cz|com)$")
+
+@app.middleware("http")
+async def add_cors_on_error(request: Request, call_next):
+    try:
+        return await call_next(request)
+    except Exception:
+        origin = request.headers.get("origin")
+        response = JSONResponse({"detail": "Internal Server Error"}, status_code=500)
+        if origin and (origin in ALLOWED_ORIGINS or _origin_regex.match(origin)):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Vary"] = "Origin"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
 
 @app.middleware("http")
 async def add_custom_headers(request: Request, call_next):
