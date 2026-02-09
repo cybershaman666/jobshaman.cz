@@ -359,7 +359,9 @@
       "benefits_hint": "13th salary, meal vouchers, sport card",
       "commute_costs": "Commute",
       "final_reality": "Real monthly value",
-      "diff_label": "Difference vs. the other scenario:"
+      "diff_label": "Difference vs. the other scenario:",
+      "benefits_hint_home": "13th salary, meal vouchers, sport card",
+      "benefits_hint_commute": "meal vouchers, equipment allowance"
     }
   },
   "promo": {

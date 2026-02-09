@@ -359,7 +359,9 @@
       "benefits_hint": "13. Gehalt, Essenszuschuss, Sportkarte",
       "commute_costs": "Pendelkosten",
       "final_reality": "Reale Monatsbilanz",
-      "diff_label": "Unterschied zum anderen Szenario:"
+      "diff_label": "Unterschied zum anderen Szenario:",
+      "benefits_hint_home": "13. Gehalt, Essenszuschuss, Sportkarte",
+      "benefits_hint_commute": "Essenszuschuss, Zuschuss für Ausstattung"
     }
   },
   "promo": {

@@ -261,7 +261,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                                   <span>{formatCurrency(scenario.benefitsMonthly)}</span>
                                 </div>
                                 <div className="text-xs text-slate-400 mt-2 italic">
-                                  {t('welcome.reality_showcase.benefits_hint')}
+                                  {scenario.type === 'home'
+                                    ? t('welcome.reality_showcase.benefits_hint_home')
+                                    : t('welcome.reality_showcase.benefits_hint_commute')}
                                 </div>
                                 <div className="flex justify-between text-rose-400">
                                   <span>- {t('welcome.reality_showcase.commute_costs')}</span>

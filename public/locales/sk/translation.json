@@ -350,7 +350,9 @@
       "benefits_hint": "13. plat, stravné, športová karta",
       "commute_costs": "Doprava",
       "final_reality": "Čistá realita",
-      "diff_label": "Rozdiel oproti druhému scenáru:"
+      "diff_label": "Rozdiel oproti druhému scenáru:",
+      "benefits_hint_home": "13. plat, stravné, športová karta",
+      "benefits_hint_commute": "stravné, príspevok na vybavenie"
     }
   },
   "promo": {

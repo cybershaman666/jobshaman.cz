@@ -359,7 +359,9 @@
       "benefits_hint": "13. pensja, bony, karta sportowa",
       "commute_costs": "Dojazdy",
       "final_reality": "Realna kwota",
-      "diff_label": "Różnica względem drugiego scenariusza:"
+      "diff_label": "Różnica względem drugiego scenariusza:",
+      "benefits_hint_home": "13. pensja, bony, karta sportowa",
+      "benefits_hint_commute": "bony, dofinansowanie wyposażenia"
     }
   },
   "promo": {

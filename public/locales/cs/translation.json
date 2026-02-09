@@ -370,7 +370,9 @@
       "benefits_hint": "13. plat, stravenky, multisport karta",
       "commute_costs": "Doprava",
       "final_reality": "Čistá realita",
-      "diff_label": "Rozdíl oproti druhému scénáři:"
+      "diff_label": "Rozdíl oproti druhému scénáři:",
+      "benefits_hint_home": "13. plat, stravenky, multisport karta",
+      "benefits_hint_commute": "stravenky, příspěvek na vybavení"
     }
   },
   "promo": {
