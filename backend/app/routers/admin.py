@@ -40,7 +40,12 @@ def require_admin_user(user: dict) -> dict:
             if resp.data:
                 return resp.data[0]
         except Exception as e:
-            print(f"⚠️ Admin lookup by user_id failed: {e}")
+            msg = str(e)
+            print(f"⚠️ Admin lookup by user_id failed: {msg}")
+            if "permission denied" in msg or "RLS" in msg:
+                raise HTTPException(status_code=500, detail="Admin access blocked by RLS. Ensure SUPABASE_SERVICE_KEY is set.")
+            if "does not exist" in msg:
+                raise HTTPException(status_code=500, detail="admin_users table missing. Run migrations in production.")
 
     if email:
         try:
@@ -48,7 +53,12 @@ def require_admin_user(user: dict) -> dict:
             if resp.data:
                 return resp.data[0]
         except Exception as e:
-            print(f"⚠️ Admin lookup by email failed: {e}")
+            msg = str(e)
+            print(f"⚠️ Admin lookup by email failed: {msg}")
+            if "permission denied" in msg or "RLS" in msg:
+                raise HTTPException(status_code=500, detail="Admin access blocked by RLS. Ensure SUPABASE_SERVICE_KEY is set.")
+            if "does not exist" in msg:
+                raise HTTPException(status_code=500, detail="admin_users table missing. Run migrations in production.")
 
     raise HTTPException(status_code=403, detail="Admin access required")
 
