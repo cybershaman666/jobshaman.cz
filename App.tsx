@@ -474,7 +474,8 @@ export default function App() {
             const isExternalPage = base === 'podminky-uziti'
                 || base === 'ochrana-osobnich-udaju'
                 || base === 'enterprise'
-                || base === 'assessment';
+                || base === 'assessment'
+                || base === 'admin';
             if (isExternalPage) return;
 
             const lng = getLocalePrefix();
