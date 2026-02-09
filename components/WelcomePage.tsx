@@ -18,7 +18,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   selectedBlogPostSlug,
   handleBlogPostSelect
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [activeScenario, setActiveScenario] = useState(0);
   const [jobCount, setJobCount] = useState<number | null>(null);
 
@@ -43,32 +43,72 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     return () => clearInterval(interval);
   }, []);
 
-  const formatCurrency = (amount: number) => `${amount.toLocaleString('cs-CZ')} Kč`;
+  const language = (i18n.resolvedLanguage || i18n.language || 'cs').toLowerCase();
+  const marketKey = language.startsWith('de-at') || language.startsWith('at')
+    ? 'at'
+    : language.startsWith('de')
+      ? 'de'
+      : language.startsWith('pl')
+        ? 'pl'
+        : language.startsWith('sk')
+          ? 'sk'
+          : 'cs';
 
-  const showcaseScenarios = [
-    {
-      label: 'Home office',
-      headline: 'Nižší hrubá mzda, vyšší realita',
-      grossMonthly: 35000,
-      estimatedTax: 8000,
-      benefitsMonthly: 4200,
-      commuteCost: 0,
-      dailyMinutes: 0,
-      distanceKm: 0,
-      finalRealMonthly: 31200
+  const markets = {
+    cs: {
+      locale: 'cs-CZ',
+      currency: 'CZK',
+      scenarios: [
+        { type: 'home', grossMonthly: 35000, estimatedTax: 8000, benefitsMonthly: 4200, commuteCost: 0, dailyMinutes: 0, distanceKm: 0 },
+        { type: 'commute', grossMonthly: 40000, estimatedTax: 9200, benefitsMonthly: 1200, commuteCost: 5200, dailyMinutes: 75, distanceKm: 25 }
+      ]
     },
-    {
-      label: 'Dojíždění 25 km',
-      headline: 'Vyšší hrubá mzda, nižší realita',
-      grossMonthly: 40000,
-      estimatedTax: 9200,
-      benefitsMonthly: 1200,
-      commuteCost: 5200,
-      dailyMinutes: 75,
-      distanceKm: 25,
-      finalRealMonthly: 26800
+    de: {
+      locale: 'de-DE',
+      currency: 'EUR',
+      scenarios: [
+        { type: 'home', grossMonthly: 3000, estimatedTax: 700, benefitsMonthly: 150, commuteCost: 0, dailyMinutes: 0, distanceKm: 0 },
+        { type: 'commute', grossMonthly: 3400, estimatedTax: 850, benefitsMonthly: 150, commuteCost: 300, dailyMinutes: 75, distanceKm: 25 }
+      ]
+    },
+    at: {
+      locale: 'de-AT',
+      currency: 'EUR',
+      scenarios: [
+        { type: 'home', grossMonthly: 3200, estimatedTax: 750, benefitsMonthly: 200, commuteCost: 0, dailyMinutes: 0, distanceKm: 0 },
+        { type: 'commute', grossMonthly: 3600, estimatedTax: 900, benefitsMonthly: 200, commuteCost: 350, dailyMinutes: 75, distanceKm: 25 }
+      ]
+    },
+    pl: {
+      locale: 'pl-PL',
+      currency: 'PLN',
+      scenarios: [
+        { type: 'home', grossMonthly: 7000, estimatedTax: 1700, benefitsMonthly: 300, commuteCost: 0, dailyMinutes: 0, distanceKm: 0 },
+        { type: 'commute', grossMonthly: 8000, estimatedTax: 2100, benefitsMonthly: 300, commuteCost: 1000, dailyMinutes: 75, distanceKm: 25 }
+      ]
+    },
+    sk: {
+      locale: 'sk-SK',
+      currency: 'EUR',
+      scenarios: [
+        { type: 'home', grossMonthly: 1400, estimatedTax: 300, benefitsMonthly: 80, commuteCost: 0, dailyMinutes: 0, distanceKm: 0 },
+        { type: 'commute', grossMonthly: 1600, estimatedTax: 350, benefitsMonthly: 80, commuteCost: 220, dailyMinutes: 75, distanceKm: 25 }
+      ]
     }
-  ];
+  } as const;
+
+  const market = markets[marketKey as keyof typeof markets] || markets.cs;
+  const isGerman = marketKey === 'de' || marketKey === 'at';
+  const formatCurrency = (amount: number) => new Intl.NumberFormat(market.locale, {
+    style: 'currency',
+    currency: market.currency,
+    maximumFractionDigits: 0
+  }).format(amount);
+
+  const showcaseScenarios = market.scenarios.map((scenario) => ({
+    ...scenario,
+    finalRealMonthly: scenario.grossMonthly - scenario.estimatedTax + scenario.benefitsMonthly - scenario.commuteCost
+  }));
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -116,19 +156,23 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                 <div className="p-6 border-b border-slate-700 flex justify-between items-start">
                   <div>
                     <h3 className="text-white text-lg font-bold flex items-center gap-2">
-                      <Wallet className="text-emerald-400" size={20} /> Finanční a dojezdová realita
+                      <Wallet className="text-emerald-400" size={20} /> {t('welcome.reality_showcase.title')}
                     </h3>
                     <p className="text-xs text-slate-400 mt-1">
-                      I nižší hrubá mzda může vycházet finančně lépe.
+                      {t('welcome.reality_showcase.subtitle')}
                     </p>
                   </div>
                   <div className="text-right">
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">SCÉNÁŘ</div>
-                    <div className="text-sm font-bold text-white">{showcaseScenarios[activeScenario].label}</div>
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t('welcome.reality_showcase.scenario_label')}</div>
+                    <div className="text-sm font-bold text-white">
+                      {showcaseScenarios[activeScenario].type === 'home'
+                        ? t('welcome.reality_showcase.scenario_home')
+                        : t('welcome.reality_showcase.scenario_commute', { distance: showcaseScenarios[activeScenario].distanceKm })}
+                    </div>
                   </div>
                 </div>
 
-                <div className="relative min-h-[380px] md:min-h-[340px]">
+                <div className={`relative min-h-[380px] md:min-h-[340px] ${isGerman ? 'text-[13px]' : ''}`}>
                   {showcaseScenarios.map((scenario, idx) => {
                     const otherScenario = showcaseScenarios[idx === 0 ? 1 : 0];
                     const diff = scenario.finalRealMonthly - otherScenario.finalRealMonthly;
@@ -144,16 +188,16 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                             {scenario.distanceKm === 0 ? (
                               <div className="text-center py-2">
                                 <Home size={40} className="text-emerald-400 mx-auto mb-3 opacity-80" />
-                                <h4 className="text-white font-bold text-lg mb-1">Home office</h4>
+                                <h4 className="text-white font-bold text-lg mb-1">{t('welcome.reality_showcase.home_office_title')}</h4>
                                 <div className="text-emerald-400 text-sm font-medium mb-2">
-                                  Úspora za dojíždění
+                                  {t('welcome.reality_showcase.home_office_subtitle')}
                                 </div>
                                 <div className="text-xs text-emerald-400 mb-3 text-center">
                                   <div className="flex items-center gap-1 justify-center">
                                     <span className="text-green-400">🏠</span>
                                     <div>
-                                      <div>0 Kč / 0 min</div>
-                                      <div>Čas i peníze zůstávají vám.</div>
+                                      <div>{t('welcome.reality_showcase.home_office_zero', { cost: formatCurrency(0), minutes: 0 })}</div>
+                                      <div>{t('welcome.reality_showcase.home_office_note')}</div>
                                     </div>
                                   </div>
                                 </div>
@@ -161,12 +205,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                             ) : (
                               <>
                                 <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
-                                  <MapPin size={12} /> Dojezdová realita
+                                  <MapPin size={12} /> {t('welcome.reality_showcase.commute_title')}
                                 </h4>
                                 <div className="relative h-12 mb-6">
                                   <div className="absolute top-2 left-0 right-0 flex justify-between text-[10px] font-bold text-slate-400 uppercase">
-                                    <span>Domov</span>
-                                    <span>Práce</span>
+                                    <span>{t('welcome.reality_showcase.commute_home')}</span>
+                                    <span>{t('welcome.reality_showcase.commute_work')}</span>
                                   </div>
                                   <div className="absolute top-6 left-0 right-0 h-1.5 bg-slate-900/50 rounded-full overflow-hidden">
                                     <div className="h-full bg-gradient-to-r from-emerald-500 to-rose-500" style={{ width: '42%' }}></div>
@@ -181,13 +225,13 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                                       <Clock size={20} className="text-slate-400" /> {scenario.dailyMinutes}
                                       <span className="text-sm text-slate-400 font-sans font-bold">min</span>
                                     </div>
-                                    <div className="text-[10px] text-slate-400 mt-1">denně</div>
+                                    <div className="text-[10px] text-slate-400 mt-1">{t('welcome.reality_showcase.commute_daily')}</div>
                                   </div>
                                   <div>
                                     <div className="text-2xl font-mono text-white font-light">
                                       {scenario.distanceKm} <span className="text-sm text-slate-400 font-sans font-bold">km</span>
                                     </div>
-                                    <div className="text-[10px] text-slate-400 mt-1">jedna cesta</div>
+                                    <div className="text-[10px] text-slate-400 mt-1">{t('welcome.reality_showcase.commute_one_way')}</div>
                                   </div>
                                 </div>
                               </>
@@ -197,34 +241,34 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                           <div className="p-6 bg-slate-900/30 flex flex-col">
                             <div className="flex-1">
                               <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
-                                <Calculator size={12} /> Realita vs. mzda
+                                <Calculator size={12} /> {t('welcome.reality_showcase.reality_vs_salary')}
                               </h4>
                               <div className="space-y-1 text-sm font-mono">
                                 <div className="flex justify-between text-slate-300">
-                                  <span>Hrubá mzda</span>
+                                  <span>{t('welcome.reality_showcase.gross_salary')}</span>
                                   <span>{formatCurrency(scenario.grossMonthly)}</span>
                                 </div>
                                 <div className="flex justify-between text-rose-300 text-xs">
-                                  <span>- Daně a pojištění</span>
+                                  <span>- {t('welcome.reality_showcase.taxes_insurance')}</span>
                                   <span>{formatCurrency(scenario.estimatedTax)}</span>
                                 </div>
                                 <div className="flex justify-between text-white font-bold pt-2 mt-1 border-t border-slate-700">
-                                  <span>Čistý základ</span>
+                                  <span>{t('welcome.reality_showcase.net_base')}</span>
                                   <span>{formatCurrency(scenario.grossMonthly - scenario.estimatedTax)}</span>
                                 </div>
                                 <div className="flex justify-between text-emerald-400">
-                                  <span>+ Benefity</span>
+                                  <span>+ {t('welcome.reality_showcase.benefits')}</span>
                                   <span>{formatCurrency(scenario.benefitsMonthly)}</span>
                                 </div>
                                 <div className="text-xs text-slate-400 mt-2 italic">
-                                  13. plat, stravenky, multisport karta
+                                  {t('welcome.reality_showcase.benefits_hint')}
                                 </div>
                                 <div className="flex justify-between text-rose-400">
-                                  <span>- Doprava</span>
+                                  <span>- {t('welcome.reality_showcase.commute_costs')}</span>
                                   <span>{formatCurrency(scenario.commuteCost)}</span>
                                 </div>
                                 <div className="flex justify-between text-xl font-bold text-white pt-3 mt-3 border-t border-slate-700">
-                                  <span>Čistá realita</span>
+                                  <span>{t('welcome.reality_showcase.final_reality')}</span>
                                   <span>{formatCurrency(scenario.finalRealMonthly)}</span>
                                 </div>
                               </div>
@@ -233,7 +277,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                             <div className="mt-5 pt-4 border-t border-slate-700 text-xs text-slate-300 flex items-center gap-2">
                               <TrendingUp size={12} className={`${diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}`} />
                               <span>
-                                Rozdíl oproti druhému scénáři:
+                                {t('welcome.reality_showcase.diff_label')}
                                 <span className={`font-bold ml-1 ${diff >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>{diffLabel}</span>
                               </span>
                             </div>

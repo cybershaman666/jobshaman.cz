@@ -346,6 +346,31 @@
       "title_end": "reality, ne podle slibů",
       "button": "Zkusit zdarma",
       "subtitle": "Bez dlouhých registrací. Bez klikání přes tři stránky. Jen data."
+    },
+    "reality_showcase": {
+      "title": "Finanční a dojezdová realita",
+      "subtitle": "I nižší hrubá mzda může vycházet finančně lépe.",
+      "scenario_label": "Scénář",
+      "scenario_home": "Home office",
+      "scenario_commute": "Dojíždění {{distance}} km",
+      "home_office_title": "Home office",
+      "home_office_subtitle": "Úspora za dojíždění",
+      "home_office_zero": "{{cost}} / {{minutes}} min",
+      "home_office_note": "Čas i peníze zůstávají vám.",
+      "commute_title": "Dojezdová realita",
+      "commute_home": "Domov",
+      "commute_work": "Práce",
+      "commute_daily": "denně",
+      "commute_one_way": "jedna cesta",
+      "reality_vs_salary": "Realita vs. mzda",
+      "gross_salary": "Hrubá mzda",
+      "taxes_insurance": "Daně a pojištění",
+      "net_base": "Čistý základ",
+      "benefits": "Benefity",
+      "benefits_hint": "13. plat, stravenky, multisport karta",
+      "commute_costs": "Doprava",
+      "final_reality": "Čistá realita",
+      "diff_label": "Rozdíl oproti druhému scénáři:"
     }
   },
   "promo": {
