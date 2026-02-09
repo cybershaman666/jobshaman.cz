@@ -87,3 +87,32 @@ export async function getAdminSubscriptionAudit(subscriptionId: string, limit: n
 
   return response.json();
 }
+
+export async function getAdminStats() {
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/stats`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Failed to load stats');
+  }
+
+  return response.json();
+}
+
+export async function adminSearch(query: string, kind: 'company' | 'user') {
+  const params = new URLSearchParams({ query, kind });
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/search?${params.toString()}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Search failed');
+  }
+
+  return response.json();
+}
