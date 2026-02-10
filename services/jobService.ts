@@ -2,6 +2,7 @@ import { supabase, isSupabaseConfigured } from './supabaseService';
 import { Job, NoiseMetrics } from '../types';
 import { contextualRelevanceScorer, ContextualRelevanceScorer } from './contextualRelevanceService';
 import { calculateJHI } from '../utils/jhiCalculator';
+import { matchesIcoKeywords } from '../utils/contractType';
 import { detectCurrencyFromLocation } from './financialService';
 import i18n from '../src/i18n';
 
@@ -1069,7 +1070,7 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
 
             const cType = String(scraped.contract_type || '').toLowerCase();
             if (cType.includes('hpp') || cType.includes('plný')) otherTags.push('HPP');
-            if (cType.includes('ičo') || cType.includes('fakturace') || titleLower.includes('ičo')) otherTags.push('IČO');
+            if (matchesIcoKeywords(scraped.contract_type, scraped.title, fullDesc)) otherTags.push('IČO');
             if (cType.includes('part') || cType.includes('zkrácený') || titleLower.includes('brigáda')) otherTags.push('Part-time');
 
             const uniqueTags = [...new Set([...locationTags, ...otherTags, ...techTags])].slice(0, 6);
