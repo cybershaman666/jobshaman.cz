@@ -74,7 +74,7 @@ BEGIN
                 (
                     'IČO' = ANY(filter_contract_types) AND (
                         public.unaccent(lower(coalesce(j.contract_type, '') || ' ' || coalesce(j.title, '') || ' ' || coalesce(j.description, ''))) ~
-                        '(ico|osvc|szco|zivnostensk|zivnost|freelanc|b2b|contractor|kontraktor|self[- ]employed|fakturac|gig economy)'
+                        '(\mico\M|\mosvc\M|\mszco\M|\mb2b\M|\mzivnostensk|\mzivnost|\mfreelanc|\mcontractor\M|\mkontraktor\M|\mself[- ]employed\M|\mfakturac|\mgig economy\M)'
                     )
                 )
             )
