@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { Job, ViewState, UserProfile } from '../types';
 import { fetchRealJobs, fetchJobsWithFilters } from '../services/jobService';
 import { calculateCommuteReality } from '../services/commuteService';
+import { matchesIcoKeywords } from '../utils/contractType';
 
 const removeAccents = (str: any) => {
     if (!str) return '';
@@ -181,7 +182,7 @@ export const useJobs = (viewState: ViewState, userProfile: UserProfile) => {
             }
 
             if (filterContractType.length > 0) {
-                const isIco = job.tags.some(t => ['Kontraktor', 'IČO', 'Freelance', 'Gig Economy'].includes(t)) || job.title.includes('IČO') || job.description.includes('fakturace');
+                const isIco = matchesIcoKeywords(job.title, job.description, ...job.tags);
                 const isPartTime = job.tags.some(t => ['Part-time', 'Zkrácený', 'Brigáda'].includes(t));
                 const isHpp = !isIco && !isPartTime;
 

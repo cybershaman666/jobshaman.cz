@@ -9,6 +9,7 @@ import {
 } from './financialService';
 import { geocodeWithCaching, getStaticCoordinates } from './geocodingService';
 import { calculateCompleteJHIScore } from './transportService';
+import { matchesIcoKeywords } from '../utils/contractType';
 
 // --- UTILITIES ---
 
@@ -608,7 +609,7 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     }
 
     // 3. Financial Analysis (NET Basis)
-    const isIco = job.title.includes('IČO') || job.description.includes('IČO') || job.description.includes('contractor') || job.tags.includes('Contractor');
+    const isIco = matchesIcoKeywords(job.title, job.description, ...job.tags);
 
     const { tax, net } = estimateNetSalaryByCountry(
         grossMonthlySalary,
