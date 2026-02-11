@@ -99,7 +99,7 @@ async def list_subscriptions(
         raise HTTPException(status_code=500, detail="Database unavailable")
 
     query = supabase.table("subscriptions").select(
-        "*, companies(name, industry), profiles(email, full_name)",
+        "*, companies!fk_company(name, industry), profiles(email, full_name)",
         count="exact"
     )
 
@@ -269,7 +269,7 @@ async def admin_notifications(
     horizon = now + timedelta(days=days_ahead)
 
     resp = supabase.table("subscriptions").select(
-        "id, company_id, user_id, tier, status, current_period_end, companies(name, industry), profiles(email, full_name)"
+        "id, company_id, user_id, tier, status, current_period_end, companies!fk_company(name, industry), profiles(email, full_name)"
     ).eq("status", "trialing").execute()
 
     items = []
