@@ -117,6 +117,7 @@ export default function App() {
 
     // UI State
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+    const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
     const [isOnboardingCompany, setIsOnboardingCompany] = useState(false);
     const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
     const [isCompanyRegistrationOpen, setIsCompanyRegistrationOpen] = useState(false);
@@ -804,10 +805,11 @@ export default function App() {
 
     // --- HANDLERS ---
 
-    const handleAuthAction = async () => {
+    const handleAuthAction = async (mode: 'login' | 'register' = 'login') => {
         if (userProfile.isLoggedIn && userProfile.id) {
             await signOut();
         } else {
+            setAuthModalMode(mode);
             setIsAuthModalOpen(true);
         }
     };
@@ -1401,13 +1403,14 @@ export default function App() {
                 show={{ open: showPremiumUpgrade.open, feature: showPremiumUpgrade.feature }}
                 onClose={() => setShowPremiumUpgrade({ open: false })}
                 userProfile={userProfile}
-                onAuth={() => setIsAuthModalOpen(true)}
+                onAuth={() => handleAuthAction('login')}
             />
 
             <AuthModal
                 isOpen={isAuthModalOpen}
                 onClose={() => setIsAuthModalOpen(false)}
                 onSuccess={() => setIsAuthModalOpen(false)}
+                defaultMode={authModalMode}
             />
 
             <CompanyRegistrationModal

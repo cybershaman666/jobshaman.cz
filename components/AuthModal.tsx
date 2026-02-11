@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { signInWithEmail, signInWithOAuthProvider, signUpWithEmail } from '../services/supabaseService';
 import { fetchCsrfToken, waitForSession } from '../services/csrfService';
 import { X, Mail, Lock, User, Loader2, AlertCircle, Chrome, Linkedin } from 'lucide-react';
@@ -10,11 +10,12 @@ interface AuthModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: () => void;
+    defaultMode?: 'login' | 'register';
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
+const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defaultMode = 'login' }) => {
     const { t } = useTranslation();
-    const [isLogin, setIsLogin] = useState(true);
+    const [isLogin, setIsLogin] = useState(defaultMode === 'login');
     const [loading, setLoading] = useState(false);
     const [oauthLoading, setOauthLoading] = useState<null | 'google' | 'linkedin'>(null);
     const [error, setError] = useState<string | null>(null);
@@ -24,6 +25,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
         password: '',
         fullName: ''
     });
+
+    useEffect(() => {
+        if (isOpen) {
+            setIsLogin(defaultMode === 'login');
+        }
+    }, [isOpen, defaultMode]);
 
     if (!isOpen) return null;
 

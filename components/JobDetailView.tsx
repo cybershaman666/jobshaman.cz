@@ -29,7 +29,7 @@ interface JobDetailViewProps {
     showCommuteDetails: boolean;
     showLoginPrompt: boolean;
     showAddressPrompt: boolean;
-    handleAuthAction: () => void;
+    handleAuthAction: (mode?: 'login' | 'register') => void;
     setViewState: (view: ViewState) => void;
     showFinancialMethodology: boolean;
     setShowFinancialMethodology: (show: boolean) => void;
@@ -399,6 +399,11 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
             ) : (
                 <div className="h-full overflow-y-auto custom-scrollbar">
                     <WelcomePage
+                        onTryFree={() => handleAuthAction('register')}
+                        onBrowseOffers={() => {
+                            setViewState(ViewState.LIST);
+                            setSelectedJobId(null);
+                        }}
                         selectedBlogPostSlug={selectedBlogPostSlug}
                         handleBlogPostSelect={handleBlogPostSelect}
                     />
