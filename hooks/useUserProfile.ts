@@ -148,21 +148,20 @@ export const useUserProfile = () => {
                 let metaIco = null;
                 let metaWebsite = null;
 
-                if (supabase) {
-                    const { data: { user } } = await supabase.auth.getUser();
-                    metaRole = user?.user_metadata?.role;
-                    metaCompany = user?.user_metadata?.company_name;
-                    metaIco = user?.user_metadata?.ico;
-                    metaWebsite = user?.user_metadata?.website;
-                    metaIsFreelancer = user?.user_metadata?.is_freelancer === true || user?.user_metadata?.is_freelancer === 'true';
-                    metaIsCourseProvider = user?.user_metadata?.is_course_provider === true || user?.user_metadata?.is_course_provider === 'true';
+                if (authUser) {
+                    metaRole = authUser.user_metadata?.role;
+                    metaCompany = authUser.user_metadata?.company_name;
+                    metaIco = authUser.user_metadata?.ico;
+                    metaWebsite = authUser.user_metadata?.website;
+                    metaIsFreelancer = authUser.user_metadata?.is_freelancer === true || authUser.user_metadata?.is_freelancer === 'true';
+                    metaIsCourseProvider = authUser.user_metadata?.is_course_provider === true || authUser.user_metadata?.is_course_provider === 'true';
                     console.log("📋 [Metadata] Extracted:", {
                         metaRole,
                         metaCompany,
                         metaIsFreelancer,
                         metaIsCourseProvider,
-                        rawIsFreelancer: user?.user_metadata?.is_freelancer,
-                        allMetadata: user?.user_metadata
+                        rawIsFreelancer: authUser.user_metadata?.is_freelancer,
+                        allMetadata: authUser.user_metadata
                     });
                 }
 
@@ -177,6 +176,34 @@ export const useUserProfile = () => {
                     } catch (err) {
                         console.error("❌ Failed to auto-fix profile role:", err);
                     }
+                }
+
+                // Auto-fill missing profile fields from LinkedIn OAuth metadata
+                try {
+                    const provider = authUser?.app_metadata?.provider;
+                    const isLinkedInProvider = provider === 'linkedin' || provider === 'linkedin_oidc';
+                    if (isLinkedInProvider && authUser?.user_metadata) {
+                        const meta = authUser.user_metadata as Record<string, unknown>;
+                        const clean = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
+                        const fallbackName = [clean(meta.given_name), clean(meta.family_name)].filter(Boolean).join(' ');
+                        const fullName = clean(meta.full_name) || clean(meta.name) || fallbackName;
+                        const avatarUrl = clean(meta.avatar_url) || clean(meta.picture);
+                        const headline = clean(meta.headline) || clean(meta.title) || clean(meta.job_title);
+
+                        const updates: Partial<UserProfile> = {};
+                        if (fullName && (!profile.name || !profile.name.trim())) updates.name = fullName;
+                        if (avatarUrl && (!profile.photo || !profile.photo.trim())) updates.photo = avatarUrl;
+                        if (headline && (!profile.jobTitle || !profile.jobTitle.trim())) updates.jobTitle = headline;
+
+                        if (Object.keys(updates).length > 0) {
+                            await updateUserProfileService(userId, updates);
+                            profile = { ...profile, ...updates };
+                            setUserProfile(prev => ({ ...prev, ...updates }));
+                            console.log('✅ LinkedIn metadata applied to profile.');
+                        }
+                    }
+                } catch (err) {
+                    console.warn('⚠️ LinkedIn metadata sync failed:', err);
                 }
 
                 // If they are a recruiter (or just became one), but have no company, check metadata for company name and create it.
