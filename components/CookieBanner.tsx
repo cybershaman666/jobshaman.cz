@@ -25,7 +25,7 @@ const CookieBanner: React.FC<CookieBannerProps> = ({
   const [showDetails, setShowDetails] = useState(false);
   const [preferences, setPreferences] = useState<CookiePreferences>({
     necessary: true, // Always true, cannot be disabled
-    analytics: false,
+    analytics: true,
     marketing: false,
     functional: false,
     preferences: false
@@ -58,8 +58,16 @@ const CookieBanner: React.FC<CookieBannerProps> = ({
   };
 
   const handleAcceptNecessary = () => {
-    saveConsent(preferences);
-    onAccept?.(preferences);
+    const necessaryOnly: CookiePreferences = {
+      necessary: true,
+      analytics: false,
+      marketing: false,
+      functional: false,
+      preferences: false
+    };
+    setPreferences(necessaryOnly);
+    saveConsent(necessaryOnly);
+    onAccept?.(necessaryOnly);
     setIsVisible(false);
   };
 
