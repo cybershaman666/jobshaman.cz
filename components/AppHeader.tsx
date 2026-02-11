@@ -25,7 +25,7 @@ interface AppHeaderProps {
     setShowCompanyLanding: (show: boolean) => void;
     userProfile: UserProfile;
     companyProfile: CompanyProfile | null;
-    handleAuthAction: () => void;
+    handleAuthAction: (mode?: 'login' | 'register') => void;
     toggleTheme: () => void;
     theme: 'light' | 'dark';
     setIsOnboardingCompany: (show: boolean) => void;

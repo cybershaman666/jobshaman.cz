@@ -26,7 +26,7 @@ interface FinancialCardProps {
     showCommuteDetails: boolean;
     showLoginPrompt: boolean;
     showAddressPrompt: boolean;
-    handleAuthAction: () => void;
+    handleAuthAction: (mode?: 'login' | 'register') => void;
     setViewState: (view: ViewState) => void;
     showFinancialMethodology: boolean;
     setShowFinancialMethodology: (show: boolean) => void;
