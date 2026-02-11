@@ -43,6 +43,7 @@ import { analyzeJobForPathfinder } from './services/careerPathfinderService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
 import { checkPaymentStatus } from './services/stripeService';
 import { clearCsrfToken } from './services/csrfService';
+import { trackPageView } from './services/trafficAnalytics';
 import { useUserProfile } from './hooks/useUserProfile';
 import { usePaginatedJobs } from './hooks/usePaginatedJobs';
 import { DEFAULT_USER_PROFILE } from './constants';
@@ -514,6 +515,27 @@ export default function App() {
             console.warn('Failed to sync URL with view state', err);
         }
     }, [selectedJobId, selectedBlogPostSlug, showCompanyLanding, viewState, i18n.language]);
+
+    const lastTrackedPathRef = useRef<string | null>(null);
+    useEffect(() => {
+        try {
+            const path = window.location.pathname + (window.location.search || '');
+            if (lastTrackedPathRef.current === path) return;
+            lastTrackedPathRef.current = path;
+
+            trackPageView({
+                path: window.location.pathname,
+                title: document.title,
+                viewState,
+                jobId: selectedJobId,
+                blogSlug: selectedBlogPostSlug,
+                locale: i18n.language,
+                companyId: companyProfile?.id || null
+            });
+        } catch (err) {
+            console.warn('Page view tracking failed:', err);
+        }
+    }, [selectedJobId, selectedBlogPostSlug, showCompanyLanding, viewState, i18n.language, companyProfile?.id]);
 
     // REMOVE OLD HISTORY API PATCHING - replaced with selectedJobId effect above
     // Fetch job by ID for direct links (e.g., /jobs/18918)

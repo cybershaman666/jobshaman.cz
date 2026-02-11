@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, Query
 from datetime import datetime, timezone, timedelta
+import json
 from typing import Optional, List
 import re
 
@@ -229,6 +230,19 @@ async def admin_stats(
     paid_user = supabase.table("subscriptions").select("id", count="exact").neq("tier", "free").in_("status", ["active", "trialing"]).not_.is_("user_id", "null").execute().count or 0
     user_conversion = (paid_user / users_total * 100) if users_total else 0
 
+    traffic = None
+    try:
+        traffic_resp = supabase.rpc("get_admin_traffic_stats", {"top_limit": 8}).execute()
+        traffic_data = traffic_resp.data
+        if isinstance(traffic_data, list):
+            traffic = traffic_data[0] if len(traffic_data) == 1 else traffic_data
+        elif isinstance(traffic_data, str):
+            traffic = json.loads(traffic_data)
+        else:
+            traffic = traffic_data
+    except Exception as e:
+        print(f"⚠️ Admin traffic stats failed: {e}")
+
     return {
         "users": {"total": users_total, "new_7d": users_7, "new_30d": users_30},
         "companies": {"total": companies_total, "new_7d": companies_7, "new_30d": companies_30},
@@ -237,7 +251,8 @@ async def admin_stats(
             "user_paid_percent": round(user_conversion, 2),
             "paid_companies": paid_company,
             "paid_users": paid_user,
-        }
+        },
+        "traffic": traffic,
     }
 
 @router.get("/admin/notifications")

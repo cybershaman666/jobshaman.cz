@@ -151,6 +151,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     return date.toLocaleString('cs-CZ', { dateStyle: 'medium', timeStyle: 'short' });
   };
 
+  const formatNumber = (value?: number) => {
+    if (value === null || value === undefined) return '—';
+    return new Intl.NumberFormat('cs-CZ').format(value);
+  };
+
+  const formatPercent = (value?: number) => {
+    if (value === null || value === undefined) return '—';
+    return `${value}%`;
+  };
+
   const getEntityLabel = (sub: any) => {
     if (sub.company_id) {
       const industry = sub.companies?.industry;
@@ -177,6 +187,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     const keys = Object.keys(after || {});
     const changed = keys.filter(key => JSON.stringify(before[key]) !== JSON.stringify(after[key]));
     return changed.slice(0, 6);
+  };
+
+  const stripLocale = (path: string) => {
+    const parts = path.split('/').filter(Boolean);
+    const locales = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
+    if (parts.length > 0 && locales.includes(parts[0])) parts.shift();
+    const normalized = `/${parts.join('/')}`;
+    return normalized === '/' ? '/' : normalized.replace(/\/$/, '');
   };
 
   const handleEditChange = (id: string, key: string, value: any) => {
@@ -275,6 +293,42 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     const end = Math.min(total, filters.offset + filters.limit);
     return `${start}-${end} / ${total}`;
   }, [filters.offset, filters.limit, total]);
+
+  const trafficSeries = useMemo(() => {
+    const raw = stats?.traffic?.daily || [];
+    const map = new Map<string, any>();
+    raw.forEach((entry: any) => {
+      if (!entry?.day) return;
+      const key = new Date(entry.day).toISOString().slice(0, 10);
+      map.set(key, {
+        pageviews: Number(entry.pageviews) || 0,
+        unique_visitors: Number(entry.unique_visitors) || 0,
+        sessions: Number(entry.sessions) || 0
+      });
+    });
+
+    const days: any[] = [];
+    const today = new Date();
+    const totalDays = 14;
+    for (let i = totalDays - 1; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(today.getDate() - i);
+      const key = d.toISOString().slice(0, 10);
+      days.push({
+        date: key,
+        ...map.get(key),
+        pageviews: map.get(key)?.pageviews || 0,
+        unique_visitors: map.get(key)?.unique_visitors || 0,
+        sessions: map.get(key)?.sessions || 0
+      });
+    }
+    return days;
+  }, [stats?.traffic]);
+
+  const maxTrafficPageviews = useMemo(() => {
+    if (!trafficSeries.length) return 1;
+    return Math.max(...trafficSeries.map(item => item.pageviews || 0), 1);
+  }, [trafficSeries]);
 
   if (!userProfile?.isLoggedIn) {
     return (
@@ -491,6 +545,135 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               Uživatelé {stats?.conversion?.user_paid_percent ?? '—'}%
             </div>
           </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm mb-6">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Návštěvnost</h3>
+              <p className="text-xs text-slate-500">Posledních 30 dní</p>
+            </div>
+            <div className="text-xs text-slate-500">7 dní v detailu pod kartami</div>
+          </div>
+
+          {loadingStats ? (
+            <div className="text-sm text-slate-500">Načítám analytiku...</div>
+          ) : !stats?.traffic?.totals_30 ? (
+            <div className="text-sm text-slate-500">Statistiky návštěvnosti nejsou k dispozici.</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4">
+                  <div className="text-xs text-slate-500">Pageviews</div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white">
+                    {formatNumber(stats?.traffic?.totals_30?.pageviews)}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    7 dní: {formatNumber(stats?.traffic?.totals_7?.pageviews)}
+                  </div>
+                </div>
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4">
+                  <div className="text-xs text-slate-500">Návštěvníci</div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white">
+                    {formatNumber(stats?.traffic?.totals_30?.unique_visitors)}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    7 dní: {formatNumber(stats?.traffic?.totals_7?.unique_visitors)}
+                  </div>
+                </div>
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4">
+                  <div className="text-xs text-slate-500">Sessions</div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white">
+                    {formatNumber(stats?.traffic?.totals_30?.sessions)}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    7 dní: {formatNumber(stats?.traffic?.totals_7?.sessions)}
+                  </div>
+                </div>
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4">
+                  <div className="text-xs text-slate-500">Bounce rate</div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white">
+                    {formatPercent(stats?.traffic?.totals_30?.bounce_rate)}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    7 dní: {formatPercent(stats?.traffic?.totals_7?.bounce_rate)}
+                  </div>
+                </div>
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4">
+                  <div className="text-xs text-slate-500">Stránky / session</div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white">
+                    {stats?.traffic?.totals_30?.pages_per_session ?? '—'}
+                  </div>
+                  <div className="text-xs text-slate-500 mt-1">
+                    7 dní: {stats?.traffic?.totals_7?.pages_per_session ?? '—'}
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2">
+                  <div className="text-xs text-slate-500 mb-2">Denní návštěvnost (14 dní)</div>
+                  <div className="h-28 flex items-end gap-2">
+                    {trafficSeries.map(day => {
+                      const height = Math.round((day.pageviews / maxTrafficPageviews) * 100);
+                      return (
+                        <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
+                          <div
+                            title={`${day.date} • ${day.pageviews} pv`}
+                            className="w-full rounded-md bg-cyan-500/70 dark:bg-cyan-400/70"
+                            style={{ height: `${Math.max(height, 6)}%` }}
+                          />
+                          <div className="text-[10px] text-slate-400">
+                            {day.date.slice(5)}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-xs text-slate-500 mb-2">Top stránky</div>
+                    <div className="space-y-2">
+                      {(stats?.traffic?.top_pages || []).length === 0 ? (
+                        <div className="text-xs text-slate-400">Žádná data.</div>
+                      ) : (
+                        stats?.traffic?.top_pages?.map((item: any) => (
+                          <div key={item.path} className="flex items-center justify-between text-sm">
+                            <span className="text-slate-700 dark:text-slate-300 truncate">
+                              {stripLocale(item.path || '/')}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {formatNumber(item.pageviews)}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-slate-500 mb-2">Zdroj návštěv</div>
+                    <div className="space-y-2">
+                      {(stats?.traffic?.top_referrers || []).length === 0 ? (
+                        <div className="text-xs text-slate-400">Žádná data.</div>
+                      ) : (
+                        stats?.traffic?.top_referrers?.map((item: any) => (
+                          <div key={item.referrer} className="flex items-center justify-between text-sm">
+                            <span className="text-slate-700 dark:text-slate-300 truncate">
+                              {item.referrer || '(direct)'}
+                            </span>
+                            <span className="text-xs text-slate-500">
+                              {formatNumber(item.sessions)}
+                            </span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm mb-6">
