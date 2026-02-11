@@ -241,7 +241,10 @@
     "signup": "Zaregistrovat se",
     "forgot_password": "Zapomněli jste heslo?",
     "email_confirm_notice_title": "Před přihlášením potvrďte e‑mail",
-    "email_confirm_notice_body": "Pokud jste se právě zaregistrovali, nejdřív potvrďte e‑mail v doručené zprávě."
+    "email_confirm_notice_body": "Pokud jste se právě zaregistrovali, nejdřív potvrďte e‑mail v doručené zprávě.",
+    "continue_with_google": "Pokračovat s Google",
+    "continue_with_linkedin": "Pokračovat s LinkedIn",
+    "or": "nebo"
   },
   "logistics": {
     "title": "Logistika dojíždění",

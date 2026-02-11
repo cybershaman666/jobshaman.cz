@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
-import { signInWithEmail, signUpWithEmail } from '../services/supabaseService';
+import { signInWithEmail, signInWithOAuthProvider, signUpWithEmail } from '../services/supabaseService';
 import { fetchCsrfToken, waitForSession } from '../services/csrfService';
-import { X, Mail, Lock, User, Loader2, AlertCircle } from 'lucide-react';
+import { X, Mail, Lock, User, Loader2, AlertCircle, Chrome, Linkedin } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
 
@@ -16,6 +16,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
     const { t } = useTranslation();
     const [isLogin, setIsLogin] = useState(true);
     const [loading, setLoading] = useState(false);
+    const [oauthLoading, setOauthLoading] = useState<null | 'google' | 'linkedin'>(null);
     const [error, setError] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
@@ -73,6 +74,22 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
         }
     };
 
+    const handleOAuthSignIn = async (provider: 'google' | 'linkedin') => {
+        setOauthLoading(provider);
+        setError(null);
+
+        try {
+            await signInWithOAuthProvider(provider);
+            // Browser will redirect to provider, no further action needed here.
+            setOauthLoading(null);
+        } catch (err: any) {
+            setError(err.message || 'Authentication failed');
+            setOauthLoading(null);
+        }
+    };
+
+    const isBusy = loading || oauthLoading !== null;
+
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
             <div
@@ -113,6 +130,33 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
                         {error}
                     </div>
                 )}
+
+                <div className="space-y-3 mb-6">
+                    <button
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => handleOAuthSignIn('google')}
+                        className="w-full py-3 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+                    >
+                        {oauthLoading === 'google' ? <Loader2 className="animate-spin" size={18} /> : <Chrome size={18} />}
+                        {t('auth.continue_with_google')}
+                    </button>
+                    <button
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => handleOAuthSignIn('linkedin')}
+                        className="w-full py-3 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
+                    >
+                        {oauthLoading === 'linkedin' ? <Loader2 className="animate-spin" size={18} /> : <Linkedin size={18} />}
+                        {t('auth.continue_with_linkedin')}
+                    </button>
+                </div>
+
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+                    <span className="text-xs font-bold text-slate-400 uppercase">{t('auth.or')}</span>
+                    <div className="flex-1 h-px bg-slate-200 dark:bg-slate-800" />
+                </div>
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {!isLogin && (
@@ -165,7 +209,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => 
 
                     <button
                         type="submit"
-                        disabled={loading}
+                        disabled={isBusy}
                         className="w-full py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-cyan-900/20 flex items-center justify-center gap-2"
                     >
                         {loading && <Loader2 className="animate-spin" size={18} />}

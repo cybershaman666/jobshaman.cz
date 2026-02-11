@@ -221,7 +221,10 @@
     "signup": "Zaregistrovať sa",
     "forgot_password": "Zabudli ste heslo?",
     "email_confirm_notice_title": "Pred prihlásením potvrďte e‑mail",
-    "email_confirm_notice_body": "Ak ste sa práve zaregistrovali, potvrďte e‑mail v správe, ktorú sme poslali."
+    "email_confirm_notice_body": "Ak ste sa práve zaregistrovali, potvrďte e‑mail v správe, ktorú sme poslali.",
+    "continue_with_google": "Pokračovať s Google",
+    "continue_with_linkedin": "Pokračovať s LinkedIn",
+    "or": "alebo"
   },
   "logistics": {
     "title": "Logistika dochádzania",

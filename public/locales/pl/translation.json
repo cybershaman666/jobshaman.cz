@@ -230,7 +230,10 @@
     "signup": "Zarejestruj się",
     "forgot_password": "Zapomniałeś hasła?",
     "email_confirm_notice_title": "Przed logowaniem potwierdź e‑mail",
-    "email_confirm_notice_body": "Jeśli dopiero się zarejestrowałeś, potwierdź e‑mail z wiadomości, którą wysłaliśmy."
+    "email_confirm_notice_body": "Jeśli dopiero się zarejestrowałeś, potwierdź e‑mail z wiadomości, którą wysłaliśmy.",
+    "continue_with_google": "Kontynuuj z Google",
+    "continue_with_linkedin": "Kontynuuj z LinkedIn",
+    "or": "lub"
   },
   "logistics": {
     "title": "Logistyka dojazdów",

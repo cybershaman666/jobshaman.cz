@@ -127,6 +127,29 @@ export const signOut = async (): Promise<void> => {
     await supabase.auth.signOut();
 };
 
+export const signInWithOAuthProvider = async (provider: 'google' | 'linkedin' | 'linkedin_oidc') => {
+    if (!supabase) throw new Error("Supabase not configured");
+
+    const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
+    const options = redirectTo ? { redirectTo } : undefined;
+    const attempt = async (prov: 'google' | 'linkedin' | 'linkedin_oidc') => {
+        return await supabase.auth.signInWithOAuth({
+            provider: prov,
+            options
+        });
+    };
+
+    const { data, error } = await attempt(provider);
+    if (error && provider === 'linkedin') {
+        const retry = await attempt('linkedin_oidc');
+        if (retry.error) throw retry.error;
+        return retry;
+    }
+
+    if (error) throw error;
+    return { data, error };
+};
+
 export const getCurrentUser = async () => {
     if (!supabase) return null;
 
