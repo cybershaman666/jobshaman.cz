@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Bell, BarChart3, RefreshCcw, Search, Sparkles } from 'lucide-react';
 import { UserProfile } from '../types';
 import { adminSearch, getAdminNotifications, getAdminStats, getAdminSubscriptionAudit, getAdminSubscriptions, updateAdminSubscription } from '../services/adminService';
 
@@ -332,10 +333,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
   if (!userProfile?.isLoggedIn) {
     return (
-      <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
-        <div className="max-w-2xl mx-auto mt-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center shadow-sm">
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">Admin zóna</h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400">Pro přístup se nejdřív přihlaste.</p>
+      <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950">
+        <div className="max-w-2xl mx-auto px-4 py-12">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 text-center shadow-sm relative overflow-hidden">
+            <div className="absolute -right-16 -top-16 w-40 h-40 bg-cyan-500/10 blur-3xl rounded-full" />
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Admin zóna</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Pro přístup se nejdřív přihlaste.</p>
+          </div>
         </div>
       </div>
     );
@@ -343,43 +347,61 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
   if (forbidden) {
     return (
-      <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
-        <div className="max-w-2xl mx-auto mt-10 bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900 rounded-2xl p-6 text-center shadow-sm">
-          <h2 className="text-xl font-bold text-rose-700 dark:text-rose-300 mb-2">Přístup zamítnut</h2>
-          <p className="text-sm text-slate-600 dark:text-slate-400">Tento účet nemá admin oprávnění.</p>
+      <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950">
+        <div className="max-w-2xl mx-auto px-4 py-12">
+          <div className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900 rounded-3xl p-8 text-center shadow-sm relative overflow-hidden">
+            <div className="absolute -right-16 -top-16 w-40 h-40 bg-rose-500/10 blur-3xl rounded-full" />
+            <h2 className="text-2xl font-black text-rose-700 dark:text-rose-300 mb-2">Přístup zamítnut</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Tento účet nemá admin oprávnění.</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
-      <div className="max-w-6xl mx-auto">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm mb-6">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm mb-8 relative overflow-hidden">
+          <div className="absolute -right-20 -top-20 w-52 h-52 bg-cyan-500/10 blur-3xl rounded-full" />
+          <div className="absolute -left-16 -bottom-16 w-44 h-44 bg-slate-200/40 dark:bg-slate-800/60 blur-3xl rounded-full" />
+          <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Admin Dashboard</h1>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
-                Správa předplatných, trialů a upozornění
+              <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-cyan-600 dark:text-cyan-400 font-semibold mb-2">
+                <span className="w-2 h-2 rounded-full bg-cyan-500" />
+                Admin Control
+              </div>
+              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">Admin Dashboard</h1>
+              <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+                Správa předplatných, trialů, auditů a návštěvnosti
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => {
                   loadSubscriptions();
                   loadNotifications();
                 }}
-                className="px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-semibold hover:bg-slate-800"
+                className="px-4 py-2 rounded-xl bg-cyan-600 text-white text-sm font-semibold hover:bg-cyan-500 shadow-sm transition-colors flex items-center gap-2"
               >
+                <RefreshCcw size={16} />
                 Obnovit data
               </button>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm">
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Upozornění (trial)</h3>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                <Bell size={18} />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Upozornění (trial)</h3>
+                <p className="text-xs text-slate-500">Nejbližší expirace</p>
+              </div>
+            </div>
             {loadingNotifications ? (
               <p className="text-sm text-slate-500">Načítám...</p>
             ) : notifications.length === 0 ? (
@@ -387,14 +409,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             ) : (
               <div className="space-y-3">
                 {notifications.map((n: any) => (
-                  <div key={n.subscription_id} className="border border-slate-200 dark:border-slate-800 rounded-lg p-3">
+                  <div key={n.subscription_id} className="border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/60">
                     <div className="flex items-center justify-between text-xs text-slate-500">
-                      <span>{n.company_name || n.user_email || n.subscription_id}</span>
-                      <span className={`font-semibold ${n.severity === 'today' ? 'text-rose-600' : n.severity === 'expired' ? 'text-rose-700' : 'text-amber-600'}`}>
+                      <span className="font-medium text-slate-600 dark:text-slate-300">{n.company_name || n.user_email || n.subscription_id}</span>
+                      <span className={`px-2 py-0.5 rounded-full font-semibold ${n.severity === 'today' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300' : n.severity === 'expired' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'}`}>
                         {n.severity === 'today' ? 'Dnes končí' : n.severity === 'expired' ? 'Expirované' : 'Brzy končí'}
                       </span>
                     </div>
-                    <div className="text-sm text-slate-700 dark:text-slate-300 mt-1">
+                    <div className="text-sm text-slate-700 dark:text-slate-300 mt-2">
                       {getEntityLabel(n)} · {formatDate(n.current_period_end)}
                     </div>
                   </div>
@@ -403,13 +425,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             )}
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm lg:col-span-2">
-            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-3">Vytvořit předplatné</h3>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm lg:col-span-2">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                <Sparkles size={18} />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Vytvořit předplatné</h3>
+                <p className="text-xs text-slate-500">Rychlé nastavení tieru a trialu</p>
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
               <select
                 value={createForm.target_type}
                 onChange={e => setCreateForm(prev => ({ ...prev, target_type: e.target.value }))}
-                className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
               >
                 <option value="company">Firma</option>
                 <option value="user">Uživatel</option>
@@ -418,12 +448,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 value={createForm.target_id}
                 onChange={e => setCreateForm(prev => ({ ...prev, target_id: e.target.value }))}
                 placeholder="UUID cíle"
-                className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 md:col-span-2"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 md:col-span-2 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
               />
               <select
                 value={createForm.tier}
                 onChange={e => setCreateForm(prev => ({ ...prev, tier: e.target.value }))}
-                className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
               >
                 {TIERS.map(t => (
                   <option key={t} value={t}>{t}</option>
@@ -432,7 +462,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               <select
                 value={createForm.status}
                 onChange={e => setCreateForm(prev => ({ ...prev, status: e.target.value }))}
-                className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
               >
                 {STATUSES.map(s => (
                   <option key={s} value={s}>{s}</option>
@@ -443,11 +473,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 value={createForm.set_trial_days}
                 onChange={e => setCreateForm(prev => ({ ...prev, set_trial_days: e.target.value }))}
                 placeholder="Trial dní"
-                className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
               />
               <button
                 onClick={handleCreateSubscription}
-                className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-500 md:col-span-2"
+                className="px-4 py-2 rounded-lg bg-cyan-600 text-white text-sm font-semibold hover:bg-cyan-500 md:col-span-2 shadow-sm transition-colors"
               >
                 Vytvořit / upravit
               </button>
@@ -457,7 +487,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 <select
                   value={searchKind}
                   onChange={e => setSearchKind(e.target.value as 'company' | 'user')}
-                  className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900"
+                  className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
                 >
                   <option value="company">Hledat firmu</option>
                   <option value="user">Hledat uživatele</option>
@@ -466,11 +496,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Název firmy, jméno nebo email..."
-                  className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 flex-1 min-w-[220px]"
+                  className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 flex-1 min-w-[220px] focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
                 />
                 <button
                   onClick={handleSearch}
-                  className="px-3 py-2 rounded-lg text-sm border border-slate-200 dark:border-slate-800"
+                  className="px-3 py-2 rounded-lg text-sm border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
                 >
                   Vyhledat
                 </button>
@@ -490,7 +520,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                           target_id: item.id
                         }));
                       }}
-                      className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-left hover:bg-slate-50 dark:hover:bg-slate-800"
+                      className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-left hover:bg-cyan-50/60 dark:hover:bg-cyan-950/30 transition-colors"
                     >
                       <div className="text-sm font-semibold text-slate-900 dark:text-white">{item.label}</div>
                       <div className="text-xs text-slate-500">{item.secondary || item.id}</div>
@@ -502,30 +532,34 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-            <div className="text-xs text-slate-500">Uživatelé celkem</div>
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+            <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500/70 rounded-t-2xl" />
+            <div className="text-xs text-slate-500 uppercase tracking-[0.2em] mt-2">Uživatelé</div>
             <div className="text-2xl font-bold text-slate-900 dark:text-white">
               {loadingStats ? '…' : stats?.users?.total ?? '—'}
             </div>
             <div className="text-xs text-slate-500 mt-1">+ {stats?.users?.new_7d ?? '—'} za 7 dní</div>
           </div>
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-            <div className="text-xs text-slate-500">Uživatelé 30 dní</div>
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+            <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500/70 rounded-t-2xl" />
+            <div className="text-xs text-slate-500 uppercase tracking-[0.2em] mt-2">Uživatelé 30 dní</div>
             <div className="text-2xl font-bold text-slate-900 dark:text-white">
               {loadingStats ? '…' : stats?.users?.new_30d ?? '—'}
             </div>
             <div className="text-xs text-slate-500 mt-1">Noví za 30 dní</div>
           </div>
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-            <div className="text-xs text-slate-500">Firmy celkem</div>
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+            <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500/70 rounded-t-2xl" />
+            <div className="text-xs text-slate-500 uppercase tracking-[0.2em] mt-2">Firmy</div>
             <div className="text-2xl font-bold text-slate-900 dark:text-white">
               {loadingStats ? '…' : stats?.companies?.total ?? '—'}
             </div>
             <div className="text-xs text-slate-500 mt-1">+ {stats?.companies?.new_7d ?? '—'} za 7 dní</div>
           </div>
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-            <div className="text-xs text-slate-500">Firmy 30 dní</div>
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+            <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500/70 rounded-t-2xl" />
+            <div className="text-xs text-slate-500 uppercase tracking-[0.2em] mt-2">Firmy 30 dní</div>
             <div className="text-2xl font-bold text-slate-900 dark:text-white">
               {loadingStats ? '…' : stats?.companies?.new_30d ?? '—'}
             </div>
@@ -533,8 +567,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               Nové firmy za 30 dní
             </div>
           </div>
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
-            <div className="text-xs text-slate-500">Konverze na placené</div>
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+            <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500/70 rounded-t-2xl" />
+            <div className="text-xs text-slate-500 uppercase tracking-[0.2em] mt-2">Konverze na placené</div>
             <div className="text-2xl font-bold text-slate-900 dark:text-white">
               {loadingStats ? '…' : `${stats?.conversion?.company_paid_percent ?? '—'}%`}
             </div>
@@ -547,11 +582,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm mb-6">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
-            <div>
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Návštěvnost</h3>
-              <p className="text-xs text-slate-500">Posledních 30 dní</p>
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm mb-8">
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                <BarChart3 size={18} />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Návštěvnost</h3>
+                <p className="text-xs text-slate-500">Posledních 30 dní</p>
+              </div>
             </div>
             <div className="text-xs text-slate-500">7 dní v detailu pod kartami</div>
           </div>
@@ -563,7 +603,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
           ) : (
             <>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
                   <div className="text-xs text-slate-500">Pageviews</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
                     {formatNumber(stats?.traffic?.totals_30?.pageviews)}
@@ -572,7 +612,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     7 dní: {formatNumber(stats?.traffic?.totals_7?.pageviews)}
                   </div>
                 </div>
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
                   <div className="text-xs text-slate-500">Návštěvníci</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
                     {formatNumber(stats?.traffic?.totals_30?.unique_visitors)}
@@ -581,7 +621,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     7 dní: {formatNumber(stats?.traffic?.totals_7?.unique_visitors)}
                   </div>
                 </div>
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
                   <div className="text-xs text-slate-500">Sessions</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
                     {formatNumber(stats?.traffic?.totals_30?.sessions)}
@@ -590,7 +630,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     7 dní: {formatNumber(stats?.traffic?.totals_7?.sessions)}
                   </div>
                 </div>
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
                   <div className="text-xs text-slate-500">Bounce rate</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
                     {formatPercent(stats?.traffic?.totals_30?.bounce_rate)}
@@ -599,7 +639,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     7 dní: {formatPercent(stats?.traffic?.totals_7?.bounce_rate)}
                   </div>
                 </div>
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
                   <div className="text-xs text-slate-500">Stránky / session</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
                     {stats?.traffic?.totals_30?.pages_per_session ?? '—'}
@@ -620,7 +660,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
                           <div
                             title={`${day.date} • ${day.pageviews} pv`}
-                            className="w-full rounded-md bg-cyan-500/70 dark:bg-cyan-400/70"
+                            className="w-full rounded-md bg-gradient-to-t from-cyan-600/80 to-cyan-400/80 dark:from-cyan-400/80 dark:to-cyan-200/80"
                             style={{ height: `${Math.max(height, 6)}%` }}
                           />
                           <div className="text-[10px] text-slate-400">
@@ -632,7 +672,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   </div>
                 </div>
                 <div className="space-y-4">
-                  <div>
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
                     <div className="text-xs text-slate-500 mb-2">Top stránky</div>
                     <div className="space-y-2">
                       {(stats?.traffic?.top_pages || []).length === 0 ? (
@@ -651,7 +691,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       )}
                     </div>
                   </div>
-                  <div>
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
                     <div className="text-xs text-slate-500 mb-2">Zdroj návštěv</div>
                     <div className="space-y-2">
                       {(stats?.traffic?.top_referrers || []).length === 0 ? (
@@ -676,18 +716,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
           )}
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm mb-6">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm mb-8">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+              <Search size={18} />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Filtry a vyhledávání</h3>
+              <p className="text-xs text-slate-500">Rychlá navigace v předplatných</p>
+            </div>
+          </div>
           <div className="flex flex-wrap gap-3 items-center">
             <input
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
               placeholder="Hledat firmu, email, ID..."
-              className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 flex-1 min-w-[220px]"
+              className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 flex-1 min-w-[220px] focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
             />
             <select
               value={filters.kind}
               onChange={e => setFilters(prev => ({ ...prev, kind: e.target.value, offset: 0 }))}
-              className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900"
+              className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
             >
               <option value="">Vše</option>
               <option value="company">Firmy</option>
@@ -696,7 +745,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             <select
               value={filters.tier}
               onChange={e => setFilters(prev => ({ ...prev, tier: e.target.value, offset: 0 }))}
-              className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900"
+              className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
             >
               <option value="">Tier: vše</option>
               {TIERS.map(t => (
@@ -706,7 +755,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             <select
               value={filters.status}
               onChange={e => setFilters(prev => ({ ...prev, status: e.target.value, offset: 0 }))}
-              className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900"
+              className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
             >
               <option value="">Status: vše</option>
               {STATUSES.map(s => (
@@ -718,15 +767,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
         </div>
 
         {error && (
-          <div className="bg-rose-50 border border-rose-200 rounded-xl p-4 text-rose-700 text-sm mb-4">
+          <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4 text-rose-700 text-sm mb-5 shadow-sm">
             {error}
           </div>
         )}
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead className="bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
+              <thead className="bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 uppercase font-mono text-xs">
                 <tr>
                   <th className="text-left px-4 py-3 font-semibold">Subjekt</th>
                   <th className="text-left px-4 py-3 font-semibold">Email</th>
@@ -749,7 +798,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   subscriptions.map(sub => (
                     <tr
                       key={sub.id}
-                      className={`border-t border-slate-100 dark:border-slate-800 ${selectedSub?.id === sub.id ? 'bg-slate-50 dark:bg-slate-800/60' : ''}`}
+                      className={`border-t border-slate-100 dark:border-slate-800 transition-colors hover:bg-cyan-50/60 dark:hover:bg-cyan-950/30 ${selectedSub?.id === sub.id ? 'bg-cyan-50/70 dark:bg-cyan-950/40' : ''}`}
                     >
                       <td className="px-4 py-3">
                         <div className="font-semibold text-slate-900 dark:text-white">{getEntityName(sub)}</div>
@@ -763,7 +812,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         <select
                           value={edits[sub.id]?.tier || sub.tier}
                           onChange={e => handleEditChange(sub.id, 'tier', e.target.value)}
-                          className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs bg-white dark:bg-slate-900"
+                          className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
                         >
                           {TIERS.map(t => (
                             <option key={t} value={t}>{t}</option>
@@ -774,7 +823,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         <select
                           value={edits[sub.id]?.status || sub.status}
                           onChange={e => handleEditChange(sub.id, 'status', e.target.value)}
-                          className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs bg-white dark:bg-slate-900"
+                          className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
                         >
                           {STATUSES.map(s => (
                             <option key={s} value={s}>{s}</option>
@@ -789,13 +838,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                             value={edits[sub.id]?.set_trial_days || ''}
                             onChange={e => handleEditChange(sub.id, 'set_trial_days', e.target.value)}
                             placeholder="Trial dní"
-                            className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs bg-white dark:bg-slate-900 w-20"
+                            className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs bg-white dark:bg-slate-900 w-20 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
                           />
                           <input
                             type="date"
                             value={edits[sub.id]?.set_trial_until || ''}
                             onChange={e => handleEditChange(sub.id, 'set_trial_until', e.target.value)}
-                            className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs bg-white dark:bg-slate-900"
+                            className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
                           />
                         </div>
                       </td>
@@ -803,31 +852,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         <div className="flex flex-wrap gap-2">
                           <button
                             onClick={() => handleSelect(sub)}
-                            className="px-2 py-1 rounded-md bg-slate-200/70 dark:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-semibold hover:bg-slate-200"
+                            className="px-2.5 py-1.5 rounded-lg bg-cyan-600/10 text-cyan-700 dark:text-cyan-300 text-xs font-semibold hover:bg-cyan-600/20"
                           >
                             Detail
                           </button>
                           <button
                             onClick={() => handleQuickAction(sub, 'trial14')}
-                            className="px-2 py-1 rounded-md bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-semibold hover:bg-amber-500/20"
+                            className="px-2.5 py-1.5 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-semibold hover:bg-amber-500/20"
                           >
                             Trial 14d
                           </button>
                           <button
                             onClick={() => handleQuickAction(sub, 'activate')}
-                            className="px-2 py-1 rounded-md bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-500/20"
+                            className="px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-500/20"
                           >
                             Aktivovat
                           </button>
                           <button
                             onClick={() => handleQuickAction(sub, 'cancel')}
-                            className="px-2 py-1 rounded-md bg-rose-500/10 text-rose-700 dark:text-rose-300 text-xs font-semibold hover:bg-rose-500/20"
+                            className="px-2.5 py-1.5 rounded-lg bg-rose-500/10 text-rose-700 dark:text-rose-300 text-xs font-semibold hover:bg-rose-500/20"
                           >
                             Zrušit
                           </button>
                           <button
                             onClick={() => handleSave(sub)}
-                            className="px-2 py-1 rounded-md bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800"
+                            className="px-2.5 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800"
                           >
                             Uložit
                           </button>
@@ -843,7 +892,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             <button
               disabled={filters.offset === 0}
               onClick={() => setFilters(prev => ({ ...prev, offset: Math.max(0, prev.offset - prev.limit) }))}
-              className="px-3 py-1 rounded-lg text-xs border border-slate-200 dark:border-slate-800 disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 disabled:opacity-50"
             >
               Předchozí
             </button>
@@ -851,7 +900,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             <button
               disabled={filters.offset + filters.limit >= total}
               onClick={() => setFilters(prev => ({ ...prev, offset: prev.offset + prev.limit }))}
-              className="px-3 py-1 rounded-lg text-xs border border-slate-200 dark:border-slate-800 disabled:opacity-50"
+              className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 disabled:opacity-50"
             >
               Další
             </button>
@@ -859,7 +908,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
         </div>
 
         {selectedSub && (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm mt-6">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm mt-8">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Detail předplatného</h3>
@@ -867,26 +916,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               </div>
               <button
                 onClick={() => setSelectedSub(null)}
-                className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800"
+                className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
               >
                 Zavřít
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-              <div>
+              <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
                 <div className="text-xs text-slate-500">Subjekt</div>
                 <div className="font-semibold text-slate-900 dark:text-white">{getEntityName(selectedSub)}</div>
                 <div className="text-xs text-slate-500">{getEntityLabel(selectedSub)}</div>
                 <div className="text-xs text-slate-500 mt-2">{getEntityEmail(selectedSub)}</div>
               </div>
-              <div>
+              <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
                 <div className="text-xs text-slate-500">Tier / Status</div>
                 <div className="font-semibold text-slate-900 dark:text-white">{selectedSub.tier} · {selectedSub.status}</div>
                 <div className="text-xs text-slate-500 mt-2">Platnost do</div>
                 <div className="text-slate-700 dark:text-slate-300">{formatDate(selectedSub.current_period_end)}</div>
               </div>
-              <div>
+              <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
                 <div className="text-xs text-slate-500">Stripe</div>
                 <div className="text-slate-700 dark:text-slate-300 break-words">
                   {selectedSub.stripe_subscription_id || '—'}
@@ -896,7 +945,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   {selectedSub.stripe_customer_id || '—'}
                 </div>
               </div>
-              <div>
+              <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
                 <div className="text-xs text-slate-500">Období</div>
                 <div className="text-slate-700 dark:text-slate-300">
                   {formatDate(selectedSub.current_period_start)}
@@ -906,13 +955,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   {selectedSub.cancel_at_period_end ? 'Ano' : 'Ne'}
                 </div>
               </div>
-              <div>
+              <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
                 <div className="text-xs text-slate-500">Vytvořeno</div>
                 <div className="text-slate-700 dark:text-slate-300">{formatDate(selectedSub.created_at)}</div>
                 <div className="text-xs text-slate-500 mt-2">Aktualizováno</div>
                 <div className="text-slate-700 dark:text-slate-300">{formatDate(selectedSub.updated_at)}</div>
               </div>
-              <div>
+              <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
                 <div className="text-xs text-slate-500">Price ID</div>
                 <div className="text-slate-700 dark:text-slate-300 break-words">
                   {selectedSub.stripe_price_id || '—'}
@@ -929,7 +978,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Audit log</h4>
                 <button
                   onClick={() => loadAudit(selectedSub.id)}
-                  className="px-2.5 py-1 rounded-lg text-xs border border-slate-200 dark:border-slate-800"
+                  className="px-2.5 py-1 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
                 >
                   Obnovit log
                 </button>
@@ -943,7 +992,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   {auditLogs.map(entry => {
                     const changed = getChangedFields(entry);
                     return (
-                      <div key={entry.id} className="border border-slate-200 dark:border-slate-800 rounded-lg p-3">
+                      <div key={entry.id} className="border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
                         <div className="text-xs text-slate-500">{formatDate(entry.created_at)}</div>
                         <div className="text-sm text-slate-700 dark:text-slate-300">
                           {entry.action} · {entry.admin_email || 'admin'}
