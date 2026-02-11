@@ -302,7 +302,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                             </div>
                         ) : (
                             <button
-                                onClick={handleAuthAction}
+                                onClick={() => handleAuthAction('login')}
                                 className="flex items-center gap-2 text-sm font-bold text-white bg-slate-900 dark:bg-cyan-500/15 dark:text-cyan-200 px-4 py-2 rounded-lg hover:bg-slate-800 dark:hover:bg-cyan-500/25 transition-colors dark:ring-1 dark:ring-cyan-500/40"
                             >
                                 <UserCircle size={18} />

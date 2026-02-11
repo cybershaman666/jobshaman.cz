@@ -85,7 +85,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                             'Pro odemčení dojezdové reality je nutné vyplnit adresu ve svém profilu.'
                         )}
                     </p>
-                    <button onClick={handleAuthAction} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold transition-colors">
+                    <button onClick={() => handleAuthAction('login')} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold transition-colors">
                         {t('financial.login_button')}
                     </button>
                 </div>
