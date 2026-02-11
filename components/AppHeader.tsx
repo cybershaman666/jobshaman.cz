@@ -193,7 +193,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD || viewState === ViewState.FREELANCER_DASHBOARD || viewState === ViewState.COURSE_PROVIDER_DASHBOARD ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                     >
                         <Briefcase size={14} />
-                        <span className="hidden md:inline">{showCompanyLanding ? t('nav.back') : (companyProfile?.industry === 'Freelancer' || companyProfile?.industry === 'Education' ? 'Můj Účet' : t('nav.for_companies'))}</span>
+                        <span className="hidden md:inline">{showCompanyLanding ? t('nav.back') : (companyProfile?.industry === 'Freelancer' || companyProfile?.industry === 'Education' ? t('nav.my_account') : t('nav.for_companies'))}</span>
                         <span className="md:hidden">{showCompanyLanding ? '←' : '👤'}</span>
                     </button>
                 </nav>
@@ -379,7 +379,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                             className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD || viewState === ViewState.FREELANCER_DASHBOARD || viewState === ViewState.COURSE_PROVIDER_DASHBOARD ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                         >
                             <Briefcase size={14} />
-                            {showCompanyLanding ? t('nav.back') : (companyProfile?.industry === 'Freelancer' || companyProfile?.industry === 'Education' ? 'Můj Účet' : t('nav.for_companies'))}
+                            {showCompanyLanding ? t('nav.back') : (companyProfile?.industry === 'Freelancer' || companyProfile?.industry === 'Education' ? t('nav.my_account') : t('nav.for_companies'))}
                         </button>
                     </div>
                 </div>
