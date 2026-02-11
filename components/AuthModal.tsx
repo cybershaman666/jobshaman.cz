@@ -17,7 +17,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
     const { t } = useTranslation();
     const [isLogin, setIsLogin] = useState(defaultMode === 'login');
     const [loading, setLoading] = useState(false);
-    const [oauthLoading, setOauthLoading] = useState<null | 'google' | 'linkedin'>(null);
+    const [oauthLoading, setOauthLoading] = useState<null | 'google' | 'linkedin_oidc'>(null);
     const [error, setError] = useState<string | null>(null);
 
     const [formData, setFormData] = useState({
@@ -81,7 +81,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
         }
     };
 
-    const handleOAuthSignIn = async (provider: 'google' | 'linkedin') => {
+    const handleOAuthSignIn = async (provider: 'google' | 'linkedin_oidc') => {
         setOauthLoading(provider);
         setError(null);
 
@@ -151,10 +151,10 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                     <button
                         type="button"
                         disabled={isBusy}
-                        onClick={() => handleOAuthSignIn('linkedin')}
+                        onClick={() => handleOAuthSignIn('linkedin_oidc')}
                         className="w-full py-3 border border-slate-200 dark:border-slate-800 rounded-xl font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2"
                     >
-                        {oauthLoading === 'linkedin' ? <Loader2 className="animate-spin" size={18} /> : <Linkedin size={18} />}
+                        {oauthLoading === 'linkedin_oidc' ? <Loader2 className="animate-spin" size={18} /> : <Linkedin size={18} />}
                         {t('auth.continue_with_linkedin')}
                     </button>
                 </div>

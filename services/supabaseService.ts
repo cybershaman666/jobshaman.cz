@@ -132,20 +132,17 @@ export const signInWithOAuthProvider = async (provider: 'google' | 'linkedin' | 
 
     const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
     const options = redirectTo ? { redirectTo } : undefined;
-    const attempt = async (prov: 'google' | 'linkedin' | 'linkedin_oidc') => {
+    const normalizedProvider: 'google' | 'linkedin_oidc' =
+        provider === 'linkedin' ? 'linkedin_oidc' : provider;
+
+    const attempt = async (prov: 'google' | 'linkedin_oidc') => {
         return await supabase.auth.signInWithOAuth({
             provider: prov,
             options
         });
     };
 
-    const { data, error } = await attempt(provider);
-    if (error && provider === 'linkedin') {
-        const retry = await attempt('linkedin_oidc');
-        if (retry.error) throw retry.error;
-        return retry;
-    }
-
+    const { data, error } = await attempt(normalizedProvider);
     if (error) throw error;
     return { data, error };
 };
