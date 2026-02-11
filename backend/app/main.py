@@ -1,5 +1,6 @@
 import os
-from fastapi import FastAPI, Request
+import traceback
+from fastapi import FastAPI, Request, HTTPException
 import re
 import sentry_sdk
 from sentry_sdk.integrations.fastapi import FastApiIntegration
@@ -59,7 +60,17 @@ _origin_regex = re.compile(r"^https?://(www\\.)?jobshaman\\.(cz|com)$")
 async def add_cors_on_error(request: Request, call_next):
     try:
         return await call_next(request)
-    except Exception:
+    except HTTPException as exc:
+        origin = request.headers.get("origin")
+        response = JSONResponse({"detail": exc.detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
+        if origin and (origin in ALLOWED_ORIGINS or _origin_regex.match(origin)):
+            response.headers["Access-Control-Allow-Origin"] = origin
+            response.headers["Vary"] = "Origin"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+    except Exception as exc:
+        print(f"🔥 Unhandled error: {exc}")
+        print(traceback.format_exc())
         origin = request.headers.get("origin")
         response = JSONResponse({"detail": "Internal Server Error"}, status_code=500)
         if origin and (origin in ALLOWED_ORIGINS or _origin_regex.match(origin)):
