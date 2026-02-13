@@ -245,11 +245,17 @@
     "title_accent": "pre vás",
     "subtitle": "Nájdite prácu, ktorá dáva zmysel — s transparentným platom, benefitmi a AI analýzou.",
     "page_hero": {
-      "title_job": "Job",
-      "title_shaman": "Shaman",
-      "title_end": "spočítá, či sa vám práca naozaj oplatí.",
-      "subtitle": "Zamerajte sa na to, čo je dôležité. JobShaman sa postará o matematiku. Skutočný príjem, dochádzanie, čas a vplyv na vašu pohodu — všetko na jednom mieste.",
-      "try_free_btn": "Skúsiť zadarmo",
+      "title_job": "Konečne zistíte, koľko vám ",
+      "title_shaman": "skutočne",
+      "title_end": "zostane.",
+      "subtitle_items": [
+        "Hrubá mzda klame. Koľko vám naozaj zostane?",
+        "Ponuka vyzerá skvelo. Ale koľko vás bude stáť každý mesiac?",
+        "Benefity nie sú len stravné lístky. Čo má pre vás naozaj hodnotu?",
+        "Prečo sa hľadanie končí tam, kde končí mapa?"
+      ],
+      "try_free_btn": "Zaregistrujte sa pre odomknutie všetkých funkcií",
+      "social_proof": "Dnes analyzovaných {{count}} ponúk pre JHI",
       "browse_offers_btn": "Prezerať {{count}} ponúk",
       "label_home": "Domov",
       "label_commute": "Dojazd",
@@ -280,18 +286,6 @@
       "card_3_title": "Bez umelých tvárdení AI",
       "card_3_desc": "Algorytmy tam, kde existujú dáta. AI tam, kde nie je iné riešenie."
     },
-    "page_why": {
-      "title_job": "Prečo ",
-      "title_shaman": "JobShaman",
-      "title_end": "vznikol",
-      "desc_1": "Firmy sľubujú \"atraktívny plat\", \"flexibilitu\" a \"rast\". Pracovné inzeráty sú napísané tak, aby sa vám páčili. Ale ako vyzerá realita?",
-      "desc_2": "Keď som navrhoval JHI (Job Happiness Index), nehľadal som inšpiráciu v korporátnych tabuľkách, ale v Bhútane. Their index \"Hrubého domáceho šťastia\" ma naučil, že prosperita bez vnútorného pohodlia a zmyslu je prázdna. Takže som vzal ich prístup a aplikoval ho na pracovný trh — meriam, čo skutočne vplýva na ľudí.",
-      "time_title": "Čas",
-      "time_desc": "Dochádzanie nie je len vzdialenosť. Sú to 5 hodín týždenne, ktoré už nikdy neuvidíte.",
-      "money_title": "Peniaze",
-      "money_desc": "Dochádzanie nie je len o čase. Každý kilometer stojí peniaze, ktoré by ste mohli využiť lepšie.",
-      "reason": "Rozdiel je podstatný: tam, kde je možné realitu vypočítať, ju neodhadujeme."
-    },
     "page_mobile": {
       "title_browse": "Prehliadajte ",
       "title_jobs": "pracovné ponuky",
@@ -307,29 +301,6 @@
       "progress_desc": "Vidzte, ktoré pracovné miesto prehliadate, indikátor pokroku a štatistiku dokončenia. Zostanete motivovaní počas prehliadania.",
       "tip_label": "Profi tip:",
       "tip_text": "Dotknite sa karty pracovného miesta, aby ste videli úplné podrobnosti v rozšírenom zobrazení. Vždy máte prístup ku všetkým filtrom a uloženým miestam z hornej ponuky."
-    },
-    "page_ai": {
-      "title": "Kedy používame AI – a kedy nie",
-      "intro_job": "Job",
-      "intro_shaman": "Shaman",
-      "intro_end": "používa AI len tam, kde to má smerz. Algorytmy tam, kde existujú dáta. AI tam, kde nie je iné riešenie.",
-      "algo_title": "Algorytmy používame na:",
-      "algo_1": "výpočty príjmov",
-      "algo_2": "analýzu dochádzania",
-      "algo_3": "časové a finančné vplyvy",
-      "algo_4": "geografické dáta",
-      "ai_title": "AI používame na:",
-      "ai_1": "centra na posúdenie",
-      "ai_2": "hodnotenie odpovedí",
-      "ai_3": "optimalizáciu CV a motivačných listov",
-      "ai_4": "odporúčania kariéry",
-      "important": "Rozdiel je podstatný: tam, kde je možné realitu vypočítať, ju neodhadujeme."
-    },
-    "page_cta": {
-      "title_job": "Rozhodujte sa podľa",
-      "title_end": "reality, ne podľa sľubov",
-      "button": "Skúsiť zadarmo",
-      "subtitle": "Bez dlhých registrácií. Bez klikania cez tri stránky. Len dáta."
     },
     "reality_showcase": {
       "title": "Finančná a dochádzková realita",

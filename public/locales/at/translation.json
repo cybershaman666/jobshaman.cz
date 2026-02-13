@@ -254,11 +254,17 @@
     "title_accent": "für dich",
     "subtitle": "Finde Arbeit, die Sinn ergibt – mit transparentem Gehalt, Benefits und KI-Analyse.",
     "page_hero": {
-      "title_job": "Job",
-      "title_shaman": "Shaman",
-      "title_end": "berechnet, ob sich die Arbeit wirklich für Sie lohnt.",
-      "subtitle": "Konzentrieren Sie sich auf das Wesentliche. JobShaman kümmert sich um die Mathematik. Reales Einkommen, Arbeitsweg, Zeit und Auswirkungen auf Ihr Wohlbefinden – alles an einem Ort.",
-      "try_free_btn": "Kostenlos testen",
+      "title_job": "Endlich wissen Sie, wie viel Ihnen ",
+      "title_shaman": "wirklich",
+      "title_end": "bleibt.",
+      "subtitle_items": [
+        "Bruttolohn lügt. Wie viel bleibt Ihnen wirklich?",
+        "Das Angebot klingt gut. Aber was kostet es Sie pro Monat?",
+        "Benefits sind nicht nur Essensgutscheine. Was ist Ihnen wirklich wichtig?",
+        "Warum sollte die Suche dort enden, wo die Karte endet?"
+      ],
+      "try_free_btn": "Registrieren Sie sich, um alle Funktionen freizuschalten",
+      "social_proof": "Heute für JHI analysierte Angebote: {{count}}",
       "browse_offers_btn": "{{count}} Angebote durchsuchen",
       "label_home": "Zuhause",
       "label_commute": "Pendeln",
@@ -289,18 +295,6 @@
       "card_3_desc": "Algorithmen dort, wo Daten vorhanden sind. KI dort, wo es keine andere Lösung gibt.",
       "desc_4": "Wir sind das einzige Portal, das das Profil eines Nutzers basierend auf Fähigkeiten analysiert und einen geeigneten Kurs anbieten kann, um seine Position auf dem Arbeitsmarkt zu verbessern oder seinen Traumjob zu finden."
     },
-    "page_why": {
-      "title_job": "Warum ",
-      "title_shaman": "JobShaman",
-      "title_end": "entstanden ist",
-      "desc_1": "Unternehmen versprechen „attraktives Gehalt“, „Flexibilität“ und „Wachstum“. Stellenanzeigen sind so geschrieben, dass sie Ihnen gefallen. Aber wie sieht die Realität aus?",
-      "desc_2": "Als ich den JHI (Job Happiness Index) entwarf, suchte ich nicht in Unternehmenstabellen nach Inspiration, sondern in Bhutan. Ihr „Bruttonationalglück“-Index lehrte mich, dass Wohlstand ohne inneren Komfort und Sinn leer ist. Also nahm ich ihren Ansatz und wandte ihn auf den Arbeitsmarkt an – ich messe, was die Menschen wirklich beeinflusst.",
-      "time_title": "Zeit",
-      "time_desc": "Pendeln ist nicht nur eine Entfernung. Es sind 5 Stunden pro Woche, die Sie nie wiedersehen werden.",
-      "money_title": "Geld",
-      "money_desc": "Pendeln ist nicht nur eine Frage der Zeit. Jeder Kilometer kostet Geld, das Sie besser nutzen könnten.",
-      "reason": "Der Unterschied ist wesentlich: Wo die Realität berechnet werden kann, schätzen wir sie nicht."
-    },
     "page_mobile": {
       "title_browse": "Durchsuchen Sie ",
       "title_jobs": "Stellenangebote",
@@ -316,29 +310,6 @@
       "progress_desc": "Sehen Sie, welche Stelle Sie gerade betrachten, einen Fortschrittsbalken und Abschlussstatistiken. Bleiben Sie motiviert beim Durchsuchen.",
       "tip_label": "Pro-Tipp:",
       "tip_text": "Tippen Sie auf die Stellenkarte, um die vollständigen Details in der erweiterten Ansicht zu sehen. Sie haben weiterhin Zugriff auf alle Filter und gespeicherten Stellen über das obere Menü."
-    },
-    "page_ai": {
-      "title": "Wann wir KI einsetzen – und wann nicht",
-      "intro_job": "Job",
-      "intro_shaman": "Shaman",
-      "intro_end": "setzt KI nur dort ein, wo es sinnvoll ist. Algorithmen dort, wo Daten vorhanden sind. KI dort, wo es keine andere Lösung gibt.",
-      "algo_title": "Wir verwenden Algorithmen für:",
-      "algo_1": "Einkommensberechnungen",
-      "algo_2": "Analyse des Arbeitswegs",
-      "algo_3": "Zeitliche und finanzielle Auswirkungen",
-      "algo_4": "Geografische Daten",
-      "ai_title": "Wir setzen KI ein für:",
-      "ai_1": "Kandidatenbewertung",
-      "ai_2": "Auswertung von Antworten",
-      "ai_3": "Optimierung von Lebensläufen und Anschreiben",
-      "ai_4": "Karriereempfehlungen",
-      "important": "Der Unterschied ist wesentlich: Wo die Realität berechnet werden kann, schätzen wir sie nicht."
-    },
-    "page_cta": {
-      "title_job": "Entscheiden Sie nach der",
-      "title_end": "Realität, nicht nach Versprechen",
-      "button": "Kostenlos testen",
-      "subtitle": "Keine langen Registrierungen. Kein Durchklicken durch drei Seiten. Nur Daten."
     },
     "reality_showcase": {
       "title": "Finanz- und Pendelrealität",
