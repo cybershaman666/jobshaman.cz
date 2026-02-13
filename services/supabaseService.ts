@@ -127,14 +127,11 @@ export const signOut = async (): Promise<void> => {
     await supabase.auth.signOut();
 };
 
-export const signInWithOAuthProvider = async (provider: 'google' | 'linkedin' | 'linkedin_oidc') => {
+export const signInWithOAuthProvider = async (provider: 'google' | 'linkedin_oidc') => {
     if (!supabase) throw new Error("Supabase not configured");
 
     const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
     const options = redirectTo ? { redirectTo } : undefined;
-    const normalizedProvider: 'google' | 'linkedin_oidc' =
-        provider === 'linkedin' ? 'linkedin_oidc' : provider;
-
     const attempt = async (prov: 'google' | 'linkedin_oidc') => {
         return await supabase.auth.signInWithOAuth({
             provider: prov,
@@ -142,7 +139,7 @@ export const signInWithOAuthProvider = async (provider: 'google' | 'linkedin' | 
         });
     };
 
-    const { data, error } = await attempt(normalizedProvider);
+    const { data, error } = await attempt(provider);
     if (error) throw error;
     return { data, error };
 };

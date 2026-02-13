@@ -181,7 +181,7 @@ export const useUserProfile = () => {
                 // Auto-fill missing profile fields from LinkedIn OAuth metadata
                 try {
                     const provider = authUser?.app_metadata?.provider;
-                    const isLinkedInProvider = provider === 'linkedin' || provider === 'linkedin_oidc';
+                    const isLinkedInProvider = provider === 'linkedin_oidc';
                     if (isLinkedInProvider && authUser?.user_metadata) {
                         const meta = authUser.user_metadata as Record<string, unknown>;
                         const clean = (value: unknown) => (typeof value === 'string' ? value.trim() : '');
