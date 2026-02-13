@@ -63,6 +63,8 @@ interface JobListSidebarProps {
     backendPolling: boolean;
     globalSearch: boolean;
     setGlobalSearch: (global: boolean) => void;
+    abroadOnly: boolean;
+    setAbroadOnly: (abroadOnly: boolean) => void;
 }
 
 const JobListSidebar: React.FC<JobListSidebarProps> = ({
@@ -109,7 +111,9 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     loadRealJobs,
     backendPolling,
     globalSearch,
-    setGlobalSearch
+    setGlobalSearch,
+    abroadOnly,
+    setAbroadOnly
 }) => {
     const { t } = useTranslation();
     const handleScrollToTop = () => {
@@ -243,8 +247,41 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                 value={filterCity}
                                                 onChange={(e) => setFilterCity(e.target.value)}
                                                 placeholder={t('filters.city_placeholder')}
+                                                list="location-suggestions"
                                                 className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                             />
+                                            <datalist id="location-suggestions">
+                                                <option value="Praha" />
+                                                <option value="Brno" />
+                                                <option value="Ostrava" />
+                                                <option value="Plzeň" />
+                                                <option value="Olomouc" />
+                                                <option value="Liberec" />
+                                                <option value="České Budějovice" />
+                                                <option value="Hradec Králové" />
+                                                <option value="Pardubice" />
+                                                <option value="Zlín" />
+                                                <option value="Středočeský kraj" />
+                                                <option value="Jihočeský kraj" />
+                                                <option value="Jihomoravský kraj" />
+                                                <option value="Moravskoslezský kraj" />
+                                                <option value="Plzeňský kraj" />
+                                                <option value="Olomoucký kraj" />
+                                                <option value="Ústecký kraj" />
+                                                <option value="Královéhradecký kraj" />
+                                                <option value="Pardubický kraj" />
+                                                <option value="Zlínský kraj" />
+                                                <option value="Bratislava" />
+                                                <option value="Košice" />
+                                                <option value="Bratislavský kraj" />
+                                                <option value="Košický kraj" />
+                                                <option value="Žilinský kraj" />
+                                                <option value="Prešovský kraj" />
+                                                <option value="Banskobystrický kraj" />
+                                                <option value="Trnavský kraj" />
+                                                <option value="Trenčiansky kraj" />
+                                                <option value="Nitriansky kraj" />
+                                            </datalist>
                                         </div>
                                         <label className="flex items-center justify-between cursor-pointer p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors">
                                             <div className="flex items-center gap-2">
@@ -274,6 +311,25 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                             </div>
                                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${globalSearch ? 'border-cyan-500 bg-cyan-500' : 'border-slate-300 dark:border-slate-600'}`}>
                                                 {globalSearch && <CheckCircle size={10} className="text-white" />}
+                                            </div>
+                                        </button>
+                                        <button
+                                            onClick={(e) => { e.preventDefault(); setAbroadOnly(!abroadOnly); }}
+                                            className={`w-full flex items-center justify-between p-2 rounded-md border transition-all ${abroadOnly ? 'bg-amber-50 border-amber-200 dark:bg-amber-500/10 dark:border-amber-500/30' : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-900'}`}
+                                        >
+                                            <div className="flex items-center gap-2">
+                                                <Globe size={16} className={`transition-colors ${abroadOnly ? 'text-amber-500' : 'text-slate-400'}`} />
+                                                <div className="text-left">
+                                                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200 block">
+                                                        {t('filters.abroad_only') || 'Jen zahraničí'}
+                                                    </span>
+                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block -mt-0.5">
+                                                        {t('filters.abroad_only_desc') || 'Mimo CZ/SK'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                            <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center transition-colors ${abroadOnly ? 'border-amber-500 bg-amber-500' : 'border-slate-300 dark:border-slate-600'}`}>
+                                                {abroadOnly && <CheckCircle size={10} className="text-white" />}
                                             </div>
                                         </button>
                                         {enableCommuteFilter && (

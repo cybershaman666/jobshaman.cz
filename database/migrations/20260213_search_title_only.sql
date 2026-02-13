@@ -15,6 +15,7 @@ CREATE OR REPLACE FUNCTION search_jobs_with_filters(
     limit_count int DEFAULT 50,
     offset_val int DEFAULT 0,
     filter_country_codes text[] DEFAULT NULL,
+    exclude_country_codes text[] DEFAULT NULL,
     filter_language_codes text[] DEFAULT NULL
 )
 RETURNS TABLE (
@@ -64,6 +65,10 @@ BEGIN
                 j.title % search_term
             )
             AND (filter_country_codes IS NULL OR array_length(filter_country_codes, 1) IS NULL OR j.country_code = ANY(filter_country_codes))
+            AND (
+                exclude_country_codes IS NULL OR array_length(exclude_country_codes, 1) IS NULL OR
+                (j.country_code IS NOT NULL AND NOT (j.country_code = ANY(exclude_country_codes)))
+            )
             AND (filter_language_codes IS NULL OR array_length(filter_language_codes, 1) IS NULL OR j.language_code = ANY(filter_language_codes))
             AND (filter_city IS NULL OR filter_city = '' OR public.unaccent(j.location) ILIKE '%' || public.unaccent(filter_city) || '%')
             AND (
@@ -190,7 +195,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql STABLE;
 
-GRANT EXECUTE ON FUNCTION search_jobs_with_filters(text, double precision, double precision, double precision, text, text[], text[], numeric, text, text[], int, int, text[], text[]) TO authenticated;
-GRANT EXECUTE ON FUNCTION search_jobs_with_filters(text, double precision, double precision, double precision, text, text[], text[], numeric, text, text[], int, int, text[], text[]) TO anon;
+GRANT EXECUTE ON FUNCTION search_jobs_with_filters(text, double precision, double precision, double precision, text, text[], text[], numeric, text, text[], int, int, text[], text[], text[]) TO authenticated;
+GRANT EXECUTE ON FUNCTION search_jobs_with_filters(text, double precision, double precision, double precision, text, text[], text[], numeric, text, text[], int, int, text[], text[], text[]) TO anon;
 
 -- End of migration
