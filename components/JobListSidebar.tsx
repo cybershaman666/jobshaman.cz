@@ -321,10 +321,10 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                 <Globe size={16} className={`transition-colors ${abroadOnly ? 'text-amber-500' : 'text-slate-400'}`} />
                                                 <div className="text-left">
                                                     <span className="text-sm font-medium text-slate-700 dark:text-slate-200 block">
-                                                        {t('filters.abroad_only') || 'Jen zahraničí'}
+                                                        {t('filters.abroad_only', { defaultValue: 'Jen zahraničí' })}
                                                     </span>
                                                     <span className="text-[10px] text-slate-500 dark:text-slate-400 block -mt-0.5">
-                                                        {t('filters.abroad_only_desc') || 'Mimo CZ/SK'}
+                                                        {t('filters.abroad_only_desc', { defaultValue: 'Mimo CZ/SK' })}
                                                     </span>
                                                 </div>
                                             </div>

@@ -7,11 +7,11 @@ import { UserProfile } from '../types';
 const getCountryCodeFromAddress = (address: string): string | null => {
     if (!address) return null;
     const loc = address.toLowerCase();
-    if (loc.includes('slovak') || loc.includes('slovensk') || loc.includes('slovensko') || loc.includes('bratislava') || loc.includes('kosice')) return 'SK';
-    if (loc.includes('polsk') || loc.includes('poland') || loc.includes('warszawa') || loc.includes('krakow') || loc.includes('wroclaw') || loc.includes('gda')) return 'PL';
-    if (loc.includes('deutsch') || loc.includes('germany') || loc.includes('berlin') || loc.includes('münchen') || loc.includes('hamburg')) return 'DE';
-    if (loc.includes('österreich') || loc.includes('austria') || loc.includes('wien') || loc.includes('vienna')) return 'AT';
-    if (loc.includes('česk') || loc.includes('czech') || loc.includes('praha') || loc.includes('brno') || loc.includes('ostrava')) return 'CZ';
+    if (loc.includes('slovak') || loc.includes('slovensk') || loc.includes('slovensko') || loc.includes('bratislava') || loc.includes('kosice')) return 'sk';
+    if (loc.includes('polsk') || loc.includes('poland') || loc.includes('warszawa') || loc.includes('krakow') || loc.includes('wroclaw') || loc.includes('gda')) return 'pl';
+    if (loc.includes('deutsch') || loc.includes('germany') || loc.includes('berlin') || loc.includes('münchen') || loc.includes('hamburg')) return 'de';
+    if (loc.includes('österreich') || loc.includes('austria') || loc.includes('wien') || loc.includes('vienna')) return 'at';
+    if (loc.includes('česk') || loc.includes('czech') || loc.includes('praha') || loc.includes('brno') || loc.includes('ostrava')) return 'cs';
     return null;
 };
 
@@ -19,11 +19,11 @@ const getCountryCodeFromAddress = (address: string): string | null => {
 const getCountryCodeFromLanguage = (lng?: string): string | null => {
     if (!lng) return null;
     const code = lng.split('-')[0].toLowerCase();
-    if (code === 'cs') return 'CZ';
-    if (code === 'sk') return 'SK';
-    if (code === 'de') return 'DE';
-    if (code === 'pl') return 'PL';
-    if (code === 'at') return 'AT';
+    if (code === 'cs') return 'cs';
+    if (code === 'sk') return 'sk';
+    if (code === 'de') return 'de';
+    if (code === 'pl') return 'pl';
+    if (code === 'at') return 'at';
     return null;
 };
 
@@ -31,6 +31,17 @@ interface UsePaginatedJobsProps {
     userProfile: UserProfile;
     initialPageSize?: number;
 }
+
+const normalizeCountryCodes = (codes: string[]): string[] => {
+    if (!codes || codes.length === 0) return [];
+    const lowered = codes.map(c => c.toLowerCase());
+    const hasCs = lowered.includes('cs');
+    const hasCz = lowered.includes('cz');
+    const expanded = (hasCs || hasCz)
+        ? Array.from(new Set([...lowered.filter(c => c !== 'cs' && c !== 'cz'), 'cs', 'cz']))
+        : lowered;
+    return expanded;
+};
 
 // Global deduper helper to prevent "duplicate key" React warnings
 const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
@@ -40,7 +51,7 @@ const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
 
 export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePaginatedJobsProps) => {
     const { i18n } = useTranslation();
-    const defaultDomesticCountries = ['CZ', 'SK'];
+    const defaultDomesticCountries = ['cs', 'cz', 'sk'];
     const initialCountry = getCountryCodeFromAddress(userProfile.address) || getCountryCodeFromLanguage(i18n.language);
     const [countryCodes, setCountryCodes] = useState<string[]>(() => (initialCountry ? [initialCountry] : []));
 
@@ -152,6 +163,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 }
             }
 
+            const normalizedCountryCodes = normalizeCountryCodes(countryCodes);
+            const hasCountryFilter = !globalSearch && normalizedCountryCodes.length > 0;
             const hasAnyFilters =
                 !!searchTerm ||
                 !!filterCity ||
@@ -165,8 +178,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 !!filterLanguage ||
                 abroadOnly;
 
-            if (!hasAnyFilters) {
-                const singleCountry = (!globalSearch && countryCodes.length === 1) ? countryCodes[0] : undefined;
+            const canUseSimplePagination = !hasAnyFilters && (!hasCountryFilter || normalizedCountryCodes.length === 1);
+
+            if (canUseSimplePagination) {
+                const singleCountry = hasCountryFilter ? normalizedCountryCodes[0] : undefined;
                 const basicResult = await fetchJobsPaginated(
                     page,
                     initialPageSize,
@@ -187,10 +202,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 return;
             }
 
-            const domesticCountryCodes = countryCodes.length > 0 ? countryCodes : defaultDomesticCountries;
+            const domesticCountryCodes = normalizedCountryCodes.length > 0 ? normalizedCountryCodes : defaultDomesticCountries;
             const effectiveCountryCodes = filterLanguage
                 ? undefined
-                : (globalSearch ? undefined : countryCodes);
+                : (globalSearch ? undefined : normalizedCountryCodes);
             const excludeCountryCodes = abroadOnly ? domesticCountryCodes : undefined;
 
             const result = await fetchJobsWithFilters({
