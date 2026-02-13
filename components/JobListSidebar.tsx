@@ -115,13 +115,14 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     const handleScrollToTop = () => {
         jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     };
+    const compactFilters = !userProfile?.isLoggedIn;
 
     return (
         <section className={`lg:col-span-4 xl:col-span-3 flex flex-col gap-4 min-h-0 ${selectedJobId ? 'hidden lg:flex' : 'flex'} h-full`}>
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-sm flex flex-col h-full overflow-hidden">
                 {/* Fixed Header Section (Search & Filters) */}
                 <div className="flex-none bg-white dark:bg-slate-900 z-10 border-b border-slate-200 dark:border-slate-800">
-                    <div className="p-4">
+                    <div className={compactFilters ? "p-3 sm:p-4" : "p-4"}>
                         <div className="relative">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <Search className="text-slate-400" size={18} />
@@ -139,7 +140,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                 }}
                                 onFocus={() => setShowFilters(true)}
                                 placeholder={t('app.search_placeholder')}
-                                className="w-full pl-10 pr-10 py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none text-sm font-medium text-slate-900 dark:text-slate-200 placeholder:text-slate-500 transition-all"
+                                className={`w-full pl-10 pr-10 ${compactFilters ? 'py-2 text-[13px]' : 'py-2.5 text-sm'} bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-lg focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none font-medium text-slate-900 dark:text-slate-200 placeholder:text-slate-500 transition-all`}
                             />
                             <button
                                 onClick={() => setShowFilters(!showFilters)}
@@ -150,39 +151,43 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                             </button>
                         </div>
 
-                        <div className="mt-3">
-                            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">
-                                {t('filters.language') || 'Jazyk nabídky'}
-                            </label>
-                            <select
-                                value={filterLanguage}
-                                onChange={(e) => setFilterLanguage(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500"
-                            >
-                                <option value="">{t('filters.language_all') || 'Všechny jazyky'}</option>
-                                <option value="cs">Čeština</option>
-                                <option value="sk">Slovenština</option>
-                                <option value="en">English</option>
-                                <option value="de">Deutsch</option>
-                                <option value="pl">Polski</option>
-                                <option value="uk">Українська</option>
-                            </select>
-                        </div>
+                        <div className={compactFilters ? "mt-2 grid grid-cols-2 gap-2 sm:mt-3 sm:space-y-3 sm:block" : "mt-3 space-y-3"}>
+                            <div>
+                                <label className={`text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1 ${compactFilters ? 'sr-only sm:not-sr-only' : ''}`}>
+                                    {t('filters.language') || 'Jazyk nabídky'}
+                                </label>
+                                <select
+                                    value={filterLanguage}
+                                    onChange={(e) => setFilterLanguage(e.target.value)}
+                                    aria-label={t('filters.language') || 'Jazyk nabídky'}
+                                    className={`w-full ${compactFilters ? 'px-2.5 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'} bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500`}
+                                >
+                                    <option value="">{t('filters.language_all') || 'Všechny jazyky'}</option>
+                                    <option value="cs">Čeština</option>
+                                    <option value="sk">Slovenština</option>
+                                    <option value="en">English</option>
+                                    <option value="de">Deutsch</option>
+                                    <option value="pl">Polski</option>
+                                    <option value="uk">Українська</option>
+                                </select>
+                            </div>
 
-                        <div className="mt-3">
-                            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1">
-                                {t('filters.sort_by')}
-                            </label>
-                            <select
-                                value={sortBy}
-                                onChange={(e) => setSortBy(e.target.value)}
-                                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500"
-                            >
-                                <option value="default">{t('filters.sort_options.default')}</option>
-                                <option value="newest">{t('filters.sort_options.newest')}</option>
-                                <option value="jhi_desc">{t('filters.sort_options.jhi_desc')}</option>
-                                <option value="jhi_asc">{t('filters.sort_options.jhi_asc')}</option>
-                            </select>
+                            <div>
+                                <label className={`text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1 ${compactFilters ? 'sr-only sm:not-sr-only' : ''}`}>
+                                    {t('filters.sort_by')}
+                                </label>
+                                <select
+                                    value={sortBy}
+                                    onChange={(e) => setSortBy(e.target.value)}
+                                    aria-label={t('filters.sort_by') || 'Řazení'}
+                                    className={`w-full ${compactFilters ? 'px-2.5 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'} bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500`}
+                                >
+                                    <option value="default">{t('filters.sort_options.default')}</option>
+                                    <option value="newest">{t('filters.sort_options.newest')}</option>
+                                    <option value="jhi_desc">{t('filters.sort_options.jhi_desc')}</option>
+                                    <option value="jhi_asc">{t('filters.sort_options.jhi_asc')}</option>
+                                </select>
+                            </div>
                         </div>
                     </div>
 
