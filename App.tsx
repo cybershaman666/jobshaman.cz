@@ -205,7 +205,9 @@ export default function App() {
         toggleContractTypeFilter,
         toggleExperienceFilter,
         globalSearch,
+        abroadOnly,
         setGlobalSearch,
+        setAbroadOnly,
         sortBy,
         setSortBy
     } = usePaginatedJobs({ userProfile: effectiveUserProfile });
@@ -1338,6 +1340,8 @@ export default function App() {
                             backendPolling={backendPolling}
                             globalSearch={globalSearch}
                             setGlobalSearch={setGlobalSearch}
+                            abroadOnly={abroadOnly}
+                            setAbroadOnly={setAbroadOnly}
                         />
 
                         {/* DESKTOP VIEW: RIGHT COLUMN: Detail View (or Welcome Guide) */}

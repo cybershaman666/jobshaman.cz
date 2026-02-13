@@ -7,11 +7,11 @@ import { UserProfile } from '../types';
 const getCountryCodeFromAddress = (address: string): string | null => {
     if (!address) return null;
     const loc = address.toLowerCase();
-    if (loc.includes('slovak') || loc.includes('slovensk') || loc.includes('slovensko') || loc.includes('bratislava') || loc.includes('kosice')) return 'sk';
-    if (loc.includes('polsk') || loc.includes('poland') || loc.includes('warszawa') || loc.includes('krakow') || loc.includes('wroclaw') || loc.includes('gda')) return 'pl';
-    if (loc.includes('deutsch') || loc.includes('germany') || loc.includes('berlin') || loc.includes('münchen') || loc.includes('hamburg')) return 'de';
-    if (loc.includes('österreich') || loc.includes('austria') || loc.includes('wien') || loc.includes('vienna')) return 'at';
-    if (loc.includes('česk') || loc.includes('czech') || loc.includes('praha') || loc.includes('brno') || loc.includes('ostrava')) return 'cs';
+    if (loc.includes('slovak') || loc.includes('slovensk') || loc.includes('slovensko') || loc.includes('bratislava') || loc.includes('kosice')) return 'SK';
+    if (loc.includes('polsk') || loc.includes('poland') || loc.includes('warszawa') || loc.includes('krakow') || loc.includes('wroclaw') || loc.includes('gda')) return 'PL';
+    if (loc.includes('deutsch') || loc.includes('germany') || loc.includes('berlin') || loc.includes('münchen') || loc.includes('hamburg')) return 'DE';
+    if (loc.includes('österreich') || loc.includes('austria') || loc.includes('wien') || loc.includes('vienna')) return 'AT';
+    if (loc.includes('česk') || loc.includes('czech') || loc.includes('praha') || loc.includes('brno') || loc.includes('ostrava')) return 'CZ';
     return null;
 };
 
@@ -19,11 +19,11 @@ const getCountryCodeFromAddress = (address: string): string | null => {
 const getCountryCodeFromLanguage = (lng?: string): string | null => {
     if (!lng) return null;
     const code = lng.split('-')[0].toLowerCase();
-    if (code === 'cs') return 'cs';
-    if (code === 'sk') return 'sk';
-    if (code === 'de') return 'de';
-    if (code === 'pl') return 'pl';
-    if (code === 'at') return 'at';
+    if (code === 'cs') return 'CZ';
+    if (code === 'sk') return 'SK';
+    if (code === 'de') return 'DE';
+    if (code === 'pl') return 'PL';
+    if (code === 'at') return 'AT';
     return null;
 };
 
@@ -40,6 +40,7 @@ const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
 
 export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePaginatedJobsProps) => {
     const { i18n } = useTranslation();
+    const defaultDomesticCountries = ['CZ', 'SK'];
     const initialCountry = getCountryCodeFromAddress(userProfile.address) || getCountryCodeFromLanguage(i18n.language);
     const [countryCodes, setCountryCodes] = useState<string[]>(() => (initialCountry ? [initialCountry] : []));
 
@@ -62,6 +63,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [filterExperience, setFilterExperience] = useState<string[]>([]); // Junior, Medior, Senior, Lead
     const [filterLanguage, setFilterLanguage] = useState<string>(''); // ISO code or empty for all
     const [globalSearch, setGlobalSearch] = useState(() => !initialCountry); // Toggle for searching entire database
+    const [abroadOnly, setAbroadOnly] = useState(false);
     const [sortBy, setSortBy] = useState<string>('default'); // default | jhi_desc | jhi_asc | newest
 
     // Load saved job IDs from localStorage on mount
@@ -160,7 +162,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 filterExperience.length > 0 ||
                 enableCommuteFilter ||
                 sortBy !== 'default' ||
-                !!filterLanguage;
+                !!filterLanguage ||
+                abroadOnly;
 
             if (!hasAnyFilters) {
                 const singleCountry = (!globalSearch && countryCodes.length === 1) ? countryCodes[0] : undefined;
@@ -184,9 +187,11 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 return;
             }
 
+            const domesticCountryCodes = countryCodes.length > 0 ? countryCodes : defaultDomesticCountries;
             const effectiveCountryCodes = filterLanguage
                 ? undefined
                 : (globalSearch ? undefined : countryCodes);
+            const excludeCountryCodes = abroadOnly ? domesticCountryCodes : undefined;
 
             const result = await fetchJobsWithFilters({
                 page,
@@ -202,6 +207,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 userLat: lat,
                 userLng: lon,
                 countryCodes: effectiveCountryCodes,
+                excludeCountryCodes,
                 filterLanguageCodes: filterLanguage ? [filterLanguage] : undefined
             });
 
@@ -240,7 +246,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [
         initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch, sortJobs, filterLanguage
+        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch, sortJobs, filterLanguage, abroadOnly
     ]);
 
 
@@ -256,7 +262,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [
         searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, countryCodes, globalSearch, filterLanguage
+        filterMaxDistance, countryCodes, globalSearch, filterLanguage, abroadOnly
     ]); // Excluded fetchFilteredJobs to avoid re-triggering when it's just redefined
 
     // Re-apply sorting when sort option changes
@@ -305,6 +311,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         }
     }, [filterLanguage, globalSearch]);
 
+    useEffect(() => {
+        if (abroadOnly && !globalSearch) {
+            setGlobalSearch(true);
+            return;
+        }
+        if (!globalSearch && abroadOnly) {
+            setAbroadOnly(false);
+        }
+    }, [abroadOnly, globalSearch]);
+
     // When language changes, default to that country's jobs (unless cross-border is enabled)
     useEffect(() => {
         if (globalSearch) return;
@@ -343,6 +359,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setFilterExperience([]);
         setFilterMaxDistance(50);
         setFilterLanguage('');
+        setAbroadOnly(false);
         // Reset page
         setCurrentPage(0);
     };
@@ -370,6 +387,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         showFilters,
         expandedSections,
         globalSearch,
+        abroadOnly,
         countryCodes,
         sortBy,
 
@@ -390,6 +408,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setShowFilters,
         setExpandedSections,
         setGlobalSearch,
+        setAbroadOnly,
         setCountryCodes,
         setSortBy,
         toggleBenefitFilter,

@@ -660,6 +660,7 @@ export interface JobFilterOptions {
 
     // Countries
     countryCodes?: string[];
+    excludeCountryCodes?: string[];
     // Languages
     filterLanguageCodes?: string[];
     searchTerm?: string;
@@ -691,6 +692,7 @@ export const fetchJobsWithFilters = async (
         page = 0,
         pageSize = 50,
         countryCodes,
+        excludeCountryCodes,
         filterLanguageCodes,
         searchTerm
     } = options;
@@ -725,6 +727,7 @@ export const fetchJobsWithFilters = async (
             page,
             pageSize,
             countries: countryCodes || ['all'],
+            excludeCountries: excludeCountryCodes || [],
             searchTerm: searchTerm || 'none'
         });
 
@@ -751,6 +754,7 @@ export const fetchJobsWithFilters = async (
             limit_count: pageSize,
             offset_val: page * pageSize,
             filter_country_codes: countryCodes && countryCodes.length > 0 ? countryCodes : null,
+            exclude_country_codes: excludeCountryCodes && excludeCountryCodes.length > 0 ? excludeCountryCodes : null,
             filter_language_codes: filterLanguageCodes && filterLanguageCodes.length > 0 ? filterLanguageCodes : null
         });
 
