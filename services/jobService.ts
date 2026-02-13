@@ -518,7 +518,7 @@ export const searchJobs = async (
             .from('jobs')
             .select('*')
             .eq('legality_status', 'legal')
-            .or(`title.ilike.%${searchTerm}%,company.ilike.%${searchTerm}%,location.ilike.%${searchTerm}%`);
+            .ilike('title', `%${searchTerm}%`);
 
         // Apply country code filter if provided
         if (countryCode) {
