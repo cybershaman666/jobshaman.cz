@@ -108,6 +108,21 @@ export default function App() {
     // Cookie Consent State
     const [showCookieBanner, setShowCookieBanner] = useState(false);
 
+    const shouldBypassCookieBanner = () => {
+        const params = new URLSearchParams(window.location.search);
+        const cookieBanner = params.get('cookieBanner') || params.get('cookie_banner');
+        if (cookieBanner) {
+            const value = cookieBanner.toLowerCase();
+            return value === '0' || value === 'false' || value === 'off';
+        }
+        const noCookies = params.get('noCookies') || params.get('no_cookies');
+        if (noCookies) {
+            const value = noCookies.toLowerCase();
+            return value === '1' || value === 'true' || value === 'on';
+        }
+        return false;
+    };
+
     // Track if we've already auto-enabled commute filter to avoid re-enabling after user disables it
     const hasAutoEnabledCommuteFilter = useRef(false);
     const deferredAutoEnableRef = useRef(false);
@@ -789,6 +804,10 @@ export default function App() {
 
     // Check cookie consent
     useEffect(() => {
+        if (shouldBypassCookieBanner()) {
+            setShowCookieBanner(false);
+            return;
+        }
         const hasConsent = checkCookieConsent();
         setShowCookieBanner(!hasConsent);
 
