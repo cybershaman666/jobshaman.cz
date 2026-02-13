@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, TrendingUp, Eye, CheckCircle, Heart, Target, Brain, BarChart3, Zap, Smartphone, Wallet, Home, Calculator, Navigation } from 'lucide-react';
+import { MapPin, Clock, TrendingUp, Eye, CheckCircle, Heart, Target, BarChart3, Zap, Smartphone, Wallet, Home, Calculator, Navigation } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { getJobCount, getTodayAnalyzedCount } from '../services/jobService';
 import BlogSection from './BlogSection';
