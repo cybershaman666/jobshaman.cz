@@ -46,7 +46,9 @@ const CookiePreferencesPage: React.FC<CookiePreferencesPageProps> = ({ theme = '
     a.download = `jobshaman-data-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
+    if (a.parentNode === document.body) {
+      document.body.removeChild(a);
+    }
     URL.revokeObjectURL(url);
   };
 
