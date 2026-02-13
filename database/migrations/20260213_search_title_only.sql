@@ -1,6 +1,16 @@
 -- Migration: search only in job title
 -- Created: 2026-02-13
 
+-- Remove older overloaded versions to avoid PGRST203 ambiguity
+DROP FUNCTION IF EXISTS public.search_jobs_with_filters(
+    text, double precision, double precision, double precision,
+    text, text[], text[], numeric, text, text[], int, int, text[], text[]
+);
+DROP FUNCTION IF EXISTS public.search_jobs_with_filters(
+    text, double precision, double precision, double precision,
+    text, text[], text[], numeric, text, text[], int, int, text[], text[], text[]
+);
+
 CREATE OR REPLACE FUNCTION search_jobs_with_filters(
     search_term text DEFAULT NULL,
     user_lat double precision DEFAULT NULL,
