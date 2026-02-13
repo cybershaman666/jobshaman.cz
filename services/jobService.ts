@@ -332,6 +332,34 @@ export const getJobCount = async (): Promise<number> => {
     }
 };
 
+export const getTodayAnalyzedCount = async (): Promise<number> => {
+    if (!isSupabaseConfigured() || !supabase) {
+        console.warn("Supabase not configured.");
+        return 0;
+    }
+
+    try {
+        const startOfDay = new Date();
+        startOfDay.setHours(0, 0, 0, 0);
+
+        const { count, error } = await supabase
+            .from('jobs')
+            .select('*', { count: 'exact', head: true })
+            .eq('legality_status', 'legal')
+            .gte('created_at', startOfDay.toISOString());
+
+        if (error) {
+            console.error("Error fetching today's analyzed count:", error);
+            return 0;
+        }
+
+        return count || 0;
+    } catch (e) {
+        console.error("Error in getTodayAnalyzedCount:", e);
+        return 0;
+    }
+};
+
 export const fetchJobsPaginated = async (
     page: number = 0,
     pageSize: number = 50,

@@ -254,11 +254,17 @@
     "title_accent": "dla Ciebie",
     "subtitle": "Znajdź pracę, która ma sens — z przejrzystym wynagrodzeniem, benefitami i analizą AI.",
     "page_hero": {
-      "title_job": "Job",
-      "title_shaman": "Shaman",
-      "title_end": "oblicza, czy praca naprawdę Ci się opłaca.",
-      "subtitle": "Skup się na tym, co ważne. JobShaman zadba o matematykę. Rzeczywisty dochód, dojazdy, czas i wpływ na Twoje samopoczucie — wszystko w jednym miejscu.",
-      "try_free_btn": "Wypróbuj za darmo",
+      "title_job": "Wreszcie wiesz, ile ",
+      "title_shaman": "naprawdę",
+      "title_end": "Ci zostaje.",
+      "subtitle_items": [
+        "Pensja brutto kłamie. Ile naprawdę zostaje?",
+        "Oferta wygląda świetnie. Ale ile będzie Cię kosztować co miesiąc?",
+        "Benefity to nie tylko bony na jedzenie. Co naprawdę ma dla Ciebie wartość?",
+        "Dlaczego szukanie ma się kończyć tam, gdzie kończy się mapa?"
+      ],
+      "try_free_btn": "Zarejestruj się, aby odblokować wszystkie funkcje",
+      "social_proof": "Dziś przeanalizowano {{count}} ofert dla JHI",
       "browse_offers_btn": "Przeglądaj {{count}} ofert",
       "label_home": "Dom",
       "label_commute": "Dojazd",
@@ -289,18 +295,6 @@
       "card_3_desc": "Algorytmy tam, gdzie istnieją dane. AI tam, gdzie nie ma innego rozwiązania.",
       "desc_4": "Jesteśmy jedynym portalem, który analizuje profil użytkownika pod kątem umiejętności i może zaoferować odpowiedni kurs w celu poprawy jego pozycji na rynku pracy lub zdobycia wymarzonej pracy."
     },
-    "page_why": {
-      "title_job": "Dlaczego ",
-      "title_shaman": "JobShaman",
-      "title_end": "powstał",
-      "desc_1": "Firmy obiecują „atrakcyjne wynagrodzenie”, „elastyczność” i „rozwój”. Ogłoszenia o pracę są pisane tak, aby Ci się podobały. Ale jak wygląda rzeczywistość?",
-      "desc_2": "Kiedy projektowałem JHI (Job Happiness Index), nie szukałem inspiracji w korporacyjnych tabelach, ale w Bhutanie. Ich wskaźnik „Szczęścia Narodowego Brutto” nauczył mnie, že dobrobyt bez wewnętrznego komfortu i sensu jest pusty. Wziąłem więc ich podejście i zastosowałem je do rynku pracy — mierzę to, co naprawdę wpływa na ludzi.",
-      "time_title": "Czas",
-      "time_desc": "Dojazdy to nie tylko odległość. To 5 godzin tygodniowo, których nigdy więcej nie zobaczysz.",
-      "money_title": "Pieniądze",
-      "money_desc": "Dojazdy to nie tylko czas. Każdy kilometr kosztuje pieniądze, które mógłbyś wykorzystać lepiej.",
-      "reason": "Różnica jest istotna: tam, gdzie rzeczywistość można obliczyć, nie szacujemy jej."
-    },
     "page_mobile": {
       "title_browse": "Przeglądaj ",
       "title_jobs": "oferty pracy",
@@ -316,29 +310,6 @@
       "progress_desc": "Widź, którą pracę przeglądasz, pasek postępu i statystyki ukończenia. Pozostań zmotywowany podczas przeglądania.",
       "tip_label": "Wskazówka profesjonalisty:",
       "tip_text": "Dotknij karty pracy, aby zobaczyć pełne szczegóły w widoku rozszerzonym. Zawsze masz dostęp do wszystkich filtrów i zapisanych prac z górnego menu."
-    },
-    "page_ai": {
-      "title": "Kiedy używamy AI – a kiedy nie",
-      "intro_job": "Job",
-      "intro_shaman": "Shaman",
-      "intro_end": "używa AI tylko tam, gdzie ma to sens. Algorytmy tam, gdzie istnieją dane. AI tam, gdzie nie ma innego rozwiązania.",
-      "algo_title": "Algorytmów używamy do:",
-      "algo_1": "obliczeń dochodów",
-      "algo_2": "analizy dojazdów",
-      "algo_3": "wpływów czasowych i finansowych",
-      "algo_4": "danych geograficznych",
-      "ai_title": "AI używamy do:",
-      "ai_1": "oceny kandydatów",
-      "ai_2": "oceny odpowiedzi",
-      "ai_3": "optymalizacji CV i listów motywacyjnych",
-      "ai_4": "rekomendacji kariery",
-      "important": "Różnica jest istotna: tam, gdzie rzeczywistość można obliczyć, nie szacujemy jej."
-    },
-    "page_cta": {
-      "title_job": "Decyduj na podstawie",
-      "title_end": "rzeczywistości, a nie obietnic",
-      "button": "Wypróbuj za darmo",
-      "subtitle": "Bez długich rejestracji. Bez klikania przez trzy strony. Tylko dane."
     },
     "reality_showcase": {
       "title": "Finansowa i dojazdowa rzeczywistość",

@@ -254,11 +254,17 @@
     "title_accent": "for you",
     "subtitle": "Find work that makes sense — with transparent pay, benefits, and AI analysis.",
     "page_hero": {
-      "title_job": "Job",
-      "title_shaman": "Shaman",
-      "title_end": "calculates if the job is really worth it for you.",
-      "subtitle": "Focus on what matters. JobShaman handles the math. Real income, commute, time and impact on your well-being — all in one place.",
-      "try_free_btn": "Try for Free",
+      "title_job": "Finally see how much you ",
+      "title_shaman": "really",
+      "title_end": "keep.",
+      "subtitle_items": [
+        "Gross pay lies. How much do you really keep?",
+        "The offer looks great. But what will it cost you each month?",
+        "Benefits aren’t just meal vouchers. What truly matters to you?",
+        "Why should your search stop where the map ends?"
+      ],
+      "try_free_btn": "Sign up to unlock all features",
+      "social_proof": "Today analyzed {{count}} offers for JHI",
       "browse_offers_btn": "Browse {{count}} offers",
       "label_home": "Home",
       "label_commute": "Commute",
@@ -289,18 +295,6 @@
       "card_3_desc": "Algorithms where data exists. AI where there is no other solution.",
       "desc_4": "We are the only portal that analyzes a user's profile based on skills and can offer a suitable course to improve their position in the labor market or to get their dream job."
     },
-    "page_why": {
-      "title_job": "Why ",
-      "title_shaman": "JobShaman",
-      "title_end": "was created",
-      "desc_1": "Companies promise \"attractive salary\", \"flexibility\" and \"growth\". Job ads are written to please you. But what is the reality?",
-      "desc_2": "When I was designing JHI (Job Happiness Index), I didn't look for inspiration in corporate tables, but in Bhutan. Their \"Gross National Happiness\" index taught me that prosperity without inner comfort and meaning is empty. So I took their approach and applied it to the labor market — I measure what really affects people.",
-      "time_title": "Time",
-      "time_desc": "Commuting isn't just distance. It's 5 hours a week that you'll never see again.",
-      "money_title": "Money",
-      "money_desc": "Commuting isn't just about time. Every kilometer costs money that you could use better.",
-      "reason": "The difference is essential: where reality can be calculated, we don't estimate it."
-    },
     "page_mobile": {
       "title_browse": "Browse ",
       "title_jobs": "jobs",
@@ -316,29 +310,6 @@
       "progress_desc": "See which job you're on, a progress bar, and completion stats. Stay motivated as you browse.",
       "tip_label": "Pro Tip:",
       "tip_text": "Tap the job card to view full details in the expanded view. You can still access all your filters and saved jobs from the top menu."
-    },
-    "page_ai": {
-      "title": "When we use AI – and when we don't",
-      "intro_job": "Job",
-      "intro_shaman": "Shaman",
-      "intro_end": "uses AI only where it makes sense. Algorithms where data exists. AI where there is no other solution.",
-      "algo_title": "We use algorithms for:",
-      "algo_1": "income calculations",
-      "algo_2": "commute analysis",
-      "algo_3": "time and financial impacts",
-      "algo_4": "geographic data",
-      "ai_title": "We use AI for:",
-      "ai_1": "candidate assessment",
-      "ai_2": "evaluating responses",
-      "ai_3": "optimizing CV and cover letters",
-      "ai_4": "career recommendations",
-      "important": "The difference is essential: where reality can be calculated, we don't estimate it."
-    },
-    "page_cta": {
-      "title_job": "Decide based on",
-      "title_end": "reality, not promises",
-      "button": "Try for Free",
-      "subtitle": "No lengthy registrations. No clicking through three pages. Just data."
     },
     "reality_showcase": {
       "title": "Financial and commute reality",

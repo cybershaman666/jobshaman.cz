@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MapPin, Clock, TrendingUp, Eye, CheckCircle, Heart, Target, Brain, BarChart3, Zap, Smartphone, Wallet, Home, Calculator, Navigation } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getJobCount } from '../services/jobService';
+import { getJobCount, getTodayAnalyzedCount } from '../services/jobService';
 import BlogSection from './BlogSection';
 import CrossBorderPromo from './CrossBorderPromo';
 
@@ -21,12 +21,17 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   const { t, i18n } = useTranslation();
   const [activeScenario, setActiveScenario] = useState(0);
   const [jobCount, setJobCount] = useState<number | null>(null);
+  const [todayAnalyzedCount, setTodayAnalyzedCount] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchCount = async () => {
       try {
-        const count = await getJobCount();
+        const [count, todayCount] = await Promise.all([
+          getJobCount(),
+          getTodayAnalyzedCount()
+        ]);
         setJobCount(count);
+        setTodayAnalyzedCount(todayCount);
       } catch (error) {
         console.error("Error fetching job count:", error);
       }
@@ -109,6 +114,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     ...scenario,
     finalRealMonthly: scenario.grossMonthly - scenario.estimatedTax + scenario.benefitsMonthly - scenario.commuteCost
   }));
+  const subtitleItemsRaw = t('welcome.page_hero.subtitle_items', { returnObjects: true });
+  const subtitleItems = Array.isArray(subtitleItemsRaw)
+    ? subtitleItemsRaw
+    : [t('welcome.page_hero.subtitle')];
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
@@ -117,16 +126,17 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-center">
           {/* Left column: Text */}
           <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800 mb-6 text-amber-700 dark:text-amber-400">
-              <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-500 text-white px-1.5 py-0.5 rounded">{t('app.beta_badge')}</span>
-              <span className="text-xs font-medium">{t('app.beta_description')}</span>
-            </div>
             <h1 className="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
               <span className="text-slate-900 dark:text-white">{t('welcome.page_hero.title_job')}</span><span className="text-cyan-600 dark:text-cyan-400">{t('welcome.page_hero.title_shaman')}</span> <span className="text-slate-900 dark:text-white">{t('welcome.page_hero.title_end')}</span>
             </h1>
-            <p className="text-lg text-slate-600 dark:text-slate-400 mb-8 leading-relaxed max-w-lg">
-              {t('welcome.page_hero.subtitle')}
-            </p>
+            <ul className="text-lg text-slate-600 dark:text-slate-400 mb-8 leading-relaxed max-w-lg space-y-2">
+              {subtitleItems.map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <CheckCircle className="mt-1 text-emerald-500 flex-shrink-0" size={18} />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
 
             {/* Primary CTAs */}
             <div className="flex flex-col sm:flex-row gap-4">
@@ -143,6 +153,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                 {t('welcome.page_hero.browse_offers_btn', { count: jobCount ?? 0 })}
               </button>
             </div>
+            {todayAnalyzedCount !== null && (
+              <div className="mt-4 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                <TrendingUp size={16} className="text-emerald-500" />
+                <span>{t('welcome.page_hero.social_proof', { count: todayAnalyzedCount })}</span>
+              </div>
+            )}
           </div>
 
           {/* Right column: Financial & Commute Reality Showcase */}
@@ -296,6 +312,72 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
       </section>
 
       <CrossBorderPromo />
+
+      {/* SECTION: MOBILE SWIPE BROWSING */}
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+          {/* Left: Graphics */}
+          <div className="flex flex-col gap-6 order-2 lg:order-1">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
+              <div className="text-sm font-bold text-slate-900 dark:text-white mb-1">
+                {t('job.swipe_tutorial_title') || 'Jak funguje swipování'}
+              </div>
+              <div className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                {t('job.swipe_tutorial_desc') || 'Táhni kartu doleva pro zamítnutí, doprava pro uložení.'}
+              </div>
+              <div className="relative h-16 flex items-center justify-center">
+                <div className="absolute left-4 text-rose-500 text-2xl font-bold swipe-coach-arrow-left">←</div>
+                <div className="absolute right-4 text-emerald-500 text-2xl font-bold swipe-coach-arrow-right">→</div>
+                <div className="w-24 h-14 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 shadow-sm swipe-coach-card"></div>
+              </div>
+            </div>
+            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-800 p-8 hover:shadow-lg transition-all">
+              <div className="flex items-start gap-4">
+                <Smartphone className="w-8 h-8 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-1" />
+                <div>
+                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">{t('welcome.page_mobile.mobile_title')}</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{t('welcome.page_mobile.mobile_desc')}</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800 p-8 hover:shadow-lg transition-all">
+              <div className="flex items-start gap-4">
+                <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-1" />
+                <div>
+                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">{t('welcome.page_mobile.progress_title')}</h4>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{t('welcome.page_mobile.progress_desc')}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Right: Text */}
+          <div className="order-1 lg:order-2">
+            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-6">
+              {t('welcome.page_mobile.title_browse')}<span className="text-cyan-600">{t('welcome.page_mobile.title_jobs')}</span> {t('welcome.page_mobile.title_like')}
+            </h2>
+
+            <div className="space-y-6 text-lg text-slate-600 dark:text-slate-400 leading-relaxed mb-8">
+              <p>
+                {t('welcome.page_mobile.desc_1')}
+              </p>
+              <p>
+                {t('welcome.page_mobile.desc_2')}
+              </p>
+              <p>
+                {t('welcome.page_mobile.desc_3')}
+              </p>
+            </div>
+
+            <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4">
+              <p className="text-sm text-cyan-900 dark:text-cyan-200">
+                <span className="font-bold">{t('welcome.page_mobile.tip_label')}</span> {t('welcome.page_mobile.tip_text')}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* DIVIDER */}
       <div className="max-w-7xl mx-auto px-4 lg:px-8 my-6">
@@ -461,225 +543,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
               {t('welcome_extra.how_it_works.transparency.hint')}
             </p>
           </div>
-        </div>
-      </section>
-
-      {/* DIVIDER */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 my-6">
-        <div className="h-px bg-slate-200 dark:bg-slate-800"></div>
-      </div>
-
-      {/* SECTION: MOBILE SWIPE BROWSING */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          {/* Left: Graphics */}
-          <div className="flex flex-col gap-6 order-2 lg:order-1">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-              <div className="text-sm font-bold text-slate-900 dark:text-white mb-1">
-                {t('job.swipe_tutorial_title') || 'Jak funguje swipování'}
-              </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                {t('job.swipe_tutorial_desc') || 'Táhni kartu doleva pro zamítnutí, doprava pro uložení.'}
-              </div>
-              <div className="relative h-16 flex items-center justify-center">
-                <div className="absolute left-4 text-rose-500 text-2xl font-bold swipe-coach-arrow-left">←</div>
-                <div className="absolute right-4 text-emerald-500 text-2xl font-bold swipe-coach-arrow-right">→</div>
-                <div className="w-24 h-14 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 shadow-sm swipe-coach-card"></div>
-              </div>
-            </div>
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-800 p-8 hover:shadow-lg transition-all">
-              <div className="flex items-start gap-4">
-                <Smartphone className="w-8 h-8 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-1" />
-                <div>
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">{t('welcome.page_mobile.mobile_title')}</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">{t('welcome.page_mobile.mobile_desc')}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800 p-8 hover:shadow-lg transition-all">
-              <div className="flex items-start gap-4">
-                <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-1" />
-                <div>
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">{t('welcome.page_mobile.progress_title')}</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">{t('welcome.page_mobile.progress_desc')}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right: Text */}
-          <div className="order-1 lg:order-2">
-            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-6">
-              {t('welcome.page_mobile.title_browse')}<span className="text-cyan-600">{t('welcome.page_mobile.title_jobs')}</span> {t('welcome.page_mobile.title_like')}
-            </h2>
-
-            <div className="space-y-6 text-lg text-slate-600 dark:text-slate-400 leading-relaxed mb-8">
-              <p>
-                {t('welcome.page_mobile.desc_1')}
-              </p>
-              <p>
-                {t('welcome.page_mobile.desc_2')}
-              </p>
-              <p>
-                {t('welcome.page_mobile.desc_3')}
-              </p>
-            </div>
-
-            <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4">
-              <p className="text-sm text-cyan-900 dark:text-cyan-200">
-                <span className="font-bold">{t('welcome.page_mobile.tip_label')}</span> {t('welcome.page_mobile.tip_text')}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* DIVIDER */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 my-6">
-        <div className="h-px bg-slate-200 dark:bg-slate-800"></div>
-      </div>
-
-      {/* PROČ TO VZNIKLO SECTION STARTS HERE */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          {/* Left: Text */}
-          <div>
-            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-8">
-              {t('welcome.page_why.title_job')}<span className="text-cyan-600">{t('welcome.page_why.title_shaman')}</span> {t('welcome.page_why.title_end')}
-            </h2>
-
-            <div className="space-y-6 text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-              <p>
-                {t('welcome.page_why.desc_1')}
-              </p>
-              <p>
-                {t('welcome.page_why.desc_2')}
-              </p>
-              <p className="text-base leading-relaxed">
-                <span className="font-bold text-slate-900 dark:text-white">
-                  {t('welcome.page_why.reason')}
-                </span>
-              </p>
-            </div>
-          </div>
-
-          {/* Right: Graphics */}
-          <div className="flex flex-col gap-8">
-            <div className="bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/20 dark:to-orange-900/20 rounded-xl border border-red-200 dark:border-red-800 p-8">
-              <div className="flex items-start gap-4">
-                <Clock className="w-8 h-8 text-red-600 dark:text-red-400 flex-shrink-0 mt-1" />
-                <div>
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">{t('welcome.page_why.time_title')}</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">{t('welcome.page_why.time_desc')}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-xl border border-yellow-200 dark:border-yellow-800 p-8">
-              <div className="flex items-start gap-4">
-                <TrendingUp className="w-8 h-8 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-1" />
-                <div>
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">{t('welcome.page_why.money_title')}</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">{t('welcome.page_why.money_desc')}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* DIVIDER */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 my-6">
-        <div className="h-px bg-slate-200 dark:bg-slate-800"></div>
-      </div>
-
-
-
-      {/* DIVIDER */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 my-6">
-        <div className="h-px bg-slate-200 dark:bg-slate-800"></div>
-      </div>
-
-      {/* SECTION: KDY POUŽÍVÁME AI (A KDY NE) */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
-        <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-12">
-          {t('welcome.page_ai.title')}
-        </h2>
-
-        <div className="max-w-3xl mb-12">
-          <p className="text-lg text-slate-600 dark:text-slate-400 mb-8">
-            <span className="text-cyan-600 font-bold">{t('welcome.page_ai.intro_job')}</span><span className="text-slate-900 dark:text-white font-bold">{t('welcome.page_ai.intro_shaman')}</span> <span className="text-slate-600 dark:text-slate-400">{t('welcome.page_ai.intro_end')}</span>
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Algorithms */}
-          <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 rounded-xl border border-blue-200 dark:border-blue-800 p-8">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
-              <span className="text-blue-600 dark:text-blue-400 text-2xl">∑</span> {t('welcome.page_ai.algo_title')}
-            </h3>
-            <ul className="space-y-4">
-              {[
-                t('welcome.page_ai.algo_1'),
-                t('welcome.page_ai.algo_2'),
-                t('welcome.page_ai.algo_3'),
-                t('welcome.page_ai.algo_4')
-              ].map((item, idx) => (
-                <li key={idx} className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
-                  <CheckCircle className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* AI */}
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-800 p-8">
-            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-6 flex items-center gap-3">
-              <span className="text-purple-600 dark:text-purple-400 text-2xl">🤖</span> {t('welcome.page_ai.ai_title')}
-            </h3>
-            <ul className="space-y-4">
-              {[
-                t('welcome.page_ai.ai_1'),
-                t('welcome.page_ai.ai_2'),
-                t('welcome.page_ai.ai_3'),
-                t('welcome.page_ai.ai_4')
-              ].map((item, idx) => (
-                <li key={idx} className="flex items-center gap-3 text-slate-700 dark:text-slate-300">
-                  <CheckCircle className="w-5 h-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-
-        <div className="mt-8 p-6 bg-cyan-50 dark:bg-cyan-900/10 rounded-xl border border-cyan-200 dark:border-cyan-800">
-          <p className="text-slate-700 dark:text-slate-300">
-            <span className="font-bold text-slate-900 dark:text-white">{t('welcome.page_ai.important')}</span>
-          </p>
-        </div>
-      </section>
-
-      {/* SECTION: ZÁVĚR / CTA */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-10 text-center">
-        <div className="mb-8 flex justify-center">
-          <div className="w-20 h-20 bg-gradient-to-br from-cyan-100 to-cyan-50 dark:from-cyan-900/30 dark:to-cyan-900/10 rounded-full flex items-center justify-center">
-            <Brain className="w-10 h-10 text-cyan-600 dark:text-cyan-400" />
-          </div>
-        </div>
-        <h2 className="text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white mb-6">
-          {t('welcome.page_cta.title_job')} <span className="text-cyan-600">{t('welcome.page_cta.title_end')}</span>.
-        </h2>
-
-        <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <button
-            onClick={onTryFree}
-            className="px-8 py-4 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg shadow-lg shadow-cyan-600/20 transition-all active:scale-95"
-          >
-            {t('welcome.page_cta.button')}
-          </button>
         </div>
       </section>
 
