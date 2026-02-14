@@ -103,6 +103,8 @@ export interface Job {
   benefits: string[];
   contextualRelevance?: ContextualRelevanceScore;
   required_skills: string[];
+  aiMatchScore?: number;
+  aiMatchReasons?: string[];
   lat?: number;
   lng?: number;
   salary_from?: number;
@@ -254,10 +256,23 @@ export interface UserProfile {
   transportMode: TransportMode;
   cvText?: string;
   cvUrl?: string;
+  cvAiText?: string;
   skills?: string[];
   workHistory?: WorkExperience[];
   education?: Education[];
   cvAnalysis?: CVAnalysis;
+  story?: string;
+  hobbies?: string[];
+  volunteering?: string[];
+  leadership?: string[];
+  strengths?: string[];
+  values?: string[];
+  inferredSkills?: string[];
+  awards?: string[];
+  certifications?: string[];
+  sideProjects?: string[];
+  motivations?: string[];
+  workPreferences?: string[];
   preferences: {
     workLifeBalance: number; // 1-100
     financialGoals: number; // 1-100

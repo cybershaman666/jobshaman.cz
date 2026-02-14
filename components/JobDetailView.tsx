@@ -380,7 +380,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                             window.open(resource.url, '_blank');
                                         }}
                                         onShowMarketplace={() => {
-                                            setViewState(ViewState.MARKETPLACE);
+                                            setViewState(ViewState.LIST);
                                             setSelectedJobId(null);
                                         }}
                                         onShowProfile={() => {

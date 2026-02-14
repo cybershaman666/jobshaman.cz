@@ -39,12 +39,36 @@ const EU_CITIES_CACHE: Record<string, { lat: number, lon: number }> = {
     'dolni vltavice': { lat: 48.8978, lon: 14.2458 },
 };
 
+const CITY_COUNTRY_SUFFIXES = new Set([
+    'cz', 'cr', 'czech', 'cesko', 'ceska', 'republika',
+    'sk', 'slovensko', 'slovakia',
+    'de', 'germany', 'deutschland',
+    'at', 'austria', 'osterreich',
+    'pl', 'poland', 'polsko',
+]);
+
+const isCityOnlyAddress = (address: string): boolean => {
+    if (!address) return false;
+    const raw = address.trim().toLowerCase();
+    if (!raw) return false;
+    if (/[0-9]/.test(raw)) return false;
+    if (raw.includes('-')) return false;
+    if (raw.includes(',')) return false;
+
+    const normalized = normalizeAddress(raw);
+    const tokens = normalized.split(/\s+/).filter(Boolean);
+    if (tokens.length <= 1) return true;
+    if (tokens.length === 2 && CITY_COUNTRY_SUFFIXES.has(tokens[1])) return true;
+    return false;
+};
+
 /**
  * Synchronous lookup for major cities in the static cache.
  * Useful for filtering and sorting where async geocoding is impractical.
  */
 export const getStaticCoordinates = (address: string): { lat: number, lon: number } | null => {
     if (!address) return null;
+    if (!isCityOnlyAddress(address)) return null;
     const normalized = normalizeAddress(address);
     if (EU_CITIES_CACHE[normalized]) return EU_CITIES_CACHE[normalized];
 
@@ -98,17 +122,20 @@ export const geocodeWithCaching = async (address: string): Promise<{ lat: number
     if (!address) return null;
 
     const normalized = normalizeAddress(address);
+    const cityOnly = isCityOnlyAddress(address);
 
     // 1. Check local static cache (instant)
-    if (EU_CITIES_CACHE[normalized]) {
+    if (cityOnly && EU_CITIES_CACHE[normalized]) {
         return EU_CITIES_CACHE[normalized];
     }
 
     // Check if partial match exists in static cache (e.g. "Praha 4" -> "Praha")
-    const staticKeys = Object.keys(EU_CITIES_CACHE).sort((a, b) => b.length - a.length);
-    for (const key of staticKeys) {
-        if (normalized.includes(key)) {
-            return EU_CITIES_CACHE[key];
+    if (cityOnly) {
+        const staticKeys = Object.keys(EU_CITIES_CACHE).sort((a, b) => b.length - a.length);
+        for (const key of staticKeys) {
+            if (normalized.includes(key)) {
+                return EU_CITIES_CACHE[key];
+            }
         }
     }
 

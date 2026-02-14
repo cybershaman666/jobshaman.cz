@@ -5,6 +5,8 @@ import { calculateJHI } from '../utils/jhiCalculator';
 import { matchesIcoKeywords } from '../utils/contractType';
 import { detectCurrencyFromLocation } from './financialService';
 import i18n from '../src/i18n';
+import { BACKEND_URL } from '../constants';
+import { authenticatedFetch } from './csrfService';
 
 // Loose interface to accept whatever Supabase returns
 interface ScrapedJob {
@@ -933,6 +935,24 @@ export const fetchJobById = async (jobId: string): Promise<Job | null> => {
         console.error("Error in fetchJobById:", e);
         return null;
     }
+};
+
+export const fetchRecommendedJobs = async (limit: number = 50): Promise<Job[]> => {
+    const response = await authenticatedFetch(`${BACKEND_URL}/jobs/recommendations?limit=${limit}`, {
+        method: 'GET'
+    });
+    if (!response.ok) {
+        throw new Error('Failed to fetch recommended jobs');
+    }
+    const data = await response.json();
+    const items = Array.isArray(data.jobs) ? data.jobs : [];
+    const mapped = items.map((item: any) => {
+        const job = transformJob(item.job || item);
+        (job as any).aiMatchScore = item.score;
+        (job as any).aiMatchReasons = item.reasons || [];
+        return job;
+    });
+    return mapped;
 };
 
 

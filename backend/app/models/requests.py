@@ -79,3 +79,14 @@ class AdminSubscriptionUpdateRequest(BaseModel):
     cancel_at_period_end: Optional[bool] = None
     set_trial_days: Optional[int] = Field(None, ge=1, le=365)
     set_trial_until: Optional[str] = None
+
+
+class AIGuidedProfileStep(BaseModel):
+    id: str
+    text: str
+
+
+class AIGuidedProfileRequest(BaseModel):
+    steps: List[AIGuidedProfileStep]
+    language: Optional[str] = "cs"
+    existingProfile: Optional[dict] = None

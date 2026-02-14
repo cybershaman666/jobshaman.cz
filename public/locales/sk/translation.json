@@ -61,6 +61,7 @@
     "language_all": "Všetky jazyky",
     "sort_by": "Zoradiť podľa",
     "sort_options": {
+      "recommended": "AI odporúčané",
       "default": "Odporúčané",
       "newest": "Najnovšie",
       "jhi_desc": "JHI od najvyššieho",

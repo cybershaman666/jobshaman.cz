@@ -8,7 +8,6 @@ import { initialBlogPosts } from './src/data/blogPosts';
 import AppHeader from './components/AppHeader';
 import { generateSEOMetadata, updatePageMeta } from './utils/seo';
 import CompanyDashboard from './components/CompanyDashboard';
-import FreelancerDashboard from './components/FreelancerDashboard';
 import CourseProviderDashboard from './components/CourseProviderDashboard';
 import CompanyOnboarding from './components/CompanyOnboarding';
 import ProfileEditor from './components/ProfileEditor';
@@ -161,12 +160,13 @@ export default function App() {
     } = useUserProfile();
 
     useEffect(() => {
-        if (viewState === ViewState.COMPANY_DASHBOARD && userProfile.role === 'recruiter' && !companyProfile) {
-            if (!isOnboardingCompany) {
-                setIsOnboardingCompany(true);
+        // Only keep onboarding modal open when explicitly requested and still applicable
+        if (isOnboardingCompany) {
+            if (userProfile.role !== 'recruiter' || companyProfile) {
+                setIsOnboardingCompany(false);
             }
         }
-    }, [viewState, userProfile.role, companyProfile?.id, isOnboardingCompany]);
+    }, [isOnboardingCompany, userProfile.role, companyProfile?.id]);
 
     const isCompanyProfile = userProfile.role === 'recruiter' && companyProfile?.industry !== 'Freelancer';
     const companyCoordinates = (companyProfile?.lat != null && companyProfile?.lng != null)
@@ -393,7 +393,7 @@ export default function App() {
                     setSelectedJobId(null);
                 }
             } else if (parts[0] === 'kurzy-a-rekvalifikace') {
-                setViewState(ViewState.MARKETPLACE);
+                setViewState(ViewState.LIST);
                 setShowCompanyLanding(false);
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
@@ -422,7 +422,7 @@ export default function App() {
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
             } else if (parts[0] === 'freelancer-dashboard') {
-                setViewState(ViewState.FREELANCER_DASHBOARD);
+                setViewState(ViewState.PROFILE);
                 setShowCompanyLanding(false);
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
@@ -443,7 +443,6 @@ export default function App() {
     }, []);
 
     // RESTORE DASHBOARD VIEW STATE when navigating back to home (selectedJobId becomes null)
-    // This fixes the issue where FreelancerDashboard doesn't load after returning from job details
     // BUT: Only restore if we're coming from a job detail view, NOT from other views like MARKETPLACE
     const prevSelectedJobIdRef = useRef<string | null>(selectedJobId);
     useEffect(() => {
@@ -466,8 +465,8 @@ export default function App() {
                     setViewState(ViewState.COURSE_PROVIDER_DASHBOARD);
                     console.log("✅ Restored COURSE_PROVIDER_DASHBOARD after returning from job detail");
                 } else if (companyProfile?.industry === 'Freelancer') {
-                    setViewState(ViewState.FREELANCER_DASHBOARD);
-                    console.log("✅ Restored FREELANCER_DASHBOARD after returning from job detail");
+                    setViewState(ViewState.PROFILE);
+                    console.log("✅ Restored PROFILE after returning from job detail (freelancer dashboard disabled)");
                 } else if (companyProfile) {
                     setViewState(ViewState.COMPANY_DASHBOARD);
                     console.log("✅ Restored COMPANY_DASHBOARD after returning from job detail");
@@ -507,7 +506,7 @@ export default function App() {
             } else if (showCompanyLanding) {
                 targetPath = `/${lng}/pro-firmy`;
             } else if (viewState === ViewState.MARKETPLACE) {
-                targetPath = `/${lng}/kurzy-a-rekvalifikace`;
+                targetPath = `/${lng}/`;
             } else if (viewState === ViewState.SERVICES) {
                 targetPath = `/${lng}/sluzby`;
             } else if (viewState === ViewState.SAVED) {
@@ -517,7 +516,7 @@ export default function App() {
             } else if (viewState === ViewState.PROFILE) {
                 targetPath = `/${lng}/profil`;
             } else if (viewState === ViewState.FREELANCER_DASHBOARD) {
-                targetPath = `/${lng}/freelancer-dashboard`;
+                targetPath = `/${lng}/profil`;
             } else if (viewState === ViewState.COURSE_PROVIDER_DASHBOARD) {
                 targetPath = `/${lng}/course-provider-dashboard`;
             } else if (viewState === ViewState.COMPANY_DASHBOARD) {
@@ -738,11 +737,11 @@ export default function App() {
     // SEO Update Effect
     useEffect(() => {
         const pageName = showCompanyLanding ? 'company-dashboard' :
-            viewState === ViewState.LIST ? 'home' :
-                viewState === ViewState.PROFILE ? 'profile' :
-                    viewState === ViewState.MARKETPLACE ? 'marketplace' :
-                        viewState === ViewState.SERVICES ? 'services' :
-                            viewState === ViewState.FREELANCER_DASHBOARD ? 'freelancer-dashboard' :
+                    viewState === ViewState.LIST ? 'home' :
+                        viewState === ViewState.PROFILE ? 'profile' :
+                            viewState === ViewState.MARKETPLACE ? 'home' :
+                                viewState === ViewState.SERVICES ? 'services' :
+                            viewState === ViewState.FREELANCER_DASHBOARD ? 'profile' :
                                 viewState === ViewState.COURSE_PROVIDER_DASHBOARD ? 'course-provider-dashboard' :
                                     viewState === ViewState.SAVED ? 'saved' :
                                         viewState === ViewState.ASSESSMENT ? 'assessment' :
@@ -1099,32 +1098,20 @@ export default function App() {
         }
 
         if (viewState === ViewState.FREELANCER_DASHBOARD) {
-            if (!companyProfile) {
-                return (
-                    <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
-                        <div className="max-w-xl mx-auto mt-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center shadow-sm">
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                                {t('freelancer.dashboard.register_title') || 'Staňte se freelancerem'}
-                            </h2>
-                            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-                                {t('freelancer.dashboard.register_desc') || 'Pro vytvoření freelancer profilu je potřeba krátká registrace (IČO a základní údaje).'}
-                            </p>
-                            <button
-                                onClick={() => setIsFreelancerRegistrationOpen(true)}
-                                className="px-5 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-colors"
-                            >
-                                {t('freelancer.dashboard.register_cta') || 'Zaregistrovat se jako freelancer'}
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
             return (
-                <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
-                    <FreelancerDashboard
-                        userProfile={userProfile}
-                        companyProfile={companyProfile}
-                        onLogout={signOut}
+                <div className="col-span-1 lg:col-span-12 max-w-4xl mx-auto w-full h-full overflow-y-auto custom-scrollbar pb-6 px-1">
+                    <ProfileEditor
+                        profile={userProfile}
+                        onChange={(p, persist) => handleProfileUpdate(p, persist)}
+                        onSave={handleProfileSave}
+                        onRefreshProfile={refreshUserProfile}
+                        onDeleteAccount={deleteAccount}
+                        savedJobs={filteredJobs.filter(job => savedJobIds.includes(job.id))}
+                        savedJobIds={savedJobIds}
+                        onToggleSave={handleToggleSave}
+                        onJobSelect={handleJobSelect}
+                        onApplyToJob={handleApplyToJob}
+                        selectedJobId={selectedJobId}
                     />
                 </div>
             );
@@ -1163,15 +1150,9 @@ export default function App() {
         }
 
         if (viewState === ViewState.MARKETPLACE) {
-            return (
-                <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
-                    <MarketplacePage
-                        userProfile={userProfile}
-                        companyProfile={companyProfile}
-                        onOpenProviderRegistration={() => setIsCourseProviderRegistrationOpen(true)}
-                    />
-                </div>
-            );
+            // Education marketplace disabled
+            setTimeout(() => setViewState(ViewState.LIST), 0);
+            return null;
         }
 
         if (viewState === ViewState.SERVICES) {

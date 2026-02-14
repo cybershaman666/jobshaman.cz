@@ -59,6 +59,7 @@
     "language_all": "Alle Sprachen",
     "sort_by": "Sortieren nach",
     "sort_options": {
+      "recommended": "AI empfohlen",
       "default": "Empfohlen",
       "newest": "Neueste",
       "jhi_desc": "JHI absteigend",

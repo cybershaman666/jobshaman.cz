@@ -283,9 +283,22 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         transportMode: (candidateData?.transport_mode as any) || 'public',
         cvText: candidateData?.cv_text || '',
         cvUrl: candidateData?.cv_url || '',
+        cvAiText: candidateData?.cv_ai_text || '',
         skills: candidateData?.skills || [],
         workHistory: candidateData?.work_history || [],
         education: candidateData?.education || [],
+        story: candidateData?.story || '',
+        hobbies: candidateData?.hobbies || [],
+        volunteering: candidateData?.volunteering || [],
+        leadership: candidateData?.leadership || [],
+        strengths: candidateData?.strengths || [],
+        values: candidateData?.values || [],
+        inferredSkills: candidateData?.inferred_skills || [],
+        awards: candidateData?.awards || [],
+        certifications: candidateData?.certifications || [],
+        sideProjects: candidateData?.side_projects || [],
+        motivations: candidateData?.motivations || [],
+        workPreferences: candidateData?.work_preferences || [],
         preferences: candidateData?.preferences || {
             workLifeBalance: 50,
             financialGoals: 50,
@@ -366,9 +379,22 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     if (updates.transportMode !== undefined) candidateUpdates.transport_mode = updates.transportMode;
     if (updates.cvText !== undefined) candidateUpdates.cv_text = updates.cvText;
     if (updates.cvUrl !== undefined) candidateUpdates.cv_url = updates.cvUrl;
+    if (updates.cvAiText !== undefined) candidateUpdates.cv_ai_text = updates.cvAiText;
     if (updates.skills !== undefined) candidateUpdates.skills = updates.skills;
     if (updates.workHistory !== undefined) candidateUpdates.work_history = updates.workHistory;
     if (updates.education !== undefined) candidateUpdates.education = updates.education;
+    if (updates.story !== undefined) candidateUpdates.story = updates.story;
+    if (updates.hobbies !== undefined) candidateUpdates.hobbies = updates.hobbies;
+    if (updates.volunteering !== undefined) candidateUpdates.volunteering = updates.volunteering;
+    if (updates.leadership !== undefined) candidateUpdates.leadership = updates.leadership;
+    if (updates.strengths !== undefined) candidateUpdates.strengths = updates.strengths;
+    if (updates.values !== undefined) candidateUpdates.values = updates.values;
+    if (updates.inferredSkills !== undefined) candidateUpdates.inferred_skills = updates.inferredSkills;
+    if (updates.awards !== undefined) candidateUpdates.awards = updates.awards;
+    if (updates.certifications !== undefined) candidateUpdates.certifications = updates.certifications;
+    if (updates.sideProjects !== undefined) candidateUpdates.side_projects = updates.sideProjects;
+    if (updates.motivations !== undefined) candidateUpdates.motivations = updates.motivations;
+    if (updates.workPreferences !== undefined) candidateUpdates.work_preferences = updates.workPreferences;
     if (updates.preferences !== undefined) candidateUpdates.preferences = updates.preferences;
 
     if (Object.keys(candidateUpdates).length > 0) {

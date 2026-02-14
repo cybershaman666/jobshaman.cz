@@ -1,15 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import {
     Briefcase,
     Sun,
     Moon,
     UserCircle,
-    ShoppingBag,
-    Handshake,
     Menu,
     X,
     User,
-    ArrowLeftRight,
     LogOut
 } from 'lucide-react';
 import { ViewState, UserProfile, CompanyProfile } from '../types';
@@ -48,19 +45,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 }) => {
     const { t, i18n } = useTranslation();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-    const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-    const profileMenuRef = useRef<HTMLDivElement | null>(null);
-
-    useEffect(() => {
-        if (!profileMenuOpen) return;
-        const handleClickOutside = (event: MouseEvent) => {
-            if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
-                setProfileMenuOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, [profileMenuOpen]);
 
     const languages = [
         { code: 'cs', name: 'CZ', flag: '🇨🇿' },
@@ -140,25 +124,17 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                             </button>
                             <button
                                 onClick={() => { 
-                                    setViewState(ViewState.MARKETPLACE);
-                                    // Don't clear selectedJobId - that would trigger path restoration
+                                    if (userProfile.isLoggedIn) {
+                                        setViewState(ViewState.PROFILE);
+                                    } else {
+                                        handleAuthAction('login');
+                                    }
                                 }}
-                                className={`hidden lg:flex px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap items-center gap-1.5 ${viewState === ViewState.MARKETPLACE ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                                title="Marketplace - kliknutelné"
+                                className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${viewState === ViewState.PROFILE ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                title={t('nav.profile')}
                             >
-                                <ShoppingBag className="w-4 h-4" />
-                                <span className="hidden xl:inline">{t('nav.marketplace')}</span>
-                            </button>
-                            <button
-                                onClick={() => { 
-                                    setViewState(ViewState.SERVICES);
-                                    // Don't clear selectedJobId - that would trigger path restoration
-                                }}
-                                className={`hidden lg:flex px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap items-center gap-1.5 ${viewState === ViewState.SERVICES ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                                title="Zakázky - kliknutelné"
-                            >
-                                <Handshake className="w-4 h-4" />
-                                <span className="hidden xl:inline">{t('nav.services')}</span>
+                                <User className="w-4 h-4" />
+                                <span className="hidden xl:inline">{t('nav.profile')}</span>
                             </button>
                         </>
                     )}
@@ -172,8 +148,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 if (companyProfile?.industry === 'Education') {
                                     setViewState(ViewState.COURSE_PROVIDER_DASHBOARD);
                                 } else if (companyProfile?.industry === 'Freelancer') {
-                                    // Freelancer - show freelancer dashboard
-                                    setViewState(ViewState.FREELANCER_DASHBOARD);
+                                    // Freelancer dashboard disabled - go to profile
+                                    setViewState(ViewState.PROFILE);
                                 } else if (userProfile.role === 'recruiter') {
                                     // Regular recruiter/company
                                     if (companyProfile) {
@@ -236,10 +212,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
 
                         {userProfile.isLoggedIn ? (
-                            <div className="flex items-center gap-3 pl-2" ref={profileMenuRef}>
-                                <button
-                                    onClick={() => setProfileMenuOpen((prev) => !prev)}
-                                    className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-500 hover:ring-2 hover:ring-cyan-500/40 transition-all"
+                            <div className="flex items-center gap-3 pl-2">
+                                <div
+                                    className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-500"
                                     title={t('nav.profile')}
                                 >
                                     {userProfile.photo ? (
@@ -247,58 +222,20 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     ) : (
                                         <span>{userProfile.name?.charAt(0) || 'U'}</span>
                                     )}
-                                </button>
+                                </div>
                                 <div className="text-right hidden md:block">
                                     <div className="text-sm font-bold text-slate-900 dark:text-white leading-none mb-1">{userProfile.name}</div>
                                     <div className="flex items-center gap-2">
                                         <SubscriptionStatusBadge userId={userProfile.id} />
                                     </div>
                                 </div>
-                                {profileMenuOpen && (
-                                    <div className="absolute right-4 top-[64px] w-60 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl p-2 z-50">
-                                        {(userProfile.role !== 'recruiter' || companyProfile?.industry === 'Freelancer') && (
-                                            <button
-                                                onClick={() => {
-                                                    setViewState(ViewState.PROFILE);
-                                                    setProfileMenuOpen(false);
-                                                }}
-                                                className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
-                                            >
-                                                <User size={16} />
-                                                {t('header.open_profile', { defaultValue: t('nav.profile') })}
-                                            </button>
-                                        )}
-                                        {(userProfile.role !== 'recruiter' || companyProfile?.industry === 'Freelancer') && (
-                                            <button
-                                                onClick={() => {
-                                                    if (viewState === ViewState.FREELANCER_DASHBOARD) {
-                                                        setViewState(ViewState.PROFILE);
-                                                    } else {
-                                                        setViewState(ViewState.FREELANCER_DASHBOARD);
-                                                    }
-                                                    setProfileMenuOpen(false);
-                                                }}
-                                                className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2"
-                                            >
-                                                <ArrowLeftRight size={16} />
-                                                {viewState === ViewState.FREELANCER_DASHBOARD
-                                                    ? t('header.switch_to_candidate', { defaultValue: 'Přepnout na uchazeče' })
-                                                    : t('header.switch_to_freelancer', { defaultValue: 'Přepnout na freelancera' })}
-                                            </button>
-                                        )}
-                                        <div className="my-1 h-px bg-slate-200 dark:bg-slate-800"></div>
-                                        <button
-                                            onClick={() => {
-                                                setProfileMenuOpen(false);
-                                                handleAuthAction();
-                                            }}
-                                            className="w-full text-left px-3 py-2 rounded-lg text-sm font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/20 flex items-center gap-2"
-                                        >
-                                            <LogOut size={16} />
-                                            {t('header.logout')}
-                                        </button>
-                                    </div>
-                                )}
+                                <button
+                                    onClick={() => handleAuthAction()}
+                                    className="flex items-center gap-2 text-sm font-bold text-rose-600 p-2 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                                    title={t('header.logout')}
+                                >
+                                    <LogOut size={16} />
+                                </button>
                             </div>
                         ) : (
                             <button
@@ -332,23 +269,17 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 </button>
                                 <button
                                     onClick={() => { 
-                                        setViewState(ViewState.MARKETPLACE);
+                                        if (userProfile.isLoggedIn) {
+                                            setViewState(ViewState.PROFILE);
+                                        } else {
+                                            handleAuthAction('login');
+                                        }
                                         setMobileMenuOpen(false);
                                     }}
-                                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${viewState === ViewState.MARKETPLACE ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${viewState === ViewState.PROFILE ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                                 >
-                                    <ShoppingBag className="w-4 h-4" />
-                                    {t('nav.marketplace')}
-                                </button>
-                                <button
-                                    onClick={() => { 
-                                        setViewState(ViewState.SERVICES);
-                                        setMobileMenuOpen(false);
-                                    }}
-                                    className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${viewState === ViewState.SERVICES ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
-                                >
-                                    <Handshake className="w-4 h-4" />
-                                    {t('nav.services')}
+                                    <User className="w-4 h-4" />
+                                    {t('nav.profile')}
                                 </button>
                             </>
                         )}
@@ -361,7 +292,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     if (companyProfile?.industry === 'Education') {
                                         setViewState(ViewState.COURSE_PROVIDER_DASHBOARD);
                                     } else if (companyProfile?.industry === 'Freelancer') {
-                                        setViewState(ViewState.FREELANCER_DASHBOARD);
+                                        setViewState(ViewState.PROFILE);
                                     } else if (userProfile.role === 'recruiter') {
                                         if (companyProfile) {
                                             setViewState(ViewState.COMPANY_DASHBOARD);

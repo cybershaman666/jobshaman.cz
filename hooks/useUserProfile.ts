@@ -166,7 +166,9 @@ export const useUserProfile = () => {
                 }
 
                 // If user registered as recruiter (via metadata) but profile says 'candidate' (default trigger), fix it.
-                if (metaRole === 'recruiter' && profile.role !== 'recruiter') {
+                // Guard: only auto-fix when we also have company identifiers to avoid flipping regular users.
+                const hasCompanyMeta = !!(metaCompany || metaIco || metaWebsite);
+                if (metaRole === 'recruiter' && hasCompanyMeta && !metaIsFreelancer && !metaIsCourseProvider && profile.role !== 'recruiter') {
                     console.log("🛠️ Fixing profile role mismatch: Metadata says recruiter, DB says candidate. Updating...");
                     try {
                         await updateUserProfileService(userId, { role: 'recruiter' });
@@ -344,17 +346,17 @@ export const useUserProfile = () => {
                         const isCourseProvider = metaIsCourseProvider || company?.industry === 'Education';
                         const isFreelancer = metaIsFreelancer || company?.industry === 'Freelancer';
 
+                        // Do not auto-navigate on login; stay on current view.
                         if (isCourseProvider) {
-                            setViewState(ViewState.COURSE_PROVIDER_DASHBOARD);
-                            console.log("✅ Course provider logged in, COURSE_PROVIDER_DASHBOARD set.");
+                            console.log("✅ Course provider logged in, keeping current view (no auto navigation).");
                         } else if (isFreelancer) {
-                            // Freelancers ALWAYS go to FREELANCER_DASHBOARD
-                            setViewState(ViewState.FREELANCER_DASHBOARD);
-                            console.log("✅ Freelancer logged in, FREELANCER_DASHBOARD set.");
+                            console.log("✅ Freelancer logged in, keeping current view (dashboard disabled).");
                         } else {
-                            // Regular recruiters go to COMPANY_DASHBOARD
-                            setViewState(ViewState.COMPANY_DASHBOARD);
-                            console.log("✅ Recruiter logged in, COMPANY_DASHBOARD set.");
+                            if (company) {
+                                console.log("✅ Recruiter logged in, keeping current view (no auto navigation).");
+                            } else {
+                                console.log("✅ Recruiter without company, keeping current view (no auto onboarding).");
+                            }
                         }
                     } else {
                         console.log("🔗 Logged in on explicit route, maintaining current view.");
@@ -366,7 +368,7 @@ export const useUserProfile = () => {
                     if (viewState === ViewState.COMPANY_DASHBOARD) {
                         setViewState(ViewState.LIST);
                     }
-                    console.log("✅ Candidate logged in, view state set to LIST.");
+                    console.log("✅ Candidate logged in, keeping current view.");
                 }
             }
         } catch (error) {

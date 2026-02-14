@@ -11,7 +11,7 @@ from slowapi import _rate_limit_exceeded_handler
 from starlette.responses import JSONResponse
 
 from .core.limiter import limiter
-from .routers import jobs, billing, stripe, assessments, scraper, auth, admin
+from .routers import jobs, billing, stripe, assessments, scraper, auth, admin, ai
 from .core.security import add_security_headers
 
 SENTRY_DSN = os.getenv("SENTRY_DSN")
@@ -91,6 +91,7 @@ app.include_router(assessments.router, prefix="/assessments", tags=["Assessments
 app.include_router(auth.router, tags=["Auth"])
 app.include_router(scraper.router, tags=["Scraper"])
 app.include_router(admin.router, tags=["Admin"])
+app.include_router(ai.router, tags=["AI"])
 
 # Scheduler
 from .core.security import cleanup_csrf_sessions
