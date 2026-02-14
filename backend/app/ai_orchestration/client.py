@@ -51,7 +51,12 @@ def _usage_counts(response: Any) -> tuple[int, int]:
     return in_count, out_count
 
 
-def call_model_with_retry(prompt: str, model_name: str, max_retries: int = 2) -> AIClientResult:
+def call_model_with_retry(
+    prompt: str,
+    model_name: str,
+    max_retries: int = 2,
+    generation_config: Optional[Dict[str, Any]] = None,
+) -> AIClientResult:
     try:
         import google.generativeai as genai
     except Exception as exc:
@@ -71,12 +76,12 @@ def call_model_with_retry(prompt: str, model_name: str, max_retries: int = 2) ->
         try:
             response = model.generate_content(
                 prompt,
-                generation_config={
+                generation_config=(generation_config or {
                     # Production determinism: stable outputs for same prompt/input.
                     "temperature": 0,
                     "top_p": 1,
                     "top_k": 1,
-                },
+                }),
             )
             elapsed_ms = int((time.perf_counter() - started) * 1000)
             tokens_in, tokens_out = _usage_counts(response)
@@ -99,13 +104,24 @@ def call_primary_with_fallback(
     primary_model: str,
     fallback_model: Optional[str],
     max_retries: int = 2,
+    generation_config: Optional[Dict[str, Any]] = None,
 ) -> tuple[AIClientResult, bool]:
     try:
-        return call_model_with_retry(prompt, primary_model, max_retries=max_retries), False
+        return call_model_with_retry(
+            prompt,
+            primary_model,
+            max_retries=max_retries,
+            generation_config=generation_config,
+        ), False
     except Exception:
         if not fallback_model:
             raise
-        return call_model_with_retry(prompt, fallback_model, max_retries=max_retries), True
+        return call_model_with_retry(
+            prompt,
+            fallback_model,
+            max_retries=max_retries,
+            generation_config=generation_config,
+        ), True
 
 
 __all__ = [

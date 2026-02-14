@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 from pydantic import ValidationError
 
 from .client import AIClientError, _extract_json, call_primary_with_fallback
+from ..core.runtime_config import get_active_model_config, get_release_flag
 from .models import (
     AIGuidedProfileAIResult,
     AIGuidedProfileResponseV2,
@@ -15,8 +16,8 @@ from .models import (
 from .prompt_registry import get_prompt
 from .telemetry import canonical_hash, estimate_text_cost_usd, log_ai_generation
 
-PRIMARY_MODEL = "gemini-1.5-flash"
-FALLBACK_MODEL = "gemini-1.5-flash-8b"
+DEFAULT_PRIMARY_MODEL = "gemini-1.5-flash"
+DEFAULT_FALLBACK_MODEL = "gemini-1.5-flash-8b"
 
 
 def _sanitize_steps(steps: List[Dict[str, str]]) -> List[Dict[str, str]]:
@@ -128,6 +129,10 @@ def generate_profile_with_orchestration(
     existing_profile: Optional[Dict[str, Any]] = None,
     requested_prompt_version: Optional[str] = None,
 ) -> AIGuidedProfileResponseV2:
+    flag = get_release_flag("ai_profile_generate_v2", subject_id=user_id, default=True)
+    if not flag.get("effective_enabled", True):
+        raise ValueError("AI profile generation is temporarily disabled by release flag")
+
     safe_steps = _sanitize_steps(steps)
     if not safe_steps:
         raise ValueError("No valid steps provided")
@@ -137,8 +142,17 @@ def generate_profile_with_orchestration(
     input_hash = canonical_hash({"language": language, "steps": safe_steps, "existing_profile": existing_profile or {}})
     prompt_hash = canonical_hash({"prompt_version": prompt_version, "system_prompt": system_prompt, "prompt": prompt})
 
+    model_cfg = get_active_model_config("ai_orchestration", "profile_generate")
+    primary_model = model_cfg.get("primary_model") or DEFAULT_PRIMARY_MODEL
+    fallback_model = model_cfg.get("fallback_model") or DEFAULT_FALLBACK_MODEL
+    generation_config = {
+        "temperature": model_cfg.get("temperature", 0),
+        "top_p": model_cfg.get("top_p", 1),
+        "top_k": model_cfg.get("top_k", 1),
+    }
+
     started = time.perf_counter()
-    model_final = PRIMARY_MODEL
+    model_final = primary_model
     fallback_used = False
     tokens_in = 0
     tokens_out = 0
@@ -146,7 +160,12 @@ def generate_profile_with_orchestration(
     error_code = None
 
     try:
-        result, fallback_used = call_primary_with_fallback(prompt, PRIMARY_MODEL, FALLBACK_MODEL)
+        result, fallback_used = call_primary_with_fallback(
+            prompt,
+            primary_model,
+            fallback_model,
+            generation_config=generation_config,
+        )
         model_final = result.model_name
         tokens_in += result.tokens_in
         tokens_out += result.tokens_out
@@ -159,7 +178,12 @@ def generate_profile_with_orchestration(
             output_valid = True
         except ValidationError as schema_error:
             repair_prompt = _build_repair_prompt(prompt, result.text, str(schema_error))
-            repaired, repaired_fallback = call_primary_with_fallback(repair_prompt, PRIMARY_MODEL, FALLBACK_MODEL)
+            repaired, repaired_fallback = call_primary_with_fallback(
+                repair_prompt,
+                primary_model,
+                fallback_model,
+                generation_config=generation_config,
+            )
             fallback_used = fallback_used or repaired_fallback
             model_final = repaired.model_name
             tokens_in += repaired.tokens_in
@@ -185,7 +209,7 @@ def generate_profile_with_orchestration(
                 "user_id": user_id,
                 "feature": "profile_generate",
                 "prompt_version": prompt_version,
-                "model_primary": PRIMARY_MODEL,
+                "model_primary": primary_model,
                 "model_final": model_final,
                 "fallback_used": fallback_used,
                 "input_chars": len(prompt),
@@ -234,7 +258,7 @@ def generate_profile_with_orchestration(
                     "user_id": user_id,
                     "feature": "profile_generate",
                     "prompt_version": prompt_version,
-                    "model_primary": PRIMARY_MODEL,
+                    "model_primary": primary_model,
                     "model_final": model_final,
                     "fallback_used": fallback_used,
                     "input_chars": len(prompt),

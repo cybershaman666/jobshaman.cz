@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, Query
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access
-from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest
+from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, HybridJobSearchRequest
 from ..models.responses import JobCheckResponse
 from ..services.legality import check_legality_rules
 from ..services.matching import calculate_candidate_match
-from ..matching_engine import recommend_jobs_for_user
+from ..matching_engine import recommend_jobs_for_user, hybrid_search_jobs
 from ..services.email import send_review_email, send_recruiter_legality_email
 from ..core.database import supabase
 from ..utils.helpers import now_iso
@@ -166,6 +166,34 @@ async def get_job_recommendations(
 
     matches = recommend_jobs_for_user(user_id=user_id, limit=limit, allow_cache=True)
     return {"jobs": matches}
+
+
+@router.post("/jobs/hybrid-search")
+@limiter.limit("60/minute")
+async def jobs_hybrid_search(
+    payload: HybridJobSearchRequest,
+    request: Request,
+):
+    result = hybrid_search_jobs(
+        {
+            "search_term": payload.search_term,
+            "user_lat": payload.user_lat,
+            "user_lng": payload.user_lng,
+            "radius_km": payload.radius_km,
+            "filter_city": payload.filter_city,
+            "filter_contract_types": payload.filter_contract_types,
+            "filter_benefits": payload.filter_benefits,
+            "filter_min_salary": payload.filter_min_salary,
+            "filter_date_posted": payload.filter_date_posted,
+            "filter_experience_levels": payload.filter_experience_levels,
+            "filter_country_codes": payload.filter_country_codes,
+            "exclude_country_codes": payload.exclude_country_codes,
+            "filter_language_codes": payload.filter_language_codes,
+        },
+        page=payload.page,
+        page_size=payload.page_size,
+    )
+    return result
 
 @router.post("/match-candidates")
 @limiter.limit("10/minute")

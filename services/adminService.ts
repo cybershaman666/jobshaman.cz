@@ -102,6 +102,20 @@ export async function getAdminStats() {
   return response.json();
 }
 
+export async function getAdminAiQuality(days: number = 30) {
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/ai-quality?days=${days}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Failed to load AI quality stats');
+  }
+
+  return response.json();
+}
+
 export async function adminSearch(query: string, kind: 'company' | 'user') {
   const params = new URLSearchParams({ query, kind });
   const response = await authenticatedFetch(`${BACKEND_URL}/admin/search?${params.toString()}`, {

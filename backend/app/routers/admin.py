@@ -29,6 +29,13 @@ def _safe_query(value: str) -> str:
         return ""
     return re.sub(r"[^a-zA-Z0-9@._\\- ]+", " ", value).strip()
 
+
+def _safe_float(value, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except Exception:
+        return default
+
 def require_admin_user(user: dict) -> dict:
     if not supabase:
         raise HTTPException(status_code=500, detail="Authentication service unavailable")
@@ -253,6 +260,116 @@ async def admin_stats(
             "paid_users": paid_user,
         },
         "traffic": traffic,
+    }
+
+
+@router.get("/admin/ai-quality")
+async def admin_ai_quality(
+    request: Request,
+    user: dict = Depends(get_current_user),
+    days: int = Query(30, ge=1, le=180),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    start_iso = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+
+    logs_resp = (
+        supabase.table("ai_generation_logs")
+        .select("user_id, output_valid, fallback_used, model_final, feature, created_at")
+        .gte("created_at", start_iso)
+        .order("created_at", desc=True)
+        .limit(8000)
+        .execute()
+    )
+    logs = logs_resp.data or []
+    total = len(logs)
+    valid_count = sum(1 for row in logs if row.get("output_valid"))
+    fallback_count = sum(1 for row in logs if row.get("fallback_used"))
+    schema_pass_rate = round((valid_count / total) * 100, 2) if total else 0.0
+    fallback_rate = round((fallback_count / total) * 100, 2) if total else 0.0
+
+    feature_stats = {}
+    for row in logs:
+        feature = row.get("feature") or "unknown"
+        agg = feature_stats.setdefault(feature, {"total": 0, "valid": 0, "fallback": 0})
+        agg["total"] += 1
+        if row.get("output_valid"):
+            agg["valid"] += 1
+        if row.get("fallback_used"):
+            agg["fallback"] += 1
+
+    for feature, agg in feature_stats.items():
+        t = max(1, agg["total"])
+        agg["schema_pass_rate"] = round((agg["valid"] / t) * 100, 2)
+        agg["fallback_rate"] = round((agg["fallback"] / t) * 100, 2)
+
+    diffs_resp = (
+        supabase.table("ai_generation_diffs")
+        .select("change_ratio, feature")
+        .gte("created_at", start_iso)
+        .order("created_at", desc=True)
+        .limit(8000)
+        .execute()
+    )
+    diffs = diffs_resp.data or []
+    diff_volatility = round(
+        (sum(_safe_float(row.get("change_ratio")) for row in diffs) / len(diffs)) * 100,
+        2,
+    ) if diffs else 0.0
+
+    interactions_resp = (
+        supabase.table("job_interactions")
+        .select("user_id, event_type, created_at")
+        .gte("created_at", start_iso)
+        .in_("event_type", ["impression", "open_detail", "apply_click"])
+        .limit(10000)
+        .execute()
+    )
+    interactions = interactions_resp.data or []
+    apply_users = {row.get("user_id") for row in interactions if row.get("event_type") == "apply_click" and row.get("user_id")}
+    active_users = {row.get("user_id") for row in interactions if row.get("event_type") in ["impression", "open_detail"] and row.get("user_id")}
+    ai_users = {row.get("user_id") for row in logs if row.get("user_id")}
+
+    ai_apply_rate = round((len(apply_users & ai_users) / max(1, len(ai_users))) * 100, 2) if ai_users else 0.0
+    baseline_apply_rate = round((len(apply_users) / max(1, len(active_users))) * 100, 2) if active_users else 0.0
+    conversion_impact = round(ai_apply_rate - baseline_apply_rate, 2)
+
+    model_registry = (
+        supabase.table("model_registry")
+        .select("subsystem, feature, version, model_name, is_primary, is_fallback, is_active, created_at")
+        .eq("is_active", True)
+        .order("created_at", desc=True)
+        .limit(50)
+        .execute()
+        .data
+        or []
+    )
+    release_flags = (
+        supabase.table("release_flags")
+        .select("flag_key, subsystem, is_enabled, rollout_percent, variant, updated_at")
+        .order("updated_at", desc=True)
+        .limit(100)
+        .execute()
+        .data
+        or []
+    )
+
+    return {
+        "window_days": days,
+        "summary": {
+            "total_generations": total,
+            "schema_pass_rate": schema_pass_rate,
+            "fallback_rate": fallback_rate,
+            "diff_volatility": diff_volatility,
+            "conversion_impact_on_applications": conversion_impact,
+            "ai_apply_rate": ai_apply_rate,
+            "baseline_apply_rate": baseline_apply_rate,
+        },
+        "features": feature_stats,
+        "active_models": model_registry,
+        "release_flags": release_flags,
     }
 
 @router.get("/admin/notifications")

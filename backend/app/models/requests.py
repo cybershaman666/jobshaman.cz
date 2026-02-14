@@ -106,3 +106,21 @@ class AIGuidedProfileRequestV2(BaseModel):
         if not valid_steps:
             raise ValueError("At least one non-empty step is required")
         return steps
+
+
+class HybridJobSearchRequest(BaseModel):
+    search_term: str = Field(default="", max_length=200)
+    page: int = Field(default=0, ge=0)
+    page_size: int = Field(default=50, ge=1, le=200)
+    user_lat: Optional[float] = None
+    user_lng: Optional[float] = None
+    radius_km: Optional[float] = Field(default=None, ge=1, le=300)
+    filter_city: Optional[str] = Field(default=None, max_length=120)
+    filter_contract_types: Optional[List[str]] = None
+    filter_benefits: Optional[List[str]] = None
+    filter_min_salary: Optional[int] = Field(default=None, ge=0)
+    filter_date_posted: Optional[str] = Field(default="all", max_length=10)
+    filter_experience_levels: Optional[List[str]] = None
+    filter_country_codes: Optional[List[str]] = None
+    exclude_country_codes: Optional[List[str]] = None
+    filter_language_codes: Optional[List[str]] = None

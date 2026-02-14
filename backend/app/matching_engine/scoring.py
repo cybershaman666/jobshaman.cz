@@ -8,11 +8,35 @@ REMOTE_FLAGS = ["remote", "home office", "homeoffice", "hybrid", "remote-first",
 SENIORITY_ORDER = ["intern", "junior", "mid", "senior", "lead", "principal"]
 
 # Weighted normalized scoring (all components normalized 0..1)
-ALPHA_SKILL = 0.35
-BETA_DEMAND = 0.15
-GAMMA_SENIORITY = 0.15
-DELTA_SALARY = 0.15
-EPSILON_GEO = 0.20
+_WEIGHTS = {
+    "alpha_skill": 0.35,
+    "beta_demand": 0.15,
+    "gamma_seniority": 0.15,
+    "delta_salary": 0.15,
+    "epsilon_geo": 0.20,
+}
+
+
+def configure_scoring_weights(weights: Dict[str, float]) -> None:
+    if not weights:
+        return
+    for key in _WEIGHTS.keys():
+        if key in weights:
+            try:
+                _WEIGHTS[key] = float(weights[key])
+            except Exception:
+                continue
+
+    total = sum(max(0.0, value) for value in _WEIGHTS.values())
+    if total <= 0:
+        return
+    # Normalize to 1.0 to keep output scale stable
+    for key in _WEIGHTS.keys():
+        _WEIGHTS[key] = max(0.0, _WEIGHTS[key]) / total
+
+
+def current_scoring_weights() -> Dict[str, float]:
+    return dict(_WEIGHTS)
 
 
 def _contains(text: str, term: str) -> bool:
@@ -152,11 +176,11 @@ def score_job(
     total = round(
         100
         * (
-            ALPHA_SKILL * weighted["skill_match"]
-            + BETA_DEMAND * weighted["demand_boost"]
-            + GAMMA_SENIORITY * weighted["seniority_alignment"]
-            + DELTA_SALARY * weighted["salary_alignment"]
-            + EPSILON_GEO * weighted["geography_weight"]
+            _WEIGHTS["alpha_skill"] * weighted["skill_match"]
+            + _WEIGHTS["beta_demand"] * weighted["demand_boost"]
+            + _WEIGHTS["gamma_seniority"] * weighted["seniority_alignment"]
+            + _WEIGHTS["delta_salary"] * weighted["salary_alignment"]
+            + _WEIGHTS["epsilon_geo"] * weighted["geography_weight"]
         ),
         2,
     )
@@ -166,11 +190,11 @@ def score_job(
         "missing_core_skills": missing_skills[:8],
         "seniority_gap": round(seniority_gap, 4),
         "component_scores": {
-            "alpha_skill": round(ALPHA_SKILL * weighted["skill_match"], 4),
-            "beta_demand": round(BETA_DEMAND * weighted["demand_boost"], 4),
-            "gamma_seniority": round(GAMMA_SENIORITY * weighted["seniority_alignment"], 4),
-            "delta_salary": round(DELTA_SALARY * weighted["salary_alignment"], 4),
-            "epsilon_geo": round(EPSILON_GEO * weighted["geography_weight"], 4),
+            "alpha_skill": round(_WEIGHTS["alpha_skill"] * weighted["skill_match"], 4),
+            "beta_demand": round(_WEIGHTS["beta_demand"] * weighted["demand_boost"], 4),
+            "gamma_seniority": round(_WEIGHTS["gamma_seniority"] * weighted["seniority_alignment"], 4),
+            "delta_salary": round(_WEIGHTS["delta_salary"] * weighted["salary_alignment"], 4),
+            "epsilon_geo": round(_WEIGHTS["epsilon_geo"] * weighted["geography_weight"], 4),
         },
         "total": max(0.0, min(100.0, total)),
     }
