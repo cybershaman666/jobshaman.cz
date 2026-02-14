@@ -14,6 +14,7 @@ from .core.limiter import limiter
 from .routers import jobs, billing, stripe, assessments, scraper, auth, admin, ai
 from .core.security import add_security_headers
 from .matching_engine import run_hourly_batch_jobs, run_daily_batch_jobs
+from .governance import run_retention_cleanup
 
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 SENTRY_ENV = os.getenv("SENTRY_ENV", os.getenv("ENVIRONMENT", "production"))
@@ -100,6 +101,7 @@ scheduler = BackgroundScheduler()
 scheduler.add_job(cleanup_csrf_sessions, 'interval', hours=6)
 scheduler.add_job(run_hourly_batch_jobs, 'interval', hours=1, id="matching_hourly", max_instances=1, coalesce=True)
 scheduler.add_job(run_daily_batch_jobs, 'cron', hour=2, minute=15, id="matching_daily", max_instances=1, coalesce=True)
+scheduler.add_job(run_retention_cleanup, 'cron', hour=3, minute=10, id="retention_cleanup", max_instances=1, coalesce=True)
 scheduler.start()
 
 if __name__ == "__main__":

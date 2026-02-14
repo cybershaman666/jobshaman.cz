@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 from ..core.database import supabase
-from ..core.runtime_config import get_active_model_config, get_release_flag
+from ..core.runtime_config import get_active_model_config, get_active_scoring_model, get_release_flag
 from .demand import recompute_market_skill_demand
 from .embeddings import EMBEDDING_VERSION
 from .feature_store import extract_candidate_features, extract_job_features
@@ -244,7 +244,11 @@ def recommend_jobs_for_user(user_id: str, limit: int = 50, allow_cache: bool = T
     cfg = model_cfg.get("config_json") or {}
     shortlist_size = int(cfg.get("shortlist_size") or SHORTLIST_SIZE)
     min_score = float(cfg.get("min_score") or MIN_SCORE)
-    weights = cfg.get("weights") if isinstance(cfg.get("weights"), dict) else {}
+    db_scoring = get_active_scoring_model()
+    scoring_version = db_scoring.get("version") or "scoring-v1"
+    weights = db_scoring.get("weights") if isinstance(db_scoring.get("weights"), dict) else None
+    if not weights:
+        weights = cfg.get("weights") if isinstance(cfg.get("weights"), dict) else {}
     configure_scoring_weights(weights)
 
     user_hash = hashlib.sha256((user_id or "").encode("utf-8")).hexdigest()[:16]
@@ -293,6 +297,7 @@ def recommend_jobs_for_user(user_id: str, limit: int = 50, allow_cache: bool = T
                 "reasons": reasons,
                 "breakdown": breakdown,
                 "model_version": model_version,
+                "scoring_version": scoring_version,
             }
         )
 
@@ -301,7 +306,7 @@ def recommend_jobs_for_user(user_id: str, limit: int = 50, allow_cache: bool = T
 
     write_recommendation_cache(user_id, top, ttl_minutes=60)
     print(
-        f"📊 [Matching] {json.dumps({'event': 'computed', 'user_hash': user_hash, 'limit': limit, 'results': len(top), 'model_version': model_version})}"
+        f"📊 [Matching] {json.dumps({'event': 'computed', 'user_hash': user_hash, 'limit': limit, 'results': len(top), 'model_version': model_version, 'scoring_version': scoring_version})}"
     )
     return top
 

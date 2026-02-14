@@ -130,3 +130,55 @@ def get_active_model_config(subsystem: str, feature: str) -> Dict[str, Any]:
 
     _cache_set(cache_key, defaults)
     return defaults
+
+
+def get_active_scoring_model() -> Dict[str, Any]:
+    cache_key = "scoring:active"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    defaults = {
+        "version": "scoring-v1",
+        "weights": {
+            "alpha_skill": 0.35,
+            "beta_demand": 0.15,
+            "gamma_seniority": 0.15,
+            "delta_salary": 0.15,
+            "epsilon_geo": 0.20,
+        },
+    }
+
+    if not supabase:
+        return defaults
+
+    try:
+        row = (
+            supabase.table("scoring_model_versions")
+            .select(
+                "version, alpha_skill, beta_demand, gamma_seniority, delta_salary, epsilon_geo"
+            )
+            .eq("is_active", True)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        data = (row.data or [None])[0]
+        if data:
+            out = {
+                "version": data.get("version") or defaults["version"],
+                "weights": {
+                    "alpha_skill": float(data.get("alpha_skill") or defaults["weights"]["alpha_skill"]),
+                    "beta_demand": float(data.get("beta_demand") or defaults["weights"]["beta_demand"]),
+                    "gamma_seniority": float(data.get("gamma_seniority") or defaults["weights"]["gamma_seniority"]),
+                    "delta_salary": float(data.get("delta_salary") or defaults["weights"]["delta_salary"]),
+                    "epsilon_geo": float(data.get("epsilon_geo") or defaults["weights"]["epsilon_geo"]),
+                },
+            }
+            _cache_set(cache_key, out)
+            return out
+    except Exception as exc:
+        print(f"⚠️ [Runtime Config] failed loading scoring model: {exc}")
+
+    _cache_set(cache_key, defaults)
+    return defaults
