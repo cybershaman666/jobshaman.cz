@@ -98,6 +98,37 @@ class ABTestService {
                         weight: 30
                     }
                 ]
+            },
+            welcome_hero_test: {
+                id: 'welcome_hero_test',
+                name: 'Welcome Hero Messaging',
+                enabled: true,
+                variants: [
+                    {
+                        id: 'problem_first',
+                        name: 'Problem First',
+                        config: {
+                            messagingStyle: 'problem'
+                        },
+                        weight: 34
+                    },
+                    {
+                        id: 'aspiration_first',
+                        name: 'Aspiration First',
+                        config: {
+                            messagingStyle: 'aspiration'
+                        },
+                        weight: 33
+                    },
+                    {
+                        id: 'efficiency_first',
+                        name: 'Efficiency First',
+                        config: {
+                            messagingStyle: 'efficiency'
+                        },
+                        weight: 33
+                    }
+                ]
             }
         };
     }

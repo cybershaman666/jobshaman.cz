@@ -180,3 +180,108 @@ Rozšíření `candidate_profiles` (AI/hidden skills pole), včetně:
   - fallback rate
   - diff volatility
   - conversion impact na aplikace.
+
+## 11. Onboarding: ideální workflow pro úplně nového uživatele
+
+Tento postup je psaný srozumitelně pro každého, bez ohledu na obor (řidič, zdravotník, technik, obchodník, dělník, administrativa).
+
+### Krok 1: První návštěva (bez registrace)
+
+Co udělat:
+
+- Otevřete nabídky práce a projděte si 5 až 10 pozic.
+- Nastavte základní filtry: město, typ práce, plat, jazyk.
+- Uložte si 3 až 5 nabídek, které Vás zaujaly.
+
+Proč:
+
+- Rychle uvidíte, co je na trhu.
+- Uděláte si jasný obrázek, co má smysl řešit dál.
+
+### Krok 2: Registrace a základ profilu
+
+Co udělat:
+
+- Založte si účet.
+- Vyplňte základ:
+  - jméno
+  - jakou práci hledáte
+  - kde chcete pracovat
+  - co umíte
+
+Proč:
+
+- Systém pak ukazuje relevantní nabídky místo náhodného obsahu.
+- Lokalita výrazně zpřesní doporučení.
+
+### Krok 3: AI průvodce profilem (nejdůležitější krok)
+
+Co udělat:
+
+- Spusťte AI průvodce.
+- Jednoduše popište svůj pracovní příběh:
+  - kde jste pracovali
+  - co se Vám povedlo
+  - co Vás baví i mimo práci
+  - jaké podmínky Vám vyhovují
+- Zkontrolujte výstup a uložte profil + životopis.
+
+Proč:
+
+- Tady se ukáže hlavní hodnota: systém najde i schopnosti, které se běžně do životopisu nedostanou.
+- Díky tomu dostanete nabídky, které sedí nejen podle názvu pozice.
+
+### Krok 4: Doladění doporučení
+
+Co udělat:
+
+- Otevřete sekci Doporučené nabídky.
+- U každé vhodné nabídky se podívejte, proč ji systém doporučuje.
+- Vhodné nabídky si ukládejte.
+- Když doporučení nesedí, upravte profil (typ práce, dovednosti, podmínky).
+
+Proč:
+
+- Po pár úpravách jde přesnost doporučení rychle nahoru.
+- Místo chaosu dostanete jasný směr.
+
+### Krok 5: Aktivní režim (týdenní rutina)
+
+Doporučený rytmus:
+
+- 2 až 3krát týdně zkontrolujte nové doporučené nabídky.
+- Jakmile přibude nová zkušenost nebo kurz, doplňte to do profilu.
+- Držte si seznam 10 až 20 nejlepších pozic.
+
+Proč:
+
+- Doporučení zůstává aktuální.
+- Hledání práce je pak rychlejší a méně vyčerpávající.
+
+### Krok 6: Kdy aktualizovat AI profil znovu
+
+Doporučené spouštěče:
+
+- změna oboru nebo typu práce
+- dokončený větší projekt
+- nový kurz nebo certifikát
+- změna města nebo režimu práce (na místě / hybrid / na dálku)
+
+Pravidlo:
+
+- Projděte AI průvodce znovu alespoň jednou za 2 až 3 měsíce.
+
+### „Maximum value“ checklist pro uživatele
+
+- [ ] Vyplněný profil (ne jen založený účet)
+- [ ] Dokončený AI průvodce
+- [ ] Uložené AI CV + shrnutí
+- [ ] Aktivní práce s doporučenými pozicemi
+- [ ] Pravidelná aktualizace profilu podle skutečnosti
+
+### Co uživatel získá při správném použití
+
+- vhodnější nabídky než při běžném procházení pracovních portálů
+- lepší přehled o tom, co opravdu umí
+- jasnější rozhodování, protože u doporučení vidí důvod
+- rychlejší cestu k práci, která sedí dovednostmi i osobně

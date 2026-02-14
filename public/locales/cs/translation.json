@@ -1564,5 +1564,165 @@
     "cta_title": "Přihlaste se a odemkněte doporučení",
     "cta_desc": "Vyplňte profil a získejte personalizovanou analýzu dovedností.",
     "cta_note": "Pokročilá analýza je dostupná v Premium po přihlášení"
+  },
+  "welcome_v2": {
+    "legacy_fallback_title": "Kariérní průvodce nové generace",
+    "legacy_fallback_desc": "Spusťte AI průvodce a objevte role, které dávají smysl vašemu příběhu.",
+    "common": {
+      "cta_primary": "Začít s AI průvodcem",
+      "cta_secondary": "Nebo prohlížet nabídky"
+    },
+    "hero": {
+      "subheadline": "AI průvodce pro každou profesi. Rozumí Vašemu příběhu, ne jen názvu pozice.",
+      "trust": "✓ 3 minuty, bez nahrávání životopisu, zdarma",
+      "variants": {
+        "problem_first": {
+          "line1": "Přestaňte hádat svou tržní hodnotu.",
+          "line2": "Uvidíte realitu tam, kde ostatní jen hádají."
+        },
+        "aspiration_first": {
+          "line1": "Přestaňte hádat svou tržní hodnotu.",
+          "line2": "Uvidíte realitu tam, kde ostatní jen hádají."
+        },
+        "efficiency_first": {
+          "line1": "Přestaňte hádat svou tržní hodnotu.",
+          "line2": "Uvidíte realitu tam, kde ostatní jen hádají."
+        }
+      },
+      "visual": {
+        "before": "Běžný životopis",
+        "after": "Co odhalí AI navíc",
+        "items": [
+          "Praktická organizace práce",
+          "Zvládání krizových situací",
+          "Koordinace lidí napříč týmem"
+        ],
+        "paths": "→ 12 realistických kariérních směrů navíc",
+        "before_items": [
+          "7 let praxe v provozu a směnách",
+          "Denní kontakt se zákazníky a kolegy",
+          "Řešení problémů pod tlakem a v čase"
+        ]
+      }
+    },
+    "how_it_works": {
+      "title": "Jak to funguje",
+      "step1": {
+        "title": "1. Řekněte svůj příběh",
+        "desc": "Textem nebo hlasem. Normálně, bez omáčky."
+      },
+      "step2": {
+        "title": "2. AI to rozebere",
+        "desc": "Najde i dovednosti, které v běžném životopisu často zapadnou."
+      },
+      "step3": {
+        "title": "3. Získejte vhodné nabídky",
+        "desc": "Dostanete doporučení a jasný důvod proč."
+      }
+    },
+    "demo": {
+      "title": "Vyzkoušejte to hned (ukázka)",
+      "subtitle": "Bez registrace. Uvidíte, jak AI pracuje s Vaším příběhem.",
+      "open_button": "Spustit ukázku",
+      "placeholder": "Napište svůj příběh nebo upravte předvyplněný text…",
+      "analyze_button": "Analyzovat s AI",
+      "loading": "Analyzuji…",
+      "result_title": "AI u Vás našla",
+      "unlocked_paths": "→ {{count}} nových kariérních cest odemčeno",
+      "show_matches_button": "Zobrazit vhodné nabídky",
+      "levels": {
+        "expert": "expert",
+        "advanced": "pokročilé",
+        "strong": "silné",
+        "natural": "přirozené"
+      },
+      "skills": {
+        "negotiation": "Jednání se zákazníky",
+        "process_optimization": "Lepší organizace práce",
+        "leadership": "Vedení lidí",
+        "crisis_management": "Řešení krizových situací",
+        "data_analysis": "Práce s daty",
+        "people_motivation": "Podpora a motivace lidí",
+        "pattern_recognition": "Rozpoznání opakujících se problémů",
+        "communication": "Komunikace",
+        "strategic_thinking": "Strategické myšlení"
+      }
+    },
+    "proof": {
+      "title": "Co AI našla v reálných lidech",
+      "note": "Reálné profily. Reálné nálezy. Anonymizováno.",
+      "cards": [
+        {
+          "name": "Petr, 39",
+          "context": "Řidič dodávky, hledal stabilnější režim práce.",
+          "found": [
+            "Organizace tras (pokročilé)",
+            "Komunikace se zákazníky (silné)",
+            "Řešení krizových situací (silné)"
+          ],
+          "match": "→ Dispečer dopravy (89% shoda)",
+          "quote": "Poprvé jsem viděl, že moje zkušenosti mají i jiné využití."
+        },
+        {
+          "name": "Lucie, 31",
+          "context": "Zdravotní sestra, hledala udržitelnou změnu.",
+          "found": [
+            "Empatie (expert)",
+            "Koordinace péče (pokročilé)",
+            "Práce pod tlakem (silné)"
+          ],
+          "match": "→ Koordinátor pacientské péče (86% shoda)",
+          "quote": "Dostala jsem směr, který dává smysl i dlouhodobě."
+        },
+        {
+          "name": "Marek, 44",
+          "context": "Výroba a směnný provoz, chtěl kariérně růst.",
+          "found": [
+            "Zodpovědnost za kvalitu (silné)",
+            "Vedení směny (pokročilé)",
+            "Procesní disciplína (expert)"
+          ],
+          "match": "→ Mistr výroby (91% shoda)",
+          "quote": "Nešlo o hezká slova, ale o použitelné doporučení."
+        }
+      ]
+    },
+    "comparison": {
+      "title": "Tradiční hledání vs AI průvodce",
+      "col_old": "Tradiční portály",
+      "col_new": "JobShaman Career OS",
+      "rows": [
+        {
+          "old": "Hledáte podle klíčových slov",
+          "career_os": "AI hledá podle Vás"
+        },
+        {
+          "old": "Vidíte stovky pozic",
+          "career_os": "Vidíte hlavně ty vhodné"
+        },
+        {
+          "old": "Nevíte, proč je nabídka doporučená",
+          "career_os": "U každé nabídky vidíte důvod"
+        },
+        {
+          "old": "Skryté dovednosti zůstávají stranou",
+          "career_os": "AI je najde a využije"
+        },
+        {
+          "old": "Náhodné procházení inzerátů",
+          "career_os": "Cílené doporučení podle profilu"
+        }
+      ]
+    },
+    "final_cta": {
+      "title": "Zjistěte, co ve Vás AI vidí",
+      "button": "Začít s AI průvodcem zdarma",
+      "trust_1": "✓ Bez nahrávání životopisu",
+      "trust_2": "✓ 3–5 minut",
+      "trust_3": "✓ Okamžité výsledky",
+      "privacy": "Váš příběh je soukromý. AI ho analyzuje, citlivá data neukládáme do analytických logů.",
+      "beta": "Beta: První uživatelé získají prémiové funkce zdarma na 6 měsíců."
+    },
+    "blog_title": "Další inspirace z blogu"
   }
 }
