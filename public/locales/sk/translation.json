@@ -1639,6 +1639,14 @@
       "privacy": "Your story is private. AI analyzes it; sensitive data is not stored in observability logs.",
       "beta": "Beta: Early users get premium features free for 6 months."
     },
-    "blog_title": "More insights from the blog"
+    "blog_title": "More insights from the blog",
+    "anti_ats": {
+      "title": "Prečo to funguje inak než bežné HR filtre",
+      "ats_title": "Bežné ATS systémy",
+      "ats_desc": "Často hľadajú dôvod na vyradenie kandidáta, najmä podľa kľúčových slov a šablón.",
+      "career_os_title": "JobShaman Career OS",
+      "career_os_desc": "Hľadá potenciál a prenositeľné schopnosti, nie len zhodu so šablónou.",
+      "quote": "AI používame tak, aby ľudia dostali férovú šancu a videli svoju reálnu hodnotu na trhu práce."
+    }
   }
 }

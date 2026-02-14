@@ -1534,6 +1534,14 @@
       "privacy": "Your story is private. AI analyzes it; sensitive data is not stored in observability logs.",
       "beta": "Beta: Early users get premium features free for 6 months."
     },
-    "blog_title": "More insights from the blog"
+    "blog_title": "More insights from the blog",
+    "anti_ats": {
+      "title": "Why this works differently from typical HR filters",
+      "ats_title": "Typical ATS systems",
+      "ats_desc": "They often look for reasons to reject candidates, mostly by strict keyword and template matching.",
+      "career_os_title": "JobShaman Career OS",
+      "career_os_desc": "It looks for potential and transferable strengths, not only template fit.",
+      "quote": "We use AI to give people a fair chance and show their real market value."
+    }
   }
 }
