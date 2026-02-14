@@ -136,12 +136,15 @@ def read_cached_recommendations(user_id: str, limit: int) -> List[Dict]:
         rows = resp.data or []
         out = []
         for row in rows:
+            breakdown = row.get("breakdown_json") or {}
             out.append(
                 {
                     "job": row.get("jobs") or {"id": row.get("job_id")},
                     "score": float(row.get("score") or 0),
                     "reasons": row.get("reasons_json") or [],
-                    "breakdown": row.get("breakdown_json") or {},
+                    "breakdown": breakdown,
+                    "action_probability": breakdown.get("action_probability"),
+                    "action_model_version": breakdown.get("action_model_version"),
                     "model_version": row.get("model_version") or "v1",
                     "scoring_version": row.get("scoring_version") or "scoring-v1",
                 }

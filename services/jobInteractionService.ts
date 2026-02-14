@@ -15,6 +15,11 @@ export interface JobInteractionPayload {
     eventType: JobInteractionEventType;
     dwellTimeMs?: number;
     sessionId?: string;
+    requestId?: string;
+    signalValue?: number;
+    scrollDepth?: number;
+    scoringVersion?: string;
+    modelVersion?: string;
     metadata?: Record<string, any>;
 }
 
@@ -30,6 +35,11 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
                 event_type: payload.eventType,
                 dwell_time_ms: payload.dwellTimeMs ?? null,
                 session_id: payload.sessionId ?? null,
+                request_id: payload.requestId ?? null,
+                signal_value: payload.signalValue ?? null,
+                scroll_depth: payload.scrollDepth ?? null,
+                scoring_version: payload.scoringVersion ?? null,
+                model_version: payload.modelVersion ?? null,
                 metadata: payload.metadata ?? null
             })
         });

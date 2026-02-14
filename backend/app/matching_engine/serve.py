@@ -5,9 +5,15 @@ from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
 from ..core.database import supabase
-from ..core.runtime_config import get_active_model_config, get_active_scoring_model, get_release_flag
+from ..core.runtime_config import (
+    get_active_action_prediction_model,
+    get_active_model_config,
+    get_release_flag,
+    resolve_scoring_model_for_user,
+)
 from .demand import recompute_market_skill_demand
 from .embeddings import EMBEDDING_VERSION
+from .evaluation import run_offline_recommendation_evaluation
 from .feature_store import extract_candidate_features, extract_job_features
 from .retrieval import (
     ensure_candidate_embedding,
@@ -16,7 +22,7 @@ from .retrieval import (
     read_cached_recommendations,
     write_recommendation_cache,
 )
-from .scoring import configure_scoring_weights, score_from_embeddings, score_job
+from .scoring import configure_scoring_weights, predict_action_probability, score_from_embeddings, score_job
 
 MODEL_VERSION = "career-os-v2"
 SHORTLIST_SIZE = 220
@@ -50,6 +56,145 @@ def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     )
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return r * c
+
+
+def _safe_float(value, default: float = 0.0) -> float:
+    try:
+        return float(value)
+    except Exception:
+        return default
+
+
+def _parse_job_datetime(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+
+def _is_new_job(job: Dict, window_days: int = 7) -> bool:
+    scraped = _parse_job_datetime(job.get("scraped_at"))
+    if not scraped:
+        return False
+    age_days = (datetime.now(timezone.utc) - scraped).total_seconds() / 86400
+    return age_days <= max(1, window_days)
+
+
+def _company_key(job: Dict) -> str:
+    return str(job.get("company_id") or job.get("company") or "unknown")
+
+
+def _hash_01(subject: str) -> float:
+    if not subject:
+        return 0.0
+    digest = hashlib.sha256(subject.encode("utf-8")).hexdigest()
+    return int(digest[:8], 16) / 0xFFFFFFFF
+
+
+def _apply_diversity_guardrails(ranked: List[Dict], limit: int, user_id: str, cfg: Dict) -> List[Dict]:
+    if not ranked or limit <= 0:
+        return []
+
+    base = sorted(ranked, key=lambda item: (item.get("action_probability") or 0.0, item.get("score") or 0.0), reverse=True)
+    company_cap = max(1, min(10, int(cfg.get("max_per_company") or 3)))
+    new_window_days = max(1, min(30, int(cfg.get("new_job_window_days") or 7)))
+    min_new_share = max(0.0, min(0.5, _safe_float(cfg.get("min_new_job_share"), 0.15)))
+    exploration_rate = max(0.0, min(0.4, _safe_float(cfg.get("exploration_rate"), 0.12)))
+    min_long_tail_share = max(0.0, min(0.4, _safe_float(cfg.get("min_long_tail_share"), 0.10)))
+    long_tail_company_threshold = max(1, min(10, int(cfg.get("long_tail_company_threshold") or 2)))
+
+    target_new = min(limit, int(math.ceil(limit * min_new_share)))
+    target_exploration = min(limit, int(math.ceil(limit * exploration_rate)))
+    target_long_tail = min(limit, int(math.ceil(limit * min_long_tail_share)))
+
+    company_freq: Dict[str, int] = {}
+    for row in base:
+        ck = _company_key(row.get("job") or {})
+        company_freq[ck] = company_freq.get(ck, 0) + 1
+
+    selected: List[Dict] = []
+    selected_job_ids = set()
+    per_company_counts: Dict[str, int] = {}
+
+    def _try_add(item: Dict, strategy: str, enforce_cap: bool = True) -> bool:
+        job = item.get("job") or {}
+        job_id = str(job.get("id") or "")
+        if not job_id or job_id in selected_job_ids:
+            return False
+        ck = _company_key(job)
+        if enforce_cap and per_company_counts.get(ck, 0) >= company_cap:
+            return False
+
+        breakdown = item.get("breakdown") or {}
+        breakdown["selection_strategy"] = strategy
+        breakdown["is_new_job"] = _is_new_job(job, new_window_days)
+        breakdown["is_long_tail_company"] = company_freq.get(ck, 0) <= long_tail_company_threshold
+        item["breakdown"] = breakdown
+        selected.append(item)
+        selected_job_ids.add(job_id)
+        per_company_counts[ck] = per_company_counts.get(ck, 0) + 1
+        return True
+
+    # 1) Ensure fresh/new jobs in top list
+    added_new = 0
+    for item in base:
+        if added_new >= target_new:
+            break
+        if not _is_new_job(item.get("job") or {}, new_window_days):
+            continue
+        if _try_add(item, "new_job"):
+            added_new += 1
+
+    # 2) Ensure long-tail company presence
+    added_long_tail = 0
+    for item in base:
+        if added_long_tail >= target_long_tail:
+            break
+        ck = _company_key(item.get("job") or {})
+        if company_freq.get(ck, 0) > long_tail_company_threshold:
+            continue
+        if _try_add(item, "long_tail"):
+            added_long_tail += 1
+
+    # 3) Exploration slots (deterministic by user/job hash + recency)
+    exploration_candidates = []
+    for item in base:
+        job = item.get("job") or {}
+        job_id = str(job.get("id") or "")
+        if not job_id:
+            continue
+        deterministic = _hash_01(f"{user_id}:{job_id}")
+        recency = _safe_float((item.get("action_features") or {}).get("recency_score"), 0.0)
+        exploration_score = (0.6 * deterministic) + (0.4 * recency)
+        exploration_candidates.append((exploration_score, item))
+
+    exploration_candidates.sort(key=lambda row: row[0], reverse=True)
+    added_exploration = 0
+    for _, item in exploration_candidates:
+        if added_exploration >= target_exploration:
+            break
+        if _try_add(item, "exploration"):
+            added_exploration += 1
+
+    # 4) Fill remainder with strongest action probability
+    for item in base:
+        if len(selected) >= limit:
+            break
+        _try_add(item, "core")
+
+    # 5) If caps are too restrictive, relax company cap to avoid under-filling.
+    if len(selected) < limit:
+        for item in base:
+            if len(selected) >= limit:
+                break
+            _try_add(item, "core_relaxed", enforce_cap=False)
+
+    return selected[:limit]
 
 
 def _benefits_match(job_benefits, requested: List[str]) -> bool:
@@ -244,8 +389,11 @@ def recommend_jobs_for_user(user_id: str, limit: int = 50, allow_cache: bool = T
     cfg = model_cfg.get("config_json") or {}
     shortlist_size = int(cfg.get("shortlist_size") or SHORTLIST_SIZE)
     min_score = float(cfg.get("min_score") or MIN_SCORE)
-    db_scoring = get_active_scoring_model()
+    db_scoring = resolve_scoring_model_for_user(user_id=user_id, feature="recommendations")
     scoring_version = db_scoring.get("version") or "scoring-v1"
+    action_model = get_active_action_prediction_model("job_apply_probability")
+    action_coefficients = action_model.get("coefficients_json") or {}
+    action_model_version = action_model.get("version") or "v1"
     weights = db_scoring.get("weights") if isinstance(db_scoring.get("weights"), dict) else None
     if not weights:
         weights = cfg.get("weights") if isinstance(cfg.get("weights"), dict) else {}
@@ -290,23 +438,64 @@ def recommend_jobs_for_user(user_id: str, limit: int = 50, allow_cache: bool = T
         total, reasons, breakdown = score_job(candidate_features, job_features, semantic)
         if total < min_score:
             continue
+        recency_score = 0.0
+        scraped_at = job.get("scraped_at")
+        if scraped_at:
+            try:
+                age_days = (datetime.now(timezone.utc) - datetime.fromisoformat(str(scraped_at).replace("Z", "+00:00"))).total_seconds() / 86400
+                recency_score = max(0.0, min(1.0, 1.0 - (age_days / 30.0)))
+            except Exception:
+                recency_score = 0.0
+
+        distance_km = 999.0
+        c_lat = candidate.get("lat")
+        c_lng = candidate.get("lng")
+        j_lat = job.get("lat")
+        j_lng = job.get("lng")
+        if c_lat is not None and c_lng is not None and j_lat is not None and j_lng is not None:
+            try:
+                distance_km = _haversine_km(float(c_lat), float(c_lng), float(j_lat), float(j_lng))
+            except Exception:
+                distance_km = 999.0
+
+        action_features = {
+            "similarity_score": _safe_float(semantic),
+            "skill_match": _safe_float(breakdown.get("skill_match")),
+            "salary_alignment": _safe_float(breakdown.get("salary_alignment")),
+            "seniority_alignment": _safe_float(breakdown.get("seniority_alignment")),
+            "recency_score": _safe_float(recency_score),
+            "location_distance_km": _safe_float(distance_km),
+        }
+        action_probability = predict_action_probability(action_features, action_coefficients)
+        breakdown["action_probability"] = round(action_probability, 6)
+        breakdown["action_model_version"] = action_model_version
+        breakdown["action_features"] = action_features
         ranked.append(
             {
                 "job": job,
                 "score": total,
                 "reasons": reasons,
                 "breakdown": breakdown,
+                "action_probability": round(action_probability, 6),
+                "action_model_version": action_model_version,
+                "action_features": action_features,
                 "model_version": model_version,
                 "scoring_version": scoring_version,
             }
         )
 
-    ranked.sort(key=lambda item: item["score"], reverse=True)
-    top = ranked[:limit]
+    ranked.sort(key=lambda item: (item.get("action_probability") or 0.0, item["score"]), reverse=True)
+    top = _apply_diversity_guardrails(ranked, limit=limit, user_id=user_id, cfg=cfg)
+    for idx, item in enumerate(top):
+        item["position"] = idx + 1
 
     write_recommendation_cache(user_id, top, ttl_minutes=60)
+    strategy_counts: Dict[str, int] = {}
+    for item in top:
+        strategy = (item.get("breakdown") or {}).get("selection_strategy") or "unknown"
+        strategy_counts[strategy] = strategy_counts.get(strategy, 0) + 1
     print(
-        f"📊 [Matching] {json.dumps({'event': 'computed', 'user_hash': user_hash, 'limit': limit, 'results': len(top), 'model_version': model_version, 'scoring_version': scoring_version})}"
+        f"📊 [Matching] {json.dumps({'event': 'computed', 'user_hash': user_hash, 'limit': limit, 'results': len(top), 'model_version': model_version, 'scoring_version': scoring_version, 'scoring_assignment_source': db_scoring.get('assignment_source'), 'bucket': db_scoring.get('bucket'), 'action_model_version': action_model_version, 'selection_strategies': strategy_counts})}"
     )
     return top
 
@@ -379,6 +568,7 @@ def run_hourly_batch_jobs() -> None:
 def run_daily_batch_jobs() -> None:
     started = datetime.now(timezone.utc).isoformat()
     layers = batch_refresh_market_layers()
+    evaluation = run_offline_recommendation_evaluation(window_days=30)
     print(
-        f"🧠 [Matching Batch Daily] started={started} demand_rows={layers['demand_rows']} seasonal_rows={layers.get('seasonal_rows', 0)} salary_rows={layers['salary_rows']}"
+        f"🧠 [Matching Batch Daily] started={started} demand_rows={layers['demand_rows']} seasonal_rows={layers.get('seasonal_rows', 0)} salary_rows={layers['salary_rows']} eval_sample={evaluation.get('sample_size', 0)} eval_auc={evaluation.get('auc')}"
     )

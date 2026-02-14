@@ -7,6 +7,7 @@ import re
 
 from ..core.security import get_current_user, verify_csrf_token_header
 from ..core.database import supabase
+from ..matching_engine.evaluation import run_offline_recommendation_evaluation
 from ..models.requests import AdminSubscriptionUpdateRequest
 from ..utils.helpers import now_iso
 
@@ -389,32 +390,128 @@ async def admin_ai_quality(
     baseline_apply_rate = round((len(apply_users) / max(1, len(active_users))) * 100, 2) if active_users else 0.0
     conversion_impact = round(ai_apply_rate - baseline_apply_rate, 2)
 
-    users_by_model = defaultdict(set)
-    users_by_scoring = defaultdict(set)
-    for row in rec_rows:
-        uid = row.get("user_id")
-        if not uid:
+    try:
+        exposures_resp = (
+            supabase.table("recommendation_exposures")
+            .select("request_id, user_id, job_id, model_version, scoring_version, predicted_action_probability, ranking_strategy, is_new_job, is_long_tail_company, shown_at")
+            .gte("shown_at", start_iso)
+            .order("shown_at", desc=True)
+            .limit(30000)
+            .execute()
+        )
+        exposure_rows = exposures_resp.data or []
+    except Exception:
+        exposure_rows = []
+
+    try:
+        feedback_resp = (
+            supabase.table("recommendation_feedback_events")
+            .select("request_id, user_id, job_id, signal_type, created_at")
+            .gte("created_at", start_iso)
+            .eq("signal_type", "apply_click")
+            .limit(30000)
+            .execute()
+        )
+        feedback_rows = feedback_resp.data or []
+    except Exception:
+        feedback_rows = []
+    apply_keys_with_request = {
+        (
+            str(row.get("request_id") or ""),
+            str(row.get("user_id") or ""),
+            str(row.get("job_id") or ""),
+        )
+        for row in feedback_rows
+        if row.get("user_id") and row.get("job_id")
+    }
+    apply_keys_without_request = {
+        (str(row.get("user_id") or ""), str(row.get("job_id") or ""))
+        for row in feedback_rows
+        if row.get("user_id") and row.get("job_id")
+    }
+
+    ctr_model_counts = defaultdict(lambda: {"exposures": 0, "applies": 0, "users": set()})
+    ctr_scoring_counts = defaultdict(lambda: {"exposures": 0, "applies": 0, "users": set()})
+    prediction_sum = 0.0
+    prediction_count = 0
+    strategy_counts = defaultdict(int)
+    new_job_exposures = 0
+    long_tail_exposures = 0
+
+    for row in exposure_rows:
+        req_id = str(row.get("request_id") or "")
+        uid = str(row.get("user_id") or "")
+        job_id = str(row.get("job_id") or "")
+        if not uid or not job_id:
             continue
-        users_by_model[row.get("model_version") or "unknown"].add(uid)
-        users_by_scoring[row.get("scoring_version") or "unknown"].add(uid)
+        is_apply = (
+            (req_id, uid, job_id) in apply_keys_with_request
+            or (uid, job_id) in apply_keys_without_request
+        )
+
+        model_version = row.get("model_version") or "unknown"
+        scoring_version = row.get("scoring_version") or "unknown"
+        ctr_model_counts[model_version]["exposures"] += 1
+        ctr_scoring_counts[scoring_version]["exposures"] += 1
+        if is_apply:
+            ctr_model_counts[model_version]["applies"] += 1
+            ctr_scoring_counts[scoring_version]["applies"] += 1
+        ctr_model_counts[model_version]["users"].add(uid)
+        ctr_scoring_counts[scoring_version]["users"].add(uid)
+
+        pred = row.get("predicted_action_probability")
+        if pred is not None:
+            prediction_sum += _safe_float(pred)
+            prediction_count += 1
+        strategy = str(row.get("ranking_strategy") or "core")
+        strategy_counts[strategy] += 1
+        if bool(row.get("is_new_job")):
+            new_job_exposures += 1
+        if bool(row.get("is_long_tail_company")):
+            long_tail_exposures += 1
 
     ctr_by_model_version = []
-    for version, users in users_by_model.items():
-        if not users:
-            continue
-        apply_for_model = len(users & apply_users)
-        ctr = round((apply_for_model / max(1, len(users))) * 100, 2)
-        ctr_by_model_version.append({"model_version": version, "ctr_apply": ctr, "users": len(users)})
+    for version, agg in ctr_model_counts.items():
+        ctr = round((agg["applies"] / max(1, agg["exposures"])) * 100, 2)
+        ctr_by_model_version.append(
+            {
+                "model_version": version,
+                "ctr_apply": ctr,
+                "exposures": agg["exposures"],
+                "applies": agg["applies"],
+                "users": len(agg["users"]),
+            }
+        )
     ctr_by_model_version.sort(key=lambda row: row.get("ctr_apply", 0), reverse=True)
 
     ctr_by_scoring_version = []
-    for version, users in users_by_scoring.items():
-        if not users:
-            continue
-        apply_for_model = len(users & apply_users)
-        ctr = round((apply_for_model / max(1, len(users))) * 100, 2)
-        ctr_by_scoring_version.append({"scoring_version": version, "ctr_apply": ctr, "users": len(users)})
+    for version, agg in ctr_scoring_counts.items():
+        ctr = round((agg["applies"] / max(1, agg["exposures"])) * 100, 2)
+        ctr_by_scoring_version.append(
+            {
+                "scoring_version": version,
+                "ctr_apply": ctr,
+                "exposures": agg["exposures"],
+                "applies": agg["applies"],
+                "users": len(agg["users"]),
+            }
+        )
     ctr_by_scoring_version.sort(key=lambda row: row.get("ctr_apply", 0), reverse=True)
+
+    try:
+        eval_rows = (
+            supabase.table("model_offline_evaluations")
+            .select("model_key, model_version, scoring_version, sample_size, auc, log_loss, precision_at_5, precision_at_10, created_at, notes")
+            .eq("model_key", "job_apply_probability")
+            .order("created_at", desc=True)
+            .limit(20)
+            .execute()
+            .data
+            or []
+        )
+    except Exception:
+        eval_rows = []
+    latest_eval_overall = next((row for row in eval_rows if not row.get("scoring_version")), None)
 
     model_registry = (
         supabase.table("model_registry")
@@ -449,15 +546,35 @@ async def admin_ai_quality(
             "conversion_impact_on_applications": conversion_impact,
             "ai_apply_rate": ai_apply_rate,
             "baseline_apply_rate": baseline_apply_rate,
+            "recommendation_exposures": len(exposure_rows),
+            "recommendation_applies": len(feedback_rows),
+            "predicted_action_probability_avg": round((prediction_sum / max(1, prediction_count)) * 100, 2) if prediction_count else 0.0,
+            "exploration_share": round((strategy_counts.get("exploration", 0) / max(1, len(exposure_rows))) * 100, 2) if exposure_rows else 0.0,
+            "new_job_share": round((new_job_exposures / max(1, len(exposure_rows))) * 100, 2) if exposure_rows else 0.0,
+            "long_tail_share": round((long_tail_exposures / max(1, len(exposure_rows))) * 100, 2) if exposure_rows else 0.0,
         },
         "features": feature_stats,
         "token_usage_trend": token_usage_trend_rows,
         "score_distribution": score_distribution,
         "ctr_by_model_version": ctr_by_model_version,
         "ctr_by_scoring_version": ctr_by_scoring_version,
+        "offline_eval_latest": latest_eval_overall,
+        "offline_eval_rows": eval_rows,
+        "selection_strategy_counts": dict(strategy_counts),
         "active_models": model_registry,
         "release_flags": release_flags,
     }
+
+
+@router.post("/admin/ai-quality/evaluate")
+async def admin_ai_quality_evaluate(
+    request: Request,
+    user: dict = Depends(get_current_user),
+    days: int = Query(30, ge=7, le=180),
+):
+    require_admin_user(user)
+    result = run_offline_recommendation_evaluation(window_days=days)
+    return {"status": "ok", "window_days": days, "result": result}
 
 @router.get("/admin/notifications")
 async def admin_notifications(

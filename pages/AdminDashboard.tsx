@@ -38,6 +38,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [showTrafficDetails, setShowTrafficDetails] = useState(false);
+  const [showAiDetails, setShowAiDetails] = useState(false);
 
   const [filters, setFilters] = useState({
     q: '',
@@ -376,22 +378,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
   return (
     <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 sm:p-8 shadow-sm mb-8 relative overflow-hidden">
-          <div className="absolute -right-20 -top-20 w-52 h-52 bg-cyan-500/10 blur-3xl rounded-full" />
-          <div className="absolute -left-16 -bottom-16 w-44 h-44 bg-slate-200/40 dark:bg-slate-800/60 blur-3xl rounded-full" />
-          <div className="relative flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm mb-5">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-cyan-600 dark:text-cyan-400 font-semibold mb-2">
+              <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400 font-semibold mb-1.5">
                 <span className="w-2 h-2 rounded-full bg-cyan-500" />
                 Admin Control
               </div>
-              <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">Admin Dashboard</h1>
-              <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">Admin Dashboard</h1>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
                 Správa předplatných, trialů, auditů a návštěvnosti
               </p>
             </div>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => {
                   loadSubscriptions();
@@ -399,7 +399,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   loadStats();
                   loadAiQuality();
                 }}
-                className="px-4 py-2 rounded-xl bg-cyan-600 text-white text-sm font-semibold hover:bg-cyan-500 shadow-sm transition-colors flex items-center gap-2"
+                className="px-3 py-2 rounded-lg bg-cyan-600 text-white text-sm font-semibold hover:bg-cyan-500 shadow-sm transition-colors flex items-center gap-2"
               >
                 <RefreshCcw size={16} />
                 Obnovit data
@@ -408,9 +408,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-2 mb-4">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 mb-5">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
               <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
                 <Bell size={18} />
               </div>
@@ -424,9 +424,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             ) : notifications.length === 0 ? (
               <p className="text-sm text-slate-500">Žádné urgentní položky.</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2 max-h-64 overflow-auto pr-1">
                 {notifications.map((n: any) => (
-                  <div key={n.subscription_id} className="border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/60">
+                  <div key={n.subscription_id} className="border border-slate-200 dark:border-slate-800 rounded-xl p-2.5 bg-slate-50 dark:bg-slate-800/60">
                     <div className="flex items-center justify-between text-xs text-slate-500">
                       <span className="font-medium text-slate-600 dark:text-slate-300">{n.company_name || n.user_email || n.subscription_id}</span>
                       <span className={`px-2 py-0.5 rounded-full font-semibold ${n.severity === 'today' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300' : n.severity === 'expired' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'}`}>
@@ -442,8 +442,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             )}
           </div>
 
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm lg:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm xl:col-span-2">
+            <div className="flex items-center gap-2 mb-3">
               <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
                 <Sparkles size={18} />
               </div>
@@ -452,7 +452,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 <p className="text-xs text-slate-500">Rychlé nastavení tieru a trialu</p>
               </div>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-2.5">
               <select
                 value={createForm.target_type}
                 onChange={e => setCreateForm(prev => ({ ...prev, target_type: e.target.value }))}
@@ -499,7 +499,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 Vytvořit / upravit
               </button>
             </div>
-            <div className="mt-4 border-t border-slate-100 dark:border-slate-800 pt-4">
+            <div className="mt-3 border-t border-slate-100 dark:border-slate-800 pt-3">
               <div className="flex flex-wrap items-center gap-3">
                 <select
                   value={searchKind}
@@ -549,45 +549,45 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-8">
-          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm">
             <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500/70 rounded-t-2xl" />
-            <div className="text-xs text-slate-500 uppercase tracking-[0.2em] mt-2">Uživatelé</div>
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+            <div className="text-[11px] text-slate-500 uppercase tracking-[0.15em] mt-1.5">Uživatelé</div>
+            <div className="text-xl font-bold text-slate-900 dark:text-white">
               {loadingStats ? '…' : stats?.users?.total ?? '—'}
             </div>
             <div className="text-xs text-slate-500 mt-1">+ {stats?.users?.new_7d ?? '—'} za 7 dní</div>
           </div>
-          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm">
             <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500/70 rounded-t-2xl" />
-            <div className="text-xs text-slate-500 uppercase tracking-[0.2em] mt-2">Uživatelé 30 dní</div>
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+            <div className="text-[11px] text-slate-500 uppercase tracking-[0.15em] mt-1.5">Uživatelé 30 dní</div>
+            <div className="text-xl font-bold text-slate-900 dark:text-white">
               {loadingStats ? '…' : stats?.users?.new_30d ?? '—'}
             </div>
             <div className="text-xs text-slate-500 mt-1">Noví za 30 dní</div>
           </div>
-          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm">
             <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500/70 rounded-t-2xl" />
-            <div className="text-xs text-slate-500 uppercase tracking-[0.2em] mt-2">Firmy</div>
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+            <div className="text-[11px] text-slate-500 uppercase tracking-[0.15em] mt-1.5">Firmy</div>
+            <div className="text-xl font-bold text-slate-900 dark:text-white">
               {loadingStats ? '…' : stats?.companies?.total ?? '—'}
             </div>
             <div className="text-xs text-slate-500 mt-1">+ {stats?.companies?.new_7d ?? '—'} za 7 dní</div>
           </div>
-          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm">
             <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500/70 rounded-t-2xl" />
-            <div className="text-xs text-slate-500 uppercase tracking-[0.2em] mt-2">Firmy 30 dní</div>
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+            <div className="text-[11px] text-slate-500 uppercase tracking-[0.15em] mt-1.5">Firmy 30 dní</div>
+            <div className="text-xl font-bold text-slate-900 dark:text-white">
               {loadingStats ? '…' : stats?.companies?.new_30d ?? '—'}
             </div>
             <div className="text-xs text-slate-500 mt-1">
               Nové firmy za 30 dní
             </div>
           </div>
-          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm">
+          <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm col-span-2 lg:col-span-1">
             <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500/70 rounded-t-2xl" />
-            <div className="text-xs text-slate-500 uppercase tracking-[0.2em] mt-2">Konverze na placené</div>
-            <div className="text-2xl font-bold text-slate-900 dark:text-white">
+            <div className="text-[11px] text-slate-500 uppercase tracking-[0.15em] mt-1.5">Konverze na placené</div>
+            <div className="text-xl font-bold text-slate-900 dark:text-white">
               {loadingStats ? '…' : `${stats?.conversion?.company_paid_percent ?? '—'}%`}
             </div>
             <div className="text-xs text-slate-500 mt-1">
@@ -599,8 +599,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
           </div>
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm mb-8">
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm mb-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
                 <BarChart3 size={18} />
@@ -610,7 +610,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 <p className="text-xs text-slate-500">Posledních 30 dní</p>
               </div>
             </div>
-            <div className="text-xs text-slate-500">7 dní v detailu pod kartami</div>
+            <button
+              onClick={() => setShowTrafficDetails(prev => !prev)}
+              className="px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
+            >
+              {showTrafficDetails ? 'Skrýt detail' : 'Zobrazit detail'}
+            </button>
           </div>
 
           {loadingStats ? (
@@ -619,8 +624,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             <div className="text-sm text-slate-500">Statistiky návštěvnosti nejsou k dispozici.</div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
                   <div className="text-xs text-slate-500">Pageviews</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
                     {formatNumber(stats?.traffic?.totals_30?.pageviews)}
@@ -629,7 +634,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     7 dní: {formatNumber(stats?.traffic?.totals_7?.pageviews)}
                   </div>
                 </div>
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
                   <div className="text-xs text-slate-500">Návštěvníci</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
                     {formatNumber(stats?.traffic?.totals_30?.unique_visitors)}
@@ -638,7 +643,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     7 dní: {formatNumber(stats?.traffic?.totals_7?.unique_visitors)}
                   </div>
                 </div>
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
                   <div className="text-xs text-slate-500">Sessions</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
                     {formatNumber(stats?.traffic?.totals_30?.sessions)}
@@ -647,7 +652,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     7 dní: {formatNumber(stats?.traffic?.totals_7?.sessions)}
                   </div>
                 </div>
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
                   <div className="text-xs text-slate-500">Bounce rate</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
                     {formatPercent(stats?.traffic?.totals_30?.bounce_rate)}
@@ -656,7 +661,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     7 dní: {formatPercent(stats?.traffic?.totals_7?.bounce_rate)}
                   </div>
                 </div>
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40 col-span-2 lg:col-span-1">
                   <div className="text-xs text-slate-500">Stránky / session</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
                     {stats?.traffic?.totals_30?.pages_per_session ?? '—'}
@@ -667,74 +672,76 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2">
-                  <div className="text-xs text-slate-500 mb-2">Denní návštěvnost (14 dní)</div>
-                  <div className="h-28 flex items-end gap-2">
-                    {trafficSeries.map(day => {
-                      const height = Math.round((day.pageviews / maxTrafficPageviews) * 100);
-                      return (
-                        <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
-                          <div
-                            title={`${day.date} • ${day.pageviews} pv`}
-                            className="w-full rounded-md bg-gradient-to-t from-cyan-600/80 to-cyan-400/80 dark:from-cyan-400/80 dark:to-cyan-200/80"
-                            style={{ height: `${Math.max(height, 6)}%` }}
-                          />
-                          <div className="text-[10px] text-slate-400">
-                            {day.date.slice(5)}
+              {showTrafficDetails && (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
+                  <div className="lg:col-span-2">
+                    <div className="text-xs text-slate-500 mb-2">Denní návštěvnost (14 dní)</div>
+                    <div className="h-28 flex items-end gap-2">
+                      {trafficSeries.map(day => {
+                        const height = Math.round((day.pageviews / maxTrafficPageviews) * 100);
+                        return (
+                          <div key={day.date} className="flex-1 flex flex-col items-center gap-1">
+                            <div
+                              title={`${day.date} • ${day.pageviews} pv`}
+                              className="w-full rounded-md bg-gradient-to-t from-cyan-600/80 to-cyan-400/80 dark:from-cyan-400/80 dark:to-cyan-200/80"
+                              style={{ height: `${Math.max(height, 6)}%` }}
+                            />
+                            <div className="text-[10px] text-slate-400">
+                              {day.date.slice(5)}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="text-xs text-slate-500 mb-2">Top stránky</div>
-                    <div className="space-y-2">
-                      {(stats?.traffic?.top_pages || []).length === 0 ? (
-                        <div className="text-xs text-slate-400">Žádná data.</div>
-                      ) : (
-                        stats?.traffic?.top_pages?.map((item: any) => (
-                          <div key={item.path} className="flex items-center justify-between text-sm">
-                            <span className="text-slate-700 dark:text-slate-300 truncate">
-                              {stripLocale(item.path || '/')}
-                            </span>
-                            <span className="text-xs text-slate-500">
-                              {formatNumber(item.pageviews)}
-                            </span>
-                          </div>
-                        ))
-                      )}
+                        );
+                      })}
                     </div>
                   </div>
-                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="text-xs text-slate-500 mb-2">Zdroj návštěv</div>
-                    <div className="space-y-2">
-                      {(stats?.traffic?.top_referrers || []).length === 0 ? (
-                        <div className="text-xs text-slate-400">Žádná data.</div>
-                      ) : (
-                        stats?.traffic?.top_referrers?.map((item: any) => (
-                          <div key={item.referrer} className="flex items-center justify-between text-sm">
-                            <span className="text-slate-700 dark:text-slate-300 truncate">
-                              {item.referrer || '(direct)'}
-                            </span>
-                            <span className="text-xs text-slate-500">
-                              {formatNumber(item.sessions)}
-                            </span>
-                          </div>
-                        ))
-                      )}
+                  <div className="space-y-3">
+                    <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                      <div className="text-xs text-slate-500 mb-2">Top stránky</div>
+                      <div className="space-y-2">
+                        {(stats?.traffic?.top_pages || []).length === 0 ? (
+                          <div className="text-xs text-slate-400">Žádná data.</div>
+                        ) : (
+                          stats?.traffic?.top_pages?.map((item: any) => (
+                            <div key={item.path} className="flex items-center justify-between text-sm">
+                              <span className="text-slate-700 dark:text-slate-300 truncate">
+                                {stripLocale(item.path || '/')}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {formatNumber(item.pageviews)}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                    <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                      <div className="text-xs text-slate-500 mb-2">Zdroj návštěv</div>
+                      <div className="space-y-2">
+                        {(stats?.traffic?.top_referrers || []).length === 0 ? (
+                          <div className="text-xs text-slate-400">Žádná data.</div>
+                        ) : (
+                          stats?.traffic?.top_referrers?.map((item: any) => (
+                            <div key={item.referrer} className="flex items-center justify-between text-sm">
+                              <span className="text-slate-700 dark:text-slate-300 truncate">
+                                {item.referrer || '(direct)'}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {formatNumber(item.sessions)}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </>
           )}
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm mb-8">
-          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm mb-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
                 <Sparkles size={18} />
@@ -744,6 +751,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 <p className="text-xs text-slate-500">Kvalita výstupů + dopad na aplikace (30 dní)</p>
               </div>
             </div>
+            <button
+              onClick={() => setShowAiDetails(prev => !prev)}
+              className="px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
+            >
+              {showAiDetails ? 'Skrýt detail' : 'Zobrazit detail'}
+            </button>
           </div>
 
           {loadingAiQuality ? (
@@ -752,60 +765,100 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             <div className="text-sm text-slate-500">AI quality data nejsou k dispozici.</div>
           ) : (
             <>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
                   <div className="text-xs text-slate-500">Schema pass rate</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.schema_pass_rate}%</div>
                 </div>
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
                   <div className="text-xs text-slate-500">Fallback rate</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.fallback_rate}%</div>
                 </div>
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
                   <div className="text-xs text-slate-500">Diff volatility</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.diff_volatility}%</div>
                 </div>
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
                   <div className="text-xs text-slate-500">Apply rate (AI users)</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.ai_apply_rate}%</div>
                 </div>
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40 col-span-2 lg:col-span-1">
                   <div className="text-xs text-slate-500">Conversion impact</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.conversion_impact_on_applications}%</div>
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
-                  <div className="text-xs text-slate-500 mb-2">Aktivní modely</div>
-                  <div className="space-y-2 max-h-44 overflow-auto">
-                    {(aiQuality.active_models || []).slice(0, 8).map((row: any) => (
-                      <div key={`${row.subsystem}-${row.feature}-${row.model_name}`} className="text-sm flex items-center justify-between gap-3">
-                        <span className="text-slate-700 dark:text-slate-300 truncate">{row.subsystem}/{row.feature} · {row.model_name}</span>
-                        <span className="text-xs text-slate-500">{row.version}</span>
-                      </div>
-                    ))}
+              {aiQuality.offline_eval_latest && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                    <div className="text-xs text-slate-500">Offline AUC</div>
+                    <div className="text-xl font-bold text-slate-900 dark:text-white">{aiQuality.offline_eval_latest.auc ?? '—'}</div>
+                  </div>
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                    <div className="text-xs text-slate-500">Log loss</div>
+                    <div className="text-xl font-bold text-slate-900 dark:text-white">{aiQuality.offline_eval_latest.log_loss ?? '—'}</div>
+                  </div>
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                    <div className="text-xs text-slate-500">P@5</div>
+                    <div className="text-xl font-bold text-slate-900 dark:text-white">{aiQuality.offline_eval_latest.precision_at_5 ?? '—'}</div>
+                  </div>
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                    <div className="text-xs text-slate-500">Exposures</div>
+                    <div className="text-xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.recommendation_exposures ?? '—'}</div>
                   </div>
                 </div>
-                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
-                  <div className="text-xs text-slate-500 mb-2">Release flagy</div>
-                  <div className="space-y-2 max-h-44 overflow-auto">
-                    {(aiQuality.release_flags || []).slice(0, 10).map((flag: any) => (
-                      <div key={flag.flag_key} className="text-sm flex items-center justify-between gap-3">
-                        <span className="text-slate-700 dark:text-slate-300 truncate">{flag.flag_key}</span>
-                        <span className={`text-xs font-semibold ${flag.is_enabled ? 'text-emerald-600' : 'text-slate-500'}`}>
-                          {flag.is_enabled ? `ON ${flag.rollout_percent}%` : 'OFF'}
-                        </span>
-                      </div>
-                    ))}
+              )}
+
+              {aiQuality.summary && (
+                <div className="grid grid-cols-3 gap-3 mt-3">
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                    <div className="text-xs text-slate-500">Exploration share</div>
+                    <div className="text-lg font-bold text-slate-900 dark:text-white">{aiQuality.summary.exploration_share ?? '—'}%</div>
+                  </div>
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                    <div className="text-xs text-slate-500">New job share</div>
+                    <div className="text-lg font-bold text-slate-900 dark:text-white">{aiQuality.summary.new_job_share ?? '—'}%</div>
+                  </div>
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                    <div className="text-xs text-slate-500">Long-tail share</div>
+                    <div className="text-lg font-bold text-slate-900 dark:text-white">{aiQuality.summary.long_tail_share ?? '—'}%</div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {showAiDetails && (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                    <div className="text-xs text-slate-500 mb-2">Aktivní modely</div>
+                    <div className="space-y-2 max-h-44 overflow-auto">
+                      {(aiQuality.active_models || []).slice(0, 8).map((row: any) => (
+                        <div key={`${row.subsystem}-${row.feature}-${row.model_name}`} className="text-sm flex items-center justify-between gap-3">
+                          <span className="text-slate-700 dark:text-slate-300 truncate">{row.subsystem}/{row.feature} · {row.model_name}</span>
+                          <span className="text-xs text-slate-500">{row.version}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                    <div className="text-xs text-slate-500 mb-2">Release flagy</div>
+                    <div className="space-y-2 max-h-44 overflow-auto">
+                      {(aiQuality.release_flags || []).slice(0, 10).map((flag: any) => (
+                        <div key={flag.flag_key} className="text-sm flex items-center justify-between gap-3">
+                          <span className="text-slate-700 dark:text-slate-300 truncate">{flag.flag_key}</span>
+                          <span className={`text-xs font-semibold ${flag.is_enabled ? 'text-emerald-600' : 'text-slate-500'}`}>
+                            {flag.is_enabled ? `ON ${flag.rollout_percent}%` : 'OFF'}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-5 shadow-sm mb-8">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm mb-5">
           <div className="flex items-center gap-2 mb-3">
             <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
               <Search size={18} />
@@ -861,17 +914,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
           </div>
         )}
 
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl shadow-sm overflow-hidden">
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead className="bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 uppercase font-mono text-xs">
                 <tr>
-                  <th className="text-left px-4 py-3 font-semibold">Subjekt</th>
-                  <th className="text-left px-4 py-3 font-semibold">Email</th>
-                  <th className="text-left px-4 py-3 font-semibold">Tier</th>
-                  <th className="text-left px-4 py-3 font-semibold">Status</th>
-                  <th className="text-left px-4 py-3 font-semibold">Platnost</th>
-                  <th className="text-left px-4 py-3 font-semibold">Akce</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">Subjekt</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">Email</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">Tier</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">Status</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">Platnost</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">Akce</th>
                 </tr>
               </thead>
               <tbody>
@@ -889,15 +942,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       key={sub.id}
                       className={`border-t border-slate-100 dark:border-slate-800 transition-colors hover:bg-cyan-50/60 dark:hover:bg-cyan-950/30 ${selectedSub?.id === sub.id ? 'bg-cyan-50/70 dark:bg-cyan-950/40' : ''}`}
                     >
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2.5">
                         <div className="font-semibold text-slate-900 dark:text-white">{getEntityName(sub)}</div>
                         <div className="text-xs text-slate-500">{getEntityLabel(sub)}</div>
                         <div className="text-[11px] text-slate-400 mt-1">{sub.id}</div>
                       </td>
-                      <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                      <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">
                         {getEntityEmail(sub)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2.5">
                         <select
                           value={edits[sub.id]?.tier || sub.tier}
                           onChange={e => handleEditChange(sub.id, 'tier', e.target.value)}
@@ -908,7 +961,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                           ))}
                         </select>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2.5">
                         <select
                           value={edits[sub.id]?.status || sub.status}
                           onChange={e => handleEditChange(sub.id, 'status', e.target.value)}
@@ -919,7 +972,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                           ))}
                         </select>
                       </td>
-                      <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
+                      <td className="px-4 py-2.5 text-slate-700 dark:text-slate-300">
                         <div>{formatDate(sub.current_period_end)}</div>
                         <div className="flex gap-2 mt-2">
                           <input
@@ -937,7 +990,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                           />
                         </div>
                       </td>
-                      <td className="px-4 py-3">
+                      <td className="px-4 py-2.5">
                         <div className="flex flex-wrap gap-2">
                           <button
                             onClick={() => handleSelect(sub)}
@@ -997,7 +1050,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
         </div>
 
         {selectedSub && (
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm mt-8">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm mt-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div>
                 <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Detail předplatného</h3>

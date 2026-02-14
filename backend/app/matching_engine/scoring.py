@@ -1,3 +1,4 @@
+import math
 from typing import Dict, List, Tuple
 
 from .demand import demand_weight_for_skills
@@ -205,3 +206,25 @@ def score_job(
 
 def score_from_embeddings(candidate_embedding: List[float], job_embedding: List[float]) -> float:
     return cosine_similarity(candidate_embedding, job_embedding)
+
+
+def predict_action_probability(features: Dict[str, float], coefficients: Dict[str, float]) -> float:
+    """
+    Baseline logistic model:
+      p(action) = sigmoid(intercept + sum(feature_i * coef_i))
+    """
+    if not coefficients:
+        return 0.0
+
+    score = float(coefficients.get("intercept") or 0.0)
+    for key, value in features.items():
+        if key == "intercept":
+            continue
+        try:
+            score += float(value) * float(coefficients.get(key) or 0.0)
+        except Exception:
+            continue
+
+    # Keep exp numerically stable for larger magnitudes.
+    score = max(-50.0, min(50.0, score))
+    return 1.0 / (1.0 + math.exp(-score))
