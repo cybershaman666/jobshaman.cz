@@ -37,6 +37,10 @@ async def profile_generate_v2(
             existing_profile=payload.existingProfile or {},
             requested_prompt_version=payload.prompt_version,
         )
+    except ValueError as e:
+        if "release flag" in str(e).lower() or "disabled" in str(e).lower():
+            raise HTTPException(status_code=503, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
     except HTTPException:
         raise
     except Exception as e:

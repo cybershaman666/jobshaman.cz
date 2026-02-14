@@ -761,6 +761,78 @@ export const fetchJobsWithFilters = async (
             searchTerm: searchTerm || 'none'
         });
 
+        // Hybrid semantic search (pgvector-backed) for text queries.
+        // Falls back to existing RPC filtering when backend route is unavailable.
+        if (searchTerm && searchTerm.trim().length >= 2 && BACKEND_URL) {
+            try {
+                const hybridResponse = await fetch(`${BACKEND_URL}/jobs/hybrid-search`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        search_term: searchTerm,
+                        page,
+                        page_size: pageSize,
+                        user_lat: finalUserLat ?? null,
+                        user_lng: finalUserLng ?? null,
+                        radius_km: radiusKm ?? null,
+                        filter_city: filterCity || null,
+                        filter_contract_types: filterContractTypes && filterContractTypes.length > 0 ? filterContractTypes : null,
+                        filter_benefits: filterBenefits && filterBenefits.length > 0 ? filterBenefits : null,
+                        filter_min_salary: filterMinSalary && filterMinSalary > 0 ? filterMinSalary : null,
+                        filter_date_posted: filterDatePosted,
+                        filter_experience_levels: filterExperienceLevels && filterExperienceLevels.length > 0 ? filterExperienceLevels : null,
+                        filter_country_codes: countryCodes && countryCodes.length > 0 ? countryCodes : null,
+                        exclude_country_codes: excludeCountryCodes && excludeCountryCodes.length > 0 ? excludeCountryCodes : null,
+                        filter_language_codes: filterLanguageCodes && filterLanguageCodes.length > 0 ? filterLanguageCodes : null
+                    })
+                });
+
+                if (hybridResponse.ok) {
+                    const hybridPayload = await hybridResponse.json();
+                    const hybridRows = hybridPayload.jobs || [];
+                    const processedJobs = hybridRows.map((row: any) => {
+                        const job = transformJob({
+                            id: row.id,
+                            title: row.title,
+                            company: row.company,
+                            location: row.location,
+                            description: row.description,
+                            benefits: row.benefits,
+                            contract_type: row.contract_type,
+                            salary_from: row.salary_from,
+                            salary_to: row.salary_to,
+                            work_type: row.work_type,
+                            scraped_at: row.scraped_at,
+                            source: row.source,
+                            education_level: row.education_level,
+                            url: row.url,
+                            lat: row.lat,
+                            lng: row.lng,
+                            country_code: row.country_code,
+                            legality_status: row.legality_status,
+                            verification_notes: row.verification_notes
+                        });
+
+                        (job as any).distance_km = row.distance_km;
+                        (job as any).hybrid_score = row.hybrid_score;
+                        (job as any).semantic_score = row.semantic_score;
+                        (job as any).lexical_score = row.lexical_score;
+                        return job;
+                    });
+
+                    return {
+                        jobs: processedJobs,
+                        hasMore: !!hybridPayload.has_more,
+                        totalCount: Number(hybridPayload.total_count || processedJobs.length)
+                    };
+                }
+            } catch (hybridErr) {
+                console.warn('Hybrid search unavailable, falling back to RPC filters:', hybridErr);
+            }
+        }
+
         // When radius is disabled (undefined/null), also disable spatial filtering
         // by setting coordinates to null
         const usesSpatialFilter = radiusKm !== undefined && radiusKm !== null;

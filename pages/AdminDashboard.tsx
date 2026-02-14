@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Bell, BarChart3, RefreshCcw, Search, Sparkles } from 'lucide-react';
 import { UserProfile } from '../types';
-import { adminSearch, getAdminNotifications, getAdminStats, getAdminSubscriptionAudit, getAdminSubscriptions, updateAdminSubscription } from '../services/adminService';
+import { adminSearch, getAdminAiQuality, getAdminNotifications, getAdminStats, getAdminSubscriptionAudit, getAdminSubscriptions, updateAdminSubscription } from '../services/adminService';
 
 interface AdminDashboardProps {
   userProfile: UserProfile;
@@ -27,11 +27,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const [loadingNotifications, setLoadingNotifications] = useState(false);
   const [loadingAudit, setLoadingAudit] = useState(false);
   const [loadingStats, setLoadingStats] = useState(false);
+  const [loadingAiQuality, setLoadingAiQuality] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [forbidden, setForbidden] = useState(false);
   const [selectedSub, setSelectedSub] = useState<any | null>(null);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
   const [stats, setStats] = useState<any | null>(null);
+  const [aiQuality, setAiQuality] = useState<any | null>(null);
   const [searchKind, setSearchKind] = useState<'company' | 'user'>('company');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -125,6 +127,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     }
   };
 
+  const loadAiQuality = async () => {
+    setLoadingAiQuality(true);
+    try {
+      const data = await getAdminAiQuality(30);
+      setAiQuality(data);
+    } catch (err) {
+      setAiQuality(null);
+    } finally {
+      setLoadingAiQuality(false);
+    }
+  };
+
   const loadAudit = async (subscriptionId: string) => {
     setLoadingAudit(true);
     try {
@@ -142,6 +156,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       loadSubscriptions();
       loadNotifications();
       loadStats();
+      loadAiQuality();
     }
   }, [filters.q, filters.tier, filters.status, filters.kind, filters.limit, filters.offset, userProfile?.isLoggedIn]);
 
@@ -381,6 +396,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 onClick={() => {
                   loadSubscriptions();
                   loadNotifications();
+                  loadStats();
+                  loadAiQuality();
                 }}
                 className="px-4 py-2 rounded-xl bg-cyan-600 text-white text-sm font-semibold hover:bg-cyan-500 shadow-sm transition-colors flex items-center gap-2"
               >
@@ -709,6 +726,78 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         ))
                       )}
                     </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm mb-8">
+          <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400">
+                <Sparkles size={18} />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">AI Quality</h3>
+                <p className="text-xs text-slate-500">Kvalita výstupů + dopad na aplikace (30 dní)</p>
+              </div>
+            </div>
+          </div>
+
+          {loadingAiQuality ? (
+            <div className="text-sm text-slate-500">Načítám AI quality metriky...</div>
+          ) : !aiQuality?.summary ? (
+            <div className="text-sm text-slate-500">AI quality data nejsou k dispozici.</div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+                  <div className="text-xs text-slate-500">Schema pass rate</div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.schema_pass_rate}%</div>
+                </div>
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+                  <div className="text-xs text-slate-500">Fallback rate</div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.fallback_rate}%</div>
+                </div>
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+                  <div className="text-xs text-slate-500">Diff volatility</div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.diff_volatility}%</div>
+                </div>
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+                  <div className="text-xs text-slate-500">Apply rate (AI users)</div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.ai_apply_rate}%</div>
+                </div>
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+                  <div className="text-xs text-slate-500">Conversion impact</div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.conversion_impact_on_applications}%</div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+                  <div className="text-xs text-slate-500 mb-2">Aktivní modely</div>
+                  <div className="space-y-2 max-h-44 overflow-auto">
+                    {(aiQuality.active_models || []).slice(0, 8).map((row: any) => (
+                      <div key={`${row.subsystem}-${row.feature}-${row.model_name}`} className="text-sm flex items-center justify-between gap-3">
+                        <span className="text-slate-700 dark:text-slate-300 truncate">{row.subsystem}/{row.feature} · {row.model_name}</span>
+                        <span className="text-xs text-slate-500">{row.version}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+                  <div className="text-xs text-slate-500 mb-2">Release flagy</div>
+                  <div className="space-y-2 max-h-44 overflow-auto">
+                    {(aiQuality.release_flags || []).slice(0, 10).map((flag: any) => (
+                      <div key={flag.flag_key} className="text-sm flex items-center justify-between gap-3">
+                        <span className="text-slate-700 dark:text-slate-300 truncate">{flag.flag_key}</span>
+                        <span className={`text-xs font-semibold ${flag.is_enabled ? 'text-emerald-600' : 'text-slate-500'}`}>
+                          {flag.is_enabled ? `ON ${flag.rollout_percent}%` : 'OFF'}
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>

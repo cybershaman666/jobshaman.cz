@@ -45,10 +45,36 @@ def _lookup_skill_demand(skill: str, country_code: str, city: str):
         resp = query.order("window_end", desc=True).limit(1).execute()
         row = (resp.data or [None])[0]
         if row and row.get("demand_score") is not None:
-            return float(row["demand_score"])
+            base_score = float(row["demand_score"])
+            seasonal = _seasonal_correction(skill, country_code, city)
+            return max(0.0, min(1.0, base_score * seasonal))
     except Exception:
         return None
     return None
+
+
+def _seasonal_correction(skill: str, country_code: str, city: str) -> float:
+    if not supabase:
+        return 1.0
+    month = datetime.now(timezone.utc).month
+    try:
+        query = (
+            supabase.table("seasonal_bias_corrections")
+            .select("correction_factor")
+            .eq("month", month)
+        )
+        if country_code:
+            query = query.eq("country_code", country_code.lower())
+        if city:
+            query = query.eq("city", city.lower())
+        query = query.eq("skill", skill.lower())
+        resp = query.order("updated_at", desc=True).limit(1).execute()
+        row = (resp.data or [None])[0]
+        if row and row.get("correction_factor") is not None:
+            return max(0.5, min(1.5, float(row["correction_factor"])))
+    except Exception:
+        return 1.0
+    return 1.0
 
 
 def recompute_market_skill_demand() -> int:
@@ -125,4 +151,77 @@ def recompute_market_skill_demand() -> int:
         return len(rows)
     except Exception as exc:
         print(f"⚠️ [Matching] demand upsert failed: {exc}")
+        return 0
+
+
+def recompute_seasonal_bias_corrections() -> int:
+    if not supabase:
+        return 0
+
+    now = datetime.now(timezone.utc)
+    cutoff = (now - timedelta(days=365)).isoformat()
+    try:
+        jobs_resp = (
+            supabase.table("jobs")
+            .select("description, country_code, location, scraped_at")
+            .gte("scraped_at", cutoff)
+            .limit(8000)
+            .execute()
+        )
+    except Exception as exc:
+        print(f"⚠️ [Matching] seasonal recompute failed to fetch jobs: {exc}")
+        return 0
+
+    jobs = jobs_resp.data or []
+    if not jobs:
+        return 0
+
+    by_month_region_skill = defaultdict(Counter)
+    overall_by_region_skill = defaultdict(float)
+
+    for job in jobs:
+        scraped_at_raw = job.get("scraped_at")
+        try:
+            scraped_at = datetime.fromisoformat(str(scraped_at_raw).replace("Z", "+00:00")) if scraped_at_raw else now
+        except Exception:
+            scraped_at = now
+        month = int(scraped_at.month)
+        region_key = ((job.get("country_code") or "").lower(), (job.get("location") or "").lower())
+        for token in (job.get("description") or "").lower().replace("/", " ").split():
+            t = token.strip(".,:;()[]{}!?\"'")
+            if len(t) < 3 or t in SKILL_STOPWORDS:
+                continue
+            by_month_region_skill[(month, *region_key)][t] += 1
+            overall_by_region_skill[(region_key[0], region_key[1], t)] += 1
+
+    rows = []
+    for (month, country_code, city), counter in by_month_region_skill.items():
+        for skill, count in counter.items():
+            overall = overall_by_region_skill.get((country_code, city, skill), 0.0)
+            if overall <= 0:
+                continue
+            expected_monthly = overall / 12.0
+            correction = max(0.5, min(1.5, count / max(1e-6, expected_monthly)))
+            rows.append(
+                {
+                    "month": month,
+                    "country_code": country_code or None,
+                    "city": city or None,
+                    "skill": skill,
+                    "correction_factor": round(correction, 4),
+                    "updated_at": now.isoformat(),
+                }
+            )
+
+    if not rows:
+        return 0
+
+    try:
+        supabase.table("seasonal_bias_corrections").upsert(
+            rows,
+            on_conflict="month,country_code,city,skill",
+        ).execute()
+        return len(rows)
+    except Exception as exc:
+        print(f"⚠️ [Matching] seasonal correction upsert failed: {exc}")
         return 0
