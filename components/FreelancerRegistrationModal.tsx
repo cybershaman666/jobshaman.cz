@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { supabase } from '../services/supabaseService';
+import {
+    supabase,
+    createBaseProfile,
+    updateUserProfile,
+    ensureCandidateProfile,
+    getUserProfile,
+    createCompany,
+    initializeCompanySubscription,
+    createFreelancerProfile
+} from '../services/supabaseService';
 import { Eye, EyeOff, Mail, Lock, CheckCircle, ArrowRight, Loader2, Info, X, User } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -119,7 +128,6 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
 
             if (userId) {
                 try {
-                    const { createBaseProfile, updateUserProfile, ensureCandidateProfile } = await import('../services/supabaseService');
 
                     // Initialize User Profile
                     await updateUserProfile(userId, { role: 'recruiter' }).catch(async () => {
@@ -127,7 +135,6 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                     });
                     await ensureCandidateProfile(userId);
 
-                    const { getUserProfile } = await import('../services/supabaseService');
                     const profileCheck = await getUserProfile(userId);
 
                     if (!profileCheck) {
@@ -135,7 +142,6 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                     }
 
                     // 2. Create "Company" record for the Freelancer
-                    const { createCompany } = await import('../services/supabaseService');
                     // We set industry to 'Freelancer' explicitly
                     const companyData = await createCompany({
                         name: formData.fullName,
@@ -147,11 +153,9 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                     }, userId);
 
                     if (companyData?.id) {
-                        const { initializeCompanySubscription } = await import('../services/supabaseService');
                         await initializeCompanySubscription(companyData.id);
                         // Also create a freelancer profile row so the user is recognized as freelancer
                         try {
-                            const { createFreelancerProfile } = await import('../services/supabaseService');
                             await createFreelancerProfile(userId, {
                                 contact_email: userEmail || formData.email,
                                 website: formData.website,
@@ -458,7 +462,6 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
 
                                                                     // Re-run the same profile/company creation logic
                                                                     const userId = user.id;
-                                                                    const { createBaseProfile, updateUserProfile, getUserProfile, createCompany, initializeCompanySubscription } = await import('../services/supabaseService');
 
                                                                     await updateUserProfile(userId, { role: 'recruiter' }).catch(async () => {
                                                                         await createBaseProfile(userId, formData.email, formData.fullName, 'recruiter');
@@ -479,8 +482,7 @@ export default function FreelancerRegistrationModal({ isOpen, onClose, onSuccess
                                                                     if (companyData?.id) {
                                                                         await initializeCompanySubscription(companyData.id);
                                                                         try {
-                                                                            const { createFreelancerProfile } = await import('../services/supabaseService');
-                                                                            await createFreelancerProfile(userId, {
+                                                                                                                            await createFreelancerProfile(userId, {
                                                                                 contact_email: formData.email,
                                                                                 website: formData.website,
                                                                                 presentation: '',

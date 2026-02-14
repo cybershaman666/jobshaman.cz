@@ -1,11 +1,18 @@
-from collections import Counter
+import math
+from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List
+from typing import List
 
 from ..core.database import supabase
 
-
 SKILL_STOPWORDS = {"and", "the", "for", "with", "from", "praxe", "junior", "senior"}
+HALF_LIFE_DAYS = 21.0
+
+
+def _exp_decay(age_days: float, half_life: float = HALF_LIFE_DAYS) -> float:
+    if age_days <= 0:
+        return 1.0
+    return math.exp(-(math.log(2) * age_days) / max(1.0, half_life))
 
 
 def demand_weight_for_skills(skills: List[str], country_code: str = "", city: str = "") -> float:
@@ -30,11 +37,7 @@ def _lookup_skill_demand(skill: str, country_code: str, city: str):
         return None
 
     try:
-        query = (
-            supabase.table("market_skill_demand")
-            .select("demand_score")
-            .eq("skill", skill.lower())
-        )
+        query = supabase.table("market_skill_demand").select("demand_score").eq("skill", skill.lower())
         if country_code:
             query = query.eq("country_code", country_code.lower())
         if city:
@@ -52,13 +55,14 @@ def recompute_market_skill_demand() -> int:
     if not supabase:
         return 0
 
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
+    now = datetime.now(timezone.utc)
+    cutoff = (now - timedelta(days=120)).isoformat()
     try:
         jobs_resp = (
             supabase.table("jobs")
-            .select("description, country_code, location")
+            .select("description, country_code, location, scraped_at")
             .gte("scraped_at", cutoff)
-            .limit(3000)
+            .limit(5000)
             .execute()
         )
     except Exception as exc:
@@ -66,27 +70,38 @@ def recompute_market_skill_demand() -> int:
         return 0
 
     jobs = jobs_resp.data or []
-    total = len(jobs)
-    if total == 0:
+    if not jobs:
         return 0
 
-    by_market = {}
+    weighted_counts = defaultdict(Counter)
+    market_totals = Counter()
+
     for job in jobs:
+        scraped_at_raw = job.get("scraped_at")
+        try:
+            scraped_at = datetime.fromisoformat(str(scraped_at_raw).replace("Z", "+00:00")) if scraped_at_raw else now
+        except Exception:
+            scraped_at = now
+        age_days = max(0.0, (now - scraped_at).total_seconds() / 86400.0)
+        decay = _exp_decay(age_days)
+
         key = ((job.get("country_code") or "").lower(), (job.get("location") or "").lower())
-        c = by_market.setdefault(key, Counter())
         for token in (job.get("description") or "").lower().replace("/", " ").split():
             t = token.strip(".,:;()[]{}!?\"'")
             if len(t) < 3 or t in SKILL_STOPWORDS:
                 continue
-            c[t] += 1
+            weighted_counts[key][t] += decay
+            market_totals[key] += decay
 
     rows = []
-    window_start = (datetime.now(timezone.utc) - timedelta(days=30)).date().isoformat()
-    window_end = datetime.now(timezone.utc).date().isoformat()
-    for (country_code, city), counter in by_market.items():
-        max_freq = max(counter.values()) if counter else 1
-        for skill, freq in counter.most_common(120):
-            demand_score = round(freq / max_freq, 4)
+    window_start = (now - timedelta(days=120)).date().isoformat()
+    window_end = now.date().isoformat()
+
+    for (country_code, city), counter in weighted_counts.items():
+        total_weight = max(1e-6, market_totals[(country_code, city)])
+        for skill, weight in counter.most_common(180):
+            # Regionally normalized weighted frequency in 0..1 range
+            demand_score = round(min(1.0, weight / total_weight * 12.0), 4)
             rows.append(
                 {
                     "skill": skill,
@@ -95,7 +110,7 @@ def recompute_market_skill_demand() -> int:
                     "demand_score": demand_score,
                     "window_start": window_start,
                     "window_end": window_end,
-                    "updated_at": datetime.now(timezone.utc).isoformat(),
+                    "updated_at": now.isoformat(),
                 }
             )
 

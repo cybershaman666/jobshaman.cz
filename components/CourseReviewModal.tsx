@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { X, Star, Send, CheckCircle, Loader2, Briefcase, TrendingUp } from 'lucide-react';
+import { createCourseReview } from '../services/supabaseService';
 
 interface Course {
   id: string;
@@ -52,7 +53,6 @@ const CourseReviewModal: React.FC<CourseReviewModalProps> = ({
     
     // Simulate API call to save review
     try {
-      const { createCourseReview } = await import('../services/supabaseService');
       await createCourseReview({
         course_id: course.id,
         reviewer_id: reviewerId,

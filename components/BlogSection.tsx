@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { BookOpen, Shield, BarChart3, Search, Plus, Edit2, X, Check, Calendar, Clock, ArrowRight, Copy, Save, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../services/supabaseService';
+import { fetchJobsWithFilters } from '../services/jobService';
 import { initialBlogPosts as blogPosts, BlogPost } from '../src/data/blogPosts';
 import Markdown from 'markdown-to-jsx';
 import { formatJobDescription } from '../utils/formatters';
@@ -78,7 +79,6 @@ const BlogSection: React.FC<BlogSectionProps> = ({
 
         const fetchAvgJhiFromJobs = async () => {
             try {
-                const { fetchJobsWithFilters } = await import('../services/jobService');
                 const lang = (i18n.language || 'cs').split('-')[0].toLowerCase();
                 const countryMap: Record<string, string[] | undefined> = {
                     cs: ['cs'],

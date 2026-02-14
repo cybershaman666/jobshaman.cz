@@ -364,12 +364,24 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                             <h3 className="font-bold text-emerald-700 dark:text-emerald-400 mb-2">
                                                 AI Doporučení: {Math.round(selectedJob.aiMatchScore)}%
                                             </h3>
+                                            {selectedJob.aiMatchBreakdown && (
+                                                <div className="text-xs text-slate-600 dark:text-slate-300 mb-2">
+                                                    skill={Math.round((selectedJob.aiMatchBreakdown.skill_match || 0) * 100)}% ·
+                                                    demand={Math.round((selectedJob.aiMatchBreakdown.demand_boost || 0) * 100)}% ·
+                                                    salary={Math.round((selectedJob.aiMatchBreakdown.salary_alignment || 0) * 100)}%
+                                                </div>
+                                            )}
                                             {!!selectedJob.aiMatchReasons?.length && (
                                                 <ul className="text-sm text-slate-700 dark:text-slate-200 space-y-1 list-disc pl-5">
                                                     {selectedJob.aiMatchReasons.slice(0, 3).map((reason, idx) => (
                                                         <li key={`${reason}-${idx}`}>{reason}</li>
                                                     ))}
                                                 </ul>
+                                            )}
+                                            {!!selectedJob.aiMatchBreakdown?.missing_core_skills?.length && (
+                                                <div className="mt-2 text-xs text-amber-700 dark:text-amber-300">
+                                                    Chybějící klíčové dovednosti: {selectedJob.aiMatchBreakdown.missing_core_skills.slice(0, 3).join(', ')}
+                                                </div>
                                             )}
                                         </div>
                                     )}

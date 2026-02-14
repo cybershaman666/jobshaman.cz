@@ -17,7 +17,14 @@ def _safe_float(value) -> float:
         return 0.0
 
 
-def normalize_salary_index(job_features: Dict, candidate_country: str, candidate_city: str, seniority: Optional[str] = None) -> float:
+def normalize_salary_index(
+    job_features: Dict,
+    candidate_country: str,
+    candidate_city: str,
+    seniority: Optional[str] = None,
+    role: Optional[str] = None,
+    industry: Optional[str] = None,
+) -> float:
     salary_from = _safe_float(job_features.get("salary_from"))
     salary_to = _safe_float(job_features.get("salary_to"))
     if salary_from <= 0 and salary_to <= 0:
@@ -37,6 +44,10 @@ def normalize_salary_index(job_features: Dict, candidate_country: str, candidate
             )
             if candidate_city:
                 query = query.eq("city", candidate_city)
+            if role:
+                query = query.eq("role", role)
+            if industry:
+                query = query.eq("industry", industry)
             if seniority:
                 query = query.eq("seniority", seniority)
             resp = query.order("updated_at", desc=True).limit(1).execute()

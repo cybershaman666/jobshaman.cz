@@ -69,7 +69,15 @@ def call_model_with_retry(prompt: str, model_name: str, max_retries: int = 2) ->
         attempt += 1
         started = time.perf_counter()
         try:
-            response = model.generate_content(prompt)
+            response = model.generate_content(
+                prompt,
+                generation_config={
+                    # Production determinism: stable outputs for same prompt/input.
+                    "temperature": 0,
+                    "top_p": 1,
+                    "top_k": 1,
+                },
+            )
             elapsed_ms = int((time.perf_counter() - started) * 1000)
             tokens_in, tokens_out = _usage_counts(response)
             return AIClientResult(

@@ -1,5 +1,5 @@
 // Updated Supabase service functions for new paywall schema
-import { supabase } from './supabaseClient';
+import { refreshSession, supabase } from './supabaseClient';
 import { calculateDistanceKm } from './commuteService';
 import { geocodeWithCaching } from './geocodingService';
 export { supabase };
@@ -157,7 +157,6 @@ export const getCurrentUser = async () => {
             // If it's a refresh token error, try to refresh the session
             if (error.message.includes('Invalid Refresh Token') || error.message.includes('Refresh Token Not Found')) {
                 console.log('Attempting to refresh session...');
-                const { refreshSession } = await import('./supabaseClient');
 
                 const refreshedSession = await refreshSession();
                 if (refreshedSession) {

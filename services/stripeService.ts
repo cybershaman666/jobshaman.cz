@@ -11,6 +11,7 @@ if (!STRIPE_PUBLIC_KEY) {
 }
 
 import { BACKEND_URL } from '../constants';
+import { authenticatedFetch } from './csrfService';
 
 const API_URL = BACKEND_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
@@ -21,9 +22,6 @@ const API_URL = BACKEND_URL || import.meta.env.VITE_API_URL || 'http://localhost
  */
 export const redirectToCheckout = async (tier: 'premium' | 'basic' | 'business' | 'assessment_bundle' | 'single_assessment' | 'freelance_premium', userId: string) => {
     try {
-        // Import authenticatedFetch for CSRF protection
-        const { authenticatedFetch } = await import('./csrfService');
-
         const response = await authenticatedFetch(`${API_URL}/create-checkout-session`, {
             method: 'POST',
             headers: {

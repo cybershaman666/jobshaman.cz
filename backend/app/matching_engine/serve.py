@@ -17,6 +17,7 @@ from .retrieval import (
 from .scoring import score_from_embeddings, score_job
 
 MODEL_VERSION = "career-os-v1"
+SHORTLIST_SIZE = 220
 
 
 def _get_candidate_profile(user_id: str):
@@ -54,10 +55,19 @@ def recommend_jobs_for_user(user_id: str, limit: int = 50, allow_cache: bool = T
     job_embeddings = ensure_job_embeddings(jobs)
 
     ranked = []
+    shortlist = []
     for job in jobs:
         job_id = str(job.get("id"))
-        job_features = extract_job_features(job)
         semantic = score_from_embeddings(candidate_embedding, job_embeddings.get(job_id) or [])
+        shortlist.append((semantic, job))
+
+    shortlist.sort(key=lambda x: x[0], reverse=True)
+    shortlisted_jobs = [job for _, job in shortlist[:SHORTLIST_SIZE]]
+
+    for job in shortlisted_jobs:
+        job_id = str(job.get("id"))
+        semantic = score_from_embeddings(candidate_embedding, job_embeddings.get(job_id) or [])
+        job_features = extract_job_features(job)
         total, reasons, breakdown = score_job(candidate_features, job_features, semantic)
         if total < 25:
             continue

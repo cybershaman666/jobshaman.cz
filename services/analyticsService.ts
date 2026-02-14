@@ -1,3 +1,5 @@
+import { supabase } from './supabaseService';
+
 interface AnalyticsEvent {
     event: string;
     userId?: string;
@@ -179,9 +181,6 @@ class AnalyticsService {
      * This helps us understand which filters are most popular
      */
     static async trackFilterUsage(analytics: FilterAnalytics): Promise<void> {
-        // Dynamic import to avoid circular dependencies
-        const { supabase } = await import('./supabaseService');
-
         if (!supabase) {
             console.warn('Supabase not configured, skipping filter analytics');
             return;
@@ -218,8 +217,6 @@ class AnalyticsService {
      * Get popular filter combinations from the last 30 days
      */
     static async getPopularFilterCombinations(limit: number = 5): Promise<PopularFilterCombination[]> {
-        const { supabase } = await import('./supabaseService');
-
         if (!supabase) {
             console.warn('Supabase not configured');
             return [];
@@ -252,8 +249,6 @@ class AnalyticsService {
      * Falls back to empty if user is not authenticated
      */
     static async getUserPopularFilterCombinations(limit: number = 5): Promise<PopularFilterCombination[]> {
-        const { supabase } = await import('./supabaseService');
-
         if (!supabase) {
             console.warn('Supabase not configured');
             return [];

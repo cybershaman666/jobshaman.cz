@@ -2,6 +2,9 @@ import { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Job } from '../types';
 import { UserProfile } from '../types';
+import { fetchJobsPaginated, fetchJobsWithFilters, fetchRecommendedJobs } from '../services/jobService';
+import { geocodeWithCaching, getStaticCoordinates } from '../services/geocodingService';
+import AnalyticsService from '../services/analyticsService';
 
 // Infer country code from address text (best-effort)
 const getCountryCodeFromAddress = (address: string): string | null => {
@@ -136,8 +139,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         if (isLoadMore) setLoadingMore(true);
 
         try {
-            const { fetchJobsWithFilters, fetchJobsPaginated } = await import('../services/jobService');
-
             if (sortBy === 'recommended') {
                 if (!userProfile.isLoggedIn) {
                     setJobs([]);
@@ -146,7 +147,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                     return;
                 }
 
-                const { fetchRecommendedJobs } = await import('../services/jobService');
                 const recommended = await fetchRecommendedJobs(initialPageSize);
                 setJobs(sortJobs(recommended));
                 setHasMore(false);
@@ -160,7 +160,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
             // If user has an address but no coordinates yet, try to resolve it for radius filtering.
             if ((lat == null || lon == null) && enableCommuteFilter && userProfile.address) {
-                const { getStaticCoordinates, geocodeWithCaching } = await import('../services/geocodingService');
                 const addrCoords = getStaticCoordinates(userProfile.address) || await geocodeWithCaching(userProfile.address);
                 if (addrCoords) {
                     lat = addrCoords.lat;
@@ -171,7 +170,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             // If no user coordinates but we have a city and commute filter is requested,
             // try to get coordinates for the city to allow radius search.
             if ((lat == null || lon == null) && filterCity && enableCommuteFilter) {
-                const { getStaticCoordinates } = await import('../services/geocodingService');
                 const cityCoords = getStaticCoordinates(filterCity);
                 if (cityCoords) {
                     lat = cityCoords.lat;
@@ -253,7 +251,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
             // Track analytics
             if ((filterCity || filterContractType.length > 0 || filterBenefits.length > 0)) {
-                const { default: AnalyticsService } = await import('../services/analyticsService');
                 AnalyticsService.trackFilterUsage({
                     filterCity,
                     filterContractTypes: filterContractType,

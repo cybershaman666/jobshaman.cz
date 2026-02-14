@@ -119,13 +119,20 @@ export interface Job {
 }
 
 export interface JobRecommendationBreakdown {
-  skill_semantic: number;
-  skill_exact: number;
-  title_alignment: number;
-  demand_weight: number;
-  salary_fit: number;
-  location_fit: number;
-  preference_fit: number;
+  skill_match: number;
+  demand_boost: number;
+  seniority_alignment: number;
+  salary_alignment: number;
+  geography_weight: number;
+  missing_core_skills: string[];
+  seniority_gap: number;
+  component_scores: {
+    alpha_skill: number;
+    beta_demand: number;
+    gamma_seniority: number;
+    delta_salary: number;
+    epsilon_geo: number;
+  };
   total: number;
 }
 
