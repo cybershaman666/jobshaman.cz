@@ -820,16 +820,17 @@
   },
   "company_landing": {
     "hero": {
-      "badge": "Platforma rekrutacyjna oparta na AI",
-      "title_start": "Zatrudniaj najlepsze",
-      "title_highlight": "Talenty",
-      "title_end": "z AI",
-      "subtitle": "Nowoczesna platforma rekrutacyjna z analizą kandydatów AI, Assessment Center i inteligentną optymalizacją ogłoszeń. Przestań tracić czas na nieodpowiednich kandydatów.",
-      "value_prop": "Nie tylko tańsza rekrutacja. Lepsza konwersja i trafniejsze odpowiedzi.",
-      "value_prop_detail": "JobShaman targetuje oferty na podstawie realnych zachowań kandydatów (wyświetlenia, otwarcia szczegółu, reakcje), dzięki czemu firmy dostają lepszej jakości odpowiedzi już w podstawowym flow, nawet bez włączonego AI assessmentu.",
+      "badge": "Platforma rekrutacyjna dla firm",
+      "title_start": "ATS filtruje po słowach.",
+      "title_highlight": "JobShaman",
+      "title_end": "dopasowuje po umiejętnościach.",
+      "subtitle": "Mniej przypadkowych zgłoszeń, lepsza jakość kandydatów i wyższa konwersja w standardowym procesie.",
+      "value_prop": "Nie płacisz za szum. Płacisz za trafne odpowiedzi.",
+      "value_prop_detail": "Rekomendacje wynikają z realnych zachowań kandydatów i dopasowania umiejętności, a nie tylko z formy CV.",
       "start_free": "Zacznij za darmo",
       "login": "Zaloguj się",
-      "view_demo": "Zobacz demo"
+      "view_demo": "Zobacz demo",
+      "trust": "Bez zawyżonych obietnic. Jasne metryki i wyjaśnialne rekomendacje."
     },
     "stats": {
       "title": "Wyniki w liczbach",
@@ -844,7 +845,10 @@
       "easy_posting": "Łatwe tworzenie ogłoszeń",
       "assessments": "Własne Assessment Center",
       "insights": "Przeglądy o benefitach",
-      "conversion_without_assessment": "Wyższa konwersja i trafność odpowiedzi nawet bez AI assessmentu"
+      "conversion_without_assessment": "Lepsza konwersja i trafność odpowiedzi nawet bez AI assessmentu",
+      "skill_discovery": "Odkrywanie umiejętności zamiast twardego filtrowania po słowach",
+      "explainable_relevance": "Widzisz, dlaczego kandydat jest trafny",
+      "measurable_funnel": "Mierzysz wyświetlenia, reakcje i jakość odpowiedzi"
     },
     "features": {
       "title": "Narzędzia AI",
@@ -963,6 +967,43 @@
       "register": "Zarejestruj firmę",
       "login": "Zaloguj się",
       "demo": "Umów demo"
+    },
+    "ats_problem": {
+      "ats_title": "Problem klasycznego ATS",
+      "ats_p1": "Dobry kandydat odpada, bo nie użył właściwego słowa kluczowego.",
+      "ats_p2": "HR traci czas na selekcję szumu zamiast rozmów z właściwymi osobami.",
+      "ats_p3": "Często nie wiadomo, dlaczego kandydat został polecony lub odrzucony.",
+      "js_title": "Jak rozwiązuje to JobShaman",
+      "js_p1": "Dopasowanie opiera się na umiejętnościach i kontekście, nie tylko na frazach z CV.",
+      "js_p2": "Każda rekomendacja zawiera powód trafności, nie tylko wynik.",
+      "js_p3": "Lejek rekrutacyjny jest mierzalny od wyświetlenia po reakcję."
+    },
+    "solution": {
+      "title": "Co realnie zyskuje firma",
+      "pillar_skill_title": "Skill discovery zamiast słów kluczowych",
+      "pillar_skill_desc": "Znajdujesz kandydatów, których klasyczny ATS mógłby odrzucić.",
+      "pillar_relevance_title": "Trafność z uzasadnieniem",
+      "pillar_relevance_desc": "Widzisz, dlaczego kandydat pasuje do wymagań roli.",
+      "pillar_measure_title": "Mierzalny lejek rekrutacji",
+      "pillar_measure_desc": "Wiesz, gdzie kandydaci odpadają i gdzie rośnie konwersja."
+    },
+    "faq": {
+      "title": "FAQ dla firm",
+      "q1": "Jak możecie być tańsi i jednocześnie bardziej trafni?",
+      "a1": "Optymalizujemy pod jakość odpowiedzi, a nie pod masę przypadkowych aplikacji.",
+      "q2": "Co jeśli kandydat nie ma idealnego CV?",
+      "a2": "Oceniamy umiejętności i kontekst doświadczeń. Styl CV nie jest głównym kryterium.",
+      "q3": "Jak mierzycie jakość odpowiedzi?",
+      "a3": "Śledzimy wyświetlenia, otwarcia szczegółu, reakcje i inne sygnały lejka.",
+      "q4": "Czy to działa bez AI assessmentu?",
+      "a4": "Tak. Lepsza trafność i konwersja pojawiają się już przy podstawowym matchingu.",
+      "q5": "Jak wygląda kwestia danych?",
+      "a5": "Stosujemy kontrolowany dostęp do danych i transparentne logowanie kluczowych kroków."
+    },
+    "trust": {
+      "i1": "Transparentne ceny bez ukrytych opłat",
+      "i2": "Mierzalny lejek od wyświetlenia do reakcji",
+      "i3": "Trafne odpowiedzi także bez AI assessmentu"
     }
   },
   "company_onboarding": {

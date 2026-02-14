@@ -834,16 +834,17 @@
   },
   "company_landing": {
     "hero": {
-      "badge": "KI-gestützte Recruiting-Plattform",
-      "title_start": "Stellen Sie die besten",
-      "title_highlight": "Talente",
-      "title_end": "mit KI ein",
-      "subtitle": "Moderne Recruiting-Plattform mit KI-Kandidatenanalyse, Assessment Center und intelligenter Stellenanzeigen-Optimierung. Verschwenden Sie keine Zeit mehr mit ungeeigneten Bewerbern.",
-      "value_prop": "Nicht nur günstigeres Recruiting. Höhere Conversion und relevantere Antworten.",
-      "value_prop_detail": "JobShaman steuert Ausspielungen nach realem Kandidatenverhalten (Impressions, Detailaufrufe, Reaktionen). So erhalten Unternehmen schon im Basisfluss qualitativ bessere Antworten – auch ohne aktiviertes KI-Assessment.",
+      "badge": "Hiring-Plattform für Unternehmen",
+      "title_start": "ATS filtert nach Begriffen.",
+      "title_highlight": "JobShaman",
+      "title_end": "matched nach Fähigkeiten.",
+      "subtitle": "Weniger irrelevante Reaktionen, bessere Kandidatenqualität und höhere Conversion im Standardprozess.",
+      "value_prop": "Sie zahlen nicht für Rauschen. Sie zahlen für relevante Antworten.",
+      "value_prop_detail": "Empfehlungen basieren auf realem Verhalten und Skill-Fit, nicht nur auf CV-Formulierungen.",
       "start_free": "Kostenlos starten",
       "login": "Anmelden",
-      "view_demo": "Demo ansehen"
+      "view_demo": "Demo ansehen",
+      "trust": "Keine überzogenen Versprechen. Klare Metriken und nachvollziehbare Empfehlungen."
     },
     "stats": {
       "title": "Ergebnisse in Zahlen",
@@ -858,7 +859,10 @@
       "easy_posting": "Einfache Erstellung von Anzeigen",
       "assessments": "Eigenes Assessment Center",
       "insights": "Übersicht über Benefits",
-      "conversion_without_assessment": "Höhere Conversion und relevantere Antworten auch ohne KI-Assessments"
+      "conversion_without_assessment": "Bessere Conversion und relevantere Antworten auch ohne AI Assessment",
+      "skill_discovery": "Skill Discovery statt starrer Keyword-Filter",
+      "explainable_relevance": "Sie sehen, warum ein Kandidat relevant ist",
+      "measurable_funnel": "Messbarer Funnel von Sichtbarkeit bis Reaktion"
     },
     "features": {
       "title": "KI-Tools",
@@ -977,6 +981,43 @@
       "register": "Unternehmen registrieren",
       "login": "Anmelden",
       "demo": "Demo vereinbaren"
+    },
+    "ats_problem": {
+      "ats_title": "Problem klassischer ATS-Filter",
+      "ats_p1": "Gute Kandidaten fallen raus, weil ihnen einzelne Keywords fehlen.",
+      "ats_p2": "HR verliert Zeit mit irrelevanten Bewerbungen statt mit passenden Gesprächen.",
+      "ats_p3": "Oft ist unklar, warum Kandidaten empfohlen oder abgelehnt wurden.",
+      "js_title": "So löst JobShaman das",
+      "js_p1": "Matching nach Fähigkeiten und Kontext statt nur nach exakten Begriffen im CV.",
+      "js_p2": "Jede Empfehlung enthält nachvollziehbare Relevanzgründe.",
+      "js_p3": "Der Funnel ist von Impression bis Reaktion messbar und optimierbar."
+    },
+    "solution": {
+      "title": "Was Unternehmen konkret bekommen",
+      "pillar_skill_title": "Skill Discovery statt Keyword-Fokus",
+      "pillar_skill_desc": "Sie finden Kandidaten, die klassische ATS-Prozesse übersehen.",
+      "pillar_relevance_title": "Nachvollziehbare Relevanz",
+      "pillar_relevance_desc": "Sie sehen klar, warum ein Kandidat zu Ihrer Rolle passt.",
+      "pillar_measure_title": "Messbarer Recruiting-Funnel",
+      "pillar_measure_desc": "Sie erkennen, wo Kandidaten aussteigen und wo Conversion entsteht."
+    },
+    "faq": {
+      "title": "FAQ für Unternehmen",
+      "q1": "Wie können Sie günstiger und zugleich relevanter sein?",
+      "a1": "Wir optimieren auf Qualität der Antworten, nicht auf Masse an Zufallsbewerbungen.",
+      "q2": "Was, wenn ein Kandidat keinen perfekten Lebenslauf hat?",
+      "a2": "Wir bewerten Fähigkeiten und Erfahrungskontext. Das CV-Layout ist nicht entscheidend.",
+      "q3": "Wie messen Sie die Qualität der Antworten?",
+      "a3": "Wir messen Impressionen, Detailaufrufe, Reaktionen und weitere Funnel-Signale.",
+      "q4": "Funktioniert das ohne AI Assessment?",
+      "a4": "Ja. Relevanz und Conversion verbessern sich bereits durch das Kern-Matching.",
+      "q5": "Wie steht es um Datenschutz?",
+      "a5": "Wir arbeiten mit kontrolliertem Datenzugriff und transparentem Logging der Kernschritte."
+    },
+    "trust": {
+      "i1": "Transparente Preise ohne versteckte Gebühren",
+      "i2": "Messbarer Funnel von Impression bis Reaktion",
+      "i3": "Relevante Antworten auch ohne AI Assessment"
     }
   },
   "company_onboarding": {

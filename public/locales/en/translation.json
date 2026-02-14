@@ -822,16 +822,17 @@
   },
   "company_landing": {
     "hero": {
-      "badge": "AI-Powered Recruitment Platform",
-      "title_start": "Hire the best",
-      "title_highlight": "Talent",
-      "title_end": "with AI",
-      "subtitle": "Modern recruitment platform with AI candidate analysis, Assessment Center, and intelligent job ad optimization. Stop wasting time with unsuitable applicants.",
-      "value_prop": "Not just cheaper hiring. Better conversion and more relevant responses.",
-      "value_prop_detail": "JobShaman targets offers using real candidate behavior (impressions, detail opens, actions), so companies get higher-quality responses in the base flow, even without AI assessments enabled.",
+      "badge": "Hiring platform for companies",
+      "title_start": "ATS filters by keywords.",
+      "title_highlight": "JobShaman",
+      "title_end": "matches by skills.",
+      "subtitle": "Less irrelevant noise, stronger candidate quality, and better conversion in standard hiring flow.",
+      "value_prop": "You do not pay for noise. You pay for relevant responses.",
+      "value_prop_detail": "Recommendations use real candidate behavior and skill fit, not only how the CV is written.",
       "start_free": "Start for free",
       "login": "Log in",
-      "view_demo": "View demo"
+      "view_demo": "View demo",
+      "trust": "No inflated promises. Clear metrics and explainable recommendations."
     },
     "stats": {
       "title": "Results in Numbers",
@@ -846,7 +847,10 @@
       "easy_posting": "Easy job posting",
       "assessments": "Custom Assessment Center",
       "insights": "Benefit insights",
-      "conversion_without_assessment": "Higher conversion and response relevance even without AI assessments"
+      "conversion_without_assessment": "Better conversion and response relevance even without AI assessments",
+      "skill_discovery": "Skill discovery instead of strict keyword filtering",
+      "explainable_relevance": "See why each candidate is relevant",
+      "measurable_funnel": "Measure views, responses, and response quality"
     },
     "features": {
       "title": "AI Tools",
@@ -940,6 +944,43 @@
       "register": "Register company",
       "login": "Log in",
       "demo": "Book a demo"
+    },
+    "ats_problem": {
+      "ats_title": "Problem with typical ATS filtering",
+      "ats_p1": "Strong candidates are rejected just because they did not use the expected keywords.",
+      "ats_p2": "HR spends time filtering irrelevant applications instead of interviewing suitable people.",
+      "ats_p3": "Most systems do not explain why a candidate was recommended or rejected.",
+      "js_title": "How JobShaman solves it",
+      "js_p1": "Matching is based on skills and context, not only exact CV wording.",
+      "js_p2": "Every recommendation includes relevance reasons, not just a black-box score.",
+      "js_p3": "The hiring funnel is measurable from impression to response, so you can optimize it."
+    },
+    "solution": {
+      "title": "What companies actually get",
+      "pillar_skill_title": "Skill discovery, not just keywords",
+      "pillar_skill_desc": "Find candidates that typical ATS flows would miss due to CV format.",
+      "pillar_relevance_title": "Explainable relevance",
+      "pillar_relevance_desc": "See why each candidate matches your role requirements.",
+      "pillar_measure_title": "Measurable hiring funnel",
+      "pillar_measure_desc": "Track where candidates drop off and where conversion improves."
+    },
+    "faq": {
+      "title": "FAQ for companies",
+      "q1": "How can you be cheaper and still more relevant?",
+      "a1": "We optimize for quality responses, not for maximum volume of random applications.",
+      "q2": "What if a candidate does not have a perfect CV?",
+      "a2": "We evaluate skills and context of experience. CV style is not the main signal.",
+      "q3": "How do you measure response quality?",
+      "a3": "We track impressions, detail opens, responses, and other funnel signals.",
+      "q4": "Does it work without AI assessment?",
+      "a4": "Yes. Better relevance and conversion already come from core matching and behavior signals.",
+      "q5": "How do you handle data protection?",
+      "a5": "We use controlled data access and transparent logging of key recommendation steps."
+    },
+    "trust": {
+      "i1": "Transparent pricing with no hidden fees",
+      "i2": "Measurable funnel from impression to response",
+      "i3": "Relevant responses even without AI assessment"
     }
   },
   "company_onboarding": {
