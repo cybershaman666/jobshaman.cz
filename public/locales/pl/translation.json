@@ -1410,5 +1410,165 @@
     "cta_title": "Zaloguj się, aby odblokować rekomendacje",
     "cta_desc": "Uzupełnij profil i otrzymaj spersonalizowaną analizę luk kompetencyjnych.",
     "cta_note": "Zaawansowana analiza jest dostępna w Premium po zalogowaniu"
+  },
+  "welcome_v2": {
+    "legacy_fallback_title": "A career guide built for outcomes",
+    "legacy_fallback_desc": "Start the AI guide and discover roles that match your real story.",
+    "common": {
+      "cta_primary": "Uruchom przewodnik AI",
+      "cta_secondary": "Lub przeglądaj oferty"
+    },
+    "hero": {
+      "subheadline": "Przewodnik AI dla każdego zawodu. Rozumie Twoją historię, nie tylko nazwę stanowiska.",
+      "trust": "✓ 3 minuty, bez CV uploadu, za darmo",
+      "variants": {
+        "problem_first": {
+          "line1": "Utknąłeś w pracy, która Cię męczy?",
+          "line2": "AI pokaże ścieżki, których nie widzisz."
+        },
+        "aspiration_first": {
+          "line1": "Opowiedz swoją karierę.",
+          "line2": "AI znajdzie pracę, o której nie pomyślałeś."
+        },
+        "efficiency_first": {
+          "line1": "Przestań scrollować setki ofert.",
+          "line2": "AI pokaże Ci właściwe 10."
+        }
+      },
+      "visual": {
+        "before": "Traditional CV",
+        "after": "AI analysis",
+        "items": [
+          "Pattern recognition",
+          "Crisis management",
+          "Cross-team leadership"
+        ],
+        "paths": "→ 47 new career paths",
+        "before_items": [
+          "7 lat doświadczenia w praktyce",
+          "Codzienny kontakt z ludźmi",
+          "Rozwiązywanie problemów pod presją"
+        ]
+      }
+    },
+    "how_it_works": {
+      "title": "How it works",
+      "step1": {
+        "title": "1. Tell your story",
+        "desc": "Text or voice. Talk like to a friend."
+      },
+      "step2": {
+        "title": "2. AI analyzes",
+        "desc": "It finds skills you have but do not put in your CV."
+      },
+      "step3": {
+        "title": "3. Get matches",
+        "desc": "Recommendations with clear reasoning."
+      }
+    },
+    "demo": {
+      "title": "Try it now (demo mode)",
+      "subtitle": "No signup. See how AI reads your story.",
+      "open_button": "Try demo",
+      "placeholder": "Write your story or edit the pre-filled text…",
+      "analyze_button": "Analyze with AI",
+      "loading": "Analyzing…",
+      "result_title": "AI found in you",
+      "unlocked_paths": "→ {{count}} new career paths unlocked",
+      "show_matches_button": "Show matches",
+      "levels": {
+        "expert": "expert",
+        "advanced": "advanced",
+        "strong": "strong",
+        "natural": "natural"
+      },
+      "skills": {
+        "negotiation": "Customer negotiation",
+        "process_optimization": "Work process optimization",
+        "leadership": "Team leadership",
+        "crisis_management": "Crisis handling",
+        "data_analysis": "Data work",
+        "people_motivation": "People support and motivation",
+        "pattern_recognition": "Pattern recognition",
+        "communication": "Communication",
+        "strategic_thinking": "Strategic thinking"
+      }
+    },
+    "proof": {
+      "title": "What AI found in real people",
+      "note": "Real profiles. Real findings. Anonymized.",
+      "cards": [
+        {
+          "name": "Piotr, 39",
+          "context": "Kierowca dostawczy, szukał stabilniejszego grafiku.",
+          "found": [
+            "Planowanie tras (zaawansowane)",
+            "Komunikacja z klientem (mocne)",
+            "Radzenie sobie w kryzysie (mocne)"
+          ],
+          "match": "→ Dyspozytor transportu (89% dopasowania)",
+          "quote": "Po raz pierwszy zobaczyłem, że moje doświadczenie ma szersze zastosowanie."
+        },
+        {
+          "name": "Lucja, 31",
+          "context": "Pielęgniarka, szukała zmiany tempa pracy.",
+          "found": [
+            "Empatia (ekspert)",
+            "Koordynacja opieki (zaawansowane)",
+            "Praca pod presją (mocne)"
+          ],
+          "match": "→ Koordynator opieki pacjenta (86% dopasowania)",
+          "quote": "W końcu dostałam kierunek, który ma sens na dłużej."
+        },
+        {
+          "name": "Marek, 44",
+          "context": "Produkcja zmianowa, chciał awansować.",
+          "found": [
+            "Odpowiedzialność za jakość (mocne)",
+            "Prowadzenie zmiany (zaawansowane)",
+            "Dyscyplina procesowa (ekspert)"
+          ],
+          "match": "→ Brygadzista produkcji (91% dopasowania)",
+          "quote": "To były konkretne wskazówki, nie ogólne hasła."
+        }
+      ]
+    },
+    "comparison": {
+      "title": "Traditional search vs AI guide",
+      "col_old": "Classic job boards",
+      "col_new": "JobShaman Career OS",
+      "rows": [
+        {
+          "old": "Keyword search",
+          "career_os": "AI searches by who you are"
+        },
+        {
+          "old": "Hundreds of listings",
+          "career_os": "The most relevant ones first"
+        },
+        {
+          "old": "No reason why recommended",
+          "career_os": "Clear explanation for every match"
+        },
+        {
+          "old": "Hidden skills stay hidden",
+          "career_os": "AI uncovers them"
+        },
+        {
+          "old": "Passive scrolling",
+          "career_os": "Active career navigation"
+        }
+      ]
+    },
+    "final_cta": {
+      "title": "See what AI can detect in you",
+      "button": "Start AI Career Guide - free",
+      "trust_1": "✓ No CV upload",
+      "trust_2": "✓ 3-5 minutes",
+      "trust_3": "✓ Instant results",
+      "privacy": "Your story is private. AI analyzes it; sensitive data is not stored in observability logs.",
+      "beta": "Beta: Early users get premium features free for 6 months."
+    },
+    "blog_title": "More insights from the blog"
   }
 }

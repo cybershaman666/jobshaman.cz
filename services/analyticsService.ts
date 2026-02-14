@@ -39,6 +39,20 @@ class AnalyticsService {
     private static events: AnalyticsEvent[] = [];
 
     /**
+     * Generic custom event tracking
+     */
+    static trackEvent(eventName: string, metadata?: Record<string, any>) {
+        const event: AnalyticsEvent = {
+            event: eventName,
+            timestamp: Date.now(),
+            metadata
+        };
+
+        this.events.push(event);
+        this.logEvent(event);
+    }
+
+    /**
      * Track upgrade trigger event
      */
     static trackUpgradeTrigger(data: {

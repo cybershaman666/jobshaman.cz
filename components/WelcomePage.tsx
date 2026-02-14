@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { MapPin, Clock, TrendingUp, Eye, CheckCircle, Heart, Target, BarChart3, Zap, Smartphone, Wallet, Home, Calculator, Navigation } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Brain, CheckCircle2, Mic, Sparkles, UserRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { getJobCount, getTodayAnalyzedCount } from '../services/jobService';
 import BlogSection from './BlogSection';
-import CrossBorderPromo from './CrossBorderPromo';
+import ABTestService from '../services/abTestService';
+import AnalyticsService from '../services/analyticsService';
 
 interface WelcomePageProps {
   onTryFree?: () => void;
@@ -12,6 +12,71 @@ interface WelcomePageProps {
   handleBlogPostSelect: (slug: string | null) => void;
 }
 
+type HeroVariantId = 'problem_first' | 'aspiration_first' | 'efficiency_first';
+
+type DemoSkill = {
+  key: 'negotiation' | 'process_optimization' | 'leadership' | 'crisis_management' | 'data_analysis' | 'people_motivation' | 'pattern_recognition' | 'communication' | 'strategic_thinking';
+  level: 'expert' | 'advanced' | 'strong' | 'natural';
+};
+
+type DemoResult = {
+  skills: DemoSkill[];
+  unlockedPaths: number;
+};
+
+type CaseStudyCard = {
+  name: string;
+  context: string;
+  found: string[];
+  match: string;
+  quote: string;
+};
+
+const WELCOME_V2_ENABLED = import.meta.env.VITE_WELCOME_V2_ENABLED !== 'false';
+const HERO_TEST_ID = 'welcome_hero_test';
+
+const DEMO_DEFAULT_TEXT =
+  'Posledních 7 let pracuji jako řidič. Každý den řeším trasu, komunikaci se zákazníky a nečekané situace. Baví mě organizace a práce s lidmi.';
+
+const getDeviceType = (): 'mobile' | 'tablet' | 'desktop' => {
+  if (typeof window === 'undefined') return 'desktop';
+  if (window.innerWidth < 768) return 'mobile';
+  if (window.innerWidth < 1280) return 'tablet';
+  return 'desktop';
+};
+
+const detectDemo = (input: string): DemoResult => {
+  const text = input.toLowerCase();
+  const skills: DemoSkill[] = [];
+
+  const rules: Array<{ keywords: string[]; skill: DemoSkill }> = [
+    { keywords: ['account', 'klient', 'client', 'obchod', 'zákazník'], skill: { key: 'negotiation', level: 'expert' } },
+    { keywords: ['proces', 'process', 'optimaliz', 'opakování', 'organiz'], skill: { key: 'process_optimization', level: 'advanced' } },
+    { keywords: ['team', 'ved', 'lead', 'kapitán', 'směna'], skill: { key: 'leadership', level: 'strong' } },
+    { keywords: ['krize', 'stres', 'incident', 'problem', 'nehoda'], skill: { key: 'crisis_management', level: 'strong' } },
+    { keywords: ['data', 'analýz', 'analysis', 'report', 'tabulka'], skill: { key: 'data_analysis', level: 'advanced' } },
+    { keywords: ['motiv', 'hodnot', 'pomáhat', 'volunteer', 'podpora'], skill: { key: 'people_motivation', level: 'natural' } }
+  ];
+
+  for (const rule of rules) {
+    if (rule.keywords.some((keyword) => text.includes(keyword))) {
+      skills.push(rule.skill);
+    }
+  }
+
+  const uniqueSkills = Array.from(new Map(skills.map((skill) => [skill.key, skill])).values());
+  const fallbackSkills: DemoSkill[] = [
+    { key: 'pattern_recognition', level: 'strong' },
+    { key: 'communication', level: 'advanced' },
+    { key: 'strategic_thinking', level: 'natural' }
+  ];
+
+  const finalSkills = (uniqueSkills.length > 0 ? uniqueSkills : fallbackSkills).slice(0, 6);
+  const unlockedPaths = Math.min(60, 12 + finalSkills.length * 7);
+
+  return { skills: finalSkills, unlockedPaths };
+};
+
 const WelcomePage: React.FC<WelcomePageProps> = ({
   onTryFree,
   onBrowseOffers,
@@ -19,538 +84,290 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   handleBlogPostSelect
 }) => {
   const { t, i18n } = useTranslation();
-  const [activeScenario, setActiveScenario] = useState(0);
-  const [jobCount, setJobCount] = useState<number | null>(null);
-  const [todayAnalyzedCount, setTodayAnalyzedCount] = useState<number | null>(null);
+  const [demoOpen, setDemoOpen] = useState(false);
+  const [demoText, setDemoText] = useState(DEMO_DEFAULT_TEXT);
+  const [demoLoading, setDemoLoading] = useState(false);
+  const [demoResult, setDemoResult] = useState<DemoResult | null>(null);
+  const [visualStep, setVisualStep] = useState(0);
 
-  useEffect(() => {
-    const fetchCount = async () => {
-      try {
-        const [count, todayCount] = await Promise.all([
-          getJobCount(),
-          getTodayAnalyzedCount()
-        ]);
-        setJobCount(count);
-        setTodayAnalyzedCount(todayCount);
-      } catch (error) {
-        console.error("Error fetching job count:", error);
-      }
-    };
-    fetchCount();
+  const variant = useMemo<HeroVariantId>(() => {
+    const selected = ABTestService.getVariant(HERO_TEST_ID)?.id as HeroVariantId | undefined;
+    if (selected === 'problem_first' || selected === 'aspiration_first' || selected === 'efficiency_first') {
+      return selected;
+    }
+    return 'problem_first';
   }, []);
 
+  const baseMeta = useMemo(() => ({
+    hero_variant: variant,
+    locale: i18n.resolvedLanguage || i18n.language || 'cs',
+    device_type: getDeviceType()
+  }), [i18n.language, i18n.resolvedLanguage, variant]);
 
+  useEffect(() => {
+    AnalyticsService.trackEvent('welcome_hero_impression', baseMeta);
+  }, [baseMeta]);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const interval = setInterval(() => {
-      setActiveScenario((prev) => (prev + 1) % 2);
-    }, 5200);
+      setVisualStep((prev) => (prev + 1) % 3);
+    }, 2200);
     return () => clearInterval(interval);
   }, []);
 
-  const language = (i18n.resolvedLanguage || i18n.language || 'cs').toLowerCase();
-  const marketKey = language.startsWith('de-at') || language.startsWith('at')
-    ? 'at'
-    : language.startsWith('de')
-      ? 'de'
-      : language.startsWith('pl')
-        ? 'pl'
-        : language.startsWith('sk')
-          ? 'sk'
-          : 'cs';
+  const track = (event: string, extra?: Record<string, unknown>) => {
+    AnalyticsService.trackEvent(event, { ...baseMeta, demo_used: demoResult !== null, ...extra });
+  };
 
-  const markets = {
-    cs: {
-      locale: 'cs-CZ',
-      currency: 'CZK',
-      scenarios: [
-        { type: 'home', grossMonthly: 35000, estimatedTax: 8000, benefitsMonthly: 4200, commuteCost: 0, dailyMinutes: 0, distanceKm: 0 },
-        { type: 'commute', grossMonthly: 40000, estimatedTax: 9200, benefitsMonthly: 1200, commuteCost: 5200, dailyMinutes: 75, distanceKm: 25 }
-      ]
-    },
-    de: {
-      locale: 'de-DE',
-      currency: 'EUR',
-      scenarios: [
-        { type: 'home', grossMonthly: 3000, estimatedTax: 700, benefitsMonthly: 150, commuteCost: 0, dailyMinutes: 0, distanceKm: 0 },
-        { type: 'commute', grossMonthly: 3400, estimatedTax: 850, benefitsMonthly: 150, commuteCost: 300, dailyMinutes: 75, distanceKm: 25 }
-      ]
-    },
-    at: {
-      locale: 'de-AT',
-      currency: 'EUR',
-      scenarios: [
-        { type: 'home', grossMonthly: 3200, estimatedTax: 750, benefitsMonthly: 200, commuteCost: 0, dailyMinutes: 0, distanceKm: 0 },
-        { type: 'commute', grossMonthly: 3600, estimatedTax: 900, benefitsMonthly: 200, commuteCost: 350, dailyMinutes: 75, distanceKm: 25 }
-      ]
-    },
-    pl: {
-      locale: 'pl-PL',
-      currency: 'PLN',
-      scenarios: [
-        { type: 'home', grossMonthly: 7000, estimatedTax: 1700, benefitsMonthly: 300, commuteCost: 0, dailyMinutes: 0, distanceKm: 0 },
-        { type: 'commute', grossMonthly: 8000, estimatedTax: 2100, benefitsMonthly: 300, commuteCost: 1000, dailyMinutes: 75, distanceKm: 25 }
-      ]
-    },
-    sk: {
-      locale: 'sk-SK',
-      currency: 'EUR',
-      scenarios: [
-        { type: 'home', grossMonthly: 1400, estimatedTax: 300, benefitsMonthly: 80, commuteCost: 0, dailyMinutes: 0, distanceKm: 0 },
-        { type: 'commute', grossMonthly: 1600, estimatedTax: 350, benefitsMonthly: 80, commuteCost: 220, dailyMinutes: 75, distanceKm: 25 }
-      ]
+  const handlePrimaryCta = () => {
+    track('welcome_primary_cta_click');
+    track('welcome_try_free_click');
+    onTryFree?.();
+  };
+
+  const handleBrowseOffers = () => {
+    track('welcome_browse_offers_click');
+    onBrowseOffers?.();
+  };
+
+  const handleOpenDemo = () => {
+    if (!demoOpen) {
+      track('welcome_demo_open');
     }
-  } as const;
+    setDemoOpen(true);
+  };
 
-  const market = markets[marketKey as keyof typeof markets] || markets.cs;
-  const isGerman = marketKey === 'de' || marketKey === 'at';
-  const formatCurrency = (amount: number) => new Intl.NumberFormat(market.locale, {
-    style: 'currency',
-    currency: market.currency,
-    maximumFractionDigits: 0
-  }).format(amount);
+  const handleAnalyzeDemo = () => {
+    track('welcome_demo_analyze_click');
+    setDemoLoading(true);
+    setDemoResult(null);
 
-  const showcaseScenarios = market.scenarios.map((scenario) => ({
-    ...scenario,
-    finalRealMonthly: scenario.grossMonthly - scenario.estimatedTax + scenario.benefitsMonthly - scenario.commuteCost
-  }));
-  const subtitleItemsRaw = t('welcome.page_hero.subtitle_items', { returnObjects: true });
-  const subtitleItems = Array.isArray(subtitleItemsRaw)
-    ? subtitleItemsRaw
-    : [t('welcome.page_hero.subtitle')];
+    window.setTimeout(() => {
+      const result = detectDemo(demoText);
+      setDemoResult(result);
+      setDemoLoading(false);
+      track('welcome_demo_results_shown', { skills_count: result.skills.length, unlocked_paths: result.unlockedPaths });
+    }, 550);
+  };
+
+  const handleShowMatches = () => {
+    track('welcome_demo_show_matches_click');
+    onTryFree?.();
+  };
+
+  const caseCardsRaw = t('welcome_v2.proof.cards', { returnObjects: true }) as unknown;
+  const comparisonRowsRaw = t('welcome_v2.comparison.rows', { returnObjects: true }) as unknown;
+  const heroBeforeItemsRaw = t('welcome_v2.hero.visual.before_items', { returnObjects: true }) as unknown;
+  const caseCards = Array.isArray(caseCardsRaw) ? caseCardsRaw as CaseStudyCard[] : [];
+  const comparisonRows = Array.isArray(comparisonRowsRaw)
+    ? comparisonRowsRaw as Array<{ old: string; career_os: string }>
+    : [];
+  const heroBeforeItems = Array.isArray(heroBeforeItemsRaw) && heroBeforeItemsRaw.length > 0
+    ? heroBeforeItemsRaw as string[]
+    : ['8 let praxe', 'Silná komunikace', 'Praxe v provozu'];
+
+  if (!WELCOME_V2_ENABLED) {
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+        <section className="max-w-6xl mx-auto px-4 py-14 lg:py-20">
+          <h1 className="text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white mb-4">{t('welcome_v2.legacy_fallback_title')}</h1>
+          <p className="text-lg text-slate-600 dark:text-slate-400 mb-8">{t('welcome_v2.legacy_fallback_desc')}</p>
+          <div className="flex flex-col sm:flex-row gap-4">
+            <button onClick={handlePrimaryCta} className="px-7 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold">
+              {t('welcome_v2.common.cta_primary')}
+            </button>
+            <button onClick={handleBrowseOffers} className="px-7 py-3 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white">
+              {t('welcome_v2.common.cta_secondary')}
+            </button>
+          </div>
+        </section>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-      {/* HERO / ABOVE THE FOLD */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-10 lg:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-20 items-center">
-          {/* Left column: Text */}
+    <div className="min-h-screen bg-[#f4f6f8] dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 pt-10 pb-14 lg:pt-16 lg:pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div>
-            <h1 className="text-5xl lg:text-6xl font-bold mb-6 leading-tight">
-              <span className="text-slate-900 dark:text-white">{t('welcome.page_hero.title_job')}</span><span className="text-cyan-600 dark:text-cyan-400">{t('welcome.page_hero.title_shaman')}</span> <span className="text-slate-900 dark:text-white">{t('welcome.page_hero.title_end')}</span>
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight">
+              {t(`welcome_v2.hero.variants.${variant}.line1`)}
+              <br />
+              <span className="text-cyan-600 dark:text-cyan-400">{t(`welcome_v2.hero.variants.${variant}.line2`)}</span>
             </h1>
-            <ul className="text-lg text-slate-600 dark:text-slate-400 mb-8 leading-relaxed max-w-lg space-y-2">
-              {subtitleItems.map((item) => (
-                <li key={item} className="flex items-start gap-2">
-                  <CheckCircle className="mt-1 text-emerald-500 flex-shrink-0" size={18} />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-
-            {/* Primary CTAs */}
-            <div className="flex flex-col sm:flex-row gap-4">
-              <button
-                onClick={onTryFree}
-                className="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg shadow-lg shadow-cyan-600/20 transition-all active:scale-95"
-              >
-                {t('welcome.page_hero.try_free_btn')}
+            <p className="text-lg text-slate-600 dark:text-slate-300 mt-4 max-w-xl">{t('welcome_v2.hero.subheadline')}</p>
+            <div className="mt-7 flex flex-col sm:flex-row gap-4 sm:items-center">
+              <button onClick={handlePrimaryCta} className="px-7 py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold shadow-lg shadow-cyan-600/20">
+                {t('welcome_v2.common.cta_primary')}
               </button>
-              <button
-                onClick={onBrowseOffers}
-                className="px-8 py-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white border-2 border-slate-200 dark:border-slate-700 rounded-lg font-bold hover:bg-slate-50 dark:hover:bg-slate-700 transition-all active:scale-95"
-              >
-                {t('welcome.page_hero.browse_offers_btn', { count: jobCount ?? 0 })}
+              <button onClick={handleBrowseOffers} className="text-slate-700 dark:text-slate-200 underline underline-offset-4 text-left">
+                {t('welcome_v2.common.cta_secondary')}
               </button>
             </div>
-            {todayAnalyzedCount !== null && (
-              <div className="mt-4 flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                <TrendingUp size={16} className="text-emerald-500" />
-                <span>{t('welcome.page_hero.social_proof', { count: todayAnalyzedCount })}</span>
-              </div>
-            )}
+            <p className="mt-4 text-sm text-emerald-700 dark:text-emerald-300 font-medium">{t('welcome_v2.hero.trust')}</p>
           </div>
 
-          {/* Right column: Financial & Commute Reality Showcase */}
-          <div className="flex justify-center items-center">
-            <div className="relative w-full max-w-xl">
-              {/* Decorative elements behind */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-cyan-400/20 rounded-full blur-3xl -z-10"></div>
-              <div className="absolute bottom-0 left-0 w-32 h-32 bg-purple-400/20 rounded-full blur-3xl -z-10"></div>
+          <div className="rounded-2xl border-2 border-cyan-200 dark:border-cyan-900 bg-white dark:bg-slate-900 shadow-lg overflow-hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-2">
+              <div className="p-5 border-b sm:border-b-0 sm:border-r border-slate-200 dark:border-slate-800">
+                <div className="text-sm font-semibold uppercase tracking-wide text-slate-600 dark:text-slate-300 mb-3">{t('welcome_v2.hero.visual.before')}</div>
+                <div className="space-y-2 text-sm text-slate-700 dark:text-slate-300">
+                  {heroBeforeItems.map((item) => (
+                    <div key={item} className="rounded-lg bg-slate-100 dark:bg-slate-800 p-2.5">• {item}</div>
+                  ))}
+                </div>
+              </div>
 
-              <div className="bg-[#1e293b] text-slate-200 rounded-2xl overflow-hidden shadow-2xl border border-slate-700 relative">
-                <div className="p-6 border-b border-slate-700 flex justify-between items-start">
-                  <div>
-                    <h3 className="text-white text-lg font-bold flex items-center gap-2">
-                      <Wallet className="text-emerald-400" size={20} /> {t('welcome.reality_showcase.title')}
-                    </h3>
-                    <p className="text-xs text-slate-400 mt-1">
-                      {t('welcome.reality_showcase.subtitle')}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">{t('welcome.reality_showcase.scenario_label')}</div>
-                    <div className="text-sm font-bold text-white">
-                      {showcaseScenarios[activeScenario].type === 'home'
-                        ? t('welcome.reality_showcase.scenario_home')
-                        : t('welcome.reality_showcase.scenario_commute', { distance: showcaseScenarios[activeScenario].distanceKm })}
+              <div className="p-5">
+                <div className="text-sm font-semibold uppercase tracking-wide text-cyan-700 dark:text-cyan-300 mb-3">{t('welcome_v2.hero.visual.after')}</div>
+                <div className="space-y-2 text-sm text-slate-700 dark:text-slate-200">
+                  {[0, 1, 2].map((index) => (
+                    <div
+                      key={index}
+                      className={`rounded-lg p-2.5 transition font-medium ${visualStep >= index ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-900 dark:text-emerald-200 border border-emerald-300 dark:border-emerald-800' : 'bg-slate-100 dark:bg-slate-800 opacity-60'}`}
+                    >
+                      ✓ {t(`welcome_v2.hero.visual.items.${index}`)}
                     </div>
-                  </div>
+                  ))}
                 </div>
+                <div className="mt-4 text-base font-bold text-cyan-800 dark:text-cyan-200">{t('welcome_v2.hero.visual.paths')}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-                <div className={`relative min-h-[380px] md:min-h-[340px] ${isGerman ? 'text-[13px]' : ''}`}>
-                  {showcaseScenarios.map((scenario, idx) => {
-                    const otherScenario = showcaseScenarios[idx === 0 ? 1 : 0];
-                    const diff = scenario.finalRealMonthly - otherScenario.finalRealMonthly;
-                    const diffLabel = `${diff > 0 ? '+' : ''}${formatCurrency(diff)}`;
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-12 lg:pb-16">
+        <h2 className="text-2xl lg:text-3xl font-bold mb-6">{t('welcome_v2.how_it_works.title')}</h2>
 
-                    return (
-                      <div
-                        key={`${scenario.type}-${scenario.distanceKm}`}
-                        className={`absolute inset-0 transition-all duration-700 ${idx === activeScenario ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-6 pointer-events-none'}`}
-                      >
-                        <div className="grid grid-cols-1 md:grid-cols-2">
-                          <div className="p-6 md:border-r border-slate-700 flex flex-col justify-center">
-                            {scenario.distanceKm === 0 ? (
-                              <div className="text-center py-2">
-                                <Home size={40} className="text-emerald-400 mx-auto mb-3 opacity-80" />
-                                <h4 className="text-white font-bold text-lg mb-1">{t('welcome.reality_showcase.home_office_title')}</h4>
-                                <div className="text-emerald-400 text-sm font-medium mb-2">
-                                  {t('welcome.reality_showcase.home_office_subtitle')}
-                                </div>
-                                <div className="text-xs text-emerald-400 mb-3 text-center">
-                                  <div className="flex items-center gap-1 justify-center">
-                                    <span className="text-green-400">🏠</span>
-                                    <div>
-                                      <div>{t('welcome.reality_showcase.home_office_zero', { cost: formatCurrency(0), minutes: 0 })}</div>
-                                      <div>{t('welcome.reality_showcase.home_office_note')}</div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ) : (
-                              <>
-                                <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
-                                  <MapPin size={12} /> {t('welcome.reality_showcase.commute_title')}
-                                </h4>
-                                <div className="relative h-12 mb-6">
-                                  <div className="absolute top-2 left-0 right-0 flex justify-between text-[10px] font-bold text-slate-400 uppercase">
-                                    <span>{t('welcome.reality_showcase.commute_home')}</span>
-                                    <span>{t('welcome.reality_showcase.commute_work')}</span>
-                                  </div>
-                                  <div className="absolute top-6 left-0 right-0 h-1.5 bg-slate-900/50 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-emerald-500 to-rose-500" style={{ width: '42%' }}></div>
-                                  </div>
-                                  <div className="absolute top-4 p-1.5 bg-slate-600 border border-slate-500 rounded-full text-white shadow-md transition-all" style={{ left: '42%', transform: 'translateX(-50%)' }}>
-                                    <Navigation size={14} />
-                                  </div>
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                  <div>
-                                    <div className="text-2xl font-mono text-white font-light flex items-center gap-2">
-                                      <Clock size={20} className="text-slate-400" /> {scenario.dailyMinutes}
-                                      <span className="text-sm text-slate-400 font-sans font-bold">min</span>
-                                    </div>
-                                    <div className="text-[10px] text-slate-400 mt-1">{t('welcome.reality_showcase.commute_daily')}</div>
-                                  </div>
-                                  <div>
-                                    <div className="text-2xl font-mono text-white font-light">
-                                      {scenario.distanceKm} <span className="text-sm text-slate-400 font-sans font-bold">km</span>
-                                    </div>
-                                    <div className="text-[10px] text-slate-400 mt-1">{t('welcome.reality_showcase.commute_one_way')}</div>
-                                  </div>
-                                </div>
-                              </>
-                            )}
-                          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5">
+            <div className="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/40 flex items-center justify-center mb-3"><Mic size={20} /></div>
+            <h3 className="font-semibold mb-2">{t('welcome_v2.how_it_works.step1.title')}</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-300">{t('welcome_v2.how_it_works.step1.desc')}</p>
+          </div>
 
-                          <div className="p-6 bg-slate-900/30 flex flex-col">
-                            <div className="flex-1">
-                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
-                                <Calculator size={12} /> {t('welcome.reality_showcase.reality_vs_salary')}
-                              </h4>
-                              <div className="space-y-1 text-sm font-mono">
-                                <div className="flex justify-between text-slate-300">
-                                  <span>{t('welcome.reality_showcase.gross_salary')}</span>
-                                  <span>{formatCurrency(scenario.grossMonthly)}</span>
-                                </div>
-                                <div className="flex justify-between text-rose-300 text-xs">
-                                  <span>- {t('welcome.reality_showcase.taxes_insurance')}</span>
-                                  <span>{formatCurrency(scenario.estimatedTax)}</span>
-                                </div>
-                                <div className="flex justify-between text-white font-bold pt-2 mt-1 border-t border-slate-700">
-                                  <span>{t('welcome.reality_showcase.net_base')}</span>
-                                  <span>{formatCurrency(scenario.grossMonthly - scenario.estimatedTax)}</span>
-                                </div>
-                                <div className="flex justify-between text-emerald-400">
-                                  <span>+ {t('welcome.reality_showcase.benefits')}</span>
-                                  <span>{formatCurrency(scenario.benefitsMonthly)}</span>
-                                </div>
-                                <div className="text-xs text-slate-400 mt-2 italic">
-                                  {scenario.type === 'home'
-                                    ? t('welcome.reality_showcase.benefits_hint_home')
-                                    : t('welcome.reality_showcase.benefits_hint_commute')}
-                                </div>
-                                <div className="flex justify-between text-rose-400">
-                                  <span>- {t('welcome.reality_showcase.commute_costs')}</span>
-                                  <span>{formatCurrency(scenario.commuteCost)}</span>
-                                </div>
-                                <div className="flex justify-between text-xl font-bold text-white pt-3 mt-3 border-t border-slate-700">
-                                  <span>{t('welcome.reality_showcase.final_reality')}</span>
-                                  <span>{formatCurrency(scenario.finalRealMonthly)}</span>
-                                </div>
-                              </div>
-                            </div>
+          <div className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5">
+            <div className="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/40 flex items-center justify-center mb-3"><Brain size={20} /></div>
+            <h3 className="font-semibold mb-2">{t('welcome_v2.how_it_works.step2.title')}</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-300">{t('welcome_v2.how_it_works.step2.desc')}</p>
+          </div>
 
-                            <div className="mt-5 pt-4 border-t border-slate-700 text-xs text-slate-300 flex items-center gap-2">
-                              <TrendingUp size={12} className={`${diff >= 0 ? 'text-emerald-400' : 'text-rose-400'}`} />
-                              <span>
-                                {t('welcome.reality_showcase.diff_label')}
-                                <span className={`font-bold ml-1 ${diff >= 0 ? 'text-emerald-300' : 'text-rose-300'}`}>{diffLabel}</span>
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+          <div className="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5">
+            <div className="w-10 h-10 rounded-lg bg-cyan-100 dark:bg-cyan-900/40 flex items-center justify-center mb-3"><Sparkles size={20} /></div>
+            <h3 className="font-semibold mb-2">{t('welcome_v2.how_it_works.step3.title')}</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-300">{t('welcome_v2.how_it_works.step3.desc')}</p>
+          </div>
+        </div>
+
+        <div className="mt-6 rounded-2xl bg-gradient-to-r from-cyan-50 to-emerald-50 dark:from-slate-900 dark:to-slate-900 border-2 border-cyan-200 dark:border-cyan-900 p-5 lg:p-6 shadow-lg shadow-cyan-100/70 dark:shadow-none">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+            <div>
+              <h3 className="font-bold text-xl text-cyan-800 dark:text-cyan-200">{t('welcome_v2.demo.title')}</h3>
+              <p className="text-sm text-slate-700 dark:text-slate-200 font-medium">{t('welcome_v2.demo.subtitle')}</p>
+            </div>
+            <button onClick={handleOpenDemo} className="px-5 py-2.5 rounded-lg border border-cyan-300 dark:border-cyan-800 bg-white/80 dark:bg-slate-800 text-cyan-900 dark:text-cyan-200 hover:bg-white dark:hover:bg-slate-700 font-semibold">
+              {t('welcome_v2.demo.open_button')}
+            </button>
+          </div>
+
+          {demoOpen && (
+            <div className="space-y-4">
+              <textarea
+                value={demoText}
+                onChange={(event) => setDemoText(event.target.value)}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 min-h-[130px]"
+                placeholder={t('welcome_v2.demo.placeholder')}
+              />
+              <button
+                onClick={handleAnalyzeDemo}
+                disabled={demoLoading || demoText.trim().length === 0}
+                className="px-5 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 text-white"
+              >
+                {demoLoading ? t('welcome_v2.demo.loading') : t('welcome_v2.demo.analyze_button')}
+              </button>
+
+              {demoResult && (
+                <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-900/20 p-4">
+                  <h4 className="font-semibold mb-3">{t('welcome_v2.demo.result_title')}</h4>
+                  <div className="space-y-2 mb-4">
+                    {demoResult.skills.map((skill) => (
+                      <div key={`${skill.key}-${skill.level}`} className="text-sm flex items-center gap-2">
+                        <CheckCircle2 size={16} className="text-emerald-600" />
+                        <span>{t(`welcome_v2.demo.skills.${skill.key}`)}</span>
+                        <span className="text-xs text-emerald-800 dark:text-emerald-300">({t(`welcome_v2.demo.levels.${skill.level}`)})</span>
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
+                  <p className="text-sm font-medium mb-4">{t('welcome_v2.demo.unlocked_paths', { count: demoResult.unlockedPaths })}</p>
+                  <button onClick={handleShowMatches} className="px-5 py-2.5 rounded-lg bg-slate-900 text-white dark:bg-white dark:text-slate-900">
+                    {t('welcome_v2.demo.show_matches_button')}
+                  </button>
                 </div>
-              </div>
+              )}
             </div>
-          </div>
+          )}
         </div>
       </section>
 
-      <CrossBorderPromo />
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-12 lg:pb-16">
+        <h2 className="text-2xl lg:text-3xl font-bold mb-6">{t('welcome_v2.proof.title')}</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {caseCards.map((card) => (
+            <article key={card.name} className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5">
+              <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400 mb-2"><UserRound size={16} />{card.name}</div>
+              <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">{card.context}</p>
+              <ul className="text-sm space-y-1 mb-3">
+                {card.found.map((item) => (
+                  <li key={item}>• {item}</li>
+                ))}
+              </ul>
+              <p className="font-semibold mb-2">{card.match}</p>
+              <p className="text-sm text-slate-600 dark:text-slate-300 italic">{card.quote}</p>
+            </article>
+          ))}
+        </div>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-4">{t('welcome_v2.proof.note')}</p>
+      </section>
 
-      {/* SECTION: MOBILE SWIPE BROWSING */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          {/* Left: Graphics */}
-          <div className="flex flex-col gap-6 order-2 lg:order-1">
-            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-              <div className="text-sm font-bold text-slate-900 dark:text-white mb-1">
-                {t('job.swipe_tutorial_title') || 'Jak funguje swipování'}
-              </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                {t('job.swipe_tutorial_desc') || 'Táhni kartu doleva pro zamítnutí, doprava pro uložení.'}
-              </div>
-              <div className="relative h-16 flex items-center justify-center">
-                <div className="absolute left-4 text-rose-500 text-2xl font-bold swipe-coach-arrow-left">←</div>
-                <div className="absolute right-4 text-emerald-500 text-2xl font-bold swipe-coach-arrow-right">→</div>
-                <div className="w-24 h-14 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 shadow-sm swipe-coach-card"></div>
-              </div>
-            </div>
-            <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border border-purple-200 dark:border-purple-800 p-8 hover:shadow-lg transition-all">
-              <div className="flex items-start gap-4">
-                <Smartphone className="w-8 h-8 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-1" />
-                <div>
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">{t('welcome.page_mobile.mobile_title')}</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">{t('welcome.page_mobile.mobile_desc')}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800 p-8 hover:shadow-lg transition-all">
-              <div className="flex items-start gap-4">
-                <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-400 flex-shrink-0 mt-1" />
-                <div>
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-2">{t('welcome.page_mobile.progress_title')}</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">{t('welcome.page_mobile.progress_desc')}</p>
-                </div>
-              </div>
-            </div>
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-12 lg:pb-16">
+        <h2 className="text-2xl lg:text-3xl font-bold mb-6">{t('welcome_v2.comparison.title')}</h2>
+        <div className="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+          <div className="grid grid-cols-2 bg-slate-100 dark:bg-slate-800 text-sm font-semibold">
+            <div className="p-4 border-r border-slate-200 dark:border-slate-700">{t('welcome_v2.comparison.col_old')}</div>
+            <div className="p-4">{t('welcome_v2.comparison.col_new')}</div>
           </div>
-
-          {/* Right: Text */}
-          <div className="order-1 lg:order-2">
-            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-6">
-              {t('welcome.page_mobile.title_browse')}<span className="text-cyan-600">{t('welcome.page_mobile.title_jobs')}</span> {t('welcome.page_mobile.title_like')}
-            </h2>
-
-            <div className="space-y-6 text-lg text-slate-600 dark:text-slate-400 leading-relaxed mb-8">
-              <p>
-                {t('welcome.page_mobile.desc_1')}
-              </p>
-              <p>
-                {t('welcome.page_mobile.desc_2')}
-              </p>
-              <p>
-                {t('welcome.page_mobile.desc_3')}
-              </p>
+          {comparisonRows.map((row, index) => (
+            <div key={`${row.old}-${index}`} className="grid grid-cols-2 text-sm border-t border-slate-200 dark:border-slate-800">
+              <div className="p-4 border-r border-slate-200 dark:border-slate-800">{row.old}</div>
+              <div className="p-4">{row.career_os}</div>
             </div>
-
-            <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4">
-              <p className="text-sm text-cyan-900 dark:text-cyan-200">
-                <span className="font-bold">{t('welcome.page_mobile.tip_label')}</span> {t('welcome.page_mobile.tip_text')}
-              </p>
-            </div>
-          </div>
+          ))}
         </div>
       </section>
 
-      {/* DIVIDER */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 my-6">
-        <div className="h-px bg-slate-200 dark:bg-slate-800"></div>
-      </div>
-
-      {/* SECTION: CO JOBSHAMAN JE (A NENÍ) */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          {/* Left: Text */}
-          <div>
-            <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-6">
-              <span className="text-cyan-600">{t('welcome.page_what_is.title_job')}</span><span className="text-slate-900 dark:text-white">{t('welcome.page_what_is.title_shaman')}</span> <span className="text-slate-900 dark:text-white">{t('welcome.page_what_is.title_end')}</span>
-            </h2>
-            <div className="max-w-3xl">
-              <p className="text-lg text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-                {t('welcome.page_what_is.desc_1')}
-              </p>
-              <p className="text-lg text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-                {t('welcome.page_what_is.desc_2')}
-              </p>
-              <p className="text-lg text-slate-600 dark:text-slate-400 mb-6 leading-relaxed">
-                {t('welcome.page_what_is.desc_3')}
-              </p>
-              <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed">
-                {t('welcome.page_what_is.desc_4')}
-              </p>
-            </div>
+      <section className="max-w-5xl mx-auto px-4 lg:px-8 pb-14 lg:pb-20">
+        <div className="rounded-2xl bg-gradient-to-r from-cyan-600 to-teal-600 text-white p-7 lg:p-9">
+          <h2 className="text-2xl lg:text-3xl font-bold mb-3">{t('welcome_v2.final_cta.title')}</h2>
+          <button onClick={handlePrimaryCta} className="px-6 py-3 rounded-xl bg-white text-slate-900 font-semibold mb-4">
+            {t('welcome_v2.final_cta.button')}
+          </button>
+          <div className="text-sm space-y-1 opacity-95">
+            <p>{t('welcome_v2.final_cta.trust_1')}</p>
+            <p>{t('welcome_v2.final_cta.trust_2')}</p>
+            <p>{t('welcome_v2.final_cta.trust_3')}</p>
           </div>
-
-          {/* Right: Graphics */}
-          <div className="flex flex-col gap-6">
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 hover:shadow-lg transition-all">
-              <div className="flex items-center gap-4">
-                <div className="bg-cyan-100 dark:bg-cyan-900/30 p-4 rounded-lg flex-shrink-0">
-                  <Target className="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-1">{t('welcome.page_what_is.card_1_title')}</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">{t('welcome.page_what_is.card_1_desc')}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 hover:shadow-lg transition-all">
-              <div className="flex items-center gap-4">
-                <div className="bg-cyan-100 dark:bg-cyan-900/30 p-4 rounded-lg flex-shrink-0">
-                  <BarChart3 className="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-1">{t('welcome.page_what_is.card_2_title')}</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">{t('welcome.page_what_is.card_2_desc')}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 hover:shadow-lg transition-all">
-              <div className="flex items-center gap-4">
-                <div className="bg-cyan-100 dark:bg-cyan-900/30 p-4 rounded-lg flex-shrink-0">
-                  <Zap className="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
-                </div>
-                <div>
-                  <h4 className="font-bold text-slate-900 dark:text-white mb-1">{t('welcome.page_what_is.card_3_title')}</h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">{t('welcome.page_what_is.card_3_desc')}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <p className="text-sm mt-4 opacity-90">{t('welcome_v2.final_cta.privacy')}</p>
+          {import.meta.env.VITE_WELCOME_V2_SHOW_BETA !== 'false' && (
+            <p className="text-sm mt-2 opacity-90">{t('welcome_v2.final_cta.beta')}</p>
+          )}
         </div>
       </section>
 
-      {/* DIVIDER */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-8 my-6">
-        <div className="h-px bg-slate-200 dark:bg-slate-800"></div>
-      </div>
-
-      {/* SECTION: JAK TO POČÍTÁME */}
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 py-8">
-        <h2 className="text-4xl font-bold text-slate-900 dark:text-white mb-16">
-          {t('welcome_extra.how_it_works.title')}
-        </h2>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Card 1: Financial Reality */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 hover:border-cyan-300 dark:hover:border-cyan-700 transition-all hover:shadow-lg">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-cyan-100 dark:bg-cyan-900/30 p-2 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                {t('welcome_extra.how_it_works.financial.title')}
-              </h3>
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-              {t('welcome_extra.how_it_works.financial.desc')}
-            </p>
-            <p className="text-xs text-cyan-600 dark:text-cyan-400 font-semibold mt-4">
-              {t('welcome_extra.how_it_works.financial.hint')}
-            </p>
-          </div>
-
-          {/* Card 2: Commute Impact */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 hover:border-cyan-300 dark:hover:border-cyan-700 transition-all hover:shadow-lg">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-cyan-100 dark:bg-cyan-900/30 p-2 rounded-lg">
-                <MapPin className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                {t('welcome_extra.how_it_works.commute.title')}
-              </h3>
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-              {t('welcome_extra.how_it_works.commute.desc')}
-            </p>
-            <ul className="text-xs text-slate-500 dark:text-slate-400 space-y-2">
-              <li className="flex items-center gap-2">
-                <span className="text-cyan-600">•</span> {t('welcome_extra.how_it_works.commute.items.distance')}
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-cyan-600">•</span> {t('welcome_extra.how_it_works.commute.items.mode')}
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-cyan-600">•</span> {t('welcome_extra.how_it_works.commute.items.loss')}
-              </li>
-              <li className="flex items-center gap-2">
-                <span className="text-cyan-600">•</span> {t('welcome_extra.how_it_works.commute.items.costs')}
-              </li>
-            </ul>
-          </div>
-
-          {/* Card 3: JHI Score */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 hover:border-cyan-300 dark:hover:border-cyan-700 transition-all hover:shadow-lg">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-cyan-100 dark:bg-cyan-900/30 p-2 rounded-lg">
-                <Heart className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                {t('welcome_extra.how_it_works.jhi.title')}
-              </h3>
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-              {t('welcome_extra.how_it_works.jhi.desc')}
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 italic">
-              {t('welcome_extra.how_it_works.jhi.hint')}
-            </p>
-          </div>
-
-          {/* Card 4: Transparency */}
-          <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 hover:border-cyan-300 dark:hover:border-cyan-700 transition-all hover:shadow-lg">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-cyan-100 dark:bg-cyan-900/30 p-2 rounded-lg">
-                <Eye className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-              </div>
-              <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-                {t('welcome_extra.how_it_works.transparency.title')}
-              </h3>
-            </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed mb-4">
-              {t('welcome_extra.how_it_works.transparency.desc')}
-            </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              {t('welcome_extra.how_it_works.transparency.hint')}
-            </p>
-          </div>
-        </div>
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-16">
+        <h3 className="text-lg font-semibold mb-4">{t('welcome_v2.blog_title')}</h3>
+        <BlogSection selectedBlogPostSlug={selectedBlogPostSlug} setSelectedBlogPostSlug={handleBlogPostSelect} />
       </section>
-
-      {/* BLOG SECTION */}
-      <BlogSection
-        selectedBlogPostSlug={selectedBlogPostSlug}
-        setSelectedBlogPostSlug={handleBlogPostSelect}
-      />
     </div>
   );
 };
