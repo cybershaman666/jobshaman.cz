@@ -912,16 +912,17 @@
   },
   "company_landing": {
     "hero": {
-      "badge": "Náborová platforma poháňaná AI",
-      "title_start": "Naberajte tie najlepšie",
-      "title_highlight": "Talenty",
-      "title_end": "s AI",
-      "subtitle": "Zjednodušte nábor s AI optimalizáciou inzerátov a vlastným Assessment Centrom. Nájdite tých správnych kandidátov rýchlejšie.",
-      "value_prop": "Nielen lacnejší nábor. Lepšia konverzia a relevantnejšie odpovede.",
-      "value_prop_detail": "JobShaman cieli ponuky podľa reálneho správania kandidátov (zobrazenia, otvorenia detailu, reakcie), takže firmy dostávajú kvalitnejšie odpovede už v základnom flow, aj bez zapnutého AI assessmentu.",
+      "badge": "Náborová platforma pre firmy",
+      "title_start": "ATS filtruje podľa slov.",
+      "title_highlight": "JobShaman",
+      "title_end": "matchuje podľa zručností.",
+      "subtitle": "Menej nerelevantných reakcií, vyššia kvalita kandidátov a lepšia konverzia v bežnom nábore.",
+      "value_prop": "Neplatíte za šum. Platíte za relevantné odpovede.",
+      "value_prop_detail": "Odporúčania vychádzajú z reálneho správania kandidátov a zhody zručností, nie len z formy CV.",
       "start_free": "Začať zadarmo",
       "login": "Prihlásiť sa",
-      "view_demo": "Prehliadnuť demo"
+      "view_demo": "Prehliadnuť demo",
+      "trust": "Bez nafúknutých sľubov. Jasné metriky a vysvetliteľné odporúčania."
     },
     "stats": {
       "title": "Výsledky v číslach",
@@ -936,7 +937,10 @@
       "easy_posting": "Jednoduché vytváranie inzerátov",
       "assessments": "Vlastné Assessment Center",
       "insights": "Prehľady o benefitoch",
-      "conversion_without_assessment": "Vyššia konverzia a relevantnosť odpovedí aj bez AI assessmentu"
+      "conversion_without_assessment": "Vyššia konverzia a relevantnosť odpovedí aj bez AI assessmentu",
+      "skill_discovery": "Skill discovery namiesto tvrdého filtrovania podľa kľúčových slov",
+      "explainable_relevance": "Pri kandidátovi vidíte, prečo je relevantný",
+      "measurable_funnel": "Meriate zobrazenia, reakcie aj kvalitu odpovedí"
     },
     "features": {
       "title": "AI Nástroje",
@@ -1018,6 +1022,43 @@
       "register": "Registrovať firmu",
       "login": "Prihlásiť sa",
       "demo": "Dohodnúť demo"
+    },
+    "ats_problem": {
+      "ats_title": "Problém bežného ATS prístupu",
+      "ats_p1": "Silní kandidáti vypadnú len preto, že nepoužili správne kľúčové slová.",
+      "ats_p2": "HR tím trávi čas triedením nerelevantných reakcií namiesto rozhovorov.",
+      "ats_p3": "Systém často nevysvetlí, prečo kandidáta odporučil alebo zamietol.",
+      "js_title": "Ako to rieši JobShaman",
+      "js_p1": "Matching je podľa zručností a kontextu, nie len podľa textu v CV.",
+      "js_p2": "Pri každom kandidátovi vidíte dôvody relevancie, nielen skóre.",
+      "js_p3": "Funnel je merateľný od zobrazenia po reakciu, takže viete optimalizovať."
+    },
+    "solution": {
+      "title": "Čo firmy reálne získajú",
+      "pillar_skill_title": "Skill discovery namiesto kľúčových slov",
+      "pillar_skill_desc": "Nájdete kandidátov, ktorých by klasický ATS vyradil.",
+      "pillar_relevance_title": "Relevancia s vysvetlením",
+      "pillar_relevance_desc": "Pri odporúčaniach vidíte, prečo kandidát sedí na rolu.",
+      "pillar_measure_title": "Merateľný náborový funnel",
+      "pillar_measure_desc": "Vidíte, kde kandidáti odpadajú a kde rastie konverzia."
+    },
+    "faq": {
+      "title": "FAQ pre firmy",
+      "q1": "Ako môžete byť lacnejší a zároveň relevantnejší?",
+      "a1": "Optimalizujeme na kvalitu odpovedí, nie na množstvo náhodných reakcií.",
+      "q2": "Čo keď kandidát nemá perfektne napísané CV?",
+      "a2": "Hodnotíme zručnosti a kontext skúseností. Forma CV nie je hlavný signál.",
+      "q3": "Ako meriate kvalitu odpovedí?",
+      "a3": "Sledujeme zobrazenia, otvorenia detailu, reakcie a ďalšie funnel signály.",
+      "q4": "Funguje to aj bez AI assessmentu?",
+      "a4": "Áno. Lepšia relevancia a konverzia funguje aj bez zapnutého assessmentu.",
+      "q5": "Ako je riešená ochrana dát?",
+      "a5": "Používame riadený prístup k dátam a transparentné logovanie kľúčových krokov."
+    },
+    "trust": {
+      "i1": "Transparentné ceny bez skrytých poplatkov",
+      "i2": "Merateľný funnel od zobrazenia po reakciu",
+      "i3": "Relevantné odpovede aj bez AI assessmentu"
     }
   },
   "company_extra": {
