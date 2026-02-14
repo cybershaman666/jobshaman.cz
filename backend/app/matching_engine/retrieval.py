@@ -126,7 +126,7 @@ def read_cached_recommendations(user_id: str, limit: int) -> List[Dict]:
     try:
         resp = (
             supabase.table("recommendation_cache")
-            .select("job_id, score, breakdown_json, reasons_json, model_version, jobs(*)")
+            .select("job_id, score, breakdown_json, reasons_json, model_version, scoring_version, jobs(*)")
             .eq("user_id", user_id)
             .gte("expires_at", now_iso)
             .order("score", desc=True)
@@ -143,6 +143,7 @@ def read_cached_recommendations(user_id: str, limit: int) -> List[Dict]:
                     "reasons": row.get("reasons_json") or [],
                     "breakdown": row.get("breakdown_json") or {},
                     "model_version": row.get("model_version") or "v1",
+                    "scoring_version": row.get("scoring_version") or "scoring-v1",
                 }
             )
         return out
@@ -172,6 +173,7 @@ def write_recommendation_cache(user_id: str, rows: List[Dict], ttl_minutes: int 
                     "breakdown_json": row.get("breakdown") or {},
                     "reasons_json": row.get("reasons") or [],
                     "model_version": row.get("model_version") or "career-os-v1",
+                    "scoring_version": row.get("scoring_version") or "scoring-v1",
                     "computed_at": now_iso,
                     "expires_at": expires_at,
                 }

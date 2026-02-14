@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, Query
 from datetime import datetime, timezone, timedelta
 import json
+from collections import defaultdict
 from typing import Optional, List
 import re
 
@@ -277,7 +278,7 @@ async def admin_ai_quality(
 
     logs_resp = (
         supabase.table("ai_generation_logs")
-        .select("user_id, output_valid, fallback_used, model_final, feature, created_at")
+        .select("user_id, output_valid, fallback_used, model_final, feature, created_at, tokens_in, tokens_out")
         .gte("created_at", start_iso)
         .order("created_at", desc=True)
         .limit(8000)
@@ -305,6 +306,21 @@ async def admin_ai_quality(
         agg["schema_pass_rate"] = round((agg["valid"] / t) * 100, 2)
         agg["fallback_rate"] = round((agg["fallback"] / t) * 100, 2)
 
+    token_total = sum(int(row.get("tokens_in") or 0) + int(row.get("tokens_out") or 0) for row in logs)
+    avg_tokens_per_generation = round(token_total / max(1, total), 2) if total else 0.0
+
+    token_usage_trend = defaultdict(lambda: {"tokens_in": 0, "tokens_out": 0, "count": 0})
+    for row in logs:
+        created = str(row.get("created_at") or "")
+        day = created[:10] if len(created) >= 10 else "unknown"
+        token_usage_trend[day]["tokens_in"] += int(row.get("tokens_in") or 0)
+        token_usage_trend[day]["tokens_out"] += int(row.get("tokens_out") or 0)
+        token_usage_trend[day]["count"] += 1
+    token_usage_trend_rows = [
+        {"day": day, **vals}
+        for day, vals in sorted(token_usage_trend.items(), key=lambda item: item[0], reverse=True)[:14]
+    ]
+
     diffs_resp = (
         supabase.table("ai_generation_diffs")
         .select("change_ratio, feature")
@@ -318,6 +334,43 @@ async def admin_ai_quality(
         (sum(_safe_float(row.get("change_ratio")) for row in diffs) / len(diffs)) * 100,
         2,
     ) if diffs else 0.0
+
+    rec_resp = (
+        supabase.table("recommendation_cache")
+        .select("user_id, score, model_version, scoring_version, breakdown_json, computed_at")
+        .gte("computed_at", start_iso)
+        .order("computed_at", desc=True)
+        .limit(10000)
+        .execute()
+    )
+    rec_rows = rec_resp.data or []
+    avg_recommendation_score = round(
+        sum(_safe_float(row.get("score")) for row in rec_rows) / max(1, len(rec_rows)), 2
+    ) if rec_rows else 0.0
+
+    missing_core_skill_rows = 0
+    for row in rec_rows:
+        breakdown = row.get("breakdown_json") or {}
+        if isinstance(breakdown, dict) and (breakdown.get("missing_core_skills") or []):
+            missing_core_skill_rows += 1
+    missing_core_skills_share = round((missing_core_skill_rows / max(1, len(rec_rows))) * 100, 2) if rec_rows else 0.0
+
+    score_distribution = {
+        "lt_40": 0,
+        "40_60": 0,
+        "60_80": 0,
+        "gte_80": 0,
+    }
+    for row in rec_rows:
+        score = _safe_float(row.get("score"))
+        if score < 40:
+            score_distribution["lt_40"] += 1
+        elif score < 60:
+            score_distribution["40_60"] += 1
+        elif score < 80:
+            score_distribution["60_80"] += 1
+        else:
+            score_distribution["gte_80"] += 1
 
     interactions_resp = (
         supabase.table("job_interactions")
@@ -335,6 +388,33 @@ async def admin_ai_quality(
     ai_apply_rate = round((len(apply_users & ai_users) / max(1, len(ai_users))) * 100, 2) if ai_users else 0.0
     baseline_apply_rate = round((len(apply_users) / max(1, len(active_users))) * 100, 2) if active_users else 0.0
     conversion_impact = round(ai_apply_rate - baseline_apply_rate, 2)
+
+    users_by_model = defaultdict(set)
+    users_by_scoring = defaultdict(set)
+    for row in rec_rows:
+        uid = row.get("user_id")
+        if not uid:
+            continue
+        users_by_model[row.get("model_version") or "unknown"].add(uid)
+        users_by_scoring[row.get("scoring_version") or "unknown"].add(uid)
+
+    ctr_by_model_version = []
+    for version, users in users_by_model.items():
+        if not users:
+            continue
+        apply_for_model = len(users & apply_users)
+        ctr = round((apply_for_model / max(1, len(users))) * 100, 2)
+        ctr_by_model_version.append({"model_version": version, "ctr_apply": ctr, "users": len(users)})
+    ctr_by_model_version.sort(key=lambda row: row.get("ctr_apply", 0), reverse=True)
+
+    ctr_by_scoring_version = []
+    for version, users in users_by_scoring.items():
+        if not users:
+            continue
+        apply_for_model = len(users & apply_users)
+        ctr = round((apply_for_model / max(1, len(users))) * 100, 2)
+        ctr_by_scoring_version.append({"scoring_version": version, "ctr_apply": ctr, "users": len(users)})
+    ctr_by_scoring_version.sort(key=lambda row: row.get("ctr_apply", 0), reverse=True)
 
     model_registry = (
         supabase.table("model_registry")
@@ -363,11 +443,18 @@ async def admin_ai_quality(
             "schema_pass_rate": schema_pass_rate,
             "fallback_rate": fallback_rate,
             "diff_volatility": diff_volatility,
+            "avg_tokens_per_generation": avg_tokens_per_generation,
+            "avg_recommendation_score": avg_recommendation_score,
+            "missing_core_skills_share": missing_core_skills_share,
             "conversion_impact_on_applications": conversion_impact,
             "ai_apply_rate": ai_apply_rate,
             "baseline_apply_rate": baseline_apply_rate,
         },
         "features": feature_stats,
+        "token_usage_trend": token_usage_trend_rows,
+        "score_distribution": score_distribution,
+        "ctr_by_model_version": ctr_by_model_version,
+        "ctr_by_scoring_version": ctr_by_scoring_version,
         "active_models": model_registry,
         "release_flags": release_flags,
     }
