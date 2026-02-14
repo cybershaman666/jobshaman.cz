@@ -14,7 +14,6 @@ interface SkillsGapBoxProps {
     hasCV: boolean;
     name?: string;
   };
-  onShowMarketplace?: () => void;
   onShowProfile?: () => void;
 }
 
@@ -37,7 +36,6 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
   error = null,
   onResourceClick,
   userProfile = { isLoggedIn: false, hasCV: false },
-  onShowMarketplace,
   onShowProfile
 }) => {
   const { t } = useTranslation();

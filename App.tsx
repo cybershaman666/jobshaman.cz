@@ -16,7 +16,6 @@ import CompanyRegistrationModal from './components/CompanyRegistrationModal';
 import FreelancerRegistrationModal from './components/FreelancerRegistrationModal';
 import CourseProviderRegistrationModal from './components/CourseProviderRegistrationModal';
 import ServicesMarketplace from './components/ServicesMarketplace';
-import MarketplacePage from './components/MarketplacePage';
 import EnterpriseSignup from './components/EnterpriseSignup';
 import CompanyLandingPage from './components/CompanyLandingPage';
 import ApplicationModal from './components/ApplicationModal';

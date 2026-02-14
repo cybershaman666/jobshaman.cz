@@ -1,6 +1,6 @@
 <div align="center">
 <h1>🧙‍♂️ JobShaman</h1>
-<p><em>Radical honesty in hiring. AI-powered recruitment that decodes reality and filters bullshit.</em></p>
+<p><em>Career OS for radical clarity in hiring. AI that decodes reality, reveals hidden skills, and raises your market value.</em></p>
 
 ![Badge](https://img.shields.io/badge/React-18.2.0-blue)
 ![Badge](https://img.shields.io/badge/FastAPI-0.109.0-green)
@@ -12,9 +12,9 @@
 
 ## 🎯 Vision: Radical Truth (Radikální pravda)
 
-JobShaman isn't just another job board. It's an ecosystem designed to eliminate corporate noise and shallow recruitment processes. We believe in **Radical Truth** for candidates and **No-Bullshit Evaluation** for companies.
+JobShaman isn't just another job board. It's a **Career OS** designed to eliminate corporate noise and shallow recruitment processes. We believe in **Radical Truth** for candidates and **No-Bullshit Evaluation** for companies.
 
-Using advanced AI, we translate vague job descriptions into "Commute Reality" and "Salary Truth," while providing recruiters with a **Digital Assessment Center** that evaluates the core essence of a candidate, not just their CV.
+Using advanced AI, we translate vague job descriptions into "Commute Reality" and "Salary Truth," while helping candidates **narrate their story**, uncover **hidden skills**, and generate a **tailored CV** that increases their market value. Recruiters get a **Digital Assessment Center** that evaluates the core essence of a candidate, not just their CV.
 
 ---
 
@@ -32,12 +32,17 @@ Using advanced AI, we translate vague job descriptions into "Commute Reality" an
 *   **📊 Recruiter Dashboard**: Full control over job postings, applicant invitations, and detailed result analysis.
 *   **💳 Global Invoicing & Stripe**: Automated billing and subscription management for premium recruitment features.
 
-### 🔍 For Candidates: Reality Decoding
+### 🔍 For Candidates: Career OS
 *   **📊 Job Happiness Index (JHI)**: A composite score (0-100) based on financial gain, time cost, and mental load.
 *   **🚫 Bullshit Meter**: AI-driven red-flag detection in job descriptions.
 *   **🚗 Commute Reality**: Real-time calculation of distance, cost, and time spent commuting (Public transport vs. Car).
 *   **💰 Financial Clarity**: Net salary calculators and benefit impact analysis.
-*   **🤖 Smart Preparation**: AI-generated CV optimizations and cover letters tailored to specific JHI insights.
+*   **🧠 AI Career Narrative**: Guided storytelling to surface hidden skills and strengths.
+*   **📝 Tailored CV**: AI-generated CV and profile enrichment based on your real story.
+
+### ✅ Focus (What We Don’t Do)
+*   **No freelance marketplace** — we focus on full-time roles and career growth.
+*   **No education marketplace** — learning content is not a product surface.
 
 ---
 
@@ -52,7 +57,7 @@ Using advanced AI, we translate vague job descriptions into "Commute Reality" an
 ### Backend & Core
 *   **FastAPI (Python)**: Robust, asynchronous API handling.
 *   **Supabase (PostgreSQL)**: Managed database with RLS policies, Auth, and Storage.
-*   **Google Gemini 1.5 Flash**: Orchestrates high-speed AI analysis and assessment generation.
+*   **Google Gemini 1.5 Flash**: Orchestrates high-speed AI analysis, CV enrichment, and assessment generation.
 *   **Stripe**: Secure payment processing and billing infrastructure.
 *   **Resend**: Transactional email delivery for invitation tokens.
 
@@ -111,5 +116,5 @@ Join us in making job searching more transparent and humane.
 ---
 
 <div align="center">
-<p><em>Built with ❤️ for a world where everyone knows exactly what they're signing up for.</em></p>
+<p><em>Built for a world where everyone knows exactly what they're signing up for — and how much they're truly worth.</em></p>
 </div>
