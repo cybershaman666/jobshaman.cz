@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import './src/i18n'; // Initialize i18n
 import { useTranslation } from 'react-i18next';
-import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, CompanyProfile, CareerPathfinderResult } from './types';
+import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, CompanyProfile } from './types';
 
 import { Analytics } from '@vercel/analytics/react';
 import { initialBlogPosts } from './src/data/blogPosts';
@@ -37,7 +37,6 @@ import { fetchJobById } from './services/jobService';
 import { clearJobCache } from './services/jobService';
 import { supabase, getUserProfile, updateUserProfile, verifyAuthSession } from './services/supabaseService';
 import { canCandidateUseFeature } from './services/billingService';
-import { analyzeJobForPathfinder } from './services/careerPathfinderService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
 import { checkPaymentStatus } from './services/stripeService';
 import { clearCsrfToken } from './services/csrfService';
@@ -99,9 +98,6 @@ export default function App() {
     const [analyzing, setAnalyzing] = useState(false);
     const [directlyFetchedJob, setDirectlyFetchedJob] = useState<Job | null>(null);
     const [isLoadingJobs, setIsLoadingJobs] = useState(true);
-
-    // Career Pathfinder State
-    const [pathfinderAnalysis, setPathfinderAnalysis] = useState<CareerPathfinderResult | null>(null);
 
     // Cookie Consent State
     const [showCookieBanner, setShowCookieBanner] = useState(false);
@@ -791,15 +787,6 @@ export default function App() {
         }
     }, [selectedJobId, userProfile]);
 
-    // Career Pathfinder Analysis - Trigger when job is selected
-    useEffect(() => {
-        if (selectedJob && userProfile?.isLoggedIn) {
-            handlePathfinderAnalysis(selectedJob);
-        } else {
-            setPathfinderAnalysis(null);
-        }
-    }, [selectedJob?.id, userProfile?.isLoggedIn]);
-
     // Check cookie consent
     useEffect(() => {
         if (shouldBypassCookieBanner()) {
@@ -971,39 +958,6 @@ export default function App() {
             setAnalyzing(false);
         }
     };
-
-
-
-    const handlePathfinderAnalysis = async (job: Job) => {
-        if (!userProfile) {
-            alert('Pro analýzu Career Pathfinder se musíte nejprve přihlásit a vyplnit profil.');
-            return;
-        }
-
-        setPathfinderAnalysis({
-            financialReality: null,
-            skillsGapAnalysis: null,
-            hasAssessment: false,
-            isLoading: true,
-            error: null
-        });
-
-        try {
-            const result = await analyzeJobForPathfinder(job, userProfile);
-            setPathfinderAnalysis(result);
-        } catch (e) {
-            console.error('Pathfinder analysis failed:', e);
-            setPathfinderAnalysis({
-                financialReality: null,
-                skillsGapAnalysis: null,
-                hasAssessment: false,
-                isLoading: false,
-                error: e instanceof Error ? e.message : 'Analýza selhala'
-            });
-        }
-    };
-
-
 
     const toggleSection = (section: string) => {
         setExpandedSections(prev => ({ ...prev, [section]: !prev[section as keyof typeof prev] }));
@@ -1364,7 +1318,6 @@ export default function App() {
                             getTransportIcon={getTransportIcon}
                             formatJobDescription={formatJobDescription}
                             theme={theme}
-                            pathfinderAnalysis={pathfinderAnalysis}
                             aiAnalysis={aiAnalysis}
                             analyzing={analyzing}
                             handleAnalyzeJob={handleAnalyzeJob}
