@@ -950,6 +950,8 @@ export const fetchRecommendedJobs = async (limit: number = 50): Promise<Job[]> =
         const job = transformJob(item.job || item);
         (job as any).aiMatchScore = item.score;
         (job as any).aiMatchReasons = item.reasons || [];
+        (job as any).aiMatchBreakdown = item.breakdown || undefined;
+        (job as any).aiMatchModelVersion = item.model_version || undefined;
         return job;
     });
     return mapped;

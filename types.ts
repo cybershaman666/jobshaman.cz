@@ -105,6 +105,8 @@ export interface Job {
   required_skills: string[];
   aiMatchScore?: number;
   aiMatchReasons?: string[];
+  aiMatchBreakdown?: JobRecommendationBreakdown;
+  aiMatchModelVersion?: string;
   lat?: number;
   lng?: number;
   salary_from?: number;
@@ -114,6 +116,44 @@ export interface Job {
   legality_reasons?: string[];
   country_code?: string;
   language_code?: string;
+}
+
+export interface JobRecommendationBreakdown {
+  skill_semantic: number;
+  skill_exact: number;
+  title_alignment: number;
+  demand_weight: number;
+  salary_fit: number;
+  location_fit: number;
+  preference_fit: number;
+  total: number;
+}
+
+export interface AIGuidedProfileResponseV2 {
+  profile_updates: Partial<UserProfile>;
+  ai_profile: {
+    story?: string;
+    hobbies?: string[];
+    volunteering?: string[];
+    leadership?: string[];
+    strengths?: string[];
+    values?: string[];
+    inferred_skills?: string[];
+    awards?: string[];
+    certifications?: string[];
+    side_projects?: string[];
+    motivations?: string[];
+    work_preferences?: string[];
+  };
+  cv_ai_text: string;
+  cv_summary: string;
+  meta: {
+    prompt_version: string;
+    model_used: string;
+    fallback_used: boolean;
+    latency_ms: number;
+    token_usage: { input: number; output: number };
+  };
 }
 
 // Database representation of a job row (used when reading directly from Supabase)

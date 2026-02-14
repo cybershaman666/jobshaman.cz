@@ -13,6 +13,7 @@ from starlette.responses import JSONResponse
 from .core.limiter import limiter
 from .routers import jobs, billing, stripe, assessments, scraper, auth, admin, ai
 from .core.security import add_security_headers
+from .matching_engine import run_hourly_batch_jobs, run_daily_batch_jobs
 
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 SENTRY_ENV = os.getenv("SENTRY_ENV", os.getenv("ENVIRONMENT", "production"))
@@ -97,6 +98,8 @@ app.include_router(ai.router, tags=["AI"])
 from .core.security import cleanup_csrf_sessions
 scheduler = BackgroundScheduler()
 scheduler.add_job(cleanup_csrf_sessions, 'interval', hours=6)
+scheduler.add_job(run_hourly_batch_jobs, 'interval', hours=1, id="matching_hourly", max_instances=1, coalesce=True)
+scheduler.add_job(run_daily_batch_jobs, 'cron', hour=2, minute=15, id="matching_daily", max_instances=1, coalesce=True)
 scheduler.start()
 
 if __name__ == "__main__":

@@ -160,11 +160,11 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
       const data = await generateProfileFromStory(stepsPayload, 'cs', profile);
       setAiResult(data);
 
-      const aiProfile = data.aiProfile || {};
+      const aiProfile = data.ai_profile || {};
       setCvAiText(data.cv_ai_text || '');
       setCvSummary(data.cv_summary || '');
-      setJobTitle(data.profileUpdates?.jobTitle || profile.jobTitle || '');
-      setSkillsText(listToText(data.profileUpdates?.skills || profile.skills || []));
+      setJobTitle(data.profile_updates?.jobTitle || profile.jobTitle || '');
+      setSkillsText(listToText(data.profile_updates?.skills || profile.skills || []));
       setStoryText(aiProfile.story || '');
       setHobbiesText(listToText(aiProfile.hobbies || []));
       setVolunteeringText(listToText(aiProfile.volunteering || []));
@@ -186,9 +186,9 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
 
   const handleApply = () => {
     const updates: Partial<UserProfile> = {
-      name: aiResult?.profileUpdates?.name || profile.name,
-      email: aiResult?.profileUpdates?.email || profile.email,
-      phone: aiResult?.profileUpdates?.phone || profile.phone,
+      name: aiResult?.profile_updates?.name || profile.name,
+      email: aiResult?.profile_updates?.email || profile.email,
+      phone: aiResult?.profile_updates?.phone || profile.phone,
       jobTitle,
       skills: textToList(skillsText),
       cvText: cvSummary,
@@ -205,8 +205,8 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
       sideProjects: textToList(sideProjectsText),
       motivations: textToList(motivationsText),
       workPreferences: textToList(workPreferencesText),
-      workHistory: aiResult?.profileUpdates?.workHistory || profile.workHistory,
-      education: aiResult?.profileUpdates?.education || profile.education
+      workHistory: aiResult?.profile_updates?.workHistory || profile.workHistory,
+      education: aiResult?.profile_updates?.education || profile.education
     };
 
     onApply(updates);
