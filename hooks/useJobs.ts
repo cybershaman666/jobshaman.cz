@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { Job, ViewState, UserProfile } from '../types';
 import { fetchRealJobs, fetchJobsWithFilters } from '../services/jobService';
+import AnalyticsService from '../services/analyticsService';
 import { calculateCommuteReality } from '../services/commuteService';
 import { matchesIcoKeywords } from '../utils/contractType';
 
@@ -96,7 +97,6 @@ export const useJobs = (viewState: ViewState, userProfile: UserProfile) => {
 
                 // Track filter usage analytics (non-blocking)
                 if (hasActiveFilters && totalCount !== undefined) {
-                    const AnalyticsService = (await import('../services/analyticsService')).default;
                     AnalyticsService.trackFilterUsage({
                         filterCity: filterCity.trim() || undefined,
                         filterContractTypes: filterContractType.length > 0 ? filterContractType : undefined,

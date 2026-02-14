@@ -1,7 +1,14 @@
 
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { supabase } from '../services/supabaseService';
+import {
+  supabase,
+  createBaseProfile,
+  updateUserProfile,
+  getUserProfile,
+  createCompany,
+  initializeCompanySubscription
+} from '../services/supabaseService';
 import { Eye, EyeOff, Building2, Mail, Lock, CheckCircle, ArrowRight, Loader2, Info, X } from 'lucide-react';
 
 interface CompanyRegistrationModalProps {
@@ -78,8 +85,6 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
 
         // 1. Ensure user profile exists as 'recruiter'
         try {
-          const { createBaseProfile, updateUserProfile } = await import('../services/supabaseService');
-
           // Try to update first (if trigger created it as candidate)
           await updateUserProfile(userId, { role: 'recruiter' }).catch(async () => {
             // If update failed (maybe profile doesn't exist), try to create
@@ -87,7 +92,6 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
           });
 
           // VERIFY: Profile MUST exist before we create company (FK Constraint)
-          const { getUserProfile } = await import('../services/supabaseService');
           const profileCheck = await getUserProfile(userId);
 
           if (!profileCheck) {
@@ -102,7 +106,6 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
 
         // 2. Create the company record immediately
         try {
-          const { createCompany } = await import('../services/supabaseService');
           const companyData = await createCompany({
             name: formData.companyName,
             ico: formData.ico,
@@ -112,7 +115,6 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
           }, userId);
 
           if (companyData?.id) {
-            const { initializeCompanySubscription } = await import('../services/supabaseService');
             await initializeCompanySubscription(companyData.id);
           }
         } catch (err) {

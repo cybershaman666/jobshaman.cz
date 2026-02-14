@@ -27,8 +27,9 @@ def test_score_job_includes_inferred_and_leadership_skills():
     )
 
     assert score >= 25
-    assert breakdown["skill_exact"] > 0
-    assert breakdown["skill_semantic"] > 0
+    assert breakdown["skill_match"] > 0
+    assert breakdown["seniority_alignment"] >= 0
+    assert isinstance(breakdown["missing_core_skills"], list)
     assert len(reasons) >= 1
 
 

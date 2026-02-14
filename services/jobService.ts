@@ -4,6 +4,7 @@ import { contextualRelevanceScorer, ContextualRelevanceScorer } from './contextu
 import { calculateJHI } from '../utils/jhiCalculator';
 import { matchesIcoKeywords } from '../utils/contractType';
 import { detectCurrencyFromLocation } from './financialService';
+import { geocodeWithCaching } from './geocodingService';
 import i18n from '../src/i18n';
 import { BACKEND_URL } from '../constants';
 import { authenticatedFetch } from './csrfService';
@@ -735,7 +736,6 @@ export const fetchJobsWithFilters = async (
         // If city filter is provided but no coordinates, try to geocode
         if (filterCity && filterCity.trim() && (!userLat || !userLng)) {
             console.log(`🏙️  City filter provided without coordinates, geocoding "${filterCity}"...`);
-            const { geocodeWithCaching } = await import('./geocodingService');
             const coords = await geocodeWithCaching(filterCity);
             if (coords) {
                 finalUserLat = coords.lat;

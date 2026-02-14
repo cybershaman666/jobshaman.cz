@@ -10,9 +10,26 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     sourcemap: false,
+    chunkSizeWarningLimit: 1400,
     rollupOptions: {
       output: {
-        manualChunks: undefined
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined;
+          if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) return 'vendor-react';
+          if (id.includes('/@supabase/')) return 'vendor-supabase';
+          // Keep Sentry with the generic vendor chunk to avoid circular-chunk edge cases.
+          if (id.includes('/@sentry/')) return 'vendor';
+          if (id.includes('/@google/genai/')) return 'vendor-ai';
+          if (id.includes('/pdfjs-dist/') || id.includes('/mammoth/')) return 'vendor-docs';
+          if (id.includes('/recharts/')) return 'vendor-charts';
+          // Keep i18n in generic vendor to avoid circular chunk graph.
+          if (id.includes('/i18next/') || id.includes('/react-i18next/') || id.includes('/i18next-browser-languagedetector/') || id.includes('/i18next-http-backend/')) return 'vendor';
+          if (id.includes('/@stripe/stripe-js/')) return 'vendor-stripe';
+          if (id.includes('/@vercel/analytics/')) return 'vendor-analytics';
+          if (id.includes('/framer-motion/') || id.includes('/lucide-react/')) return 'vendor-ui';
+          if (id.includes('/markdown-to-jsx/') || id.includes('/marked/')) return 'vendor-markdown';
+          return 'vendor';
+        }
       }
     }
   },

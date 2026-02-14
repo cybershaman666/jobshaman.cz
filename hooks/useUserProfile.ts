@@ -1,6 +1,19 @@
 import { useState, useRef } from 'react';
 import { UserProfile, CompanyProfile, ViewState } from '../types';
-import { signOut, getUserProfile, getRecruiterCompany, updateUserProfile as updateUserProfileService, createCompany, verifyAuthSession } from '../services/supabaseService';
+import {
+    signOut,
+    getUserProfile,
+    getRecruiterCompany,
+    updateUserProfile as updateUserProfileService,
+    createCompany,
+    verifyAuthSession,
+    createBaseProfile,
+    updateCompanyIndustry,
+    getFreelancerProfile,
+    createFreelancerProfile,
+    getMarketplacePartnerByOwner,
+    createMarketplacePartner
+} from '../services/supabaseService';
 import { fetchCsrfToken, clearCsrfToken, authenticatedFetch } from '../services/csrfService';
 import { BACKEND_URL } from '../constants';
 import { supabase } from '../services/supabaseClient';
@@ -87,7 +100,6 @@ export const useUserProfile = () => {
                             const role = user.user_metadata?.role || 'candidate';
                             const name = user.user_metadata?.full_name || user.email.split('@')[0];
 
-                            const { createBaseProfile } = await import('../services/supabaseService');
                             await createBaseProfile(userId, user.email, name, role);
                             profile = await getUserProfile(userId); // Retry fetch
                             console.log('✅ [SessionRestoration] Fallback profile created and loaded:', profile?.id);
@@ -220,7 +232,6 @@ export const useUserProfile = () => {
                         company.industry = industry;
                         // Also update in database
                         try {
-                            const { updateCompanyIndustry } = await import('../services/supabaseService');
                             await updateCompanyIndustry(company.id, industry);
                             console.log("✅ Company industry updated in database");
                         } catch (err) {
@@ -260,7 +271,6 @@ export const useUserProfile = () => {
                     const isFreelancer = metaIsFreelancer || company?.industry === 'Freelancer';
                     if (isFreelancer) {
                         try {
-                            const { getFreelancerProfile, createFreelancerProfile } = await import('../services/supabaseService');
                             const existingFreelancer = await getFreelancerProfile(userId);
                             if (!existingFreelancer) {
                                 const { data: { user } } = await supabase.auth.getUser();
@@ -281,7 +291,6 @@ export const useUserProfile = () => {
                     const isCourseProvider = metaIsCourseProvider || company?.industry === 'Education';
                     if (isCourseProvider) {
                         try {
-                            const { getMarketplacePartnerByOwner, createMarketplacePartner } = await import('../services/supabaseService');
                             const existingPartner = await getMarketplacePartnerByOwner(userId);
                             if (!existingPartner) {
                                 const { data: { user } } = await supabase.auth.getUser();

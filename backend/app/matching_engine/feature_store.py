@@ -64,6 +64,8 @@ def extract_job_features(job: Dict) -> Dict:
         "description": description,
         "location": location,
         "country": _norm(job.get("country_code") or ""),
+        "role": _norm(job.get("role") or title),
+        "industry": _norm(job.get("industry") or ""),
         "salary_from": job.get("salary_from"),
         "salary_to": job.get("salary_to"),
         "currency": _norm(job.get("currency") or "czk"),

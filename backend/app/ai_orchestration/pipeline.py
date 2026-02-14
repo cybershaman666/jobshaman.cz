@@ -1,5 +1,6 @@
 import json
 import time
+from uuid import uuid4
 from typing import Any, Dict, List, Optional
 
 from pydantic import ValidationError
@@ -8,13 +9,11 @@ from .client import AIClientError, _extract_json, call_primary_with_fallback
 from .models import (
     AIGuidedProfileAIResult,
     AIGuidedProfileResponseV2,
-    AIProfileTyped,
-    ProfileUpdatesTyped,
     AIGenerationMeta,
     TokenUsage,
 )
 from .prompt_registry import get_prompt
-from .telemetry import estimate_text_cost_usd, log_ai_generation
+from .telemetry import canonical_hash, estimate_text_cost_usd, log_ai_generation
 
 PRIMARY_MODEL = "gemini-1.5-flash"
 FALLBACK_MODEL = "gemini-1.5-flash-8b"
@@ -135,6 +134,8 @@ def generate_profile_with_orchestration(
 
     prompt_version, system_prompt = get_prompt("profile_generate", requested_prompt_version)
     prompt = _build_generation_prompt(system_prompt, language, existing_profile, safe_steps)
+    input_hash = canonical_hash({"language": language, "steps": safe_steps, "existing_profile": existing_profile or {}})
+    prompt_hash = canonical_hash({"prompt_version": prompt_version, "system_prompt": system_prompt, "prompt": prompt})
 
     started = time.perf_counter()
     model_final = PRIMARY_MODEL
@@ -169,9 +170,18 @@ def generate_profile_with_orchestration(
 
         latency_ms = int((time.perf_counter() - started) * 1000)
         estimated_cost = estimate_text_cost_usd(model_final, tokens_in, tokens_out)
+        output_payload = typed.model_dump(mode="json")
+        output_hash = canonical_hash(output_payload)
+        section_hashes = {
+            "profile_updates": canonical_hash(output_payload.get("profile_updates") or {}),
+            "ai_profile": canonical_hash(output_payload.get("ai_profile") or {}),
+            "cv_summary": canonical_hash(output_payload.get("cv_summary") or ""),
+            "cv_ai_text": canonical_hash(output_payload.get("cv_ai_text") or ""),
+        }
 
         log_ai_generation(
             {
+                "id": str(uuid4()),
                 "user_id": user_id,
                 "feature": "profile_generate",
                 "prompt_version": prompt_version,
@@ -184,6 +194,10 @@ def generate_profile_with_orchestration(
                 "tokens_in": tokens_in,
                 "tokens_out": tokens_out,
                 "estimated_cost": estimated_cost,
+                "input_hash": input_hash,
+                "prompt_hash": prompt_hash,
+                "output_hash": output_hash,
+                "section_hashes": section_hashes,
                 "error_code": None,
             }
         )
@@ -216,6 +230,7 @@ def generate_profile_with_orchestration(
             latency_ms = int((time.perf_counter() - started) * 1000)
             log_ai_generation(
                 {
+                    "id": str(uuid4()),
                     "user_id": user_id,
                     "feature": "profile_generate",
                     "prompt_version": prompt_version,
@@ -228,6 +243,10 @@ def generate_profile_with_orchestration(
                     "tokens_in": tokens_in,
                     "tokens_out": tokens_out,
                     "estimated_cost": estimate_text_cost_usd(model_final, tokens_in, tokens_out),
+                    "input_hash": input_hash,
+                    "prompt_hash": prompt_hash,
+                    "output_hash": None,
+                    "section_hashes": {},
                     "error_code": error_code,
                 }
             )

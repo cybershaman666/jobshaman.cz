@@ -851,8 +851,7 @@ export default function App() {
                 await updateUserProfile(updatedProfile.id, updatedProfile);
 
                 // Refetch to sync (only on explicit persistence)
-                const { getUserProfile: fetchUpdated } = await import('./services/supabaseService');
-                const fresh = await fetchUpdated(updatedProfile.id);
+                const fresh = await getUserProfile(updatedProfile.id);
                 if (fresh) {
                     setUserProfile(fresh);
                 }
@@ -872,8 +871,7 @@ export default function App() {
 
             // 🔄 Refetch profile to get updated coordinates from DB calculated by triggers or service logic
             console.log("🔄 Refetching profile to sync coordinates...");
-            const { getUserProfile: fetchUpdated } = await import('./services/supabaseService');
-            const freshProfile = await fetchUpdated(userProfile.id);
+            const freshProfile = await getUserProfile(userProfile.id);
             if (freshProfile) {
                 setUserProfile(freshProfile);
                 console.log("✅ Profile refetched. New coordinates:", freshProfile.coordinates);

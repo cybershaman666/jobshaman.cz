@@ -1,5 +1,15 @@
 import React, { useState } from 'react';
-import { supabase } from '../services/supabaseService';
+import {
+    supabase,
+    createBaseProfile,
+    updateUserProfile,
+    ensureCandidateProfile,
+    createCompany,
+    createMarketplacePartner,
+    getMarketplacePartnerByOwner,
+    getUserProfile,
+    initializeCompanySubscription
+} from '../services/supabaseService';
 import { Eye, EyeOff, Mail, Lock, CheckCircle, ArrowRight, Loader2, Info, X, User, MapPin, Phone } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
@@ -77,8 +87,6 @@ export default function CourseProviderRegistrationModal({ isOpen, onClose, onSuc
     };
 
     const finalizeRegistration = async (userId: string, userEmail: string) => {
-        const { createBaseProfile, updateUserProfile, ensureCandidateProfile, createCompany, createMarketplacePartner, getMarketplacePartnerByOwner, getUserProfile } = await import('../services/supabaseService');
-
         await updateUserProfile(userId, { role: 'recruiter' }).catch(async () => {
             await createBaseProfile(userId, userEmail || formData.email, formData.providerName, 'recruiter');
         });
@@ -114,7 +122,6 @@ export default function CourseProviderRegistrationModal({ isOpen, onClose, onSuc
 
         if (companyData?.id) {
             try {
-                const { initializeCompanySubscription } = await import('../services/supabaseService');
                 await initializeCompanySubscription(companyData.id);
             } catch (err) {
                 console.warn('⚠️ Failed to initialize subscription:', err);

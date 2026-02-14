@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { signInWithEmail, signInWithOAuthProvider, signUpWithEmail } from '../services/supabaseService';
 import { fetchCsrfToken, waitForSession } from '../services/csrfService';
+import { supabase } from '../services/supabaseClient';
 import { X, Mail, Lock, User, Loader2, AlertCircle, Chrome, Linkedin } from 'lucide-react';
 
 import { useTranslation } from 'react-i18next';
@@ -56,7 +57,7 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
             if (userData) {
                 (async () => {
                     try {
-                        const session = await (await import('../services/supabaseClient')).supabase?.auth.getSession();
+                        const session = await supabase?.auth.getSession();
                         let accessToken = session?.data?.session?.access_token;
 
                         if (!accessToken) {
