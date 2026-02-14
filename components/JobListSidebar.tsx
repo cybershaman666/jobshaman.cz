@@ -155,16 +155,16 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                             </button>
                         </div>
 
-                        <div className={compactFilters ? "mt-2 grid grid-cols-2 gap-2 sm:mt-3 sm:space-y-3 sm:block" : "mt-3 space-y-3"}>
+                        <div className={compactFilters ? "mt-2 grid grid-cols-2 gap-2" : "mt-3 grid grid-cols-2 gap-2"}>
                             <div>
-                                <label className={`text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1 ${compactFilters ? 'sr-only sm:not-sr-only' : ''}`}>
+                                <label className="sr-only">
                                     {t('filters.language') || 'Jazyk nabídky'}
                                 </label>
                                 <select
                                     value={filterLanguage}
                                     onChange={(e) => setFilterLanguage(e.target.value)}
                                     aria-label={t('filters.language') || 'Jazyk nabídky'}
-                                    className={`w-full ${compactFilters ? 'px-2.5 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'} bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500`}
+                                    className={`w-full ${compactFilters ? 'px-2.5 py-1.5 text-[13px]' : 'px-2.5 py-1.5 text-[13px]'} bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500`}
                                 >
                                     <option value="">{t('filters.language_all') || 'Všechny jazyky'}</option>
                                     <option value="cs">Čeština</option>
@@ -177,14 +177,14 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                             </div>
 
                             <div>
-                                <label className={`text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide block mb-1 ${compactFilters ? 'sr-only sm:not-sr-only' : ''}`}>
+                                <label className="sr-only">
                                     {t('filters.sort_by')}
                                 </label>
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
                                     aria-label={t('filters.sort_by') || 'Řazení'}
-                                    className={`w-full ${compactFilters ? 'px-2.5 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'} bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500`}
+                                    className={`w-full ${compactFilters ? 'px-2.5 py-1.5 text-[13px]' : 'px-2.5 py-1.5 text-[13px]'} bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500`}
                                 >
                                     <option value="recommended">{t('filters.sort_options.recommended') || 'AI doporučené'}</option>
                                     <option value="default">{t('filters.sort_options.default')}</option>
