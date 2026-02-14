@@ -839,6 +839,8 @@
       "title_highlight": "Talente",
       "title_end": "mit KI ein",
       "subtitle": "Moderne Recruiting-Plattform mit KI-Kandidatenanalyse, Assessment Center und intelligenter Stellenanzeigen-Optimierung. Verschwenden Sie keine Zeit mehr mit ungeeigneten Bewerbern.",
+      "value_prop": "Nicht nur günstigeres Recruiting. Höhere Conversion und relevantere Antworten.",
+      "value_prop_detail": "JobShaman steuert Ausspielungen nach realem Kandidatenverhalten (Impressions, Detailaufrufe, Reaktionen). So erhalten Unternehmen schon im Basisfluss qualitativ bessere Antworten – auch ohne aktiviertes KI-Assessment.",
       "start_free": "Kostenlos starten",
       "login": "Anmelden",
       "view_demo": "Demo ansehen"
@@ -855,7 +857,8 @@
       "ai_powered": "KI-Anzeigenoptimierung",
       "easy_posting": "Einfache Erstellung von Anzeigen",
       "assessments": "Eigenes Assessment Center",
-      "insights": "Übersicht über Benefits"
+      "insights": "Übersicht über Benefits",
+      "conversion_without_assessment": "Höhere Conversion und relevantere Antworten auch ohne KI-Assessments"
     },
     "features": {
       "title": "KI-Tools",

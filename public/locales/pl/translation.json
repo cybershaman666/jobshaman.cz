@@ -825,6 +825,8 @@
       "title_highlight": "Talenty",
       "title_end": "z AI",
       "subtitle": "Nowoczesna platforma rekrutacyjna z analizą kandydatów AI, Assessment Center i inteligentną optymalizacją ogłoszeń. Przestań tracić czas na nieodpowiednich kandydatów.",
+      "value_prop": "Nie tylko tańsza rekrutacja. Lepsza konwersja i trafniejsze odpowiedzi.",
+      "value_prop_detail": "JobShaman targetuje oferty na podstawie realnych zachowań kandydatów (wyświetlenia, otwarcia szczegółu, reakcje), dzięki czemu firmy dostają lepszej jakości odpowiedzi już w podstawowym flow, nawet bez włączonego AI assessmentu.",
       "start_free": "Zacznij za darmo",
       "login": "Zaloguj się",
       "view_demo": "Zobacz demo"
@@ -841,7 +843,8 @@
       "ai_powered": "AI Optymalizacja ogłoszeń",
       "easy_posting": "Łatwe tworzenie ogłoszeń",
       "assessments": "Własne Assessment Center",
-      "insights": "Przeglądy o benefitach"
+      "insights": "Przeglądy o benefitach",
+      "conversion_without_assessment": "Wyższa konwersja i trafność odpowiedzi nawet bez AI assessmentu"
     },
     "features": {
       "title": "Narzędzia AI",

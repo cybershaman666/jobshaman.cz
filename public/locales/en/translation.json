@@ -827,6 +827,8 @@
       "title_highlight": "Talent",
       "title_end": "with AI",
       "subtitle": "Modern recruitment platform with AI candidate analysis, Assessment Center, and intelligent job ad optimization. Stop wasting time with unsuitable applicants.",
+      "value_prop": "Not just cheaper hiring. Better conversion and more relevant responses.",
+      "value_prop_detail": "JobShaman targets offers using real candidate behavior (impressions, detail opens, actions), so companies get higher-quality responses in the base flow, even without AI assessments enabled.",
       "start_free": "Start for free",
       "login": "Log in",
       "view_demo": "View demo"
@@ -843,7 +845,8 @@
       "ai_powered": "AI job ad optimization",
       "easy_posting": "Easy job posting",
       "assessments": "Custom Assessment Center",
-      "insights": "Benefit insights"
+      "insights": "Benefit insights",
+      "conversion_without_assessment": "Higher conversion and response relevance even without AI assessments"
     },
     "features": {
       "title": "AI Tools",
