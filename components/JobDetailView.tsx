@@ -1,9 +1,8 @@
 import React, { RefObject } from 'react';
-import { Job, UserProfile, CommuteAnalysis, ViewState, CareerPathfinderResult, AIAnalysisResult } from '../types';
+import { Job, UserProfile, CommuteAnalysis, ViewState, AIAnalysisResult } from '../types';
 import FinancialCard from './FinancialCard';
 import WelcomePage from './WelcomePage';
 import JHIChart from './JHIChart';
-import SkillsGapBox from './SkillsGapBox';
 import BullshitMeter from './BullshitMeter';
 import TransparencyCard from './TransparencyCard';
 import ContextualRelevance from './ContextualRelevance';
@@ -36,7 +35,6 @@ interface JobDetailViewProps {
     getTransportIcon: (mode: string) => React.ComponentType<any>;
     formatJobDescription: (description: string) => string;
     theme: 'light' | 'dark';
-    pathfinderAnalysis: CareerPathfinderResult | null;
     aiAnalysis: AIAnalysisResult | null;
     analyzing: boolean;
     handleAnalyzeJob: () => void;
@@ -66,7 +64,6 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     getTransportIcon,
     formatJobDescription,
     theme,
-    pathfinderAnalysis,
     aiAnalysis,
     analyzing,
     handleAnalyzeJob,
@@ -343,7 +340,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                         <JHIChart
                                             jhi={dynamicJHI}
                                             theme={theme}
-                                            highlightGrowth={!!(pathfinderAnalysis?.skillsGapAnalysis?.recommended_resources?.length)}
+                                            highlightGrowth={false}
                                         />
                                     </div>
 
@@ -390,28 +387,8 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                     <TransparencyCard variant={theme} />
                                 </div>
 
-                                {/* Right Column - Skills Gap Analysis & BullshitMeter */}
+                                {/* Right Column - BullshitMeter */}
                                 <div className="space-y-6">
-                                    {/* Career Pathfinder - Skills Gap Analysis */}
-                                    <SkillsGapBox
-                                        skillsGapAnalysis={pathfinderAnalysis?.skillsGapAnalysis || null}
-                                        isLoading={pathfinderAnalysis?.isLoading || false}
-                                        error={pathfinderAnalysis?.error || null}
-                                        theme={theme}
-                                        userProfile={{
-                                            isLoggedIn: userProfile.isLoggedIn,
-                                            hasCV: !!userProfile.cvText || !!userProfile.cvUrl,
-                                            name: userProfile.name
-                                        }}
-                                        onResourceClick={(resource) => {
-                                            window.open(resource.url, '_blank');
-                                        }}
-                                        onShowProfile={() => {
-                                            setViewState(ViewState.PROFILE);
-                                            setSelectedJobId(null);
-                                        }}
-                                    />
-
                                     {/* BullshitMeter */}
                                     <BullshitMeter metrics={selectedJob.noiseMetrics} variant={theme} />
                                 </div>
