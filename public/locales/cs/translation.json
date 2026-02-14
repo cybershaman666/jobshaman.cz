@@ -984,6 +984,8 @@
       "title_highlight": "Talenty",
       "title_end": "s AI",
       "subtitle": "Zjednodušte nábor s AI optimalizací inzerátů a vlastním Assessment Centrem. Najděte ty správné kandidáty rychleji.",
+      "value_prop": "Nejen levnější nábor. Lepší konverze a relevantnější odpovědi.",
+      "value_prop_detail": "JobShaman cílí nabídky podle reálného chování kandidátů (zobrazení, otevření detailu, reakce), takže firmy dostávají kvalitnější odpovědi už v základním flow, i bez zapnutí AI assessmentu.",
       "start_free": "Začít zdarma",
       "login": "Přihlásit se",
       "view_demo": "Prohlédnout demo"
@@ -1000,7 +1002,8 @@
       "ai_powered": "AI optimalizace inzerátů",
       "easy_posting": "Snadné vytváření inzerátů",
       "assessments": "Vlastní Assessment Center",
-      "insights": "Přehledy o benefitech"
+      "insights": "Přehledy o benefitech",
+      "conversion_without_assessment": "Vyšší konverze a relevance odpovědí i bez AI assessmentu"
     },
     "features": {
       "title": "AI Nástroje",

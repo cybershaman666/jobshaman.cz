@@ -18,7 +18,6 @@ import PlanUpgradeModal from './PlanUpgradeModal';
 import AssessmentInvitationModal from './AssessmentInvitationModal';
 import MyInvitations from './MyInvitations';
 import AssessmentResultsList from './AssessmentResultsList';
-import CompanyFreelancerMarketplace from './CompanyFreelancerMarketplace';
 import {
     Briefcase,
     Users,
@@ -75,7 +74,7 @@ interface CompanyDashboardProps {
 
 const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: propProfile, userEmail, onDeleteAccount, onProfileUpdate }) => {
     const { t, i18n } = useTranslation();
-    const [activeTab, setActiveTab] = useState<'overview' | 'create-ad' | 'candidates' | 'settings' | 'assessments' | 'marketplace'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'create-ad' | 'candidates' | 'settings' | 'assessments'>('overview');
     const [showUpgradeModal, setShowUpgradeModal] = useState<{ open: boolean, feature?: string }>({ open: false });
     const [showInvitationModal, setShowInvitationModal] = useState(false);
     const [showInvitationsList, setShowInvitationsList] = useState(false);
@@ -1412,12 +1411,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     >
                         {t('company.dashboard.tabs.candidates')}
                     </button>
-                    <button
-                        onClick={() => setActiveTab('marketplace')}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'marketplace' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
-                    >
-                        {t('company.dashboard.tabs.marketplace')}
-                    </button>
                 </div>
             </div>
 
@@ -1474,7 +1467,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     </div>
                 )}
                 {activeTab === 'candidates' && renderCandidates()}
-                {activeTab === 'marketplace' && <CompanyFreelancerMarketplace />}
             </div>
 
             <PlanUpgradeModal

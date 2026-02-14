@@ -108,8 +108,13 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
   const benefits = [
     { icon: Sparkles, text: t('company_landing.benefits.ai_powered') },
     { icon: Target, text: t('company_landing.benefits.easy_posting') },
-    { icon: BrainCircuit, text: t('company_landing.benefits.assessments') },
-    { icon: TrendingUp, text: t('company_landing.benefits.insights') }
+    { icon: TrendingUp, text: t('company_landing.benefits.insights') },
+    {
+      icon: CheckCircle,
+      text: t('company_landing.benefits.conversion_without_assessment', {
+        defaultValue: 'Vyšší konverze a relevance odpovědí i bez AI assessmentu'
+      })
+    }
   ];
 
   return (
@@ -137,6 +142,12 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             <p className="text-slate-600 dark:text-slate-300 text-lg md:text-xl leading-relaxed max-w-3xl mx-auto">
               {t('company_landing.hero.subtitle')}
             </p>
+            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
+              <TrendingUp size={16} />
+              {t('company_landing.hero.value_prop', {
+                defaultValue: 'Nejen levnější nábor. Lepší konverze a relevantnější odpovědi.'
+              })}
+            </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
               <button
                 onClick={onRegister}
@@ -152,6 +163,11 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                 <LogIn size={18} />
                 {t('company_landing.hero.login')}
               </button>
+            </div>
+            <div className="mt-4 max-w-3xl mx-auto text-sm text-slate-600 dark:text-slate-300">
+              {t('company_landing.hero.value_prop_detail', {
+                defaultValue: 'JobShaman cílí nabídky podle reálného chování kandidátů (zobrazení, otevření detailu, reakce), takže firmy dostávají kvalitnější odpovědi už v základním flow, i bez zapnutí AI assessmentu.'
+              })}
             </div>
           </div>
 
