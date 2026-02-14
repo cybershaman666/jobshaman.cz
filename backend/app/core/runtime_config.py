@@ -182,3 +182,162 @@ def get_active_scoring_model() -> Dict[str, Any]:
 
     _cache_set(cache_key, defaults)
     return defaults
+
+
+def get_scoring_model_by_version(version: str) -> Optional[Dict[str, Any]]:
+    if not version:
+        return None
+
+    cache_key = f"scoring:version:{version}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    if not supabase:
+        return None
+
+    try:
+        row = (
+            supabase.table("scoring_model_versions")
+            .select("version, alpha_skill, beta_demand, gamma_seniority, delta_salary, epsilon_geo")
+            .eq("version", version)
+            .limit(1)
+            .execute()
+        )
+        data = (row.data or [None])[0]
+        if not data:
+            _cache_set(cache_key, None)
+            return None
+
+        out = {
+            "version": data.get("version") or version,
+            "weights": {
+                "alpha_skill": float(data.get("alpha_skill") or 0),
+                "beta_demand": float(data.get("beta_demand") or 0),
+                "gamma_seniority": float(data.get("gamma_seniority") or 0),
+                "delta_salary": float(data.get("delta_salary") or 0),
+                "epsilon_geo": float(data.get("epsilon_geo") or 0),
+            },
+        }
+        _cache_set(cache_key, out)
+        return out
+    except Exception as exc:
+        print(f"⚠️ [Runtime Config] failed loading scoring version {version}: {exc}")
+        return None
+
+
+def resolve_scoring_model_for_user(user_id: str, feature: str = "recommendations") -> Dict[str, Any]:
+    """
+    Deterministic user -> scoring_version mapping using model_experiments:
+      bucket = hash(f\"{experiment_key}:{user_id}\") % 100
+      if bucket < traffic_percent => candidate_version else control_version
+    Assignment is persisted in model_experiment_assignments.
+    """
+    active = get_active_scoring_model()
+    if not supabase or not user_id:
+        return {**active, "assignment_source": "active_default", "bucket": None, "experiment_key": None}
+
+    try:
+        exp = (
+            supabase.table("model_experiments")
+            .select("experiment_key, control_version, candidate_version, traffic_percent")
+            .eq("subsystem", "matching")
+            .eq("feature", feature)
+            .eq("is_enabled", True)
+            .order("updated_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        experiment = (exp.data or [None])[0]
+        if not experiment:
+            return {**active, "assignment_source": "active_default", "bucket": None, "experiment_key": None}
+
+        experiment_key = experiment.get("experiment_key")
+        traffic = int(experiment.get("traffic_percent") or 0)
+        control_version = experiment.get("control_version") or active["version"]
+        candidate_version = experiment.get("candidate_version") or active["version"]
+
+        bucket = _stable_rollout_bucket(f"{experiment_key}:{user_id}")
+        selected_version = candidate_version if bucket < traffic else control_version
+
+        selected = get_scoring_model_by_version(selected_version) or active
+
+        assignment_payload = {
+            "experiment_key": experiment_key,
+            "user_id": user_id,
+            "subsystem": "matching",
+            "feature": feature,
+            "assigned_version": selected.get("version") or active["version"],
+            "bucket": bucket,
+            "updated_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        }
+        try:
+            supabase.table("model_experiment_assignments").upsert(
+                assignment_payload,
+                on_conflict="experiment_key,user_id",
+            ).execute()
+        except Exception as exc:
+            print(f"⚠️ [Runtime Config] failed to persist model experiment assignment: {exc}")
+
+        return {
+            **selected,
+            "assignment_source": "experiment",
+            "bucket": bucket,
+            "experiment_key": experiment_key,
+        }
+    except Exception as exc:
+        print(f"⚠️ [Runtime Config] failed resolving scoring experiment: {exc}")
+        return {**active, "assignment_source": "active_default", "bucket": None, "experiment_key": None}
+
+
+def get_active_action_prediction_model(model_key: str = "job_apply_probability") -> Dict[str, Any]:
+    cache_key = f"action_model:{model_key}:active"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return cached
+
+    defaults = {
+        "model_key": model_key,
+        "version": "v1",
+        "objective": "apply_click_probability",
+        "coefficients_json": {
+            "intercept": -2.15,
+            "similarity_score": 1.20,
+            "skill_match": 1.55,
+            "salary_alignment": 0.70,
+            "seniority_alignment": 0.80,
+            "recency_score": 0.35,
+            "location_distance_km": -0.015,
+        },
+        "feature_schema_json": {},
+    }
+
+    if not supabase:
+        return defaults
+
+    try:
+        row = (
+            supabase.table("action_prediction_models")
+            .select("model_key, version, objective, coefficients_json, feature_schema_json")
+            .eq("model_key", model_key)
+            .eq("is_active", True)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        data = (row.data or [None])[0]
+        if data:
+            out = {
+                "model_key": data.get("model_key") or model_key,
+                "version": data.get("version") or "v1",
+                "objective": data.get("objective") or "apply_click_probability",
+                "coefficients_json": data.get("coefficients_json") or defaults["coefficients_json"],
+                "feature_schema_json": data.get("feature_schema_json") or {},
+            }
+            _cache_set(cache_key, out)
+            return out
+    except Exception as exc:
+        print(f"⚠️ [Runtime Config] failed loading action prediction model {model_key}: {exc}")
+
+    _cache_set(cache_key, defaults)
+    return defaults

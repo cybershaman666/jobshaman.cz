@@ -55,6 +55,14 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     const dragDelta = Math.abs(swipeState.currentX - swipeState.startX);
     const isTap = !swipeState.isDragging && dragDelta < 10;
 
+    const currentRecommendationMeta = () => ({
+        request_id: (currentJob as any)?.aiRecommendationRequestId,
+        scoring_version: (currentJob as any)?.aiMatchScoringVersion,
+        model_version: (currentJob as any)?.aiMatchModelVersion,
+        score: (currentJob as any)?.aiMatchScore,
+        position: (currentJob as any)?.aiRecommendationPosition,
+    });
+
     useEffect(() => {
         if (typeof window === 'undefined') return;
         const key = 'swipe_tutorial_seen';
@@ -88,9 +96,13 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
             jobId: currentJob.id,
             eventType: 'impression',
             sessionId: sessionIdRef.current,
+            requestId: currentRecommendationMeta().request_id,
+            scoringVersion: currentRecommendationMeta().scoring_version,
+            modelVersion: currentRecommendationMeta().model_version,
             metadata: {
                 index: currentIndex,
-                source: 'mobile_swipe'
+                source: 'mobile_swipe',
+                ...currentRecommendationMeta(),
             }
         });
     }, [currentJob?.id, currentIndex]);
@@ -99,13 +111,19 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
         if (currentIndex < jobs.length) {
             const dwellTimeMs = viewStartRef.current ? Date.now() - viewStartRef.current : undefined;
             if (currentJob) {
+                const recMeta = currentRecommendationMeta();
                 trackJobInteraction({
                     jobId: currentJob.id,
                     eventType: 'swipe_left',
                     dwellTimeMs,
                     sessionId: sessionIdRef.current,
+                    requestId: recMeta.request_id,
+                    scoringVersion: recMeta.scoring_version,
+                    modelVersion: recMeta.model_version,
+                    signalValue: 0,
                     metadata: {
-                        source: 'mobile_swipe'
+                        source: 'mobile_swipe',
+                        ...recMeta,
                     }
                 });
             }
@@ -120,14 +138,20 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     const handleSave = () => {
         const dwellTimeMs = viewStartRef.current ? Date.now() - viewStartRef.current : undefined;
         if (currentJob) {
+            const recMeta = currentRecommendationMeta();
             onToggleSave(currentJob.id);
             trackJobInteraction({
                 jobId: currentJob.id,
                 eventType: 'swipe_right',
                 dwellTimeMs,
                 sessionId: sessionIdRef.current,
+                requestId: recMeta.request_id,
+                scoringVersion: recMeta.scoring_version,
+                modelVersion: recMeta.model_version,
+                signalValue: 1,
                 metadata: {
-                    source: 'mobile_swipe'
+                    source: 'mobile_swipe',
+                    ...recMeta,
                 }
             });
             trackJobInteraction({
@@ -135,8 +159,12 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                 eventType: isSaved ? 'unsave' : 'save',
                 dwellTimeMs,
                 sessionId: sessionIdRef.current,
+                requestId: recMeta.request_id,
+                scoringVersion: recMeta.scoring_version,
+                modelVersion: recMeta.model_version,
                 metadata: {
-                    source: 'mobile_swipe'
+                    source: 'mobile_swipe',
+                    ...recMeta,
                 }
             });
         }
@@ -152,13 +180,20 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     const handleOpenDetails = () => {
         if (!currentJob) return;
         const dwellTimeMs = viewStartRef.current ? Date.now() - viewStartRef.current : undefined;
+        const recMeta = currentRecommendationMeta();
         trackJobInteraction({
             jobId: currentJob.id,
             eventType: 'open_detail',
             dwellTimeMs,
             sessionId: sessionIdRef.current,
+            requestId: recMeta.request_id,
+            scoringVersion: recMeta.scoring_version,
+            modelVersion: recMeta.model_version,
+            signalValue: 1,
+            scrollDepth: 100,
             metadata: {
-                source: 'mobile_swipe'
+                source: 'mobile_swipe',
+                ...recMeta,
             }
         });
         onOpenDetails(currentJob.id);

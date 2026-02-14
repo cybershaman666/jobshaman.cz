@@ -66,6 +66,11 @@ class JobInteractionRequest(BaseModel):
     event_type: str = Field(..., pattern=r"^(impression|swipe_left|swipe_right|open_detail|apply_click|save|unsave)$")
     dwell_time_ms: Optional[int] = None
     session_id: Optional[str] = None
+    request_id: Optional[str] = None
+    signal_value: Optional[float] = None
+    scroll_depth: Optional[float] = Field(default=None, ge=0, le=100)
+    scoring_version: Optional[str] = None
+    model_version: Optional[str] = None
     metadata: Optional[dict] = None
 
 class AdminSubscriptionUpdateRequest(BaseModel):

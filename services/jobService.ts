@@ -1018,12 +1018,17 @@ export const fetchRecommendedJobs = async (limit: number = 50): Promise<Job[]> =
     }
     const data = await response.json();
     const items = Array.isArray(data.jobs) ? data.jobs : [];
+    const requestId = data.request_id || undefined;
     const mapped = items.map((item: any) => {
         const job = transformJob(item.job || item);
         (job as any).aiMatchScore = item.score;
         (job as any).aiMatchReasons = item.reasons || [];
         (job as any).aiMatchBreakdown = item.breakdown || undefined;
         (job as any).aiMatchModelVersion = item.model_version || undefined;
+        (job as any).aiMatchScoringVersion = item.scoring_version || undefined;
+        (job as any).aiMatchActionProbability = item.action_probability ?? item.breakdown?.action_probability;
+        (job as any).aiRecommendationPosition = item.position || undefined;
+        (job as any).aiRecommendationRequestId = item.request_id || requestId;
         return job;
     });
     return mapped;

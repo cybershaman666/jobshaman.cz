@@ -9,6 +9,9 @@ _SUPPORTED_TABLES = {
     "ai_generation_diffs": "created_at",
     "recommendation_cache": "computed_at",
     "ai_conversion_metrics": "created_at",
+    "recommendation_exposures": "shown_at",
+    "recommendation_feedback_events": "created_at",
+    "model_offline_evaluations": "created_at",
 }
 
 

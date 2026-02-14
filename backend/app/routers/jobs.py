@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, Query
+from uuid import uuid4
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access
 from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, HybridJobSearchRequest
@@ -136,17 +137,66 @@ async def log_job_interaction(payload: JobInteractionRequest, request: Request, 
         raise HTTPException(status_code=401, detail="User not authenticated")
 
     try:
+        metadata = payload.metadata or {}
+        request_id = payload.request_id or metadata.get("request_id")
+        scoring_version = payload.scoring_version or metadata.get("scoring_version")
+        model_version = payload.model_version or metadata.get("model_version")
         insert_data = {
             "user_id": user_id,
             "job_id": payload.job_id,
             "event_type": payload.event_type,
             "dwell_time_ms": payload.dwell_time_ms,
             "session_id": payload.session_id,
-            "metadata": payload.metadata or {}
+            "metadata": metadata
         }
         res = supabase.table("job_interactions").insert(insert_data).execute()
         if not res.data:
             return {"status": "error", "message": "No data inserted"}
+
+        feedback_rows = [
+            {
+                "request_id": request_id,
+                "user_id": user_id,
+                "job_id": payload.job_id,
+                "signal_type": payload.event_type,
+                "signal_value": payload.signal_value,
+                "scoring_version": scoring_version,
+                "model_version": model_version,
+                "metadata": metadata,
+            }
+        ]
+
+        # Capture implicit relevance signals without changing client event taxonomy.
+        if payload.dwell_time_ms is not None:
+            feedback_rows.append(
+                {
+                    "request_id": request_id,
+                    "user_id": user_id,
+                    "job_id": payload.job_id,
+                    "signal_type": "dwell_ms",
+                    "signal_value": float(payload.dwell_time_ms),
+                    "scoring_version": scoring_version,
+                    "model_version": model_version,
+                    "metadata": metadata,
+                }
+            )
+        if payload.scroll_depth is not None:
+            feedback_rows.append(
+                {
+                    "request_id": request_id,
+                    "user_id": user_id,
+                    "job_id": payload.job_id,
+                    "signal_type": "scroll_depth",
+                    "signal_value": float(payload.scroll_depth),
+                    "scoring_version": scoring_version,
+                    "model_version": model_version,
+                    "metadata": metadata,
+                }
+            )
+        try:
+            supabase.table("recommendation_feedback_events").insert(feedback_rows).execute()
+        except Exception as feedback_exc:
+            print(f"⚠️ Failed to write recommendation feedback events: {feedback_exc}")
         return {"status": "success"}
     except Exception as e:
         print(f"❌ Error logging job interaction: {e}")
@@ -165,7 +215,54 @@ async def get_job_recommendations(
         raise HTTPException(status_code=401, detail="User not authenticated")
 
     matches = recommend_jobs_for_user(user_id=user_id, limit=limit, allow_cache=True)
-    return {"jobs": matches}
+    request_id = str(uuid4())
+
+    exposure_rows = []
+    enriched_matches = []
+    for idx, item in enumerate(matches):
+        job = item.get("job") or {}
+        job_id = job.get("id")
+        if not job_id:
+            continue
+        position = int(item.get("position") or (idx + 1))
+        score = float(item.get("score") or 0.0)
+        model_version = item.get("model_version") or "career-os-v2"
+        scoring_version = item.get("scoring_version") or "scoring-v1"
+
+        exposure_rows.append(
+            {
+                "request_id": request_id,
+                "user_id": user_id,
+                "job_id": job_id,
+                "position": position,
+                "score": score,
+                "predicted_action_probability": float(item.get("action_probability") or 0.0),
+                "action_model_version": item.get("action_model_version") or None,
+                "ranking_strategy": (item.get("breakdown") or {}).get("selection_strategy"),
+                "is_new_job": bool((item.get("breakdown") or {}).get("is_new_job")),
+                "is_long_tail_company": bool((item.get("breakdown") or {}).get("is_long_tail_company")),
+                "model_version": model_version,
+                "scoring_version": scoring_version,
+                "source": "recommendations_api",
+            }
+        )
+        enriched_matches.append(
+            {
+                **item,
+                "position": position,
+                "request_id": request_id,
+            }
+        )
+
+    if exposure_rows:
+        try:
+            supabase.table("recommendation_exposures").upsert(
+                exposure_rows, on_conflict="request_id,user_id,job_id"
+            ).execute()
+        except Exception as exp_exc:
+            print(f"⚠️ Failed to write recommendation exposures: {exp_exc}")
+
+    return {"jobs": enriched_matches, "request_id": request_id}
 
 
 @router.post("/jobs/hybrid-search")
