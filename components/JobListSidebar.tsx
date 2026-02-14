@@ -186,6 +186,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                     aria-label={t('filters.sort_by') || 'Řazení'}
                                     className={`w-full ${compactFilters ? 'px-2.5 py-1.5 text-[13px]' : 'px-3 py-2 text-sm'} bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500`}
                                 >
+                                    <option value="recommended">{t('filters.sort_options.recommended') || 'AI doporučené'}</option>
                                     <option value="default">{t('filters.sort_options.default')}</option>
                                     <option value="newest">{t('filters.sort_options.newest')}</option>
                                     <option value="jhi_desc">{t('filters.sort_options.jhi_desc')}</option>

@@ -18,13 +18,16 @@ import {
   MapPin,
   CheckCircle,
   AlertCircle,
-  Bookmark
+  Bookmark,
+  Sparkles
 } from 'lucide-react';
 import { uploadProfilePhoto, uploadCVFile } from '../services/supabaseService';
 import { parseProfileFromCVWithFallback } from '../services/cvParserService';
 import { resolveAddressToCoordinates } from '../services/commuteService';
 import PremiumFeaturesPreview from './PremiumFeaturesPreview';
 import MyInvitations from './MyInvitations';
+import AIGuidedProfileWizard from './AIGuidedProfileWizard';
+import { redirectToCheckout } from '../services/stripeService';
 
 import TransportModeSelector from './TransportModeSelector';
 import SavedJobsPage from './SavedJobsPage';
@@ -63,6 +66,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [isUploadingCV, setIsUploadingCV] = useState(false);
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'saved'>('profile');
+  const [showAIGuide, setShowAIGuide] = useState(false);
 
   // Address Verification State
   const [isVerifyingAddress, setIsVerifyingAddress] = useState(false);
@@ -73,6 +77,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const isPremium = profile.subscription?.tier === 'premium';
 
 
 
@@ -609,6 +614,67 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 />
               </div>
             </div>
+
+            {/* AI Guided CV / Profile */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                    <Sparkles className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white">AI Průvodce životopisem</h2>
+                </div>
+              </div>
+
+              <div className="p-6">
+                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                  Nadiktujte svůj příběh. AI odhalí skryté talenty, doplní profil a vytvoří CV na míru.
+                </p>
+
+                {isPremium ? (
+                  <button
+                    onClick={() => setShowAIGuide(true)}
+                    className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-semibold text-sm flex items-center gap-2"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Spustit průvodce
+                  </button>
+                ) : (
+                  <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                        Dostupné pouze v Premium
+                      </p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        Odemkněte AI průvodce a personalizované doporučení pozic.
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (profile.id) {
+                          redirectToCheckout('premium', profile.id);
+                        }
+                      }}
+                      className="px-3 py-2 bg-cyan-600 text-white rounded-lg text-sm font-semibold hover:bg-cyan-700"
+                    >
+                      Upgradovat
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {showAIGuide && (
+              <AIGuidedProfileWizard
+                profile={profile}
+                onClose={() => setShowAIGuide(false)}
+                onApply={(updates) => {
+                  const updated = { ...profile, ...updates };
+                  onChange(updated, true);
+                  setShowAIGuide(false);
+                }}
+              />
+            )}
 
             {/* CV Upload Section */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">

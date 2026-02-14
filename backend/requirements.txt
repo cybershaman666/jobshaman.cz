@@ -14,3 +14,4 @@ stripe
 bleach
 slowapi
 langdetect
+google-generativeai

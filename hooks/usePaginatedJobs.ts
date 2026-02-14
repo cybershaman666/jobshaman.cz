@@ -75,7 +75,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [filterLanguage, setFilterLanguage] = useState<string>(''); // ISO code or empty for all
     const [globalSearch, setGlobalSearch] = useState(() => !initialCountry); // Toggle for searching entire database
     const [abroadOnly, setAbroadOnly] = useState(false);
-    const [sortBy, setSortBy] = useState<string>('default'); // default | jhi_desc | jhi_asc | newest
+    const [sortBy, setSortBy] = useState<string>('default'); // default | recommended | jhi_desc | jhi_asc | newest
 
     // Load saved job IDs from localStorage on mount
     const [savedJobIds, setSavedJobIds] = useState<string[]>(() => {
@@ -137,6 +137,22 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
         try {
             const { fetchJobsWithFilters, fetchJobsPaginated } = await import('../services/jobService');
+
+            if (sortBy === 'recommended') {
+                if (!userProfile.isLoggedIn) {
+                    setJobs([]);
+                    setHasMore(false);
+                    setTotalCount(0);
+                    return;
+                }
+
+                const { fetchRecommendedJobs } = await import('../services/jobService');
+                const recommended = await fetchRecommendedJobs(initialPageSize);
+                setJobs(sortJobs(recommended));
+                setHasMore(false);
+                setTotalCount(recommended.length);
+                return;
+            }
 
             // Only use coordinates if we are doing a commute filter or proximity sort
             let lat = userProfile.coordinates?.lat;
@@ -261,7 +277,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [
         initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch, sortJobs, filterLanguage, abroadOnly
+        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch, sortJobs, filterLanguage, abroadOnly, sortBy, userProfile.isLoggedIn
     ]);
 
 
@@ -282,7 +298,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
     // Re-apply sorting when sort option changes
     useEffect(() => {
-        if (sortBy === 'default') {
+        if (sortBy === 'default' || sortBy === 'recommended') {
             setCurrentPage(0);
             fetchFilteredJobs(0, false);
             return;

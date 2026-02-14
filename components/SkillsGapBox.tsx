@@ -41,6 +41,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
   onShowProfile
 }) => {
   const { t } = useTranslation();
+  const marketplaceEnabled = false;
   const [selectedTab, setSelectedTab] = useState<'courses' | 'marketplace'>('courses');
 
   // Sample marketplace data (in real app, this would come from API)
@@ -319,15 +320,11 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
           <div className="flex justify-center">
             <button
               onClick={() => {
-                if (!userProfile.hasCV) {
-                  onShowProfile?.();
-                } else {
-                  onShowMarketplace?.();
-                }
+                onShowProfile?.();
               }}
               className="px-6 py-3 bg-gradient-to-r slate-600 hover:slate-700 text-slate-600 dark:text-slate-400 font-medium rounded-lg transition-all shadow-md hover:shadow-lg flex items-center gap-2"
             >
-              {!userProfile.hasCV ? "Doplňit CV" : "Zobrazit marketplace"}
+              {!userProfile.hasCV ? "Doplňit CV" : "Zobrazit profil"}
               <ChevronRight className="w-4 h-4" />
             </button>
           </div>
@@ -384,16 +381,18 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
             <BookOpen className="w-4 h-4" />
             Doporučené kurzy
           </button>
-          <button
-            onClick={() => setSelectedTab('marketplace')}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${selectedTab === 'marketplace'
-              ? 'bg-gradient-to-r slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 shadow-md'
-              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/30'
-              }`}
-          >
-            <ShoppingBag className="w-4 h-4" />
-            Marketplace
-          </button>
+          {marketplaceEnabled && (
+            <button
+              onClick={() => setSelectedTab('marketplace')}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all ${selectedTab === 'marketplace'
+                ? 'bg-gradient-to-r slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 shadow-md'
+                : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-900/30'
+                }`}
+            >
+              <ShoppingBag className="w-4 h-4" />
+              Marketplace
+            </button>
+          )}
         </div>
       </div>
 
@@ -495,7 +494,7 @@ const SkillsGapBox: React.FC<SkillsGapBoxProps> = ({
           </>
         )}
 
-        {selectedTab === 'marketplace' && (
+        {marketplaceEnabled && selectedTab === 'marketplace' && (
           <>
             <h4 className="text-sm font-bold text-slate-900 dark:text-slate-400 flex items-center gap-2">
               <ShoppingBag className="w-4 h-4 text-slate-600 dark:text-slate-400" />
