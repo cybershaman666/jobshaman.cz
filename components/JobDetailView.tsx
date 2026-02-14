@@ -379,10 +379,6 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                         onResourceClick={(resource) => {
                                             window.open(resource.url, '_blank');
                                         }}
-                                        onShowMarketplace={() => {
-                                            setViewState(ViewState.LIST);
-                                            setSelectedJobId(null);
-                                        }}
                                         onShowProfile={() => {
                                             setViewState(ViewState.PROFILE);
                                             setSelectedJobId(null);

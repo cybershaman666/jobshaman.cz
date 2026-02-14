@@ -5,13 +5,13 @@ This sitemap contains all important pages for JobShaman job search platform.
 For more information:
 - Website: https://jobshaman.cz
 - Contact: support@jobshaman.cz
-- Last updated: January 23, 2026
+- Last updated: February 14, 2026
 
 ## Pages Included:
 1. Homepage (Priority: 1.0)
 2. Job Search Listings (Priority: 0.9) 
 3. Company Portal (Priority: 0.8)
-4. Marketplace/Courses (Priority: 0.8)
+4. Career OS Profile (Priority: 0.8)
 5. User Profile (Priority: 0.6)
 6. Saved Jobs (Priority: 0.7)
 
@@ -20,6 +20,7 @@ For more information:
 - Fast loading times (< 2 seconds)
 - Structured data for search engines
 - AI-friendly content for conversational search
+- Career OS positioning (AI profile + hidden skills)
 - Czech language optimization
 - Local SEO for Czech cities
 - Job posting structured data

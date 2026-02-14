@@ -19,7 +19,7 @@ export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetada
       return {
         title: `${baseTitle} | ${t('welcome.title_accent')}`,
         description: t('welcome.subtitle'),
-        keywords: ["nabídky práce", "jobs Česko", "AI analýza práce", "JHI skóre", "platy", "benefity", "práce Praha", "Brno", "Ostrava", "Plzeň", "transparentní mzda", "čistý příjem", "bullshit detektor", "gap analysis"],
+        keywords: ["career os", "nabídky práce", "AI profil", "skryté dovednosti", "kariérní růst", "JHI skóre", "platy", "benefity", "práce Praha", "Brno", "Ostrava", "Plzeň", "transparentní mzda", "čistý příjem", "bullshit detektor", "gap analysis"],
         canonical: baseUrl,
         ogImage: `${baseUrl}/og-image.jpg`,
         structuredData: generateFAQStructuredData(t)
@@ -53,15 +53,15 @@ export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetada
       return {
         title: t('seo.marketplace_title'),
         description: t('seo.marketplace_description'),
-        keywords: ["kurzy", "rekvalifikace", "školení", "vzdělávání", "online kurzy", "certifikace", "kariérní růst"],
-        canonical: `${baseUrl}/kurzy-a-rekvalifikace`
+        keywords: ["career os", "AI profil", "skryté dovednosti", "kariéra", "pracovní nabídky"],
+        canonical: baseUrl
       };
 
     case 'services':
       return {
         title: t('seo.services_title'),
         description: t('seo.services_description'),
-        keywords: ["zakázky", "freelance", "služby", "experti", "spolupráce", "projekty"],
+        keywords: ["kariéra", "služby", "poradenství", "profesní růst", "pracovní nabídky"],
         canonical: `${baseUrl}/sluzby`
       };
 
@@ -69,8 +69,8 @@ export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetada
       return {
         title: t('seo.freelancer_dashboard_title'),
         description: t('seo.freelancer_dashboard_description'),
-        keywords: ["freelancer", "profil", "služby", "portfolio", "zakázky"],
-        canonical: `${baseUrl}/freelancer`
+        keywords: ["profil", "kariéra", "AI profil", "skryté dovednosti"],
+        canonical: `${baseUrl}/profil`
       };
 
     case 'saved':
@@ -93,7 +93,7 @@ export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetada
       return {
         title: t('seo.profile_title'),
         description: t('seo.profile_description'),
-        keywords: ["profil", "moje účet", "uložené pozice", "personalizace", "kariéra"],
+        keywords: ["profil", "AI profil", "skryté dovednosti", "personalizace", "kariéra"],
         canonical: `${baseUrl}/profil`
       };
 
@@ -389,7 +389,7 @@ export const generateAISummary = (page: string, t: any, data?: any): string => {
     case 'services':
       return t('seo.ai_summary_services');
     case 'freelancer-dashboard':
-      return t('seo.ai_summary_freelancer');
+      return t('seo.ai_summary_profile');
     case 'saved':
       return t('seo.ai_summary_saved');
     default:
