@@ -90,3 +90,19 @@ class AIGuidedProfileRequest(BaseModel):
     steps: List[AIGuidedProfileStep]
     language: Optional[str] = "cs"
     existingProfile: Optional[dict] = None
+
+
+class AIGuidedProfileRequestV2(BaseModel):
+    steps: List[AIGuidedProfileStep] = Field(default_factory=list, max_length=6)
+    language: Optional[str] = Field(default="cs", max_length=8)
+    existingProfile: Optional[dict] = None
+    prompt_version: Optional[str] = Field(default=None, max_length=64)
+
+    @validator("steps")
+    def validate_non_empty_steps(cls, steps):
+        if len(steps) > 6:
+            raise ValueError("At most 6 steps are allowed")
+        valid_steps = [s for s in steps if (getattr(s, "text", "") or "").strip()]
+        if not valid_steps:
+            raise ValueError("At least one non-empty step is required")
+        return steps

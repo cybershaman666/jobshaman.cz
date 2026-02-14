@@ -359,6 +359,21 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                         </button>
                                     )}
 
+                                    {typeof selectedJob.aiMatchScore === 'number' && (
+                                        <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-6 shadow-sm">
+                                            <h3 className="font-bold text-emerald-700 dark:text-emerald-400 mb-2">
+                                                AI Doporučení: {Math.round(selectedJob.aiMatchScore)}%
+                                            </h3>
+                                            {!!selectedJob.aiMatchReasons?.length && (
+                                                <ul className="text-sm text-slate-700 dark:text-slate-200 space-y-1 list-disc pl-5">
+                                                    {selectedJob.aiMatchReasons.slice(0, 3).map((reason, idx) => (
+                                                        <li key={`${reason}-${idx}`}>{reason}</li>
+                                                    ))}
+                                                </ul>
+                                            )}
+                                        </div>
+                                    )}
+
                                     {/* Transparency Card */}
                                     <TransparencyCard variant={theme} />
                                 </div>

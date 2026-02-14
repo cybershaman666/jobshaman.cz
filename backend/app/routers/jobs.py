@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Request, Depends, HTTPException, Query
-from datetime import datetime, timedelta, timezone
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access
 from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest
 from ..models.responses import JobCheckResponse
 from ..services.legality import check_legality_rules
-from ..services.matching import calculate_candidate_match, calculate_job_match
+from ..services.matching import calculate_candidate_match
+from ..matching_engine import recommend_jobs_for_user
 from ..services.email import send_review_email, send_recruiter_legality_email
 from ..core.database import supabase
 from ..utils.helpers import now_iso
@@ -164,24 +164,8 @@ async def get_job_recommendations(
     if not user_id:
         raise HTTPException(status_code=401, detail="User not authenticated")
 
-    candidate_res = supabase.table("candidate_profiles").select("*").eq("id", user_id).maybe_single().execute()
-    candidate = candidate_res.data
-    if not candidate:
-        return {"jobs": []}
-
-    # Fetch recent jobs (limit to avoid heavy load)
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=30)).isoformat()
-    jobs_res = supabase.table("jobs").select("*").gte("scraped_at", cutoff).order("scraped_at", desc=True).limit(500).execute()
-    jobs = jobs_res.data or []
-
-    matches = []
-    for job in jobs:
-        score, reasons = calculate_job_match(candidate, job)
-        if score >= 25:
-            matches.append({"job": job, "score": score, "reasons": reasons})
-
-    matches.sort(key=lambda x: x["score"], reverse=True)
-    return {"jobs": matches[:limit]}
+    matches = recommend_jobs_for_user(user_id=user_id, limit=limit, allow_cache=True)
+    return {"jobs": matches}
 
 @router.post("/match-candidates")
 @limiter.limit("10/minute")
