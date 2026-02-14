@@ -1723,6 +1723,14 @@
       "privacy": "Váš příběh je soukromý. AI ho analyzuje, citlivá data neukládáme do analytických logů.",
       "beta": "Beta: První uživatelé získají prémiové funkce zdarma na 6 měsíců."
     },
-    "blog_title": "Další inspirace z blogu"
+    "blog_title": "Další inspirace z blogu",
+    "anti_ats": {
+      "title": "Proč to funguje jinak než běžné HR filtry",
+      "ats_title": "Běžné ATS systémy",
+      "ats_desc": "Často hledají důvod, proč kandidáta vyřadit. Zaměřují se hlavně na shodu klíčových slov a šablon.",
+      "career_os_title": "JobShaman Career OS",
+      "career_os_desc": "Hledá potenciál a přenositelné schopnosti. Neřeže lidi podle šablony, ale ukazuje, kde mohou uspět.",
+      "quote": "Používáme AI tak, aby Vám vrátila férovou šanci a jasně ukázala Vaši reálnou hodnotu."
+    }
   }
 }

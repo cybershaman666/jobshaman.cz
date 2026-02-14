@@ -1569,6 +1569,14 @@
       "privacy": "Your story is private. AI analyzes it; sensitive data is not stored in observability logs.",
       "beta": "Beta: Early users get premium features free for 6 months."
     },
-    "blog_title": "More insights from the blog"
+    "blog_title": "More insights from the blog",
+    "anti_ats": {
+      "title": "Dlaczego to działa inaczej niż typowe filtry HR",
+      "ats_title": "Typowe systemy ATS",
+      "ats_desc": "Często szukają powodów do odrzucenia kandydata, głównie przez sztywne dopasowanie słów kluczowych.",
+      "career_os_title": "JobShaman Career OS",
+      "career_os_desc": "Szukamy potencjału i umiejętności, które można przenieść do nowej roli.",
+      "quote": "Używamy AI, aby dać ludziom uczciwą szansę i pokazać ich realną wartość rynkową."
+    }
   }
 }

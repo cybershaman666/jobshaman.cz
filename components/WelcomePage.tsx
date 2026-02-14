@@ -237,6 +237,23 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
         </div>
       </section>
 
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-10 lg:pb-12">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 lg:p-6">
+          <h2 className="text-xl lg:text-2xl font-bold mb-4">{t('welcome_v2.anti_ats.title')}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="rounded-xl border border-rose-200 dark:border-rose-900 bg-rose-50 dark:bg-rose-950/30 p-4">
+              <h3 className="font-semibold text-rose-900 dark:text-rose-200 mb-2">{t('welcome_v2.anti_ats.ats_title')}</h3>
+              <p className="text-sm text-rose-900/90 dark:text-rose-200/90">{t('welcome_v2.anti_ats.ats_desc')}</p>
+            </div>
+            <div className="rounded-xl border border-emerald-200 dark:border-emerald-900 bg-emerald-50 dark:bg-emerald-950/30 p-4">
+              <h3 className="font-semibold text-emerald-900 dark:text-emerald-200 mb-2">{t('welcome_v2.anti_ats.career_os_title')}</h3>
+              <p className="text-sm text-emerald-900/90 dark:text-emerald-200/90">{t('welcome_v2.anti_ats.career_os_desc')}</p>
+            </div>
+          </div>
+          <p className="mt-4 text-sm lg:text-base text-slate-700 dark:text-slate-200 font-medium">{t('welcome_v2.anti_ats.quote')}</p>
+        </div>
+      </section>
+
       <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-12 lg:pb-16">
         <h2 className="text-2xl lg:text-3xl font-bold mb-6">{t('welcome_v2.how_it_works.title')}</h2>
 
