@@ -18,23 +18,6 @@ import { matchesIcoKeywords } from '../utils/contractType';
  */
 const removeAccents = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-// Helper to detect foreign-work context from job text (location/title/description).
-const isLocationAbroad = (text: string): boolean => {
-    const loc = removeAccents(text);
-    const foreignKeywords = [
-        'nemecko', 'germany', 'deutschland',
-        'rakousko', 'austria', 'osterreich',
-        'usa', 'spojene staty',
-        'uk', 'britanie', 'london', 'londyn',
-        'polsko', 'poland',
-        'svycarsko', 'switzerland',
-        'nizozemi', 'nizozemsku', 'nizozemsko',
-        'holandsku', 'holandsko', 'holland', 'netherlands'
-    ];
-
-    return foreignKeywords.some(kw => loc.includes(kw));
-};
-
 // EXPORTED FOR ASYNC USE IN PROFILE
 export const resolveAddressToCoordinates = async (address: string): Promise<{ lat: number, lon: number } | null> => {
     return geocodeWithCaching(address);
@@ -473,10 +456,8 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
 
     // 1. Calculate Physical Commute
     const isRemote = job.type === 'Remote';
-    const abroadText = `${job.location || ''} ${job.title || ''} ${job.description || ''}`;
-    const isAbroad = isLocationAbroad(abroadText);
     let distanceKm = 0;
-    let isRelocation = isAbroad;
+    let isRelocation = false;
 
     if (!isRemote) {
         const userCoords = user.coordinates || getCoordinates(user.address);
@@ -496,16 +477,12 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
             // Apply road factor (usually ~1.3x air distance)
             distanceKm = Math.round(airDistance * 1.3);
 
-            if (distanceKm > 150) {
+            // Relocation threshold: only very long commute should trigger relocation.
+            if (distanceKm > 100) {
                 isRelocation = true;
             }
         } else {
-            if (isAbroad) {
-                isRelocation = true;
-                distanceKm = 9999;
-            } else {
-                distanceKm = -1;
-            }
+            distanceKm = -1;
         }
     }
 
