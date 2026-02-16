@@ -11,11 +11,13 @@ import { formatJobDescription } from '../utils/formatters';
 interface BlogSectionProps {
     selectedBlogPostSlug?: string | null;
     setSelectedBlogPostSlug?: (slug: string | null) => void;
+    showOverview?: boolean;
 }
 
 const BlogSection: React.FC<BlogSectionProps> = ({
     selectedBlogPostSlug,
-    setSelectedBlogPostSlug
+    setSelectedBlogPostSlug,
+    showOverview = true
 }) => {
     const { t, i18n } = useTranslation();
     const [posts, setPosts] = useState<BlogPost[]>(blogPosts);
@@ -230,52 +232,56 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                     </div>
                 )}
 
-                {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6"
-                >
-                    <div>
-                        <div className="flex items-center gap-2 mb-3">
-                            <BookOpen className="text-cyan-600 dark:text-cyan-400" size={24} />
-                            <span className="text-sm font-bold uppercase tracking-widest text-cyan-600 dark:text-cyan-400">
-                                {t('blog.category_label', 'Shamanic Insights')}
-                            </span>
-                        </div>
-                        <h2 className="text-4xl font-bold text-slate-900 dark:text-white">
-                            {t('blog.title', 'Novinky ze světa práce')}
-                        </h2>
-                        <p className="text-lg text-slate-600 dark:text-slate-400 mt-4 max-w-2xl">
-                            {t('blog.subtitle', 'Sledujeme trendy, analyzujeme trh a pomáháme vám dělat informovaná kariérní rozhodnutí.')}
-                        </p>
-                    </div>
-                    <button className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-bold hover:gap-3 transition-all">
-                        {t('blog.view_all', 'Všechny články')} <ArrowRight size={20} />
-                    </button>
-                </motion.div>
-
-                {/* Stats Grid */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: 0.2 }}
-                    className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16"
-                >
-                    {stats.map((stat, idx) => (
-                        <div key={idx} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4 group hover:border-cyan-300 dark:hover:border-cyan-700 transition-all">
-                            <div className={`p-3 rounded-xl bg-slate-50 dark:bg-slate-800 group-hover:scale-110 transition-transform`}>
-                                <stat.icon size={26} className={stat.color} />
-                            </div>
+                {showOverview && (
+                    <>
+                        {/* Header */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6"
+                        >
                             <div>
-                                <div className="text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</div>
-                                <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">{stat.label}</div>
+                                <div className="flex items-center gap-2 mb-3">
+                                    <BookOpen className="text-cyan-600 dark:text-cyan-400" size={24} />
+                                    <span className="text-sm font-bold uppercase tracking-widest text-cyan-600 dark:text-cyan-400">
+                                        {t('blog.category_label', 'Shamanic Insights')}
+                                    </span>
+                                </div>
+                                <h2 className="text-4xl font-bold text-slate-900 dark:text-white">
+                                    {t('blog.title', 'Novinky ze světa práce')}
+                                </h2>
+                                <p className="text-lg text-slate-600 dark:text-slate-400 mt-4 max-w-2xl">
+                                    {t('blog.subtitle', 'Sledujeme trendy, analyzujeme trh a pomáháme vám dělat informovaná kariérní rozhodnutí.')}
+                                </p>
                             </div>
-                        </div>
-                    ))}
-                </motion.div>
+                            <button className="flex items-center gap-2 text-cyan-600 dark:text-cyan-400 font-bold hover:gap-3 transition-all">
+                                {t('blog.view_all', 'Všechny články')} <ArrowRight size={20} />
+                            </button>
+                        </motion.div>
+
+                        {/* Stats Grid */}
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.2 }}
+                            className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16"
+                        >
+                            {stats.map((stat, idx) => (
+                                <div key={idx} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center gap-4 group hover:border-cyan-300 dark:hover:border-cyan-700 transition-all">
+                                    <div className={`p-3 rounded-xl bg-slate-50 dark:bg-slate-800 group-hover:scale-110 transition-transform`}>
+                                        <stat.icon size={26} className={stat.color} />
+                                    </div>
+                                    <div>
+                                        <div className="text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</div>
+                                        <div className="text-sm text-slate-500 dark:text-slate-400 font-medium">{stat.label}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </motion.div>
+                    </>
+                )}
 
                 {/* Blog Posts Grid */}
                 <motion.div
