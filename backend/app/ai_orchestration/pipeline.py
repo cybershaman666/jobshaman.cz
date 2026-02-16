@@ -151,6 +151,13 @@ def generate_profile_with_orchestration(
     model_cfg = get_active_model_config("ai_orchestration", "profile_generate")
     primary_model = model_cfg.get("primary_model") or DEFAULT_PRIMARY_MODEL
     fallback_model = model_cfg.get("fallback_model") or DEFAULT_FALLBACK_MODEL
+
+    provider = (os.getenv("AI_PROVIDER") or "").strip().lower()
+    if provider == "openai":
+        if str(primary_model).lower().startswith("gemini"):
+            primary_model = DEFAULT_PRIMARY_MODEL
+        if str(fallback_model).lower().startswith("gemini"):
+            fallback_model = DEFAULT_FALLBACK_MODEL
     generation_config = {
         "temperature": model_cfg.get("temperature", 0),
         "top_p": model_cfg.get("top_p", 1),

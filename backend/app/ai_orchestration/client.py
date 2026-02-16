@@ -154,15 +154,15 @@ def _call_openai_chat_completion(
 
 
 def _resolve_provider(model_name: str) -> str:
+    explicit = (os.getenv("AI_PROVIDER") or "").strip().lower()
+    if explicit in {"openai", "gemini"}:
+        return explicit
+
     lowered = (model_name or "").strip().lower()
     if lowered.startswith("gemini"):
         return "gemini"
     if lowered.startswith("gpt-") or lowered.startswith("o"):
         return "openai"
-
-    explicit = (os.getenv("AI_PROVIDER") or "").strip().lower()
-    if explicit in {"openai", "gemini"}:
-        return explicit
     return "gemini"
 
 
