@@ -54,12 +54,17 @@ class AIProfileTyped(BaseModel):
     work_preferences: List[str] = Field(default_factory=list)
 
 
+class TokenUsage(BaseModel):
+    input: int = 0
+    output: int = 0
+
+
 class AIGenerationMeta(BaseModel):
     prompt_version: str = "v1"
     model_used: str = ""
     fallback_used: bool = False
     latency_ms: int = 0
-    token_usage: Dict[str, int] = Field(default_factory=lambda: {"input": 0, "output": 0})
+    token_usage: TokenUsage = Field(default_factory=TokenUsage)
 
 
 class AIGuidedProfileResponseV2(BaseModel):
