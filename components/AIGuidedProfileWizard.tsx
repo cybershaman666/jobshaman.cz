@@ -1,5 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Mic, MicOff, Sparkles, Loader2, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { UserProfile } from '../types';
 import { generateProfileFromStory } from '../services/aiProfileService';
 
@@ -15,38 +16,23 @@ type WizardStep = {
   hint: string;
 };
 
-const STEPS: WizardStep[] = [
-  {
-    id: 'story',
-    title: 'Kariérní příběh',
-    hint: 'Začněte od začátku. Co vás přivedlo k oboru a jak se vyvíjela vaše kariéra?'
-  },
-  {
-    id: 'projects',
-    title: 'Projekty a úspěchy',
-    hint: 'Popište projekty, na které jste pyšní, a konkrétní výsledky.'
-  },
-  {
-    id: 'hobbies',
-    title: 'Koníčky a leadership',
-    hint: 'Co děláte ve volném čase? Vedete tým, organizujete akce, trénujete?'
-  },
-  {
-    id: 'volunteering',
-    title: 'Dobrovolnictví a ocenění',
-    hint: 'Zmiňte dobrovolnické aktivity, ocenění, certifikace.'
-  },
-  {
-    id: 'values',
-    title: 'Hodnoty a motivace',
-    hint: 'Jaké hodnoty jsou pro vás důležité? Co vás motivuje?'
-  },
-  {
-    id: 'preferences',
-    title: 'Preference práce',
-    hint: 'Jaké prostředí a typ práce vám sedí? Remote, hybrid, stabilita, růst?'
-  }
-];
+const SPEECH_LANG_BY_LOCALE: Record<string, string> = {
+  cs: 'cs-CZ',
+  sk: 'sk-SK',
+  en: 'en-US',
+  de: 'de-DE',
+  pl: 'pl-PL',
+  at: 'de-AT'
+};
+
+const AI_LANG_BY_LOCALE: Record<string, string> = {
+  cs: 'cs',
+  sk: 'sk',
+  en: 'en',
+  de: 'de',
+  pl: 'pl',
+  at: 'de'
+};
 
 const listToText = (items?: string[] | string) => {
   if (!items) return '';
@@ -65,32 +51,32 @@ const pickNonEmptyList = (candidate: string[], fallback?: string[]) => {
   return candidate.length > 0 ? candidate : (fallback || []);
 };
 
-const buildWhySummary = (result: any, inputSteps: string[]): string[] => {
+const buildWhySummary = (t: (key: string, options?: any) => string, result: any, inputSteps: string[]): string[] => {
   const profile = result?.ai_profile || {};
   const updates = result?.profile_updates || {};
   const reasons: string[] = [];
 
   const inferredSkills = Array.isArray(profile.inferred_skills) ? profile.inferred_skills : [];
   if (inferredSkills.length > 0) {
-    reasons.push(`AI odvodila ${Math.min(inferredSkills.length, 5)} skrytých dovedností z vašeho příběhu a aktivit.`);
+    reasons.push(t('profile.ai_guide.why.inferred_skills', { count: Math.min(inferredSkills.length, 5) }));
   }
   if (Array.isArray(updates.skills) && updates.skills.length > 0) {
-    reasons.push('Byly sjednoceny klíčové dovednosti do čitelného seznamu pro ATS i recruitery.');
+    reasons.push(t('profile.ai_guide.why.skills_normalized'));
   }
   if (Array.isArray(updates.workHistory) && updates.workHistory.length > 0) {
-    reasons.push('Pracovní zkušenosti byly strukturovány do role, firmy, období a stručného dopadu.');
+    reasons.push(t('profile.ai_guide.why.work_structured'));
   }
   if (Array.isArray(updates.education) && updates.education.length > 0) {
-    reasons.push('Vzdělání bylo normalizováno do jednotného formátu pro lepší čitelnost profilu.');
+    reasons.push(t('profile.ai_guide.why.education_normalized'));
   }
   if ((result?.cv_summary || '').trim()) {
-    reasons.push('Shrnutí bylo zkráceno na rychle skenovatelnou verzi vhodnou pro profil a CV headline.');
+    reasons.push(t('profile.ai_guide.why.summary_condensed'));
   }
   if ((result?.cv_ai_text || '').trim()) {
-    reasons.push('Plný AI text životopisu kombinuje vaše vstupy s důrazem na přenositelné silné stránky.');
+    reasons.push(t('profile.ai_guide.why.cv_fulltext'));
   }
   if (inputSteps.filter(Boolean).length >= 4) {
-    reasons.push('Výstup je přesnější, protože průvodce měl dostatek kontextu napříč více oblastmi.');
+    reasons.push(t('profile.ai_guide.why.better_with_context'));
   }
 
   return reasons.slice(0, 6);
@@ -101,8 +87,50 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
   onApply,
   onClose
 }) => {
+  const { t, i18n } = useTranslation();
+  const locale = (i18n.resolvedLanguage || i18n.language || 'cs').toLowerCase();
+  const localeBase = locale.split('-')[0];
+  const localeKey = localeBase === 'de' && locale.includes('at') ? 'at' : localeBase;
+
+  const steps: WizardStep[] = [
+    {
+      id: 'early_story',
+      title: t('profile.ai_guide.steps.early_story.title'),
+      hint: t('profile.ai_guide.steps.early_story.hint')
+    },
+    {
+      id: 'activities',
+      title: t('profile.ai_guide.steps.activities.title'),
+      hint: t('profile.ai_guide.steps.activities.hint')
+    },
+    {
+      id: 'first_work',
+      title: t('profile.ai_guide.steps.first_work.title'),
+      hint: t('profile.ai_guide.steps.first_work.hint')
+    },
+    {
+      id: 'career_shifts',
+      title: t('profile.ai_guide.steps.career_shifts.title'),
+      hint: t('profile.ai_guide.steps.career_shifts.hint')
+    },
+    {
+      id: 'projects_impact',
+      title: t('profile.ai_guide.steps.projects_impact.title'),
+      hint: t('profile.ai_guide.steps.projects_impact.hint')
+    },
+    {
+      id: 'personality_preferences',
+      title: t('profile.ai_guide.steps.personality_preferences.title'),
+      hint: t('profile.ai_guide.steps.personality_preferences.hint')
+    }
+  ];
+
+  const reminderItems = t('profile.ai_guide.reminder_items', { returnObjects: true }) as string[];
+  const speechLanguage = SPEECH_LANG_BY_LOCALE[localeKey] || 'en-US';
+  const aiLanguage = AI_LANG_BY_LOCALE[localeKey] || 'en';
+
   const [stepIndex, setStepIndex] = useState(0);
-  const [stepTexts, setStepTexts] = useState<string[]>(() => STEPS.map(() => ''));
+  const [stepTexts, setStepTexts] = useState<string[]>(() => steps.map(() => ''));
   const [isListening, setIsListening] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isApplying, setIsApplying] = useState(false);
@@ -130,9 +158,9 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
   const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
   const speechAvailable = !!SpeechRecognition;
 
-  const currentStep = STEPS[stepIndex];
-  const canProceed = stepTexts[stepIndex]?.trim().length > 0;
-  const whySummary = aiResult ? buildWhySummary(aiResult, stepTexts.map(t => t.trim()).filter(Boolean)) : [];
+  const currentStep = steps[stepIndex];
+  const hasCurrentInput = stepTexts[stepIndex]?.trim().length > 0;
+  const whySummary = aiResult ? buildWhySummary(t, aiResult, stepTexts.map((text) => text.trim()).filter(Boolean)) : [];
 
   const updateStepText = (value: string) => {
     setStepTexts((prev) => {
@@ -145,7 +173,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
   const startListening = () => {
     if (!speechAvailable || isListening) return;
     const recognition = new SpeechRecognition();
-    recognition.lang = 'cs-CZ';
+    recognition.lang = speechLanguage;
     recognition.continuous = true;
     recognition.interimResults = true;
 
@@ -192,16 +220,16 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
     setError(null);
     setIsGenerating(true);
     try {
-      const stepsPayload = STEPS.map((s, index) => ({
+      const stepsPayload = steps.map((s, index) => ({
         id: s.id,
         text: stepTexts[index] || ''
       })).filter(step => step.text.trim().length > 0);
 
       if (stepsPayload.length === 0) {
-        throw new Error('Vyplňte prosím alespoň jeden krok průvodce.');
+        throw new Error(t('profile.ai_guide.errors.fill_one_step'));
       }
 
-      const data = await generateProfileFromStory(stepsPayload, 'cs', profile);
+      const data = await generateProfileFromStory(stepsPayload, aiLanguage, profile);
       setAiResult(data);
 
       const aiProfile = data.ai_profile || {};
@@ -222,7 +250,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
       setMotivationsText(listToText(aiProfile.motivations || []));
       setWorkPreferencesText(listToText(aiProfile.work_preferences || []));
     } catch (e: any) {
-      setError(e?.message || 'AI průvodce selhal. Zkuste to prosím znovu.');
+      setError(e?.message || t('profile.ai_guide.errors.generate_failed'));
     } finally {
       setIsGenerating(false);
     }
@@ -260,7 +288,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
       setIsApplying(true);
       await Promise.resolve(onApply(updates));
     } catch (e: any) {
-      setError(e?.message || 'Uložení do profilu selhalo. Zkuste to prosím znovu.');
+      setError(e?.message || t('profile.ai_guide.errors.save_failed'));
     } finally {
       setIsApplying(false);
     }
@@ -272,7 +300,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
           <div className="flex items-center gap-2">
             <Sparkles className="w-5 h-5 text-cyan-500" />
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">AI Průvodce životopisem</h3>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t('profile.ai_guide.title')}</h3>
           </div>
           <button onClick={handleClose} className="text-slate-500 hover:text-slate-800 dark:hover:text-white">
             <X className="w-5 h-5" />
@@ -283,10 +311,22 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
           <div className="p-6">
             <div className="mb-4">
               <div className="text-sm text-slate-500 dark:text-slate-400 mb-2">
-                Krok {stepIndex + 1} z {STEPS.length}
+                {t('profile.ai_guide.step_progress', { current: stepIndex + 1, total: steps.length })}
               </div>
               <h4 className="text-xl font-semibold text-slate-900 dark:text-white">{currentStep.title}</h4>
               <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{currentStep.hint}</p>
+              <p className="text-xs text-cyan-700 dark:text-cyan-300 mt-2">
+                {t('profile.ai_guide.helper')}
+              </p>
+            </div>
+
+            <div className="mb-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-3">
+              <div className="text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1">
+                {t('profile.ai_guide.reminder_title')}
+              </div>
+              <div className="text-xs text-slate-600 dark:text-slate-300">
+                {(Array.isArray(reminderItems) ? reminderItems : []).join(' • ')}
+              </div>
             </div>
 
             <textarea
@@ -294,7 +334,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
               onChange={(e) => updateStepText(e.target.value)}
               rows={6}
               className="w-full border border-slate-200 dark:border-slate-700 rounded-lg p-3 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500"
-              placeholder="Nadiktujte nebo napište svůj příběh..."
+              placeholder={t('profile.ai_guide.input_placeholder')}
             />
 
             <div className="flex items-center justify-between mt-4">
@@ -305,10 +345,10 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                     className={`px-3 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 ${isListening ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}`}
                   >
                     {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
-                    {isListening ? 'Stop' : 'Diktovat'}
+                    {isListening ? t('profile.ai_guide.stop') : t('profile.ai_guide.dictate')}
                   </button>
                 ) : (
-                  <div className="text-xs text-slate-500">Diktování není dostupné v tomto prohlížeči.</div>
+                  <div className="text-xs text-slate-500">{t('profile.ai_guide.speech_unavailable')}</div>
                 )}
               </div>
 
@@ -318,15 +358,14 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                   disabled={stepIndex === 0}
                   className="px-3 py-2 rounded-lg text-sm font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 disabled:opacity-40"
                 >
-                  Zpět
+                  {t('profile.ai_guide.back')}
                 </button>
-                {stepIndex < STEPS.length - 1 ? (
+                {stepIndex < steps.length - 1 ? (
                   <button
-                    onClick={() => setStepIndex((prev) => Math.min(prev + 1, STEPS.length - 1))}
-                    disabled={!canProceed}
-                    className="px-3 py-2 rounded-lg text-sm font-semibold bg-cyan-600 text-white disabled:opacity-50"
+                    onClick={() => setStepIndex((prev) => Math.min(prev + 1, steps.length - 1))}
+                    className="px-3 py-2 rounded-lg text-sm font-semibold bg-cyan-600 text-white"
                   >
-                    Další
+                    {t('profile.ai_guide.next')}
                   </button>
                 ) : (
                   <button
@@ -335,11 +374,17 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                     className="px-4 py-2 rounded-lg text-sm font-semibold bg-cyan-600 text-white flex items-center gap-2"
                   >
                     {isGenerating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                    Vygenerovat profil a CV
+                    {t('profile.ai_guide.generate')}
                   </button>
                 )}
               </div>
             </div>
+
+            {!hasCurrentInput && (
+              <div className="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                {t('profile.ai_guide.empty_step')}
+              </div>
+            )}
 
             {error && <div className="mt-4 text-sm text-rose-600">{error}</div>}
           </div>
@@ -348,7 +393,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
             {whySummary.length > 0 && (
               <div className="rounded-lg border border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-900/20 p-3">
                 <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
-                  Proč AI navrhla tyto úpravy
+                  {t('profile.ai_guide.why_title')}
                 </div>
                 <ul className="text-sm text-slate-700 dark:text-slate-300 list-disc pl-5 space-y-1">
                   {whySummary.map((line, idx) => (
@@ -359,7 +404,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
             )}
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Profese / Název pozice</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.ai_guide.fields.job_title')}</label>
               <input
                 value={jobTitle}
                 onChange={(e) => setJobTitle(e.target.value)}
@@ -368,7 +413,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Dovednosti (1 na řádek)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.ai_guide.fields.skills')}</label>
               <textarea
                 rows={3}
                 value={skillsText}
@@ -378,7 +423,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Shrnutí (krátké)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.ai_guide.fields.summary')}</label>
               <textarea
                 rows={3}
                 value={cvSummary}
@@ -388,7 +433,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">AI CV (plný text)</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.ai_guide.fields.cv_ai_text')}</label>
               <textarea
                 rows={8}
                 value={cvAiText}
@@ -399,7 +444,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Příběh</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.ai_guide.fields.story')}</label>
                 <textarea
                   rows={4}
                   value={storyText}
@@ -408,7 +453,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Koníčky</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.ai_guide.fields.hobbies')}</label>
                 <textarea
                   rows={4}
                   value={hobbiesText}
@@ -417,7 +462,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Dobrovolnictví</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.ai_guide.fields.volunteering')}</label>
                 <textarea
                   rows={3}
                   value={volunteeringText}
@@ -426,7 +471,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Leadership</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.ai_guide.fields.leadership')}</label>
                 <textarea
                   rows={3}
                   value={leadershipText}
@@ -435,7 +480,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Silné stránky</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.ai_guide.fields.strengths')}</label>
                 <textarea
                   rows={3}
                   value={strengthsText}
@@ -444,7 +489,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Hodnoty</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.ai_guide.fields.values')}</label>
                 <textarea
                   rows={3}
                   value={valuesText}
@@ -453,7 +498,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Skryté dovednosti</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.ai_guide.fields.inferred_skills')}</label>
                 <textarea
                   rows={3}
                   value={inferredSkillsText}
@@ -462,7 +507,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Ocenění</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.ai_guide.fields.awards')}</label>
                 <textarea
                   rows={3}
                   value={awardsText}
@@ -471,7 +516,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Certifikace</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.ai_guide.fields.certifications')}</label>
                 <textarea
                   rows={3}
                   value={certificationsText}
@@ -480,7 +525,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Side projekty</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.ai_guide.fields.side_projects')}</label>
                 <textarea
                   rows={3}
                   value={sideProjectsText}
@@ -489,7 +534,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Motivace</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.ai_guide.fields.motivations')}</label>
                 <textarea
                   rows={3}
                   value={motivationsText}
@@ -498,7 +543,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Preference práce</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.ai_guide.fields.work_preferences')}</label>
                 <textarea
                   rows={3}
                   value={workPreferencesText}
@@ -513,14 +558,14 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
                 onClick={() => setAiResult(null)}
                 className="px-3 py-2 rounded-lg text-sm font-semibold border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300"
               >
-                Zpět na úpravy
+                {t('profile.ai_guide.back_to_edits')}
               </button>
               <button
                 onClick={handleApply}
                 disabled={isApplying}
                 className="px-4 py-2 rounded-lg text-sm font-semibold bg-cyan-600 text-white disabled:opacity-60"
               >
-                {isApplying ? 'Ukládám...' : 'Uložit do profilu'}
+                {isApplying ? t('profile.ai_guide.saving') : t('profile.ai_guide.save_to_profile')}
               </button>
             </div>
           </div>
