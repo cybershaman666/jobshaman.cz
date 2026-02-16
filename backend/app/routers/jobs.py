@@ -1,20 +1,65 @@
+import os
 from fastapi import APIRouter, Request, Depends, HTTPException, Query
 from uuid import uuid4
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access
-from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, HybridJobSearchRequest
+from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, HybridJobSearchRequest, JobAnalyzeRequest
 from ..models.responses import JobCheckResponse
 from ..services.legality import check_legality_rules
 from ..services.matching import calculate_candidate_match
 from ..matching_engine import recommend_jobs_for_user, hybrid_search_jobs
 from ..services.email import send_review_email, send_recruiter_legality_email
 from ..core.database import supabase
+from ..core.runtime_config import get_active_model_config
+from ..ai_orchestration.client import AIClientError, call_primary_with_fallback, _extract_json
 from ..utils.helpers import now_iso
 
 router = APIRouter()
 
 def _normalize_job_id(job_id: str):
     return int(job_id) if str(job_id).isdigit() else job_id
+
+def _coerce_job_analysis_payload(raw: dict) -> dict:
+    summary = str(raw.get("summary") or "").strip()
+    hidden = raw.get("hiddenRisks")
+    if not isinstance(hidden, list):
+        hidden = raw.get("hidden_risks")
+    if not isinstance(hidden, list):
+        hidden = []
+    hidden = [str(item).strip() for item in hidden if str(item).strip()][:12]
+    cultural = str(raw.get("culturalFit") or raw.get("cultural_fit") or "").strip()
+    if not summary:
+        raise ValueError("Missing summary in AI response")
+    if not cultural:
+        cultural = "Neutrální"
+    return {
+        "summary": summary[:2000],
+        "hiddenRisks": hidden,
+        "culturalFit": cultural[:200],
+    }
+
+def _job_analysis_prompt(description: str, title: str | None = None, language: str = "cs") -> str:
+    normalized_lang = (language or "cs").strip().lower()
+    output_lang = "Czech" if normalized_lang.startswith("cs") else "English"
+    job_title = (title or "").strip()
+    title_line = f"Job title: {job_title}\n" if job_title else ""
+    return f"""
+Analyze the following job posting as a pragmatic career advisor.
+Output language: {output_lang}
+Return STRICT JSON only with keys:
+- summary: string
+- hiddenRisks: string[]
+- culturalFit: string
+
+Rules:
+- summary = one sentence of what the job actually is
+- hiddenRisks = implied red flags or ambiguity
+- culturalFit = short tone assessment
+- no markdown, no extra keys
+
+{title_line}Job description:
+{description[:7000]}
+""".strip()
 
 def _require_job_access(user: dict, job_id: str):
     """Ensure the current user is authorized to manage the given job."""
@@ -291,6 +336,82 @@ async def jobs_hybrid_search(
         page_size=payload.page_size,
     )
     return result
+
+@router.post("/jobs/analyze")
+@limiter.limit("20/minute")
+async def analyze_job(
+    payload: JobAnalyzeRequest,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    allowed_tiers = {"premium", "basic", "business", "trial", "enterprise", "freelance_premium"}
+    user_tier = (user.get("subscription_tier") or "free").lower()
+    if (not user.get("is_subscription_active")) or (user_tier not in allowed_tiers):
+        raise HTTPException(status_code=403, detail="Premium or Business subscription required")
+
+    normalized_job_id = _normalize_job_id(payload.job_id) if payload.job_id else None
+
+    # Cache fast path: return already saved analysis from jobs.ai_analysis
+    if normalized_job_id is not None:
+        try:
+            cached = (
+                supabase
+                .table("jobs")
+                .select("id, ai_analysis")
+                .eq("id", normalized_job_id)
+                .maybe_single()
+                .execute()
+            )
+            ai_cached = (cached.data or {}).get("ai_analysis") if cached and cached.data else None
+            if isinstance(ai_cached, dict) and ai_cached.get("summary"):
+                return {"analysis": ai_cached, "cached": True}
+        except Exception as exc:
+            print(f"⚠️ Failed to read cached ai_analysis for job {normalized_job_id}: {exc}")
+
+    default_primary = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+    default_fallback = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4.1-nano")
+    cfg = get_active_model_config("ai_orchestration", "job_analysis")
+    primary_model = cfg.get("primary_model") or default_primary
+    fallback_model = cfg.get("fallback_model") or default_fallback
+    generation_config = {
+        "temperature": cfg.get("temperature", 0),
+        "top_p": cfg.get("top_p", 1),
+        "top_k": cfg.get("top_k", 1),
+    }
+    prompt = _job_analysis_prompt(payload.description, payload.title, payload.language or "cs")
+
+    try:
+        result, fallback_used = call_primary_with_fallback(
+            prompt,
+            primary_model,
+            fallback_model,
+            generation_config=generation_config,
+        )
+        parsed = _extract_json(result.text)
+        analysis = _coerce_job_analysis_payload(parsed)
+    except AIClientError as exc:
+        raise HTTPException(status_code=503, detail=f"AI provider unavailable: {str(exc)}")
+    except ValueError as exc:
+        raise HTTPException(status_code=502, detail=f"AI response invalid: {str(exc)}")
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"AI processing failed: {str(exc)}")
+
+    if normalized_job_id is not None:
+        try:
+            supabase.table("jobs").update({"ai_analysis": analysis}).eq("id", normalized_job_id).execute()
+        except Exception as exc:
+            print(f"⚠️ Failed to persist ai_analysis for job {normalized_job_id}: {exc}")
+
+    return {
+        "analysis": analysis,
+        "cached": False,
+        "meta": {
+            "model_used": result.model_name,
+            "fallback_used": fallback_used,
+            "token_usage": {"input": result.tokens_in, "output": result.tokens_out},
+            "latency_ms": result.latency_ms,
+        },
+    }
 
 @router.post("/match-candidates")
 @limiter.limit("10/minute")

@@ -1,927 +1,262 @@
-
-import { GoogleGenAI, Type } from "@google/genai";
 import { AIAnalysisResult, AIAdOptimizationResult, CompanyProfile, Assessment, CVAnalysis, UserProfile, ShamanAdvice, SalaryEstimate, AssessmentEvaluation } from "../types";
+import { authenticatedFetch } from './csrfService';
+import { BACKEND_URL } from '../constants';
 
-// Safe API Key Access
-const getApiKey = () => {
-    try {
-        // First check import.meta.env (Vite standard)
-        if (typeof import.meta !== 'undefined' && import.meta.env) {
-            if (import.meta.env.VITE_API_KEY) return import.meta.env.VITE_API_KEY;
-            // Fallback to non-VITE if explicitly allowed/set
-            if (import.meta.env.API_KEY) return import.meta.env.API_KEY;
-        }
-
-        // Check for process existence (Node/Vercel legacy)
-        if (typeof process !== 'undefined' && process.env) {
-            return process.env.API_KEY || process.env.VITE_API_KEY;
-        }
-    } catch (e) { }
-    return undefined;
+const parseErrorDetail = async (response: Response, fallback: string): Promise<string> => {
+  try {
+    const data = await response.json();
+    if (data?.detail) return String(data.detail);
+  } catch (_e) {}
+  return fallback;
 };
 
-// Lazy initialization to prevent top-level crash
-let aiInstance: GoogleGenAI | null = null;
+const callAiExecute = async (action: string, params: Record<string, any> = {}): Promise<any> => {
+  const response = await authenticatedFetch(`${BACKEND_URL}/ai/execute`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, params })
+  });
 
-const getAi = () => {
-    const key = getApiKey();
-    if (!key) return null;
+  if (!response.ok) {
+    const detail = await parseErrorDetail(response, 'AI endpoint error');
+    throw new Error(detail);
+  }
 
-    if (!aiInstance) {
-        try {
-            aiInstance = new GoogleGenAI({ apiKey: key });
-        } catch (e) {
-            console.error("Failed to initialize GoogleGenAI", e);
-            return null;
-        }
-    }
-    return aiInstance;
-}
+  return response.json();
+};
 
-// Helper to check if API key is present
-export const hasApiKey = (): boolean => !!getApiKey();
-
-import { supabase } from './supabaseClient';
+export const hasApiKey = (): boolean => false;
 
 export const analyzeJobDescription = async (
-    description: string,
-    jobId?: string,
-    existingAnalysis?: AIAnalysisResult
+  description: string,
+  jobId?: string,
+  existingAnalysis?: AIAnalysisResult
 ): Promise<AIAnalysisResult> => {
-    // 1. Check if we already have a cached analysis (passed from DB)
-    if (existingAnalysis) {
-        console.log("⚡ Ušetřeno volání AI: Používám cache z DB.");
-        return existingAnalysis;
+  if (existingAnalysis) return existingAnalysis;
+
+  try {
+    const response = await authenticatedFetch(`${BACKEND_URL}/jobs/analyze`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ description, job_id: jobId || null, language: 'cs' })
+    });
+
+    if (!response.ok) {
+      const detail = await parseErrorDetail(response, 'AI analýza je dočasně nedostupná.');
+      throw new Error(detail);
     }
 
-    const ai = getAi();
-    if (!ai) {
-        // Fallback mock response if no key is provided for demo purposes
-        return new Promise((resolve) => {
-            setTimeout(() => {
-                resolve({
-                    summary: "Tento inzerát nemá API klíč pro reálnou analýzu. Na základě statických pravidel se však zdá být standardní nabídkou.",
-                    hiddenRisks: ["Nelze detekovat rizika bez AI připojení."],
-                    culturalFit: "Neutrální"
-                });
-            }, 1000);
-        });
-    }
-
-    try {
-        const prompt = `
-      Analyze the following job description for a candidate. 
-      Be a cynical but helpful career coach. 
-      OUTPUT IN CZECH LANGUAGE.
-      
-      Identify:
-      1. A one-sentence summary of what the job *actually* is (stripping away fluff).
-      2. Hidden risks or "red flags" implied by the text (e.g., "fast-paced" = burnout).
-      3. A brief assessment of the cultural fit based on tone.
-      
-      Job Description:
-      ${description.substring(0, 5000)}
-    `;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        summary: { type: Type.STRING },
-                        hiddenRisks: {
-                            type: Type.ARRAY,
-                            items: { type: Type.STRING }
-                        },
-                        culturalFit: { type: Type.STRING }
-                    },
-                    required: ["summary", "hiddenRisks", "culturalFit"]
-                }
-            }
-        });
-
-        const jsonText = response.text;
-        if (!jsonText) throw new Error("No response from AI");
-
-        const result = JSON.parse(jsonText) as AIAnalysisResult;
-
-        // 2. Save result to cache securely via RPC if Job ID is present
-        if (jobId && supabase) {
-            try {
-                // We use RPC to avoid RLS issues (users can't update jobs table directly)
-                // The function must be created in Supabase first: save_job_ai_analysis(p_job_id, p_analysis)
-                const { error } = await supabase.rpc('save_job_ai_analysis', {
-                    p_job_id: jobId,
-                    p_analysis: result
-                });
-
-                if (error) console.error("Failed to cache AI analysis:", error);
-                else console.log("💾 AI výsledek uložen do cache.");
-            } catch (cacheError) {
-                console.warn("Cache save error (ignoring):", cacheError);
-            }
-        }
-
-        return result;
-
-    } catch (error: any) {
-        console.error("AI Analysis failed:", error);
-
-        // Return a safe fallback rather than throwing
-        return {
-            summary: "Analýza tohoto inzerátu je dočasně nedostupná (AI limit vyčerpán). Podle našich dat se však zdá být v pořádku.",
-            hiddenRisks: ["Služba AI je momentálně přetížená. Zkuste to prosím později."],
-            culturalFit: "Neutrální / Nedostupné"
-        };
-    }
+    const payload = await response.json();
+    const result = payload?.analysis as AIAnalysisResult | undefined;
+    if (!result?.summary) throw new Error('Neplatná odpověď AI analýzy.');
+    return result;
+  } catch (error) {
+    console.error('AI Analysis failed:', error);
+    return {
+      summary: 'Analýza tohoto inzerátu je dočasně nedostupná (AI limit vyčerpán). Podle našich dat se však zdá být v pořádku.',
+      hiddenRisks: ['Služba AI je momentálně přetížená. Zkuste to prosím později.'],
+      culturalFit: 'Neutrální / Nedostupné'
+    };
+  }
 };
 
 export const estimateSalary = async (title: string, company: string, location: string, description: string): Promise<SalaryEstimate | null> => {
-    const ai = getAi();
-    if (!ai) return null;
-
-    try {
-        const prompt = `
-        You are an expert compensation analyst for the Czech job market.
-        Estimate the GROSS MONTHLY SALARY range (in CZK) for the following role.
-        Use current market data for 2024/2025.
-        
-        Consider:
-        - Job Title: ${title}
-        - Location: ${location} (Prague is usually +20% vs regions)
-        - Company: ${company} (Corporates pay more than startups usually)
-        - Requirements context: ${description.substring(0, 1000)}
-
-        Return JSON:
-        - min: number (lower bound)
-        - max: number (upper bound)
-        - currency: string (always 'CZK')
-        `;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        min: { type: Type.NUMBER },
-                        max: { type: Type.NUMBER },
-                        currency: { type: Type.STRING }
-                    },
-                    required: ["min", "max", "currency"]
-                }
-            }
-        });
-
-        const jsonText = response.text;
-        if (!jsonText) throw new Error("No response from AI");
-        return JSON.parse(jsonText) as SalaryEstimate;
-
-    } catch (e) {
-        console.error("Salary estimation failed:", e);
-        return null;
-    }
+  try {
+    const payload = await callAiExecute('estimate_salary', { title, company, location, description });
+    return payload?.salary || null;
+  } catch (e) {
+    console.error('Salary estimation failed:', e);
+    return null;
+  }
 };
 
-export const generateCoverLetter = async (jobTitle: string, company: string, description: string, userExperience: string): Promise<string> => {
-    const ai = getAi();
-    if (!ai) {
-        return "Prosím nastavte API_KEY pro generování motivačního dopisu.";
-    }
-
-    try {
-        const prompt = `
-          Write a short, honest, and professional cover letter for the position of ${jobTitle} at ${company}.
-          OUTPUT IN CZECH LANGUAGE.
-          
-          Job Context:
-          ${description.substring(0, 1000)}...
-          
-          My Experience (User Notes):
-          ${userExperience}
-          
-          Tone Guidelines:
-          - No "I am thrilled to apply".
-          - No "hard worker" clichés.
-          - Be precise about skills.
-          - Respect the reader's time.
-          - Keep it under 200 words.
-        `;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: prompt,
-        });
-
-        return response.text || "Nepodařilo se vygenerovat dopis.";
-
-    } catch (e) {
-        console.error(e);
-        return "Chyba při generování dopisu. Zkuste to prosím znovu.";
-    }
+export const generateCoverLetter = async (
+  jobTitle: string,
+  company: string,
+  description: string,
+  userExperience: string,
+  candidateCvText?: string
+): Promise<string> => {
+  try {
+    const payload = await callAiExecute('generate_cover_letter', {
+      jobTitle,
+      company,
+      description,
+      userExperience,
+      candidateCvText: candidateCvText || ''
+    });
+    return payload?.text || 'Nepodařilo se vygenerovat dopis.';
+  } catch (e) {
+    console.error('Cover letter generation failed:', e);
+    return 'Chyba při generování dopisu. Zkuste to prosím znovu.';
+  }
 };
 
 export const analyzeUserCV = async (cvText: string): Promise<CVAnalysis> => {
-    const ai = getAi();
-    if (!ai) {
-        return {
-            summary: "Your value comes from system design and operational clarity, not from job titles. Companies that see only “operations” may undervalue you. Companies that understand automation and long-term efficiency will not.",
-            currentLevel: "Strategic / Systems Lead",
-            suggestedCareerPath: "Head of Operations -> COO / Systems Architect",
-            marketValueEstimation: "Praha: ~100 000 Kč\nHustopeče: ~65 000 Kč",
-            skillGaps: ["Strategic Financial Planning", "Large Scale Change Management"],
-            upsellCourses: [
-                { name: "Systems Thinking Certification", description: "Formalizujte svou intuici pro systémový design.", estimatedSalaryBump: "+10-15%", price: "12 000 Kč" },
-                { name: "Automation Architecture", description: "Propojení operations s low-code automatizací.", estimatedSalaryBump: "+20%", price: "8 000 Kč" }
-            ]
-        };
-    }
-
-    try {
-        const prompt = `
-        Act as a senior career strategist and technical recruiter.
-        Analyze the provided CV content.
-        OUTPUT IN CZECH.
-
-        1. Determine their current seniority level honestly.
-        2. Suggest a logical career path.
-        3. Estimate monthly salary range in CZK for the Czech market.
-        4. Identify skill gaps.
-        5. Suggest 2-3 SPECIFIC courses/certifications (paid upsells) that would realistically increase their salary.
-
-        Input CV Text:
-        ${cvText.substring(0, 5000)}
-        `;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        summary: { type: Type.STRING },
-                        currentLevel: { type: Type.STRING },
-                        suggestedCareerPath: { type: Type.STRING },
-                        marketValueEstimation: { type: Type.STRING },
-                        skillGaps: { type: Type.ARRAY, items: { type: Type.STRING } },
-                        upsellCourses: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    name: { type: Type.STRING },
-                                    description: { type: Type.STRING },
-                                    estimatedSalaryBump: { type: Type.STRING },
-                                    price: { type: Type.STRING }
-                                }
-                            }
-                        }
-                    },
-                    required: ["summary", "currentLevel", "suggestedCareerPath", "marketValueEstimation", "skillGaps", "upsellCourses"]
-                }
-            }
-        });
-
-        const jsonText = response.text;
-        if (!jsonText) throw new Error("No response");
-        return JSON.parse(jsonText);
-
-    } catch (e) {
-        console.error("CV Analysis failed", e);
-        // Safe fallback for CV analysis
-        return {
-            summary: "Analýza CV je dočasně nedostupná kvůli vysokému vytížení AI (limit vyčerpán). Vaše data jsou však v systému uložena.",
-            currentLevel: "Zjišťuji...",
-            suggestedCareerPath: "Bude doplněno po obnovení limitu.",
-            marketValueEstimation: "Odhad ceny nedostupný.",
-            skillGaps: ["Analýza dovedností dočasně nedostupná"],
-            upsellCourses: []
-        };
-    }
-}
+  try {
+    const payload = await callAiExecute('analyze_user_cv', { cvText });
+    if (payload?.analysis) return payload.analysis as CVAnalysis;
+    throw new Error('Invalid CV analysis payload');
+  } catch (e) {
+    console.error('CV Analysis failed', e);
+    return {
+      summary: 'Analýza CV je dočasně nedostupná kvůli vysokému vytížení AI (limit vyčerpán). Vaše data jsou však v systému uložena.',
+      currentLevel: 'Zjišťuji...',
+      suggestedCareerPath: 'Bude doplněno po obnovení limitu.',
+      marketValueEstimation: 'Odhad ceny nedostupný.',
+      skillGaps: ['Analýza dovedností dočasně nedostupná'],
+      upsellCourses: []
+    };
+  }
+};
 
 export const getShamanAdvice = async (userProfile: UserProfile, jobDescription: string): Promise<ShamanAdvice> => {
-    const ai = getAi();
-    if (!ai || !userProfile.cvText) {
-        return {
-            matchScore: 78,
-            missingSkills: ["TypeScript", "GraphQL"],
-            salaryImpact: "15 000 Kč",
-            seniorityLabel: "Junior+",
-            reasoning: "Detekuji silný základ v datech, ale pro maximální tržní hodnotu chybí znalosti TypeScriptu. Doplnění těchto modulů výrazně zvýší tvůj rate.",
-            learningTimeHours: 40
-        };
-    }
-
-    try {
-        const prompt = `
-        Act as "The Job Shaman", an advanced AI career intelligence unit.
-        Compare the Candidate Profile to the Job Description.
-        OUTPUT IN CZECH.
-
-        Tone Guidelines:
-        - BE ANALYTICAL, DIRECT, AND STRATEGIC.
-        - DO NOT use esoteric metaphors (winds, destiny, magic, spells).
-        - Use data-driven language (compatibility, market value, optimization, vectors, gap analysis).
-        - Be a straight-talking career coach who sees the matrix of the job market.
-
-        Return JSON:
-        - matchScore: Number 0-100.
-        - missingSkills: Array of top 2-3 key skills the candidate lacks for this specific job.
-        - salaryImpact: Estimate string (e.g. "10 000 Kč") of how much value adding these skills would add to their monthly rate.
-        - seniorityLabel: e.g. "Junior", "Medior", "Solid Senior", "Overqualified".
-        - reasoning: A 1-2 sentence summary in a concise, analytical tone. (e.g., "Analýza ukazuje silný průnik v technologiích, ale chybí zkušenost s vedením týmu.", "Tvoje data přesně odpovídají požadavkům na senioritu.").
-        - learningTimeHours: Estimated hours to learn the missing skills to a basic level.
-
-        Candidate Profile:
-        ${userProfile.cvText.substring(0, 3000)}
-        Skills: ${userProfile.skills?.join(', ')}
-
-        Job Description:
-        ${jobDescription.substring(0, 3000)}
-        `;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        matchScore: { type: Type.NUMBER },
-                        missingSkills: { type: Type.ARRAY, items: { type: Type.STRING } },
-                        salaryImpact: { type: Type.STRING },
-                        seniorityLabel: { type: Type.STRING },
-                        reasoning: { type: Type.STRING },
-                        learningTimeHours: { type: Type.NUMBER }
-                    },
-                    required: ["matchScore", "missingSkills", "salaryImpact", "seniorityLabel", "reasoning", "learningTimeHours"]
-                }
-            }
-        });
-
-        const jsonText = response.text;
-        if (!jsonText) throw new Error("No response");
-        return JSON.parse(jsonText);
-
-    } catch (e) {
-        console.error("Shaman advice failed", e);
-        return {
-            matchScore: 0,
-            missingSkills: [],
-            salaryImpact: "N/A",
-            seniorityLabel: "Neznámá",
-            reasoning: "Kyber Šaman je momentálně v meditaci (AI limit vyčerpán). Zkuste to prosím za chvíli.",
-            learningTimeHours: 0
-        };
-    }
+  try {
+    const payload = await callAiExecute('get_shaman_advice', { userProfile, jobDescription });
+    if (payload?.advice) return payload.advice as ShamanAdvice;
+    throw new Error('Invalid shaman advice payload');
+  } catch (e) {
+    console.error('Shaman advice failed', e);
+    return {
+      matchScore: 0,
+      missingSkills: [],
+      salaryImpact: 'N/A',
+      seniorityLabel: 'Neznámá',
+      reasoning: 'AI doporučení je dočasně nedostupné. Zkuste to prosím za chvíli.',
+      learningTimeHours: 0
+    };
+  }
 };
 
 export const optimizeCvForAts = async (cvText: string): Promise<{ optimizedText: string; improvements: string[] }> => {
-    const ai = getAi();
-    if (!ai) {
-        return {
-            optimizedText: "Mock ATS Output: Zde by byla verze CV optimalizovaná pro roboty. Standardizované nadpisy, klíčová slova a odstraněné grafické prvky.",
-            improvements: ["Standardizované nadpisy", "Přidána klíčová slova", "Odstraněny tabulky"]
-        };
-    }
-
-    try {
-        const prompt = `
-        Act as an ATS (Applicant Tracking System) Optimization Expert.
-        Rewrite the following CV text to ensure it gets a 100% parse rate by systems like Taleo, Workday, and Greenhouse.
-        OUTPUT IN CZECH.
-
-        Rules:
-        1. Use standard headers (Zkušenosti, Vzdělání, Dovednosti).
-        2. Incorporate industry-standard keywords relevant to the content naturally.
-        3. Remove any complex formatting characters or non-standard bullet points.
-        4. Focus on "Action Verb + Metric" structure for bullet points.
-        
-        Return JSON:
-        - optimizedText: The complete rewritten plain-text CV.
-        - improvements: A list of 3-5 specific changes you made to beat the bots.
-
-        Input CV:
-        ${cvText.substring(0, 5000)}
-        `;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        optimizedText: { type: Type.STRING },
-                        improvements: { type: Type.ARRAY, items: { type: Type.STRING } }
-                    },
-                    required: ["optimizedText", "improvements"]
-                }
-            }
-        });
-
-        const jsonText = response.text;
-        if (!jsonText) throw new Error("No response");
-        return JSON.parse(jsonText);
-
-    } catch (e) {
-        console.error("ATS Optimization failed", e);
-        return {
-            optimizedText: cvText, // Preserve original as optimized
-            improvements: ["Optimalizace dočasně nedostupná (AI limit)"]
-        };
-    }
+  try {
+    const payload = await callAiExecute('optimize_cv_for_ats', { cvText });
+    if (payload?.optimized) return payload.optimized;
+    throw new Error('Invalid ATS optimization payload');
+  } catch (e) {
+    console.error('ATS Optimization failed', e);
+    return {
+      optimizedText: cvText,
+      improvements: ['Optimalizace dočasně nedostupná (AI limit)']
+    };
+  }
 };
 
 export const parseProfileFromCV = async (cvInput: string | { base64: string, mimeType: string }): Promise<Partial<UserProfile>> => {
-    const ai = getAi();
-    if (!ai) return {};
-
-    try {
-
-        const schemaPrompt = `
-        Extract structured data from the provided document or text.
-        OUTPUT IN CZECH context but standard JSON.
-        
-        Extract:
-        - name
-        - email
-        - phone
-        - jobTitle (Current or most recent role)
-        - cvText (A professional bio summary summarizing the candidate's career, max 300 chars)
-        - skills (List of top 10 technical or professional skills)
-        - workHistory (Array of objects: role, company, duration, description)
-        - education (Array of objects: school, degree, year)
-        `;
-
-        let contents;
-
-        if (typeof cvInput === 'string') {
-            contents = {
-                parts: [
-                    { text: schemaPrompt },
-                    { text: `Input Text:\n${cvInput.substring(0, 10000)}` }
-                ]
-            };
-        } else {
-            // Multimodal input for PDF/Image
-            contents = {
-                parts: [
-                    { text: schemaPrompt },
-                    {
-                        inlineData: {
-                            mimeType: cvInput.mimeType,
-                            data: cvInput.base64
-                        }
-                    }
-                ]
-            };
-        }
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: contents,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        name: { type: Type.STRING },
-                        email: { type: Type.STRING },
-                        phone: { type: Type.STRING },
-                        jobTitle: { type: Type.STRING },
-                        cvText: { type: Type.STRING, description: "Short bio summary" },
-                        skills: { type: Type.ARRAY, items: { type: Type.STRING } },
-                        workHistory: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    role: { type: Type.STRING },
-                                    company: { type: Type.STRING },
-                                    duration: { type: Type.STRING },
-                                    description: { type: Type.STRING }
-                                }
-                            }
-                        },
-                        education: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    school: { type: Type.STRING },
-                                    degree: { type: Type.STRING },
-                                    year: { type: Type.STRING }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
-
-        const jsonText = response.text;
-
-        if (!jsonText) throw new Error("No response");
-        return JSON.parse(jsonText);
-    } catch (e) {
-        console.error("Parse Profile failed", e);
-        return {};
-    }
-}
+  try {
+    const text = typeof cvInput === 'string' ? cvInput : '';
+    const payload = await callAiExecute('parse_profile_from_cv', { text });
+    return (payload?.profile || {}) as Partial<UserProfile>;
+  } catch (e) {
+    console.error('Parse Profile failed', e);
+    return {};
+  }
+};
 
 export const generateStyledCV = async (profile: UserProfile, template: string): Promise<string> => {
-    const ai = getAi();
-    if (!ai) return "# CV Generation requires API Key";
-
-    try {
-        const prompt = `
-        Create a CV using the following profile data.
-        Template Style: "${template}".
-        OUTPUT: Markdown format only.
-        Language: Czech.
-
-        Profile Data:
-        Name: ${profile.name}
-        Title: ${profile.jobTitle}
-        Email: ${profile.email}
-        Phone: ${profile.phone}
-        Bio: ${profile.cvText}
-        Skills: ${profile.skills?.join(', ')}
-        Experience: ${JSON.stringify(profile.workHistory)}
-        Education: ${JSON.stringify(profile.education)}
-        
-        Template Guidelines:
-        - "ATS Minimal": Plain text, standard headers, no fancy formatting, focus on keywords.
-        - "Modern Bold": Use bold headers, bullet points, maybe emoji icons for sections, concise.
-        - "Executive": Formal tone, detailed metrics in experience, focus on leadership.
-        `;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: prompt
-        });
-
-        return response.text || "CV Generation Failed";
-    } catch (e) {
-        console.error("CV Gen failed", e);
-        return "Error generating CV.";
-    }
-}
-
-/**
- * COMPANY SIDE AI FEATURES
- */
+  try {
+    const payload = await callAiExecute('generate_styled_cv', { profile, template });
+    return payload?.markdown || 'CV Generation Failed';
+  } catch (e) {
+    console.error('CV Gen failed', e);
+    return 'Error generating CV.';
+  }
+};
 
 export const optimizeJobDescription = async (currentDescription: string, companyProfile?: CompanyProfile): Promise<AIAdOptimizationResult> => {
-    const ai = getAi();
-    if (!ai) {
-        return {
-            rewrittenText: "API Key chybí. Zde by byl text přepsaný AI, zbavený marketingového balastu.",
-            removedCliches: ["API Key missing", "Mock Data"],
-            improvedClarity: "Prosím přidejte API klíč pro reálnou optimalizaci inzerátu."
-        };
-    }
-
-    try {
-        let contextPrompt = "";
-        if (companyProfile) {
-            contextPrompt = `
-        Align the writing with this company profile:
-        - Tone: ${companyProfile.tone}
-        - Values: ${companyProfile.values.join(', ')}
-        - Philosophy: ${companyProfile.philosophy}
-        `;
-        }
-
-        const prompt = `
-      You are an expert HR editor who hates corporate buzzwords. 
-      Rewrite the following job description to be transparent, human-centric, and honest.
-      OUTPUT IN CZECH.
-
-      Rules:
-      1. Remove clichés like "rockstar", "ninja", "family-like", "fast-paced".
-      2. Be specific about responsibilities.
-      3. Keep the tone professional but grounded.
-      ${contextPrompt}
-      
-      Return JSON:
-      - rewrittenText: The full new markdown description.
-      - removedCliches: List of phrases you removed.
-      - improvedClarity: One sentence explaining why this is better.
-
-      Input Text:
-      ${currentDescription.substring(0, 5000)}
-    `;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        rewrittenText: { type: Type.STRING },
-                        removedCliches: { type: Type.ARRAY, items: { type: Type.STRING } },
-                        improvedClarity: { type: Type.STRING }
-                    },
-                    required: ["rewrittenText", "removedCliches", "improvedClarity"]
-                }
-            }
-        });
-
-        const jsonText = response.text;
-        if (!jsonText) throw new Error("No response from AI");
-        return JSON.parse(jsonText) as AIAdOptimizationResult;
-    } catch (error) {
-        console.error("Ad Optimization failed:", error);
-        return {
-            rewrittenText: currentDescription,
-            removedCliches: [],
-            improvedClarity: "Optimalizace selhala (AI limit vyčerpán). Původní text zachován."
-        };
-    }
+  try {
+    const payload = await callAiExecute('optimize_job_description', { currentDescription, companyProfile });
+    return (payload?.result || {
+      rewrittenText: currentDescription,
+      removedCliches: [],
+      improvedClarity: 'Optimalizace selhala. Původní text zachován.'
+    }) as AIAdOptimizationResult;
+  } catch (e) {
+    console.error('Ad Optimization failed:', e);
+    return {
+      rewrittenText: currentDescription,
+      removedCliches: [],
+      improvedClarity: 'Optimalizace selhala (AI limit vyčerpán). Původní text zachován.'
+    };
+  }
 };
 
 export const matchCandidateToJob = async (candidateBio: string, jobDescription: string): Promise<{ score: number, reason: string }> => {
-    const ai = getAi();
-    if (!ai) {
-        return { score: 75, reason: "Mock Match: API klíč chybí. Odhad na základě klíčových slov." };
-    }
-
-    try {
-        const prompt = `
-       Compare this candidate to the job.
-       Candidate Bio/Skills: ${candidateBio}
-       Job: ${jobDescription.substring(0, 1000)}
-       
-       Output JSON:
-       - score: number 0-100
-       - reason: Short Czech explanation of the fit (or lack thereof).
-     `;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        score: { type: Type.NUMBER },
-                        reason: { type: Type.STRING }
-                    }
-                }
-            }
-        });
-
-        const jsonText = response.text;
-        if (!jsonText) throw new Error("No response from AI");
-        try {
-            return JSON.parse(jsonText);
-        } catch (parseError) {
-            console.error("Failed to parse AI response:", jsonText);
-            return { score: 0, reason: "Failed to parse AI response" };
-        }
-    } catch (e) {
-        return { score: 0, reason: "AI Service Error" };
-    }
+  try {
+    const payload = await callAiExecute('match_candidate_to_job', { candidateBio, jobDescription });
+    return payload?.match || { score: 0, reason: 'AI Service Error' };
+  } catch (e) {
+    console.error('Candidate matching failed:', e);
+    return { score: 0, reason: 'AI Service Error' };
+  }
 };
 
-// --- Assessment Generation ---
-// --- Assessment Generation ---
 export const generateAssessment = async (role: string, skills: string[], difficulty: string): Promise<Assessment> => {
-    const ai = getAi();
-    if (!ai) {
-        return {
-            id: 'mock-id',
-            title: `Mock Digitální AC: ${role}`,
-            role: role,
-            description: "Toto je testovací assessment bez AI klíče. Ukázka struktury digitálního AC.",
-            timeLimitSeconds: 1200,
-            questions: [
-                { id: 'q1', text: "Vysvětlete rozdíl mezi let a const v JavaScriptu.", type: "MultipleChoice", category: "Technical", options: ["let je blokový, const nelze měnit", "oba jsou stejné", "const je globální", "let je silnější"], correctAnswer: "let je blokový, const nelze měnit" },
-                { id: 'q2', text: "Server přestal odpovídat a v logu je 500. Co uděláte jako první?", type: "Scenario", category: "Situational" },
-                { id: 'q3', text: "Napište funkci, která obrátí řetězec bez použití reverse().", type: "Code", category: "Practical" },
-                { id: 'q4', text: "Pokud jsou všichni A také B, a někteří B jsou C, plyne z toho, že někteří A jsou C?", type: "Open", category: "Logic" }
-            ],
-            createdAt: new Date().toISOString()
-        };
-    }
+  const buildAssessment = (raw: any): Assessment => ({
+    id: raw?.id || crypto.randomUUID(),
+    title: raw?.title || `Assessment: ${role}`,
+    role: raw?.role || role,
+    description: raw?.description || '',
+    timeLimitSeconds: raw?.timeLimitSeconds || 1200,
+    questions: Array.isArray(raw?.questions) ? raw.questions : [],
+    createdAt: raw?.createdAt || new Date().toISOString(),
+  });
 
+  try {
+    const payload = await callAiExecute('generate_assessment', { role, skills, difficulty });
+    return buildAssessment(payload?.assessment);
+  } catch (authError) {
     try {
-        const prompt = `
-        Jsi hlavní hiring architekt platformy JobShaman, která staví na radikální pravdě a profesionalitě.
-        Vytváříš "Digital Assessment Center" (AC) pro pozici: ${role} (${difficulty}).
-        
-        Skills: ${skills.join(', ')}.
-        OUTPUT IN CZECH.
-
-        TVŮJ ÚKOL: Vytvořit test, který odhalí nejen znalosti, ale i skutečný charakter a integritu kandidáta v kontextu jeho oboru. 
-        Ať už je to chirurg, programátor, nebo plánovač výroby, hledej kritické body, kde se láme "papírová pravda" a realita ("no-bullshit" přístup).
-
-        Struktura AC:
-        1. Technický "Quick-fire" (5-8 úloh): Klíčové znalosti, normy, nástroje nebo postupy (podle oboru).
-        2. Situační "Bullshit vs. Reality" (2-3 scénáře): Etická dilemata nebo tlak na ohýbání faktů typický pro TENTO OBOR (např. u chirurga zatajení chyby, u plánovače falšování reportu, u obchodníka slibování nesplnitelného).
-        3. Praktická Case Study (1 komplexní úkol): Reálná ukázka práce. Musí být specifická pro obor (např. analýza grafu, návrh operace, prioritizace fronty zakázek, odpověď na krizový e-mail).
-        4. Logika & Strategie (1-2 úkoly): Schopnost prioritizace a práce s omezeními v daném oboru.
-
-        JSON Struktura:
-        - title: Profesionální a úderný název (např. "${role}: Audit dovedností a integrity")
-        - description: 2 věty vysvětlující, že test jde pod povrch běžných frází.
-        - timeLimitSeconds: Doporučený čas (např. 1800 pro 30 min).
-        - questions: Pole objektů {id, text, type, category, options, correctAnswer}
-        `;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-1.5-flash',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        title: { type: Type.STRING },
-                        description: { type: Type.STRING },
-                        timeLimitSeconds: { type: Type.NUMBER },
-                        questions: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    id: { type: Type.STRING },
-                                    text: { type: Type.STRING },
-                                    type: { type: Type.STRING, enum: ["Code", "Open", "Scenario", "MultipleChoice"] },
-                                    category: { type: Type.STRING, enum: ["Technical", "Situational", "Practical", "Logic"] },
-                                    options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                    correctAnswer: { type: Type.STRING }
-                                },
-                                required: ["id", "text", "type", "category"]
-                            }
-                        }
-                    },
-                    required: ["title", "description", "timeLimitSeconds", "questions"]
-                }
-            }
-        });
-
-        const jsonText = response.text;
-        if (!jsonText) throw new Error("No response");
-        const data = JSON.parse(jsonText);
-
-        return {
-            id: crypto.randomUUID(),
-            role: role,
-            createdAt: new Date().toISOString(),
-            ...data
-        };
-
+      const response = await fetch(`${BACKEND_URL}/ai/execute-public`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'generate_assessment', params: { role, skills, difficulty } })
+      });
+      if (!response.ok) throw new Error(await parseErrorDetail(response, 'Assessment generation failed'));
+      const payload = await response.json();
+      return buildAssessment(payload?.assessment);
     } catch (e) {
-        console.error("Assessment gen failed", e);
-        return {
-            id: 'error-id',
-            role: role,
-            title: `Generování testu nebylo úspěšné`,
-            description: "Služba pro generování testů je momentálně přetížená (AI limit). Zkuste to prosím později.",
-            timeLimitSeconds: 600,
-            questions: [],
-            createdAt: new Date().toISOString()
-        };
+      console.error('Assessment generation failed:', e, authError);
+      return {
+        id: crypto.randomUUID(),
+        title: 'Generování testu nebylo úspěšné',
+        role,
+        description: 'Služba pro generování testů je momentálně přetížená. Zkuste to prosím později.',
+        timeLimitSeconds: 600,
+        questions: [],
+        createdAt: new Date().toISOString()
+      };
     }
+  }
 };
 
-// --- Assessment Evaluation ---
 export const evaluateAssessmentResult = async (
-    role: string,
-    difficulty: string,
-    questions: { id: string; text: string }[],
-    answers: { questionId: string; answer: string }[]
+  role: string,
+  difficulty: string,
+  questions: { id: string; text: string }[],
+  answers: { questionId: string; answer: string }[]
 ): Promise<AssessmentEvaluation> => {
-    const ai = getAi();
-    if (!ai) {
-        // Mock fallback
-        return {
-            pros: ["Testovací verze bez AI klíče.", "Odpovědi dávají smysl."],
-            cons: ["Nelze hloubkově analyzovat."],
-            summary: "Toto je pouze simulované hodnocení. Pro reálnou analýzu nastavte API klíč.",
-            skillMatchScore: 50,
-            recommendation: "Nastavte si Gemini API klíč pro reálné hodnocení."
-        };
-    }
-
-    try {
-        // Prepare context for AI
-        const qaPairs = questions.map(q => {
-            const answer = answers.find(a => a.questionId === q.id)?.answer || "Nezodpovězeno";
-            return `ID: ${q.id}\nOtázka: ${q.text}\nOdpověď uchazeče: ${answer}`;
-        }).join("\n\n");
-
-        const prompt = `
-        Jsi hlavní hiring konzultant a expert na profesní integritu platformy JobShaman.
-        Tvým úkolem je hloubkově ohodnotit výsledky Digital AC pro roli ${role} (${difficulty}).
-        
-        Zajímají nás technické znalosti, ale i uvažování, etika, smysl pro efektivitu a schopnost řešit problémy samostatně v kontextu TÉTO konkrétní profese.
-        
-        Analyzuj tyto odpovědi:
-        ${qaPairs}
-
-        DŮLEŽITÉ: Jsi na straně firmy, která hledá pravdu a kvalitu. Buď upřímný, hledej náznaky neprofesionality nebo "bulshitu", ale oceň opravdovou expertízu a zdravý selský rozum.
-        
-        JSON Struktura:
-        - pros: string[] (silné stránky, postřehy o uvažování v rámci profese)
-        - cons: string[] (rizika, slabá místa, etické pochyby, co si pohlídat)
-        - summary: string (2-3 věty shrnující celkový dojem a senioritu)
-        - skillMatchScore: number (0-100)
-        - recommendation: string (Krátké, úderné doporučení: např. "Profesionální přístup s vysokou integritou", "Vynikající praktické uvažování - pozvat k pohovoru", "Zatím spíše teoretické znalosti")
-        - questionFeedback: pole objektů { questionId, feedback } (Stručný komentář k uvažování u každé konkrétní otázky v kontextu oboru)
-        `;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-1.5-flash',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.OBJECT,
-                    properties: {
-                        pros: { type: Type.ARRAY, items: { type: Type.STRING } },
-                        cons: { type: Type.ARRAY, items: { type: Type.STRING } },
-                        summary: { type: Type.STRING },
-                        skillMatchScore: { type: Type.NUMBER },
-                        recommendation: { type: Type.STRING },
-                        questionFeedback: {
-                            type: Type.ARRAY,
-                            items: {
-                                type: Type.OBJECT,
-                                properties: {
-                                    questionId: { type: Type.STRING },
-                                    feedback: { type: Type.STRING }
-                                },
-                                required: ["questionId", "feedback"]
-                            }
-                        }
-                    },
-                    required: ["pros", "cons", "summary", "skillMatchScore", "recommendation", "questionFeedback"]
-                }
-            }
-        });
-
-        const jsonText = response.text;
-        if (!jsonText) throw new Error("No response from AI");
-        return JSON.parse(jsonText) as AssessmentEvaluation;
-
-    } catch (e) {
-        console.error("Assessment Evaluation failed:", e);
-        return {
-            pros: ["Hodnocení dočasně nedostupné."],
-            cons: [],
-            summary: "Vaše výsledky byly uloženy, ale automatické hodnocení AI je momentálně nedostupné (limit vyčerpán).",
-            skillMatchScore: 0
-        };
-    }
+  try {
+    const payload = await callAiExecute('evaluate_assessment_result', { role, difficulty, questions, answers });
+    if (payload?.evaluation) return payload.evaluation as AssessmentEvaluation;
+    throw new Error('Invalid assessment evaluation payload');
+  } catch (e) {
+    console.error('Assessment Evaluation failed:', e);
+    return {
+      pros: ['Hodnocení dočasně nedostupné.'],
+      cons: [],
+      summary: 'Výsledky byly uloženy, ale automatické hodnocení AI je momentálně nedostupné.',
+      skillMatchScore: 0
+    };
+  }
 };
 
-// --- Skill Extraction ---
 export const extractSkillsFromJob = async (title: string, description: string): Promise<string[]> => {
-    const ai = getAi();
-    if (!ai) return [];
-
-    try {
-        const prompt = `
-        Analyze the following job title and description and extract a list of 5-10 key technical skills, tools, or competencies required for the role.
-        Role: ${title}
-        Description: ${description}
-        
-        Return ONLY a JSON array of strings.
-        `;
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-flash-preview',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: {
-                    type: Type.ARRAY,
-                    items: { type: Type.STRING }
-                }
-            }
-        });
-
-        const jsonText = response.text;
-        return JSON.parse(jsonText || '[]');
-    } catch (error) {
-        console.error("Skill extraction failed:", error);
-        return [];
-    }
+  try {
+    const payload = await callAiExecute('extract_skills_from_job', { title, description });
+    return Array.isArray(payload?.skills) ? payload.skills : [];
+  } catch (e) {
+    console.error('Skill extraction failed:', e);
+    return [];
+  }
 };

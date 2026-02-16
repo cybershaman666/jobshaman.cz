@@ -42,6 +42,16 @@ class BillingVerificationRequest(BaseModel):
     feature: str
     endpoint: str
 
+class JobAnalyzeRequest(BaseModel):
+    description: str = Field(..., min_length=20, max_length=30000)
+    job_id: Optional[str] = Field(default=None, max_length=64)
+    title: Optional[str] = Field(default=None, max_length=500)
+    language: Optional[str] = Field(default="cs", max_length=8)
+
+class AIExecuteRequest(BaseModel):
+    action: str = Field(..., min_length=1, max_length=64)
+    params: Optional[dict] = None
+
 class AssessmentInvitationRequest(BaseModel):
     assessment_id: str
     candidate_email: str

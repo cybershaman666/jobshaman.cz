@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { uploadProfilePhoto, uploadCVFile } from '../services/supabaseService';
 import { parseProfileFromCVWithFallback } from '../services/cvParserService';
+import { parseProfileFromCV } from '../services/geminiService';
 import { resolveAddressToCoordinates } from '../services/commuteService';
 import PremiumFeaturesPreview from './PremiumFeaturesPreview';
 import MyInvitations from './MyInvitations';
@@ -107,6 +108,33 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const resolvedTier = (effectiveTier || profile.subscription?.tier || 'free').toLowerCase();
   const normalizedCandidateTier: 'free' | 'premium' = resolvedTier === 'free' ? 'free' : 'premium';
   const isPremium = normalizedCandidateTier === 'premium';
+  const aiCvParsingEnabled = String(import.meta.env.VITE_ENABLE_AI_CV_PARSER || 'true').toLowerCase() !== 'false';
+
+  const parseUploadedCv = async (file: File): Promise<Partial<UserProfile>> => {
+    if (isPremium && aiCvParsingEnabled) {
+      try {
+        // Keep deterministic extraction from local parser, then enrich structure via backend AI.
+        const baseline = await parseProfileFromCVWithFallback(file);
+        const aiParsed = await parseProfileFromCV(baseline.cvText || '');
+        if (aiParsed && Object.keys(aiParsed).length > 0) {
+          return {
+            ...baseline,
+            ...aiParsed,
+            skills: (aiParsed.skills && aiParsed.skills.length > 0) ? aiParsed.skills : baseline.skills,
+            workHistory: (aiParsed.workHistory && aiParsed.workHistory.length > 0) ? aiParsed.workHistory : baseline.workHistory,
+            education: (aiParsed.education && aiParsed.education.length > 0) ? aiParsed.education : baseline.education,
+            cvText: aiParsed.cvText || baseline.cvText
+          };
+        }
+      } catch (aiError) {
+        console.warn('AI CV parsing failed, falling back to standard parser:', aiError);
+      }
+    }
+
+    // Free users (and premium fallback) use standard parser.
+    return await parseProfileFromCVWithFallback(file);
+  };
+
   const profileWithResolvedSubscription: UserProfile = {
     ...profile,
     subscription: {
@@ -195,7 +223,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       if (cvUrl) {
         // Trigger CV parsing immediately after upload
         try {
-          const parsedData = await parseProfileFromCVWithFallback(file);
+          const parsedData = await parseUploadedCv(file);
 
           // Merge parsed data into profile
           const updatedProfile = {
