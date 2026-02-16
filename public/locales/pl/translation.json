@@ -23,7 +23,10 @@
     "found_jobs": "Znaleziono {{count}} ofert",
     "share": "Udostępnij",
     "link_copied": "Link skopiowany!",
-    "back_to_top": "Do góry"
+    "back_to_top": "Do góry",
+    "backend_wake_title": "Wybudzam backend… ☕🔮",
+    "backend_wake_desc": "To może chwilę potrwać - sprawdzam, czy serwer już wstał z łóżka. Spróbuję ponownie automatycznie.",
+    "backend_wake_waiting": "Czekam na backend…"
   },
   "filters": {
     "location_commute": "Lokalizacja i dojazd",
@@ -1493,7 +1496,8 @@
           "Codzienny kontakt z ludźmi",
           "Rozwiązywanie problemów pod presją"
         ]
-      }
+      },
+      "live_stats": "Obecnie {{jobs_count}} aktywnych ofert, dziś {{analyzed_count}} ofert przeliczonych na JHI."
     },
     "how_it_works": {
       "title": "How it works",

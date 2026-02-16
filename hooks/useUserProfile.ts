@@ -9,8 +9,6 @@ import {
     verifyAuthSession,
     createBaseProfile,
     updateCompanyIndustry,
-    getFreelancerProfile,
-    createFreelancerProfile,
     getMarketplacePartnerByOwner,
     createMarketplacePartner
 } from '../services/supabaseService';
@@ -267,25 +265,8 @@ export const useUserProfile = () => {
                         setCompanyProfile(company);
                     }
 
-                    // Ensure freelancer_profiles row exists for freelancer companies
-                    const isFreelancer = metaIsFreelancer || company?.industry === 'Freelancer';
-                    if (isFreelancer) {
-                        try {
-                            const existingFreelancer = await getFreelancerProfile(userId);
-                            if (!existingFreelancer) {
-                                const { data: { user } } = await supabase.auth.getUser();
-                                await createFreelancerProfile(userId, {
-                                    contact_email: user?.email || profile.email || null,
-                                    website: user?.user_metadata?.website || null,
-                                    presentation: '',
-                                    work_type: 'remote'
-                                });
-                                console.log('✅ Auto-created freelancer profile for marketplace visibility.');
-                            }
-                        } catch (err) {
-                            console.warn('⚠️ Failed to ensure freelancer profile:', err);
-                        }
-                    }
+                    // NOTE: Freelancer portal auto-bootstrap removed.
+                    // We no longer auto-create freelancer_profiles during generic session restoration.
 
                     // Ensure marketplace partner row exists for course providers
                     const isCourseProvider = metaIsCourseProvider || company?.industry === 'Education';

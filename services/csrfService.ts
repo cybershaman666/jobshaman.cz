@@ -237,73 +237,67 @@ export const authenticatedFetch = async (
     options: RequestInit = {},
     authToken?: string
 ): Promise<Response> => {
-    const headers = new Headers(options.headers || {});
-
-    // Add CSRF token for state-changing requests
     const method = (options.method || 'GET').toUpperCase();
-    if (['POST', 'PUT', 'DELETE', 'PATCH'].includes(method)) {
-        let csrfToken = getCsrfToken();
+    const isStateChanging = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
 
-        // Auto-recovery: If token is missing, try to fetch it now
-        if (!csrfToken) {
-            console.log('⚠️ No valid CSRF token found. Attempting to fetch one immediately...');
-            const currentAuthToken = authToken || await getCurrentAuthToken() || localStorage.getItem('auth_token');
-            if (currentAuthToken) {
-                csrfToken = await fetchCsrfToken(currentAuthToken);
-                if (csrfToken) {
-                    console.log('✅ CSRF token auto-recovered successfully');
-                }
+    const resolvedAuthToken = authToken || await getCurrentAuthToken() || localStorage.getItem('auth_token') || null;
+    if (!resolvedAuthToken) {
+        console.warn('⚠️ No authentication token available for request to:', url);
+    }
+
+    const performRequest = async (forceFreshCsrf: boolean): Promise<Response> => {
+        const headers = new Headers(options.headers || {});
+
+        if (resolvedAuthToken) {
+            headers.set('Authorization', `Bearer ${resolvedAuthToken}`);
+        }
+
+        if (isStateChanging) {
+            let csrfToken = forceFreshCsrf ? null : getCsrfToken();
+            if (!csrfToken && resolvedAuthToken) {
+                csrfToken = await fetchCsrfToken(resolvedAuthToken);
+            }
+
+            if (csrfToken) {
+                headers.set('X-CSRF-Token', csrfToken);
+            } else {
+                console.warn(`⚠️ No valid CSRF token found for ${method} request`);
             }
         }
 
-        if (csrfToken) {
-            headers.set('X-CSRF-Token', csrfToken);
-            // console.log(`🔐 Using CSRF token for ${method} request`);
-        } else {
-            console.warn('⚠️ No valid CSRF token found for ' + method + ' request even after retry');
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => {
+            console.warn(`⏱️ Authenticated fetch to ${url} timed out after 90s. The server might be waking up.`);
+            controller.abort();
+        }, 90000);
+
+        try {
+            return await fetch(url, {
+                ...options,
+                headers,
+                signal: controller.signal
+            });
+        } finally {
+            clearTimeout(timeoutId);
+        }
+    };
+
+    let response = await performRequest(false);
+
+    // CSRF tokens are single-use on backend. If we hit CSRF 403, refresh token and retry once.
+    if (isStateChanging && response.status === 403) {
+        const text = await response.clone().text().catch(() => '');
+        const looksLikeCsrfError = text.toLowerCase().includes('csrf');
+        if (looksLikeCsrfError) {
+            console.warn(`⚠️ CSRF rejected for ${method} ${url}. Refreshing token and retrying once.`);
+            clearCsrfToken();
+            response = await performRequest(true);
         }
     }
 
-    // Add auth header if provided or available
-    if (authToken) {
-        headers.set('Authorization', `Bearer ${authToken}`);
-    } else {
-        // First try to get token from Supabase session (the primary source)
-        let token = await getCurrentAuthToken();
-
-        // Fallback to legacy localStorage key if Supabase doesn't have it
-        if (!token) {
-            token = localStorage.getItem('auth_token');
-        }
-
-        if (token) {
-            headers.set('Authorization', `Bearer ${token}`);
-        } else {
-            console.warn('⚠️ No authentication token available for request to:', url);
-        }
+    if (response.status === 401) {
+        console.warn(`⚠️ Received 401 Unauthorized from ${url}. This may indicate an invalid or missing authentication token.`);
     }
 
-    // Create abort controller for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => {
-        console.warn(`⏱️ Authenticated fetch to ${url} timed out after 90s. The server might be waking up.`);
-        controller.abort();
-    }, 90000); // 90 second timeout for Render cold starts
-
-    try {
-        const response = await fetch(url, {
-            ...options,
-            headers,
-            signal: controller.signal
-        });
-
-        // Log authentication errors for debugging
-        if (response.status === 401) {
-            console.warn(`⚠️ Received 401 Unauthorized from ${url}. This may indicate an invalid or missing authentication token.`);
-        }
-
-        return response;
-    } finally {
-        clearTimeout(timeoutId);
-    }
+    return response;
 };

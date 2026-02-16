@@ -23,7 +23,10 @@
     "found_jobs": "Found {{count}} offers",
     "share": "Share",
     "link_copied": "Link copied!",
-    "back_to_top": "Back to top"
+    "back_to_top": "Back to top",
+    "backend_wake_title": "Waking up the backend… ☕🔮",
+    "backend_wake_desc": "This can take a moment - I’m checking whether the server is out of bed. I’ll retry automatically.",
+    "backend_wake_waiting": "Waiting for backend…"
   },
   "filters": {
     "location_commute": "Location & Commute",
@@ -1458,7 +1461,8 @@
           "Daily customer interaction",
           "Problem solving under pressure"
         ]
-      }
+      },
+      "live_stats": "Currently {{jobs_count}} active jobs, {{analyzed_count}} jobs analyzed for JHI today."
     },
     "how_it_works": {
       "title": "How it works",

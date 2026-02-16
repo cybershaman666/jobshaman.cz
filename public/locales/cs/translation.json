@@ -23,7 +23,10 @@
     "found_jobs": "Nalezeno {{count}} nabídek",
     "share": "Sdílet",
     "link_copied": "Odkaz zkopírován!",
-    "back_to_top": "Nahoru"
+    "back_to_top": "Nahoru",
+    "backend_wake_title": "Probouzím backend… ☕🔮",
+    "backend_wake_desc": "Chvíli to trvá — kontroluji, jestli server vylezl z postele. Zkusím to znovu automaticky.",
+    "backend_wake_waiting": "Čekám na backend…"
   },
   "filters": {
     "location_commute": "Lokalita a Dojezd",
@@ -1647,7 +1650,8 @@
           "Denní kontakt se zákazníky a kolegy",
           "Řešení problémů pod tlakem a v čase"
         ]
-      }
+      },
+      "live_stats": "Aktuálně {{jobs_count}} aktivních nabídek, dnes propočítáno {{analyzed_count}} nabídek na JHI."
     },
     "how_it_works": {
       "title": "Jak to funguje",

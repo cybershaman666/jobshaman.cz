@@ -54,7 +54,8 @@ export async function updateAdminSubscription(payload: AdminSubscriptionUpdate) 
 
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || 'Failed to update subscription');
+    const detail = error.detail || error.message || `HTTP ${response.status}`;
+    throw new Error(`Failed to update subscription: ${detail}`);
   }
 
   return response.json();

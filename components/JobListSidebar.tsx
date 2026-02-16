@@ -553,11 +553,11 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                     </>
                                 ) : backendPolling ? (
                                     <div className="flex flex-col items-center">
-                                        <p className="font-bold mb-2">Probouzím backend… ☕🔮</p>
-                                        <p className="text-xs opacity-75 max-w-[260px] mb-4">Chvíli to trvá — kontroluji, jestli server vylezl z postele. Zkusím to znovu automaticky.</p>
+                                        <p className="font-bold mb-2">{t('app.backend_wake_title')}</p>
+                                        <p className="text-xs opacity-75 max-w-[260px] mb-4">{t('app.backend_wake_desc')}</p>
                                         <div className="mt-2 text-sm text-slate-500 flex items-center gap-2">
                                             <Activity className="animate-spin text-cyan-500" size={18} />
-                                            <span>Čekám na backend…</span>
+                                            <span>{t('app.backend_wake_waiting')}</span>
                                         </div>
                                         <button onClick={loadRealJobs} className="mt-4 flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">
                                             <RefreshCw size={14} /> {t('app.try_again')}
