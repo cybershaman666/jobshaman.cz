@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Request
 from datetime import datetime, timezone
 
+from ..ai_orchestration.client import AIClientError
 from ..ai_orchestration.pipeline import generate_profile_with_orchestration
 from ..core.limiter import limiter
 from ..core.security import verify_subscription
@@ -105,6 +106,8 @@ async def profile_generate_v2(
         if "release flag" in str(e).lower() or "disabled" in str(e).lower():
             raise HTTPException(status_code=503, detail=str(e))
         raise HTTPException(status_code=400, detail=str(e))
+    except AIClientError as e:
+        raise HTTPException(status_code=503, detail=f"AI provider unavailable: {str(e)}")
     except HTTPException:
         raise
     except Exception as e:
