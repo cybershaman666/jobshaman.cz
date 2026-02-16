@@ -18,6 +18,7 @@ from .governance import run_retention_cleanup
 
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 SENTRY_ENV = os.getenv("SENTRY_ENV", os.getenv("ENVIRONMENT", "production"))
+EXPOSE_DEBUG_ERRORS = os.getenv("EXPOSE_DEBUG_ERRORS", "false").strip().lower() in {"1", "true", "yes", "on"}
 if SENTRY_DSN:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
@@ -74,7 +75,13 @@ async def add_cors_on_error(request: Request, call_next):
         print(f"🔥 Unhandled error: {exc}")
         print(traceback.format_exc())
         origin = request.headers.get("origin")
-        response = JSONResponse({"detail": "Internal Server Error"}, status_code=500)
+        detail = "Internal Server Error"
+        if EXPOSE_DEBUG_ERRORS:
+            detail = f"{type(exc).__name__}: {str(exc)}"
+        response = JSONResponse(
+            {"detail": detail, "path": str(request.url.path)},
+            status_code=500
+        )
         if origin and (origin in ALLOWED_ORIGINS or _origin_regex.match(origin)):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Vary"] = "Origin"
