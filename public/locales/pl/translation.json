@@ -483,7 +483,93 @@
     "delete_account_confirm": "Tak, usuń wszystko",
     "delete_account_cancel": "Anuluj",
     "delete_account_success": "Twoje konto zostało pomyślnie usunięte.",
-    "delete_account_error": "Nie udało się usunout konta. Spróbuj ponownie lub skontaktuj się s pomocą techniczną."
+    "delete_account_error": "Nie udało się usunout konta. Spróbuj ponownie lub skontaktuj się s pomocą techniczną.",
+    "ai_guide": {
+      "title": "AI Przewodnik CV",
+      "step_progress": "Krok {{current}} z {{total}}",
+      "helper": "Im więcej szczegółów podasz, tym dokładniejszy będzie wynik. Możesz pominąć krok i wrócić do niego później.",
+      "reminder_title": "Szybka checklista, żeby niczego nie pominąć:",
+      "reminder_items": [
+        "certyfikaty i kursy",
+        "prawo jazdy (kategorie)",
+        "języki i poziom",
+        "prace dorywcze i krótkie doświadczenia",
+        "wolontariat / organizacje / skauting",
+        "sport i role zespołowe",
+        "nagrody i konkursy",
+        "narzędzia/technologie, których naprawdę używasz"
+      ],
+      "input_placeholder": "Podyktuj lub wpisz swoją historię...",
+      "stop": "Stop",
+      "dictate": "Dyktuj",
+      "speech_unavailable": "Dyktowanie nie jest dostępne w tej przeglądarce.",
+      "back": "Wstecz",
+      "next": "Dalej",
+      "generate": "Wygeneruj profil i CV",
+      "empty_step": "Ten krok jest na razie pusty. To w porządku.",
+      "why_title": "Dlaczego AI zaproponowała te zmiany",
+      "back_to_edits": "Wróć do edycji",
+      "saving": "Zapisywanie...",
+      "save_to_profile": "Zapisz do profilu",
+      "fields": {
+        "job_title": "Zawód / Nazwa stanowiska",
+        "skills": "Umiejętności (1 na linię)",
+        "summary": "Podsumowanie (krótkie)",
+        "cv_ai_text": "AI CV (pełny tekst)",
+        "story": "Historia",
+        "hobbies": "Hobby",
+        "volunteering": "Wolontariat",
+        "leadership": "Leadership",
+        "strengths": "Mocne strony",
+        "values": "Wartości",
+        "inferred_skills": "Ukryte umiejętności",
+        "awards": "Nagrody",
+        "certifications": "Certyfikaty",
+        "side_projects": "Projekty poboczne",
+        "motivations": "Motywacje",
+        "work_preferences": "Preferencje pracy"
+      },
+      "errors": {
+        "fill_one_step": "Wypełnij co najmniej jeden krok przewodnika.",
+        "generate_failed": "Przewodnik AI nie zadziałał. Spróbuj ponownie.",
+        "save_failed": "Zapis do profilu się nie udał. Spróbuj ponownie."
+      },
+      "steps": {
+        "early_story": {
+          "title": "Początek historii (dzieciństwo, szkoła, marzenia)",
+          "hint": "Jakie były Twoje pierwsze zainteresowania? Jaka była wymarzona szkoła/kierunek i jak to się skończyło? Nawet jeśli poszedłeś inną drogą."
+        },
+        "activities": {
+          "title": "Aktywności wolnoczasowe i wolontariat",
+          "hint": "Skauting, sport zespołowy, organizacje, wolontariat, organizacja wydarzeń. Co to dało Ci w pracy i współpracy z ludźmi?"
+        },
+        "first_work": {
+          "title": "Pierwsze doświadczenia zawodowe i prace dorywcze",
+          "hint": "Spróbuj przypomnieć sobie wszystkie prace i zajęcia dorywcze. Co było pomocne, a co nie działało? Nawet złe doświadczenia są ważne."
+        },
+        "career_shifts": {
+          "title": "Skoki zawodowe i zmiany branży",
+          "hint": "Czy był przejście do innej branży? Co Cię do tego skłoniło i co przeniosłeś z wcześniejszych ról?"
+        },
+        "projects_impact": {
+          "title": "Projekty, efekty i mocne strony",
+          "hint": "Z czego jesteś dumny? Podaj konkretne efekty. Jakie umiejętności i mocne strony AI ma z tego wydobyć?"
+        },
+        "personality_preferences": {
+          "title": "Osobowość, wartości i preferencje pracy",
+          "hint": "Jesteś bardziej introwertykiem czy ekstrawertykiem? Jakie środowisko Ci pasuje (tempo, zespół, autonomia, remote/hybrid, stabilność vs zmiana)?"
+        }
+      },
+      "why": {
+        "inferred_skills": "AI wywnioskowała {{count}} ukrytych umiejętności na podstawie Twojej historii i aktywności.",
+        "skills_normalized": "Kluczowe umiejętności zostały ujednolicone do czytelnej listy dla ATS i rekruterów.",
+        "work_structured": "Doświadczenie zawodowe zostało ustrukturyzowane na rolę, firmę, okres i wpływ.",
+        "education_normalized": "Edukacja została ujednolicona do spójnego formatu dla lepszej czytelności.",
+        "summary_condensed": "Podsumowanie skrócono do wersji szybkiego skanu dla profilu i nagłówka CV.",
+        "cv_fulltext": "Pełny tekst AI CV łączy Twoje dane wejściowe z naciskiem na przenaszalne mocne strony.",
+        "better_with_context": "Wynik jest dokładniejszy, bo przewodnik miał wystarczający kontekst z wielu obszarów."
+      }
+    }
   },
   "footer": {
     "rights_reserved": "© 2026 JobShaman. Wszelkie prawa zastrzeżone.",

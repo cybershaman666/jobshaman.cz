@@ -483,7 +483,93 @@
     "delete_account_confirm": "Ja, alles löschen",
     "delete_account_cancel": "Abbrechen",
     "delete_account_success": "Ihr Konto wurde erfolgreich gelöscht.",
-    "delete_account_error": "Fehler beim Löschen des Kontos. Bitte versuchen Sie es erneut oder kontaktieren Sie den Support."
+    "delete_account_error": "Fehler beim Löschen des Kontos. Bitte versuchen Sie es erneut oder kontaktieren Sie den Support.",
+    "ai_guide": {
+      "title": "KI-Lebenslauf-Guide",
+      "step_progress": "Schritt {{current}} von {{total}}",
+      "helper": "Je mehr Details Sie angeben, desto präziser wird das Ergebnis. Sie können einen Schritt überspringen und später zurückkehren.",
+      "reminder_title": "Schnellcheck, damit nichts vergessen wird:",
+      "reminder_items": [
+        "Zertifikate und Kurse",
+        "Führerschein (Klassen)",
+        "Sprachen und Niveau",
+        "Nebenjobs und kurze Erfahrungen",
+        "Ehrenamt / Vereine / Pfadfinder",
+        "Sport und Teamrollen",
+        "Auszeichnungen und Wettbewerbe",
+        "Tools/Technologien, die Sie wirklich nutzen"
+      ],
+      "input_placeholder": "Diktieren oder schreiben Sie Ihre Geschichte...",
+      "stop": "Stop",
+      "dictate": "Diktieren",
+      "speech_unavailable": "Diktieren ist in diesem Browser nicht verfügbar.",
+      "back": "Zurück",
+      "next": "Weiter",
+      "generate": "Profil und CV generieren",
+      "empty_step": "Dieser Schritt ist noch leer. Das ist in Ordnung.",
+      "why_title": "Warum die KI diese Änderungen vorgeschlagen hat",
+      "back_to_edits": "Zurück zur Bearbeitung",
+      "saving": "Speichern...",
+      "save_to_profile": "Im Profil speichern",
+      "fields": {
+        "job_title": "Beruf / Positionsname",
+        "skills": "Fähigkeiten (1 pro Zeile)",
+        "summary": "Zusammenfassung (kurz)",
+        "cv_ai_text": "KI-CV (Volltext)",
+        "story": "Geschichte",
+        "hobbies": "Hobbys",
+        "volunteering": "Ehrenamt",
+        "leadership": "Leadership",
+        "strengths": "Stärken",
+        "values": "Werte",
+        "inferred_skills": "Abgeleitete Fähigkeiten",
+        "awards": "Auszeichnungen",
+        "certifications": "Zertifizierungen",
+        "side_projects": "Nebenprojekte",
+        "motivations": "Motivation",
+        "work_preferences": "Arbeitspräferenzen"
+      },
+      "errors": {
+        "fill_one_step": "Bitte füllen Sie mindestens einen Schritt des Guides aus.",
+        "generate_failed": "KI-Guide fehlgeschlagen. Bitte versuchen Sie es erneut.",
+        "save_failed": "Speichern im Profil fehlgeschlagen. Bitte versuchen Sie es erneut."
+      },
+      "steps": {
+        "early_story": {
+          "title": "Anfang der Geschichte (Kindheit, Schule, Träume)",
+          "hint": "Was waren Ihre ersten Interessen? Was war Ihre Wunschschule/-richtung und wie ist es ausgegangen? Auch wenn Ihr Weg anders verlief."
+        },
+        "activities": {
+          "title": "Freizeit- und Ehrenamtsaktivitäten",
+          "hint": "Pfadfinder, Teamsport, Vereine, Ehrenamt, Eventorganisation. Was hat Ihnen das für Arbeit und Zusammenarbeit gebracht?"
+        },
+        "first_work": {
+          "title": "Erste Berufserfahrungen und Nebenjobs",
+          "hint": "Versuchen Sie, alle Jobs und Nebenjobs zu nennen. Was war hilfreich und was nicht? Auch schlechte Erfahrungen sind wichtig."
+        },
+        "career_shifts": {
+          "title": "Karrieresprünge und Branchenwechsel",
+          "hint": "Gab es einen Wechsel in ein anderes Feld? Warum und was haben Sie aus früheren Rollen mitgenommen?"
+        },
+        "projects_impact": {
+          "title": "Projekte, Ergebnisse und Stärken",
+          "hint": "Worauf sind Sie stolz? Nennen Sie konkrete Auswirkungen. Welche Fähigkeiten und Stärken soll die KI daraus ziehen?"
+        },
+        "personality_preferences": {
+          "title": "Persönlichkeit, Werte und Arbeitspräferenzen",
+          "hint": "Sind Sie eher introvertiert oder extrovertiert? Welches Umfeld passt zu Ihnen (Tempo, Team, Autonomie, Remote/Hybrid, Stabilität vs. Veränderung)?"
+        }
+      },
+      "why": {
+        "inferred_skills": "Die KI hat {{count}} verborgene Fähigkeiten aus Ihrer Geschichte und Aktivitäten abgeleitet.",
+        "skills_normalized": "Wichtige Fähigkeiten wurden zu einer klaren Liste für ATS und Recruiter zusammengeführt.",
+        "work_structured": "Berufserfahrung wurde in Rolle, Unternehmen, Zeitraum und Wirkung strukturiert.",
+        "education_normalized": "Ausbildung wurde für bessere Lesbarkeit in ein einheitliches Format gebracht.",
+        "summary_condensed": "Die Zusammenfassung wurde zu einer schnell erfassbaren Version für Profil und CV-Headline verdichtet.",
+        "cv_fulltext": "Der vollständige KI-CV-Text kombiniert Ihre Eingaben mit Fokus auf übertragbare Stärken.",
+        "better_with_context": "Das Ergebnis ist präziser, weil der Guide genug Kontext aus mehreren Bereichen hatte."
+      }
+    }
   },
   "company_registration": {
     "step1_title": "Erstellen Sie Ihr Unternehmenskonto",

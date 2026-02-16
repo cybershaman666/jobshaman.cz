@@ -528,7 +528,93 @@
     "delete_account_confirm": "Áno, zmazať všetko",
     "delete_account_cancel": "Zrušiť",
     "delete_account_success": "Váš účet bol úspešne zmazaný.",
-    "delete_account_error": "Nepodarilo sa zmazať účet. Skúste to prosím znova alebo kontaktujte podporu."
+    "delete_account_error": "Nepodarilo sa zmazať účet. Skúste to prosím znova alebo kontaktujte podporu.",
+    "ai_guide": {
+      "title": "AI Sprievodca životopisom",
+      "step_progress": "Krok {{current}} z {{total}}",
+      "helper": "Čím viac detailov uvediete, tým presnejší bude výstup. Krok môžete preskočiť a vrátiť sa k nemu neskôr.",
+      "reminder_title": "Rýchla kontrola, aby ste na nič nezabudli:",
+      "reminder_items": [
+        "certifikáty a kurzy",
+        "vodičský preukaz (skupiny)",
+        "jazyky a úroveň",
+        "brigády a krátke skúsenosti",
+        "dobrovoľníctvo / spolky / skaut",
+        "športy a tímové roly",
+        "ocenenia a súťaže",
+        "nástroje/technológie, ktoré naozaj používate"
+      ],
+      "input_placeholder": "Nadiktujte alebo napíšte svoj príbeh...",
+      "stop": "Stop",
+      "dictate": "Diktovať",
+      "speech_unavailable": "Diktovanie nie je dostupné v tomto prehliadači.",
+      "back": "Späť",
+      "next": "Ďalej",
+      "generate": "Vygenerovať profil a CV",
+      "empty_step": "Tento krok je zatiaľ prázdny. Je to v poriadku.",
+      "why_title": "Prečo AI navrhla tieto úpravy",
+      "back_to_edits": "Späť na úpravy",
+      "saving": "Ukladám...",
+      "save_to_profile": "Uložiť do profilu",
+      "fields": {
+        "job_title": "Profesia / Názov pozície",
+        "skills": "Zručnosti (1 na riadok)",
+        "summary": "Zhrnutie (krátke)",
+        "cv_ai_text": "AI CV (plný text)",
+        "story": "Príbeh",
+        "hobbies": "Koníčky",
+        "volunteering": "Dobrovoľníctvo",
+        "leadership": "Leadership",
+        "strengths": "Silné stránky",
+        "values": "Hodnoty",
+        "inferred_skills": "Skryté zručnosti",
+        "awards": "Ocenenia",
+        "certifications": "Certifikácie",
+        "side_projects": "Side projekty",
+        "motivations": "Motivácie",
+        "work_preferences": "Pracovné preferencie"
+      },
+      "errors": {
+        "fill_one_step": "Vyplňte prosím aspoň jeden krok sprievodcu.",
+        "generate_failed": "AI sprievodca zlyhal. Skúste to prosím znova.",
+        "save_failed": "Uloženie do profilu zlyhalo. Skúste to prosím znova."
+      },
+      "steps": {
+        "early_story": {
+          "title": "Začiatok príbehu (detstvo, škola, sny)",
+          "hint": "Aké boli vaše prvé záujmy? Aká bola vysnívaná škola/odbor a ako to dopadlo? Pokojne aj ak ste išli inou cestou."
+        },
+        "activities": {
+          "title": "Voľnočasové a dobrovoľnícke aktivity",
+          "hint": "Skaut, tímový šport, spolky, dobrovoľníctvo, organizácia akcií. Čo vám to dalo do práce a spolupráce s ľuďmi?"
+        },
+        "first_work": {
+          "title": "Prvé pracovné skúsenosti a brigády",
+          "hint": "Skúste si vybaviť všetky zamestnania aj brigády. Čo bolo prínosné a čo naopak nefungovalo? Aj „zlá“ skúsenosť je dôležitá."
+        },
+        "career_shifts": {
+          "title": "Profesijné skoky a zmeny odboru",
+          "hint": "Prebehol prechod do iného odboru? Čo vás k tomu viedlo a čo ste si preniesli z predchádzajúcich rolí?"
+        },
+        "projects_impact": {
+          "title": "Projekty, výsledky a silné stránky",
+          "hint": "Na čo ste pyšní? Uveďte konkrétne dopady. Aké zručnosti a silné stránky z toho AI môže vyťažiť?"
+        },
+        "personality_preferences": {
+          "title": "Osobnosť, hodnoty a pracovné preferencie",
+          "hint": "Ste skôr introvert alebo extrovert? Aké prostredie vám sedí (tempo, tím, autonómia, remote/hybrid, stabilita vs. zmena)?"
+        }
+      },
+      "why": {
+        "inferred_skills": "AI odvodila {{count}} skrytých zručností z vášho príbehu a aktivít.",
+        "skills_normalized": "Kľúčové zručnosti boli zjednotené do čitateľného zoznamu pre ATS aj recruiterov.",
+        "work_structured": "Pracovné skúsenosti boli štruktúrované do role, firmy, obdobia a stručného dopadu.",
+        "education_normalized": "Vzdelanie bolo normalizované do jednotného formátu pre lepšiu čitateľnosť profilu.",
+        "summary_condensed": "Zhrnutie bolo skrátené na rýchlo skenovateľnú verziu vhodnú pre profil a CV headline.",
+        "cv_fulltext": "Plný AI text životopisu kombinuje vaše vstupy s dôrazom na prenositeľné silné stránky.",
+        "better_with_context": "Výstup je presnejší, pretože sprievodca mal dostatok kontextu naprieč viacerými oblasťami."
+      }
+    }
   },
   "cv_manager": {
     "title": "Správa životopisov",

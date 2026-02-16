@@ -483,7 +483,93 @@
     "delete_account_confirm": "Yes, delete everything",
     "delete_account_cancel": "Cancel",
     "delete_account_success": "Your account has been successfully deleted.",
-    "delete_account_error": "Failed to delete account. Please try again or contact support."
+    "delete_account_error": "Failed to delete account. Please try again or contact support.",
+    "ai_guide": {
+      "title": "AI Resume Guide",
+      "step_progress": "Step {{current}} of {{total}}",
+      "helper": "The more details you provide, the more accurate the output will be. You can skip a step and return later.",
+      "reminder_title": "Quick checklist so you do not forget anything:",
+      "reminder_items": [
+        "certificates and courses",
+        "driving license (groups)",
+        "languages and level",
+        "part-time jobs and short experiences",
+        "volunteering / clubs / scouts",
+        "sports and team roles",
+        "awards and competitions",
+        "tools/technologies you really use"
+      ],
+      "input_placeholder": "Dictate or type your story...",
+      "stop": "Stop",
+      "dictate": "Dictate",
+      "speech_unavailable": "Speech dictation is not available in this browser.",
+      "back": "Back",
+      "next": "Next",
+      "generate": "Generate profile and CV",
+      "empty_step": "This step is still empty. That is okay.",
+      "why_title": "Why AI suggested these changes",
+      "back_to_edits": "Back to edits",
+      "saving": "Saving...",
+      "save_to_profile": "Save to profile",
+      "fields": {
+        "job_title": "Profession / Job title",
+        "skills": "Skills (1 per line)",
+        "summary": "Summary (short)",
+        "cv_ai_text": "AI CV (full text)",
+        "story": "Story",
+        "hobbies": "Hobbies",
+        "volunteering": "Volunteering",
+        "leadership": "Leadership",
+        "strengths": "Strengths",
+        "values": "Values",
+        "inferred_skills": "Inferred skills",
+        "awards": "Awards",
+        "certifications": "Certifications",
+        "side_projects": "Side projects",
+        "motivations": "Motivations",
+        "work_preferences": "Work preferences"
+      },
+      "errors": {
+        "fill_one_step": "Please fill in at least one guide step.",
+        "generate_failed": "AI guide failed. Please try again.",
+        "save_failed": "Saving to profile failed. Please try again."
+      },
+      "steps": {
+        "early_story": {
+          "title": "Beginning of your story (childhood, school, dreams)",
+          "hint": "What were your early interests? What was your dream school/field and how did it turn out? Include it even if your path changed."
+        },
+        "activities": {
+          "title": "Leisure and volunteering activities",
+          "hint": "Scouts, team sports, clubs, volunteering, organizing events. What did these give you for work and collaboration?"
+        },
+        "first_work": {
+          "title": "First work experience and part-time jobs",
+          "hint": "Try to recall all jobs and part-time work. What was useful and what did not work? Even a bad experience matters."
+        },
+        "career_shifts": {
+          "title": "Career jumps and field changes",
+          "hint": "Did you switch to another field? What led to it and what did you transfer from previous roles?"
+        },
+        "projects_impact": {
+          "title": "Projects, results, and strengths",
+          "hint": "What are you proud of? Add concrete outcomes. Which skills and strengths should AI extract from this?"
+        },
+        "personality_preferences": {
+          "title": "Personality, values, and work preferences",
+          "hint": "Are you more introvert or extrovert? Which environment fits you (pace, team, autonomy, remote/hybrid, stability vs change)?"
+        }
+      },
+      "why": {
+        "inferred_skills": "AI inferred {{count}} hidden skills from your story and activities.",
+        "skills_normalized": "Key skills were consolidated into a clear list for ATS and recruiters.",
+        "work_structured": "Work experience was structured into role, company, period, and impact.",
+        "education_normalized": "Education was normalized into a consistent format for better readability.",
+        "summary_condensed": "The summary was condensed into a quick-scan version for profile and CV headline.",
+        "cv_fulltext": "The full AI CV text combines your inputs with emphasis on transferable strengths.",
+        "better_with_context": "Output is more accurate because the guide had enough context across areas."
+      }
+    }
   },
   "footer": {
     "rights_reserved": "© 2026 JobShaman. All rights reserved.",
