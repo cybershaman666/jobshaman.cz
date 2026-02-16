@@ -126,6 +126,9 @@ def _call_openai_chat_completion(
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
+    if "openrouter.ai" in endpoint:
+        headers["HTTP-Referer"] = os.getenv("OPENROUTER_HTTP_REFERER", "https://jobshaman.com")
+        headers["X-Title"] = os.getenv("OPENROUTER_APP_TITLE", "JobShaman")
 
     attempt = 0
     while True:

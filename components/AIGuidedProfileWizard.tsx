@@ -156,7 +156,12 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
       const stepsPayload = STEPS.map((s, index) => ({
         id: s.id,
         text: stepTexts[index] || ''
-      }));
+      })).filter(step => step.text.trim().length > 0);
+
+      if (stepsPayload.length === 0) {
+        throw new Error('Vyplňte prosím alespoň jeden krok průvodce.');
+      }
+
       const data = await generateProfileFromStory(stepsPayload, 'cs', profile);
       setAiResult(data);
 
