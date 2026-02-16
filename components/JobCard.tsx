@@ -86,9 +86,12 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
 
   // Calculate quick distance if user profile is available
   let distanceBadge = null;
-  if (userProfile && userProfile.isLoggedIn && userProfile.address) {
-    const commute = calculateCommuteReality(job, userProfile);
-    const userCoords = userProfile.coordinates || getCoordinates(userProfile.address);
+  if (userProfile && (userProfile.address || userProfile.coordinates)) {
+    const commuteProfile = userProfile.address
+      ? userProfile
+      : { ...userProfile, address: t('financial.current_location_label', { defaultValue: 'Aktuální poloha' }) as string };
+    const commute = calculateCommuteReality(job, commuteProfile);
+    const userCoords = commuteProfile.coordinates || getCoordinates(commuteProfile.address);
     let airDistanceKm: number | null = null;
     if (userCoords) {
       const jobCoords = (job.lat !== undefined && job.lng !== undefined && job.lat !== null && job.lng !== null)

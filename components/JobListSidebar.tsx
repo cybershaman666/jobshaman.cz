@@ -65,6 +65,7 @@ interface JobListSidebarProps {
     setGlobalSearch: (global: boolean) => void;
     abroadOnly: boolean;
     setAbroadOnly: (abroadOnly: boolean) => void;
+    onUseCurrentLocation: () => void;
 }
 
 const JobListSidebar: React.FC<JobListSidebarProps> = ({
@@ -113,13 +114,15 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     globalSearch,
     setGlobalSearch,
     abroadOnly,
-    setAbroadOnly
+    setAbroadOnly,
+    onUseCurrentLocation
 }) => {
     const { t } = useTranslation();
     const handleScrollToTop = () => {
         jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     };
     const compactFilters = !userProfile?.isLoggedIn;
+    const hasLocationAnchor = !!(userProfile.address || userProfile.coordinates || filterCity);
 
     return (
         <section className={`lg:col-span-4 xl:col-span-3 flex flex-col gap-4 min-h-0 ${selectedJobId ? 'hidden lg:flex' : 'flex'} h-full`}>
@@ -284,6 +287,14 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                 <option value="Nitriansky kraj" />
                                             </datalist>
                                         </div>
+                                        {!filterCity && !userProfile.coordinates && (
+                                            <button
+                                                onClick={(e) => { e.preventDefault(); onUseCurrentLocation(); }}
+                                                className="w-full text-xs font-semibold px-3 py-2 rounded-md border border-cyan-200 dark:border-cyan-700/60 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 transition-colors"
+                                            >
+                                                {t('filters.use_current_location', { defaultValue: 'Použít moji polohu' })}
+                                            </button>
+                                        )}
                                         <label className="flex items-center justify-between cursor-pointer p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors">
                                             <div className="flex items-center gap-2">
                                                 <Car size={16} className={`transition-colors ${enableCommuteFilter ? 'text-cyan-500' : 'text-slate-400'}`} />
@@ -334,10 +345,10 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                             </div>
                                         </button>
                                         {enableCommuteFilter && (
-                                            <div className={`p-3 rounded-md border ${(userProfile.isLoggedIn && userProfile.address) || filterCity ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800' : 'bg-slate-100 dark:bg-slate-900/50 border-dashed border-slate-300 dark:border-slate-800 opacity-60'}`}>
+                                            <div className={`p-3 rounded-md border ${hasLocationAnchor ? 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800' : 'bg-slate-100 dark:bg-slate-900/50 border-dashed border-slate-300 dark:border-slate-800 opacity-60'}`}>
                                                 <div className="flex justify-between text-xs mb-2">
                                                     <span className="font-medium text-slate-500 dark:text-slate-400">{t('filters.max_distance')}</span>
-                                                    <span className="font-mono text-cyan-600 dark:text-cyan-400">{(userProfile.isLoggedIn && userProfile.address) || filterCity ? `${filterMaxDistance} km` : 'N/A'}</span>
+                                                    <span className="font-mono text-cyan-600 dark:text-cyan-400">{hasLocationAnchor ? `${filterMaxDistance} km` : 'N/A'}</span>
                                                 </div>
                                                 <input
                                                     type="range"
@@ -346,11 +357,11 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                     step="5"
                                                     value={filterMaxDistance}
                                                     onChange={(e) => setFilterMaxDistance(parseInt(e.target.value))}
-                                                    disabled={!((userProfile.isLoggedIn && userProfile.address) || filterCity)}
+                                                    disabled={!hasLocationAnchor}
                                                     className="w-full accent-cyan-500 cursor-pointer disabled:cursor-not-allowed bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full appearance-none"
                                                 />
-                                                {!(userProfile.isLoggedIn && userProfile.address) && !filterCity && (
-                                                    <p className="text-[10px] text-slate-500 mt-2 italic">Pro radius zadejte město nebo se přihlaste s adresou.</p>
+                                                {!hasLocationAnchor && (
+                                                    <p className="text-[10px] text-slate-500 mt-2 italic">Pro radius zadejte město nebo použijte aktuální polohu.</p>
                                                 )}
                                             </div>
                                         )}
