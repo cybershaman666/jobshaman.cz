@@ -230,11 +230,19 @@ def call_primary_with_fallback(
     max_retries: int = 2,
     generation_config: Optional[Dict[str, Any]] = None,
 ) -> tuple[AIClientResult, bool]:
+    explicit_provider = (os.getenv("AI_PROVIDER") or "").strip().lower()
+    if explicit_provider == "openai":
+        default_rescue = "gpt-4.1-mini,gpt-4.1-nano"
+    elif explicit_provider == "gemini":
+        default_rescue = "gemini-2.0-flash,gemini-1.5-flash,gemini-1.5-flash-8b"
+    else:
+        default_rescue = "gemini-2.0-flash,gemini-1.5-flash,gemini-1.5-flash-8b,gpt-4.1-mini,gpt-4.1-nano"
+
     rescue_models = [
         m.strip()
         for m in os.getenv(
             "GEMINI_RESCUE_MODELS",
-            "gemini-2.0-flash,gemini-1.5-flash,gemini-1.5-flash-8b",
+            default_rescue,
         ).split(",")
         if m.strip()
     ]
@@ -249,6 +257,11 @@ def call_primary_with_fallback(
     for name in chain:
         if name not in ordered_unique:
             ordered_unique.append(name)
+
+    if explicit_provider == "openai":
+        ordered_unique = [m for m in ordered_unique if not m.lower().startswith("gemini")]
+    elif explicit_provider == "gemini":
+        ordered_unique = [m for m in ordered_unique if m.lower().startswith("gemini")]
 
     last_error: Optional[Exception] = None
     for index, model_name in enumerate(ordered_unique):
