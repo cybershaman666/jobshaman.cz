@@ -1014,7 +1014,15 @@ export default function App() {
             endpoint: '/jobs/analyze'
         });
         if (!billing.hasAccess) {
-            setShowPremiumUpgrade({ open: true, feature: 'AI analýza pracovních inzerátů' });
+            const reason = (billing.reason || '').toLowerCase();
+            const isEntitlementDeny = reason.includes('feature') || reason.includes('tier') || reason.includes('inactive subscription');
+            if (isEntitlementDeny) {
+                setShowPremiumUpgrade({ open: true, feature: 'AI analýza pracovních inzerátů' });
+            } else if (billing.reason) {
+                alert(billing.reason);
+            } else {
+                alert('Nepodařilo se ověřit předplatné. Zkuste to prosím znovu.');
+            }
             return;
         }
 

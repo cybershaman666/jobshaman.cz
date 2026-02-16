@@ -10,6 +10,45 @@ from datetime import datetime, timezone, timedelta
 
 router = APIRouter()
 
+def _parse_iso_datetime(value: str) -> datetime | None:
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+def _is_active_subscription(sub: dict | None) -> bool:
+    if not sub:
+        return False
+    status = (sub.get("status") or "").lower()
+    if status not in ["active", "trialing"]:
+        return False
+    expires_at = _parse_iso_datetime(sub.get("current_period_end"))
+    if not expires_at:
+        return True
+    return datetime.now(timezone.utc) <= expires_at
+
+def _get_latest_subscription_by(column: str, value: str) -> dict | None:
+    if not value:
+        return None
+    try:
+        resp = (
+            supabase
+            .table("subscriptions")
+            .select("*")
+            .eq(column, value)
+            .order("updated_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    except Exception:
+        return None
+
 @router.get("/subscription-status")
 @limiter.limit("30/minute")
 async def get_subscription_status(request: Request, userId: str = Query(...), user: dict = Depends(get_current_user)):
@@ -121,9 +160,6 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
 @router.post("/verify-billing")
 @limiter.limit("100/minute")
 async def verify_billing(billing_request: BillingVerificationRequest, request: Request, user: dict = Depends(verify_subscription)):
-    user_tier = user.get("subscription_tier", "free")
-    is_active = user.get("is_subscription_active", False)
-    
     feature_access = {
         "premium": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS"],
         "basic": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS"],
@@ -135,14 +171,45 @@ async def verify_billing(billing_request: BillingVerificationRequest, request: R
         "single_assessment": [],
         "free": [],
     }
-    
+
+    def _can_access(tier: str, active: bool) -> bool:
+        if tier in feature_access and not active:
+            return False
+        return billing_request.feature in feature_access.get(tier, [])
+
+    # Fast path from verify_subscription context
+    user_tier = user.get("subscription_tier", "free")
+    is_active = bool(user.get("is_subscription_active", False))
+    if _can_access(user_tier, is_active):
+        return {"hasAccess": True, "subscriptionTier": user_tier}
+
+    # Authoritative fallback: resolve latest user-level and all authorized company-level subscriptions.
+    # This prevents false paywalls when the auth context points to an unrelated/inactive company.
+    user_id = user.get("id") or user.get("auth_id")
+    authorized_ids = user.get("authorized_ids") or []
+
+    candidates: list[dict] = []
+    if user_id:
+        user_sub = _get_latest_subscription_by("user_id", user_id)
+        if user_sub:
+            candidates.append(user_sub)
+
+    for company_id in authorized_ids:
+        if company_id == user_id:
+            continue
+        company_sub = _get_latest_subscription_by("company_id", company_id)
+        if company_sub:
+            candidates.append(company_sub)
+
+    for sub in candidates:
+        tier = (sub.get("tier") or "free").lower()
+        active = _is_active_subscription(sub)
+        if _can_access(tier, active):
+            return {"hasAccess": True, "subscriptionTier": tier}
+
     if user_tier in feature_access and not is_active:
         return {"hasAccess": False, "reason": "Inactive subscription"}
 
-    allowed_features = feature_access.get(user_tier, [])
-    if billing_request.feature in allowed_features:
-        return {"hasAccess": True}
-        
     return {"hasAccess": False, "reason": f"Feature {billing_request.feature} not in {user_tier} tier"}
 
 @router.post("/cancel-subscription")
