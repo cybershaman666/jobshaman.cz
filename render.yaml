@@ -11,6 +11,20 @@ services:
         sync: false
       - key: SUPABASE_KEY
         sync: false
+      - key: AI_PROVIDER
+        value: openai
+      - key: OPENAI_ENDPOINT
+        value: https://openrouter.ai/api/v1/chat/completions
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENROUTER_HTTP_REFERER
+        value: https://jobshaman.com
+      - key: OPENROUTER_APP_TITLE
+        value: JobShaman
+      - key: OPENAI_MODEL
+        value: openai/gpt-4.1-mini
+      - key: OPENAI_FALLBACK_MODEL
+        value: openai/gpt-4.1-nano
       - key: GEMINI_API_KEY
         sync: false
       - key: RESEND_API_KEY

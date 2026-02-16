@@ -84,7 +84,13 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
     if (!aiPrompt) return;
     setIsGenerating(true);
     try {
-      const draft = await generateCoverLetter(job.title, job.company, job.description, aiPrompt);
+      const draft = await generateCoverLetter(
+        job.title,
+        job.company,
+        job.description,
+        aiPrompt,
+        user.cvText || ''
+      );
       setCoverLetter(draft);
       setShowAiInput(false); // Close the input, show the result
     } catch (error) {

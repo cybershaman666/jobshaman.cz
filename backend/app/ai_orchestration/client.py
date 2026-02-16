@@ -43,15 +43,6 @@ def _is_transient_error(exc: Exception) -> bool:
     return any(k in msg for k in ["timeout", "temporar", "unavailable", "resource exhausted", "429", "503"])
 
 
-def _usage_counts(response: Any) -> tuple[int, int]:
-    usage = getattr(response, "usage_metadata", None)
-    if not usage:
-        return 0, 0
-    in_count = int(getattr(usage, "prompt_token_count", 0) or 0)
-    out_count = int(getattr(usage, "candidates_token_count", 0) or 0)
-    return in_count, out_count
-
-
 def _usage_counts_openai(payload: Dict[str, Any]) -> tuple[int, int]:
     usage = payload.get("usage") or {}
     in_count = int(usage.get("input_tokens") or usage.get("prompt_tokens") or 0)
@@ -156,74 +147,19 @@ def _call_openai_chat_completion(
             time.sleep(backoff)
 
 
-def _resolve_provider(model_name: str) -> str:
-    explicit = (os.getenv("AI_PROVIDER") or "").strip().lower()
-    if explicit in {"openai", "gemini"}:
-        return explicit
-
-    lowered = (model_name or "").strip().lower()
-    if lowered.startswith("gemini"):
-        return "gemini"
-    if lowered.startswith("gpt-") or lowered.startswith("o"):
-        return "openai"
-    return "gemini"
-
-
 def call_model_with_retry(
     prompt: str,
     model_name: str,
     max_retries: int = 2,
     generation_config: Optional[Dict[str, Any]] = None,
 ) -> AIClientResult:
-    provider = _resolve_provider(model_name)
-    if provider == "openai":
-        return _call_openai_chat_completion(
-            prompt,
-            model_name,
-            max_retries=max_retries,
-            generation_config=generation_config,
-        )
-
-    try:
-        import google.generativeai as genai
-    except Exception as exc:
-        raise AIClientError(f"google-generativeai is not installed: {exc}")
-
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise AIClientError("GEMINI_API_KEY is not configured")
-
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel(model_name)
-
-    attempt = 0
-    while True:
-        attempt += 1
-        started = time.perf_counter()
-        try:
-            response = model.generate_content(
-                prompt,
-                generation_config=(generation_config or {
-                    # Production determinism: stable outputs for same prompt/input.
-                    "temperature": 0,
-                    "top_p": 1,
-                    "top_k": 1,
-                }),
-            )
-            elapsed_ms = int((time.perf_counter() - started) * 1000)
-            tokens_in, tokens_out = _usage_counts(response)
-            return AIClientResult(
-                text=(response.text or "").strip(),
-                model_name=model_name,
-                tokens_in=tokens_in,
-                tokens_out=tokens_out,
-                latency_ms=elapsed_ms,
-            )
-        except Exception as exc:
-            if attempt > max_retries or not _is_transient_error(exc):
-                raise AIClientError(str(exc))
-            backoff = 0.4 * (2 ** (attempt - 1))
-            time.sleep(backoff)
+    # Unified provider path: OpenAI-compatible API (OpenRouter endpoint in production).
+    return _call_openai_chat_completion(
+        prompt,
+        model_name,
+        max_retries=max_retries,
+        generation_config=generation_config,
+    )
 
 
 def call_primary_with_fallback(
@@ -233,24 +169,10 @@ def call_primary_with_fallback(
     max_retries: int = 2,
     generation_config: Optional[Dict[str, Any]] = None,
 ) -> tuple[AIClientResult, bool]:
-    explicit_provider = (os.getenv("AI_PROVIDER") or "").strip().lower()
-    provider = explicit_provider if explicit_provider in {"openai", "gemini"} else _resolve_provider(primary_model)
+    default_rescue = "gpt-4.1-mini,gpt-4.1-nano"
 
-    if provider == "openai":
-        default_rescue = "gpt-4.1-mini,gpt-4.1-nano"
-    elif provider == "gemini":
-        default_rescue = "gemini-2.0-flash,gemini-1.5-flash,gemini-1.5-flash-8b"
-    else:
-        default_rescue = "gemini-2.0-flash,gemini-1.5-flash,gemini-1.5-flash-8b,gpt-4.1-mini,gpt-4.1-nano"
-
-    rescue_models = [
-        m.strip()
-        for m in os.getenv(
-            "GEMINI_RESCUE_MODELS",
-            default_rescue,
-        ).split(",")
-        if m.strip()
-    ]
+    rescue_raw = os.getenv("AI_RESCUE_MODELS") or os.getenv("GEMINI_RESCUE_MODELS") or default_rescue
+    rescue_models = [m.strip() for m in rescue_raw.split(",") if m.strip()]
 
     chain = [primary_model]
     if fallback_model:
@@ -262,11 +184,6 @@ def call_primary_with_fallback(
     for name in chain:
         if name not in ordered_unique:
             ordered_unique.append(name)
-
-    if provider == "openai":
-        ordered_unique = [m for m in ordered_unique if not m.lower().startswith("gemini")]
-    elif provider == "gemini":
-        ordered_unique = [m for m in ordered_unique if m.lower().startswith("gemini")]
 
     last_error: Optional[Exception] = None
     for index, model_name in enumerate(ordered_unique):

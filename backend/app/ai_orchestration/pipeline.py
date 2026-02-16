@@ -17,13 +17,8 @@ from .models import (
 from .prompt_registry import get_prompt
 from .telemetry import canonical_hash, estimate_text_cost_usd, log_ai_generation
 
-_provider = (os.getenv("AI_PROVIDER") or "").strip().lower()
-if _provider == "openai":
-    DEFAULT_PRIMARY_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
-    DEFAULT_FALLBACK_MODEL = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4.1-nano")
-else:
-    DEFAULT_PRIMARY_MODEL = os.getenv("GEMINI_PRIMARY_MODEL", "gemini-2.0-flash")
-    DEFAULT_FALLBACK_MODEL = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-1.5-flash")
+DEFAULT_PRIMARY_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+DEFAULT_FALLBACK_MODEL = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4.1-nano")
 
 
 def _sanitize_steps(steps: List[Dict[str, str]]) -> List[Dict[str, str]]:
@@ -152,12 +147,10 @@ def generate_profile_with_orchestration(
     primary_model = model_cfg.get("primary_model") or DEFAULT_PRIMARY_MODEL
     fallback_model = model_cfg.get("fallback_model") or DEFAULT_FALLBACK_MODEL
 
-    provider = (os.getenv("AI_PROVIDER") or "").strip().lower()
-    if provider == "openai":
-        if str(primary_model).lower().startswith("gemini"):
-            primary_model = DEFAULT_PRIMARY_MODEL
-        if str(fallback_model).lower().startswith("gemini"):
-            fallback_model = DEFAULT_FALLBACK_MODEL
+    if str(primary_model).lower().startswith("gemini"):
+        primary_model = DEFAULT_PRIMARY_MODEL
+    if str(fallback_model).lower().startswith("gemini"):
+        fallback_model = DEFAULT_FALLBACK_MODEL
     generation_config = {
         "temperature": model_cfg.get("temperature", 0),
         "top_p": model_cfg.get("top_p", 1),
