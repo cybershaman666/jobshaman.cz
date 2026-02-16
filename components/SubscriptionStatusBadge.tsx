@@ -35,12 +35,14 @@ const SubscriptionStatusBadge: React.FC<SubscriptionStatusBadgeProps> = ({ userI
 
   const tierConfig = {
     free: { color: 'bg-slate-100 text-slate-700', label: 'Free' },
+    premium: { color: 'bg-cyan-100 text-cyan-700', label: 'Premium' },
     basic: { color: 'bg-blue-100 text-blue-700', label: 'Basic' },
     business: { color: 'bg-purple-100 text-purple-700', label: 'Business' },
     freelance_premium: { color: 'bg-cyan-100 text-cyan-700', label: 'Freelance Premium' },
     trial: { color: 'bg-indigo-100 text-indigo-700', label: 'Business (Trial)' },
     enterprise: { color: 'bg-emerald-100 text-emerald-700', label: 'Enterprise' },
-    assessment_bundle: { color: 'bg-amber-100 text-amber-700', label: 'Bundle' }
+    assessment_bundle: { color: 'bg-amber-100 text-amber-700', label: 'Bundle' },
+    single_assessment: { color: 'bg-orange-100 text-orange-700', label: 'Single Assessment' }
   };
 
   const config = tierConfig[tier as keyof typeof tierConfig] || tierConfig.free;

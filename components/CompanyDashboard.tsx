@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Markdown from 'markdown-to-jsx';
 import { Job, Candidate, AIAdOptimizationResult, CompanyProfile } from '../types';
@@ -156,6 +156,23 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         );
     }
 
+    const effectiveCompanyProfile = useMemo(() => {
+        if (!subscription) return companyProfile;
+        return {
+            ...companyProfile,
+            subscription: {
+                ...companyProfile.subscription,
+                tier: subscription.tier || companyProfile.subscription?.tier || 'free',
+                expiresAt: subscription.expiresAt || companyProfile.subscription?.expiresAt,
+                usage: {
+                    ...companyProfile.subscription?.usage,
+                    aiAssessmentsUsed: subscription.assessmentsUsed || 0,
+                    activeJobsCount: subscription.jobPostingsUsed || 0
+                }
+            } as any
+        };
+    }, [companyProfile, subscription]);
+
     // Load initial data for Real User
     useEffect(() => {
         const loadData = async () => {
@@ -234,14 +251,14 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         }
 
         // Job Limit Check
-        const { allowed, reason } = canCompanyPostJob(companyProfile, userEmail);
+        const { allowed, reason } = canCompanyPostJob(effectiveCompanyProfile, userEmail);
 
         if (!allowed) {
             // Track upgrade trigger
             AnalyticsService.trackUpgradeTrigger({
                 companyId: companyProfile?.id,
                 feature: 'JOB_POSTING',
-                currentTier: companyProfile?.subscription?.tier || 'basic',
+                currentTier: effectiveCompanyProfile?.subscription?.tier || 'basic',
                 reason: reason || 'Job posting limit exceeded'
             });
 
@@ -286,12 +303,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
     const handleOptimize = async () => {
         // Feature Gating
-        if (!canCompanyUseFeature(companyProfile, 'COMPANY_AI_AD', userEmail)) {
+        if (!canCompanyUseFeature(effectiveCompanyProfile, 'COMPANY_AI_AD', userEmail)) {
             // Track upgrade trigger
             AnalyticsService.trackUpgradeTrigger({
                 companyId: companyProfile?.id,
                 feature: 'COMPANY_AI_AD',
-                currentTier: companyProfile?.subscription?.tier || 'basic',
+                currentTier: effectiveCompanyProfile?.subscription?.tier || 'basic',
                 reason: 'AI ad optimization feature access denied'
             });
 
@@ -326,7 +343,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 AnalyticsService.trackFeatureUsage({
                     companyId: companyProfile.id,
                     feature: 'AI_AD_OPTIMIZATION',
-                    tier: companyProfile.subscription?.tier || 'basic'
+                    tier: effectiveCompanyProfile.subscription?.tier || 'basic'
                 });
             }
         }
@@ -460,6 +477,13 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     };
 
     const renderOverview = () => {
+        const subscriptionTier = (subscription?.tier || effectiveCompanyProfile.subscription?.tier || 'free').toLowerCase();
+        const isFreeLikeTier = subscriptionTier === 'free' || subscriptionTier === 'basic';
+        const subscriptionLabel = subscription?.tierName
+            || (subscriptionTier === 'business' ? t('company.subscription.tiers.business')
+                : subscriptionTier === 'basic' ? t('company.subscription.tiers.basic')
+                    : t('company.subscription.tiers.free'));
+
         return (
             <div className="space-y-6 animate-in fade-in">
                 {/* Subscription Status Card */}
@@ -469,20 +493,20 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             <h3 className="text-lg font-bold text-cyan-900 dark:text-cyan-300 mb-1">{t('company.subscription.title')}</h3>
                             <div className="flex items-center gap-4">
                                 <span className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
-                                    {subscription?.tier === 'business' ? t('company.subscription.tiers.business') : subscription?.tier === 'basic' ? t('company.subscription.tiers.basic') : t('company.subscription.tiers.free')} {t('company.subscription.plan_suffix')}
+                                    {subscriptionLabel} {t('company.subscription.plan_suffix')}
                                 </span>
-                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${subscription?.tier === 'free' || !subscription?.status
+                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${isFreeLikeTier || !subscription?.status
                                     ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                                     : subscription?.status === 'active'
                                         ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                                         : 'bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400'
                                     }`}>
-                                    {subscription?.tier === 'free' || !subscription?.status ? t('company.subscription.active') : subscription?.status === 'active' ? t('company.subscription.active') : t('company.subscription.inactive')}
+                                    {isFreeLikeTier || !subscription?.status ? t('company.subscription.active') : subscription?.status === 'active' ? t('company.subscription.active') : t('company.subscription.inactive')}
                                 </span>
                             </div>
                         </div>
                         <div className="text-right">
-                            {subscription?.expiresAt && subscription?.tier !== 'free' && (
+                            {subscription?.expiresAt && !isFreeLikeTier && (
                                 <div className="text-sm text-cyan-700 dark:text-cyan-300">
                                     <div className="font-medium">{t('company.subscription.next_payment')}</div>
                                     <div className="font-mono">{new Date(subscription.expiresAt).toLocaleDateString(i18n.language === 'cs' ? 'cs-CZ' : 'en-US')}</div>
@@ -513,7 +537,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             <div className="text-xs text-slate-500">
                                 {subscription?.assessmentsUsed || 0} {t('company.subscription.used')}
                             </div>
-                            {subscription?.tier === 'free' && (
+                            {isFreeLikeTier && (
                                 <div className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
                                     <button
                                         onClick={() => setShowUpgradeModal({ open: true, feature: 'AI Assessmenty' })}
@@ -535,7 +559,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             <div className="text-xs text-slate-500">
                                 {t('company.subscription.used')}
                             </div>
-                            {subscription?.tier === 'free' && (
+                            {isFreeLikeTier && (
                                 <div className="text-xs text-amber-600 dark:text-amber-400 font-medium mt-1">
                                     <button
                                         onClick={() => setShowUpgradeModal({ open: true, feature: 'Více inzerátů' })}
@@ -555,7 +579,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 {companyProfile?.members?.length || 1}
                             </div>
                             <div className="text-xs text-slate-500">
-                                {subscription?.tier === 'business' ? t('company.subscription.unlimited') : t('company.subscription.no_limit')}
+                                {['business', 'enterprise', 'trial'].includes(subscriptionTier) ? t('company.subscription.unlimited') : t('company.subscription.no_limit')}
                             </div>
                         </div>
                     </div>
@@ -1417,7 +1441,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             {/* Content Area */}
             <div className="min-h-[500px]">
                 {activeTab === 'overview' && renderOverview()}
-                {activeTab === 'settings' && companyProfile && <CompanySettings profile={companyProfile} onSave={onProfileUpdate || (() => { })} onDeleteAccount={onDeleteAccount} />}
+                {activeTab === 'settings' && effectiveCompanyProfile && <CompanySettings profile={effectiveCompanyProfile} onSave={onProfileUpdate || (() => { })} onDeleteAccount={onDeleteAccount} />}
                 {activeTab === 'create-ad' && renderCreateAd()}
                 {activeTab === 'assessments' && (
                     <div>
@@ -1448,19 +1472,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         )}
 
                         <AssessmentCreator
-                            companyProfile={companyProfile ? {
-                                ...companyProfile,
-                                subscription: subscription ? {
-                                    ...companyProfile.subscription,
-                                    tier: subscription.tier,
-                                    expiresAt: subscription.expiresAt,
-                                    usage: {
-                                        ...companyProfile.subscription?.usage,
-                                        aiAssessmentsUsed: subscription.assessmentsUsed || 0,
-                                        activeJobsCount: subscription.jobPostingsUsed || 0
-                                    }
-                                } as any : companyProfile.subscription
-                            } : null}
+                            companyProfile={effectiveCompanyProfile || null}
                             jobs={jobs}
                             initialJobId={assessmentJobId}
                         />
@@ -1473,7 +1485,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 isOpen={showUpgradeModal.open}
                 onClose={() => setShowUpgradeModal({ open: false })}
                 feature={showUpgradeModal.feature}
-                companyProfile={companyProfile}
+                companyProfile={effectiveCompanyProfile}
             />
         </div>
     );

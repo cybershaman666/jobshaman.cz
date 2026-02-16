@@ -47,6 +47,9 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
     const isMarketplaceAccountContext = companyProfile?.industry === 'Freelancer' || companyProfile?.industry === 'Education';
     const canShowBusinessMenu = showCompanyLanding || !userProfile.isLoggedIn || userProfile.role === 'recruiter' || isMarketplaceAccountContext;
+    const subscriptionSubjectId = userProfile.role === 'recruiter' && companyProfile?.id && companyProfile?.industry !== 'Freelancer'
+        ? companyProfile.id
+        : userProfile.id;
 
     const languages = [
         { code: 'cs', name: 'CZ', flag: '🇨🇿' },
@@ -230,7 +233,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 <div className="text-right hidden md:block">
                                     <div className="text-sm font-bold text-slate-900 dark:text-white leading-none mb-1">{userProfile.name}</div>
                                     <div className="flex items-center gap-2">
-                                        <SubscriptionStatusBadge userId={userProfile.id} />
+                                        <SubscriptionStatusBadge userId={subscriptionSubjectId} />
                                     </div>
                                 </div>
                                 <button
