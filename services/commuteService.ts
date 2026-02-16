@@ -18,9 +18,9 @@ import { matchesIcoKeywords } from '../utils/contractType';
  */
 const removeAccents = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
-// Helper to check if location implies foreign country
-const isLocationAbroad = (location: string): boolean => {
-    const loc = removeAccents(location);
+// Helper to detect foreign-work context from job text (location/title/description).
+const isLocationAbroad = (text: string): boolean => {
+    const loc = removeAccents(text);
     const foreignKeywords = [
         'nemecko', 'germany', 'deutschland',
         'rakousko', 'austria', 'osterreich',
@@ -28,7 +28,8 @@ const isLocationAbroad = (location: string): boolean => {
         'uk', 'britanie', 'london', 'londyn',
         'polsko', 'poland',
         'svycarsko', 'switzerland',
-        'nizozemi', 'netherlands'
+        'nizozemi', 'nizozemsku', 'nizozemsko',
+        'holandsku', 'holandsko', 'holland', 'netherlands'
     ];
 
     return foreignKeywords.some(kw => loc.includes(kw));
@@ -472,7 +473,8 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
 
     // 1. Calculate Physical Commute
     const isRemote = job.type === 'Remote';
-    const isAbroad = isLocationAbroad(job.location);
+    const abroadText = `${job.location || ''} ${job.title || ''} ${job.description || ''}`;
+    const isAbroad = isLocationAbroad(abroadText);
     let distanceKm = 0;
     let isRelocation = isAbroad;
 
