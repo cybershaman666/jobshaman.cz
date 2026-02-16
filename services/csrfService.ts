@@ -5,6 +5,22 @@ import { supabase } from './supabaseClient';
 const CSRF_TOKEN_KEY = 'csrf_token';
 const CSRF_TOKEN_EXPIRY_KEY = 'csrf_token_expiry';
 
+const endpointDoesNotRequireCsrf = (url: string): boolean => {
+    try {
+        const parsed = new URL(url, window.location.origin);
+        const path = parsed.pathname || '';
+        return (
+            path === '/jobs/analyze' ||
+            path.startsWith('/ai/') ||
+            path === '/verify-billing' ||
+            path === '/subscription-status' ||
+            path.startsWith('/assessments/invitations/')
+        );
+    } catch {
+        return false;
+    }
+};
+
 /**
  * Generate and fetch a new CSRF token from the backend
  * Must be called after successful authentication
@@ -239,6 +255,7 @@ export const authenticatedFetch = async (
 ): Promise<Response> => {
     const method = (options.method || 'GET').toUpperCase();
     const isStateChanging = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
+    const requiresCsrf = isStateChanging && !endpointDoesNotRequireCsrf(url);
 
     const resolvedAuthToken = authToken || await getCurrentAuthToken() || localStorage.getItem('auth_token') || null;
     if (!resolvedAuthToken) {
@@ -252,7 +269,7 @@ export const authenticatedFetch = async (
             headers.set('Authorization', `Bearer ${resolvedAuthToken}`);
         }
 
-        if (isStateChanging) {
+        if (requiresCsrf) {
             let csrfToken = forceFreshCsrf ? null : getCsrfToken();
             if (!csrfToken && resolvedAuthToken) {
                 csrfToken = await fetchCsrfToken(resolvedAuthToken);
@@ -285,7 +302,7 @@ export const authenticatedFetch = async (
     let response = await performRequest(false);
 
     // CSRF tokens are single-use on backend. If we hit CSRF 403, refresh token and retry once.
-    if (isStateChanging && response.status === 403) {
+    if (requiresCsrf && response.status === 403) {
         const text = await response.clone().text().catch(() => '');
         const looksLikeCsrfError = text.toLowerCase().includes('csrf');
         if (looksLikeCsrfError) {

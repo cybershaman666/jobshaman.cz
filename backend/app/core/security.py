@@ -148,13 +148,41 @@ def verify_subscription(user: dict = Depends(get_current_user), request: Request
         if is_company:
             company_id = user.get("company_id")
             if company_id:
-                sub_resp = supabase.table("subscriptions").select("*").eq("company_id", company_id).execute()
+                sub_resp = (
+                    supabase
+                    .table("subscriptions")
+                    .select("*")
+                    .eq("company_id", company_id)
+                    .order("updated_at", desc=True)
+                    .execute()
+                )
         else:
-            sub_resp = supabase.table("subscriptions").select("*").eq("user_id", user_id).execute()
+            sub_resp = (
+                supabase
+                .table("subscriptions")
+                .select("*")
+                .eq("user_id", user_id)
+                .order("updated_at", desc=True)
+                .execute()
+            )
     except Exception:
         sub_resp = None
 
-    sub = (sub_resp.data[0] if sub_resp and sub_resp.data else None)
+    def _is_subscription_active(sub: dict) -> bool:
+        status = (sub.get("status") or "").lower()
+        if status not in ["active", "trialing"]:
+            return False
+        expires_at = _parse_iso_datetime(sub.get("current_period_end"))
+        if not expires_at:
+            return True
+        try:
+            return datetime.now(timezone.utc) <= expires_at
+        except TypeError:
+            return True
+
+    subs = list(sub_resp.data or []) if sub_resp and sub_resp.data else []
+    active_subs = [s for s in subs if _is_subscription_active(s)]
+    sub = active_subs[0] if active_subs else (subs[0] if subs else None)
     tier = sub.get("tier") if sub else "free"
     status = sub.get("status") if sub else "inactive"
     expires_at_raw = sub.get("current_period_end") if sub else None
