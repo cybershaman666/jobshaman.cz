@@ -18,6 +18,139 @@ import { matchesIcoKeywords } from '../utils/contractType';
  */
 const removeAccents = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 
+const RELOCATION_TIME_THRESHOLD_MIN = 90;
+
+type CommuteCorridor = {
+    from: string[];
+    to: string[];
+    maxDistanceKm: number;
+    carMinutesOneWay: number;
+    publicMinutesOneWay: number;
+};
+
+// Fast commuter corridors where distance can be high but travel time is still acceptable.
+const COMMUTE_CORRIDORS: CommuteCorridor[] = [
+    // CZ domestic fast corridors
+    {
+        from: ['praha', 'prague'],
+        to: ['hradec kralove'],
+        maxDistanceKm: 150,
+        carMinutesOneWay: 70,
+        publicMinutesOneWay: 80
+    },
+    {
+        from: ['praha', 'prague'],
+        to: ['pardubice'],
+        maxDistanceKm: 140,
+        carMinutesOneWay: 65,
+        publicMinutesOneWay: 60
+    },
+    {
+        from: ['praha', 'prague'],
+        to: ['usti nad labem', 'usti'],
+        maxDistanceKm: 110,
+        carMinutesOneWay: 60,
+        publicMinutesOneWay: 75
+    },
+    {
+        from: ['ostrava'],
+        to: ['olomouc'],
+        maxDistanceKm: 120,
+        carMinutesOneWay: 65,
+        publicMinutesOneWay: 70
+    },
+    {
+        from: ['brno'],
+        to: ['olomouc'],
+        maxDistanceKm: 110,
+        carMinutesOneWay: 70,
+        publicMinutesOneWay: 90
+    },
+    // Cross-border corridors
+    {
+        from: ['brno'],
+        to: ['viden', 'wien', 'vienna'],
+        maxDistanceKm: 170,
+        carMinutesOneWay: 65,
+        publicMinutesOneWay: 70
+    },
+    {
+        from: ['brno'],
+        to: ['bratislava'],
+        maxDistanceKm: 170,
+        carMinutesOneWay: 90,
+        publicMinutesOneWay: 95
+    },
+    {
+        from: ['breclav'],
+        to: ['viden', 'wien', 'vienna'],
+        maxDistanceKm: 100,
+        carMinutesOneWay: 45,
+        publicMinutesOneWay: 55
+    },
+    {
+        from: ['usti nad labem', 'usti', 'ustecky kraj'],
+        to: ['drazdany', 'dresden'],
+        maxDistanceKm: 100,
+        carMinutesOneWay: 55,
+        publicMinutesOneWay: 65
+    },
+    {
+        from: ['praha', 'prague'],
+        to: ['drazdany', 'dresden'],
+        maxDistanceKm: 180,
+        carMinutesOneWay: 100,
+        publicMinutesOneWay: 130
+    },
+    {
+        from: ['ostrava'],
+        to: ['katowice'],
+        maxDistanceKm: 130,
+        carMinutesOneWay: 80,
+        publicMinutesOneWay: 95
+    },
+    {
+        from: ['ostrava'],
+        to: ['gliwice'],
+        maxDistanceKm: 110,
+        carMinutesOneWay: 70,
+        publicMinutesOneWay: 95
+    },
+    {
+        from: ['ostrava'],
+        to: ['krakow', 'krakov'],
+        maxDistanceKm: 190,
+        carMinutesOneWay: 120,
+        publicMinutesOneWay: 165
+    }
+];
+
+const containsAny = (text: string, aliases: string[]): boolean => aliases.some(alias => text.includes(alias));
+
+const detectCorridorProfile = (
+    userAddress: string,
+    jobLocation: string,
+    distanceKm: number
+): { carMinutesOneWay: number; publicMinutesOneWay: number } | null => {
+    const userText = removeAccents(userAddress || '');
+    const jobText = removeAccents(jobLocation || '');
+
+    for (const corridor of COMMUTE_CORRIDORS) {
+        if (distanceKm > corridor.maxDistanceKm) continue;
+
+        const matchesForward = containsAny(userText, corridor.from) && containsAny(jobText, corridor.to);
+        const matchesBackward = containsAny(userText, corridor.to) && containsAny(jobText, corridor.from);
+        if (!matchesForward && !matchesBackward) continue;
+
+        return {
+            carMinutesOneWay: corridor.carMinutesOneWay,
+            publicMinutesOneWay: corridor.publicMinutesOneWay
+        };
+    }
+
+    return null;
+};
+
 // EXPORTED FOR ASYNC USE IN PROFILE
 export const resolveAddressToCoordinates = async (address: string): Promise<{ lat: number, lon: number } | null> => {
     return geocodeWithCaching(address);
@@ -458,6 +591,7 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     const isRemote = job.type === 'Remote';
     let distanceKm = 0;
     let isRelocation = false;
+    let corridorProfile: { carMinutesOneWay: number; publicMinutesOneWay: number } | null = null;
 
     if (!isRemote) {
         const userCoords = user.coordinates || getCoordinates(user.address);
@@ -476,9 +610,14 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
             const airDistance = calculateDistanceKm(userCoords.lat, userCoords.lon, jobCoords.lat, jobCoords.lon);
             // Apply road factor (usually ~1.3x air distance)
             distanceKm = Math.round(airDistance * 1.3);
+            corridorProfile = detectCorridorProfile(user.address, job.location, distanceKm);
 
-            // Relocation threshold: only very long commute should trigger relocation.
-            if (distanceKm > 100) {
+            const carMinutesOneWay = corridorProfile?.carMinutesOneWay ?? Math.round((distanceKm / SPEED_KMPH.car) * 60);
+            const publicMinutesOneWay = corridorProfile?.publicMinutesOneWay ?? Math.round((distanceKm / SPEED_KMPH.public) * 60);
+            const bestOneWayMinutes = Math.min(carMinutesOneWay, publicMinutesOneWay);
+
+            // Relocation is driven by best realistic one-way travel time.
+            if (bestOneWayMinutes > RELOCATION_TIME_THRESHOLD_MIN) {
                 isRelocation = true;
             }
         } else {
@@ -489,7 +628,15 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     const avoidedDistanceKm = isRemote ? 20 : 0;
 
     const mode = user.transportMode;
-    const timeMinutes = (isRemote || isRelocation || distanceKm === -1) ? 0 : Math.round((distanceKm / SPEED_KMPH[mode]) * 60);
+    const timeMinutes = (isRemote || isRelocation || distanceKm === -1)
+        ? 0
+        : (
+            mode === 'car' && corridorProfile
+                ? corridorProfile.carMinutesOneWay
+                : mode === 'public' && corridorProfile
+                    ? corridorProfile.publicMinutesOneWay
+                    : Math.round((distanceKm / SPEED_KMPH[mode]) * 60)
+        );
 
     // 2. Determine Financial Baseline (Gross & Currency)
     let grossMonthlySalary = 0;
