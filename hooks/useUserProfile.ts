@@ -8,7 +8,6 @@ import {
     createCompany,
     verifyAuthSession,
     createBaseProfile,
-    updateCompanyIndustry,
     getMarketplacePartnerByOwner,
     createMarketplacePartner
 } from '../services/supabaseService';
@@ -95,7 +94,10 @@ export const useUserProfile = () => {
                     const { data: { user } } = await supabase.auth.getUser();
                     if (user && user.email) {
                         try {
-                            const role = user.user_metadata?.role || 'candidate';
+                            // Do not trust auth metadata role here.
+                            // This fallback path is for missing-profile recovery and must avoid
+                            // resurrecting stale recruiter/freelancer flags from legacy accounts.
+                            const role: UserProfile['role'] = 'candidate';
                             const name = user.user_metadata?.full_name || user.email.split('@')[0];
 
                             await createBaseProfile(userId, user.email, name, role);
@@ -175,19 +177,11 @@ export const useUserProfile = () => {
                     });
                 }
 
-                // If user registered as recruiter (via metadata) but profile says 'candidate' (default trigger), fix it.
-                // Guard: only auto-fix when we also have company identifiers to avoid flipping regular users.
-                const hasCompanyMeta = !!(metaCompany || metaIco || metaWebsite);
-                if (metaRole === 'recruiter' && hasCompanyMeta && !metaIsFreelancer && !metaIsCourseProvider && profile.role !== 'recruiter') {
-                    console.log("🛠️ Fixing profile role mismatch: Metadata says recruiter, DB says candidate. Updating...");
-                    try {
-                        await updateUserProfileService(userId, { role: 'recruiter' });
-                        // Update local state immediately
-                        profile.role = 'recruiter';
-                        setUserProfile(prev => ({ ...prev, role: 'recruiter' }));
-                    } catch (err) {
-                        console.error("❌ Failed to auto-fix profile role:", err);
-                    }
+                // IMPORTANT: Do not auto-overwrite DB role from auth metadata.
+                // Legacy metadata (e.g. old freelancer/recruiter residue) can be stale and
+                // should not force candidate profiles back to recruiter on every login.
+                if (metaRole === 'recruiter' && profile.role !== 'recruiter') {
+                    console.log("ℹ️ Metadata role= re recruiter detected, but preserving DB profile role:", profile.role);
                 }
 
                 // Auto-fill missing profile fields from LinkedIn OAuth metadata
@@ -223,20 +217,6 @@ export const useUserProfile = () => {
                 if (profile.role === 'recruiter') {
                     company = await getRecruiterCompany(userId);
 
-                    // CRITICAL FIX: If freelancer/course provider but company.industry is not set, ensure it's marked
-                    if (company && (metaIsFreelancer || metaIsCourseProvider) && !company.industry) {
-                        const industry = metaIsFreelancer ? 'Freelancer' : 'Education';
-                        console.log("🛠️ Company exists but industry is not set. Setting to:", industry);
-                        company.industry = industry;
-                        // Also update in database
-                        try {
-                            await updateCompanyIndustry(company.id, industry);
-                            console.log("✅ Company industry updated in database");
-                        } catch (err) {
-                            console.error("⚠️ Failed to update company industry in database:", err);
-                        }
-                    }
-
                     if (!company && metaCompany) {
                         console.log("🛠️ Recruiter has no company, but metadata has company_name. Auto-creating company...");
                         try {
@@ -249,7 +229,8 @@ export const useUserProfile = () => {
                                 contact_email: supabase ? (await supabase.auth.getUser()).data.user?.email : undefined,
                                 contact_phone: '',
                                 website: metaWebsite || '',
-                                industry: metaIsFreelancer ? 'Freelancer' : (metaIsCourseProvider ? 'Education' : ''),
+                                // Do not infer industry from legacy auth metadata flags.
+                                industry: '',
                                 logo_url: ''
                             };
 
@@ -269,7 +250,7 @@ export const useUserProfile = () => {
                     // We no longer auto-create freelancer_profiles during generic session restoration.
 
                     // Ensure marketplace partner row exists for course providers
-                    const isCourseProvider = metaIsCourseProvider || company?.industry === 'Education';
+                    const isCourseProvider = company?.industry === 'Education';
                     if (isCourseProvider) {
                         try {
                             const existingPartner = await getMarketplacePartnerByOwner(userId);
@@ -330,11 +311,11 @@ export const useUserProfile = () => {
 
                     // Only set dashboard view if we're on the root route (no explicit page)
                     if (!isJobDetail && !isExternalPage && !isNonDashboardRoute && parts.length === 0) {
-                        console.log("🔍 [ViewState Decision] metaIsFreelancer:", metaIsFreelancer, "company.industry:", company?.industry);
+                        console.log("🔍 [ViewState Decision] company.industry:", company?.industry);
                         
-                        // Check if course provider by metadata OR by company industry
-                        const isCourseProvider = metaIsCourseProvider || company?.industry === 'Education';
-                        const isFreelancer = metaIsFreelancer || company?.industry === 'Freelancer';
+                        // Derive context from company data only (legacy auth metadata can be stale).
+                        const isCourseProvider = company?.industry === 'Education';
+                        const isFreelancer = company?.industry === 'Freelancer';
 
                         // Do not auto-navigate on login; stay on current view.
                         if (isCourseProvider) {
