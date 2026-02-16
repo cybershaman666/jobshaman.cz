@@ -67,6 +67,7 @@ const pickNonEmptyList = (candidate: string[], fallback?: string[]) => {
 
 const buildWhySummary = (result: any, inputSteps: string[]): string[] => {
   const profile = result?.ai_profile || {};
+  const updates = result?.profile_updates || {};
   const reasons: string[] = [];
 
   const inferredSkills = Array.isArray(profile.inferred_skills) ? profile.inferred_skills : [];
