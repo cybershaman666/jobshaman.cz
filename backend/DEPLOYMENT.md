@@ -40,7 +40,8 @@ The project includes a `render.yaml` file that defines all services.
    - `jobshaman-backend` (FastAPI Web Service with integrated Scraper)
 5. Fill in the missing **Environment Variables** when prompted:
    - `SUPABASE_URL`
-   - `SUPABASE_KEY`
+   - `SUPABASE_SERVICE_KEY` (preferred)
+   - `SUPABASE_KEY` (fallback)
    - `GEMINI_API_KEY`
    - `RESEND_API_KEY`
    - `STRIPE_SECRET_KEY` (Your Stripe Secret Key, starting with `sk_`)
@@ -80,6 +81,7 @@ git push origin main
 ### 🔑 Environment Variables Checklist
 Ensure these are set in Render -> Settings -> Environment Variables:
 - `SUPABASE_URL`
+- `SUPABASE_SERVICE_KEY` (recommended for backend writes/admin)
 - `SUPABASE_KEY`
 - `GEMINI_API_KEY`
 - `RESEND_API_KEY`
