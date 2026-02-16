@@ -728,6 +728,10 @@ export const fetchJobsWithFilters = async (
         searchTerm
     } = options;
 
+    const normalizedSearchTerm = (searchTerm || '').trim();
+    const compactSearchLength = normalizedSearchTerm.replace(/\s+/g, '').length;
+    const shouldUseHybridSearch = compactSearchLength >= 3 && !!BACKEND_URL;
+
     let finalUserLat = userLat;
     let finalUserLng = userLng;
 
@@ -742,7 +746,7 @@ export const fetchJobsWithFilters = async (
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                search_term: searchTerm || '',
+                search_term: normalizedSearchTerm,
                 page,
                 page_size: pageSize,
                 user_lat: finalUserLat ?? null,
@@ -834,7 +838,7 @@ export const fetchJobsWithFilters = async (
         });
 
         // Hybrid semantic search (backend) for text queries.
-        if (searchTerm && searchTerm.trim().length >= 2 && BACKEND_URL) {
+        if (shouldUseHybridSearch) {
             try {
                 return await fetchViaBackendHybrid();
             } catch (hybridErr) {
@@ -852,7 +856,7 @@ export const fetchJobsWithFilters = async (
         const minSalaryFilter = filterMinSalary && filterMinSalary > 0 ? filterMinSalary : null;
 
         const { data, error } = await supabase.rpc('search_jobs_with_filters', {
-            search_term: searchTerm || null,
+            search_term: normalizedSearchTerm || null,
             user_lat: spatialLat,
             user_lng: spatialLng,
             radius_km: spatialRadius,
@@ -872,7 +876,7 @@ export const fetchJobsWithFilters = async (
         if (error) {
             const msg = String((error as any)?.message || '').toLowerCase();
             const isNetworkError = msg.includes('networkerror') || msg.includes('failed to fetch');
-            if (isNetworkError && BACKEND_URL) {
+            if (isNetworkError && shouldUseHybridSearch) {
                 try {
                     console.warn('⚠️ Supabase RPC unreachable from browser; falling back to backend hybrid search.');
                     return await fetchViaBackendHybrid();
@@ -952,7 +956,7 @@ export const fetchJobsWithFilters = async (
     } catch (e: any) {
         const msg = String(e?.message || '').toLowerCase();
         const isNetworkError = msg.includes('networkerror') || msg.includes('failed to fetch');
-        if (isNetworkError && BACKEND_URL) {
+        if (isNetworkError && shouldUseHybridSearch) {
             try {
                 console.warn('⚠️ Exception indicates browser network issue to Supabase; using backend fallback.');
                 return await fetchViaBackendHybrid();
