@@ -891,11 +891,11 @@ export default function App() {
                     lat: position.coords.latitude,
                     lon: position.coords.longitude
                 };
-                setUserProfile(prev => ({
-                    ...prev,
+                setUserProfile({
+                    ...userProfile,
                     coordinates: coords,
-                    address: prev.address || (t('financial.current_location_label', { defaultValue: 'Aktuální poloha' }) as string)
-                }));
+                    address: userProfile.address || (t('financial.current_location_label', { defaultValue: 'Aktuální poloha' }) as string)
+                });
                 setEnableCommuteFilter(true);
                 setFilterMaxDistance(50);
                 hasAutoEnabledCommuteFilter.current = true;
@@ -907,7 +907,7 @@ export default function App() {
             },
             { enableHighAccuracy: true, timeout: 12000, maximumAge: 300000 }
         );
-    }, [setUserProfile, setEnableCommuteFilter, setFilterMaxDistance, t]);
+    }, [userProfile, setUserProfile, setEnableCommuteFilter, setFilterMaxDistance, t]);
 
     const handleCompanyOnboardingComplete = (company: CompanyProfile) => {
         setCompanyProfile(company);
