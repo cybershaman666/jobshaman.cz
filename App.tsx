@@ -251,6 +251,35 @@ export default function App() {
 
     // --- EFFECTS ---
 
+    // Prevent invalid dashboard routing when role/profile context doesn't match.
+    useEffect(() => {
+        if (viewState !== ViewState.COMPANY_DASHBOARD) return;
+
+        if (!userProfile.isLoggedIn) {
+            setViewState(ViewState.LIST);
+            return;
+        }
+
+        if (userProfile.role !== 'recruiter') {
+            setViewState(ViewState.PROFILE);
+            return;
+        }
+
+        if (!companyProfile) {
+            setViewState(ViewState.PROFILE);
+            return;
+        }
+
+        if (companyProfile.industry === 'Freelancer') {
+            setViewState(ViewState.PROFILE);
+            return;
+        }
+
+        if (companyProfile.industry === 'Education') {
+            setViewState(ViewState.COURSE_PROVIDER_DASHBOARD);
+        }
+    }, [viewState, userProfile.isLoggedIn, userProfile.role, companyProfile?.id, companyProfile?.industry, setViewState]);
+
     const refreshUserProfile = async () => {
         try {
             if (!supabase) return;
@@ -1153,7 +1182,13 @@ export default function App() {
         if (viewState === ViewState.PROFILE) {
             // STRICT SEPARATION: Recruiters cannot access candidate profile editor
             // Exception: Freelancers (industry=Freelancer) can also manage candidate profile
-            if (userProfile.role === 'recruiter' && companyProfile?.industry !== 'Freelancer') {
+            // Important: only redirect when we have a confirmed non-marketplace company profile.
+            if (
+                userProfile.role === 'recruiter'
+                && !!companyProfile
+                && companyProfile.industry !== 'Freelancer'
+                && companyProfile.industry !== 'Education'
+            ) {
                 // Defer state update to next tick to avoid render-phase update warning
                 setTimeout(() => setViewState(ViewState.COMPANY_DASHBOARD), 0);
                 return null;

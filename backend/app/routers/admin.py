@@ -107,6 +107,61 @@ def _strip_legacy_unsafe_fields(payload: dict, error_message: str) -> dict:
 
     return sanitized
 
+
+def _is_paid_tier(tier: Optional[str]) -> bool:
+    return bool(tier and tier != "free")
+
+
+def _manual_billing_suffix(existing_sub: Optional[dict], target_id: Optional[str]) -> str:
+    seed = (
+        (existing_sub or {}).get("company_id")
+        or (existing_sub or {}).get("user_id")
+        or target_id
+        or "manual"
+    )
+    clean = re.sub(r"[^a-zA-Z0-9_-]", "", str(seed))
+    return (clean or "manual")[:24]
+
+
+def _ensure_active_subscription_fields(
+    patch: dict,
+    existing_sub: Optional[dict] = None,
+    target_id: Optional[str] = None,
+) -> dict:
+    """
+    Some production schemas enforce check_active_subscription_complete:
+    active/trialing paid subscriptions must have complete billing fields.
+    """
+    payload = dict(patch or {})
+    base = existing_sub or {}
+
+    tier = payload.get("tier", base.get("tier"))
+    status = payload.get("status", base.get("status"))
+    is_active_like = status in ["active", "trialing"]
+    if not (is_active_like and _is_paid_tier(tier)):
+        return payload
+
+    now_dt = datetime.now(timezone.utc)
+    suffix = _manual_billing_suffix(existing_sub, target_id)
+
+    current_period_start = payload.get("current_period_start") or base.get("current_period_start")
+    if not current_period_start:
+        payload["current_period_start"] = now_dt.isoformat()
+
+    current_period_end = payload.get("current_period_end") or base.get("current_period_end")
+    if not current_period_end:
+        payload["current_period_end"] = (now_dt + timedelta(days=30)).isoformat()
+
+    stripe_customer_id = payload.get("stripe_customer_id") or base.get("stripe_customer_id")
+    if not stripe_customer_id:
+        payload["stripe_customer_id"] = f"manual_cust_{suffix}"
+
+    stripe_subscription_id = payload.get("stripe_subscription_id") or base.get("stripe_subscription_id")
+    if not stripe_subscription_id:
+        payload["stripe_subscription_id"] = f"manual_sub_{suffix}_{int(now_dt.timestamp())}"
+
+    return payload
+
 @router.get("/admin/me")
 async def admin_me(user: dict = Depends(get_current_user)):
     admin = require_admin_user(user)
@@ -730,6 +785,7 @@ async def update_subscription(
         update_data["updated_at"] = now_iso()
 
         if sub:
+            update_data = _ensure_active_subscription_fields(update_data, existing_sub=sub, target_id=target_id)
             update_payload = dict(update_data)
             try:
                 supabase.table("subscriptions").update(update_payload).eq("id", sub["id"]).execute()
@@ -774,6 +830,7 @@ async def update_subscription(
             "cancel_at_period_end": update_data.get("cancel_at_period_end", False),
             "updated_at": now_iso(),
         }
+        create_data = _ensure_active_subscription_fields(create_data, existing_sub=None, target_id=target_id)
 
         try:
             insert_resp = supabase.table("subscriptions").insert(create_data).execute()
@@ -810,6 +867,15 @@ async def update_subscription(
         print(traceback.format_exc())
         if "permission denied" in msg or "RLS" in msg:
             raise HTTPException(status_code=500, detail="Admin update blocked by RLS. Configure SUPABASE_SERVICE_KEY on backend.")
+        if "check_active_subscription_complete" in msg:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "Subscription violates check_active_subscription_complete. "
+                    "Active/trialing paid plans require complete billing fields "
+                    "(stripe_customer_id, stripe_subscription_id, period dates)."
+                ),
+            )
         if "invalid input value for enum" in msg or "violates check constraint" in msg:
             raise HTTPException(status_code=400, detail=f"Invalid tier/status for current DB schema: {msg}")
         if "column" in msg and "does not exist" in msg:
