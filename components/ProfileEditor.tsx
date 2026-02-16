@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { UserProfile, WorkExperience, Education, TransportMode, Job } from '../types';
 import {
   User,
@@ -28,6 +28,7 @@ import PremiumFeaturesPreview from './PremiumFeaturesPreview';
 import MyInvitations from './MyInvitations';
 import AIGuidedProfileWizard from './AIGuidedProfileWizard';
 import { redirectToCheckout } from '../services/stripeService';
+import { getSubscriptionStatus } from '../services/serverSideBillingService';
 
 import TransportModeSelector from './TransportModeSelector';
 import SavedJobsPage from './SavedJobsPage';
@@ -67,6 +68,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'saved'>('profile');
   const [showAIGuide, setShowAIGuide] = useState(false);
+  const [effectiveTier, setEffectiveTier] = useState<string | null>(profile.subscription?.tier || null);
 
   // Address Verification State
   const [isVerifyingAddress, setIsVerifyingAddress] = useState(false);
@@ -77,7 +79,41 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const isPremium = profile.subscription?.tier === 'premium';
+  useEffect(() => {
+    let isMounted = true;
+
+    const refreshSubscriptionTier = async () => {
+      if (!profile.isLoggedIn || !profile.id) {
+        if (isMounted) setEffectiveTier(profile.subscription?.tier || null);
+        return;
+      }
+
+      try {
+        const status = await getSubscriptionStatus(profile.id);
+        if (isMounted) {
+          setEffectiveTier(status?.tier || profile.subscription?.tier || 'free');
+        }
+      } catch {
+        if (isMounted) setEffectiveTier(profile.subscription?.tier || 'free');
+      }
+    };
+
+    refreshSubscriptionTier();
+    return () => {
+      isMounted = false;
+    };
+  }, [profile.id, profile.isLoggedIn, profile.subscription?.tier]);
+
+  const resolvedTier = (effectiveTier || profile.subscription?.tier || 'free').toLowerCase();
+  const normalizedCandidateTier: 'free' | 'premium' = resolvedTier === 'free' ? 'free' : 'premium';
+  const isPremium = normalizedCandidateTier === 'premium';
+  const profileWithResolvedSubscription: UserProfile = {
+    ...profile,
+    subscription: {
+      ...(profile.subscription || {}),
+      tier: normalizedCandidateTier
+    }
+  };
 
 
 
@@ -1043,7 +1079,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
             {/* Premium Features Preview */}
             <div className="mt-8">
-              <PremiumFeaturesPreview userProfile={profile} />
+              <PremiumFeaturesPreview userProfile={profileWithResolvedSubscription} />
             </div>
           </>
         ) : (
