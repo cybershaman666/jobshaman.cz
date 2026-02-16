@@ -4,6 +4,7 @@ import json
 from collections import defaultdict
 from typing import Optional, List
 import re
+import traceback
 
 from ..core.security import get_current_user, verify_csrf_token_header
 from ..core.database import supabase
@@ -80,6 +81,31 @@ def _target_from_subscription(sub: dict) -> tuple[Optional[str], Optional[str]]:
     if sub.get("user_id"):
         return "user", sub.get("user_id")
     return None, None
+
+
+def _strip_legacy_unsafe_fields(payload: dict, error_message: str) -> dict:
+    """
+    Remove optional fields that may be missing in older production schemas.
+    This keeps admin updates functional during rolling migrations.
+    """
+    if not payload:
+        return payload
+
+    sanitized = dict(payload)
+    legacy_optional_fields = ["updated_at", "canceled_at", "cancel_at_period_end"]
+
+    # If we know the exact missing column, remove it. Otherwise remove all optional legacy fields.
+    if "column" in error_message and "does not exist" in error_message:
+        removed_any = False
+        for field in legacy_optional_fields:
+            if field in error_message and field in sanitized:
+                sanitized.pop(field, None)
+                removed_any = True
+        if not removed_any:
+            for field in legacy_optional_fields:
+                sanitized.pop(field, None)
+
+    return sanitized
 
 @router.get("/admin/me")
 async def admin_me(user: dict = Depends(get_current_user)):
@@ -645,111 +671,147 @@ async def update_subscription(
     request: Request,
     user: dict = Depends(get_current_user),
 ):
-    admin = require_admin_user(user)
-    if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Database unavailable")
+    try:
+        admin = require_admin_user(user)
+        if not verify_csrf_token_header(request, user):
+            raise HTTPException(status_code=403, detail="CSRF validation failed")
+        if not supabase:
+            raise HTTPException(status_code=500, detail="Database unavailable")
 
-    target_col = None
-    target_id = None
-    if payload.target_type and payload.target_id:
-        target_col = "company_id" if payload.target_type == "company" else "user_id"
-        target_id = payload.target_id
+        target_col = None
+        target_id = None
+        if payload.target_type and payload.target_id:
+            target_col = "company_id" if payload.target_type == "company" else "user_id"
+            target_id = payload.target_id
 
-    sub = None
-    if payload.subscription_id:
-        sub_resp = supabase.table("subscriptions").select("*").eq("id", payload.subscription_id).execute()
-        sub = sub_resp.data[0] if sub_resp.data else None
-    elif target_col and target_id:
-        sub_resp = supabase.table("subscriptions").select("*").eq(target_col, target_id).execute()
-        sub = sub_resp.data[0] if sub_resp.data else None
-    else:
-        raise HTTPException(status_code=400, detail="subscription_id or target_type/target_id required")
-
-    before_snapshot = sub.copy() if sub else None
-
-    update_data = {}
-    if payload.tier is not None:
-        update_data["tier"] = payload.tier
-    if payload.status is not None:
-        update_data["status"] = payload.status
-    if payload.current_period_start is not None:
-        update_data["current_period_start"] = payload.current_period_start
-    if payload.current_period_end is not None:
-        update_data["current_period_end"] = payload.current_period_end
-    if payload.cancel_at_period_end is not None:
-        update_data["cancel_at_period_end"] = payload.cancel_at_period_end
-
-    # Trial controls
-    if payload.set_trial_days or payload.set_trial_until:
-        start_dt = datetime.now(timezone.utc)
-        if payload.set_trial_until:
-            end_dt = _parse_iso_datetime(payload.set_trial_until)
-            if not end_dt:
-                raise HTTPException(status_code=400, detail="Invalid set_trial_until format")
+        sub = None
+        if payload.subscription_id:
+            sub_resp = supabase.table("subscriptions").select("*").eq("id", payload.subscription_id).execute()
+            sub = sub_resp.data[0] if sub_resp.data else None
+        elif target_col and target_id:
+            sub_resp = supabase.table("subscriptions").select("*").eq(target_col, target_id).execute()
+            sub = sub_resp.data[0] if sub_resp.data else None
         else:
-            end_dt = start_dt + timedelta(days=payload.set_trial_days or 0)
+            raise HTTPException(status_code=400, detail="subscription_id or target_type/target_id required")
 
-        update_data["current_period_start"] = start_dt.isoformat()
-        update_data["current_period_end"] = end_dt.isoformat()
-        update_data["status"] = "trialing"
-        if "tier" not in update_data:
-            update_data["tier"] = "business"
+        before_snapshot = sub.copy() if sub else None
 
-    if payload.status == "canceled":
-        update_data["canceled_at"] = now_iso()
+        update_data = {}
+        if payload.tier is not None:
+            update_data["tier"] = payload.tier
+        if payload.status is not None:
+            update_data["status"] = payload.status
+        if payload.current_period_start is not None:
+            update_data["current_period_start"] = payload.current_period_start
+        if payload.current_period_end is not None:
+            update_data["current_period_end"] = payload.current_period_end
+        if payload.cancel_at_period_end is not None:
+            update_data["cancel_at_period_end"] = payload.cancel_at_period_end
 
-    update_data["updated_at"] = now_iso()
+        # Trial controls
+        if payload.set_trial_days or payload.set_trial_until:
+            start_dt = datetime.now(timezone.utc)
+            if payload.set_trial_until:
+                end_dt = _parse_iso_datetime(payload.set_trial_until)
+                if not end_dt:
+                    raise HTTPException(status_code=400, detail="Invalid set_trial_until format")
+            else:
+                end_dt = start_dt + timedelta(days=payload.set_trial_days or 0)
 
-    if sub:
-        supabase.table("subscriptions").update(update_data).eq("id", sub["id"]).execute()
-        updated_resp = supabase.table("subscriptions").select("*").eq("id", sub["id"]).execute()
-        updated_sub = updated_resp.data[0] if updated_resp.data else None
-        target_type, target_id_value = _target_from_subscription(updated_sub or sub)
+            update_data["current_period_start"] = start_dt.isoformat()
+            update_data["current_period_end"] = end_dt.isoformat()
+            update_data["status"] = "trialing"
+            if "tier" not in update_data:
+                update_data["tier"] = "business"
+
+        if payload.status == "canceled":
+            update_data["canceled_at"] = now_iso()
+
+        update_data["updated_at"] = now_iso()
+
+        if sub:
+            update_payload = dict(update_data)
+            try:
+                supabase.table("subscriptions").update(update_payload).eq("id", sub["id"]).execute()
+            except Exception as update_error:
+                update_msg = str(update_error)
+                fallback_payload = _strip_legacy_unsafe_fields(update_payload, update_msg)
+                if fallback_payload != update_payload:
+                    print(f"⚠️ Retrying admin subscription update with legacy-safe payload (subscription_id={sub['id']})")
+                    if fallback_payload:
+                        supabase.table("subscriptions").update(fallback_payload).eq("id", sub["id"]).execute()
+                else:
+                    raise
+
+            updated_resp = supabase.table("subscriptions").select("*").eq("id", sub["id"]).execute()
+            updated_sub = updated_resp.data[0] if updated_resp.data else None
+            target_type, target_id_value = _target_from_subscription(updated_sub or sub)
+            try:
+                supabase.table("admin_subscription_audit").insert({
+                    "subscription_id": sub["id"],
+                    "target_type": target_type,
+                    "target_id": target_id_value,
+                    "action": "update",
+                    "admin_user_id": admin.get("user_id"),
+                    "admin_email": admin.get("email") or user.get("email"),
+                    "before": before_snapshot,
+                    "after": updated_sub,
+                }).execute()
+            except Exception as e:
+                print(f"⚠️ Failed to write admin audit log: {e}")
+            return {"status": "updated", "subscription_id": sub["id"]}
+
+        # Create new subscription if missing
+        if not target_col or not target_id:
+            raise HTTPException(status_code=400, detail="Cannot create without target_type/target_id")
+
+        create_data = {
+            target_col: target_id,
+            "tier": update_data.get("tier", "free"),
+            "status": update_data.get("status", "inactive"),
+            "current_period_start": update_data.get("current_period_start"),
+            "current_period_end": update_data.get("current_period_end"),
+            "cancel_at_period_end": update_data.get("cancel_at_period_end", False),
+            "updated_at": now_iso(),
+        }
+
         try:
+            insert_resp = supabase.table("subscriptions").insert(create_data).execute()
+        except Exception as insert_error:
+            insert_msg = str(insert_error)
+            fallback_create = _strip_legacy_unsafe_fields(create_data, insert_msg)
+            if fallback_create != create_data:
+                print(f"⚠️ Retrying admin subscription create with legacy-safe payload ({target_col}={target_id})")
+                insert_resp = supabase.table("subscriptions").insert(fallback_create).execute()
+            else:
+                raise
+
+        new_sub = insert_resp.data[0] if insert_resp.data else None
+        try:
+            target_type, target_id_value = _target_from_subscription(new_sub)
             supabase.table("admin_subscription_audit").insert({
-                "subscription_id": sub["id"],
+                "subscription_id": new_sub.get("id") if new_sub else None,
                 "target_type": target_type,
                 "target_id": target_id_value,
-                "action": "update",
+                "action": "create",
                 "admin_user_id": admin.get("user_id"),
                 "admin_email": admin.get("email") or user.get("email"),
-                "before": before_snapshot,
-                "after": updated_sub,
+                "before": None,
+                "after": new_sub,
             }).execute()
         except Exception as e:
             print(f"⚠️ Failed to write admin audit log: {e}")
-        return {"status": "updated", "subscription_id": sub["id"]}
-
-    # Create new subscription if missing
-    if not target_col or not target_id:
-        raise HTTPException(status_code=400, detail="Cannot create without target_type/target_id")
-
-    create_data = {
-        target_col: target_id,
-        "tier": update_data.get("tier", "free"),
-        "status": update_data.get("status", "inactive"),
-        "current_period_start": update_data.get("current_period_start"),
-        "current_period_end": update_data.get("current_period_end"),
-        "cancel_at_period_end": update_data.get("cancel_at_period_end", False),
-        "updated_at": now_iso(),
-    }
-
-    insert_resp = supabase.table("subscriptions").insert(create_data).execute()
-    new_sub = insert_resp.data[0] if insert_resp.data else None
-    try:
-        target_type, target_id_value = _target_from_subscription(new_sub)
-        supabase.table("admin_subscription_audit").insert({
-            "subscription_id": new_sub.get("id") if new_sub else None,
-            "target_type": target_type,
-            "target_id": target_id_value,
-            "action": "create",
-            "admin_user_id": admin.get("user_id"),
-            "admin_email": admin.get("email") or user.get("email"),
-            "before": None,
-            "after": new_sub,
-        }).execute()
+        return {"status": "created", "subscription_id": new_sub.get("id") if new_sub else None}
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"⚠️ Failed to write admin audit log: {e}")
-    return {"status": "created", "subscription_id": new_sub.get("id") if new_sub else None}
+        msg = str(e)
+        print(f"❌ Admin subscription update failed: {msg}")
+        print(traceback.format_exc())
+        if "permission denied" in msg or "RLS" in msg:
+            raise HTTPException(status_code=500, detail="Admin update blocked by RLS. Configure SUPABASE_SERVICE_KEY on backend.")
+        if "invalid input value for enum" in msg or "violates check constraint" in msg:
+            raise HTTPException(status_code=400, detail=f"Invalid tier/status for current DB schema: {msg}")
+        if "column" in msg and "does not exist" in msg:
+            raise HTTPException(status_code=500, detail=f"Subscriptions schema mismatch: {msg}")
+        raise HTTPException(status_code=500, detail=f"Admin subscription update failed: {msg}")
