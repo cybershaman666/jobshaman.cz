@@ -378,7 +378,7 @@ async def admin_ai_quality(
 
     logs_resp = (
         supabase.table("ai_generation_logs")
-        .select("user_id, output_valid, fallback_used, model_final, feature, created_at, tokens_in, tokens_out")
+        .select("user_id, output_valid, fallback_used, model_final, feature, created_at, tokens_in, tokens_out, estimated_cost")
         .gte("created_at", start_iso)
         .order("created_at", desc=True)
         .limit(8000)
@@ -408,18 +408,75 @@ async def admin_ai_quality(
 
     token_total = sum(int(row.get("tokens_in") or 0) + int(row.get("tokens_out") or 0) for row in logs)
     avg_tokens_per_generation = round(token_total / max(1, total), 2) if total else 0.0
+    total_estimated_cost = round(sum(_safe_float(row.get("estimated_cost")) for row in logs), 6)
+    avg_estimated_cost_per_generation = round(total_estimated_cost / max(1, total), 6) if total else 0.0
 
     token_usage_trend = defaultdict(lambda: {"tokens_in": 0, "tokens_out": 0, "count": 0})
+    cost_usage_trend = defaultdict(lambda: {"estimated_cost": 0.0, "count": 0})
+    usage_by_model = defaultdict(lambda: {"requests": 0, "tokens_in": 0, "tokens_out": 0, "estimated_cost": 0.0})
+    usage_by_user = defaultdict(lambda: {"requests": 0, "tokens_in": 0, "tokens_out": 0, "estimated_cost": 0.0})
     for row in logs:
         created = str(row.get("created_at") or "")
         day = created[:10] if len(created) >= 10 else "unknown"
         token_usage_trend[day]["tokens_in"] += int(row.get("tokens_in") or 0)
         token_usage_trend[day]["tokens_out"] += int(row.get("tokens_out") or 0)
         token_usage_trend[day]["count"] += 1
+        cost_usage_trend[day]["estimated_cost"] += _safe_float(row.get("estimated_cost"))
+        cost_usage_trend[day]["count"] += 1
+
+        model_name = str(row.get("model_final") or "unknown")
+        usage_by_model[model_name]["requests"] += 1
+        usage_by_model[model_name]["tokens_in"] += int(row.get("tokens_in") or 0)
+        usage_by_model[model_name]["tokens_out"] += int(row.get("tokens_out") or 0)
+        usage_by_model[model_name]["estimated_cost"] += _safe_float(row.get("estimated_cost"))
+
+        user_id = str(row.get("user_id") or "")
+        if user_id:
+            usage_by_user[user_id]["requests"] += 1
+            usage_by_user[user_id]["tokens_in"] += int(row.get("tokens_in") or 0)
+            usage_by_user[user_id]["tokens_out"] += int(row.get("tokens_out") or 0)
+            usage_by_user[user_id]["estimated_cost"] += _safe_float(row.get("estimated_cost"))
+
     token_usage_trend_rows = [
         {"day": day, **vals}
         for day, vals in sorted(token_usage_trend.items(), key=lambda item: item[0], reverse=True)[:14]
     ]
+    cost_usage_trend_rows = [
+        {
+            "day": day,
+            "estimated_cost": round(vals.get("estimated_cost", 0.0), 6),
+            "count": vals.get("count", 0),
+        }
+        for day, vals in sorted(cost_usage_trend.items(), key=lambda item: item[0], reverse=True)[:14]
+    ]
+    usage_by_model_rows = [
+        {
+            "model": model,
+            "requests": vals.get("requests", 0),
+            "tokens_in": vals.get("tokens_in", 0),
+            "tokens_out": vals.get("tokens_out", 0),
+            "estimated_cost": round(vals.get("estimated_cost", 0.0), 6),
+        }
+        for model, vals in sorted(
+            usage_by_model.items(),
+            key=lambda item: item[1].get("estimated_cost", 0.0),
+            reverse=True,
+        )
+    ][:10]
+    usage_by_user_rows = [
+        {
+            "user_id": user_id,
+            "requests": vals.get("requests", 0),
+            "tokens_in": vals.get("tokens_in", 0),
+            "tokens_out": vals.get("tokens_out", 0),
+            "estimated_cost": round(vals.get("estimated_cost", 0.0), 6),
+        }
+        for user_id, vals in sorted(
+            usage_by_user.items(),
+            key=lambda item: item[1].get("estimated_cost", 0.0),
+            reverse=True,
+        )
+    ][:12]
 
     diffs_resp = (
         supabase.table("ai_generation_diffs")
@@ -636,6 +693,10 @@ async def admin_ai_quality(
         "window_days": days,
         "summary": {
             "total_generations": total,
+            "ai_unique_users": len(ai_users),
+            "total_tokens": token_total,
+            "total_estimated_cost": total_estimated_cost,
+            "avg_estimated_cost_per_generation": avg_estimated_cost_per_generation,
             "schema_pass_rate": schema_pass_rate,
             "fallback_rate": fallback_rate,
             "diff_volatility": diff_volatility,
@@ -654,6 +715,9 @@ async def admin_ai_quality(
         },
         "features": feature_stats,
         "token_usage_trend": token_usage_trend_rows,
+        "cost_usage_trend": cost_usage_trend_rows,
+        "usage_by_model": usage_by_model_rows,
+        "usage_by_user": usage_by_user_rows,
         "score_distribution": score_distribution,
         "ctr_by_model_version": ctr_by_model_version,
         "ctr_by_scoring_version": ctr_by_scoring_version,

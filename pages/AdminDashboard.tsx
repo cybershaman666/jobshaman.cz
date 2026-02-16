@@ -178,6 +178,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     if (value === null || value === undefined) return '—';
     return `${value}%`;
   };
+  const formatUsd = (value?: number) => {
+    if (value === null || value === undefined) return '—';
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 4 }).format(value);
+  };
 
   const getEntityLabel = (sub: any) => {
     if (sub.company_id) {
@@ -826,6 +830,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 </div>
               )}
 
+              {aiQuality.summary && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                    <div className="text-xs text-slate-500">AI users</div>
+                    <div className="text-lg font-bold text-slate-900 dark:text-white">{formatNumber(aiQuality.summary.ai_unique_users)}</div>
+                  </div>
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                    <div className="text-xs text-slate-500">Total tokens</div>
+                    <div className="text-lg font-bold text-slate-900 dark:text-white">{formatNumber(aiQuality.summary.total_tokens)}</div>
+                  </div>
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                    <div className="text-xs text-slate-500">Estimated AI cost</div>
+                    <div className="text-lg font-bold text-slate-900 dark:text-white">{formatUsd(aiQuality.summary.total_estimated_cost)}</div>
+                  </div>
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                    <div className="text-xs text-slate-500">Avg cost / generation</div>
+                    <div className="text-lg font-bold text-slate-900 dark:text-white">{formatUsd(aiQuality.summary.avg_estimated_cost_per_generation)}</div>
+                  </div>
+                </div>
+              )}
+
               {showAiDetails && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
@@ -837,6 +862,36 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                           <span className="text-xs text-slate-500">{row.version}</span>
                         </div>
                       ))}
+                    </div>
+                  </div>
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                    <div className="text-xs text-slate-500 mb-2">Top modely dle nákladů</div>
+                    <div className="space-y-2 max-h-44 overflow-auto">
+                      {(aiQuality.usage_by_model || []).length === 0 ? (
+                        <div className="text-xs text-slate-400">Žádná data.</div>
+                      ) : (
+                        (aiQuality.usage_by_model || []).slice(0, 8).map((row: any) => (
+                          <div key={row.model} className="text-sm flex items-center justify-between gap-3">
+                            <span className="text-slate-700 dark:text-slate-300 truncate">{row.model}</span>
+                            <span className="text-xs text-slate-500">{formatUsd(row.estimated_cost)}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                  <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40 lg:col-span-2">
+                    <div className="text-xs text-slate-500 mb-2">Top uživatelé dle AI usage</div>
+                    <div className="space-y-2 max-h-56 overflow-auto">
+                      {(aiQuality.usage_by_user || []).length === 0 ? (
+                        <div className="text-xs text-slate-400">Žádná data.</div>
+                      ) : (
+                        (aiQuality.usage_by_user || []).slice(0, 10).map((row: any) => (
+                          <div key={row.user_id} className="text-sm flex items-center justify-between gap-3">
+                            <span className="text-slate-700 dark:text-slate-300 truncate">{row.user_id}</span>
+                            <span className="text-xs text-slate-500">{formatNumber(row.requests)} req • {formatUsd(row.estimated_cost)}</span>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
