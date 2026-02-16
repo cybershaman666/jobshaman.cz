@@ -95,14 +95,47 @@ app.include_router(scraper.router, tags=["Scraper"])
 app.include_router(admin.router, tags=["Admin"])
 app.include_router(ai.router, tags=["AI"])
 
-# Scheduler
 from .core.security import cleanup_csrf_sessions
-scheduler = BackgroundScheduler()
-scheduler.add_job(cleanup_csrf_sessions, 'interval', hours=6)
-scheduler.add_job(run_hourly_batch_jobs, 'interval', hours=1, id="matching_hourly", max_instances=1, coalesce=True)
-scheduler.add_job(run_daily_batch_jobs, 'cron', hour=2, minute=15, id="matching_daily", max_instances=1, coalesce=True)
-scheduler.add_job(run_retention_cleanup, 'cron', hour=3, minute=10, id="retention_cleanup", max_instances=1, coalesce=True)
-scheduler.start()
+
+scheduler: BackgroundScheduler | None = None
+_scheduler_enabled = os.getenv("ENABLE_BACKGROUND_SCHEDULER", "false").strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _start_scheduler() -> None:
+    global scheduler
+    if not _scheduler_enabled:
+        print("ℹ️ Background scheduler disabled (ENABLE_BACKGROUND_SCHEDULER=false).")
+        return
+    try:
+        scheduler = BackgroundScheduler()
+        scheduler.add_job(cleanup_csrf_sessions, 'interval', hours=6)
+        scheduler.add_job(run_hourly_batch_jobs, 'interval', hours=1, id="matching_hourly", max_instances=1, coalesce=True)
+        scheduler.add_job(run_daily_batch_jobs, 'cron', hour=2, minute=15, id="matching_daily", max_instances=1, coalesce=True)
+        scheduler.add_job(run_retention_cleanup, 'cron', hour=3, minute=10, id="retention_cleanup", max_instances=1, coalesce=True)
+        scheduler.start()
+        print("✅ Background scheduler started.")
+    except Exception as exc:
+        scheduler = None
+        print(f"⚠️ Background scheduler failed to start: {exc}")
+
+
+@app.on_event("startup")
+async def _on_startup():
+    _start_scheduler()
+
+
+@app.on_event("shutdown")
+async def _on_shutdown():
+    global scheduler
+    if scheduler and scheduler.running:
+        scheduler.shutdown(wait=False)
+        print("ℹ️ Background scheduler stopped.")
+    scheduler = None
+
+
+@app.get("/healthz")
+async def healthz():
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     import uvicorn
