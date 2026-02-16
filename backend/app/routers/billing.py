@@ -33,10 +33,25 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
     }
 
     sub_details = {"tier": "free", "status": "active"}
+    resolved_company_id = None
+    resolved_is_company_context = False
+
     try:
-        if is_company_admin:
-            # Use the company_id from the user profile, not the passed userId (which might be the user's ID)
-            target_company_id = require_company_access(user, user.get("company_id"))
+        # Resolve context from requested userId (user scope vs company scope).
+        # This avoids forcing recruiter users into company subscription when querying their own user profile.
+        if userId == user_id:
+            resolved_is_company_context = False
+            sub_response = supabase.table("subscriptions").select("*").eq("user_id", user_id).execute()
+            # Backward compatibility: if user-level subscription is missing for recruiters, fall back to company.
+            if (not sub_response.data) and is_company_admin:
+                target_company_id = require_company_access(user, user.get("company_id"))
+                resolved_company_id = target_company_id
+                resolved_is_company_context = True
+                sub_response = supabase.table("subscriptions").select("*").eq("company_id", target_company_id).execute()
+        else:
+            target_company_id = require_company_access(user, userId)
+            resolved_company_id = target_company_id
+            resolved_is_company_context = True
             is_freelancer_company = False
             try:
                 company_resp = supabase.table("companies").select("industry").eq("id", target_company_id).maybe_single().execute()
@@ -59,8 +74,6 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
                     "stripe_subscription_id": f"trial_{target_company_id[:8]}"
                 }
                 sub_response = supabase.table("subscriptions").insert(trial_data).execute()
-        else:
-            sub_response = supabase.table("subscriptions").select("*").eq("user_id", user_id).execute()
 
         if sub_response and sub_response.data:
             sub_details = sub_response.data[0]
@@ -70,9 +83,9 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
     tier = sub_details.get("tier", "free")
     limits = tier_limits.get(tier, tier_limits["free"])
 
-    if is_company_admin:
+    if resolved_is_company_context:
         try:
-            target_company_id = require_company_access(user, user.get("company_id"))
+            target_company_id = resolved_company_id or require_company_access(user, user.get("company_id"))
             jobs_resp = supabase.table("jobs").select("id", count="exact").eq("company_id", target_company_id).execute()
             real_job_count = jobs_resp.count if jobs_resp.count is not None else 0
         except: real_job_count = 0
@@ -102,7 +115,7 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
         "assessmentsAvailable": remaining_assessments,
         "assessmentsUsed": used_assessments,
         "jobPostingsAvailable": limits["job_postings"],
-        "jobPostingsUsed": real_job_count if is_company_admin else stats["active_jobs_count"],
+        "jobPostingsUsed": real_job_count if resolved_is_company_context else stats["active_jobs_count"],
     }
 
 @router.post("/verify-billing")
