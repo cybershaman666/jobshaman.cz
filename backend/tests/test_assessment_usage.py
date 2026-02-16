@@ -2,6 +2,9 @@ from fastapi.testclient import TestClient
 import pytest
 
 import backend.app.main as main
+import backend.app.routers.assessments as assessments_router
+import backend.app.routers.billing as billing_router
+from backend.app.core.security import get_current_user
 
 
 class MockResponse:
@@ -146,16 +149,29 @@ def mock_supabase(monkeypatch):
     # no usage initially
     mock._usage['sub_1'] = {'ai_assessments_used': 0, 'active_jobs_count': 0}
 
-    monkeypatch.setattr(main, 'supabase', mock)
-    # Monkeypatch get_current_user to return company admin for subscription-status calls
+    # Routers import `supabase` directly from core.database at import time,
+    # so patch router-local references used by endpoints.
+    monkeypatch.setattr(assessments_router, 'supabase', mock)
+    monkeypatch.setattr(billing_router, 'supabase', mock)
+
+    # Override auth dependency for subscription-status endpoint
     async def _fake_current_user(credentials=None):
-        return {'id': 'comp_1', 'company_name': 'TestCo', 'email': 'admin@testco'}
+        return {
+            'id': 'comp_1',
+            'company_id': 'comp_1',
+            'company_name': 'TestCo',
+            'email': 'admin@testco',
+            'authorized_ids': ['comp_1'],
+        }
 
-    monkeypatch.setattr(main, 'get_current_user', _fake_current_user)
-    return mock
+    main.app.dependency_overrides[get_current_user] = _fake_current_user
+    try:
+        yield mock
+    finally:
+        main.app.dependency_overrides.clear()
 
 
-def test_submit_increments_usage_and_subscription_status(client: None, mock_supabase):
+def test_submit_increments_usage_and_subscription_status(mock_supabase):
     client = TestClient(main.app)
 
     # submit assessment result using token

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Brain, CheckCircle2, Mic, Sparkles, UserRound } from 'lucide-react';
+import { BarChart3, Brain, CheckCircle2, Mic, Search, Shield, Sparkles, UserRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import BlogSection from './BlogSection';
 import ABTestService from '../services/abTestService';
@@ -187,6 +187,26 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   const heroBeforeItems = Array.isArray(heroBeforeItemsRaw) && heroBeforeItemsRaw.length > 0
     ? heroBeforeItemsRaw as string[]
     : ['8 let praxe', 'Silná komunikace', 'Praxe v provozu'];
+  const insightsStats = [
+    {
+      label: t('blog.stats.active_jobs'),
+      value: totalJobsCount > 0 ? `${totalJobsCount.toLocaleString(i18n.language || 'cs')}+` : '36 594+',
+      icon: Search,
+      color: 'text-cyan-500'
+    },
+    {
+      label: t('blog.stats.transparency_rate'),
+      value: '45%',
+      icon: Shield,
+      color: 'text-emerald-500'
+    },
+    {
+      label: t('blog.stats.avg_jhi'),
+      value: '57/100',
+      icon: BarChart3,
+      color: 'text-violet-500'
+    }
+  ];
 
   if (!WELCOME_V2_ENABLED) {
     return (
@@ -261,6 +281,35 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                 <div className="mt-4 text-base font-bold text-cyan-800 dark:text-cyan-200">{t('welcome_v2.hero.visual.paths')}</div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-10 lg:pb-12">
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 lg:p-6">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-xs font-bold uppercase tracking-widest text-cyan-600 dark:text-cyan-400">
+              {t('blog.category_label', 'Shamanic Insights')}
+            </span>
+          </div>
+          <h2 className="text-2xl lg:text-3xl font-bold text-slate-900 dark:text-white">
+            {t('blog.title')}
+          </h2>
+          <p className="text-slate-600 dark:text-slate-300 mt-2 mb-5">
+            {t('blog.subtitle')}
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {insightsStats.map((stat) => (
+              <div key={stat.label} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-4 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                  <stat.icon size={20} className={stat.color} />
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white">{stat.value}</div>
+                  <div className="text-sm text-slate-500 dark:text-slate-400">{stat.label}</div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -411,7 +460,11 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
 
       <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-16">
         <h3 className="text-lg font-semibold mb-4">{t('welcome_v2.blog_title')}</h3>
-        <BlogSection selectedBlogPostSlug={selectedBlogPostSlug} setSelectedBlogPostSlug={handleBlogPostSelect} />
+        <BlogSection
+          selectedBlogPostSlug={selectedBlogPostSlug}
+          setSelectedBlogPostSlug={handleBlogPostSelect}
+          showOverview={false}
+        />
       </section>
     </div>
   );

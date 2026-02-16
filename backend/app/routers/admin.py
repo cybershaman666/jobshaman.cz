@@ -15,6 +15,7 @@ from ..utils.helpers import now_iso
 router = APIRouter()
 
 UUID_RE = re.compile(r"^[0-9a-fA-F-]{8,36}$")
+_audit_table_missing_logged = False
 
 def _parse_iso_datetime(value: str) -> Optional[datetime]:
     if not value:
@@ -106,6 +107,23 @@ def _strip_legacy_unsafe_fields(payload: dict, error_message: str) -> dict:
                 sanitized.pop(field, None)
 
     return sanitized
+
+
+def _is_missing_admin_audit_table_error(error: Exception) -> bool:
+    msg = str(error)
+    return "admin_subscription_audit" in msg and ("PGRST205" in msg or "does not exist" in msg)
+
+
+def _log_audit_table_missing_once(error: Exception) -> None:
+    global _audit_table_missing_logged
+    if _audit_table_missing_logged:
+        return
+    _audit_table_missing_logged = True
+    print(
+        "ℹ️ admin_subscription_audit table is missing. "
+        "Audit logging is disabled until migration 20260209_add_admin_subscription_audit.sql is applied. "
+        f"Original error: {error}"
+    )
 
 
 def _is_paid_tier(tier: Optional[str]) -> bool:
@@ -717,8 +735,14 @@ async def admin_subscription_audit(
     require_admin_user(user)
     if not supabase:
         raise HTTPException(status_code=500, detail="Database unavailable")
-    resp = supabase.table("admin_subscription_audit").select("*").eq("subscription_id", subscription_id).order("created_at", desc=True).limit(limit).execute()
-    return {"items": resp.data or []}
+    try:
+        resp = supabase.table("admin_subscription_audit").select("*").eq("subscription_id", subscription_id).order("created_at", desc=True).limit(limit).execute()
+        return {"items": resp.data or [], "audit_available": True}
+    except Exception as e:
+        if _is_missing_admin_audit_table_error(e):
+            _log_audit_table_missing_once(e)
+            return {"items": [], "audit_available": False}
+        raise
 
 @router.post("/admin/subscriptions/update")
 async def update_subscription(
@@ -814,7 +838,10 @@ async def update_subscription(
                     "after": updated_sub,
                 }).execute()
             except Exception as e:
-                print(f"⚠️ Failed to write admin audit log: {e}")
+                if _is_missing_admin_audit_table_error(e):
+                    _log_audit_table_missing_once(e)
+                else:
+                    print(f"⚠️ Failed to write admin audit log: {e}")
             return {"status": "updated", "subscription_id": sub["id"]}
 
         # Create new subscription if missing
@@ -857,7 +884,10 @@ async def update_subscription(
                 "after": new_sub,
             }).execute()
         except Exception as e:
-            print(f"⚠️ Failed to write admin audit log: {e}")
+            if _is_missing_admin_audit_table_error(e):
+                _log_audit_table_missing_once(e)
+            else:
+                print(f"⚠️ Failed to write admin audit log: {e}")
         return {"status": "created", "subscription_id": new_sub.get("id") if new_sub else None}
     except HTTPException:
         raise
