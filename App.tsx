@@ -598,7 +598,7 @@ export default function App() {
         });
 
         // Only auto-enable once, and only if user hasn't manually disabled it
-        if (effectiveUserProfile.address && effectiveUserProfile.coordinates && !enableCommuteFilter && !hasAutoEnabledCommuteFilter.current) {
+        if (effectiveUserProfile.coordinates && !enableCommuteFilter && !hasAutoEnabledCommuteFilter.current) {
             // If we don't yet have jobs loaded, defer enabling commute filter to avoid hiding everything
             if (filteredJobs && filteredJobs.length === 0) {
                 console.log('🏠 Deferring auto-enable of commute filter until jobs load');
@@ -612,7 +612,7 @@ export default function App() {
             hasAutoEnabledCommuteFilter.current = true;
             deferredAutoEnableRef.current = false;
         }
-    }, [effectiveUserProfile.address, effectiveUserProfile.coordinates, isCompanyProfile]);
+    }, [effectiveUserProfile.coordinates, isCompanyProfile]);
 
     // If we queued auto-enable because jobs weren't loaded yet, enable when jobs arrive
     useEffect(() => {
@@ -773,8 +773,14 @@ export default function App() {
         // Always attempt commute calc if we have a job
         if (selectedJob) {
             // Commute Logic
-            if (userProfile.isLoggedIn && userProfile.address) {
-                const analysis = calculateCommuteReality(selectedJob, userProfile);
+            if (userProfile.address || userProfile.coordinates) {
+                const commuteProfile = userProfile.address
+                    ? userProfile
+                    : {
+                        ...userProfile,
+                        address: t('financial.current_location_label', { defaultValue: 'Aktuální poloha' }) as string
+                    };
+                const analysis = calculateCommuteReality(selectedJob, commuteProfile);
                 setCommuteAnalysis(analysis);
             } else {
                 setCommuteAnalysis(null);
@@ -825,7 +831,7 @@ export default function App() {
             setUserProfile(updatedProfile);
 
             // Auto-enable commute filter if address is added and filter wasn't on (only once)
-            if (updatedProfile.address && !enableCommuteFilter && !hasAutoEnabledCommuteFilter.current) {
+            if ((updatedProfile.address || updatedProfile.coordinates) && !enableCommuteFilter && !hasAutoEnabledCommuteFilter.current) {
                 console.log('🏠 Profile updated locally with address, auto-enabling commute filter');
                 setEnableCommuteFilter(true);
                 setFilterMaxDistance(50);
@@ -872,6 +878,36 @@ export default function App() {
             alert("Nepodařilo se uložit profil. Zkuste to znovu.");
         }
     };
+
+    const handleUseCurrentLocation = useCallback(() => {
+        if (!navigator.geolocation) {
+            alert('Geolokace není v tomto prohlížeči dostupná.');
+            return;
+        }
+
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const coords = {
+                    lat: position.coords.latitude,
+                    lon: position.coords.longitude
+                };
+                setUserProfile(prev => ({
+                    ...prev,
+                    coordinates: coords,
+                    address: prev.address || (t('financial.current_location_label', { defaultValue: 'Aktuální poloha' }) as string)
+                }));
+                setEnableCommuteFilter(true);
+                setFilterMaxDistance(50);
+                hasAutoEnabledCommuteFilter.current = true;
+                deferredAutoEnableRef.current = false;
+            },
+            (error) => {
+                console.warn('Geolocation failed:', error);
+                alert('Nepodařilo se získat polohu. Zkontrolujte prosím oprávnění prohlížeče.');
+            },
+            { enableHighAccuracy: true, timeout: 12000, maximumAge: 300000 }
+        );
+    }, [setUserProfile, setEnableCommuteFilter, setFilterMaxDistance, t]);
 
     const handleCompanyOnboardingComplete = (company: CompanyProfile) => {
         setCompanyProfile(company);
@@ -1199,13 +1235,12 @@ export default function App() {
 
         // Determine what to show in the Financial Card
         const showCommuteDetails =
-            userProfile.isLoggedIn &&
-            !!userProfile.address &&
+            !!(userProfile.address || userProfile.coordinates) &&
             !!commuteAnalysis;
 
-        const showLoginPrompt = !userProfile.isLoggedIn;
+        const showLoginPrompt = !userProfile.isLoggedIn && !userProfile.coordinates;
         const showAddressPrompt =
-            userProfile.isLoggedIn && !userProfile.address;
+            userProfile.isLoggedIn && !userProfile.address && !userProfile.coordinates;
 
         return (
             <>
@@ -1293,6 +1328,7 @@ export default function App() {
                             setGlobalSearch={setGlobalSearch}
                             abroadOnly={abroadOnly}
                             setAbroadOnly={setAbroadOnly}
+                            onUseCurrentLocation={handleUseCurrentLocation}
                         />
 
                         {/* DESKTOP VIEW: RIGHT COLUMN: Detail View (or Welcome Guide) */}

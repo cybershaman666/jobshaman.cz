@@ -48,6 +48,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
 }) => {
     const { t } = useTranslation();
     const cur = commuteAnalysis?.financialReality.currency || 'Kč';
+    const locationLabel = userProfile.address || t('financial.current_location_label', { defaultValue: 'aktuální polohy' });
 
     return (
         <div className="bg-[#1e293b] text-slate-200 rounded-xl overflow-hidden shadow-xl mb-8 border border-slate-700 relative">
@@ -58,7 +59,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                         <Wallet className="text-emerald-400" size={20} /> {t('financial.reality_title')}
                     </h3>
                     <p className="text-xs text-slate-400 mt-1">
-                        {showCommuteDetails ? `Na základě ${userProfile.address}` : t('financial.reality_desc', 'Kalkulace čistého příjmu a nákladů na dojíždění.')}
+                        {showCommuteDetails ? `Na základě ${locationLabel}` : t('financial.reality_desc', 'Kalkulace čistého příjmu a nákladů na dojíždění.')}
                     </p>
                 </div>
                 {showCommuteDetails && commuteAnalysis && (
