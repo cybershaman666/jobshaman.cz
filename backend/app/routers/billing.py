@@ -125,9 +125,15 @@ async def verify_billing(billing_request: BillingVerificationRequest, request: R
     is_active = user.get("is_subscription_active", False)
     
     feature_access = {
+        "premium": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS"],
         "basic": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS"],
-        "business": ["COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS", "COMPANY_UNLIMITED_JOBS"],
+        "business": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS", "COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS", "COMPANY_UNLIMITED_JOBS"],
+        "trial": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS", "COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS", "COMPANY_UNLIMITED_JOBS"],
+        "enterprise": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS", "COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS", "COMPANY_UNLIMITED_JOBS"],
         "assessment_bundle": ["COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS"],
+        "freelance_premium": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS"],
+        "single_assessment": [],
+        "free": [],
     }
     
     if user_tier in feature_access and not is_active:

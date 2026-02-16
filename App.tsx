@@ -36,7 +36,7 @@ import { calculateCommuteReality } from './services/commuteService';
 import { fetchJobById } from './services/jobService';
 import { clearJobCache } from './services/jobService';
 import { supabase, getUserProfile, updateUserProfile, verifyAuthSession } from './services/supabaseService';
-import { canCandidateUseFeature } from './services/billingService';
+import { verifyServerSideBilling } from './services/serverSideBillingService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
 import { checkPaymentStatus } from './services/stripeService';
 import { clearCsrfToken } from './services/csrfService';
@@ -1002,8 +1002,18 @@ export default function App() {
     const handleAnalyzeJob = async () => {
         if (!selectedJob) return;
 
-        // Feature Gating
-        if (!canCandidateUseFeature(userProfile, 'AI_JOB_ANALYSIS')) {
+        if (!userProfile.isLoggedIn || !userProfile.id) {
+            setShowPremiumUpgrade({ open: true, feature: 'AI analýza pracovních inzerátů' });
+            return;
+        }
+
+        // Feature gating via backend (authoritative).
+        const billing = await verifyServerSideBilling({
+            userId: userProfile.id,
+            feature: 'AI_JOB_ANALYSIS',
+            endpoint: '/jobs/analyze'
+        });
+        if (!billing.hasAccess) {
             setShowPremiumUpgrade({ open: true, feature: 'AI analýza pracovních inzerátů' });
             return;
         }

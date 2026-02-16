@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Job, UserProfile } from '../types';
 import { X, Upload, FileText, Wand2, CheckCircle, Send, Loader2, BrainCircuit, User, Mail, Phone, Linkedin, Link as LinkIcon, Crown } from 'lucide-react';
 import { generateCoverLetter } from '../services/geminiService';
 import { sendEmail, EmailTemplates } from '../services/emailService';
 import { supabase, trackAnalyticsEvent } from '../services/supabaseService';
+import { getSubscriptionStatus } from '../services/serverSideBillingService';
 
 interface ApplicationModalProps {
   job: Job;
@@ -37,6 +38,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
   const [aiPrompt, setAiPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [showAiInput, setShowAiInput] = useState(false);
+  const [effectiveTier, setEffectiveTier] = useState<string>((user.subscription?.tier || 'free').toLowerCase());
 
   // Determine if role is suitable for AI Assessment (Knowledge worker vs Manual/Service)
   const isManualLabor = job.tags.some(t => ['Řidič', 'Prodej', 'Logistika', 'Manuální', 'Směnný provoz', 'Gig Economy'].includes(t)) ||
@@ -45,6 +47,25 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
     job.title.toLowerCase().includes('asistent');
 
   const showAiAssessment = !isManualLabor;
+  const hasPremiumCoverLetter = effectiveTier === 'premium';
+
+  useEffect(() => {
+    let isMounted = true;
+    const refreshSubscriptionTier = async () => {
+      if (!user.isLoggedIn || !user.id) {
+        if (isMounted) setEffectiveTier((user.subscription?.tier || 'free').toLowerCase());
+        return;
+      }
+      try {
+        const status = await getSubscriptionStatus(user.id);
+        if (isMounted) setEffectiveTier((status?.tier || user.subscription?.tier || 'free').toLowerCase());
+      } catch {
+        if (isMounted) setEffectiveTier((user.subscription?.tier || 'free').toLowerCase());
+      }
+    };
+    refreshSubscriptionTier();
+    return () => { isMounted = false; };
+  }, [user.id, user.isLoggedIn, user.subscription?.tier]);
 
   if (!isOpen) return null;
 
@@ -321,13 +342,13 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
               </div>
               <button
                 onClick={() => {
-                  if (user.subscription?.tier === 'premium') {
+                  if (hasPremiumCoverLetter) {
                     setShowAiInput(!showAiInput);
                   } else {
                     alert('Tato funkce je dostupná pouze pro Premium uživatele.');
                   }
                 }}
-                className={`text-xs flex items-center gap-1 font-medium ${user.subscription?.tier === 'premium' ? 'text-purple-600 dark:text-purple-400 hover:text-purple-50' : 'text-slate-400 cursor-not-allowed'}`}
+                className={`text-xs flex items-center gap-1 font-medium ${hasPremiumCoverLetter ? 'text-purple-600 dark:text-purple-400 hover:text-purple-50' : 'text-slate-400 cursor-not-allowed'}`}
               >
                 <Wand2 size={12} />
                 {showAiInput ? t('apply.ai_hide') : t('apply.ai_write')}
