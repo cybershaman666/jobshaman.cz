@@ -37,9 +37,9 @@ import { useTranslation } from 'react-i18next';
 
 interface ProfileEditorProps {
   profile: UserProfile;
-  onChange: (profile: UserProfile, persist?: boolean) => void;
+  onChange: (profile: UserProfile, persist?: boolean) => void | Promise<void>;
   onSave: () => void;
-  onRefreshProfile?: () => void;
+  onRefreshProfile?: () => void | Promise<void>;
   savedJobs?: Job[];
   savedJobIds?: string[];
   onToggleSave?: (jobId: string) => void;
@@ -704,9 +704,12 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               <AIGuidedProfileWizard
                 profile={profile}
                 onClose={() => setShowAIGuide(false)}
-                onApply={(updates) => {
+                onApply={async (updates) => {
                   const updated = { ...profile, ...updates };
-                  onChange(updated, true);
+                  await Promise.resolve(onChange(updated, true));
+                  if (onRefreshProfile) {
+                    await onRefreshProfile();
+                  }
                   setShowAIGuide(false);
                 }}
               />

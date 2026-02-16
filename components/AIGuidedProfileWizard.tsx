@@ -5,7 +5,7 @@ import { generateProfileFromStory } from '../services/aiProfileService';
 
 interface AIGuidedProfileWizardProps {
   profile: UserProfile;
-  onApply: (updates: Partial<UserProfile>) => void;
+  onApply: (updates: Partial<UserProfile>) => void | Promise<void>;
   onClose: () => void;
 }
 
@@ -59,6 +59,42 @@ const textToList = (text: string) =>
     .map((t) => t.trim())
     .filter(Boolean);
 
+const hasItems = (arr?: any[]) => Array.isArray(arr) && arr.length > 0;
+
+const pickNonEmptyList = (candidate: string[], fallback?: string[]) => {
+  return candidate.length > 0 ? candidate : (fallback || []);
+};
+
+const buildWhySummary = (result: any, inputSteps: string[]): string[] => {
+  const profile = result?.ai_profile || {};
+  const reasons: string[] = [];
+
+  const inferredSkills = Array.isArray(profile.inferred_skills) ? profile.inferred_skills : [];
+  if (inferredSkills.length > 0) {
+    reasons.push(`AI odvodila ${Math.min(inferredSkills.length, 5)} skrytých dovedností z vašeho příběhu a aktivit.`);
+  }
+  if (Array.isArray(updates.skills) && updates.skills.length > 0) {
+    reasons.push('Byly sjednoceny klíčové dovednosti do čitelného seznamu pro ATS i recruitery.');
+  }
+  if (Array.isArray(updates.workHistory) && updates.workHistory.length > 0) {
+    reasons.push('Pracovní zkušenosti byly strukturovány do role, firmy, období a stručného dopadu.');
+  }
+  if (Array.isArray(updates.education) && updates.education.length > 0) {
+    reasons.push('Vzdělání bylo normalizováno do jednotného formátu pro lepší čitelnost profilu.');
+  }
+  if ((result?.cv_summary || '').trim()) {
+    reasons.push('Shrnutí bylo zkráceno na rychle skenovatelnou verzi vhodnou pro profil a CV headline.');
+  }
+  if ((result?.cv_ai_text || '').trim()) {
+    reasons.push('Plný AI text životopisu kombinuje vaše vstupy s důrazem na přenositelné silné stránky.');
+  }
+  if (inputSteps.filter(Boolean).length >= 4) {
+    reasons.push('Výstup je přesnější, protože průvodce měl dostatek kontextu napříč více oblastmi.');
+  }
+
+  return reasons.slice(0, 6);
+};
+
 const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
   profile,
   onApply,
@@ -68,6 +104,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
   const [stepTexts, setStepTexts] = useState<string[]>(() => STEPS.map(() => ''));
   const [isListening, setIsListening] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isApplying, setIsApplying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [aiResult, setAiResult] = useState<any | null>(null);
 
@@ -94,6 +131,7 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
 
   const currentStep = STEPS[stepIndex];
   const canProceed = stepTexts[stepIndex]?.trim().length > 0;
+  const whySummary = aiResult ? buildWhySummary(aiResult, stepTexts.map(t => t.trim()).filter(Boolean)) : [];
 
   const updateStepText = (value: string) => {
     setStepTexts((prev) => {
@@ -189,13 +227,15 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
     }
   };
 
-  const handleApply = () => {
+  const handleApply = async () => {
+    if (isApplying) return;
+    const parsedSkills = textToList(skillsText);
     const updates: Partial<UserProfile> = {
       name: aiResult?.profile_updates?.name || profile.name,
       email: aiResult?.profile_updates?.email || profile.email,
       phone: aiResult?.profile_updates?.phone || profile.phone,
       jobTitle,
-      skills: textToList(skillsText),
+      skills: pickNonEmptyList(parsedSkills, profile.skills),
       cvText: cvSummary,
       cvAiText,
       story: storyText,
@@ -210,11 +250,19 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
       sideProjects: textToList(sideProjectsText),
       motivations: textToList(motivationsText),
       workPreferences: textToList(workPreferencesText),
-      workHistory: aiResult?.profile_updates?.workHistory || profile.workHistory,
-      education: aiResult?.profile_updates?.education || profile.education
+      workHistory: hasItems(aiResult?.profile_updates?.workHistory) ? aiResult.profile_updates.workHistory : (profile.workHistory || []),
+      education: hasItems(aiResult?.profile_updates?.education) ? aiResult.profile_updates.education : (profile.education || [])
     };
 
-    onApply(updates);
+    try {
+      setError(null);
+      setIsApplying(true);
+      await Promise.resolve(onApply(updates));
+    } catch (e: any) {
+      setError(e?.message || 'Uložení do profilu selhalo. Zkuste to prosím znovu.');
+    } finally {
+      setIsApplying(false);
+    }
   };
 
   return (
@@ -296,6 +344,19 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
           </div>
         ) : (
           <div className="p-6 space-y-5 max-h-[70vh] overflow-y-auto">
+            {whySummary.length > 0 && (
+              <div className="rounded-lg border border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-900/20 p-3">
+                <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                  Proč AI navrhla tyto úpravy
+                </div>
+                <ul className="text-sm text-slate-700 dark:text-slate-300 list-disc pl-5 space-y-1">
+                  {whySummary.map((line, idx) => (
+                    <li key={`${idx}-${line}`}>{line}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Profese / Název pozice</label>
               <input
@@ -455,9 +516,10 @@ const AIGuidedProfileWizard: React.FC<AIGuidedProfileWizardProps> = ({
               </button>
               <button
                 onClick={handleApply}
-                className="px-4 py-2 rounded-lg text-sm font-semibold bg-cyan-600 text-white"
+                disabled={isApplying}
+                className="px-4 py-2 rounded-lg text-sm font-semibold bg-cyan-600 text-white disabled:opacity-60"
               >
-                Uložit do profilu
+                {isApplying ? 'Ukládám...' : 'Uložit do profilu'}
               </button>
             </div>
           </div>
