@@ -1,6 +1,7 @@
 import os
 from fastapi import APIRouter, Request, Depends, HTTPException, Query
 from uuid import uuid4
+from datetime import datetime, timezone
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access
 from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, HybridJobSearchRequest, JobAnalyzeRequest
@@ -15,6 +16,71 @@ from ..ai_orchestration.client import AIClientError, call_primary_with_fallback,
 from ..utils.helpers import now_iso
 
 router = APIRouter()
+
+
+def _parse_iso_datetime(value: str) -> datetime | None:
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+
+def _is_active_subscription(sub: dict) -> bool:
+    if not sub:
+        return False
+    status = (sub.get("status") or "").lower()
+    if status not in ["active", "trialing"]:
+        return False
+
+    expires_at = _parse_iso_datetime(sub.get("current_period_end"))
+    if expires_at:
+        return datetime.now(timezone.utc) <= expires_at
+    return True
+
+
+def _fetch_latest_subscription_by(column: str, value: str) -> dict | None:
+    if not supabase or not value:
+        return None
+    try:
+        resp = (
+            supabase
+            .table("subscriptions")
+            .select("*")
+            .eq(column, value)
+            .order("updated_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    except Exception:
+        return None
+
+
+def _user_has_allowed_subscription(user: dict, allowed_tiers: set[str]) -> bool:
+    user_tier = (user.get("subscription_tier") or "").lower()
+    if user.get("is_subscription_active") and user_tier in allowed_tiers:
+        return True
+
+    user_id = user.get("id") or user.get("auth_id")
+    if user_id:
+        user_sub = _fetch_latest_subscription_by("user_id", user_id)
+        if user_sub and _is_active_subscription(user_sub) and (user_sub.get("tier") or "").lower() in allowed_tiers:
+            return True
+
+    # Keep recruiter/company fallback for shared auth contexts.
+    for company_id in (user.get("authorized_ids") or []):
+        if company_id == user_id:
+            continue
+        company_sub = _fetch_latest_subscription_by("company_id", company_id)
+        if company_sub and _is_active_subscription(company_sub) and (company_sub.get("tier") or "").lower() in allowed_tiers:
+            return True
+
+    return False
 
 def _normalize_job_id(job_id: str):
     return int(job_id) if str(job_id).isdigit() else job_id
@@ -344,10 +410,9 @@ async def analyze_job(
     request: Request,
     user: dict = Depends(verify_subscription),
 ):
-    allowed_tiers = {"premium", "basic", "business", "trial", "enterprise", "freelance_premium"}
-    user_tier = (user.get("subscription_tier") or "free").lower()
-    if (not user.get("is_subscription_active")) or (user_tier not in allowed_tiers):
-        raise HTTPException(status_code=403, detail="Premium or Business subscription required")
+    allowed_tiers = {"premium"}
+    if not _user_has_allowed_subscription(user, allowed_tiers):
+        raise HTTPException(status_code=403, detail="Premium subscription required")
 
     normalized_job_id = _normalize_job_id(payload.job_id) if payload.job_id else None
 
