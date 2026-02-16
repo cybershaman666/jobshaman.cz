@@ -26,6 +26,22 @@ export const isSupabaseConfigured = (): boolean => {
     return !!supabase;
 };
 
+// Runtime guard for deployments where freelancer tables were removed.
+let freelancerSchemaAvailable: boolean | null = null;
+
+const isFreelancerSchemaMissingError = (error: any): boolean => {
+    if (!error || error.code !== 'PGRST205') return false;
+    const message = String(error.message || '').toLowerCase();
+    return message.includes('freelancer_');
+};
+
+const markFreelancerSchemaUnavailable = (context: string, error: any) => {
+    if (!isFreelancerSchemaMissingError(error)) return;
+    if (freelancerSchemaAvailable === false) return;
+    freelancerSchemaAvailable = false;
+    console.warn(`Freelancer schema unavailable (${context}); freelancer features disabled.`);
+};
+
 /**
  * Diagnostic helper to verify if the Supabase client has a valid session token.
  * This is crucial for fixing 401 errors on RLS-protected tables.
@@ -1269,6 +1285,7 @@ export const updateMarketplacePartner = async (partnerId: string, updates: Parti
 
 export const createFreelancerProfile = async (userId: string, payload: Partial<Record<string, any>>) => {
     if (!supabase) throw new Error('Supabase not configured');
+    if (freelancerSchemaAvailable === false) return null;
 
     await verifyAuthSession('createFreelancerProfile');
 
@@ -1317,15 +1334,21 @@ export const createFreelancerProfile = async (userId: string, payload: Partial<R
         .maybeSingle();
 
     if (error) {
+        markFreelancerSchemaUnavailable('createFreelancerProfile', error);
+        if (isFreelancerSchemaMissingError(error)) {
+            return null;
+        }
         console.error('Failed to upsert freelancer_profile:', error);
         throw error;
     }
 
+    freelancerSchemaAvailable = true;
     return data;
 };
 
 export const updateFreelancerProfile = async (userId: string, updates: Partial<Record<string, any>>) => {
     if (!supabase) throw new Error('Supabase not configured');
+    if (freelancerSchemaAvailable === false) return null;
 
     await verifyAuthSession('updateFreelancerProfile');
 
@@ -1364,15 +1387,21 @@ export const updateFreelancerProfile = async (userId: string, updates: Partial<R
         .maybeSingle();
 
     if (error) {
+        markFreelancerSchemaUnavailable('updateFreelancerProfile', error);
+        if (isFreelancerSchemaMissingError(error)) {
+            return null;
+        }
         console.error('Failed to update freelancer_profile:', error);
         throw error;
     }
 
+    freelancerSchemaAvailable = true;
     return data;
 };
 
 export const getFreelancerProfile = async (freelancerId: string) => {
     if (!supabase) return null;
+    if (freelancerSchemaAvailable === false) return null;
 
     const { data, error } = await supabase
         .from('freelancer_profiles')
@@ -1381,10 +1410,15 @@ export const getFreelancerProfile = async (freelancerId: string) => {
         .maybeSingle();
 
     if (error) {
+        markFreelancerSchemaUnavailable('getFreelancerProfile', error);
+        if (isFreelancerSchemaMissingError(error)) {
+            return null;
+        }
         console.error('Error fetching freelancer profile:', error);
         return null;
     }
 
+    freelancerSchemaAvailable = true;
     return data;
 };
 

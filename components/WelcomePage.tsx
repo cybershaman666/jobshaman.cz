@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import BlogSection from './BlogSection';
 import ABTestService from '../services/abTestService';
 import AnalyticsService from '../services/analyticsService';
+import { getJobCount, getTodayAnalyzedCount } from '../services/jobService';
 
 interface WelcomePageProps {
   onTryFree?: () => void;
@@ -89,6 +90,8 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoResult, setDemoResult] = useState<DemoResult | null>(null);
   const [visualStep, setVisualStep] = useState(0);
+  const [totalJobsCount, setTotalJobsCount] = useState<number>(0);
+  const [todayAnalyzedCount, setTodayAnalyzedCount] = useState<number>(0);
 
   const variant = useMemo<HeroVariantId>(() => {
     const selected = ABTestService.getVariant(HERO_TEST_ID)?.id as HeroVariantId | undefined;
@@ -113,6 +116,25 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
       setVisualStep((prev) => (prev + 1) % 3);
     }, 2200);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    Promise.all([getJobCount(), getTodayAnalyzedCount()])
+      .then(([jobsCount, analyzedToday]) => {
+        if (!isMounted) return;
+        setTotalJobsCount(Math.max(0, jobsCount));
+        setTodayAnalyzedCount(Math.max(0, analyzedToday));
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setTotalJobsCount(0);
+        setTodayAnalyzedCount(0);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const track = (event: string, extra?: Record<string, unknown>) => {
@@ -205,6 +227,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
               </button>
             </div>
             <p className="mt-4 text-sm text-emerald-700 dark:text-emerald-300 font-medium">{t('welcome_v2.hero.trust')}</p>
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-300 font-medium">
+              {t('welcome_v2.hero.live_stats', {
+                jobs_count: totalJobsCount.toLocaleString(i18n.language || 'cs'),
+                analyzed_count: todayAnalyzedCount.toLocaleString(i18n.language || 'cs')
+              })}
+            </p>
           </div>
 
           <div className="rounded-2xl border-2 border-cyan-200 dark:border-cyan-900 bg-white dark:bg-slate-900 shadow-lg overflow-hidden">

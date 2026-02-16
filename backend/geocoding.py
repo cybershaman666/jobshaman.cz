@@ -125,6 +125,10 @@ MAJOR_CITIES_CACHE: Dict[str, Tuple[float, float]] = {
 _last_api_call_time = 0
 _call_count_per_minute = 0
 
+_ADMIN_AREA_TOKENS = {
+    'okres', 'kraj', 'region', 'district', 'venkov', 'county'
+}
+
 
 def normalize_address(address: str) -> str:
     """
@@ -152,8 +156,8 @@ def normalize_address(address: str) -> str:
     for char, replacement in diacritic_map.items():
         normalized = normalized.replace(char, replacement)
     
-    # Remove special characters, keep only alphanumeric and spaces
-    normalized = ''.join(c if c.isalnum() or c.isspace() else '' for c in normalized)
+    # Convert separators to spaces, keep only alphanumeric and spaces
+    normalized = ''.join(c if c.isalnum() or c.isspace() else ' ' for c in normalized)
     
     # Remove extra whitespace
     normalized = ' '.join(normalized.split())
@@ -170,12 +174,18 @@ def geocode_location(location: str) -> Optional[Dict]:
     """
     if not location or not location.strip():
         return None
-    
+
+    # Build normalized cache keys so matching is robust to diacritics/hyphens.
+    normalized_cache: Dict[str, Tuple[float, float]] = {}
+    for key, coords in MAJOR_CITIES_CACHE.items():
+        normalized_cache.setdefault(normalize_address(key), coords)
+
     normalized = normalize_address(location)
-    
+    primary_segment = normalize_address(location.split(',')[0].strip())
+
     # 1. Check static cache for exact match (districts/neighborhoods first)
-    if normalized in MAJOR_CITIES_CACHE:
-        lat, lon = MAJOR_CITIES_CACHE[normalized]
+    if normalized in normalized_cache:
+        lat, lon = normalized_cache[normalized]
         return {
             'lat': lat,
             'lon': lon,
@@ -183,11 +193,41 @@ def geocode_location(location: str) -> Optional[Dict]:
             'source': 'static_cache'
         }
 
-    # 2. Try to match any district/neighborhood in the normalized string (longest keys first)
-    cache_keys = sorted(MAJOR_CITIES_CACHE.keys(), key=len, reverse=True)
+    # If full string contains additional context, try exact match on primary segment.
+    if primary_segment in normalized_cache:
+        lat, lon = normalized_cache[primary_segment]
+        return {
+            'lat': lat,
+            'lon': lon,
+            'country': 'CZ' if lat > 47 and lat < 51.5 and lon > 12 and lon < 19 else 'EU',
+            'source': 'static_cache'
+        }
+
+    # 2. Conservative partial matching on PRIMARY segment only.
+    # This avoids false positives like "Kuřim, okres Brno-venkov" -> Brno centrum.
+    primary_tokens = primary_segment.split()
+    has_admin_context = any(tok in _ADMIN_AREA_TOKENS for tok in primary_tokens)
+
+    cache_keys = sorted(normalized_cache.keys(), key=len, reverse=True)
     for key in cache_keys:
-        if key in normalized:
-            lat, lon = MAJOR_CITIES_CACHE[key]
+        key_tokens = key.split()
+        if not key_tokens:
+            continue
+
+        # Do not match generic single-word city names in admin-area strings ("brno venkov").
+        if has_admin_context and len(key_tokens) == 1:
+            continue
+
+        # Require contiguous token sequence match.
+        key_len = len(key_tokens)
+        matched = False
+        for i in range(0, max(0, len(primary_tokens) - key_len + 1)):
+            if primary_tokens[i:i + key_len] == key_tokens:
+                matched = True
+                break
+
+        if matched:
+            lat, lon = normalized_cache[key]
             return {
                 'lat': lat,
                 'lon': lon,
