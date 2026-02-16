@@ -106,22 +106,42 @@ def call_primary_with_fallback(
     max_retries: int = 2,
     generation_config: Optional[Dict[str, Any]] = None,
 ) -> tuple[AIClientResult, bool]:
-    try:
-        return call_model_with_retry(
-            prompt,
-            primary_model,
-            max_retries=max_retries,
-            generation_config=generation_config,
-        ), False
-    except Exception:
-        if not fallback_model:
-            raise
-        return call_model_with_retry(
-            prompt,
-            fallback_model,
-            max_retries=max_retries,
-            generation_config=generation_config,
-        ), True
+    rescue_models = [
+        m.strip()
+        for m in os.getenv(
+            "GEMINI_RESCUE_MODELS",
+            "gemini-2.0-flash,gemini-1.5-flash,gemini-1.5-flash-8b",
+        ).split(",")
+        if m.strip()
+    ]
+
+    chain = [primary_model]
+    if fallback_model:
+        chain.append(fallback_model)
+    chain.extend(rescue_models)
+
+    # Preserve order, drop duplicates.
+    ordered_unique: list[str] = []
+    for name in chain:
+        if name not in ordered_unique:
+            ordered_unique.append(name)
+
+    last_error: Optional[Exception] = None
+    for index, model_name in enumerate(ordered_unique):
+        try:
+            return call_model_with_retry(
+                prompt,
+                model_name,
+                max_retries=max_retries,
+                generation_config=generation_config,
+            ), (index > 0)
+        except Exception as exc:
+            last_error = exc
+            continue
+
+    if last_error:
+        raise last_error
+    raise AIClientError("No usable AI model configured")
 
 
 __all__ = [
