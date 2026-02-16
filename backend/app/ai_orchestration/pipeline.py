@@ -17,8 +17,13 @@ from .models import (
 from .prompt_registry import get_prompt
 from .telemetry import canonical_hash, estimate_text_cost_usd, log_ai_generation
 
-DEFAULT_PRIMARY_MODEL = os.getenv("GEMINI_PRIMARY_MODEL", "gemini-2.0-flash")
-DEFAULT_FALLBACK_MODEL = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-1.5-flash")
+_provider = (os.getenv("AI_PROVIDER") or "").strip().lower()
+if _provider == "openai":
+    DEFAULT_PRIMARY_MODEL = os.getenv("OPENAI_MODEL", "gpt-4.1-mini")
+    DEFAULT_FALLBACK_MODEL = os.getenv("OPENAI_FALLBACK_MODEL", "gpt-4.1-nano")
+else:
+    DEFAULT_PRIMARY_MODEL = os.getenv("GEMINI_PRIMARY_MODEL", "gemini-2.0-flash")
+    DEFAULT_FALLBACK_MODEL = os.getenv("GEMINI_FALLBACK_MODEL", "gemini-1.5-flash")
 
 
 def _sanitize_steps(steps: List[Dict[str, str]]) -> List[Dict[str, str]]:
