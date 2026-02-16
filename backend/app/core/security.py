@@ -125,7 +125,11 @@ def _parse_iso_datetime(value: str) -> datetime | None:
         return None
     try:
         # Handle "Z" suffix
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        # Normalize naive timestamps to UTC to avoid aware/naive comparison crashes.
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
     except Exception:
         return None
 
@@ -159,7 +163,11 @@ def verify_subscription(user: dict = Depends(get_current_user), request: Request
     is_active_status = status in ["active", "trialing"]
     not_expired = True
     if expires_at:
-        not_expired = datetime.now(timezone.utc) <= expires_at
+        try:
+            not_expired = datetime.now(timezone.utc) <= expires_at
+        except TypeError:
+            # Safety fallback in case of malformed datetime objects.
+            not_expired = True
 
     user["subscription_tier"] = tier
     user["subscription_status"] = status

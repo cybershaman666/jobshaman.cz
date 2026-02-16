@@ -12,21 +12,35 @@ export const generateProfileFromStory = async (
     language: string = 'cs',
     existingProfile?: Partial<UserProfile>
 ): Promise<AIGuidedProfileResponseV2> => {
+    const sanitizedSteps = (steps || [])
+        .map(step => ({ id: step.id, text: (step.text || '').trim() }))
+        .filter(step => step.text.length > 0);
+
+    if (sanitizedSteps.length === 0) {
+        throw new Error('At least one non-empty step is required');
+    }
+
     const response = await authenticatedFetch(`${BACKEND_URL}/ai/profile/generate`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-            steps,
+            steps: sanitizedSteps,
             language,
             existingProfile
         })
     });
 
     if (!response.ok) {
-        const message = await response.text();
-        throw new Error(message || 'AI profiling failed');
+        let detail = '';
+        try {
+            const errorBody = await response.json();
+            detail = errorBody?.detail || errorBody?.message || '';
+        } catch {
+            detail = await response.text();
+        }
+        throw new Error(detail || `AI profiling failed (${response.status})`);
     }
 
     return response.json();
