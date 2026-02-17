@@ -727,6 +727,21 @@ const isNetworkFetchError = (err: unknown): boolean => {
     return msg.includes('networkerror') || msg.includes('failed to fetch');
 };
 
+const normalizeTokenText = (input: string): string =>
+    input
+        .normalize('NFD')
+        .replace(/\p{M}/gu, '')
+        .toLowerCase();
+
+const escapeRegex = (input: string): string =>
+    input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const containsWholeToken = (haystack: string, token: string): boolean => {
+    if (!token) return false;
+    const pattern = new RegExp(`(^|[^\\p{L}\\p{N}])${escapeRegex(token)}([^\\p{L}\\p{N}]|$)`, 'u');
+    return pattern.test(haystack);
+};
+
 const warnHybridFallbackThrottled = (error: unknown): void => {
     const now = Date.now();
     if (now - lastHybridFallbackWarnAt < 15_000) return;
@@ -816,11 +831,26 @@ export const fetchJobsWithFilters = async (
         }
 
         const processedJobs = mapJobs(data || []);
-        const fallbackJobs = filterJobsByQuality(processedJobs);
+        let fallbackJobs = filterJobsByQuality(processedJobs);
+        const normalizedFallbackTerm = normalizeTokenText(sanitizedTerm);
+        const isShortSingleTokenQuery = compactSearchLength <= 2 && !normalizedFallbackTerm.includes(' ');
+        if (isShortSingleTokenQuery) {
+            fallbackJobs = fallbackJobs.filter((job) => {
+                const searchable = normalizeTokenText([
+                    job.title || '',
+                    job.company || '',
+                    job.location || '',
+                    job.description || ''
+                ].join(' '));
+                return containsWholeToken(searchable, normalizedFallbackTerm);
+            });
+        }
+
+        const totalCountForResponse = isShortSingleTokenQuery ? fallbackJobs.length : (count || fallbackJobs.length);
         return {
             jobs: fallbackJobs,
-            hasMore: (page + 1) * pageSize < (count || fallbackJobs.length),
-            totalCount: count || fallbackJobs.length
+            hasMore: (page + 1) * pageSize < totalCountForResponse,
+            totalCount: totalCountForResponse
         };
     };
 

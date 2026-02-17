@@ -129,7 +129,7 @@ class HybridJobSearchRequest(BaseModel):
     page_size: int = Field(default=50, ge=1, le=200)
     user_lat: Optional[float] = None
     user_lng: Optional[float] = None
-    radius_km: Optional[float] = Field(default=None, ge=1, le=300)
+    radius_km: Optional[float] = Field(default=None, ge=0, le=300)
     filter_city: Optional[str] = Field(default=None, max_length=120)
     filter_contract_types: Optional[List[str]] = None
     filter_benefits: Optional[List[str]] = None
@@ -140,6 +140,18 @@ class HybridJobSearchRequest(BaseModel):
     exclude_country_codes: Optional[List[str]] = None
     filter_language_codes: Optional[List[str]] = None
 
+    @validator("radius_km", pre=True)
+    def normalize_radius(cls, v):
+        if v is None:
+            return None
+        try:
+            value = float(v)
+        except Exception:
+            return None
+        if value <= 0:
+            return None
+        return value
+
 
 class HybridJobSearchV2Request(BaseModel):
     search_term: str = Field(default="", max_length=200)
@@ -147,7 +159,7 @@ class HybridJobSearchV2Request(BaseModel):
     page_size: int = Field(default=50, ge=1, le=200)
     user_lat: Optional[float] = None
     user_lng: Optional[float] = None
-    radius_km: Optional[float] = Field(default=None, ge=1, le=300)
+    radius_km: Optional[float] = Field(default=None, ge=0, le=300)
     filter_city: Optional[str] = Field(default=None, max_length=120)
     filter_contract_types: Optional[List[str]] = None
     filter_benefits: Optional[List[str]] = None
@@ -159,3 +171,15 @@ class HybridJobSearchV2Request(BaseModel):
     filter_language_codes: Optional[List[str]] = None
     sort_mode: Literal["default", "newest", "jhi_desc", "jhi_asc", "recommended"] = "default"
     debug: bool = False
+
+    @validator("radius_km", pre=True)
+    def normalize_radius(cls, v):
+        if v is None:
+            return None
+        try:
+            value = float(v)
+        except Exception:
+            return None
+        if value <= 0:
+            return None
+        return value

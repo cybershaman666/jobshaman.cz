@@ -27,6 +27,10 @@ from .scoring import configure_scoring_weights, predict_action_probability, scor
 MODEL_VERSION = "career-os-v2"
 SHORTLIST_SIZE = 220
 MIN_SCORE = 25
+_JOBS_STATUS_COLUMN_AVAILABLE: Optional[bool] = None
+_SEARCH_V2_RPC_AVAILABLE: Optional[bool] = None
+_SEARCH_V2_RPC_WARNING_EMITTED = False
+_JOBS_STATUS_WARNING_EMITTED = False
 
 
 def _date_cutoff_iso(date_filter: Optional[str]) -> Optional[str]:
@@ -261,15 +265,16 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
     language_codes = set(_normalize_list(filters.get("filter_language_codes")))
     cutoff_iso = _date_cutoff_iso(filters.get("filter_date_posted"))
 
-    try:
+    def _run_base_query(with_status_filter: bool):
         query = (
             supabase.table("jobs")
             .select("*")
-            .eq("status", "active")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
             .limit(1200)
         )
+        if with_status_filter:
+            query = query.eq("status", "active")
         if cutoff_iso:
             query = query.gte("scraped_at", cutoff_iso)
         if country_codes:
@@ -280,10 +285,30 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
             query = query.gte("salary_from", min_salary)
         if contract_types:
             query = query.in_("contract_type", list(contract_types))
-        rows = query.execute().data or []
+        return query.execute().data or []
+
+    global _JOBS_STATUS_COLUMN_AVAILABLE, _JOBS_STATUS_WARNING_EMITTED
+    try:
+        use_status = _JOBS_STATUS_COLUMN_AVAILABLE is not False
+        rows = _run_base_query(with_status_filter=use_status)
+        if use_status:
+            _JOBS_STATUS_COLUMN_AVAILABLE = True
     except Exception as exc:
-        print(f"⚠️ [Hybrid Search] base query failed: {exc}")
-        return {"jobs": [], "has_more": False, "total_count": 0}
+        msg = str(exc).lower()
+        missing_status_col = "column jobs.status does not exist" in msg
+        if missing_status_col:
+            _JOBS_STATUS_COLUMN_AVAILABLE = False
+            if not _JOBS_STATUS_WARNING_EMITTED:
+                print("⚠️ [Hybrid Search] jobs.status column missing; using legality_status-only filter.")
+                _JOBS_STATUS_WARNING_EMITTED = True
+            try:
+                rows = _run_base_query(with_status_filter=False)
+            except Exception as retry_exc:
+                print(f"⚠️ [Hybrid Search] base query failed (retry): {retry_exc}")
+                return {"jobs": [], "has_more": False, "total_count": 0}
+        else:
+            print(f"⚠️ [Hybrid Search] base query failed: {exc}")
+            return {"jobs": [], "has_more": False, "total_count": 0}
 
     filtered = []
     for job in rows:
@@ -408,11 +433,26 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
         "p_sort_mode": sort_mode,
     }
 
+    global _SEARCH_V2_RPC_AVAILABLE, _SEARCH_V2_RPC_WARNING_EMITTED
+    if _SEARCH_V2_RPC_AVAILABLE is False:
+        fallback = hybrid_search_jobs(filters, page=page, page_size=page_size)
+        fallback["meta"] = {"fallback": "rpc_unavailable", "sort_mode": sort_mode}
+        return fallback
+
     try:
         resp = supabase.rpc("search_jobs_v2", rpc_payload).execute()
         rows = resp.data or []
+        _SEARCH_V2_RPC_AVAILABLE = True
     except Exception as exc:
-        print(f"⚠️ [Hybrid Search V2] RPC failed, falling back to v1: {exc}")
+        msg = str(exc).lower()
+        rpc_missing = "pgrst202" in msg or "could not find the function public.search_jobs_v2" in msg
+        if rpc_missing:
+            _SEARCH_V2_RPC_AVAILABLE = False
+            if not _SEARCH_V2_RPC_WARNING_EMITTED:
+                print("⚠️ [Hybrid Search V2] search_jobs_v2 RPC missing in DB schema cache; falling back to v1.")
+                _SEARCH_V2_RPC_WARNING_EMITTED = True
+        else:
+            print(f"⚠️ [Hybrid Search V2] RPC failed, falling back to v1: {exc}")
         fallback = hybrid_search_jobs(filters, page=page, page_size=page_size)
         fallback["meta"] = {"fallback": "rpc_failed", "sort_mode": sort_mode}
         return fallback
