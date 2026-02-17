@@ -1,8 +1,8 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Job } from '../types';
 import { UserProfile } from '../types';
-import { fetchJobsPaginated, fetchJobsWithFilters, fetchRecommendedJobs } from '../services/jobService';
+import { fetchJobsPaginated, fetchJobsWithFilters } from '../services/jobService';
 import { geocodeWithCaching, getStaticCoordinates } from '../services/geocodingService';
 import AnalyticsService from '../services/analyticsService';
 
@@ -117,43 +117,17 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     // --- DATABASE FILTERING LOGIC ---
 
     // Use the RPC-based filtering function
-    const sortJobs = useCallback((items: Job[]): Job[] => {
-        if (sortBy === 'jhi_desc') {
-            return [...items].sort((a, b) => (b.jhi?.score || 0) - (a.jhi?.score || 0));
-        }
-        if (sortBy === 'jhi_asc') {
-            return [...items].sort((a, b) => (a.jhi?.score || 0) - (b.jhi?.score || 0));
-        }
-        if (sortBy === 'newest') {
-            return [...items].sort((a, b) => {
-                const aTime = a.scrapedAt ? new Date(a.scrapedAt).getTime() : 0;
-                const bTime = b.scrapedAt ? new Date(b.scrapedAt).getTime() : 0;
-                return bTime - aTime;
-            });
-        }
-        return items;
-    }, [sortBy]);
-
     const fetchFilteredJobs = useCallback(async (page: number, isLoadMore: boolean = false) => {
+        if (!isLoadMore && activeFetchControllerRef.current) {
+            activeFetchControllerRef.current.abort();
+        }
+        const fetchController = new AbortController();
+        activeFetchControllerRef.current = fetchController;
+
         setLoading(true);
         if (isLoadMore) setLoadingMore(true);
 
         try {
-            if (sortBy === 'recommended') {
-                if (!userProfile.isLoggedIn) {
-                    setJobs([]);
-                    setHasMore(false);
-                    setTotalCount(0);
-                    return;
-                }
-
-                const recommended = await fetchRecommendedJobs(initialPageSize);
-                setJobs(sortJobs(recommended));
-                setHasMore(false);
-                setTotalCount(recommended.length);
-                return;
-            }
-
             // Only use coordinates if we are doing a commute filter or proximity sort
             let lat = userProfile.coordinates?.lat;
             let lon = userProfile.coordinates?.lon;
@@ -206,9 +180,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 );
 
                 if (isLoadMore) {
-                    setJobs(prev => sortJobs(dedupeJobs(basicResult.jobs, prev)));
+                    setJobs(prev => dedupeJobs(basicResult.jobs, prev));
                 } else {
-                    setJobs(sortJobs(basicResult.jobs));
+                    setJobs(basicResult.jobs);
                 }
 
                 setHasMore(basicResult.hasMore);
@@ -226,6 +200,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 page,
                 pageSize: initialPageSize,
                 searchTerm,
+                sortMode: sortBy,
                 filterCity,
                 filterContractTypes: filterContractType,
                 filterBenefits,
@@ -237,13 +212,14 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 userLng: lon,
                 countryCodes: effectiveCountryCodes,
                 excludeCountryCodes,
-                filterLanguageCodes: filterLanguage ? [filterLanguage] : undefined
+                filterLanguageCodes: filterLanguage ? [filterLanguage] : undefined,
+                abortSignal: fetchController.signal
             });
 
             if (isLoadMore) {
-                setJobs(prev => sortJobs(dedupeJobs(result.jobs, prev)));
+                setJobs(prev => dedupeJobs(result.jobs, prev));
             } else {
-                setJobs(sortJobs(result.jobs));
+                setJobs(result.jobs);
             }
 
             setHasMore(result.hasMore);
@@ -265,16 +241,22 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             }
 
         } catch (error) {
+            if ((error as any)?.name === 'AbortError') {
+                return;
+            }
             console.error('Error fetching filtered jobs:', error);
             if (!isLoadMore) setJobs([]);
         } finally {
+            if (activeFetchControllerRef.current === fetchController) {
+                activeFetchControllerRef.current = null;
+            }
             setLoading(false);
             setLoadingMore(false);
         }
     }, [
         initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch, sortJobs, filterLanguage, abroadOnly, sortBy, userProfile.isLoggedIn
+        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch, filterLanguage, abroadOnly, sortBy, userProfile.isLoggedIn
     ]);
 
 
@@ -284,7 +266,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             console.log('⏱️ Debounced filter fetch triggered');
             setCurrentPage(0);
             fetchFilteredJobs(0, false);
-        }, 500);
+        }, 300);
 
         return () => clearTimeout(timeoutId);
     }, [
@@ -295,13 +277,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
     // Re-apply sorting when sort option changes
     useEffect(() => {
-        if (sortBy === 'default' || sortBy === 'recommended') {
-            setCurrentPage(0);
-            fetchFilteredJobs(0, false);
-            return;
-        }
-        setJobs(prev => sortJobs([...prev]));
-    }, [sortBy, fetchFilteredJobs, sortJobs]);
+        setCurrentPage(0);
+        fetchFilteredJobs(0, false);
+    }, [sortBy, fetchFilteredJobs]);
 
     // Load more jobs
     const loadMoreJobs = useCallback(() => {
@@ -445,3 +423,13 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         clearAllFilters
     };
 };
+    const activeFetchControllerRef = useRef<AbortController | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (activeFetchControllerRef.current) {
+                activeFetchControllerRef.current.abort();
+                activeFetchControllerRef.current = null;
+            }
+        };
+    }, []);

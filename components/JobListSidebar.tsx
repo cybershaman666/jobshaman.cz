@@ -1,4 +1,4 @@
-import React, { RefObject } from 'react';
+import React, { RefObject, useEffect, useRef } from 'react';
 import { Job, UserProfile } from '../types';
 import JobCard from './JobCard';
 import {
@@ -66,6 +66,7 @@ interface JobListSidebarProps {
     abroadOnly: boolean;
     setAbroadOnly: (abroadOnly: boolean) => void;
     onUseCurrentLocation: () => void;
+    onTrackImpression?: (job: Job, position: number) => void;
 }
 
 const JobListSidebar: React.FC<JobListSidebarProps> = ({
@@ -115,9 +116,53 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     setGlobalSearch,
     abroadOnly,
     setAbroadOnly,
-    onUseCurrentLocation
+    onUseCurrentLocation,
+    onTrackImpression
 }) => {
     const { t } = useTranslation();
+    const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
+    const seenImpressionsRef = useRef<Set<string>>(new Set());
+    const lastRequestIdRef = useRef<string | null>(null);
+
+    useEffect(() => {
+        if (!onTrackImpression || filteredJobs.length === 0) return;
+        const currentRequestId = (filteredJobs[0] as any)?.requestId || (filteredJobs[0] as any)?.aiRecommendationRequestId || null;
+        if (lastRequestIdRef.current !== currentRequestId) {
+            seenImpressionsRef.current.clear();
+            lastRequestIdRef.current = currentRequestId;
+        }
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    const el = entry.target as HTMLDivElement;
+                    const jobId = el.dataset.jobId;
+                    const positionRaw = el.dataset.position;
+                    const position = positionRaw ? parseInt(positionRaw, 10) : 0;
+                    if (!jobId) return;
+                    const dedupeKey = `${currentRequestId || 'no-request'}:${jobId}`;
+                    if (seenImpressionsRef.current.has(dedupeKey)) return;
+                    const job = filteredJobs.find((x) => x.id === jobId);
+                    if (!job) return;
+                    seenImpressionsRef.current.add(dedupeKey);
+                    onTrackImpression(job, position || 0);
+                });
+            },
+            { root: jobListRef.current, threshold: 0.6 }
+        );
+
+        filteredJobs.forEach((job, idx) => {
+            const node = cardRefs.current[job.id];
+            if (!node) return;
+            node.dataset.jobId = job.id;
+            node.dataset.position = String((job as any)?.rankPosition || (job as any)?.aiRecommendationPosition || (idx + 1));
+            observer.observe(node);
+        });
+
+        return () => observer.disconnect();
+    }, [filteredJobs, jobListRef, onTrackImpression]);
+
     const handleScrollToTop = () => {
         jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     };
@@ -540,17 +585,18 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                 <p className="text-sm">{t('app.searching')}</p>
                             </div>
                         ) : filteredJobs.length > 0 ? (
-                            filteredJobs.map(job => (
-                                <JobCard
-                                    key={job.id}
-                                    job={job}
-                                    isSelected={selectedJobId === job.id}
-                                    isSaved={savedJobIds.includes(job.id)}
-                                    onToggleSave={() => handleToggleSave(job.id)}
-                                    onClick={() => handleJobSelect(job.id)}
-                                    variant={theme}
-                                    userProfile={userProfile}
-                                />
+                            filteredJobs.map((job) => (
+                                <div key={job.id} ref={(el) => { cardRefs.current[job.id] = el; }}>
+                                    <JobCard
+                                        job={job}
+                                        isSelected={selectedJobId === job.id}
+                                        isSaved={savedJobIds.includes(job.id)}
+                                        onToggleSave={() => handleToggleSave(job.id)}
+                                        onClick={() => handleJobSelect(job.id)}
+                                        variant={theme}
+                                        userProfile={userProfile}
+                                    />
+                                </div>
                             ))
                         ) : (
                             <div className="py-12 px-4 text-center text-slate-400 dark:text-slate-500 flex flex-col items-center">

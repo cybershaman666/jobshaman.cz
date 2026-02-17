@@ -232,6 +232,13 @@ def _lexical_score(text: str, tokens: List[str]) -> float:
     return min(1.0, hits / max(1, len(tokens)))
 
 
+def _normalize_sort_mode(value: Optional[str]) -> str:
+    mode = (value or "default").strip().lower()
+    if mode in {"default", "newest", "jhi_desc", "jhi_asc", "recommended"}:
+        return mode
+    return "default"
+
+
 def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dict:
     if not supabase:
         return {"jobs": [], "has_more": False, "total_count": 0}
@@ -365,6 +372,165 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
         "jobs": out_jobs,
         "has_more": end < total_count,
         "total_count": total_count,
+    }
+
+
+def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, user_id: Optional[str] = None) -> Dict:
+    if not supabase:
+        return {"jobs": [], "has_more": False, "total_count": 0, "meta": {"fallback": "no_supabase"}}
+
+    flag = get_release_flag("search_v2_enabled", subject_id=user_id or "public", default=True)
+    if not flag.get("effective_enabled", True):
+        fallback = hybrid_search_jobs(filters, page=page, page_size=page_size)
+        fallback["meta"] = {"fallback": "release_flag_disabled", "sort_mode": _normalize_sort_mode(filters.get("sort_mode"))}
+        return fallback
+
+    sort_mode = _normalize_sort_mode(filters.get("sort_mode"))
+    started = datetime.now(timezone.utc)
+
+    rpc_payload = {
+        "p_search_term": (filters.get("search_term") or "").strip(),
+        "p_page": max(0, int(page or 0)),
+        "p_page_size": max(1, min(200, int(page_size or 50))),
+        "p_user_id": user_id,
+        "p_user_lat": filters.get("user_lat"),
+        "p_user_lng": filters.get("user_lng"),
+        "p_radius_km": filters.get("radius_km"),
+        "p_filter_city": filters.get("filter_city"),
+        "p_filter_contract_types": filters.get("filter_contract_types"),
+        "p_filter_benefits": filters.get("filter_benefits"),
+        "p_filter_min_salary": filters.get("filter_min_salary"),
+        "p_filter_date_posted": filters.get("filter_date_posted") or "all",
+        "p_filter_experience_levels": filters.get("filter_experience_levels"),
+        "p_filter_country_codes": filters.get("filter_country_codes"),
+        "p_exclude_country_codes": filters.get("exclude_country_codes"),
+        "p_filter_language_codes": filters.get("filter_language_codes"),
+        "p_sort_mode": sort_mode,
+    }
+
+    try:
+        resp = supabase.rpc("search_jobs_v2", rpc_payload).execute()
+        rows = resp.data or []
+    except Exception as exc:
+        print(f"⚠️ [Hybrid Search V2] RPC failed, falling back to v1: {exc}")
+        fallback = hybrid_search_jobs(filters, page=page, page_size=page_size)
+        fallback["meta"] = {"fallback": "rpc_failed", "sort_mode": sort_mode}
+        return fallback
+
+    if not rows:
+        latency_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
+        return {
+            "jobs": [],
+            "has_more": False,
+            "total_count": 0,
+            "meta": {
+                "sort_mode": sort_mode,
+                "fallback": None,
+                "latency_ms": latency_ms,
+            },
+        }
+
+    cfg = get_active_model_config("matching", "recommendations")
+    ranking_cfg = cfg.get("config_json") or {}
+    company_cap = max(1, min(10, int(ranking_cfg.get("search_v2_max_per_company") or 4)))
+    new_window_days = max(1, min(30, int(ranking_cfg.get("new_job_window_days") or 7)))
+    min_new_share = max(0.0, min(0.5, _safe_float(ranking_cfg.get("search_v2_min_new_share"), 0.1)))
+
+    ranked_input = []
+    for row in rows:
+        ranked_input.append(
+            {
+                "job": row,
+                "score": _safe_float(row.get("hybrid_score")),
+                "action_probability": _safe_float(row.get("behavior_prior_score")),
+                "action_features": {"recency_score": _safe_float(row.get("recency_score"))},
+                "breakdown": {
+                    "hybrid_score": _safe_float(row.get("hybrid_score")),
+                    "fts_score": _safe_float(row.get("fts_score")),
+                    "trigram_score": _safe_float(row.get("trigram_score")),
+                    "profile_fit_score": _safe_float(row.get("profile_fit_score")),
+                    "recency_score": _safe_float(row.get("recency_score")),
+                    "behavior_prior_score": _safe_float(row.get("behavior_prior_score")),
+                },
+            }
+        )
+
+    # Apply company/new-job guardrails for relevance-based sorts only.
+    if sort_mode in {"default", "recommended"}:
+        target_new = max(1, int(math.ceil(len(ranked_input) * min_new_share)))
+        selected = []
+        selected_ids = set()
+        per_company: Dict[str, int] = {}
+
+        def _is_new(row: Dict) -> bool:
+            return _is_new_job(row.get("job") or {}, window_days=new_window_days)
+
+        for item in ranked_input:
+            if len([x for x in selected if _is_new(x)]) >= target_new:
+                break
+            job = item.get("job") or {}
+            job_id = str(job.get("id") or "")
+            company_key = str(job.get("company_id") or job.get("company") or "unknown")
+            if not job_id or job_id in selected_ids:
+                continue
+            if per_company.get(company_key, 0) >= company_cap:
+                continue
+            if not _is_new(item):
+                continue
+            selected.append(item)
+            selected_ids.add(job_id)
+            per_company[company_key] = per_company.get(company_key, 0) + 1
+
+        for item in ranked_input:
+            if len(selected) >= len(ranked_input):
+                break
+            job = item.get("job") or {}
+            job_id = str(job.get("id") or "")
+            company_key = str(job.get("company_id") or job.get("company") or "unknown")
+            if not job_id or job_id in selected_ids:
+                continue
+            if per_company.get(company_key, 0) >= company_cap:
+                continue
+            selected.append(item)
+            selected_ids.add(job_id)
+            per_company[company_key] = per_company.get(company_key, 0) + 1
+
+        if len(selected) < len(ranked_input):
+            for item in ranked_input:
+                if len(selected) >= len(ranked_input):
+                    break
+                job = item.get("job") or {}
+                job_id = str(job.get("id") or "")
+                if not job_id or job_id in selected_ids:
+                    continue
+                selected.append(item)
+                selected_ids.add(job_id)
+
+        ranked_input = selected
+
+    total_count = int((rows[0] or {}).get("total_count") or len(rows))
+    out_rows = []
+    for idx, item in enumerate(ranked_input):
+        row = dict(item.get("job") or {})
+        row["hybrid_score"] = round(_safe_float(row.get("hybrid_score")), 4)
+        row["fts_score"] = round(_safe_float(row.get("fts_score")), 4)
+        row["trigram_score"] = round(_safe_float(row.get("trigram_score")), 4)
+        row["profile_fit_score"] = round(_safe_float(row.get("profile_fit_score")), 4)
+        row["recency_score"] = round(_safe_float(row.get("recency_score")), 4)
+        row["behavior_prior_score"] = round(_safe_float(row.get("behavior_prior_score")), 4)
+        row["rank_position"] = idx + 1 + (max(0, int(page)) * max(1, int(page_size)))
+        out_rows.append(row)
+
+    latency_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
+    return {
+        "jobs": out_rows,
+        "has_more": ((page + 1) * page_size) < total_count,
+        "total_count": total_count,
+        "meta": {
+            "sort_mode": sort_mode,
+            "fallback": None,
+            "latency_ms": latency_ms,
+        },
     }
 
 

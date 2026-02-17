@@ -41,6 +41,7 @@ import { checkCookieConsent, getCookiePreferences } from './services/cookieConse
 import { checkPaymentStatus } from './services/stripeService';
 import { clearCsrfToken } from './services/csrfService';
 import { trackPageView } from './services/trafficAnalytics';
+import { trackJobInteraction } from './services/jobInteractionService';
 import { useUserProfile } from './hooks/useUserProfile';
 import { usePaginatedJobs } from './hooks/usePaginatedJobs';
 import { DEFAULT_USER_PROFILE } from './constants';
@@ -312,6 +313,7 @@ export default function App() {
     // Infinite scroll detection
     const jobListRef = useRef<HTMLDivElement>(null);
     const detailScrollRef = useRef<HTMLDivElement>(null);
+    const searchSessionIdRef = useRef(`list_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -945,7 +947,25 @@ export default function App() {
     };
 
     const handleToggleSave = (jobId: string) => {
-        setSavedJobIds(prev => prev.includes(jobId) ? prev.filter(id => id !== jobId) : [...prev, jobId]);
+        const isAlreadySaved = savedJobIds.includes(jobId);
+        const job = filteredJobs.find((j) => j.id === jobId) || (selectedJob?.id === jobId ? selectedJob : null);
+        const requestId = (job as any)?.requestId || (job as any)?.aiRecommendationRequestId;
+        const scoringVersion = (job as any)?.aiMatchScoringVersion;
+        const modelVersion = (job as any)?.aiMatchModelVersion;
+        trackJobInteraction({
+            jobId,
+            eventType: isAlreadySaved ? 'unsave' : 'save',
+            sessionId: searchSessionIdRef.current,
+            requestId,
+            scoringVersion,
+            modelVersion,
+            signalValue: isAlreadySaved ? 0 : 1,
+            metadata: {
+                source: 'desktop_list',
+                position: (job as any)?.rankPosition || (job as any)?.aiRecommendationPosition
+            }
+        });
+        setSavedJobIds(prev => isAlreadySaved ? prev.filter(id => id !== jobId) : [...prev, jobId]);
     };
 
     const handleOpenJobDetailsFromSwipe = (jobId: string) => {
@@ -955,6 +975,19 @@ export default function App() {
     };
 
     const handleApplyToJob = (job: Job) => {
+        trackJobInteraction({
+            jobId: job.id,
+            eventType: 'apply_click',
+            sessionId: searchSessionIdRef.current,
+            requestId: (job as any)?.requestId || (job as any)?.aiRecommendationRequestId,
+            scoringVersion: (job as any)?.aiMatchScoringVersion,
+            modelVersion: (job as any)?.aiMatchModelVersion,
+            signalValue: 1,
+            metadata: {
+                source: 'job_apply',
+                position: (job as any)?.rankPosition || (job as any)?.aiRecommendationPosition
+            }
+        });
         handleJobSelect(job.id);
         if (job.source !== 'jobshaman.cz' && job.url) {
             window.open(job.url, '_blank', 'noopener,noreferrer');
@@ -964,6 +997,22 @@ export default function App() {
     };
 
     const handleJobSelect = (jobId: string | null) => {
+        if (jobId) {
+            const job = filteredJobs.find((j) => j.id === jobId) || (selectedJob?.id === jobId ? selectedJob : null);
+            trackJobInteraction({
+                jobId,
+                eventType: 'open_detail',
+                sessionId: searchSessionIdRef.current,
+                requestId: (job as any)?.requestId || (job as any)?.aiRecommendationRequestId,
+                scoringVersion: (job as any)?.aiMatchScoringVersion,
+                modelVersion: (job as any)?.aiMatchModelVersion,
+                signalValue: 1,
+                metadata: {
+                    source: 'desktop_detail',
+                    position: (job as any)?.rankPosition || (job as any)?.aiRecommendationPosition
+                }
+            });
+        }
         setSelectedJobId(jobId);
         setSelectedBlogPostSlug(null); // Clear blog post when job selected
 
@@ -1382,6 +1431,20 @@ export default function App() {
                             abroadOnly={abroadOnly}
                             setAbroadOnly={setAbroadOnly}
                             onUseCurrentLocation={handleUseCurrentLocation}
+                            onTrackImpression={(job, position) => {
+                                trackJobInteraction({
+                                    jobId: job.id,
+                                    eventType: 'impression',
+                                    sessionId: searchSessionIdRef.current,
+                                    requestId: (job as any)?.requestId || (job as any)?.aiRecommendationRequestId,
+                                    scoringVersion: (job as any)?.aiMatchScoringVersion,
+                                    modelVersion: (job as any)?.aiMatchModelVersion,
+                                    metadata: {
+                                        source: 'desktop_list',
+                                        position
+                                    }
+                                });
+                            }}
                         />
 
                         {/* DESKTOP VIEW: RIGHT COLUMN: Detail View (or Welcome Guide) */}

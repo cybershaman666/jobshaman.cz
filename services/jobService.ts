@@ -695,7 +695,14 @@ export interface JobFilterOptions {
     // Languages
     filterLanguageCodes?: string[];
     searchTerm?: string;
+    sortMode?: 'default' | 'newest' | 'jhi_desc' | 'jhi_asc' | 'recommended';
+    abortSignal?: AbortSignal;
 }
+
+const isSearchV2Enabled = (): boolean => {
+    const flag = String(import.meta.env.VITE_SEARCH_V2_ENABLED ?? 'true').toLowerCase();
+    return flag !== '0' && flag !== 'false' && flag !== 'off';
+};
 
 /**
  * Comprehensive job filtering function that supports all filter types
@@ -725,12 +732,26 @@ export const fetchJobsWithFilters = async (
         countryCodes,
         excludeCountryCodes,
         filterLanguageCodes,
-        searchTerm
+        searchTerm,
+        sortMode = 'default',
+        abortSignal
     } = options;
 
     const normalizedSearchTerm = (searchTerm || '').trim();
     const compactSearchLength = normalizedSearchTerm.replace(/\s+/g, '').length;
-    const shouldUseHybridSearch = compactSearchLength >= 3 && !!BACKEND_URL;
+    const hasFilteringIntent =
+        !!filterCity ||
+        !!radiusKm ||
+        !!(filterContractTypes && filterContractTypes.length > 0) ||
+        !!(filterBenefits && filterBenefits.length > 0) ||
+        !!(filterExperienceLevels && filterExperienceLevels.length > 0) ||
+        !!(filterLanguageCodes && filterLanguageCodes.length > 0) ||
+        !!(countryCodes && countryCodes.length > 0) ||
+        !!(excludeCountryCodes && excludeCountryCodes.length > 0) ||
+        !!(filterMinSalary && filterMinSalary > 0) ||
+        filterDatePosted !== 'all' ||
+        sortMode !== 'default';
+    const shouldUseHybridSearch = !!BACKEND_URL && (compactSearchLength >= 3 || hasFilteringIntent || isSearchV2Enabled());
 
     let finalUserLat = userLat;
     let finalUserLng = userLng;
@@ -740,11 +761,12 @@ export const fetchJobsWithFilters = async (
             return { jobs: [], hasMore: false, totalCount: 0 };
         }
 
-        const hybridResponse = await fetch(`${BACKEND_URL}/jobs/hybrid-search`, {
+        const v2Enabled = isSearchV2Enabled();
+        const endpoint = v2Enabled ? '/jobs/hybrid-search-v2' : '/jobs/hybrid-search';
+        const hybridResponse = await authenticatedFetch(`${BACKEND_URL}${endpoint}`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: { 'Content-Type': 'application/json' },
+            signal: abortSignal,
             body: JSON.stringify({
                 search_term: normalizedSearchTerm,
                 page,
@@ -760,11 +782,74 @@ export const fetchJobsWithFilters = async (
                 filter_experience_levels: filterExperienceLevels && filterExperienceLevels.length > 0 ? filterExperienceLevels : null,
                 filter_country_codes: countryCodes && countryCodes.length > 0 ? countryCodes : null,
                 exclude_country_codes: excludeCountryCodes && excludeCountryCodes.length > 0 ? excludeCountryCodes : null,
-                filter_language_codes: filterLanguageCodes && filterLanguageCodes.length > 0 ? filterLanguageCodes : null
+                filter_language_codes: filterLanguageCodes && filterLanguageCodes.length > 0 ? filterLanguageCodes : null,
+                sort_mode: sortMode,
+                debug: false
             })
         });
 
-        if (!hybridResponse.ok) {
+        if (!hybridResponse.ok && v2Enabled) {
+            // Safe fallback to v1 endpoint when v2 is unavailable.
+            const fallbackResponse = await authenticatedFetch(`${BACKEND_URL}/jobs/hybrid-search`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                signal: abortSignal,
+                body: JSON.stringify({
+                    search_term: normalizedSearchTerm,
+                    page,
+                    page_size: pageSize,
+                    user_lat: finalUserLat ?? null,
+                    user_lng: finalUserLng ?? null,
+                    radius_km: radiusKm ?? null,
+                    filter_city: filterCity || null,
+                    filter_contract_types: filterContractTypes && filterContractTypes.length > 0 ? filterContractTypes : null,
+                    filter_benefits: filterBenefits && filterBenefits.length > 0 ? filterBenefits : null,
+                    filter_min_salary: filterMinSalary && filterMinSalary > 0 ? filterMinSalary : null,
+                    filter_date_posted: filterDatePosted,
+                    filter_experience_levels: filterExperienceLevels && filterExperienceLevels.length > 0 ? filterExperienceLevels : null,
+                    filter_country_codes: countryCodes && countryCodes.length > 0 ? countryCodes : null,
+                    exclude_country_codes: excludeCountryCodes && excludeCountryCodes.length > 0 ? excludeCountryCodes : null,
+                    filter_language_codes: filterLanguageCodes && filterLanguageCodes.length > 0 ? filterLanguageCodes : null
+                })
+            });
+            if (!fallbackResponse.ok) {
+                throw new Error(`Hybrid fallback failed: ${fallbackResponse.status}`);
+            }
+            const fallbackPayload = await fallbackResponse.json();
+            const fallbackRows = fallbackPayload.jobs || [];
+            const fallbackJobs = fallbackRows.map((row: any) => {
+                const job = transformJob({
+                    id: row.id,
+                    title: row.title,
+                    company: row.company,
+                    location: row.location,
+                    description: row.description,
+                    benefits: row.benefits,
+                    contract_type: row.contract_type,
+                    salary_from: row.salary_from,
+                    salary_to: row.salary_to,
+                    work_type: row.work_type,
+                    work_model: row.work_model,
+                    scraped_at: row.scraped_at,
+                    source: row.source,
+                    education_level: row.education_level,
+                    url: row.url,
+                    lat: row.lat,
+                    lng: row.lng,
+                    country_code: row.country_code,
+                    language_code: row.language_code,
+                    legality_status: row.legality_status,
+                    verification_notes: row.verification_notes
+                });
+                (job as any).distance_km = row.distance_km;
+                return job;
+            });
+            return {
+                jobs: fallbackJobs,
+                hasMore: !!fallbackPayload.has_more,
+                totalCount: Number(fallbackPayload.total_count || fallbackJobs.length)
+            };
+        } else if (!hybridResponse.ok) {
             throw new Error(`Hybrid fallback failed: ${hybridResponse.status}`);
         }
 
@@ -782,6 +867,7 @@ export const fetchJobsWithFilters = async (
                 salary_from: row.salary_from,
                 salary_to: row.salary_to,
                 work_type: row.work_type,
+                work_model: row.work_model,
                 scraped_at: row.scraped_at,
                 source: row.source,
                 education_level: row.education_level,
@@ -789,14 +875,25 @@ export const fetchJobsWithFilters = async (
                 lat: row.lat,
                 lng: row.lng,
                 country_code: row.country_code,
+                language_code: row.language_code,
                 legality_status: row.legality_status,
                 verification_notes: row.verification_notes
             });
 
             (job as any).distance_km = row.distance_km;
             (job as any).hybrid_score = row.hybrid_score;
-            (job as any).semantic_score = row.semantic_score;
-            (job as any).lexical_score = row.lexical_score;
+            (job as any).fts_score = row.fts_score;
+            (job as any).trigram_score = row.trigram_score;
+            (job as any).profile_fit_score = row.profile_fit_score;
+            (job as any).recency_score = row.recency_score;
+            (job as any).behavior_prior_score = row.behavior_prior_score;
+            (job as any).searchScore = row.hybrid_score;
+            (job as any).rankPosition = row.rank_position;
+            (job as any).requestId = hybridPayload.request_id;
+            (job as any).aiRecommendationRequestId = hybridPayload.request_id;
+            (job as any).aiRecommendationPosition = row.rank_position;
+            (job as any).aiMatchScoringVersion = hybridPayload?.meta?.sort_mode || sortMode;
+            (job as any).aiMatchModelVersion = 'search-v2';
             return job;
         });
 
@@ -834,7 +931,8 @@ export const fetchJobsWithFilters = async (
             pageSize,
             countries: countryCodes || ['all'],
             excludeCountries: excludeCountryCodes || [],
-            searchTerm: searchTerm || 'none'
+            searchTerm: searchTerm || 'none',
+            sortMode
         });
 
         // Hybrid semantic search (backend) for text queries.
