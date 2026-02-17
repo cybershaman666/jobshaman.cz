@@ -200,7 +200,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 page,
                 pageSize: initialPageSize,
                 searchTerm,
-                sortMode: sortBy,
+                sortMode: sortBy as 'default' | 'newest' | 'jhi_desc' | 'jhi_asc' | 'recommended',
                 filterCity,
                 filterContractTypes: filterContractType,
                 filterBenefits,
