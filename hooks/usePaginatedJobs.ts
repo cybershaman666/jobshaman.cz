@@ -54,6 +54,7 @@ const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
 
 export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePaginatedJobsProps) => {
     const { i18n } = useTranslation();
+    const activeFetchControllerRef = useRef<AbortController | null>(null);
     const defaultDomesticCountries = ['cs', 'cz', 'sk'];
     const initialCountry = getCountryCodeFromAddress(userProfile.address) || getCountryCodeFromLanguage(i18n.language);
     const [countryCodes, setCountryCodes] = useState<string[]>(() => (initialCountry ? [initialCountry] : []));
@@ -99,6 +100,15 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             console.error('Error saving jobs to localStorage:', error);
         }
     }, [savedJobIds]);
+
+    useEffect(() => {
+        return () => {
+            if (activeFetchControllerRef.current) {
+                activeFetchControllerRef.current.abort();
+                activeFetchControllerRef.current = null;
+            }
+        };
+    }, []);
 
 
     // UI state
@@ -423,13 +433,3 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         clearAllFilters
     };
 };
-    const activeFetchControllerRef = useRef<AbortController | null>(null);
-
-    useEffect(() => {
-        return () => {
-            if (activeFetchControllerRef.current) {
-                activeFetchControllerRef.current.abort();
-                activeFetchControllerRef.current = null;
-            }
-        };
-    }, []);
