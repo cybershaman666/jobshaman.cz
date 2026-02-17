@@ -1,4 +1,9 @@
 -- Search/Ranking V2 foundation: text indexing, analytics tables, and RPC search function.
+-- NOTE: This migration is designed for online execution with minimal blocking.
+-- If a statement cannot acquire lock quickly, it should fail instead of hanging indefinitely.
+SET lock_timeout = '5s';
+SET statement_timeout = '20min';
+SET idle_in_transaction_session_timeout = '2min';
 
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS unaccent;
@@ -104,18 +109,54 @@ ON public.jobs
 FOR EACH ROW
 EXECUTE FUNCTION public.jobs_search_text_trigger();
 
-UPDATE public.jobs
-SET
-    search_text = public.build_jobs_search_text(title, company, location, description, benefits, contract_type, work_model, job_level),
-    search_text_plain = public.build_jobs_search_plain(title, company, location, description, benefits, contract_type, work_model, job_level)
-WHERE search_text IS NULL OR search_text_plain IS NULL;
+DO $$
+DECLARE
+    v_rows_updated integer := 0;
+    v_batch_size integer := 5000;
+BEGIN
+    LOOP
+        UPDATE public.jobs j
+        SET
+            search_text = public.build_jobs_search_text(
+                j.title,
+                j.company,
+                j.location,
+                j.description,
+                j.benefits,
+                j.contract_type,
+                j.work_model,
+                j.job_level
+            ),
+            search_text_plain = public.build_jobs_search_plain(
+                j.title,
+                j.company,
+                j.location,
+                j.description,
+                j.benefits,
+                j.contract_type,
+                j.work_model,
+                j.job_level
+            )
+        WHERE j.ctid IN (
+            SELECT ctid
+            FROM public.jobs
+            WHERE search_text IS NULL OR search_text_plain IS NULL
+            LIMIT v_batch_size
+        );
 
-CREATE INDEX IF NOT EXISTS idx_jobs_search_text_gin ON public.jobs USING gin (search_text);
-CREATE INDEX IF NOT EXISTS idx_jobs_search_text_plain_trgm ON public.jobs USING gin (search_text_plain gin_trgm_ops);
-CREATE INDEX IF NOT EXISTS idx_jobs_status_legality_scraped ON public.jobs (status, legality_status, scraped_at DESC);
-CREATE INDEX IF NOT EXISTS idx_jobs_country_language ON public.jobs (country_code, language_code);
-CREATE INDEX IF NOT EXISTS idx_jobs_salary_from ON public.jobs (salary_from);
-CREATE INDEX IF NOT EXISTS idx_jobs_contract_type ON public.jobs (contract_type);
+        GET DIAGNOSTICS v_rows_updated = ROW_COUNT;
+        EXIT WHEN v_rows_updated = 0;
+        PERFORM pg_sleep(0.02);
+    END LOOP;
+END;
+$$;
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_jobs_search_text_gin ON public.jobs USING gin (search_text);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_jobs_search_text_plain_trgm ON public.jobs USING gin (search_text_plain gin_trgm_ops);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_jobs_status_legality_scraped ON public.jobs (status, legality_status, scraped_at DESC);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_jobs_country_language ON public.jobs (country_code, language_code);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_jobs_salary_from ON public.jobs (salary_from);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_jobs_contract_type ON public.jobs (contract_type);
 
 CREATE TABLE IF NOT EXISTS public.search_exposures (
     id bigserial PRIMARY KEY,
@@ -141,11 +182,11 @@ CREATE TABLE IF NOT EXISTS public.search_feedback_events (
     created_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_search_exposures_shown_at ON public.search_exposures (shown_at DESC);
-CREATE INDEX IF NOT EXISTS idx_search_exposures_user_job ON public.search_exposures (user_id, job_id);
-CREATE INDEX IF NOT EXISTS idx_search_feedback_created_at ON public.search_feedback_events (created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_search_feedback_user_job ON public.search_feedback_events (user_id, job_id);
-CREATE INDEX IF NOT EXISTS idx_search_feedback_request ON public.search_feedback_events (request_id);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_search_exposures_shown_at ON public.search_exposures (shown_at DESC);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_search_exposures_user_job ON public.search_exposures (user_id, job_id);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_search_feedback_created_at ON public.search_feedback_events (created_at DESC);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_search_feedback_user_job ON public.search_feedback_events (user_id, job_id);
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_search_feedback_request ON public.search_feedback_events (request_id);
 
 CREATE OR REPLACE FUNCTION public.search_jobs_v2(
     p_search_term text DEFAULT NULL,

@@ -1,3 +1,4 @@
+import time
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -18,6 +19,8 @@ _SEARCH_EXPOSURES_AVAILABLE: bool = True
 _SEARCH_EXPOSURES_WARNING_EMITTED: bool = False
 _SEARCH_FEEDBACK_AVAILABLE: bool = True
 _SEARCH_FEEDBACK_WARNING_EMITTED: bool = False
+_INTERACTIONS_CSRF_WARNING_LAST_AT: float = 0.0
+_INTERACTIONS_CSRF_WARNING_INTERVAL_S: float = 30.0
 
 
 def _is_missing_table_error(exc: Exception, table_name: str) -> bool:
@@ -173,7 +176,11 @@ async def log_job_interaction(
 ):
     if not verify_csrf_token_header(request, user):
         # Telemetry endpoint: do not block UX on CSRF token race/cooldown.
-        print("⚠️ /jobs/interactions called without valid CSRF token; accepting authenticated telemetry request.")
+        global _INTERACTIONS_CSRF_WARNING_LAST_AT
+        now = time.monotonic()
+        if now - _INTERACTIONS_CSRF_WARNING_LAST_AT >= _INTERACTIONS_CSRF_WARNING_INTERVAL_S:
+            print("⚠️ /jobs/interactions called without valid CSRF token; accepting authenticated telemetry request.")
+            _INTERACTIONS_CSRF_WARNING_LAST_AT = now
 
     user_id = user.get("id") or user.get("auth_id")
     if not user_id:

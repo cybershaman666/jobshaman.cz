@@ -59,6 +59,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const { i18n } = useTranslation();
     const activeFetchControllerRef = useRef<AbortController | null>(null);
     const latestRequestIdRef = useRef(0);
+    const hasHandledInitialSortFetchRef = useRef(false);
     const defaultDomesticCountries = ['cs', 'cz', 'sk'];
     const initialCountry = getCountryCodeFromAddress(userProfile.address) || getCountryCodeFromLanguage(i18n.language);
     const [countryCodes, setCountryCodes] = useState<string[]>(() => (initialCountry ? [initialCountry] : []));
@@ -321,6 +322,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
     // Re-apply sorting when sort option changes
     useEffect(() => {
+        if (!hasHandledInitialSortFetchRef.current) {
+            hasHandledInitialSortFetchRef.current = true;
+            return;
+        }
         setCurrentPage(0);
         fetchFilteredJobs(0, false);
     }, [sortBy, fetchFilteredJobs]);
