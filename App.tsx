@@ -376,12 +376,11 @@ export default function App() {
                 console.log(`🔔 [App] Auth state changed: ${event}`);
 
                 if (session) {
-                    // Only restore if we have a valid session and it's a meaningful event
-                    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
-                        if (event === 'SIGNED_IN') {
-                            // Ensure auth modal doesn't block onboarding/dashboard
-                            setIsAuthModalOpen(false);
-                        }
+                    // INITIAL_SESSION is handled by explicit initSession() above.
+                    // Keep runtime stable by restoring only on explicit sign-in.
+                    if (event === 'SIGNED_IN') {
+                        // Ensure auth modal doesn't block onboarding/dashboard
+                        setIsAuthModalOpen(false);
                         handleSessionRestoration(session.user.id);
                     }
                 } else if (event === 'SIGNED_OUT') {

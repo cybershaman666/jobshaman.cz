@@ -755,13 +755,19 @@ const resolveHybridBackendBases = (): string[] => {
     const searchBase = normalizeBackendBaseUrl(SEARCH_BACKEND_URL);
     const coreBase = normalizeBackendBaseUrl(BACKEND_URL);
 
-    // If dedicated search runtime is configured, keep search traffic off the core backend.
+    // Dedicated Northflank search runtime should be authoritative for search traffic.
     if (searchBase && coreBase && searchBase !== coreBase) {
         return [searchBase];
     }
 
     const bases = [searchBase, coreBase].filter((base): base is string => !!base);
     return Array.from(new Set(bases));
+};
+
+const hasDedicatedSearchRuntime = (): boolean => {
+    const searchBase = normalizeBackendBaseUrl(SEARCH_BACKEND_URL);
+    const coreBase = normalizeBackendBaseUrl(BACKEND_URL);
+    return !!searchBase && !!coreBase && searchBase !== coreBase;
 };
 
 const isHybridBackendCooldownActive = (baseUrl: string): boolean =>
@@ -902,6 +908,7 @@ export const fetchJobsWithFilters = async (
     const safeBackendPageSize = Math.max(1, Math.min(BACKEND_HYBRID_MAX_PAGE_SIZE, pageSize || 50));
     const safeRpcPageSize = Math.max(1, Math.min(SUPABASE_RPC_MAX_PAGE_SIZE, pageSize || 50));
     const compactSearchLength = normalizedSearchTerm.replace(/\s+/g, '').length;
+    const dedicatedSearchRuntime = hasDedicatedSearchRuntime();
     const hasFilteringIntent =
         !!filterCity ||
         !!radiusKm ||
@@ -914,7 +921,7 @@ export const fetchJobsWithFilters = async (
         !!(filterMinSalary && filterMinSalary > 0) ||
         filterDatePosted !== 'all' ||
         sortMode !== 'default';
-    const shouldUseHybridSearch = !!BACKEND_URL && (compactSearchLength >= 2 || hasFilteringIntent || isSearchV2Enabled());
+    const shouldUseHybridSearch = !!BACKEND_URL && (dedicatedSearchRuntime || compactSearchLength >= 2 || hasFilteringIntent || isSearchV2Enabled());
 
     let finalUserLat = userLat;
     let finalUserLng = userLng;
@@ -1470,6 +1477,9 @@ export const fetchJobsWithFilters = async (
                     throw hybridErr;
                 }
                 warnHybridFallbackThrottled(hybridErr);
+                if (dedicatedSearchRuntime) {
+                    throw hybridErr;
+                }
             }
         }
 
@@ -1605,6 +1615,10 @@ export const fetchJobsWithFilters = async (
 
     } catch (e: any) {
         if (isAbortFetchError(e)) {
+            throw e;
+        }
+        if (dedicatedSearchRuntime) {
+            // Dedicated search runtime mode: do not bypass backend via direct browser RPC fallbacks.
             throw e;
         }
         noteSupabaseNetworkFailure('fetchJobsWithFilters.catch', e);

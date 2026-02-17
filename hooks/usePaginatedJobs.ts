@@ -5,6 +5,7 @@ import { UserProfile } from '../types';
 import { fetchJobsPaginated, fetchJobsWithFilters } from '../services/jobService';
 import { geocodeWithCaching, getStaticCoordinates } from '../services/geocodingService';
 import AnalyticsService from '../services/analyticsService';
+import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
 
 // Infer country code from address text (best-effort)
 const getCountryCodeFromAddress = (address: string): string | null => {
@@ -49,6 +50,23 @@ const normalizeCountryCodes = (codes: string[]): string[] => {
     return expanded;
 };
 
+const normalizeOrigin = (value: string): string => {
+    try {
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+        const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+        return new URL(withProtocol).origin;
+    } catch {
+        return '';
+    }
+};
+
+const hasDedicatedSearchRuntime = (): boolean => {
+    const searchOrigin = normalizeOrigin(SEARCH_BACKEND_URL || '');
+    const coreOrigin = normalizeOrigin(BACKEND_URL || '');
+    return !!searchOrigin && !!coreOrigin && searchOrigin !== coreOrigin;
+};
+
 // Global deduper helper to prevent "duplicate key" React warnings
 const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
     const seen = new Set(existingJobs.map(j => j.id));
@@ -57,6 +75,7 @@ const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
 
 export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePaginatedJobsProps) => {
     const { i18n } = useTranslation();
+    const dedicatedSearchRuntime = hasDedicatedSearchRuntime();
     const activeFetchControllerRef = useRef<AbortController | null>(null);
     const latestRequestIdRef = useRef(0);
     const hasHandledInitialSortFetchRef = useRef(false);
@@ -204,7 +223,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 !!filterLanguage ||
                 abroadOnly;
 
-            const canUseSimplePagination = !hasAnyFilters && (!hasCountryFilter || normalizedCountryCodes.length === 1);
+            const canUseSimplePagination =
+                !dedicatedSearchRuntime &&
+                !hasAnyFilters &&
+                (!hasCountryFilter || normalizedCountryCodes.length === 1);
 
             if (canUseSimplePagination) {
                 const singleCountry = hasCountryFilter ? normalizedCountryCodes[0] : undefined;
@@ -288,7 +310,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 return;
             }
             console.error('Error fetching filtered jobs:', error);
-            if (!isLoadMore) setJobs([]);
+            // Keep previous results on transient errors to avoid "flash then disappear" behavior.
         } finally {
             if (activeFetchControllerRef.current === fetchController) {
                 activeFetchControllerRef.current = null;

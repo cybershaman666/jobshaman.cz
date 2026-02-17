@@ -12,8 +12,8 @@ import {
     createMarketplacePartner,
     isSupabaseNetworkCooldownActive
 } from '../services/supabaseService';
-import { fetchCsrfToken, clearCsrfToken, authenticatedFetch, isBackendNetworkCooldownActive } from '../services/csrfService';
-import { BACKEND_URL } from '../constants';
+import { refreshCsrfTokenIfNeeded, clearCsrfToken, authenticatedFetch, isBackendNetworkCooldownActive } from '../services/csrfService';
+import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
 import { supabase } from '../services/supabaseClient';
 
 // Default user profile
@@ -32,6 +32,23 @@ const DEFAULT_USER_PROFILE: UserProfile = {
     }
 };
 
+const normalizeOrigin = (value: string): string => {
+    try {
+        const raw = String(value || '').trim();
+        if (!raw) return '';
+        const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+        return new URL(withProtocol).origin;
+    } catch {
+        return '';
+    }
+};
+
+const hasDedicatedSearchRuntime = (): boolean => {
+    const searchOrigin = normalizeOrigin(SEARCH_BACKEND_URL || '');
+    const coreOrigin = normalizeOrigin(BACKEND_URL || '');
+    return !!searchOrigin && !!coreOrigin && searchOrigin !== coreOrigin;
+};
+
 export const useUserProfile = () => {
     const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
     const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
@@ -39,6 +56,9 @@ export const useUserProfile = () => {
 
     // Track in-progress session restoration to prevent duplicates
     const restorationInProgressRef = useRef<string | null>(null);
+    // Avoid repeated restore runs for the same user caused by INITIAL_SESSION + SIGNED_IN bursts.
+    const lastSuccessfulRestorationRef = useRef<{ userId: string; at: number } | null>(null);
+    const RESTORATION_DEDUPE_WINDOW_MS = 60_000;
 
     // Session restoration and profile management
     const handleSessionRestoration = async (userId: string) => {
@@ -51,6 +71,15 @@ export const useUserProfile = () => {
         // Deduplicate: if already restoring this user, skip
         if (restorationInProgressRef.current === userId) {
             console.log('⏭️ Session restoration already in progress for', userId);
+            return;
+        }
+
+        // Deduplicate: if same user was already restored very recently, skip redundant run.
+        if (
+            lastSuccessfulRestorationRef.current?.userId === userId &&
+            (Date.now() - lastSuccessfulRestorationRef.current.at) < RESTORATION_DEDUPE_WINDOW_MS
+        ) {
+            console.log('⏭️ Session restoration skipped (recently completed) for', userId);
             return;
         }
 
@@ -141,21 +170,27 @@ export const useUserProfile = () => {
 
                 // CSRF: Fetch CSRF token after successful session restoration
                 try {
-                    if (isBackendNetworkCooldownActive()) {
-                        throw new Error('Backend cooldown active');
-                    }
-                    // Get the session and validate the access token
-                    const session = await supabase?.auth.getSession();
-                    let accessToken = session?.data?.session?.access_token;
+                    // With dedicated search runtime, avoid eager CSRF prefetch against the core backend.
+                    // CSRF token will be fetched lazily only for endpoints that require it.
+                    if (!hasDedicatedSearchRuntime()) {
+                        if (isBackendNetworkCooldownActive()) {
+                            throw new Error('Backend cooldown active');
+                        }
+                        // Get the session and validate the access token
+                        const session = await supabase?.auth.getSession();
+                        let accessToken = session?.data?.session?.access_token;
 
-                    // If no token yet, that's okay - session might still be loading
-                    // The authenticatedFetch function will handle getting it when needed
-                    if (accessToken && typeof accessToken === 'string') {
-                        console.log('Fetching CSRF token for authenticated session...');
-                        await fetchCsrfToken(accessToken);
+                        // If no token yet, that's okay - session might still be loading
+                        // The authenticatedFetch function will handle getting it when needed
+                        if (accessToken && typeof accessToken === 'string') {
+                            console.log('Fetching CSRF token for authenticated session...');
+                            await refreshCsrfTokenIfNeeded(accessToken);
+                        } else {
+                            console.log('Access token not yet available - skipping CSRF fetch');
+                            // This is not an error - the app will fetch CSRF token on first state-changing request
+                        }
                     } else {
-                        console.log('Access token not yet available - skipping CSRF fetch');
-                        // This is not an error - the app will fetch CSRF token on first state-changing request
+                        console.log('Dedicated search backend detected - skipping eager CSRF prefetch.');
                     }
                 } catch (csrfError) {
                     console.warn('⚠️ Could not fetch CSRF token:', csrfError);
@@ -353,6 +388,8 @@ export const useUserProfile = () => {
                     }
                     console.log("✅ Candidate logged in, keeping current view.");
                 }
+
+                lastSuccessfulRestorationRef.current = { userId, at: Date.now() };
             }
         } catch (error) {
             console.error('Session restoration failed:', error);
@@ -383,6 +420,7 @@ export const useUserProfile = () => {
             setUserProfile(DEFAULT_USER_PROFILE);
             setCompanyProfile(null);
             setViewState(ViewState.LIST);
+            lastSuccessfulRestorationRef.current = null;
 
             // Final safety net: clear the specific Supabase storage key if it still exists
             if (localStorage.getItem('sb-auth-token')) {

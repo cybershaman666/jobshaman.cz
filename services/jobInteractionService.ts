@@ -41,7 +41,7 @@ const resolveInteractionBackends = (): string[] => {
     const searchBase = normalizeBackendBaseUrl(SEARCH_BACKEND_URL);
     const coreBase = normalizeBackendBaseUrl(BACKEND_URL);
 
-    // Keep interactions with search runtime when it is split from core backend.
+    // Dedicated Northflank search runtime should be authoritative for search telemetry.
     if (searchBase && coreBase && searchBase !== coreBase) {
         return [searchBase];
     }
