@@ -311,6 +311,21 @@ const transformJob = (scrapedJob: any): Job => {
 
 // --- API ---
 
+const isTransientSupabaseError = (err: unknown): boolean => {
+    const msg = String((err as any)?.message || err || '').toLowerCase();
+    const code = String((err as any)?.code || '').toLowerCase();
+    const status = Number((err as any)?.status || (err as any)?.statusCode || 0);
+    return (
+        msg.includes('networkerror') ||
+        msg.includes('failed to fetch') ||
+        msg.includes('fetch resource') ||
+        msg.includes('statement timeout') ||
+        msg.includes('cors') ||
+        code === '57014' ||
+        status >= 500
+    );
+};
+
 export const getJobCount = async (): Promise<number> => {
     if (!isSupabaseConfigured() || !supabase) {
         console.warn("Supabase not configured.");
@@ -326,8 +341,7 @@ export const getJobCount = async (): Promise<number> => {
 
         if (error) {
             noteSupabaseNetworkFailure('getJobCount', error);
-            const msg = String((error as any)?.message || '').toLowerCase();
-            if (msg.includes('networkerror') || msg.includes('failed to fetch')) return 0;
+            if (isTransientSupabaseError(error) || isSupabaseNetworkCooldownActive()) return 0;
             console.error("Error fetching job count:", error);
             return 0;
         }
@@ -335,8 +349,7 @@ export const getJobCount = async (): Promise<number> => {
         return count || 0;
     } catch (e) {
         noteSupabaseNetworkFailure('getJobCount.catch', e);
-        const msg = String((e as any)?.message || '').toLowerCase();
-        if (msg.includes('networkerror') || msg.includes('failed to fetch')) return 0;
+        if (isTransientSupabaseError(e) || isSupabaseNetworkCooldownActive()) return 0;
         console.error("Error in getJobCount:", e);
         return 0;
     }
@@ -361,8 +374,7 @@ export const getTodayAnalyzedCount = async (): Promise<number> => {
 
         if (error) {
             noteSupabaseNetworkFailure('getTodayAnalyzedCount', error);
-            const msg = String((error as any)?.message || '').toLowerCase();
-            if (msg.includes('networkerror') || msg.includes('failed to fetch')) return 0;
+            if (isTransientSupabaseError(error) || isSupabaseNetworkCooldownActive()) return 0;
             console.error("Error fetching today's analyzed count:", error);
             return 0;
         }
@@ -370,8 +382,7 @@ export const getTodayAnalyzedCount = async (): Promise<number> => {
         return count || 0;
     } catch (e) {
         noteSupabaseNetworkFailure('getTodayAnalyzedCount.catch', e);
-        const msg = String((e as any)?.message || '').toLowerCase();
-        if (msg.includes('networkerror') || msg.includes('failed to fetch')) return 0;
+        if (isTransientSupabaseError(e) || isSupabaseNetworkCooldownActive()) return 0;
         console.error("Error in getTodayAnalyzedCount:", e);
         return 0;
     }
@@ -720,6 +731,7 @@ const isSearchV2Enabled = (): boolean => {
 
 const BACKEND_HYBRID_COOLDOWN_MS = 120000;
 const BACKEND_HYBRID_MAX_PAGE_SIZE = 200;
+const SUPABASE_RPC_MAX_PAGE_SIZE = 200;
 let backendHybridCooldownUntil = 0;
 let lastHybridFallbackWarnAt = 0;
 
@@ -785,6 +797,7 @@ export const fetchJobsWithFilters = async (
 
     const normalizedSearchTerm = (searchTerm || '').trim();
     const safeBackendPageSize = Math.max(1, Math.min(BACKEND_HYBRID_MAX_PAGE_SIZE, pageSize || 50));
+    const safeRpcPageSize = Math.max(1, Math.min(SUPABASE_RPC_MAX_PAGE_SIZE, pageSize || 50));
     const compactSearchLength = normalizedSearchTerm.replace(/\s+/g, '').length;
     const hasFilteringIntent =
         !!filterCity ||
@@ -1092,16 +1105,19 @@ export const fetchJobsWithFilters = async (
             filter_min_salary: minSalaryFilter,
             filter_date_posted: filterDatePosted,
             filter_experience_levels: filterExperienceLevels && filterExperienceLevels.length > 0 ? filterExperienceLevels : null,
-            limit_count: pageSize,
-            offset_val: page * pageSize,
+            limit_count: safeRpcPageSize,
+            offset_val: page * safeRpcPageSize,
             filter_country_codes: countryCodes && countryCodes.length > 0 ? countryCodes : null,
             exclude_country_codes: excludeCountryCodes && excludeCountryCodes.length > 0 ? excludeCountryCodes : null,
             filter_language_codes: filterLanguageCodes && filterLanguageCodes.length > 0 ? filterLanguageCodes : null
         });
 
         if (error) {
+            noteSupabaseNetworkFailure('fetchJobsWithFilters.rpc', error);
             const msg = String((error as any)?.message || '').toLowerCase();
-            const isNetworkError = msg.includes('networkerror') || msg.includes('failed to fetch');
+            const status = Number((error as any)?.status || (error as any)?.statusCode || 0);
+            const isNetworkError = msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('cors');
+            const isServerOverload = status >= 500 || (error as any)?.code === '57014' || msg.includes('statement timeout');
                 if (isNetworkError && shouldUseHybridSearch) {
                     try {
                         console.warn('⚠️ Supabase RPC unreachable from browser; falling back to backend hybrid search.');
@@ -1116,13 +1132,13 @@ export const fetchJobsWithFilters = async (
                     if (textFallback) return textFallback;
                 }
 
-            // Postgres statement timeout (57014) - fall back to simpler query
-            if ((error as any)?.code === '57014') {
-                console.warn('⏱️ Filtered jobs query timed out. Falling back to basic pagination.');
+            // Postgres timeout/5xx: degrade to simpler query path.
+            if (isServerOverload) {
+                console.warn('⏱️ Filtered jobs query timed out or overloaded. Falling back to basic pagination.');
                 const fallbackCountry = countryCodes && countryCodes.length === 1 ? countryCodes[0] : undefined;
                 return await fetchJobsPaginatedFallback(
                     page,
-                    pageSize,
+                    safeRpcPageSize,
                     finalUserLat,
                     finalUserLng,
                     radiusKm,
@@ -1178,7 +1194,7 @@ export const fetchJobsWithFilters = async (
         });
 
         const totalCount = data[0]?.total_count || 0;
-        const hasMore = (page + 1) * pageSize < totalCount;
+        const hasMore = (page + 1) * safeRpcPageSize < totalCount;
 
         console.log(`✅ Found ${processedJobs.length} filtered jobs (total: ${totalCount}, has more: ${hasMore})`);
 
@@ -1189,8 +1205,10 @@ export const fetchJobsWithFilters = async (
         };
 
     } catch (e: any) {
+        noteSupabaseNetworkFailure('fetchJobsWithFilters.catch', e);
         const msg = String(e?.message || '').toLowerCase();
-        const isNetworkError = msg.includes('networkerror') || msg.includes('failed to fetch');
+        const status = Number(e?.status || e?.statusCode || 0);
+        const isNetworkError = msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('cors');
         if (isNetworkError && shouldUseHybridSearch) {
             try {
                 console.warn('⚠️ Exception indicates browser network issue to Supabase; using backend fallback.');
@@ -1205,12 +1223,12 @@ export const fetchJobsWithFilters = async (
             if (textFallback) return textFallback;
         }
 
-        if (e?.code === '57014') {
-            console.warn('⏱️ Filtered jobs query timed out (exception). Falling back to basic pagination.');
+        if (e?.code === '57014' || status >= 500 || msg.includes('statement timeout')) {
+            console.warn('⏱️ Filtered jobs query timed out/overloaded (exception). Falling back to basic pagination.');
             const fallbackCountry = countryCodes && countryCodes.length === 1 ? countryCodes[0] : undefined;
             return await fetchJobsPaginatedFallback(
                 page,
-                pageSize,
+                safeRpcPageSize,
                 finalUserLat,
                 finalUserLng,
                 radiusKm,

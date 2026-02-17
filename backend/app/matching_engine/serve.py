@@ -264,14 +264,20 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
     exclude_country_codes = set(_normalize_list(filters.get("exclude_country_codes")))
     language_codes = set(_normalize_list(filters.get("filter_language_codes")))
     cutoff_iso = _date_cutoff_iso(filters.get("filter_date_posted"))
+    safe_page_size = max(1, min(200, int(page_size or 50)))
+    candidate_limit = max(250, min(900, safe_page_size * 6))
 
     def _run_base_query(with_status_filter: bool):
         query = (
             supabase.table("jobs")
-            .select("*")
+            .select(
+                "id,title,company,location,description,benefits,contract_type,salary_from,salary_to,"
+                "work_type,work_model,scraped_at,source,education_level,url,lat,lng,country_code,"
+                "language_code,legality_status,verification_notes,status"
+            )
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
-            .limit(1200)
+            .limit(candidate_limit)
         )
         if with_status_filter:
             query = query.eq("status", "active")
@@ -380,8 +386,8 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
 
     ranked.sort(key=lambda item: item[0], reverse=True)
     total_count = len(ranked)
-    start = page * page_size
-    end = start + page_size
+    start = page * safe_page_size
+    end = start + safe_page_size
     page_rows = ranked[start:end]
 
     out_jobs = []
