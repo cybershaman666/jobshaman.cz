@@ -56,6 +56,10 @@ const BlogSection: React.FC<BlogSectionProps> = ({
         transparency_rate: 0,
         avg_jhi: 78
     });
+    const isLikelyNetworkError = (error: unknown): boolean => {
+        const msg = String((error as any)?.message || error || '').toLowerCase();
+        return msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('fetch resource');
+    };
 
     useEffect(() => {
         let isMounted = true;
@@ -67,7 +71,9 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                     setGlobalStats(data);
                 }
             } catch (err) {
-                console.error('Error fetching global stats:', err);
+                if (!isLikelyNetworkError(err)) {
+                    console.error('Error fetching global stats:', err);
+                }
                 // Fallback to placeholders if RPC is not yet available in DB
                 if (isMounted) {
                     setGlobalStats({
@@ -104,7 +110,9 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                     setGlobalStats(prev => ({ ...prev, avg_jhi: avg }));
                 }
             } catch (err) {
-                console.error('Error computing average JHI from jobs:', err);
+                if (!isLikelyNetworkError(err)) {
+                    console.error('Error computing average JHI from jobs:', err);
+                }
             }
         };
 

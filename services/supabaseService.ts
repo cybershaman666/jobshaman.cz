@@ -5,6 +5,28 @@ import { geocodeWithCaching } from './geocodingService';
 export { supabase };
 import { UserProfile, CompanyProfile, CVDocument } from '../types';
 
+const SUPABASE_NETWORK_COOLDOWN_MS = 60_000;
+let supabaseNetworkCooldownUntil = 0;
+let lastSupabaseNetworkLogAt = 0;
+let lastProfileMissingWarnAt = 0;
+
+const isLikelySupabaseNetworkError = (error: any): boolean => {
+    const msg = String(error?.message || error || '').toLowerCase();
+    return msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('fetch resource');
+};
+
+export const isSupabaseNetworkCooldownActive = (): boolean => Date.now() < supabaseNetworkCooldownUntil;
+
+export const noteSupabaseNetworkFailure = (context: string, error: any): void => {
+    if (!isLikelySupabaseNetworkError(error)) return;
+    supabaseNetworkCooldownUntil = Date.now() + SUPABASE_NETWORK_COOLDOWN_MS;
+    const now = Date.now();
+    if (now - lastSupabaseNetworkLogAt > 15_000) {
+        console.warn(`⚠️ Supabase network unavailable (${context}). Entering cooldown.`);
+        lastSupabaseNetworkLogAt = now;
+    }
+};
+
 // Test account detection - gives premium access to test/demo accounts
 // SECURITY: Only use in development. Production should use proper subscriptions.
 const getTestAccountTier = (email: string | undefined): 'premium' | null => {
@@ -48,11 +70,18 @@ const markFreelancerSchemaUnavailable = (context: string, error: any) => {
  */
 export const verifyAuthSession = async (context: string) => {
     if (!supabase) return { isValid: false, error: 'Supabase not configured' };
+    if (isSupabaseNetworkCooldownActive()) {
+        return { isValid: false, error: 'Supabase network cooldown active' };
+    }
 
     try {
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error) {
+            if (isLikelySupabaseNetworkError(error)) {
+                noteSupabaseNetworkFailure(`verifyAuthSession:${context}`, error);
+                return { isValid: false, error: 'Supabase network unavailable' };
+            }
             console.error(`🔴 Auth verify error [${context}]:`, error);
             return { isValid: false, error: error.message };
         }
@@ -79,6 +108,7 @@ export const verifyAuthSession = async (context: string) => {
         console.log(`🟢 Verified valid session [${context}] for user:`, session.user?.id);
         return { isValid: true, session };
     } catch (err) {
+        noteSupabaseNetworkFailure(`verifyAuthSession:${context}`, err);
         console.error(`🔴 Unexpected auth check error [${context}]:`, err);
         return { isValid: false, error: String(err) };
     }
@@ -162,6 +192,7 @@ export const signInWithOAuthProvider = async (provider: 'google' | 'linkedin_oid
 
 export const getCurrentUser = async () => {
     if (!supabase) return null;
+    if (isSupabaseNetworkCooldownActive()) return null;
 
     try {
         // Try to get current user first
@@ -189,6 +220,7 @@ export const getCurrentUser = async () => {
 
         return user;
     } catch (error) {
+        noteSupabaseNetworkFailure('getCurrentUser', error);
         console.error('Current user fetch error:', error);
         return null;
     }
@@ -242,8 +274,11 @@ export const createBaseProfile = async (userId: string, email: string, name: str
 
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
     if (!supabase) return null;
+    if (isSupabaseNetworkCooldownActive()) return null;
 
-    console.log(`🔍 Fetching profile for ${userId}...`);
+    if (import.meta.env.DEV) {
+        console.log(`🔍 Fetching profile for ${userId}...`);
+    }
 
     // Diagnostic: check if session exists before fetching. 
     // We don't throw for GET requests as some profiles might be public in future, 
@@ -270,12 +305,20 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         .maybeSingle();
 
     if (profileError) {
+        noteSupabaseNetworkFailure('getUserProfile', profileError);
+        if (isLikelySupabaseNetworkError(profileError)) {
+            return null;
+        }
         console.error('🔴 Profile fetch error:', profileError);
         return null;
     }
 
     if (!profileData) {
-        console.warn('⚠️ Profile not found for userId:', userId);
+        const now = Date.now();
+        if (now - lastProfileMissingWarnAt > 15_000) {
+            console.warn('⚠️ Profile not found for userId:', userId);
+            lastProfileMissingWarnAt = now;
+        }
         return null;
     }
 
@@ -449,6 +492,7 @@ export const ensureCandidateProfile = async (userId: string) => {
 
 export const getCompanyProfile = async (userId: string): Promise<CompanyProfile | null> => {
     if (!supabase) return null;
+    if (isSupabaseNetworkCooldownActive()) return null;
 
     const { data, error } = await supabase
         .from('companies')
@@ -481,6 +525,8 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
         .single();
 
     if (error) {
+        noteSupabaseNetworkFailure('getCompanyProfile', error);
+        if (isLikelySupabaseNetworkError(error)) return null;
         console.error('Company profile fetch error:', error);
         return null;
     }
@@ -522,6 +568,7 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
         console.warn('⚠️ Supabase not initialized');
         return null;
     }
+    if (isSupabaseNetworkCooldownActive()) return null;
 
     let retryCount = 0;
     const maxRetries = 2;
@@ -541,6 +588,10 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
 
             if (error) {
                 // ... same error handling as before ...
+                noteSupabaseNetworkFailure('getRecruiterCompany', error);
+                if (isLikelySupabaseNetworkError(error)) {
+                    return null;
+                }
                 if (retryCount < maxRetries && (error.message?.includes('NetworkError') || error.message?.includes('fetch'))) {
                     retryCount++;
                     await new Promise(resolve => setTimeout(resolve, 800 * retryCount));
@@ -589,6 +640,8 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
                 subscription
             };
         } catch (error: any) {
+            noteSupabaseNetworkFailure('getRecruiterCompany.catch', error);
+            if (isLikelySupabaseNetworkError(error)) return null;
             if (retryCount < maxRetries && (error.message?.includes('NetworkError') || error.name === 'TypeError')) {
                 retryCount++;
                 console.warn(`🔄 Retrying company fetch after exception (attempt ${retryCount}/ ${maxRetries}):`, error.message);
