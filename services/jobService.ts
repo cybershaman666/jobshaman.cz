@@ -719,12 +719,13 @@ const isSearchV2Enabled = (): boolean => {
 };
 
 const BACKEND_HYBRID_COOLDOWN_MS = 120000;
+const BACKEND_HYBRID_MAX_PAGE_SIZE = 200;
 let backendHybridCooldownUntil = 0;
 let lastHybridFallbackWarnAt = 0;
 
 const isNetworkFetchError = (err: unknown): boolean => {
     const msg = String((err as any)?.message || err || '').toLowerCase();
-    return msg.includes('networkerror') || msg.includes('failed to fetch');
+    return msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('cors');
 };
 
 const normalizeTokenText = (input: string): string =>
@@ -783,6 +784,7 @@ export const fetchJobsWithFilters = async (
     } = options;
 
     const normalizedSearchTerm = (searchTerm || '').trim();
+    const safeBackendPageSize = Math.max(1, Math.min(BACKEND_HYBRID_MAX_PAGE_SIZE, pageSize || 50));
     const compactSearchLength = normalizedSearchTerm.replace(/\s+/g, '').length;
     const hasFilteringIntent =
         !!filterCity ||
@@ -873,7 +875,7 @@ export const fetchJobsWithFilters = async (
                 body: JSON.stringify({
                     search_term: normalizedSearchTerm,
                     page,
-                    page_size: pageSize,
+                    page_size: safeBackendPageSize,
                     user_lat: finalUserLat ?? null,
                     user_lng: finalUserLng ?? null,
                     radius_km: safeRadiusKm,
@@ -908,7 +910,7 @@ export const fetchJobsWithFilters = async (
                     body: JSON.stringify({
                         search_term: normalizedSearchTerm,
                         page,
-                        page_size: pageSize,
+                        page_size: safeBackendPageSize,
                         user_lat: finalUserLat ?? null,
                         user_lng: finalUserLng ?? null,
                         radius_km: safeRadiusKm,

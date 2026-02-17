@@ -126,7 +126,7 @@ class AIGuidedProfileRequestV2(BaseModel):
 class HybridJobSearchRequest(BaseModel):
     search_term: str = Field(default="", max_length=200)
     page: int = Field(default=0, ge=0)
-    page_size: int = Field(default=50, ge=1, le=200)
+    page_size: int = Field(default=50, ge=1, le=1000)
     user_lat: Optional[float] = None
     user_lng: Optional[float] = None
     radius_km: Optional[float] = Field(default=None, ge=0, le=300)
@@ -152,11 +152,21 @@ class HybridJobSearchRequest(BaseModel):
             return None
         return value
 
+    @validator("page_size", pre=True)
+    def normalize_page_size(cls, v):
+        if v is None:
+            return 50
+        try:
+            value = int(v)
+        except Exception:
+            return 50
+        return max(1, min(200, value))
+
 
 class HybridJobSearchV2Request(BaseModel):
     search_term: str = Field(default="", max_length=200)
     page: int = Field(default=0, ge=0)
-    page_size: int = Field(default=50, ge=1, le=200)
+    page_size: int = Field(default=50, ge=1, le=1000)
     user_lat: Optional[float] = None
     user_lng: Optional[float] = None
     radius_km: Optional[float] = Field(default=None, ge=0, le=300)
@@ -183,3 +193,13 @@ class HybridJobSearchV2Request(BaseModel):
         if value <= 0:
             return None
         return value
+
+    @validator("page_size", pre=True)
+    def normalize_page_size(cls, v):
+        if v is None:
+            return 50
+        try:
+            value = int(v)
+        except Exception:
+            return 50
+        return max(1, min(200, value))

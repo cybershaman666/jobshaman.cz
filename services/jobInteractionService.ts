@@ -48,11 +48,14 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
         });
 
         if (!response.ok) {
+            if (response.status >= 500) {
+                return;
+            }
             console.warn('⚠️ Failed to track job interaction:', response.status, response.statusText);
         }
     } catch (error) {
         const msg = String((error as any)?.message || '').toLowerCase();
-        if (msg.includes('cooldown active') || msg.includes('networkerror') || msg.includes('failed to fetch')) {
+        if (msg.includes('cooldown active') || msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('cors')) {
             return;
         }
         console.warn('⚠️ Error tracking job interaction:', error);
