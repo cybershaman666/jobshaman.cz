@@ -1,4 +1,4 @@
-import { supabase, isSupabaseConfigured } from './supabaseService';
+import { supabase, isSupabaseConfigured, isSupabaseNetworkCooldownActive, noteSupabaseNetworkFailure } from './supabaseService';
 import { Job, NoiseMetrics } from '../types';
 import { contextualRelevanceScorer, ContextualRelevanceScorer } from './contextualRelevanceService';
 import { calculateJHI } from '../utils/jhiCalculator';
@@ -316,6 +316,7 @@ export const getJobCount = async (): Promise<number> => {
         console.warn("Supabase not configured.");
         return 0;
     }
+    if (isSupabaseNetworkCooldownActive()) return 0;
 
     try {
         const { count, error } = await supabase
@@ -324,12 +325,18 @@ export const getJobCount = async (): Promise<number> => {
             .eq('legality_status', 'legal');
 
         if (error) {
+            noteSupabaseNetworkFailure('getJobCount', error);
+            const msg = String((error as any)?.message || '').toLowerCase();
+            if (msg.includes('networkerror') || msg.includes('failed to fetch')) return 0;
             console.error("Error fetching job count:", error);
             return 0;
         }
 
         return count || 0;
     } catch (e) {
+        noteSupabaseNetworkFailure('getJobCount.catch', e);
+        const msg = String((e as any)?.message || '').toLowerCase();
+        if (msg.includes('networkerror') || msg.includes('failed to fetch')) return 0;
         console.error("Error in getJobCount:", e);
         return 0;
     }
@@ -340,6 +347,7 @@ export const getTodayAnalyzedCount = async (): Promise<number> => {
         console.warn("Supabase not configured.");
         return 0;
     }
+    if (isSupabaseNetworkCooldownActive()) return 0;
 
     try {
         const startOfDay = new Date();
@@ -352,12 +360,18 @@ export const getTodayAnalyzedCount = async (): Promise<number> => {
             .gte('created_at', startOfDay.toISOString());
 
         if (error) {
+            noteSupabaseNetworkFailure('getTodayAnalyzedCount', error);
+            const msg = String((error as any)?.message || '').toLowerCase();
+            if (msg.includes('networkerror') || msg.includes('failed to fetch')) return 0;
             console.error("Error fetching today's analyzed count:", error);
             return 0;
         }
 
         return count || 0;
     } catch (e) {
+        noteSupabaseNetworkFailure('getTodayAnalyzedCount.catch', e);
+        const msg = String((e as any)?.message || '').toLowerCase();
+        if (msg.includes('networkerror') || msg.includes('failed to fetch')) return 0;
         console.error("Error in getTodayAnalyzedCount:", e);
         return 0;
     }
@@ -706,10 +720,18 @@ const isSearchV2Enabled = (): boolean => {
 
 const BACKEND_HYBRID_COOLDOWN_MS = 120000;
 let backendHybridCooldownUntil = 0;
+let lastHybridFallbackWarnAt = 0;
 
 const isNetworkFetchError = (err: unknown): boolean => {
     const msg = String((err as any)?.message || err || '').toLowerCase();
     return msg.includes('networkerror') || msg.includes('failed to fetch');
+};
+
+const warnHybridFallbackThrottled = (error: unknown): void => {
+    const now = Date.now();
+    if (now - lastHybridFallbackWarnAt < 15_000) return;
+    lastHybridFallbackWarnAt = now;
+    console.warn('Hybrid search unavailable, falling back to RPC filters:', error);
 };
 
 /**
@@ -759,11 +781,48 @@ export const fetchJobsWithFilters = async (
         !!(filterMinSalary && filterMinSalary > 0) ||
         filterDatePosted !== 'all' ||
         sortMode !== 'default';
-    const shouldUseHybridSearch = !!BACKEND_URL && (compactSearchLength >= 3 || hasFilteringIntent || isSearchV2Enabled());
+    const shouldUseHybridSearch = !!BACKEND_URL && (compactSearchLength >= 2 || hasFilteringIntent || isSearchV2Enabled());
 
     let finalUserLat = userLat;
     let finalUserLng = userLng;
     const safeRadiusKm = (radiusKm && Number.isFinite(radiusKm) && radiusKm >= 1) ? radiusKm : null;
+
+    const fetchViaTextFallback = async (): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number } | null> => {
+        if (!normalizedSearchTerm || !normalizedSearchTerm.trim()) return null;
+        const sanitizedTerm = normalizedSearchTerm.replace(/[^\p{L}\p{N}\s-]/gu, ' ').trim();
+        if (!sanitizedTerm) return null;
+
+        const from = page * pageSize;
+        const to = from + pageSize - 1;
+        let query = supabase
+            .from('jobs')
+            .select('*', { count: 'exact' })
+            .eq('legality_status', 'legal')
+            .or(`title.ilike.%${sanitizedTerm}%,company.ilike.%${sanitizedTerm}%,location.ilike.%${sanitizedTerm}%,description.ilike.%${sanitizedTerm}%`)
+            .order('scraped_at', { ascending: false })
+            .range(from, to);
+
+        if (countryCodes && countryCodes.length > 0) {
+            query = query.in('country_code', countryCodes);
+        }
+        if (filterLanguageCodes && filterLanguageCodes.length > 0) {
+            query = query.in('language_code', filterLanguageCodes);
+        }
+
+        const { data, error, count } = await query;
+        if (error) {
+            console.warn('Text fallback query failed:', error);
+            return null;
+        }
+
+        const processedJobs = mapJobs(data || []);
+        const fallbackJobs = filterJobsByQuality(processedJobs);
+        return {
+            jobs: fallbackJobs,
+            hasMore: (page + 1) * pageSize < (count || fallbackJobs.length),
+            totalCount: count || fallbackJobs.length
+        };
+    };
 
     const fetchViaBackendHybrid = async (): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
         if (!BACKEND_URL) {
@@ -965,7 +1024,7 @@ export const fetchJobsWithFilters = async (
             pageSize,
             countries: countryCodes || ['all'],
             excludeCountries: excludeCountryCodes || [],
-            searchTerm: searchTerm || 'none',
+            searchTerm: normalizedSearchTerm || 'none',
             sortMode
         });
 
@@ -977,7 +1036,7 @@ export const fetchJobsWithFilters = async (
                 if (isNetworkFetchError(hybridErr)) {
                     backendHybridCooldownUntil = Date.now() + BACKEND_HYBRID_COOLDOWN_MS;
                 }
-                console.warn('Hybrid search unavailable, falling back to RPC filters:', hybridErr);
+                warnHybridFallbackThrottled(hybridErr);
             }
         }
 
@@ -1011,14 +1070,19 @@ export const fetchJobsWithFilters = async (
         if (error) {
             const msg = String((error as any)?.message || '').toLowerCase();
             const isNetworkError = msg.includes('networkerror') || msg.includes('failed to fetch');
-            if (isNetworkError && shouldUseHybridSearch) {
-                try {
-                    console.warn('⚠️ Supabase RPC unreachable from browser; falling back to backend hybrid search.');
-                    return await fetchViaBackendHybrid();
-                } catch (fallbackErr) {
-                    console.warn('⚠️ Backend fallback failed:', fallbackErr);
+                if (isNetworkError && shouldUseHybridSearch) {
+                    try {
+                        console.warn('⚠️ Supabase RPC unreachable from browser; falling back to backend hybrid search.');
+                        return await fetchViaBackendHybrid();
+                    } catch (fallbackErr) {
+                        console.warn('⚠️ Backend fallback failed:', fallbackErr);
+                    }
                 }
-            }
+
+                if (normalizedSearchTerm) {
+                    const textFallback = await fetchViaTextFallback();
+                    if (textFallback) return textFallback;
+                }
 
             // Postgres statement timeout (57014) - fall back to simpler query
             if ((error as any)?.code === '57014') {
@@ -1040,6 +1104,10 @@ export const fetchJobsWithFilters = async (
         }
 
         if (!data || data.length === 0) {
+            if (normalizedSearchTerm) {
+                const textFallback = await fetchViaTextFallback();
+                if (textFallback) return textFallback;
+            }
             console.log('🔍 No jobs found matching filter criteria');
             return { jobs: [], hasMore: false, totalCount: 0 };
         }
@@ -1098,6 +1166,11 @@ export const fetchJobsWithFilters = async (
             } catch (fallbackErr) {
                 console.warn('⚠️ Backend fallback failed:', fallbackErr);
             }
+        }
+
+        if (normalizedSearchTerm) {
+            const textFallback = await fetchViaTextFallback();
+            if (textFallback) return textFallback;
         }
 
         if (e?.code === '57014') {

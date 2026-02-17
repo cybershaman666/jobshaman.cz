@@ -9,9 +9,10 @@ import {
     verifyAuthSession,
     createBaseProfile,
     getMarketplacePartnerByOwner,
-    createMarketplacePartner
+    createMarketplacePartner,
+    isSupabaseNetworkCooldownActive
 } from '../services/supabaseService';
-import { fetchCsrfToken, clearCsrfToken, authenticatedFetch } from '../services/csrfService';
+import { fetchCsrfToken, clearCsrfToken, authenticatedFetch, isBackendNetworkCooldownActive } from '../services/csrfService';
 import { BACKEND_URL } from '../constants';
 import { supabase } from '../services/supabaseClient';
 
@@ -60,7 +61,11 @@ export const useUserProfile = () => {
             // 1. Verify session state first
             const { isValid, error: authError } = await verifyAuthSession('handleSessionRestoration');
             if (!isValid) {
-                console.warn(`🟠 [SessionRestoration] Skipped for ${userId}: ${authError}`);
+                const authErrorMsg = String(authError || '').toLowerCase();
+                const isCooldownSkip = authErrorMsg.includes('cooldown') || authErrorMsg.includes('network');
+                if (!isCooldownSkip) {
+                    console.warn(`🟠 [SessionRestoration] Skipped for ${userId}: ${authError}`);
+                }
                 restorationInProgressRef.current = null;
                 return;
             }
@@ -82,6 +87,10 @@ export const useUserProfile = () => {
 
             // Fallback: If profile doesn't exist but we have a session (e.g., DB trigger lag), create it now.
             if (!profile && supabase) {
+                if (isSupabaseNetworkCooldownActive()) {
+                    restorationInProgressRef.current = null;
+                    return;
+                }
                 console.warn(`⚠️ [SessionRestoration] Profile not found for ${userId}. Retrying after short delay...`);
 
                 // Wait briefly for triggers
@@ -132,6 +141,9 @@ export const useUserProfile = () => {
 
                 // CSRF: Fetch CSRF token after successful session restoration
                 try {
+                    if (isBackendNetworkCooldownActive()) {
+                        throw new Error('Backend cooldown active');
+                    }
                     // Get the session and validate the access token
                     const session = await supabase?.auth.getSession();
                     let accessToken = session?.data?.session?.access_token;

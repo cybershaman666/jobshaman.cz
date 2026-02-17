@@ -10,6 +10,7 @@ const CSRF_TOKEN_COOLDOWN_MS = 60_000;
 let backendNetworkCooldownUntil = 0;
 let csrfTokenCooldownUntil = 0;
 let csrfFetchInFlight: Promise<string | null> | null = null;
+let lastCsrfNetworkLogAt = 0;
 
 const isLikelyNetworkError = (error: unknown): boolean => {
     const msg = String((error as any)?.message || error || '').toLowerCase();
@@ -25,6 +26,8 @@ const isBackendUrlRequest = (url: string): boolean => {
         return false;
     }
 };
+
+export const isBackendNetworkCooldownActive = (): boolean => Date.now() < backendNetworkCooldownUntil;
 
 const endpointDoesNotRequireCsrf = (url: string): boolean => {
     try {
@@ -130,10 +133,17 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
             if (isAborted) {
                 console.error(`❌ CSRF token fetch ABORTED (timeout) on attempt ${attempt}`);
             } else {
-                console.error(`❌ Error fetching CSRF token (Attempt ${attempt}):`, error);
-                if (isLikelyNetworkError(error)) {
+                const isNetwork = isLikelyNetworkError(error);
+                if (isNetwork) {
                     csrfTokenCooldownUntil = Date.now() + CSRF_TOKEN_COOLDOWN_MS;
                     backendNetworkCooldownUntil = Date.now() + BACKEND_NETWORK_COOLDOWN_MS;
+                    const now = Date.now();
+                    if (now - lastCsrfNetworkLogAt > 15_000) {
+                        console.warn(`⚠️ CSRF fetch unavailable (attempt ${attempt}), backend cooldown enabled.`);
+                        lastCsrfNetworkLogAt = now;
+                    }
+                } else {
+                    console.error(`❌ Error fetching CSRF token (Attempt ${attempt}):`, error);
                 }
             }
 
@@ -148,7 +158,9 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
         }
     }
 
-    console.error('❌ Failed to fetch CSRF token after multiple attempts:', lastError);
+    if (!isLikelyNetworkError(lastError)) {
+        console.error('❌ Failed to fetch CSRF token after multiple attempts:', lastError);
+    }
     return null;
     })();
 
@@ -326,7 +338,7 @@ export const authenticatedFetch = async (
 
             if (csrfToken) {
                 headers.set('X-CSRF-Token', csrfToken);
-            } else {
+            } else if (!isBackendUrlRequest(url) || Date.now() >= backendNetworkCooldownUntil) {
                 console.warn(`⚠️ No valid CSRF token found for ${method} request`);
             }
         }

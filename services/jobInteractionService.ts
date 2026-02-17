@@ -1,5 +1,5 @@
 import { BACKEND_URL } from '../constants';
-import { authenticatedFetch } from './csrfService';
+import { authenticatedFetch, isBackendNetworkCooldownActive } from './csrfService';
 
 export type JobInteractionEventType =
     | 'impression'
@@ -24,6 +24,9 @@ export interface JobInteractionPayload {
 }
 
 export const trackJobInteraction = async (payload: JobInteractionPayload): Promise<void> => {
+    if (isBackendNetworkCooldownActive()) {
+        return;
+    }
     try {
         const response = await authenticatedFetch(`${BACKEND_URL}/jobs/interactions`, {
             method: 'POST',
@@ -48,6 +51,10 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
             console.warn('⚠️ Failed to track job interaction:', response.status, response.statusText);
         }
     } catch (error) {
+        const msg = String((error as any)?.message || '').toLowerCase();
+        if (msg.includes('cooldown active') || msg.includes('networkerror') || msg.includes('failed to fetch')) {
+            return;
+        }
         console.warn('⚠️ Error tracking job interaction:', error);
     }
 };
