@@ -44,7 +44,7 @@ import { trackPageView } from './services/trafficAnalytics';
 import { trackJobInteraction } from './services/jobInteractionService';
 import { useUserProfile } from './hooks/useUserProfile';
 import { usePaginatedJobs } from './hooks/usePaginatedJobs';
-import { DEFAULT_USER_PROFILE } from './constants';
+import { BACKEND_URL, DEFAULT_USER_PROFILE, SEARCH_BACKEND_URL } from './constants';
 import {
     clamp,
     applyTimeCostImpact,
@@ -703,10 +703,37 @@ export default function App() {
     // Keep a ref to filteredJobs so async retry closure can access latest value
     const filteredJobsRef = useRef(filteredJobs);
     useEffect(() => { filteredJobsRef.current = filteredJobs; }, [filteredJobs]);
+    const loadRealJobsRef = useRef(loadRealJobs);
+    useEffect(() => { loadRealJobsRef.current = loadRealJobs; }, [loadRealJobs]);
+    const hasDedicatedSearchBackend = useMemo(() => {
+        const normalizeOrigin = (value: string): string => {
+            try {
+                return new URL(value).origin;
+            } catch {
+                return value;
+            }
+        };
+        const searchOrigin = normalizeOrigin(SEARCH_BACKEND_URL || '');
+        const coreOrigin = normalizeOrigin(BACKEND_URL || '');
+        return !!searchOrigin && !!coreOrigin && searchOrigin !== coreOrigin;
+    }, []);
 
     useEffect(() => {
-        // Guard: don't start if already polling or have jobs
-        if (isLoadingJobs || (filteredJobsRef.current && filteredJobsRef.current.length > 0) || backendWakeRetryRef.current) return;
+        // With dedicated always-on search backend, polling Render wake-ups only creates noisy duplicate reloads.
+        if (hasDedicatedSearchBackend) {
+            backendWakeRetryRef.current = false;
+            setBackendPolling(false);
+            if (backendRetryTimerRef.current) {
+                clearTimeout(backendRetryTimerRef.current);
+                backendRetryTimerRef.current = null;
+            }
+            return;
+        }
+
+        // Guard: don't start if already polling, loading, or jobs are already present.
+        if (backendWakeRetryRef.current || isLoadingJobs || filteredJobsRef.current.length > 0) {
+            return;
+        }
 
         console.log('Backend wake retry: starting polling to wait for backend wake-up');
         backendWakeRetryRef.current = true;
@@ -714,20 +741,18 @@ export default function App() {
         backendRetryCountRef.current = 0;
 
         const runPoll = async () => {
-            // If already stopped by cleanup, don't run
             if (!backendWakeRetryRef.current) return;
 
             backendRetryCountRef.current += 1;
             console.log(`Backend wake retry: attempt ${backendRetryCountRef.current}/${BACKEND_RETRY_MAX}`);
 
             try {
-                await loadRealJobs();
+                await loadRealJobsRef.current();
             } catch (e) {
                 console.error('Backend wake retry: loadRealJobs error', e);
             }
 
-            // check stop conditions again
-            if (filteredJobsRef.current && filteredJobsRef.current.length > 0) {
+            if (filteredJobsRef.current.length > 0) {
                 console.log('Backend wake retry: jobs appeared, stopping polling');
                 backendWakeRetryRef.current = false;
                 setBackendPolling(false);
@@ -741,25 +766,20 @@ export default function App() {
                 return;
             }
 
-            // schedule next
             backendRetryTimerRef.current = window.setTimeout(runPoll, BACKEND_RETRY_DELAY_MS);
         };
 
         runPoll();
 
         return () => {
-            // Note: We deliberately don't set backendWakeRetryRef.current = false here
-            // unless we want to REALLY stop the loop on unmount.
-            // If the effect re-runs because of isLoadingJobs (even if isLoadingJobs is stable it might re-run),
-            // we don't want to kill a valid loop that is already waiting for a timeout.
+            backendWakeRetryRef.current = false;
+            setBackendPolling(false);
             if (backendRetryTimerRef.current) {
                 clearTimeout(backendRetryTimerRef.current);
                 backendRetryTimerRef.current = null;
             }
-            // Reset polling flag ONLY if the component is truly unmounting or we want to allow a restart
-            // Actually, for safety, let's keep the flag true so a re-run doesn't start a sibling loop.
         };
-    }, [loadRealJobs]); // Only depends on the function stabilize, not transient state like isLoadingJobs
+    }, [hasDedicatedSearchBackend, isLoadingJobs, filteredJobs.length]);
 
     // SEO Update Effect
     useEffect(() => {

@@ -58,6 +58,7 @@ const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
 export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePaginatedJobsProps) => {
     const { i18n } = useTranslation();
     const activeFetchControllerRef = useRef<AbortController | null>(null);
+    const latestRequestIdRef = useRef(0);
     const defaultDomesticCountries = ['cs', 'cz', 'sk'];
     const initialCountry = getCountryCodeFromAddress(userProfile.address) || getCountryCodeFromLanguage(i18n.language);
     const [countryCodes, setCountryCodes] = useState<string[]>(() => (initialCountry ? [initialCountry] : []));
@@ -126,6 +127,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
     useEffect(() => {
         return () => {
+            latestRequestIdRef.current += 1;
             if (activeFetchControllerRef.current) {
                 activeFetchControllerRef.current.abort();
                 activeFetchControllerRef.current = null;
@@ -155,6 +157,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             activeFetchControllerRef.current.abort();
         }
         const fetchController = new AbortController();
+        const requestId = ++latestRequestIdRef.current;
+        const isStaleRequest = () => requestId !== latestRequestIdRef.current || fetchController.signal.aborted;
         activeFetchControllerRef.current = fetchController;
 
         setLoading(true);
@@ -211,6 +215,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                     50,
                     singleCountry
                 );
+                if (isStaleRequest()) return;
 
                 if (isLoadMore) {
                     setJobs(prev => dedupeJobs(basicResult.jobs, prev));
@@ -248,6 +253,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 filterLanguageCodes: filterLanguage ? [filterLanguage] : undefined,
                 abortSignal: fetchController.signal
             });
+            if (isStaleRequest()) return;
 
             if (isLoadMore) {
                 setJobs(prev => dedupeJobs(result.jobs, prev));
@@ -277,14 +283,19 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             if ((error as any)?.name === 'AbortError') {
                 return;
             }
+            if (isStaleRequest()) {
+                return;
+            }
             console.error('Error fetching filtered jobs:', error);
             if (!isLoadMore) setJobs([]);
         } finally {
             if (activeFetchControllerRef.current === fetchController) {
                 activeFetchControllerRef.current = null;
             }
-            setLoading(false);
-            setLoadingMore(false);
+            if (requestId === latestRequestIdRef.current) {
+                setLoading(false);
+                setLoadingMore(false);
+            }
         }
     }, [
         initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
