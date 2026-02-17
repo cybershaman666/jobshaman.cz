@@ -704,6 +704,14 @@ const isSearchV2Enabled = (): boolean => {
     return flag !== '0' && flag !== 'false' && flag !== 'off';
 };
 
+const BACKEND_HYBRID_COOLDOWN_MS = 120000;
+let backendHybridCooldownUntil = 0;
+
+const isNetworkFetchError = (err: unknown): boolean => {
+    const msg = String((err as any)?.message || err || '').toLowerCase();
+    return msg.includes('networkerror') || msg.includes('failed to fetch');
+};
+
 /**
  * Comprehensive job filtering function that supports all filter types
  * Uses database-level filtering via RPC for optimal performance
@@ -761,37 +769,15 @@ export const fetchJobsWithFilters = async (
         if (!BACKEND_URL) {
             return { jobs: [], hasMore: false, totalCount: 0 };
         }
+        if (Date.now() < backendHybridCooldownUntil) {
+            throw new Error('Hybrid backend temporarily in cooldown after network failure');
+        }
 
         const v2Enabled = isSearchV2Enabled();
         const endpoint = v2Enabled ? '/jobs/hybrid-search-v2' : '/jobs/hybrid-search';
-        const hybridResponse = await authenticatedFetch(`${BACKEND_URL}${endpoint}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal: abortSignal,
-            body: JSON.stringify({
-                search_term: normalizedSearchTerm,
-                page,
-                page_size: pageSize,
-                user_lat: finalUserLat ?? null,
-                user_lng: finalUserLng ?? null,
-                radius_km: safeRadiusKm,
-                filter_city: filterCity || null,
-                filter_contract_types: filterContractTypes && filterContractTypes.length > 0 ? filterContractTypes : null,
-                filter_benefits: filterBenefits && filterBenefits.length > 0 ? filterBenefits : null,
-                filter_min_salary: filterMinSalary && filterMinSalary > 0 ? filterMinSalary : null,
-                filter_date_posted: filterDatePosted,
-                filter_experience_levels: filterExperienceLevels && filterExperienceLevels.length > 0 ? filterExperienceLevels : null,
-                filter_country_codes: countryCodes && countryCodes.length > 0 ? countryCodes : null,
-                exclude_country_codes: excludeCountryCodes && excludeCountryCodes.length > 0 ? excludeCountryCodes : null,
-                filter_language_codes: filterLanguageCodes && filterLanguageCodes.length > 0 ? filterLanguageCodes : null,
-                sort_mode: sortMode,
-                debug: false
-            })
-        });
-
-        if (!hybridResponse.ok && v2Enabled) {
-            // Safe fallback to v1 endpoint when v2 is unavailable.
-            const fallbackResponse = await authenticatedFetch(`${BACKEND_URL}/jobs/hybrid-search`, {
+        let hybridResponse: Response;
+        try {
+            hybridResponse = await authenticatedFetch(`${BACKEND_URL}${endpoint}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 signal: abortSignal,
@@ -810,9 +796,50 @@ export const fetchJobsWithFilters = async (
                     filter_experience_levels: filterExperienceLevels && filterExperienceLevels.length > 0 ? filterExperienceLevels : null,
                     filter_country_codes: countryCodes && countryCodes.length > 0 ? countryCodes : null,
                     exclude_country_codes: excludeCountryCodes && excludeCountryCodes.length > 0 ? excludeCountryCodes : null,
-                    filter_language_codes: filterLanguageCodes && filterLanguageCodes.length > 0 ? filterLanguageCodes : null
+                    filter_language_codes: filterLanguageCodes && filterLanguageCodes.length > 0 ? filterLanguageCodes : null,
+                    sort_mode: sortMode,
+                    debug: false
                 })
             });
+        } catch (err) {
+            if (isNetworkFetchError(err)) {
+                backendHybridCooldownUntil = Date.now() + BACKEND_HYBRID_COOLDOWN_MS;
+            }
+            throw err;
+        }
+
+        if (!hybridResponse.ok && v2Enabled) {
+            // Safe fallback to v1 endpoint when v2 is unavailable.
+            let fallbackResponse: Response;
+            try {
+                fallbackResponse = await authenticatedFetch(`${BACKEND_URL}/jobs/hybrid-search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    signal: abortSignal,
+                    body: JSON.stringify({
+                        search_term: normalizedSearchTerm,
+                        page,
+                        page_size: pageSize,
+                        user_lat: finalUserLat ?? null,
+                        user_lng: finalUserLng ?? null,
+                        radius_km: safeRadiusKm,
+                        filter_city: filterCity || null,
+                        filter_contract_types: filterContractTypes && filterContractTypes.length > 0 ? filterContractTypes : null,
+                        filter_benefits: filterBenefits && filterBenefits.length > 0 ? filterBenefits : null,
+                        filter_min_salary: filterMinSalary && filterMinSalary > 0 ? filterMinSalary : null,
+                        filter_date_posted: filterDatePosted,
+                        filter_experience_levels: filterExperienceLevels && filterExperienceLevels.length > 0 ? filterExperienceLevels : null,
+                        filter_country_codes: countryCodes && countryCodes.length > 0 ? countryCodes : null,
+                        exclude_country_codes: excludeCountryCodes && excludeCountryCodes.length > 0 ? excludeCountryCodes : null,
+                        filter_language_codes: filterLanguageCodes && filterLanguageCodes.length > 0 ? filterLanguageCodes : null
+                    })
+                });
+            } catch (err) {
+                if (isNetworkFetchError(err)) {
+                    backendHybridCooldownUntil = Date.now() + BACKEND_HYBRID_COOLDOWN_MS;
+                }
+                throw err;
+            }
             if (!fallbackResponse.ok) {
                 let detail = '';
                 try { detail = await fallbackResponse.text(); } catch {}
@@ -947,6 +974,9 @@ export const fetchJobsWithFilters = async (
             try {
                 return await fetchViaBackendHybrid();
             } catch (hybridErr) {
+                if (isNetworkFetchError(hybridErr)) {
+                    backendHybridCooldownUntil = Date.now() + BACKEND_HYBRID_COOLDOWN_MS;
+                }
                 console.warn('Hybrid search unavailable, falling back to RPC filters:', hybridErr);
             }
         }
