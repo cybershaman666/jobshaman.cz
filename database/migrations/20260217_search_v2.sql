@@ -4,8 +4,16 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS unaccent;
 
 ALTER TABLE public.jobs
+    ADD COLUMN IF NOT EXISTS status text,
     ADD COLUMN IF NOT EXISTS search_text tsvector,
     ADD COLUMN IF NOT EXISTS search_text_plain text;
+
+ALTER TABLE public.jobs
+    ALTER COLUMN status SET DEFAULT 'active';
+
+UPDATE public.jobs
+SET status = 'active'
+WHERE status IS NULL;
 
 CREATE OR REPLACE FUNCTION public.build_jobs_search_text(
     p_title text,
@@ -480,3 +488,6 @@ SELECT
 FROM paged p
 ORDER BY p.rank_position;
 $$;
+
+-- Ensure PostgREST can see new functions/tables immediately.
+NOTIFY pgrst, 'reload schema';
