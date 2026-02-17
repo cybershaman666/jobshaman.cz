@@ -3,12 +3,12 @@ from fastapi import APIRouter, Request, Depends, HTTPException, Query
 from uuid import uuid4
 from datetime import datetime, timezone
 from ..core.limiter import limiter
-from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access
-from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, HybridJobSearchRequest, JobAnalyzeRequest
+from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access, verify_supabase_token
+from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest
 from ..models.responses import JobCheckResponse
 from ..services.legality import check_legality_rules
 from ..services.matching import calculate_candidate_match
-from ..matching_engine import recommend_jobs_for_user, hybrid_search_jobs
+from ..matching_engine import recommend_jobs_for_user, hybrid_search_jobs, hybrid_search_jobs_v2
 from ..services.email import send_review_email, send_recruiter_legality_email
 from ..core.database import supabase
 from ..core.runtime_config import get_active_model_config
@@ -16,6 +16,22 @@ from ..ai_orchestration.client import AIClientError, call_primary_with_fallback,
 from ..utils.helpers import now_iso
 
 router = APIRouter()
+
+
+def _try_get_optional_user_id(request: Request) -> str | None:
+    auth_header = request.headers.get("Authorization") or request.headers.get("authorization")
+    if not auth_header:
+        return None
+    if not auth_header.lower().startswith("bearer "):
+        return None
+    token = auth_header.split(" ", 1)[1].strip()
+    if not token:
+        return None
+    try:
+        user = verify_supabase_token(token)
+        return user.get("id") or user.get("auth_id")
+    except Exception:
+        return None
 
 
 def _parse_iso_datetime(value: str) -> datetime | None:
@@ -308,6 +324,24 @@ async def log_job_interaction(payload: JobInteractionRequest, request: Request, 
             supabase.table("recommendation_feedback_events").insert(feedback_rows).execute()
         except Exception as feedback_exc:
             print(f"⚠️ Failed to write recommendation feedback events: {feedback_exc}")
+
+        search_feedback_rows = []
+        for row in feedback_rows:
+            search_feedback_rows.append(
+                {
+                    "request_id": row.get("request_id"),
+                    "user_id": row.get("user_id"),
+                    "job_id": row.get("job_id"),
+                    "signal_type": row.get("signal_type"),
+                    "signal_value": row.get("signal_value"),
+                    "metadata": row.get("metadata") or {},
+                }
+            )
+        if search_feedback_rows:
+            try:
+                supabase.table("search_feedback_events").insert(search_feedback_rows).execute()
+            except Exception as search_exc:
+                print(f"⚠️ Failed to write search feedback events: {search_exc}")
         return {"status": "success"}
     except Exception as e:
         print(f"❌ Error logging job interaction: {e}")
@@ -402,6 +436,99 @@ async def jobs_hybrid_search(
         page_size=payload.page_size,
     )
     return result
+
+
+@router.post("/jobs/hybrid-search-v2")
+@limiter.limit("90/minute")
+async def jobs_hybrid_search_v2(
+    payload: HybridJobSearchV2Request,
+    request: Request,
+):
+    user_id = _try_get_optional_user_id(request)
+    request_id = str(uuid4())
+    result = hybrid_search_jobs_v2(
+        {
+            "search_term": payload.search_term,
+            "user_lat": payload.user_lat,
+            "user_lng": payload.user_lng,
+            "radius_km": payload.radius_km,
+            "filter_city": payload.filter_city,
+            "filter_contract_types": payload.filter_contract_types,
+            "filter_benefits": payload.filter_benefits,
+            "filter_min_salary": payload.filter_min_salary,
+            "filter_date_posted": payload.filter_date_posted,
+            "filter_experience_levels": payload.filter_experience_levels,
+            "filter_country_codes": payload.filter_country_codes,
+            "exclude_country_codes": payload.exclude_country_codes,
+            "filter_language_codes": payload.filter_language_codes,
+            "sort_mode": payload.sort_mode,
+        },
+        page=payload.page,
+        page_size=payload.page_size,
+        user_id=user_id,
+    )
+
+    jobs = result.get("jobs") or []
+    exposures = []
+    for idx, job in enumerate(jobs):
+        job_id = job.get("id")
+        if not job_id:
+            continue
+        exposures.append(
+            {
+                "request_id": request_id,
+                "user_id": user_id,
+                "job_id": job_id,
+                "position": int(job.get("rank_position") or (idx + 1)),
+                "query": payload.search_term or "",
+                "filters_json": {
+                    "sort_mode": payload.sort_mode,
+                    "filter_city": payload.filter_city,
+                    "filter_contract_types": payload.filter_contract_types,
+                    "filter_benefits": payload.filter_benefits,
+                    "filter_min_salary": payload.filter_min_salary,
+                    "filter_date_posted": payload.filter_date_posted,
+                    "filter_experience_levels": payload.filter_experience_levels,
+                    "filter_country_codes": payload.filter_country_codes,
+                    "exclude_country_codes": payload.exclude_country_codes,
+                    "filter_language_codes": payload.filter_language_codes,
+                    "radius_km": payload.radius_km,
+                },
+                "ranking_features_json": {
+                    "hybrid_score": job.get("hybrid_score"),
+                    "fts_score": job.get("fts_score"),
+                    "trigram_score": job.get("trigram_score"),
+                    "profile_fit_score": job.get("profile_fit_score"),
+                    "recency_score": job.get("recency_score"),
+                    "behavior_prior_score": job.get("behavior_prior_score"),
+                },
+            }
+        )
+    if exposures:
+        try:
+            supabase.table("search_exposures").upsert(exposures, on_conflict="request_id,job_id").execute()
+        except Exception as exc:
+            print(f"⚠️ Failed to write search exposures: {exc}")
+
+    meta = result.get("meta") or {}
+    response = {
+        "jobs": jobs,
+        "has_more": result.get("has_more", False),
+        "total_count": result.get("total_count", 0),
+        "request_id": request_id,
+        "meta": {
+            "sort_mode": payload.sort_mode,
+            "latency_ms": meta.get("latency_ms"),
+            "fallback": meta.get("fallback"),
+            "result_count": len(jobs),
+        },
+    }
+    if payload.debug:
+        response["meta"]["debug"] = {
+            "user_id_present": bool(user_id),
+            "engine_meta": meta,
+        }
+    return response
 
 @router.post("/jobs/analyze")
 @limiter.limit("20/minute")

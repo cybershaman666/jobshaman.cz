@@ -107,11 +107,17 @@ export interface Job {
   aiMatchReasons?: string[];
   aiMatchBreakdown?: JobRecommendationBreakdown;
   aiMatchModelVersion?: string;
+  aiMatchScoringVersion?: string;
+  aiRecommendationPosition?: number;
+  aiRecommendationRequestId?: string;
   lat?: number;
   lng?: number;
   salary_from?: number;
   salary_to?: number;
   distanceKm?: number;
+  searchScore?: number;
+  rankPosition?: number;
+  requestId?: string;
   legality_status?: 'pending' | 'legal' | 'illegal' | 'review';
   legality_reasons?: string[];
   country_code?: string;
