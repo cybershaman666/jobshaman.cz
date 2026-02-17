@@ -1,0 +1,86 @@
+{
+  "admin": [
+    {
+      "name": "admin_recommendations_retry",
+      "status": 0,
+      "latency_ms": 35003.76,
+      "body": "",
+      "stderr": "curl: (28) Operation timed out after 35003 milliseconds with 0 bytes received\n",
+      "ok": false
+    },
+    {
+      "name": "admin_assessments_invitations_retry",
+      "status": 0,
+      "latency_ms": 35003.31,
+      "body": "",
+      "stderr": "curl: (28) Operation timed out after 35003 milliseconds with 0 bytes received\n",
+      "ok": false
+    },
+    {
+      "name": "admin_csrf_for_checkout",
+      "status": 0,
+      "latency_ms": 35003.72,
+      "body": "",
+      "stderr": "curl: (28) Operation timed out after 35003 milliseconds with 0 bytes received\n",
+      "ok": false
+    }
+  ],
+  "recruiter": [
+    {
+      "name": "recruiter_csrf_retry",
+      "status": 0,
+      "latency_ms": 35003.55,
+      "body": "",
+      "stderr": "curl: (28) Operation timed out after 35003 milliseconds with 0 bytes received\n",
+      "ok": false
+    },
+    {
+      "name": "recruiter_admin_me_retry",
+      "status": 0,
+      "latency_ms": 35003.08,
+      "body": "",
+      "stderr": "curl: (28) Operation timed out after 35003 milliseconds with 0 bytes received\n",
+      "ok": false
+    },
+    {
+      "name": "recruiter_subscription_status_retry",
+      "status": 200,
+      "latency_ms": 23310.04,
+      "body": "{\"tier\":\"business\",\"tierName\":\"Business\",\"status\":\"active\",\"expiresAt\":\"2026-02-13T13:14:44.999+00:00\",\"assessmentsAvailable\":10,\"assessmentsUsed\":0,\"jobPostingsAvailable\":999,\"jobPostingsUsed\":0}",
+      "stderr": "",
+      "ok": true
+    },
+    {
+      "name": "recruiter_verify_billing_retry",
+      "status": 200,
+      "latency_ms": 5486.47,
+      "body": "{\"hasAccess\":false,\"reason\":\"Inactive subscription\"}",
+      "stderr": "",
+      "ok": true
+    },
+    {
+      "name": "recruiter_hybrid_search_v2_retry",
+      "status": 200,
+      "latency_ms": 3997.71,
+      "body": "{\"jobs\":[],\"has_more\":false,\"total_count\":0,\"request_id\":\"6bade852-42fb-45bd-988a-1e7ace75246a\",\"meta\":{\"sort_mode\":\"default\",\"latency_ms\":3400,\"fallback\":null,\"result_count\":0}}",
+      "stderr": "",
+      "ok": true
+    },
+    {
+      "name": "recruiter_recommendations_retry",
+      "status": 200,
+      "latency_ms": 916.78,
+      "body": "{\"jobs\":[{\"job\":{\"id\":53207,\"lat\":50.0755,\"lng\":14.4378,\"url\":\"https://www.jenprace.cz/nabidka/muy86d/office-administrator-recepcni-karlin\",\"geom\":{\"crs\":{\"type\":\"name\",\"properties\":{\"name\":\"EPSG:4326\"}},\"type\":\"Point\",\"",
+      "stderr": "",
+      "ok": true
+    },
+    {
+      "name": "recruiter_assessments_invitations_retry",
+      "status": 200,
+      "latency_ms": 1180.91,
+      "body": "{\"invitations\":[]}",
+      "stderr": "",
+      "ok": true
+    }
+  ]
+}

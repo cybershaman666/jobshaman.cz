@@ -5,7 +5,7 @@
             "headers": [
                 {
                     "key": "Content-Security-Policy",
-                    "value": "default-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' https://esm.sh; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co https://api.jobshaman.cz https://jobshaman.cz https://jobshaman-cz.onrender.com https://jobshaman-api.onrender.com https://nominatim.openstreetmap.org; worker-src 'self' blob:; manifest-src 'self';"
+                    "value": "default-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; script-src 'self' https://esm.sh; style-src 'self' https://fonts.googleapis.com 'unsafe-inline'; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https:; connect-src 'self' https://*.supabase.co https://api.jobshaman.cz https://jobshaman.cz https://jobshaman-cz.onrender.com https://jobshaman-api.onrender.com https://jobshaman-search-api.northflank.app https://nominatim.openstreetmap.org; worker-src 'self' blob:; manifest-src 'self';"
                 }
             ]
         }

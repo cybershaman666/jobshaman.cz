@@ -64,6 +64,7 @@ import {
 
 export default function App() {
     const { t, i18n } = useTranslation();
+    const vercelAnalyticsEnabled = import.meta.env.VITE_ENABLE_VERCEL_ANALYTICS === 'true';
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
     const [selectedJobId, setSelectedJobIdState] = useState<string | null>(() => {
         const path = window.location.pathname;
@@ -1347,7 +1348,7 @@ export default function App() {
         return (
             <>
                 {/* Vercel Analytics */}
-                <Analytics />
+                {vercelAnalyticsEnabled && <Analytics />}
 
                 {/* MOBILE SWIPE VIEW - Only show for logged-in users on mobile */}
                 {isMobileSwipeView && userProfile.isLoggedIn ? (

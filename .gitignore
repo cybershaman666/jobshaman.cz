@@ -28,3 +28,13 @@ backend/.env.local
 *.njsproj
 *.sln
 *.sw?
+
+# Python caches/build artifacts
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# Local envs
+.venv/
+venv/
