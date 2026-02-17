@@ -36,3 +36,7 @@ uvicorn app.main:app --reload --port 8000
 - `CSRF_TOKEN_EXPIRY` (optional, default `3600`)
 - `ALLOWED_ORIGINS`
 - `EXPOSE_DEBUG_ERRORS=false`
+
+## Troubleshooting
+- Log `⚠️ search_exposures table missing...` means DB migration for search telemetry is not applied yet. Apply `database/migrations/20260217_search_v2.sql`.
+- Log `...without valid CSRF token...` on `/jobs/interactions` is expected fallback behavior; endpoint accepts authenticated telemetry even when CSRF token is not present.

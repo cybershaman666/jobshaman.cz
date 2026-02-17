@@ -165,7 +165,7 @@ export default function App() {
         }
     }, [isOnboardingCompany, userProfile.role, companyProfile?.id]);
 
-    const isCompanyProfile = userProfile.role === 'recruiter' && companyProfile?.industry !== 'Freelancer';
+    const isCompanyProfile = userProfile.role === 'recruiter' && !!companyProfile && companyProfile.industry !== 'Freelancer';
     const companyCoordinates = (companyProfile?.lat != null && companyProfile?.lng != null)
         ? { lat: Number(companyProfile.lat), lon: Number(companyProfile.lng) }
         : undefined;
@@ -354,11 +354,7 @@ export default function App() {
             setTheme('light');
             document.documentElement.classList.remove('dark');
         }
-
-
-
-        // LOAD REAL DATA
-        loadRealJobs();
+        // Job loading is driven by usePaginatedJobs; avoid forcing parallel initial reload here.
         checkPaymentStatus();
 
         // AUTH LISTENER
@@ -604,19 +600,7 @@ export default function App() {
         fetchDirectJob();
     }, [selectedJobId, filteredJobs.length, isLoadingJobs]);
 
-    // If user session is restored after initial mount, reload jobs to avoid empty list due to race.
-    const lastReloadUserIdRef = useRef<string | null>(null);
     const reloadLockRef = useRef(false);
-
-    useEffect(() => {
-        if (userProfile && userProfile.isLoggedIn && userProfile.id) {
-            // Only reload once per user id to avoid repeated concurrent reloads
-            if (lastReloadUserIdRef.current === userProfile.id) return;
-            lastReloadUserIdRef.current = userProfile.id;
-            console.log('🔁 userProfile became available — reloading jobs to avoid race conditions');
-            loadRealJobs();
-        }
-    }, [userProfile?.id]);
 
     // Auto-enable commute filter for existing users with address/coordinates (only once)
     useEffect(() => {
@@ -666,28 +650,16 @@ export default function App() {
         }
     }, [isCompanyProfile, viewState, companyCoordinates?.lat, companyCoordinates?.lon, enableCommuteFilter]);
 
-    // Reload jobs when user coordinates change (e.g., after profile update)
+    // Keep cache coherent when coordinates become available, but do not force another manual reload.
     useEffect(() => {
-        if (userProfile.coordinates?.lat && userProfile.coordinates?.lon) {
-            (async () => {
-                if (reloadLockRef.current) {
-                    console.log('Coordinate reload already in progress — skipping');
-                    return;
-                }
-
-                reloadLockRef.current = true;
-                console.log('📍 Coordinates updated:', userProfile.coordinates, '- Clearing cache and reloading jobs...');
-                try {
-                    // Clear the cache to ensure we get fresh results with proximity sorting
-                    await Promise.resolve(clearJobCache());
-                    await loadRealJobs();
-                } catch (e) {
-                    console.error('Error during coordinate-triggered reload:', e);
-                } finally {
-                    reloadLockRef.current = false;
-                }
-            })();
-        }
+        if (!userProfile.coordinates?.lat || !userProfile.coordinates?.lon) return;
+        if (reloadLockRef.current) return;
+        reloadLockRef.current = true;
+        Promise.resolve(clearJobCache())
+            .catch((e) => console.error('Error during coordinate-triggered cache clear:', e))
+            .finally(() => {
+                reloadLockRef.current = false;
+            });
     }, [userProfile.coordinates?.lat, userProfile.coordinates?.lon]);
 
     // Backend cold-start retry: if we have no jobs after initial load, poll the backend
@@ -718,7 +690,7 @@ export default function App() {
         };
         const searchOrigin = normalizeOrigin(SEARCH_BACKEND_URL || '');
         const coreOrigin = normalizeOrigin(BACKEND_URL || '');
-        return !!searchOrigin && !!coreOrigin && searchOrigin !== coreOrigin;
+        return !!searchOrigin && (!coreOrigin || searchOrigin !== coreOrigin);
     }, []);
 
     useEffect(() => {
