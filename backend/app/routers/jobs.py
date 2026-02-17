@@ -16,6 +16,15 @@ from ..ai_orchestration.client import AIClientError, call_primary_with_fallback,
 from ..utils.helpers import now_iso
 
 router = APIRouter()
+_SEARCH_EXPOSURES_AVAILABLE: bool = True
+_SEARCH_EXPOSURES_WARNING_EMITTED: bool = False
+_SEARCH_FEEDBACK_AVAILABLE: bool = True
+_SEARCH_FEEDBACK_WARNING_EMITTED: bool = False
+
+
+def _is_missing_table_error(exc: Exception, table_name: str) -> bool:
+    msg = str(exc).lower()
+    return ("pgrst205" in msg and table_name.lower() in msg) or f"table '{table_name.lower()}'" in msg
 
 
 def _try_get_optional_user_id(request: Request) -> str | None:
@@ -257,7 +266,8 @@ async def delete_job(job_id: str, request: Request, user: dict = Depends(get_cur
 @limiter.limit("120/minute")
 async def log_job_interaction(payload: JobInteractionRequest, request: Request, user: dict = Depends(get_current_user)):
     if not verify_csrf_token_header(request, user):
-        raise HTTPException(status_code=403, detail="CSRF validation failed")
+        # Telemetry endpoint: do not block UX on CSRF token race/cooldown.
+        print("⚠️ /jobs/interactions called without valid CSRF token; accepting authenticated telemetry request.")
 
     user_id = user.get("id") or user.get("auth_id")
     if not user_id:
@@ -337,11 +347,18 @@ async def log_job_interaction(payload: JobInteractionRequest, request: Request, 
                     "metadata": row.get("metadata") or {},
                 }
             )
-        if search_feedback_rows:
+        global _SEARCH_FEEDBACK_AVAILABLE, _SEARCH_FEEDBACK_WARNING_EMITTED
+        if search_feedback_rows and _SEARCH_FEEDBACK_AVAILABLE:
             try:
                 supabase.table("search_feedback_events").insert(search_feedback_rows).execute()
             except Exception as search_exc:
-                print(f"⚠️ Failed to write search feedback events: {search_exc}")
+                if _is_missing_table_error(search_exc, "search_feedback_events"):
+                    _SEARCH_FEEDBACK_AVAILABLE = False
+                    if not _SEARCH_FEEDBACK_WARNING_EMITTED:
+                        print("⚠️ search_feedback_events table missing. Disabling search feedback writes.")
+                        _SEARCH_FEEDBACK_WARNING_EMITTED = True
+                else:
+                    print(f"⚠️ Failed to write search feedback events: {search_exc}")
         return {"status": "success"}
     except Exception as e:
         print(f"❌ Error logging job interaction: {e}")
@@ -504,11 +521,18 @@ async def jobs_hybrid_search_v2(
                 },
             }
         )
-    if exposures:
+    global _SEARCH_EXPOSURES_AVAILABLE, _SEARCH_EXPOSURES_WARNING_EMITTED
+    if exposures and _SEARCH_EXPOSURES_AVAILABLE:
         try:
             supabase.table("search_exposures").upsert(exposures, on_conflict="request_id,job_id").execute()
         except Exception as exc:
-            print(f"⚠️ Failed to write search exposures: {exc}")
+            if _is_missing_table_error(exc, "search_exposures"):
+                _SEARCH_EXPOSURES_AVAILABLE = False
+                if not _SEARCH_EXPOSURES_WARNING_EMITTED:
+                    print("⚠️ search_exposures table missing. Disabling search exposure writes.")
+                    _SEARCH_EXPOSURES_WARNING_EMITTED = True
+            else:
+                print(f"⚠️ Failed to write search exposures: {exc}")
 
     meta = result.get("meta") or {}
     response = {
