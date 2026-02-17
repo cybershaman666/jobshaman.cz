@@ -4,6 +4,27 @@ import { supabase } from './supabaseClient';
 
 const CSRF_TOKEN_KEY = 'csrf_token';
 const CSRF_TOKEN_EXPIRY_KEY = 'csrf_token_expiry';
+const BACKEND_NETWORK_COOLDOWN_MS = 60_000;
+const CSRF_TOKEN_COOLDOWN_MS = 60_000;
+
+let backendNetworkCooldownUntil = 0;
+let csrfTokenCooldownUntil = 0;
+let csrfFetchInFlight: Promise<string | null> | null = null;
+
+const isLikelyNetworkError = (error: unknown): boolean => {
+    const msg = String((error as any)?.message || error || '').toLowerCase();
+    return msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('cors');
+};
+
+const isBackendUrlRequest = (url: string): boolean => {
+    try {
+        const parsed = new URL(url, window.location.origin);
+        const backend = new URL(BACKEND_URL, window.location.origin);
+        return parsed.origin === backend.origin;
+    } catch {
+        return false;
+    }
+};
 
 const endpointDoesNotRequireCsrf = (url: string): boolean => {
     try {
@@ -11,6 +32,8 @@ const endpointDoesNotRequireCsrf = (url: string): boolean => {
         const path = parsed.pathname || '';
         return (
             path === '/jobs/analyze' ||
+            path === '/jobs/hybrid-search' ||
+            path === '/jobs/hybrid-search-v2' ||
             path.startsWith('/ai/') ||
             path === '/verify-billing' ||
             path === '/subscription-status' ||
@@ -26,6 +49,14 @@ const endpointDoesNotRequireCsrf = (url: string): boolean => {
  * Must be called after successful authentication
  */
 export const fetchCsrfToken = async (authToken: string): Promise<string | null> => {
+    if (csrfFetchInFlight) {
+        return csrfFetchInFlight;
+    }
+    if (Date.now() < csrfTokenCooldownUntil || Date.now() < backendNetworkCooldownUntil) {
+        return null;
+    }
+
+    csrfFetchInFlight = (async () => {
     // Validate authToken before attempting to fetch
     if (!authToken || typeof authToken !== 'string' || authToken.length === 0) {
         console.warn('⚠️ Invalid auth token provided to fetchCsrfToken - cannot fetch CSRF token');
@@ -100,9 +131,16 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
                 console.error(`❌ CSRF token fetch ABORTED (timeout) on attempt ${attempt}`);
             } else {
                 console.error(`❌ Error fetching CSRF token (Attempt ${attempt}):`, error);
+                if (isLikelyNetworkError(error)) {
+                    csrfTokenCooldownUntil = Date.now() + CSRF_TOKEN_COOLDOWN_MS;
+                    backendNetworkCooldownUntil = Date.now() + BACKEND_NETWORK_COOLDOWN_MS;
+                }
             }
 
             if (attempt < maxRetries) {
+                if (Date.now() < csrfTokenCooldownUntil || Date.now() < backendNetworkCooldownUntil) {
+                    break;
+                }
                 const delay = Math.pow(2, attempt) * 1000;
                 // console.log(`🔄 Retrying in ${delay/1000}s...`);
                 await new Promise(resolve => setTimeout(resolve, delay));
@@ -112,6 +150,13 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
 
     console.error('❌ Failed to fetch CSRF token after multiple attempts:', lastError);
     return null;
+    })();
+
+    try {
+        return await csrfFetchInFlight;
+    } finally {
+        csrfFetchInFlight = null;
+    }
 };
 
 /**
@@ -253,6 +298,10 @@ export const authenticatedFetch = async (
     options: RequestInit = {},
     authToken?: string
 ): Promise<Response> => {
+    if (isBackendUrlRequest(url) && Date.now() < backendNetworkCooldownUntil) {
+        throw new Error('Backend temporarily unreachable (cooldown active)');
+    }
+
     const method = (options.method || 'GET').toUpperCase();
     const isStateChanging = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
     const requiresCsrf = isStateChanging && !endpointDoesNotRequireCsrf(url);
@@ -289,11 +338,22 @@ export const authenticatedFetch = async (
         }, 90000);
 
         try {
-            return await fetch(url, {
-                ...options,
-                headers,
-                signal: controller.signal
-            });
+            try {
+                return await fetch(url, {
+                    ...options,
+                    headers,
+                    signal: controller.signal
+                });
+            } catch (error) {
+                if (isLikelyNetworkError(error) && isBackendUrlRequest(url)) {
+                    backendNetworkCooldownUntil = Date.now() + BACKEND_NETWORK_COOLDOWN_MS;
+                    // CSRF endpoint often fails first during backend outages.
+                    if (url.includes('/csrf-token')) {
+                        csrfTokenCooldownUntil = Date.now() + CSRF_TOKEN_COOLDOWN_MS;
+                    }
+                }
+                throw error;
+            }
         } finally {
             clearTimeout(timeoutId);
         }

@@ -35,6 +35,9 @@ interface UsePaginatedJobsProps {
     initialPageSize?: number;
 }
 
+const JOBS_FEED_CACHE_KEY = 'jobs_feed_cache_v1';
+const JOBS_FEED_CACHE_MAX = 80;
+
 const normalizeCountryCodes = (codes: string[]): string[] => {
     if (!codes || codes.length === 0) return [];
     const lowered = codes.map(c => c.toLowerCase());
@@ -59,7 +62,17 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const initialCountry = getCountryCodeFromAddress(userProfile.address) || getCountryCodeFromLanguage(i18n.language);
     const [countryCodes, setCountryCodes] = useState<string[]>(() => (initialCountry ? [initialCountry] : []));
 
-    const [jobs, setJobs] = useState<Job[]>([]);
+    const [jobs, setJobs] = useState<Job[]>(() => {
+        try {
+            const cached = localStorage.getItem(JOBS_FEED_CACHE_KEY);
+            if (!cached) return [];
+            const parsed = JSON.parse(cached);
+            if (!Array.isArray(parsed)) return [];
+            return parsed.slice(0, JOBS_FEED_CACHE_MAX) as Job[];
+        } catch {
+            return [];
+        }
+    });
     const [loading, setLoading] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
@@ -100,6 +113,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             console.error('Error saving jobs to localStorage:', error);
         }
     }, [savedJobIds]);
+
+    // Persist a warm cache so first paint is never empty when backend wakes up.
+    useEffect(() => {
+        if (!jobs || jobs.length === 0) return;
+        try {
+            localStorage.setItem(JOBS_FEED_CACHE_KEY, JSON.stringify(jobs.slice(0, JOBS_FEED_CACHE_MAX)));
+        } catch {
+            // Ignore storage failures.
+        }
+    }, [jobs]);
 
     useEffect(() => {
         return () => {
