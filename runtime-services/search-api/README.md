@@ -24,7 +24,7 @@ uvicorn app.main:app --reload --port 8000
 - Health check path: `/healthz`
 
 ## Frontend wiring
-- Set `VITE_SEARCH_BACKEND_URL` to the deployed Northflank URL.
+- Set `VITE_SEARCH_BACKEND_URL` to the deployed Northflank URL (prefer full URL with scheme, e.g. `https://site--jobshaman--rb4dlj74d5kc.code.run`).
 - Add the same URL to CSP `connect-src` in:
   - `index.html`
   - `vercel.json`

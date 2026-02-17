@@ -708,9 +708,12 @@ export default function App() {
     const hasDedicatedSearchBackend = useMemo(() => {
         const normalizeOrigin = (value: string): string => {
             try {
-                return new URL(value).origin;
+                const raw = String(value || '').trim();
+                if (!raw) return '';
+                const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+                return new URL(withProtocol).origin;
             } catch {
-                return value;
+                return String(value || '').trim();
             }
         };
         const searchOrigin = normalizeOrigin(SEARCH_BACKEND_URL || '');

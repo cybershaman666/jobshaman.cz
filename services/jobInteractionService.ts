@@ -27,7 +27,10 @@ export interface JobInteractionPayload {
 const normalizeBackendBaseUrl = (value?: string): string | null => {
     if (!value) return null;
     try {
-        const url = new URL(value);
+        const raw = String(value).trim();
+        if (!raw) return null;
+        const withProtocol = /^https?:\/\//i.test(raw) ? raw : `https://${raw}`;
+        const url = new URL(withProtocol);
         return `${url.origin}${url.pathname.replace(/\/$/, '')}`;
     } catch {
         return null;
@@ -35,10 +38,15 @@ const normalizeBackendBaseUrl = (value?: string): string | null => {
 };
 
 const resolveInteractionBackends = (): string[] => {
-    const bases = [
-        normalizeBackendBaseUrl(SEARCH_BACKEND_URL),
-        normalizeBackendBaseUrl(BACKEND_URL),
-    ].filter((base): base is string => !!base);
+    const searchBase = normalizeBackendBaseUrl(SEARCH_BACKEND_URL);
+    const coreBase = normalizeBackendBaseUrl(BACKEND_URL);
+
+    // Keep interactions with search runtime when it is split from core backend.
+    if (searchBase && coreBase && searchBase !== coreBase) {
+        return [searchBase];
+    }
+
+    const bases = [searchBase, coreBase].filter((base): base is string => !!base);
     return Array.from(new Set(bases));
 };
 
