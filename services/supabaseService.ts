@@ -12,7 +12,17 @@ let lastProfileMissingWarnAt = 0;
 
 const isLikelySupabaseNetworkError = (error: any): boolean => {
     const msg = String(error?.message || error || '').toLowerCase();
-    return msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('fetch resource');
+    const code = String(error?.code || '').toLowerCase();
+    const status = Number(error?.status || error?.statusCode || 0);
+    return (
+        msg.includes('networkerror') ||
+        msg.includes('failed to fetch') ||
+        msg.includes('fetch resource') ||
+        msg.includes('cors') ||
+        msg.includes('statement timeout') ||
+        code === '57014' ||
+        status >= 500
+    );
 };
 
 export const isSupabaseNetworkCooldownActive = (): boolean => Date.now() < supabaseNetworkCooldownUntil;

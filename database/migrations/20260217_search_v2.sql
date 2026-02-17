@@ -347,7 +347,7 @@ stage_a AS (
                  (0.25 * similarity(COALESCE(f.search_text_plain, ''), f.normalized_query))
         END DESC,
         f.id DESC
-    LIMIT 5000
+    LIMIT 2000
 ),
 scored AS (
     SELECT
@@ -442,7 +442,7 @@ stage_b AS (
             END
         END DESC NULLS LAST,
         s.id DESC
-    LIMIT 600
+    LIMIT 400
 ),
 paged AS (
     SELECT *

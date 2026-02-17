@@ -99,7 +99,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                 const countryCodes = countryMap[lang];
                 const result = await fetchJobsWithFilters({
                     page: 0,
-                    pageSize: 500,
+                    pageSize: 120,
                     countryCodes
                 });
                 const scores = result.jobs
