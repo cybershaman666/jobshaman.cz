@@ -252,6 +252,8 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
         return {"jobs": [], "has_more": False, "total_count": 0}
 
     search_term = (filters.get("search_term") or "").strip()
+    if len(search_term) < 2:
+        search_term = ""
     user_lat = filters.get("user_lat")
     user_lng = filters.get("user_lng")
     radius_km = filters.get("radius_km")
@@ -419,8 +421,12 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
     sort_mode = _normalize_sort_mode(filters.get("sort_mode"))
     started = datetime.now(timezone.utc)
 
+    search_term = (filters.get("search_term") or "").strip()
+    if len(search_term) < 2:
+        search_term = ""
+
     rpc_payload = {
-        "p_search_term": (filters.get("search_term") or "").strip(),
+        "p_search_term": search_term,
         "p_page": max(0, int(page or 0)),
         "p_page_size": max(1, min(200, int(page_size or 50))),
         "p_user_id": user_id,

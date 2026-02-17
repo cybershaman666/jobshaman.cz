@@ -905,9 +905,10 @@ export const fetchJobsWithFilters = async (
     } = options;
 
     const normalizedSearchTerm = (searchTerm || '').trim();
+    const safeSearchTerm = normalizedSearchTerm.length < 2 ? '' : normalizedSearchTerm;
     const safeBackendPageSize = Math.max(1, Math.min(BACKEND_HYBRID_MAX_PAGE_SIZE, pageSize || 50));
     const safeRpcPageSize = Math.max(1, Math.min(SUPABASE_RPC_MAX_PAGE_SIZE, pageSize || 50));
-    const compactSearchLength = normalizedSearchTerm.replace(/\s+/g, '').length;
+    const compactSearchLength = safeSearchTerm.replace(/\s+/g, '').length;
     const dedicatedSearchRuntime = hasDedicatedSearchRuntime();
     const hasFilteringIntent =
         !!filterCity ||
@@ -933,7 +934,7 @@ export const fetchJobsWithFilters = async (
     const normalizedBenefitFilters = (filterBenefits || []).map((b) => normalizeTokenText(String(b))).filter(Boolean);
     const normalizedExperienceFilters = (filterExperienceLevels || []).map((lvl) => normalizeTokenText(String(lvl))).filter(Boolean);
     const normalizedFilterCity = normalizeTokenText(filterCity || '').trim();
-    const normalizedSearchTokens = normalizeTokenText(normalizedSearchTerm)
+    const normalizedSearchTokens = normalizeTokenText(safeSearchTerm)
         .split(/\s+/)
         .filter(Boolean);
     const datePostedCutoffMs = getDatePostedCutoffMs(filterDatePosted);
@@ -1161,7 +1162,7 @@ export const fetchJobsWithFilters = async (
             page,
             page_size: safeRpcPageSize,
             result_count: pagedJobs.length,
-            has_search_term: !!normalizedSearchTerm,
+            has_search_term: !!safeSearchTerm,
             has_radius_filter: safeRadiusKm !== null,
             has_city_filter: !!normalizedFilterCity,
             has_contract_filter: normalizedContractFilters.length > 0,
@@ -1181,9 +1182,9 @@ export const fetchJobsWithFilters = async (
 
     const fetchViaTextFallback = async (): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number } | null> => {
         throwIfAborted();
-        if (!normalizedSearchTerm || !normalizedSearchTerm.trim()) return null;
+        if (!safeSearchTerm || !safeSearchTerm.trim()) return null;
         if (hasStrictFilterConstraints) return null;
-        const sanitizedTerm = normalizedSearchTerm.replace(/[^\p{L}\p{N}\s-]/gu, ' ').trim();
+        const sanitizedTerm = safeSearchTerm.replace(/[^\p{L}\p{N}\s-]/gu, ' ').trim();
         if (!sanitizedTerm) return null;
 
         const from = page * pageSize;
@@ -1248,7 +1249,7 @@ export const fetchJobsWithFilters = async (
         }
 
         const requestPayloadBase = {
-            search_term: normalizedSearchTerm,
+            search_term: safeSearchTerm,
             page,
             page_size: safeBackendPageSize,
             user_lat: finalUserLat ?? null,
@@ -1464,7 +1465,7 @@ export const fetchJobsWithFilters = async (
             pageSize,
             countries: countryCodes || ['all'],
             excludeCountries: excludeCountryCodes || [],
-            searchTerm: normalizedSearchTerm || 'none',
+            searchTerm: safeSearchTerm || 'none',
             sortMode
         });
 
@@ -1493,7 +1494,7 @@ export const fetchJobsWithFilters = async (
         const minSalaryFilter = filterMinSalary && filterMinSalary > 0 ? filterMinSalary : null;
 
         const { data, error } = await supabase.rpc('search_jobs_with_filters', {
-            search_term: normalizedSearchTerm || null,
+            search_term: safeSearchTerm || null,
             user_lat: spatialLat,
             user_lng: spatialLng,
             radius_km: spatialRadius,
@@ -1531,7 +1532,7 @@ export const fetchJobsWithFilters = async (
                     }
                 }
 
-                if (normalizedSearchTerm) {
+                if (safeSearchTerm) {
                     const textFallback = await fetchViaTextFallback();
                     if (textFallback) return textFallback;
                 }
@@ -1560,7 +1561,7 @@ export const fetchJobsWithFilters = async (
 
         if (!data || data.length === 0) {
             throwIfAborted();
-            if (normalizedSearchTerm) {
+            if (safeSearchTerm) {
                 const textFallback = await fetchViaTextFallback();
                 if (textFallback) return textFallback;
             }
@@ -1638,7 +1639,7 @@ export const fetchJobsWithFilters = async (
             }
         }
 
-        if (normalizedSearchTerm) {
+        if (safeSearchTerm) {
             const textFallback = await fetchViaTextFallback();
             if (textFallback) return textFallback;
         }
