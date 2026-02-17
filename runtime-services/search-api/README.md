@@ -28,6 +28,7 @@ uvicorn app.main:app --reload --port 8000
 - Add the same URL to CSP `connect-src` in:
   - `index.html`
   - `vercel.json`
+- When `VITE_SEARCH_BACKEND_URL` points to a different origin than `VITE_BACKEND_URL`, jobs feed/filtering and `/jobs/interactions` are routed through the Northflank search runtime.
 
 ## Required env vars
 - `SUPABASE_URL`

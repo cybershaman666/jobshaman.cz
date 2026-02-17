@@ -63,6 +63,14 @@ const isBackendUrlRequest = (url: string): boolean => {
     }
 };
 
+const shouldBypassBackendCooldown = (path: string): boolean => {
+    return (
+        path === '/jobs/hybrid-search' ||
+        path === '/jobs/hybrid-search-v2' ||
+        path === '/jobs/interactions'
+    );
+};
+
 export const isBackendNetworkCooldownActive = (): boolean => Date.now() < backendNetworkCooldownUntil;
 
 const endpointDoesNotRequireCsrf = (url: string): boolean => {
@@ -367,7 +375,11 @@ export const authenticatedFetch = async (
 ): Promise<Response> => {
     const method = (options.method || 'GET').toUpperCase();
     const requestPath = getRequestPath(url) || 'unknown';
-    if (isBackendUrlRequest(url) && Date.now() < backendNetworkCooldownUntil) {
+    if (
+        isBackendUrlRequest(url) &&
+        Date.now() < backendNetworkCooldownUntil &&
+        !shouldBypassBackendCooldown(requestPath)
+    ) {
         recordRuntimeSignal('request_blocked_by_cooldown', {
             path: requestPath,
             method

@@ -151,6 +151,11 @@ BEGIN
 END;
 $$;
 
+-- Concurrent indexes over large tables can take much longer than backfill/function DDL.
+-- Disable statement timeout for this section to avoid partial migration due to timeout.
+-- IMPORTANT: CREATE INDEX CONCURRENTLY must run outside an explicit transaction.
+SET statement_timeout = '0';
+
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_jobs_search_text_gin ON public.jobs USING gin (search_text);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_jobs_search_text_plain_trgm ON public.jobs USING gin (search_text_plain gin_trgm_ops);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_jobs_status_legality_scraped ON public.jobs (status, legality_status, scraped_at DESC);
@@ -187,6 +192,9 @@ CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_search_exposures_user_job ON public.
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_search_feedback_created_at ON public.search_feedback_events (created_at DESC);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_search_feedback_user_job ON public.search_feedback_events (user_id, job_id);
 CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_search_feedback_request ON public.search_feedback_events (request_id);
+
+-- Restore migration-wide timeout for the remaining lightweight DDL.
+SET statement_timeout = '20min';
 
 CREATE OR REPLACE FUNCTION public.search_jobs_v2(
     p_search_term text DEFAULT NULL,
