@@ -51,7 +51,7 @@ def get_release_flag(flag_key: str, subject_id: Optional[str] = None, default: b
                     .maybe_single()
                     .execute()
                 )
-                if resp.data:
+                if resp and getattr(resp, "data", None):
                     flag.update(resp.data)
             except Exception as exc:
                 print(f"⚠️ [Runtime Config] failed loading release flag {flag_key}: {exc}")

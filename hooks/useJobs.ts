@@ -87,7 +87,7 @@ export const useJobs = (viewState: ViewState, userProfile: UserProfile) => {
                     filterContractTypes: filterContractType.length > 0 ? filterContractType : undefined,
                     filterBenefits: filterBenefits.length > 0 ? filterBenefits : undefined,
                     page: 0,
-                    pageSize: 500, // Load more for better UX
+                    pageSize: 200, // Backend hybrid endpoints enforce max 200
                     countryCode: undefined // UserProfile doesn't have country_code
                 };
 
