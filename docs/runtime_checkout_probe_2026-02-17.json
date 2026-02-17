@@ -1,0 +1,35 @@
+{
+  "csrf_attempts": [
+    {
+      "attempt": 1,
+      "status": 0,
+      "err": "curl: (28) Operation timed out after 12005 milliseconds with 0 bytes received\n",
+      "body": ""
+    },
+    {
+      "attempt": 2,
+      "status": 0,
+      "err": "curl: (28) Operation timed out after 12006 milliseconds with 0 bytes received\n",
+      "body": ""
+    },
+    {
+      "attempt": 3,
+      "status": 0,
+      "err": "curl: (28) Operation timed out after 12005 milliseconds with 0 bytes received\n",
+      "body": ""
+    },
+    {
+      "attempt": 4,
+      "status": 0,
+      "err": "curl: (28) Operation timed out after 12005 milliseconds with 0 bytes received\n",
+      "body": ""
+    },
+    {
+      "attempt": 5,
+      "status": 0,
+      "err": "curl: (28) Operation timed out after 12001 milliseconds with 0 bytes received\n",
+      "body": ""
+    }
+  ],
+  "checkout_attempts": []
+}

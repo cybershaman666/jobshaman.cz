@@ -1,0 +1,154 @@
+[
+  {
+    "role": "admin",
+    "method": "GET",
+    "url": "https://jobshaman-cz.onrender.com/admin/me",
+    "attempts": [
+      {
+        "attempt": 1,
+        "status": 200,
+        "latency_ms": 572.75,
+        "ok": true,
+        "err": "",
+        "body": "{\"id\":\"5eb2cbba-d92b-41f9-bbf8-1005dac201e2\",\"user_id\":\"9a2eddcd-3bf7-4880-9f16-19e72985472a\",\"email\":\"martinhlavac1@gmail.com\",\"role\":\"admin\",\"is_active\":true}"
+      }
+    ]
+  },
+  {
+    "role": "recruiter",
+    "method": "GET",
+    "url": "https://jobshaman-cz.onrender.com/admin/me",
+    "attempts": [
+      {
+        "attempt": 1,
+        "status": 403,
+        "latency_ms": 536.05,
+        "ok": true,
+        "err": "",
+        "body": "{\"detail\":\"Admin access required\"}"
+      }
+    ]
+  },
+  {
+    "role": "admin",
+    "method": "GET",
+    "url": "https://jobshaman-cz.onrender.com/subscription-status?userId=9a2eddcd-3bf7-4880-9f16-19e72985472a",
+    "attempts": [
+      {
+        "attempt": 1,
+        "status": 200,
+        "latency_ms": 657.83,
+        "ok": true,
+        "err": "",
+        "body": "{\"tier\":\"premium\",\"tierName\":\"Premium\",\"status\":\"active\",\"expiresAt\":\"2026-03-18T10:20:21.113775+00:00\",\"assessmentsAvailable\":0,\"assessmentsUsed\":0,\"jobPostingsAvailable\":10,\"jobP"
+      }
+    ]
+  },
+  {
+    "role": "recruiter",
+    "method": "GET",
+    "url": "https://jobshaman-cz.onrender.com/subscription-status?userId=f7d5d080-750d-4bad-8e06-6215b034cb1b",
+    "attempts": [
+      {
+        "attempt": 1,
+        "status": 200,
+        "latency_ms": 744.33,
+        "ok": true,
+        "err": "",
+        "body": "{\"tier\":\"business\",\"tierName\":\"Business\",\"status\":\"active\",\"expiresAt\":\"2026-02-13T13:14:44.999+00:00\",\"assessmentsAvailable\":10,\"assessmentsUsed\":0,\"jobPostingsAvailable\":999,\"job"
+      }
+    ]
+  },
+  {
+    "role": "admin",
+    "method": "POST",
+    "url": "https://jobshaman-cz.onrender.com/verify-billing",
+    "attempts": [
+      {
+        "attempt": 1,
+        "status": 200,
+        "latency_ms": 630.23,
+        "ok": true,
+        "err": "",
+        "body": "{\"hasAccess\":true,\"subscriptionTier\":\"premium\"}"
+      }
+    ]
+  },
+  {
+    "role": "recruiter",
+    "method": "POST",
+    "url": "https://jobshaman-cz.onrender.com/verify-billing",
+    "attempts": [
+      {
+        "attempt": 1,
+        "status": 200,
+        "latency_ms": 628.75,
+        "ok": true,
+        "err": "",
+        "body": "{\"hasAccess\":false,\"reason\":\"Inactive subscription\"}"
+      }
+    ]
+  },
+  {
+    "role": "admin",
+    "method": "GET",
+    "url": "https://jobshaman-cz.onrender.com/jobs/recommendations?limit=3",
+    "attempts": [
+      {
+        "attempt": 1,
+        "status": 0,
+        "latency_ms": 12005.54,
+        "ok": false,
+        "err": "curl: (28) Operation timed out after 12005 milliseconds with 0 bytes received\n",
+        "body": ""
+      },
+      {
+        "attempt": 2,
+        "status": 0,
+        "latency_ms": 12005.78,
+        "ok": false,
+        "err": "curl: (28) Operation timed out after 12005 milliseconds with 0 bytes received\n",
+        "body": ""
+      },
+      {
+        "attempt": 3,
+        "status": 0,
+        "latency_ms": 12005.76,
+        "ok": false,
+        "err": "curl: (28) Operation timed out after 12005 milliseconds with 0 bytes received\n",
+        "body": ""
+      }
+    ]
+  },
+  {
+    "role": "recruiter",
+    "method": "GET",
+    "url": "https://jobshaman-cz.onrender.com/jobs/recommendations?limit=3",
+    "attempts": [
+      {
+        "attempt": 1,
+        "status": 0,
+        "latency_ms": 12006.6,
+        "ok": false,
+        "err": "curl: (28) Operation timed out after 12006 milliseconds with 0 bytes received\n",
+        "body": ""
+      },
+      {
+        "attempt": 2,
+        "status": 0,
+        "latency_ms": 12005.11,
+        "ok": false,
+        "err": "curl: (28) Operation timed out after 12005 milliseconds with 0 bytes received\n",
+        "body": ""
+      },
+      {
+        "attempt": 3,
+        "status": 0,
+        "latency_ms": 12005.91,
+        "ok": false,
+        "err": "curl: (28) Operation timed out after 12005 milliseconds with 0 bytes received\n",
+        "body": ""
+      }
+    ]
+  }
+]

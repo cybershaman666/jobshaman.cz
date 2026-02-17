@@ -1,0 +1,180 @@
+{
+  "meta": {
+    "backend": "https://jobshaman-cz.onrender.com",
+    "timestamp": "2026-02-17T19:19:02Z"
+  },
+  "auth": {
+    "admin": {
+      "status": 200,
+      "latency_ms": 580.51,
+      "ok": true,
+      "user_id": "9a2eddcd-3bf7-4880-9f16-19e72985472a"
+    },
+    "recruiter": {
+      "status": 200,
+      "latency_ms": 212.98,
+      "ok": true,
+      "user_id": "f7d5d080-750d-4bad-8e06-6215b034cb1b"
+    }
+  },
+  "public_tests": [
+    {
+      "name": "healthz",
+      "status": -1,
+      "latency_ms": 20053.29,
+      "body": "EXC:ReadTimeout:HTTPSConnectionPool(host='jobshaman-cz.onrender.com', port=443): Read timed out. (read timeout=20)"
+    },
+    {
+      "name": "scrape_no_token",
+      "status": -1,
+      "latency_ms": 20063.38,
+      "body": "EXC:ReadTimeout:HTTPSConnectionPool(host='jobshaman-cz.onrender.com', port=443): Read timed out. (read timeout=20)"
+    },
+    {
+      "name": "match_candidates_no_auth",
+      "status": -1,
+      "latency_ms": 20049.51,
+      "body": "EXC:ReadTimeout:HTTPSConnectionPool(host='jobshaman-cz.onrender.com', port=443): Read timed out. (read timeout=20)"
+    },
+    {
+      "name": "ai_execute_public_disallowed",
+      "status": -1,
+      "latency_ms": 20066.96,
+      "body": "EXC:ReadTimeout:HTTPSConnectionPool(host='jobshaman-cz.onrender.com', port=443): Read timed out. (read timeout=20)"
+    },
+    {
+      "name": "ai_execute_public_allowed",
+      "status": -1,
+      "latency_ms": 20060.77,
+      "body": "EXC:ReadTimeout:HTTPSConnectionPool(host='jobshaman-cz.onrender.com', port=443): Read timed out. (read timeout=20)"
+    }
+  ],
+  "role_tests": {
+    "admin": [
+      {
+        "name": "csrf",
+        "status": -1,
+        "latency_ms": 20052.21,
+        "body": "EXC:ReadTimeout:HTTPSConnectionPool(host='jobshaman-cz.onrender.com', port=443): Read timed out. (read timeout=20)"
+      },
+      {
+        "name": "admin_me",
+        "status": 200,
+        "latency_ms": 20041.19,
+        "body": "{\"id\":\"5eb2cbba-d92b-41f9-bbf8-1005dac201e2\",\"user_id\":\"9a2eddcd-3bf7-4880-9f16-19e72985472a\",\"email\":\"martinhlavac1@gmail.com\",\"role\":\"admin\",\"is_active\":true}"
+      },
+      {
+        "name": "admin_stats",
+        "status": 200,
+        "latency_ms": 2477.0,
+        "body": "{\"users\":{\"total\":7,\"new_7d\":0,\"new_30d\":7},\"companies\":{\"total\":4,\"new_7d\":0,\"new_30d\":4},\"conversion\":{\"company_paid_percent\":75.0,\"user_paid_percent\":14.29,\"paid_companies\":3,\"paid_users\":1},\"traffic\":{\"daily\":[{\"day\":\"2026-02-11T00:00:00+00:00\",\"sessions\":2,\"pageviews\":3,\"uni"
+      },
+      {
+        "name": "subscription_status_self",
+        "status": 200,
+        "latency_ms": 1292.88,
+        "body": "{\"tier\":\"premium\",\"tierName\":\"Premium\",\"status\":\"active\",\"expiresAt\":\"2026-03-18T10:20:21.113775+00:00\",\"assessmentsAvailable\":0,\"assessmentsUsed\":0,\"jobPostingsAvailable\":10,\"jobPostingsUsed\":0}"
+      },
+      {
+        "name": "verify_billing",
+        "status": 200,
+        "latency_ms": 1254.51,
+        "body": "{\"hasAccess\":true,\"subscriptionTier\":\"premium\"}"
+      },
+      {
+        "name": "hybrid_search_v2",
+        "status": 200,
+        "latency_ms": 843.71,
+        "body": "{\"jobs\":[],\"has_more\":false,\"total_count\":0,\"request_id\":\"69945764-14f6-475d-a6ef-6533a6fe09cf\",\"meta\":{\"sort_mode\":\"default\",\"latency_ms\":320,\"fallback\":null,\"result_count\":0}}"
+      },
+      {
+        "name": "recommendations",
+        "status": -1,
+        "latency_ms": 20018.61,
+        "body": "EXC:ReadTimeout:HTTPSConnectionPool(host='jobshaman-cz.onrender.com', port=443): Read timed out. (read timeout=20)"
+      },
+      {
+        "name": "assessments_invitations",
+        "status": -1,
+        "latency_ms": 20062.4,
+        "body": "EXC:ReadTimeout:HTTPSConnectionPool(host='jobshaman-cz.onrender.com', port=443): Read timed out. (read timeout=20)"
+      }
+    ],
+    "recruiter": [
+      {
+        "name": "csrf",
+        "status": -1,
+        "latency_ms": 20053.17,
+        "body": "EXC:ReadTimeout:HTTPSConnectionPool(host='jobshaman-cz.onrender.com', port=443): Read timed out. (read timeout=20)"
+      },
+      {
+        "name": "admin_me",
+        "status": -1,
+        "latency_ms": 20068.57,
+        "body": "EXC:ReadTimeout:HTTPSConnectionPool(host='jobshaman-cz.onrender.com', port=443): Read timed out. (read timeout=20)"
+      },
+      {
+        "name": "admin_stats",
+        "status": -1,
+        "latency_ms": 20058.2,
+        "body": "EXC:ReadTimeout:HTTPSConnectionPool(host='jobshaman-cz.onrender.com', port=443): Read timed out. (read timeout=20)"
+      },
+      {
+        "name": "subscription_status_self",
+        "status": -1,
+        "latency_ms": 20065.77,
+        "body": "EXC:ReadTimeout:HTTPSConnectionPool(host='jobshaman-cz.onrender.com', port=443): Read timed out. (read timeout=20)"
+      },
+      {
+        "name": "verify_billing",
+        "status": -1,
+        "latency_ms": 20136.19,
+        "body": "EXC:ReadTimeout:HTTPSConnectionPool(host='jobshaman-cz.onrender.com', port=443): Read timed out. (read timeout=20)"
+      },
+      {
+        "name": "hybrid_search_v2",
+        "status": -1,
+        "latency_ms": 20289.34,
+        "body": "EXC:ReadTimeout:HTTPSConnectionPool(host='jobshaman-cz.onrender.com', port=443): Read timed out. (read timeout=20)"
+      },
+      {
+        "name": "recommendations",
+        "status": -1,
+        "latency_ms": 20092.17,
+        "body": "EXC:ReadTimeout:HTTPSConnectionPool(host='jobshaman-cz.onrender.com', port=443): Read timed out. (read timeout=20)"
+      },
+      {
+        "name": "assessments_invitations",
+        "status": 200,
+        "latency_ms": 1350.7,
+        "body": "{\"invitations\":[]}"
+      }
+    ]
+  },
+  "fuzz": {
+    "ai_public_disallowed_burst": {
+      "name": "ai_public_disallowed_burst",
+      "requests": 24,
+      "concurrency": 6,
+      "duration_ms": 61967.14,
+      "status_counts": {
+        "403": 6
+      },
+      "errors": 18,
+      "latency_avg_ms": 15489.22,
+      "latency_p95_ms": 20065.31
+    },
+    "hybrid_search_v2_burst": {
+      "name": "hybrid_search_v2_burst",
+      "requests": 24,
+      "concurrency": 6,
+      "duration_ms": 80209.66,
+      "status_counts": {
+        "200": 1
+      },
+      "errors": 23,
+      "latency_avg_ms": 19241.84,
+      "latency_p95_ms": 20063.51
+    }
+  }
+}

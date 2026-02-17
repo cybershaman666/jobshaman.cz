@@ -1,5 +1,6 @@
-import { BACKEND_URL } from '../constants';
-import { authenticatedFetch, isBackendNetworkCooldownActive } from './csrfService';
+import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
+import { authenticatedFetch } from './csrfService';
+import { recordRuntimeSignal } from './runtimeSignals';
 
 export type JobInteractionEventType =
     | 'impression'
@@ -23,41 +24,124 @@ export interface JobInteractionPayload {
     metadata?: Record<string, any>;
 }
 
+const normalizeBackendBaseUrl = (value?: string): string | null => {
+    if (!value) return null;
+    try {
+        const url = new URL(value);
+        return `${url.origin}${url.pathname.replace(/\/$/, '')}`;
+    } catch {
+        return null;
+    }
+};
+
+const resolveInteractionBackends = (): string[] => {
+    const bases = [
+        normalizeBackendBaseUrl(SEARCH_BACKEND_URL),
+        normalizeBackendBaseUrl(BACKEND_URL),
+    ].filter((base): base is string => !!base);
+    return Array.from(new Set(bases));
+};
+
+const INTERACTION_BACKEND_COOLDOWN_MS = 90_000;
+const interactionBackendCooldownByHost = new Map<string, number>();
+
+const isInteractionBackendCooldownActive = (baseUrl: string): boolean =>
+    Date.now() < (interactionBackendCooldownByHost.get(baseUrl) || 0);
+
+const markInteractionBackendCooldown = (baseUrl: string): void => {
+    interactionBackendCooldownByHost.set(baseUrl, Date.now() + INTERACTION_BACKEND_COOLDOWN_MS);
+};
+
+const clearInteractionBackendCooldown = (baseUrl: string): void => {
+    interactionBackendCooldownByHost.delete(baseUrl);
+};
+
 export const trackJobInteraction = async (payload: JobInteractionPayload): Promise<void> => {
-    if (isBackendNetworkCooldownActive()) {
+    const backends = resolveInteractionBackends();
+    if (!backends.length) return;
+    const activeBackends = backends.filter((baseUrl) => !isInteractionBackendCooldownActive(baseUrl));
+    if (!activeBackends.length) {
+        recordRuntimeSignal('interaction_tracking_skipped', {
+            reason: 'all_backends_in_cooldown',
+            event_type: payload.eventType
+        }, {
+            dedupeKey: 'all_backends_in_cooldown',
+            throttleMs: 30_000,
+            sendAnalytics: false
+        });
         return;
     }
-    try {
-        const response = await authenticatedFetch(`${BACKEND_URL}/jobs/interactions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                job_id: typeof payload.jobId === 'string' ? parseInt(payload.jobId, 10) : payload.jobId,
-                event_type: payload.eventType,
-                dwell_time_ms: payload.dwellTimeMs ?? null,
-                session_id: payload.sessionId ?? null,
-                request_id: payload.requestId ?? null,
-                signal_value: payload.signalValue ?? null,
-                scroll_depth: payload.scrollDepth ?? null,
-                scoring_version: payload.scoringVersion ?? null,
-                model_version: payload.modelVersion ?? null,
-                metadata: payload.metadata ?? null
-            })
-        });
 
-        if (!response.ok) {
-            if (response.status >= 500) {
+    const requestBody = JSON.stringify({
+        job_id: typeof payload.jobId === 'string' ? parseInt(payload.jobId, 10) : payload.jobId,
+        event_type: payload.eventType,
+        dwell_time_ms: payload.dwellTimeMs ?? null,
+        session_id: payload.sessionId ?? null,
+        request_id: payload.requestId ?? null,
+        signal_value: payload.signalValue ?? null,
+        scroll_depth: payload.scrollDepth ?? null,
+        scoring_version: payload.scoringVersion ?? null,
+        model_version: payload.modelVersion ?? null,
+        metadata: payload.metadata ?? null
+    });
+
+    for (const baseUrl of activeBackends) {
+        try {
+            const response = await authenticatedFetch(`${baseUrl}/jobs/interactions`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: requestBody
+            });
+
+            if (response.ok) {
+                clearInteractionBackendCooldown(baseUrl);
                 return;
             }
+
+            if (response.status >= 500 || response.status === 429) {
+                markInteractionBackendCooldown(baseUrl);
+                recordRuntimeSignal('interaction_tracking_degraded', {
+                    reason: 'server_error',
+                    status: response.status,
+                    backend: baseUrl
+                }, {
+                    dedupeKey: `status_${response.status}`,
+                    throttleMs: 30_000,
+                    sendAnalytics: false
+                });
+                continue;
+            }
+
             console.warn('⚠️ Failed to track job interaction:', response.status, response.statusText);
-        }
-    } catch (error) {
-        const msg = String((error as any)?.message || '').toLowerCase();
-        if (msg.includes('cooldown active') || msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('cors')) {
+            return;
+        } catch (error) {
+            const msg = String((error as any)?.message || '').toLowerCase();
+            const isTransient =
+                (error as any)?.name === 'AbortError' ||
+                msg.includes('aborted') ||
+                msg.includes('cooldown active') ||
+                msg.includes('networkerror') ||
+                msg.includes('failed to fetch') ||
+                msg.includes('cors');
+
+            if (isTransient) {
+                markInteractionBackendCooldown(baseUrl);
+                continue;
+            }
+
+            console.warn('⚠️ Error tracking job interaction:', error);
             return;
         }
-        console.warn('⚠️ Error tracking job interaction:', error);
     }
+
+    recordRuntimeSignal('interaction_tracking_skipped', {
+        reason: 'all_backends_unavailable',
+        event_type: payload.eventType
+    }, {
+        dedupeKey: 'all_backends_unavailable',
+        throttleMs: 30_000,
+        sendAnalytics: false
+    });
 };

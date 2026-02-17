@@ -1,0 +1,194 @@
+{
+  "public": [
+    {
+      "name": "healthz",
+      "status": 200,
+      "latency_ms": 3107.36,
+      "body": "{\"status\":\"ok\"}",
+      "stderr": "",
+      "ok": true
+    },
+    {
+      "name": "scrape_no_token",
+      "status": 403,
+      "latency_ms": 3667.73,
+      "body": "{\"detail\":\"Unauthorized\"}",
+      "stderr": "",
+      "ok": true
+    },
+    {
+      "name": "match_candidates_no_auth",
+      "status": 401,
+      "latency_ms": 6155.77,
+      "body": "{\"detail\":\"Not authenticated\"}",
+      "stderr": "",
+      "ok": true
+    },
+    {
+      "name": "interactions_no_auth",
+      "status": 401,
+      "latency_ms": 605.93,
+      "body": "{\"detail\":\"Not authenticated\"}",
+      "stderr": "",
+      "ok": true
+    },
+    {
+      "name": "ai_public_disallowed",
+      "status": 403,
+      "latency_ms": 447.55,
+      "body": "{\"detail\":\"Unsupported public AI action\"}",
+      "stderr": "",
+      "ok": true
+    },
+    {
+      "name": "ai_public_allowed",
+      "status": 200,
+      "latency_ms": 9020.45,
+      "body": "{\"ok\":true,\"assessment\":{\"id\":\"\",\"role\":\"QA\",\"title\":\"Digital Assessment Center - Junior QA\",\"description\":\"Praktický test pro pozici Junior QA zaměřený na testování a základní znalosti QA procesů.\",\"timeLimitSeconds\":900,\"questions\":[{\"id\":\"q1\",\"text\":\"Co je ",
+      "stderr": "",
+      "ok": true
+    }
+  ],
+  "roles": {
+    "admin": [
+      {
+        "name": "admin_csrf_token",
+        "status": 200,
+        "latency_ms": 1006.22,
+        "body": "{\"csrf_token\":\"g-7631CMZwTPC3gAZ9GiqbF2IIl3tVJ3q0oC6KZdO98\"}",
+        "stderr": "",
+        "ok": true
+      },
+      {
+        "name": "admin_admin_me",
+        "status": 200,
+        "latency_ms": 1266.14,
+        "body": "{\"id\":\"5eb2cbba-d92b-41f9-bbf8-1005dac201e2\",\"user_id\":\"9a2eddcd-3bf7-4880-9f16-19e72985472a\",\"email\":\"martinhlavac1@gmail.com\",\"role\":\"admin\",\"is_active\":true}",
+        "stderr": "",
+        "ok": true
+      },
+      {
+        "name": "admin_admin_stats",
+        "status": 200,
+        "latency_ms": 1632.26,
+        "body": "{\"users\":{\"total\":7,\"new_7d\":0,\"new_30d\":7},\"companies\":{\"total\":4,\"new_7d\":0,\"new_30d\":4},\"conversion\":{\"company_paid_percent\":75.0,\"user_paid_percent\":14.29,\"paid_companies\":3,\"paid_users\":1},\"traffic\":{\"daily\":[{\"day\":\"2026-02-11T00:00:00+00:00\",\"sessions\":",
+        "stderr": "",
+        "ok": true
+      },
+      {
+        "name": "admin_subscription_status_self",
+        "status": 200,
+        "latency_ms": 547.23,
+        "body": "{\"tier\":\"premium\",\"tierName\":\"Premium\",\"status\":\"active\",\"expiresAt\":\"2026-03-18T10:20:21.113775+00:00\",\"assessmentsAvailable\":0,\"assessmentsUsed\":0,\"jobPostingsAvailable\":10,\"jobPostingsUsed\":0}",
+        "stderr": "",
+        "ok": true
+      },
+      {
+        "name": "admin_verify_billing",
+        "status": 200,
+        "latency_ms": 663.87,
+        "body": "{\"hasAccess\":true,\"subscriptionTier\":\"premium\"}",
+        "stderr": "",
+        "ok": true
+      },
+      {
+        "name": "admin_hybrid_search_v2",
+        "status": 200,
+        "latency_ms": 542.94,
+        "body": "{\"jobs\":[],\"has_more\":false,\"total_count\":0,\"request_id\":\"33ef60cf-6439-4b92-8dca-ed27250dd2cd\",\"meta\":{\"sort_mode\":\"default\",\"latency_ms\":187,\"fallback\":null,\"result_count\":0}}",
+        "stderr": "",
+        "ok": true
+      },
+      {
+        "name": "admin_recommendations",
+        "status": 0,
+        "latency_ms": 10006.03,
+        "body": "",
+        "stderr": "curl: (28) Operation timed out after 10006 milliseconds with 0 bytes received",
+        "ok": false
+      },
+      {
+        "name": "admin_assessments_invitations",
+        "status": 0,
+        "latency_ms": 10005.55,
+        "body": "",
+        "stderr": "curl: (28) Operation timed out after 10005 milliseconds with 0 bytes received",
+        "ok": false
+      },
+      {
+        "name": "admin_checkout_malicious_url_probe",
+        "status": 0,
+        "latency_ms": 10006.78,
+        "body": "",
+        "stderr": "curl: (28) Operation timed out after 10006 milliseconds with 0 bytes received",
+        "ok": false
+      }
+    ],
+    "recruiter": [
+      {
+        "name": "recruiter_csrf_token",
+        "status": 0,
+        "latency_ms": 10005.69,
+        "body": "",
+        "stderr": "curl: (28) Operation timed out after 10005 milliseconds with 0 bytes received",
+        "ok": false
+      },
+      {
+        "name": "recruiter_admin_me",
+        "status": 0,
+        "latency_ms": 10006.23,
+        "body": "",
+        "stderr": "curl: (28) Operation timed out after 10006 milliseconds with 0 bytes received",
+        "ok": false
+      },
+      {
+        "name": "recruiter_admin_stats",
+        "status": 0,
+        "latency_ms": 10005.7,
+        "body": "",
+        "stderr": "curl: (28) Operation timed out after 10005 milliseconds with 0 bytes received",
+        "ok": false
+      },
+      {
+        "name": "recruiter_subscription_status_self",
+        "status": 0,
+        "latency_ms": 10006.25,
+        "body": "",
+        "stderr": "curl: (28) Operation timed out after 10006 milliseconds with 0 bytes received",
+        "ok": false
+      },
+      {
+        "name": "recruiter_verify_billing",
+        "status": 0,
+        "latency_ms": 10005.41,
+        "body": "",
+        "stderr": "curl: (28) Operation timed out after 10005 milliseconds with 0 bytes received",
+        "ok": false
+      },
+      {
+        "name": "recruiter_hybrid_search_v2",
+        "status": 0,
+        "latency_ms": 10004.2,
+        "body": "",
+        "stderr": "curl: (28) Operation timed out after 10004 milliseconds with 0 bytes received",
+        "ok": false
+      },
+      {
+        "name": "recruiter_recommendations",
+        "status": 0,
+        "latency_ms": 10005.96,
+        "body": "",
+        "stderr": "curl: (28) Operation timed out after 10005 milliseconds with 0 bytes received",
+        "ok": false
+      },
+      {
+        "name": "recruiter_assessments_invitations",
+        "status": 0,
+        "latency_ms": 10005.37,
+        "body": "",
+        "stderr": "curl: (28) Operation timed out after 10005 milliseconds with 0 bytes received",
+        "ok": false
+      }
+    ]
+  }
+}

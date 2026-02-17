@@ -1,0 +1,23 @@
+{
+  "ai_public_disallowed_burst": {
+    "name": "ai_public_disallowed_burst",
+    "requests": 24,
+    "status_counts": {
+      "0": 24
+    },
+    "errors": 24,
+    "latency_avg_ms": 8011.74,
+    "latency_p95_ms": 8013.64
+  },
+  "hybrid_search_v2_burst": {
+    "name": "hybrid_search_v2_burst",
+    "requests": 24,
+    "status_counts": {
+      "0": 22,
+      "200": 2
+    },
+    "errors": 22,
+    "latency_avg_ms": 7549.54,
+    "latency_p95_ms": 8010.59
+  }
+}

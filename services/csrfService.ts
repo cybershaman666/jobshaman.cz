@@ -1,20 +1,56 @@
 // CSRF Token Management Service
 import { BACKEND_URL } from '../constants';
 import { supabase } from './supabaseClient';
+import { recordRuntimeSignal } from './runtimeSignals';
 
 const CSRF_TOKEN_KEY = 'csrf_token';
 const CSRF_TOKEN_EXPIRY_KEY = 'csrf_token_expiry';
 const BACKEND_NETWORK_COOLDOWN_MS = 60_000;
 const CSRF_TOKEN_COOLDOWN_MS = 60_000;
+const REQUEST_LOG_THROTTLE_MS = 15_000;
+const DEFAULT_FETCH_TIMEOUT_MS = 45_000;
+const CSRF_FETCH_TIMEOUT_MS = 15_000;
+const HYBRID_FETCH_TIMEOUT_MS = 25_000;
+const SUBSCRIPTION_FETCH_TIMEOUT_MS = 20_000;
+const INTERACTION_FETCH_TIMEOUT_MS = 8_000;
+const AI_FETCH_TIMEOUT_MS = 90_000;
 
 let backendNetworkCooldownUntil = 0;
 let csrfTokenCooldownUntil = 0;
 let csrfFetchInFlight: Promise<string | null> | null = null;
 let lastCsrfNetworkLogAt = 0;
+let lastRequestTimeoutLogAt = 0;
+let lastMissingCsrfLogAt = 0;
 
 const isLikelyNetworkError = (error: unknown): boolean => {
     const msg = String((error as any)?.message || error || '').toLowerCase();
     return msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('cors');
+};
+
+const isAbortError = (error: unknown): boolean => {
+    return error instanceof Error && error.name === 'AbortError';
+};
+
+const shouldEmitThrottledLog = (lastAt: number, intervalMs: number = REQUEST_LOG_THROTTLE_MS): boolean => {
+    return Date.now() - lastAt > intervalMs;
+};
+
+const getRequestPath = (url: string): string => {
+    try {
+        return new URL(url, window.location.origin).pathname || '';
+    } catch {
+        return '';
+    }
+};
+
+const resolveRequestTimeoutMs = (url: string): number => {
+    const path = getRequestPath(url);
+    if (path === '/csrf-token') return CSRF_FETCH_TIMEOUT_MS;
+    if (path === '/jobs/interactions') return INTERACTION_FETCH_TIMEOUT_MS;
+    if (path === '/jobs/hybrid-search' || path === '/jobs/hybrid-search-v2') return HYBRID_FETCH_TIMEOUT_MS;
+    if (path === '/subscription-status') return SUBSCRIPTION_FETCH_TIMEOUT_MS;
+    if (path.startsWith('/ai/')) return AI_FETCH_TIMEOUT_MS;
+    return DEFAULT_FETCH_TIMEOUT_MS;
 };
 
 const isBackendUrlRequest = (url: string): boolean => {
@@ -37,6 +73,7 @@ const endpointDoesNotRequireCsrf = (url: string): boolean => {
             path === '/jobs/analyze' ||
             path === '/jobs/hybrid-search' ||
             path === '/jobs/hybrid-search-v2' ||
+            path === '/jobs/interactions' ||
             path.startsWith('/ai/') ||
             path === '/verify-billing' ||
             path === '/subscription-status' ||
@@ -71,8 +108,10 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
     clearCsrfToken();
     // console.log('🔄 Fetching fresh CSRF token...');
 
-    const maxRetries = 3;
+    const maxRetries = 2;
     let lastError: any = null;
+    const csrfTokenUrl = `${BACKEND_URL}/csrf-token`;
+    const csrfTimeoutMs = resolveRequestTimeoutMs(csrfTokenUrl);
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
@@ -81,11 +120,23 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
             // Create abort controller for timeout
             const controller = new AbortController();
             const timeoutId = setTimeout(() => {
-                console.warn(`⏱️ CSRF fetch attempt ${attempt} timed out after 90s. The server might be waking up.`);
+                if (shouldEmitThrottledLog(lastRequestTimeoutLogAt)) {
+                    console.warn(`⏱️ CSRF fetch attempt ${attempt} timed out after ${Math.round(csrfTimeoutMs / 1000)}s.`);
+                    lastRequestTimeoutLogAt = Date.now();
+                }
+                recordRuntimeSignal('request_timeout', {
+                    path: '/csrf-token',
+                    method: 'GET',
+                    timeout_ms: csrfTimeoutMs,
+                    attempt
+                }, {
+                    dedupeKey: '/csrf-token',
+                    throttleMs: 15_000
+                });
                 controller.abort();
-            }, 90000); // 90 second timeout for Render cold starts
+            }, csrfTimeoutMs);
 
-            const response = await fetch(`${BACKEND_URL}/csrf-token`, {
+            const response = await fetch(csrfTokenUrl, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${authToken}`,
@@ -128,23 +179,27 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
             return data.csrf_token;
         } catch (error) {
             lastError = error;
-            const isAborted = error instanceof Error && error.name === 'AbortError';
+            const isAborted = isAbortError(error);
+            const isConnectivityIssue = isLikelyNetworkError(error) || isAborted;
 
-            if (isAborted) {
-                console.error(`❌ CSRF token fetch ABORTED (timeout) on attempt ${attempt}`);
-            } else {
-                const isNetwork = isLikelyNetworkError(error);
-                if (isNetwork) {
-                    csrfTokenCooldownUntil = Date.now() + CSRF_TOKEN_COOLDOWN_MS;
-                    backendNetworkCooldownUntil = Date.now() + BACKEND_NETWORK_COOLDOWN_MS;
-                    const now = Date.now();
-                    if (now - lastCsrfNetworkLogAt > 15_000) {
-                        console.warn(`⚠️ CSRF fetch unavailable (attempt ${attempt}), backend cooldown enabled.`);
-                        lastCsrfNetworkLogAt = now;
-                    }
-                } else {
-                    console.error(`❌ Error fetching CSRF token (Attempt ${attempt}):`, error);
+            if (isConnectivityIssue) {
+                csrfTokenCooldownUntil = Date.now() + CSRF_TOKEN_COOLDOWN_MS;
+                backendNetworkCooldownUntil = Date.now() + BACKEND_NETWORK_COOLDOWN_MS;
+                recordRuntimeSignal('csrf_fetch_unavailable', {
+                    attempt,
+                    aborted: isAborted,
+                    error: String((error as any)?.message || '')
+                }, {
+                    dedupeKey: isAborted ? 'timeout' : 'network',
+                    throttleMs: 15_000
+                });
+                const now = Date.now();
+                if (now - lastCsrfNetworkLogAt > REQUEST_LOG_THROTTLE_MS) {
+                    console.warn(`⚠️ CSRF fetch unavailable (attempt ${attempt}), backend cooldown enabled.`);
+                    lastCsrfNetworkLogAt = now;
                 }
+            } else {
+                console.error(`❌ Error fetching CSRF token (Attempt ${attempt}):`, error);
             }
 
             if (attempt < maxRetries) {
@@ -158,7 +213,7 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
         }
     }
 
-    if (!isLikelyNetworkError(lastError)) {
+    if (!isLikelyNetworkError(lastError) && !isAbortError(lastError)) {
         console.error('❌ Failed to fetch CSRF token after multiple attempts:', lastError);
     }
     return null;
@@ -310,11 +365,19 @@ export const authenticatedFetch = async (
     options: RequestInit = {},
     authToken?: string
 ): Promise<Response> => {
+    const method = (options.method || 'GET').toUpperCase();
+    const requestPath = getRequestPath(url) || 'unknown';
     if (isBackendUrlRequest(url) && Date.now() < backendNetworkCooldownUntil) {
+        recordRuntimeSignal('request_blocked_by_cooldown', {
+            path: requestPath,
+            method
+        }, {
+            dedupeKey: `${method}:${requestPath}`,
+            throttleMs: 20_000,
+            sendAnalytics: false
+        });
         throw new Error('Backend temporarily unreachable (cooldown active)');
     }
-
-    const method = (options.method || 'GET').toUpperCase();
     const isStateChanging = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
     const requiresCsrf = isStateChanging && !endpointDoesNotRequireCsrf(url);
 
@@ -325,6 +388,9 @@ export const authenticatedFetch = async (
 
     const performRequest = async (forceFreshCsrf: boolean): Promise<Response> => {
         const headers = new Headers(options.headers || {});
+        const requestTimeoutMs = resolveRequestTimeoutMs(url);
+        const callerSignal = options.signal;
+        let abortedByCaller = !!callerSignal?.aborted;
 
         if (resolvedAuthToken) {
             headers.set('Authorization', `Bearer ${resolvedAuthToken}`);
@@ -339,15 +405,42 @@ export const authenticatedFetch = async (
             if (csrfToken) {
                 headers.set('X-CSRF-Token', csrfToken);
             } else if (!isBackendUrlRequest(url) || Date.now() >= backendNetworkCooldownUntil) {
-                console.warn(`⚠️ No valid CSRF token found for ${method} request`);
+                if (shouldEmitThrottledLog(lastMissingCsrfLogAt)) {
+                    console.warn(`⚠️ No valid CSRF token found for ${method} request`);
+                    lastMissingCsrfLogAt = Date.now();
+                }
             }
         }
 
         const controller = new AbortController();
+        let cleanupCallerAbortListener: (() => void) | null = null;
+        if (callerSignal) {
+            const onCallerAbort = () => {
+                abortedByCaller = true;
+                controller.abort();
+            };
+            if (callerSignal.aborted) {
+                onCallerAbort();
+            } else {
+                callerSignal.addEventListener('abort', onCallerAbort, { once: true });
+                cleanupCallerAbortListener = () => callerSignal.removeEventListener('abort', onCallerAbort);
+            }
+        }
         const timeoutId = setTimeout(() => {
-            console.warn(`⏱️ Authenticated fetch to ${url} timed out after 90s. The server might be waking up.`);
+            if (shouldEmitThrottledLog(lastRequestTimeoutLogAt)) {
+                console.warn(`⏱️ Authenticated fetch to ${url} timed out after ${Math.round(requestTimeoutMs / 1000)}s.`);
+                lastRequestTimeoutLogAt = Date.now();
+            }
+            recordRuntimeSignal('request_timeout', {
+                path: requestPath,
+                method,
+                timeout_ms: requestTimeoutMs
+            }, {
+                dedupeKey: `${method}:${requestPath}`,
+                throttleMs: 15_000
+            });
             controller.abort();
-        }, 90000);
+        }, requestTimeoutMs);
 
         try {
             try {
@@ -357,16 +450,31 @@ export const authenticatedFetch = async (
                     signal: controller.signal
                 });
             } catch (error) {
-                if (isLikelyNetworkError(error) && isBackendUrlRequest(url)) {
+                const shouldTriggerCooldown = (isLikelyNetworkError(error) || (isAbortError(error) && !abortedByCaller)) && isBackendUrlRequest(url);
+                if (shouldTriggerCooldown) {
+                    const cooldownWasActive = Date.now() < backendNetworkCooldownUntil;
                     backendNetworkCooldownUntil = Date.now() + BACKEND_NETWORK_COOLDOWN_MS;
                     // CSRF endpoint often fails first during backend outages.
                     if (url.includes('/csrf-token')) {
                         csrfTokenCooldownUntil = Date.now() + CSRF_TOKEN_COOLDOWN_MS;
                     }
+                    if (!cooldownWasActive) {
+                        recordRuntimeSignal('backend_cooldown_entered', {
+                            path: requestPath,
+                            method,
+                            reason: isAbortError(error) && !abortedByCaller ? 'timeout' : 'network'
+                        }, {
+                            dedupeKey: requestPath,
+                            throttleMs: 20_000
+                        });
+                    }
                 }
                 throw error;
             }
         } finally {
+            if (cleanupCallerAbortListener) {
+                cleanupCallerAbortListener();
+            }
             clearTimeout(timeoutId);
         }
     };
