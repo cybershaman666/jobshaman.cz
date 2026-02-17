@@ -755,6 +755,7 @@ export const fetchJobsWithFilters = async (
 
     let finalUserLat = userLat;
     let finalUserLng = userLng;
+    const safeRadiusKm = (radiusKm && Number.isFinite(radiusKm) && radiusKm >= 1) ? radiusKm : null;
 
     const fetchViaBackendHybrid = async (): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
         if (!BACKEND_URL) {
@@ -773,7 +774,7 @@ export const fetchJobsWithFilters = async (
                 page_size: pageSize,
                 user_lat: finalUserLat ?? null,
                 user_lng: finalUserLng ?? null,
-                radius_km: radiusKm ?? null,
+                radius_km: safeRadiusKm,
                 filter_city: filterCity || null,
                 filter_contract_types: filterContractTypes && filterContractTypes.length > 0 ? filterContractTypes : null,
                 filter_benefits: filterBenefits && filterBenefits.length > 0 ? filterBenefits : null,
@@ -800,7 +801,7 @@ export const fetchJobsWithFilters = async (
                     page_size: pageSize,
                     user_lat: finalUserLat ?? null,
                     user_lng: finalUserLng ?? null,
-                    radius_km: radiusKm ?? null,
+                    radius_km: safeRadiusKm,
                     filter_city: filterCity || null,
                     filter_contract_types: filterContractTypes && filterContractTypes.length > 0 ? filterContractTypes : null,
                     filter_benefits: filterBenefits && filterBenefits.length > 0 ? filterBenefits : null,
@@ -813,6 +814,9 @@ export const fetchJobsWithFilters = async (
                 })
             });
             if (!fallbackResponse.ok) {
+                let detail = '';
+                try { detail = await fallbackResponse.text(); } catch {}
+                console.warn('Hybrid v1 fallback response detail:', detail);
                 throw new Error(`Hybrid fallback failed: ${fallbackResponse.status}`);
             }
             const fallbackPayload = await fallbackResponse.json();
@@ -850,6 +854,9 @@ export const fetchJobsWithFilters = async (
                 totalCount: Number(fallbackPayload.total_count || fallbackJobs.length)
             };
         } else if (!hybridResponse.ok) {
+            let detail = '';
+            try { detail = await hybridResponse.text(); } catch {}
+            console.warn('Hybrid v2 response detail:', detail);
             throw new Error(`Hybrid fallback failed: ${hybridResponse.status}`);
         }
 
@@ -918,7 +925,7 @@ export const fetchJobsWithFilters = async (
         }
 
         console.log(`🔍 Fetching filtered jobs with options:`, {
-            radius: radiusKm,
+            radius: safeRadiusKm,
             city: filterCity,
             lat: finalUserLat,
             lng: finalUserLng,
@@ -946,10 +953,10 @@ export const fetchJobsWithFilters = async (
 
         // When radius is disabled (undefined/null), also disable spatial filtering
         // by setting coordinates to null
-        const usesSpatialFilter = radiusKm !== undefined && radiusKm !== null;
+        const usesSpatialFilter = safeRadiusKm !== undefined && safeRadiusKm !== null;
         const spatialLat = usesSpatialFilter ? finalUserLat : null;
         const spatialLng = usesSpatialFilter ? finalUserLng : null;
-        const spatialRadius = usesSpatialFilter ? radiusKm : null;
+        const spatialRadius = usesSpatialFilter ? safeRadiusKm : null;
 
         const minSalaryFilter = filterMinSalary && filterMinSalary > 0 ? filterMinSalary : null;
 
