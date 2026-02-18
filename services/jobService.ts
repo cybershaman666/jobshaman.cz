@@ -2,7 +2,7 @@ import { supabase, isSupabaseConfigured, isSupabaseNetworkCooldownActive, noteSu
 import { Job, NoiseMetrics } from '../types';
 import { contextualRelevanceScorer, ContextualRelevanceScorer } from './contextualRelevanceService';
 import { calculateJHI } from '../utils/jhiCalculator';
-import { matchesIcoKeywords } from '../utils/contractType';
+import { matchesIcoKeywords, matchesFullTimeKeywords, matchesPartTimeKeywords, matchesBrigadaKeywords } from '../utils/contractType';
 import { detectCurrencyFromLocation } from './financialService';
 import { geocodeWithCaching } from './geocodingService';
 import i18n from '../src/i18n';
@@ -802,6 +802,74 @@ const normalizeTokenText = (input: string): string =>
         .replace(/\p{M}/gu, '')
         .toLowerCase();
 
+const appendContractType = (values: string[], value: string): string[] => {
+    const key = normalizeTokenText(value);
+    const seen = new Set(values.map((item) => normalizeTokenText(item)));
+    if (seen.has(key)) return values;
+    return [...values, value];
+};
+
+const normalizeSearchForContracts = (input: string): string =>
+    normalizeTokenText(input).replace(/[^a-z0-9]+/g, ' ').trim();
+
+const stripContractKeywords = (input: string): string => {
+    if (!input) return '';
+    let cleaned = normalizeSearchForContracts(input);
+    if (!cleaned) return '';
+    const patterns = [
+        /\b(ico|osvc|szco|zivnost|zivnostensk|b2b|freelanc\w*|contractor|self employed|selfemployed|dzialalnosc|gospodarcza)\b/g,
+        /\b(hpp|plny\s+uvazek|plny\s+pracovn\w*|pracovni\s+pomer|pracovny\s+pomer|full\s*time|fulltime|vollzeit|umowa\s+o\s+prace|pelny\s+etat)\b/g,
+        /\b(part\s*time|parttime|teilzeit|zkracen\w*|skracen\w*|castecn\w*|skrat\w*|polovicn\w*|niepelny\s+etat|czesc\s+etatu)\b/g,
+        /\b(brigad\w*|dpp|dpc|dohod\w*|minijob|aushilfe|umowa\s+zlecenie|umowa\s+o\s+dzielo|temporary|temp|seasonal|casual)\b/g
+    ];
+    for (const pattern of patterns) {
+        cleaned = cleaned.replace(pattern, ' ');
+    }
+    return cleaned.replace(/\s+/g, ' ').trim();
+};
+
+const deriveContractSearchOverrides = (
+    rawSearchTerm?: string,
+    rawContractTypes?: string[]
+): {
+    searchTerm: string;
+    contractTypes: string[];
+    hasContractIntent: boolean;
+} => {
+    const searchText = (rawSearchTerm || '').trim();
+    const contractTypes = Array.isArray(rawContractTypes) ? rawContractTypes : [];
+    const normalizedContractTypes = contractTypes.map((ct) => normalizeTokenText(String(ct)));
+
+    const detected: string[] = [];
+    if (searchText && matchesIcoKeywords(searchText)) detected.push('IČO');
+    if (searchText && matchesFullTimeKeywords(searchText)) detected.push('HPP');
+    if (searchText && matchesPartTimeKeywords(searchText)) detected.push('Part-time');
+    if (searchText && matchesBrigadaKeywords(searchText)) detected.push('Brigáda');
+
+    let mergedContractTypes = contractTypes;
+    for (const label of detected) {
+        mergedContractTypes = appendContractType(mergedContractTypes, label);
+    }
+
+    const hasContractIntent = detected.length > 0 || normalizedContractTypes.includes('ico') || normalizedContractTypes.includes('hpp') || normalizedContractTypes.includes('part-time') || normalizedContractTypes.includes('brigada');
+
+    let cleanedSearch = searchText;
+    if (hasContractIntent && searchText) {
+        const stripped = stripContractKeywords(searchText);
+        if (stripped.length < 2) {
+            cleanedSearch = '';
+        } else {
+            cleanedSearch = stripped;
+        }
+    }
+
+    return {
+        searchTerm: cleanedSearch,
+        contractTypes: mergedContractTypes,
+        hasContractIntent
+    };
+};
+
 const escapeRegex = (input: string): string =>
     input.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
@@ -889,7 +957,7 @@ export const fetchJobsWithFilters = async (
         userLng,
         radiusKm,
         filterCity,
-        filterContractTypes,
+        filterContractTypes: rawFilterContractTypes,
         filterBenefits,
         filterMinSalary,
         filterDatePosted = 'all',
@@ -899,10 +967,15 @@ export const fetchJobsWithFilters = async (
         countryCodes,
         excludeCountryCodes,
         filterLanguageCodes,
-        searchTerm,
+        searchTerm: rawSearchTerm,
         sortMode = 'default',
         abortSignal
     } = options;
+
+    const {
+        searchTerm,
+        contractTypes: filterContractTypes
+    } = deriveContractSearchOverrides(rawSearchTerm, rawFilterContractTypes);
 
     const normalizedSearchTerm = (searchTerm || '').trim();
     const safeSearchTerm = normalizedSearchTerm.length < 2 ? '' : normalizedSearchTerm;
@@ -978,28 +1051,17 @@ export const fetchJobsWithFilters = async (
 
     const matchesContractFilters = (job: Job): boolean => {
         if (normalizedContractFilters.length === 0) return true;
-        const searchableContractText = normalizeTokenText([
-            job.type || '',
-            job.work_model || '',
-            job.title || '',
-            job.description || '',
-            ...(job.tags || [])
-        ].join(' '));
-        const isIco = matchesIcoKeywords(job.type, job.work_model, job.title, job.description, ...(job.tags || []));
-        const isPartTime =
-            searchableContractText.includes('part-time') ||
-            searchableContractText.includes('part time') ||
-            searchableContractText.includes('zkracen') ||
-            searchableContractText.includes('brigad') ||
-            searchableContractText.includes('dpp') ||
-            searchableContractText.includes('dpc') ||
-            searchableContractText.includes('half-time');
-        const isHpp = searchableContractText.includes('hpp') || (!isIco && !isPartTime);
+        const searchableContractText = normalizeTokenText(job.type || '');
+        const isIco = matchesIcoKeywords(job.type || '');
+        const isBrigada = matchesBrigadaKeywords(job.type || '');
+        const isPartTime = matchesPartTimeKeywords(job.type || '');
+        const isHpp = matchesFullTimeKeywords(job.type || '');
 
         return normalizedContractFilters.some((type) => {
             if (type === 'ico') return isIco;
-            if (type === 'hpp') return isHpp;
-            if (type === 'part-time' || type === 'parttime' || type === 'part time') return isPartTime;
+            if (type === 'hpp' || type === 'full-time' || type === 'full time' || type === 'fulltime') return isHpp;
+            if (type === 'brigada' || type === 'brigáda') return isBrigada;
+            if (type === 'part-time' || type === 'parttime' || type === 'part time' || type === 'zkraceny' || type === 'zkracen') return isPartTime;
             return searchableContractText.includes(type);
         });
     };
