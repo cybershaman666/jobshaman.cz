@@ -383,6 +383,7 @@ CREATE TABLE public.jobs (
   location text,
   description text,
   benefits ARRAY,
+  benefits_norm ARRAY,
   contract_type text,
   contract_type_norm ARRAY,
   salary_from integer,

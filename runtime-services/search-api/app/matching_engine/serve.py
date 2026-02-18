@@ -97,6 +97,53 @@ def _normalize_contract_filters(values: List[str]) -> set:
     return tags
 
 
+def _benefit_tags_from_text(value: Optional[str]) -> set:
+    txt = _normalize_contract_text(value or "")
+    if not txt:
+        return set()
+    v = f" {txt} "
+    tags: set = set()
+
+    if re.search(r"(^| )(home office|homeoffice|work from home|remote|telework|prace z domova|praca z domu|z domova|na dalku|zdaln)( |$)", v):
+        tags.add("home_office")
+
+    if re.search(r"(^| )(dog friendly|dogfriendly|dog|dogs|pet friendly|pets allowed|pet|pets|psi|psu|psa|pes|pejsek|hund|haustier|zwierzeta)( |$)", v):
+        tags.add("dog_friendly")
+
+    if re.search(r"(^| )(child friendly|children friendly|kids friendly|kids|children|child|family friendly|detsk|detem|deti|dziec|dzieci|rodin|kinder|kindergarten|przedszkol|skolk)( |$)", v):
+        tags.add("child_friendly")
+
+    if re.search(r"(^| )(flexibil|flexible|flexitime|flexi time|pruzn|gleitzeit|elastyczn|ruchomy czas|flex)( |$)", v):
+        tags.add("flex_time")
+
+    if re.search(r"(^| )(vzdel|skolen|training|kurs|course|certifik|weiterbildung|szkolen|studium)( |$)", v):
+        tags.add("education")
+
+    if re.search(r"(^| )(multisport|sport card|karta multisport|pakiet sport|sportpaket|karta sport)( |$)", v):
+        tags.add("multisport")
+
+    if re.search(r"(^| )(strav[a-z]*|meal|lunch|obed|obedy|kantin|essens|posilk|karta lunch|lunch card)( |$)", v):
+        tags.add("meal_allowance")
+
+    if re.search(r"(^| )(5 tydn|5 tydnu|5 tydny|25 dn|25 dni|25 days|5 weeks|5 week|5 woch|5 wochen|5 tygodni|25 tage)( |$)", v):
+        tags.add("vacation_5w")
+
+    if re.search(r"(^| )(akcie|stock option|stock options|stock|equity|share option|share options|esop|mitarbeiteraktien|aktienoptionen|opcje na akcje)( |$)", v):
+        tags.add("employee_shares")
+
+    if re.search(r"(^| )(sluzebni auto|firemni auto|company car|firmenwagen|dienstwagen|auto sluzbowe|samochod sluzbowy|auto pro osobni|auto do uzytku|car allowance|personal use)( |$)", v):
+        tags.add("car_personal")
+
+    return tags
+
+
+def _normalize_benefit_filters(values: List[str]) -> set:
+    tags: set = set()
+    for value in values:
+        tags |= _benefit_tags_from_text(value)
+    return tags
+
+
 def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     r = 6371.0
     d_lat = math.radians(lat2 - lat1)
@@ -250,9 +297,23 @@ def _apply_diversity_guardrails(ranked: List[Dict], limit: int, user_id: str, cf
     return selected[:limit]
 
 
-def _benefits_match(job_benefits, requested: List[str]) -> bool:
+def _benefits_match(job_benefits, requested: List[str], job_description: Optional[str] = None, job_title: Optional[str] = None) -> bool:
     if not requested:
         return True
+    benefit_tags = _normalize_benefit_filters(requested)
+    if benefit_tags:
+        parts = []
+        if job_benefits:
+            if isinstance(job_benefits, list):
+                parts.extend(str(x) for x in job_benefits)
+            else:
+                parts.append(str(job_benefits))
+        if job_description:
+            parts.append(str(job_description))
+        if job_title:
+            parts.append(str(job_title))
+        job_tags = _benefit_tags_from_text(" ".join(parts))
+        return benefit_tags.issubset(job_tags)
     if not job_benefits:
         return False
     if isinstance(job_benefits, str):
@@ -378,7 +439,7 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
             job_tags = _contract_type_tags(job.get("contract_type") or "")
             if not job_tags.intersection(contract_filter_tags):
                 continue
-        if not _benefits_match(job.get("benefits"), required_benefits):
+        if not _benefits_match(job.get("benefits"), required_benefits, job.get("description"), job.get("title")):
             continue
         if not _experience_match(job, experience_levels):
             continue
