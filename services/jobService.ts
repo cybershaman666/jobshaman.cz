@@ -229,7 +229,7 @@ const BENEFIT_PATTERNS = [
     { regex: /flexibiln[íi]|pružn[áa] prac|flexible|flexibel|gleitzeit|elastyczn/i, label: 'Flexibilní pracovní doba' },
     { regex: /dovolen[áa] [5-9]|5 t[ýy]dn[ůu]|25 dn[ůu]|weeks of vacation|urlaub|urlop/i, label: '5 týdnů dovolené' },
     { regex: /home office|práce z domova|remote|homeoffice|arbeit von zu hause|praca zdalna/i, label: 'Home Office' },
-    { regex: /stravenk|e-stravenk|meal voucher|essens|mittagessen|kantine|bony żywieniowe|karta lunchowa/i, label: 'Stravenky' },
+    { regex: /\bstravenk|\bstrav|e-stravenk|meal voucher|essens|mittagessen|kantine|bony żywieniowe|karta lunchowa/i, label: 'Stravenky' },
     { regex: /multisport|sportpaket|karta multisport|pakiet sportowy/i, label: 'Multisport karta' },
     { regex: /sick days|zdravotn[íi] volno|krankentage|dni chorobowe/i, label: 'Sick days' },
     { regex: /notebook|počítač|laptop|arbeitslaptop/i, label: 'Notebook' },
@@ -812,6 +812,173 @@ const appendContractType = (values: string[], value: string): string[] => {
 const normalizeSearchForContracts = (input: string): string =>
     normalizeTokenText(input).replace(/[^a-z0-9]+/g, ' ').trim();
 
+const normalizeBenefitText = (input: string): string =>
+    normalizeTokenText(input).replace(/[^a-z0-9]+/g, ' ').trim();
+
+const BENEFIT_TAG_PATTERNS: Record<string, RegExp[]> = {
+    home_office: [
+        /\bhome office\b/,
+        /\bhomeoffice\b/,
+        /\bwork from home\b/,
+        /\bremote\b/,
+        /\btelework\b/,
+        /\bprace z domova\b/,
+        /\bpraca z domu\b/,
+        /\bz domova\b/,
+        /\bna dalku\b/,
+        /\bzdaln/
+    ],
+    dog_friendly: [
+        /\bdog friendly\b/,
+        /\bdogfriendly\b/,
+        /\bpet friendly\b/,
+        /\bpets allowed\b/,
+        /\bdog\b/,
+        /\bdogs\b/,
+        /\bpet\b/,
+        /\bpets\b/,
+        /\bpsi\b/,
+        /\bpes\b/,
+        /\bpsu\b/,
+        /\bpsa\b/,
+        /\bpejsek\b/,
+        /\bhund\b/,
+        /\bhaustier\b/,
+        /\bzwierzeta\b/
+    ],
+    child_friendly: [
+        /\bchild friendly\b/,
+        /\bchildren friendly\b/,
+        /\bkids friendly\b/,
+        /\bkids\b/,
+        /\bchildren\b/,
+        /\bchild\b/,
+        /\bfamily friendly\b/,
+        /\bdetsk/,
+        /\bdetem\b/,
+        /\bdeti\b/,
+        /\bdziec/,
+        /\bdzieci\b/,
+        /\brodin/,
+        /\bkinder\b/,
+        /\bkindergarten\b/,
+        /\bprzedszkol/,
+        /\bskolk/
+    ],
+    flex_time: [
+        /\bflexibil/,
+        /\bflexible\b/,
+        /\bflexitime\b/,
+        /\bflexi time\b/,
+        /\bpruzn/,
+        /\bgleitzeit\b/,
+        /\belastyczn/,
+        /\bruchomy czas\b/,
+        /\bflex\b/
+    ],
+    education: [
+        /\bvzdel/,
+        /\bskolen/,
+        /\btraining\b/,
+        /\bkurs\b/,
+        /\bcourse\b/,
+        /\bcertifik/,
+        /\bweiterbildung\b/,
+        /\bszkolen/,
+        /\bstudium\b/
+    ],
+    multisport: [
+        /\bmultisport\b/,
+        /\bsport card\b/,
+        /\bkarta multisport\b/,
+        /\bpakiet sport/,
+        /\bsportpaket\b/,
+        /\bkarta sport\b/
+    ],
+    meal_allowance: [
+        /\bstraven/,
+        /\bstrav/,
+        /\bmeal\b/,
+        /\blunch\b/,
+        /\bobed\b/,
+        /\bobedy\b/,
+        /\bkantin/,
+        /\bessens/,
+        /\bposilk/,
+        /\bkarta lunch\b/,
+        /\blunch card\b/
+    ],
+    vacation_5w: [
+        /\b5 tydn/,
+        /\b5 tydnu\b/,
+        /\b5 tydny\b/,
+        /\b25 dn\b/,
+        /\b25 dni\b/,
+        /\b25 days\b/,
+        /\b5 weeks\b/,
+        /\b5 week\b/,
+        /\b5 woch\b/,
+        /\b5 wochen\b/,
+        /\b5 tygodni\b/,
+        /\b25 tage\b/
+    ],
+    employee_shares: [
+        /\bakcie\b/,
+        /\bstock option\b/,
+        /\bstock options\b/,
+        /\bstock\b/,
+        /\bequity\b/,
+        /\bshare option\b/,
+        /\bshare options\b/,
+        /\besop\b/,
+        /\bmitarbeiteraktien\b/,
+        /\baktienoptionen\b/,
+        /\bopcje na akcje\b/
+    ],
+    car_personal: [
+        /\bsluzebni auto\b/,
+        /\bfiremni auto\b/,
+        /\bcompany car\b/,
+        /\bfirmenwagen\b/,
+        /\bdienstwagen\b/,
+        /\bauto sluzbowe\b/,
+        /\bsamochod sluzbowy\b/,
+        /\bauto pro osobni\b/,
+        /\bauto do uzytku\b/,
+        /\bcar allowance\b/,
+        /\bpersonal use\b/
+    ]
+};
+
+const deriveBenefitTagsFromText = (text: string): string[] => {
+    const normalized = normalizeBenefitText(text || '');
+    if (!normalized) return [];
+    const tags: string[] = [];
+    Object.entries(BENEFIT_TAG_PATTERNS).forEach(([tag, patterns]) => {
+        if (patterns.some((pattern) => pattern.test(normalized))) {
+            tags.push(tag);
+        }
+    });
+    return tags;
+};
+
+const splitBenefitFilters = (filters: string[]): { tags: string[]; tokens: string[] } => {
+    const tagSet = new Set<string>();
+    const tokenFilters: string[] = [];
+    for (const raw of filters) {
+        const text = String(raw || '').trim();
+        if (!text) continue;
+        const tags = deriveBenefitTagsFromText(text);
+        if (tags.length > 0) {
+            tags.forEach((tag) => tagSet.add(tag));
+            continue;
+        }
+        const token = normalizeBenefitText(text);
+        if (token) tokenFilters.push(token);
+    }
+    return { tags: Array.from(tagSet), tokens: tokenFilters };
+};
+
 const stripContractKeywords = (input: string): string => {
     if (!input) return '';
     let cleaned = normalizeSearchForContracts(input);
@@ -1010,6 +1177,7 @@ export const fetchJobsWithFilters = async (
     const normalizedLanguageCodes = (filterLanguageCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
     const normalizedContractFilters = (filterContractTypes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
     const normalizedBenefitFilters = (filterBenefits || []).map((b) => normalizeTokenText(String(b))).filter(Boolean);
+    const benefitFilterParts = splitBenefitFilters(filterBenefits || []);
     const normalizedExperienceFilters = (filterExperienceLevels || []).map((lvl) => normalizeTokenText(String(lvl))).filter(Boolean);
     const normalizedFilterCity = normalizeTokenText(filterCity || '').trim();
     const normalizedSearchTokens = normalizeTokenText(safeSearchTerm)
@@ -1143,16 +1311,27 @@ export const fetchJobsWithFilters = async (
                 return false;
             }
 
-            if (normalizedBenefitFilters.length > 0) {
-                const benefitsText = normalizeTokenText([
+            if (benefitFilterParts.tags.length > 0 || benefitFilterParts.tokens.length > 0) {
+                const benefitsTextRaw = [
                     ...(job.benefits || []),
                     ...(job.tags || []),
                     job.title || '',
                     job.description || ''
-                ].join(' '));
-                const hasAllBenefits = normalizedBenefitFilters.every((benefit) => benefitsText.includes(benefit));
-                if (!hasAllBenefits) {
-                    return false;
+                ].join(' ');
+                const benefitText = normalizeBenefitText(benefitsTextRaw);
+                const jobBenefitTags = deriveBenefitTagsFromText(benefitsTextRaw);
+
+                if (benefitFilterParts.tags.length > 0) {
+                    const hasAllTaggedBenefits = benefitFilterParts.tags.every((tag) => jobBenefitTags.includes(tag));
+                    if (!hasAllTaggedBenefits) {
+                        return false;
+                    }
+                }
+                if (benefitFilterParts.tokens.length > 0) {
+                    const hasAllTokens = benefitFilterParts.tokens.every((token) => benefitText.includes(token));
+                    if (!hasAllTokens) {
+                        return false;
+                    }
                 }
             }
 
