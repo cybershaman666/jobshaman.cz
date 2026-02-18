@@ -985,8 +985,8 @@ const stripContractKeywords = (input: string): string => {
     if (!cleaned) return '';
     const patterns = [
         /\b(ico|osvc|szco|zivnost|zivnostensk|b2b|freelanc\w*|contractor|self employed|selfemployed|dzialalnosc|gospodarcza)\b/g,
-        /\b(hpp|plny\s+uvazek|plny\s+pracovn\w*|pracovni\s+pomer|pracovny\s+pomer|full\s*time|fulltime|vollzeit|umowa\s+o\s+prace|pelny\s+etat)\b/g,
-        /\b(part\s*time|parttime|teilzeit|zkracen\w*|skracen\w*|castecn\w*|skrat\w*|polovicn\w*|niepelny\s+etat|czesc\s+etatu)\b/g,
+        /\b(hpp|plny\s+uvazek|plny\s+pracovn\w*|pracovni\s+pomer|pracovny\s+pomer|pracovn\w*\s+smlouv\w*|pracovn\w*\s+zmluv\w*|full\s*time|fulltime|vollzeit|umowa\s+o\s+prace|pelny\s+etat|festanstell\w*|arbeitsvertrag|employment\s+contract|contract\s+of\s+employment)\b/g,
+        /\b(part\s*time|parttime|teilzeit|zkracen\w*|skracen\w*|castecn\w*|skrat\w*|polovicn\w*|kratk\w*\s+uvazek|niepelny\s+etat|czesc\s+etatu)\b/g,
         /\b(brigad\w*|dpp|dpc|dohod\w*|minijob|aushilfe|umowa\s+zlecenie|umowa\s+o\s+dzielo|temporary|temp|seasonal|casual)\b/g
     ];
     for (const pattern of patterns) {

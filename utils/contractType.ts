@@ -38,33 +38,40 @@ export const matchesIcoKeywords = (...values: Array<string | undefined | null>):
 const FULL_TIME_PATTERNS = [
     /\bhpp\b/,
     /\bplny\s+uvazek\b/,
-    /\bplny\s+pracovn/i,
+    /\bplny\s+pracovn\w*/i,
     /\bpracovni\s+pomer\b/,
     /\bpracovny\s+pomer\b/,
+    /\bpracovn\w*\s+smlouv\w*/i,
+    /\bpracovn\w*\s+zmluv\w*/i,
     /\bfull[- ]?time\b/,
     /\bfulltime\b/,
     /\bvollzeit\b/,
     /\bumowa\s+o\s+prace\b/,
-    /\bpelny\s+etat\b/
+    /\bpelny\s+etat\b/,
+    /\bfestanstell\w*/i,
+    /\barbeitsvertrag\b/i,
+    /\bemployment\s+contract\b/i,
+    /\bcontract\s+of\s+employment\b/i
 ];
 
 const PART_TIME_PATTERNS = [
     /\bpart[- ]?time\b/,
     /\bteilzeit\b/,
-    /\bzkracen/i,
-    /\bskracen/i,
-    /\bcastecn/i,
-    /\bskrat/i,
-    /\bpolovicn/i,
+    /\bzkracen\w*/i,
+    /\bskracen\w*/i,
+    /\bcastecn\w*/i,
+    /\bskrat\w*/i,
+    /\bpolovicn\w*/i,
+    /\bkratk\w*\s+uvazek\b/i,
     /\bniepelny\s+etat\b/,
     /\bczesc\s+etatu\b/
 ];
 
 const BRIGADA_PATTERNS = [
-    /\bbrigad/i,
+    /\bbrigad\w*/i,
     /\bdpp\b/,
     /\bdpc\b/,
-    /\bdohod/i,
+    /\bdohod\w*/i,
     /\bminijob\b/,
     /\baushilfe\b/,
     /\bumowa\s+zlecenie\b/,
