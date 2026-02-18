@@ -65,7 +65,7 @@ export const redirectToCheckout = async (tier: 'premium' | 'basic' | 'business' 
 /**
  * Helper to check URL for payment status and show feedback to the user.
  */
-export const checkPaymentStatus = () => {
+export const checkPaymentStatus = (): 'success' | 'cancel' | null => {
     const params = new URLSearchParams(window.location.search);
     const status = params.get('payment');
 
@@ -73,8 +73,12 @@ export const checkPaymentStatus = () => {
         alert('Platba byla úspěšná! Vítejte v prémiové verzi JobShaman. 🎉');
         // Clean up the URL
         window.history.replaceState({}, document.title, "/");
+        return 'success';
     } else if (status === 'cancel') {
         alert('Platba byla zrušena.');
         window.history.replaceState({}, document.title, "/");
+        return 'cancel';
     }
+
+    return null;
 };

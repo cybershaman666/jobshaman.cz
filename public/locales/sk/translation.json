@@ -161,7 +161,14 @@
     "cover_letter_placeholder": "Sem napíšte svoj motivačný list...",
     "ai_assessment_title": "JobShaman AI Overenie Kompetencií",
     "ai_assessment_desc": "Táto spoločnosť akceptuje overené hodnotenie zručností. Prepojte svoj JobShaman profil a přeskočte úvodné technické kolo.",
-    "connect_profile": "Prepojiť profil hodnotenia"
+    "connect_profile": "Prepojiť profil hodnotenia",
+    "followup_title": "Uchádzali ste sa o pozíciu?",
+    "followup_desc": "Reagovali ste na pozíciu {{title}} vo firme {{company}}?",
+    "followup_yes": "Áno, odpovedal/a som",
+    "followup_no": "Nie, zatiaľ nie",
+    "followup_later": "Pripomenúť neskôr",
+    "followup_generic_title": "túto pozíciu",
+    "followup_generic_company": "firmu"
   },
   "marketplace": {
     "title": "Vzdelávanie",
@@ -228,7 +235,9 @@
     "email_confirm_notice_body": "Ak ste sa práve zaregistrovali, potvrďte e‑mail v správe, ktorú sme poslali.",
     "continue_with_google": "Pokračovať s Google",
     "continue_with_linkedin": "Pokračovať s LinkedIn",
-    "or": "alebo"
+    "or": "alebo",
+    "confirmation_required": "Ďakujeme za registráciu! Potvrďte e-mail, aby ste mohli pokračovať. Po potvrdení sa prihláste a onboarding sa zobrazí.",
+    "confirmation_required_title": "Potvrďte e‑mail, aby ste mohli pokračovať"
   },
   "logistics": {
     "title": "Logistika dochádzania",
@@ -1782,6 +1791,47 @@
       "career_os_title": "JobShaman Career OS",
       "career_os_desc": "Hľadá potenciál a prenositeľné schopnosti, nie len zhodu so šablónou.",
       "quote": "AI používame tak, aby ľudia dostali férovú šancu a videli svoju reálnu hodnotu na trhu práce."
+    }
+  },
+  "onboarding": {
+    "title": "Dokončite svoj profil",
+    "step_location": {
+      "title": "Vaša poloha",
+      "desc": "Pridajte polohu, aby sme vedeli vypočítať dochádzanie a zobraziť ponuky v okolí."
+    },
+    "step_cv": {
+      "title": "Váš životopis",
+      "desc": "Nahrajte CV, aby sme mohli lepšie personalizovať odporúčania."
+    },
+    "step_done": {
+      "title": "Hotovo",
+      "desc": "Profil je pripravený. Môžete pokračovať v prehliadaní ponúk."
+    },
+    "cta_upload": "Nahrať CV",
+    "cta_dictate": "Nadiktovať CV (Premium)",
+    "cta_skip": "Preskočiť",
+    "cta_finish": "Začať prehliadať ponuky",
+    "cta_next": "Pokračovať",
+    "cta_back": "Späť",
+    "cta_profile": "Prejsť do profilu",
+    "feature_dictate": "Nadiktovanie CV",
+    "location": {
+      "use_current": "Použiť aktuálnu polohu",
+      "verify": "Overiť adresu",
+      "verified": "Adresa overená",
+      "error": "Adresu sa nepodarilo overiť"
+    },
+    "cv": {
+      "upload_success": "CV bolo úspešne nahrané.",
+      "upload_error": "Nahrávanie CV zlyhalo.",
+      "type_error": "Nepodporovaný formát. Nahrajte PDF/DOC/DOCX.",
+      "size_error": "Súbor je príliš veľký (max 10 MB)."
+    },
+    "summary": {
+      "location": "Poloha",
+      "cv": "Životopis",
+      "done": "Hotovo",
+      "missing": "Chýba"
     }
   }
 }

@@ -170,7 +170,14 @@
     "success_desc": "Twój profil został bezpiecznie przekazany do firmy {{company}}.",
     "back_to_jobs": "Powrót do ofert",
     "send": "Wyślij",
-    "cancel": "Anuluj"
+    "cancel": "Anuluj",
+    "followup_title": "Czy aplikowałeś?",
+    "followup_desc": "Czy odpowiedziałeś na ofertę {{title}} w {{company}}?",
+    "followup_yes": "Tak, aplikowałem/am",
+    "followup_no": "Nie, jeszcze nie",
+    "followup_later": "Przypomnij później",
+    "followup_generic_title": "tę ofertę",
+    "followup_generic_company": "firmę"
   },
   "marketplace": {
     "title": "Edukacja",
@@ -237,7 +244,9 @@
     "email_confirm_notice_body": "Jeśli dopiero się zarejestrowałeś, potwierdź e‑mail z wiadomości, którą wysłaliśmy.",
     "continue_with_google": "Kontynuuj z Google",
     "continue_with_linkedin": "Kontynuuj z LinkedIn",
-    "or": "lub"
+    "or": "lub",
+    "confirmation_required": "Dziękujemy za rejestrację! Potwierdź e-mail, aby kontynuować. Po potwierdzeniu zaloguj się, a onboarding się pojawi.",
+    "confirmation_required_title": "Potwierdź e‑mail, aby kontynuować"
   },
   "logistics": {
     "title": "Logistyka dojazdów",
@@ -1712,6 +1721,47 @@
       "career_os_title": "JobShaman Career OS",
       "career_os_desc": "Szukamy potencjału i umiejętności, które można przenieść do nowej roli.",
       "quote": "Używamy AI, aby dać ludziom uczciwą szansę i pokazać ich realną wartość rynkową."
+    }
+  },
+  "onboarding": {
+    "title": "Uzupełnij profil",
+    "step_location": {
+      "title": "Twoja lokalizacja",
+      "desc": "Dodaj lokalizację, aby obliczyć dojazd i pokazać oferty w okolicy."
+    },
+    "step_cv": {
+      "title": "Twoje CV",
+      "desc": "Prześlij CV, aby lepiej dopasować rekomendacje."
+    },
+    "step_done": {
+      "title": "Gotowe",
+      "desc": "Profil jest gotowy. Możesz przeglądać oferty."
+    },
+    "cta_upload": "Prześlij CV",
+    "cta_dictate": "Podyktuj CV (Premium)",
+    "cta_skip": "Pomiń",
+    "cta_finish": "Zacznij przeglądać oferty",
+    "cta_next": "Dalej",
+    "cta_back": "Wstecz",
+    "cta_profile": "Przejdź do profilu",
+    "feature_dictate": "Podyktowanie CV",
+    "location": {
+      "use_current": "Użyj bieżącej lokalizacji",
+      "verify": "Zweryfikuj adres",
+      "verified": "Adres zweryfikowany",
+      "error": "Nie udało się zweryfikować adresu"
+    },
+    "cv": {
+      "upload_success": "CV zostało przesłane.",
+      "upload_error": "Nie udało się przesłać CV.",
+      "type_error": "Nieobsługiwany format. Prześlij PDF/DOC/DOCX.",
+      "size_error": "Plik jest za duży (maks. 10 MB)."
+    },
+    "summary": {
+      "location": "Lokalizacja",
+      "cv": "CV",
+      "done": "Gotowe",
+      "missing": "Brak"
     }
   }
 }

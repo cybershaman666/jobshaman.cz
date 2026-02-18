@@ -138,7 +138,13 @@ export const useUserProfile = () => {
                             const role: UserProfile['role'] = 'candidate';
                             const name = user.user_metadata?.full_name || user.email.split('@')[0];
 
-                            await createBaseProfile(userId, user.email, name, role);
+                            await createBaseProfile(
+                                userId,
+                                user.email,
+                                name,
+                                role,
+                                user.user_metadata?.avatar_url || user.user_metadata?.picture || undefined
+                            );
                             profile = await getUserProfile(userId); // Retry fetch
                             console.log('✅ [SessionRestoration] Fallback profile created and loaded:', profile?.id);
                         } catch (createErr) {

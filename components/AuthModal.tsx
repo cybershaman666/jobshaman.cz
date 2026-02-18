@@ -20,6 +20,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
     const [loading, setLoading] = useState(false);
     const [oauthLoading, setOauthLoading] = useState<null | 'google' | 'linkedin_oidc'>(null);
     const [error, setError] = useState<string | null>(null);
+    const [infoMessage, setInfoMessage] = useState<string | null>(null);
+    const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
     const [formData, setFormData] = useState({
         email: '',
@@ -30,6 +32,9 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
     useEffect(() => {
         if (isOpen) {
             setIsLogin(defaultMode === 'login');
+            setInfoMessage(null);
+            setError(null);
+            setAwaitingConfirmation(false);
         }
     }, [isOpen, defaultMode]);
 
@@ -51,6 +56,22 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                 const result = await signUpWithEmail(formData.email, formData.password, formData.fullName);
                 if (result.error) throw result.error;
                 userData = result.data?.user;
+
+                const needsConfirmation = !!result.data?.user && !result.data?.session;
+                if (needsConfirmation) {
+                    setInfoMessage(t('auth.confirmation_required'));
+                    setAwaitingConfirmation(true);
+                    setIsLogin(true);
+                    try {
+                        const payload = { email: formData.email, at: new Date().toISOString() };
+                        localStorage.setItem('jobshaman_email_confirmation_pending', JSON.stringify(payload));
+                        window.dispatchEvent(new Event('jobshaman:email-confirmation'));
+                    } catch (storageError) {
+                        console.warn('Failed to store confirmation flag:', storageError);
+                    }
+                    setLoading(false);
+                    return;
+                }
             }
 
             // CSRF: Fetch token in the background to avoid blocking the modal close
@@ -128,6 +149,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                         <div>
                             <div className="font-semibold">{t('auth.email_confirm_notice_title')}</div>
                             <div>{t('auth.email_confirm_notice_body')}</div>
+                        </div>
+                    </div>
+                )}
+
+                {infoMessage && (
+                    <div className={`mb-6 p-3 border rounded-lg flex items-start gap-2 text-sm ${awaitingConfirmation ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300' : 'bg-slate-50 dark:bg-slate-800/40 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}>
+                        <AlertCircle size={16} className="mt-0.5" />
+                        <div>
+                            {awaitingConfirmation && (
+                                <div className="font-semibold mb-1">{t('auth.confirmation_required_title')}</div>
+                            )}
+                            <div>{infoMessage}</div>
                         </div>
                     </div>
                 )}

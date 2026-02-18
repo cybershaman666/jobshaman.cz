@@ -3,6 +3,7 @@ from ..core.security import generate_csrf_token, get_current_user, verify_csrf_t
 from ..core.limiter import limiter
 from ..core.database import supabase
 from ..core.config import STRIPE_SECRET_KEY
+from ..services.email import send_welcome_email
 import stripe
 
 router = APIRouter()
@@ -132,3 +133,46 @@ async def delete_account(request: Request, user: dict = Depends(get_current_user
     except Exception as e:
         print(f"❌ Critical error during account deletion: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/welcome-email")
+@limiter.limit("10/minute")
+async def send_welcome_email_endpoint(request: Request, user: dict = Depends(get_current_user)):
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="Invalid CSRF token")
+
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    body = {}
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    locale = body.get("locale") if isinstance(body, dict) else None
+    app_url = body.get("app_url") if isinstance(body, dict) else None
+
+    profile_resp = supabase.table("profiles").select("email, full_name, welcome_email_sent").eq("id", user_id).maybe_single().execute()
+    profile = profile_resp.data if profile_resp else None
+    if not profile or not profile.get("email"):
+        raise HTTPException(status_code=404, detail="Profile not found")
+
+    if profile.get("welcome_email_sent"):
+        return {"status": "already_sent"}
+
+    ok = send_welcome_email(
+        to_email=profile.get("email"),
+        full_name=profile.get("full_name") or "",
+        locale=locale or "cs",
+        app_url=app_url or "https://jobshaman.cz"
+    )
+
+    if ok:
+        try:
+            supabase.table("profiles").update({"welcome_email_sent": True}).eq("id", user_id).execute()
+        except Exception as e:
+            print(f"⚠️ Failed to mark welcome email as sent: {e}")
+        return {"status": "sent"}
+
+    raise HTTPException(status_code=500, detail="Failed to send welcome email")

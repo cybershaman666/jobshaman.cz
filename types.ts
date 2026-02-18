@@ -338,6 +338,7 @@ export interface UserProfile {
     expiresAt?: string;
     usage?: CandidateUsageStats;
   };
+  welcomeEmailSent?: boolean;
 }
 
 export interface AssessmentResult {

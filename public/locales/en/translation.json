@@ -170,7 +170,14 @@
     "success_desc": "Your profile has been securely shared with {{company}}.",
     "back_to_jobs": "Back to Offers",
     "send": "Send",
-    "cancel": "Cancel"
+    "cancel": "Cancel",
+    "followup_title": "Did you apply?",
+    "followup_desc": "Did you respond to the position {{title}} at {{company}}?",
+    "followup_yes": "Yes, I applied",
+    "followup_no": "No, not yet",
+    "followup_later": "Ask me later",
+    "followup_generic_title": "this position",
+    "followup_generic_company": "the company"
   },
   "marketplace": {
     "title": "Education",
@@ -237,7 +244,9 @@
     "email_confirm_notice_body": "If you just registered, confirm your email from the message we sent you.",
     "continue_with_google": "Continue with Google",
     "continue_with_linkedin": "Continue with LinkedIn",
-    "or": "or"
+    "or": "or",
+    "confirmation_required": "Thanks for signing up! Please confirm your email to continue. After confirmation, log in and onboarding will appear.",
+    "confirmation_required_title": "Confirm your email to continue"
   },
   "logistics": {
     "title": "Commute Logistics",
@@ -1677,6 +1686,47 @@
       "career_os_title": "JobShaman Career OS",
       "career_os_desc": "It looks for potential and transferable strengths, not only template fit.",
       "quote": "We use AI to give people a fair chance and show their real market value."
+    }
+  },
+  "onboarding": {
+    "title": "Complete your profile",
+    "step_location": {
+      "title": "Your location",
+      "desc": "Add your location so we can calculate commute and show nearby jobs."
+    },
+    "step_cv": {
+      "title": "Your CV",
+      "desc": "Upload your CV so we can personalize recommendations."
+    },
+    "step_done": {
+      "title": "All set",
+      "desc": "Your profile is ready. You can start browsing jobs."
+    },
+    "cta_upload": "Upload CV",
+    "cta_dictate": "Dictate CV (Premium)",
+    "cta_skip": "Skip for now",
+    "cta_finish": "Start browsing jobs",
+    "cta_next": "Continue",
+    "cta_back": "Back",
+    "cta_profile": "Go to profile",
+    "feature_dictate": "CV dictation",
+    "location": {
+      "use_current": "Use current location",
+      "verify": "Verify address",
+      "verified": "Address verified",
+      "error": "We couldn't verify that address"
+    },
+    "cv": {
+      "upload_success": "CV uploaded successfully.",
+      "upload_error": "CV upload failed.",
+      "type_error": "Unsupported file type. Please upload PDF/DOC/DOCX.",
+      "size_error": "File is too large (max 10 MB)."
+    },
+    "summary": {
+      "location": "Location",
+      "cv": "CV",
+      "done": "Done",
+      "missing": "Missing"
     }
   }
 }
