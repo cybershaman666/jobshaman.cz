@@ -1568,6 +1568,7 @@
     "demo": {
       "title": "Try it now (demo mode)",
       "subtitle": "No signup. See how AI reads your story.",
+      "default_text": "For the last 7 years I've worked as a driver. Every day I plan routes, communicate with clients, and handle unexpected situations. I enjoy organizing and working with people.",
       "open_button": "Try demo",
       "placeholder": "Write your story or edit the pre-filled text…",
       "analyze_button": "Analyze with AI",

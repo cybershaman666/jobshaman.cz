@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { BarChart3, Brain, CheckCircle2, Mic, Search, Shield, Sparkles, UserRound } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import BlogSection from './BlogSection';
@@ -35,9 +35,6 @@ type CaseStudyCard = {
 
 const WELCOME_V2_ENABLED = import.meta.env.VITE_WELCOME_V2_ENABLED !== 'false';
 const HERO_TEST_ID = 'welcome_hero_test';
-
-const DEMO_DEFAULT_TEXT =
-  'Posledních 7 let pracuji jako řidič. Každý den řeším trasu, komunikaci se zákazníky a nečekané situace. Baví mě organizace a práce s lidmi.';
 
 const getDeviceType = (): 'mobile' | 'tablet' | 'desktop' => {
   if (typeof window === 'undefined') return 'desktop';
@@ -85,8 +82,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   handleBlogPostSelect
 }) => {
   const { t, i18n } = useTranslation();
+  const demoDefaultText = t('welcome_v2.demo.default_text');
+  const lastDemoDefaultRef = useRef(demoDefaultText);
   const [demoOpen, setDemoOpen] = useState(false);
-  const [demoText, setDemoText] = useState(DEMO_DEFAULT_TEXT);
+  const [demoText, setDemoText] = useState(demoDefaultText);
   const [demoLoading, setDemoLoading] = useState(false);
   const [demoResult, setDemoResult] = useState<DemoResult | null>(null);
   const [visualStep, setVisualStep] = useState(0);
@@ -137,6 +136,17 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     };
   }, []);
 
+  useEffect(() => {
+    setDemoText((prev) => {
+      const lastDefault = lastDemoDefaultRef.current;
+      lastDemoDefaultRef.current = demoDefaultText;
+      if (!prev || prev === lastDefault) {
+        return demoDefaultText;
+      }
+      return prev;
+    });
+  }, [demoDefaultText]);
+
   const track = (event: string, extra?: Record<string, unknown>) => {
     AnalyticsService.trackEvent(event, { ...baseMeta, demo_used: demoResult !== null, ...extra });
   };
@@ -186,7 +196,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     : [];
   const heroBeforeItems = Array.isArray(heroBeforeItemsRaw) && heroBeforeItemsRaw.length > 0
     ? heroBeforeItemsRaw as string[]
-    : ['8 let praxe', 'Silná komunikace', 'Praxe v provozu'];
+    : ['7 years in operations', 'Strong communication', 'Operational experience'];
   const insightsStats = [
     {
       label: t('blog.stats.active_jobs'),

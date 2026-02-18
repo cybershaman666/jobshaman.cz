@@ -1580,6 +1580,7 @@
     "demo": {
       "title": "Try it now (demo mode)",
       "subtitle": "No signup. See how AI reads your story.",
+      "default_text": "In den letzten 7 Jahren habe ich als Fahrer gearbeitet. Jeden Tag plane ich Routen, kommuniziere mit Kunden und löse unerwartete Situationen. Ich mag Organisation und die Arbeit mit Menschen.",
       "open_button": "Try demo",
       "placeholder": "Write your story or edit the pre-filled text…",
       "analyze_button": "Analyze with AI",

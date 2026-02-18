@@ -1673,6 +1673,7 @@
     "demo": {
       "title": "Try it now (demo mode)",
       "subtitle": "No signup. See how AI reads your story.",
+      "default_text": "Posledných 7 rokov pracujem ako vodič. Každý deň riešim trasu, komunikáciu so zákazníkmi a nečakané situácie. Baví ma organizácia a práca s ľuďmi.",
       "open_button": "Try demo",
       "placeholder": "Write your story or edit the pre-filled text…",
       "analyze_button": "Analyze with AI",
