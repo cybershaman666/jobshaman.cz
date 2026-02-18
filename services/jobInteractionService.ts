@@ -1,5 +1,5 @@
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
-import { authenticatedFetch } from './csrfService';
+import { authenticatedFetch, getCurrentAuthTokenSilently } from './csrfService';
 import { recordRuntimeSignal } from './runtimeSignals';
 
 export type JobInteractionEventType =
@@ -65,6 +65,19 @@ const clearInteractionBackendCooldown = (baseUrl: string): void => {
 };
 
 export const trackJobInteraction = async (payload: JobInteractionPayload): Promise<void> => {
+    const authToken = await getCurrentAuthTokenSilently();
+    if (!authToken) {
+        recordRuntimeSignal('interaction_tracking_skipped', {
+            reason: 'missing_auth',
+            event_type: payload.eventType
+        }, {
+            dedupeKey: 'missing_auth',
+            throttleMs: 60_000,
+            sendAnalytics: false
+        });
+        return;
+    }
+
     const backends = resolveInteractionBackends();
     if (!backends.length) return;
     const activeBackends = backends.filter((baseUrl) => !isInteractionBackendCooldownActive(baseUrl));
@@ -101,7 +114,7 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
                     'Content-Type': 'application/json'
                 },
                 body: requestBody
-            });
+            }, authToken);
 
             if (response.ok) {
                 clearInteractionBackendCooldown(baseUrl);
