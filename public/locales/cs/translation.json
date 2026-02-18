@@ -1757,6 +1757,7 @@
     "demo": {
       "title": "Vyzkoušejte to hned (ukázka)",
       "subtitle": "Bez registrace. Uvidíte, jak AI pracuje s Vaším příběhem.",
+      "default_text": "Posledních 7 let pracuji jako řidič. Každý den řeším trasu, komunikaci se zákazníky a nečekané situace. Baví mě organizace a práce s lidmi.",
       "open_button": "Spustit ukázku",
       "placeholder": "Napište svůj příběh nebo upravte předvyplněný text…",
       "analyze_button": "Analyzovat s AI",
