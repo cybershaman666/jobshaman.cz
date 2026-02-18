@@ -9,6 +9,94 @@ SET idle_in_transaction_session_timeout = '2min';
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE EXTENSION IF NOT EXISTS unaccent;
 
+-- Function creation touches pg_proc; allow it to wait on locks.
+SET lock_timeout = '0';
+
+CREATE OR REPLACE FUNCTION public.build_jobs_search_text(
+    p_title text,
+    p_company text,
+    p_location text,
+    p_description text,
+    p_benefits text[],
+    p_contract_type text,
+    p_work_model text,
+    p_job_level text
+) RETURNS tsvector
+LANGUAGE sql
+IMMUTABLE
+AS $$
+    SELECT
+        setweight(to_tsvector('simple', unaccent(coalesce(p_title, ''))), 'A') ||
+        setweight(to_tsvector('simple', unaccent(coalesce(p_company, ''))), 'A') ||
+        setweight(to_tsvector('simple', unaccent(coalesce(p_location, ''))), 'B') ||
+        setweight(to_tsvector('simple', unaccent(coalesce(array_to_string(p_benefits, ' '), ''))), 'B') ||
+        setweight(to_tsvector('simple', unaccent(coalesce(p_contract_type, ''))), 'C') ||
+        setweight(to_tsvector('simple', unaccent(coalesce(p_work_model, ''))), 'C') ||
+        setweight(to_tsvector('simple', unaccent(coalesce(p_job_level, ''))), 'C') ||
+        setweight(to_tsvector('simple', unaccent(coalesce(p_description, ''))), 'D');
+$$;
+
+CREATE OR REPLACE FUNCTION public.build_jobs_search_plain(
+    p_title text,
+    p_company text,
+    p_location text,
+    p_description text,
+    p_benefits text[],
+    p_contract_type text,
+    p_work_model text,
+    p_job_level text
+) RETURNS text
+LANGUAGE sql
+IMMUTABLE
+AS $$
+    SELECT trim(
+        unaccent(lower(concat_ws(' ',
+            coalesce(p_title, ''),
+            coalesce(p_company, ''),
+            coalesce(p_location, ''),
+            coalesce(p_description, ''),
+            coalesce(array_to_string(p_benefits, ' '), ''),
+            coalesce(p_contract_type, ''),
+            coalesce(p_work_model, ''),
+            coalesce(p_job_level, '')
+        )))
+    );
+$$;
+
+CREATE OR REPLACE FUNCTION public.jobs_search_text_trigger()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.search_text := public.build_jobs_search_text(
+        NEW.title,
+        NEW.company,
+        NEW.location,
+        NEW.description,
+        NEW.benefits,
+        NEW.contract_type,
+        NEW.work_model,
+        NEW.job_level
+    );
+
+    NEW.search_text_plain := public.build_jobs_search_plain(
+        NEW.title,
+        NEW.company,
+        NEW.location,
+        NEW.description,
+        NEW.benefits,
+        NEW.contract_type,
+        NEW.work_model,
+        NEW.job_level
+    );
+
+    RETURN NEW;
+END;
+$$;
+
+-- Restore short lock timeout for lock-sensitive DDL below.
+SET lock_timeout = '5s';
+
 DO $$
 DECLARE
     v_attempt integer;
@@ -135,6 +223,13 @@ BEGIN
     END LOOP;
 END;
 $$;
+
+DROP TRIGGER IF EXISTS trg_jobs_search_text_update ON public.jobs;
+CREATE TRIGGER trg_jobs_search_text_update
+BEFORE INSERT OR UPDATE OF title, company, location, description, benefits, contract_type, work_model, job_level
+ON public.jobs
+FOR EACH ROW
+EXECUTE FUNCTION public.jobs_search_text_trigger();
 
 -- Index builds can take long and require brief lock acquisition at start/end.
 -- Do not fail instantly on lock timeout here.

@@ -71,6 +71,19 @@ const shouldBypassBackendCooldown = (path: string): boolean => {
     );
 };
 
+const isAuthOptionalRequest = (url: string): boolean => {
+    try {
+        const parsed = new URL(url, window.location.origin);
+        const path = parsed.pathname || '';
+        return (
+            path === '/jobs/hybrid-search' ||
+            path === '/jobs/hybrid-search-v2'
+        );
+    } catch {
+        return false;
+    }
+};
+
 export const isBackendNetworkCooldownActive = (): boolean => Date.now() < backendNetworkCooldownUntil;
 
 const endpointDoesNotRequireCsrf = (url: string): boolean => {
@@ -342,6 +355,27 @@ export const getCurrentAuthToken = async (): Promise<string | null> => {
 };
 
 /**
+ * Silent variant for endpoints that allow anonymous access.
+ */
+export const getCurrentAuthTokenSilently = async (): Promise<string | null> => {
+    try {
+        if (!supabase) {
+            return null;
+        }
+
+        const { data: { session }, error } = await supabase.auth.getSession();
+
+        if (error || !session || !session.access_token) {
+            return null;
+        }
+
+        return session.access_token;
+    } catch {
+        return null;
+    }
+};
+
+/**
  * Wait for a session to be available (with timeout)
  * Useful during page initialization when Supabase might still be loading
  */
@@ -393,8 +427,12 @@ export const authenticatedFetch = async (
     const isStateChanging = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
     const requiresCsrf = isStateChanging && !endpointDoesNotRequireCsrf(url);
 
-    const resolvedAuthToken = authToken || await getCurrentAuthToken() || localStorage.getItem('auth_token') || null;
-    if (!resolvedAuthToken) {
+    const authOptional = isAuthOptionalRequest(url);
+    const resolvedAuthToken = authToken
+        || (authOptional ? await getCurrentAuthTokenSilently() : await getCurrentAuthToken())
+        || localStorage.getItem('auth_token')
+        || null;
+    if (!resolvedAuthToken && !authOptional) {
         console.warn('⚠️ No authentication token available for request to:', url);
     }
 

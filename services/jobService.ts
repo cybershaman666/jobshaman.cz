@@ -910,9 +910,18 @@ export const fetchJobsWithFilters = async (
     const safeRpcPageSize = Math.max(1, Math.min(SUPABASE_RPC_MAX_PAGE_SIZE, pageSize || 50));
     const compactSearchLength = safeSearchTerm.replace(/\s+/g, '').length;
     const dedicatedSearchRuntime = hasDedicatedSearchRuntime();
+
+    let finalUserLat = userLat;
+    let finalUserLng = userLng;
+    const hasCoords = typeof finalUserLat === 'number' && typeof finalUserLng === 'number';
+    const safeRadiusKm = (radiusKm && Number.isFinite(radiusKm) && radiusKm >= 1 && hasCoords) ? radiusKm : null;
+    if (radiusKm && safeRadiusKm === null && !hasCoords) {
+        console.warn('⚠️ Commute filter requested without coordinates; skipping radius filter.');
+    }
+
     const hasFilteringIntent =
         !!filterCity ||
-        !!radiusKm ||
+        safeRadiusKm !== null ||
         !!(filterContractTypes && filterContractTypes.length > 0) ||
         !!(filterBenefits && filterBenefits.length > 0) ||
         !!(filterExperienceLevels && filterExperienceLevels.length > 0) ||
@@ -923,10 +932,6 @@ export const fetchJobsWithFilters = async (
         filterDatePosted !== 'all' ||
         sortMode !== 'default';
     const shouldUseHybridSearch = !!BACKEND_URL && (dedicatedSearchRuntime || compactSearchLength >= 2 || hasFilteringIntent || isSearchV2Enabled());
-
-    let finalUserLat = userLat;
-    let finalUserLng = userLng;
-    const safeRadiusKm = (radiusKm && Number.isFinite(radiusKm) && radiusKm >= 1) ? radiusKm : null;
     const normalizedCountryCodes = (countryCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
     const normalizedExcludedCountryCodes = (excludeCountryCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
     const normalizedLanguageCodes = (filterLanguageCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
