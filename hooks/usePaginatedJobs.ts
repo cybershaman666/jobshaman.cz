@@ -365,7 +365,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     // Initial load
     const loadInitialJobs = useCallback(() => {
         setCurrentPage(0);
-        fetchFilteredJobs(0, false);
+        return fetchFilteredJobs(0, false);
     }, [fetchFilteredJobs]);
 
     // If user has address and we are still in global search with no country, narrow to their country

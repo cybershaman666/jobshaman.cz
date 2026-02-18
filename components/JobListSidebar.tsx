@@ -578,6 +578,12 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                             </span>
                         </div>
                     )}
+                    {isLoadingJobs && filteredJobs.length > 0 && (
+                        <div className="mb-3 px-1 flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
+                            <Activity className="animate-spin text-cyan-500" size={14} />
+                            <span>{t('app.searching')}</span>
+                        </div>
+                    )}
                     <div className="space-y-3">
                         {isLoadingJobs && filteredJobs.length === 0 ? (
                             <div className="py-12 flex flex-col items-center justify-center text-slate-400">

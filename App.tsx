@@ -119,7 +119,6 @@ export default function App() {
     const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
     const [analyzing, setAnalyzing] = useState(false);
     const [directlyFetchedJob, setDirectlyFetchedJob] = useState<Job | null>(null);
-    const [isLoadingJobs, setIsLoadingJobs] = useState(true);
 
     // Cookie Consent State
     const [showCookieBanner, setShowCookieBanner] = useState(false);
@@ -352,6 +351,7 @@ export default function App() {
 
     const {
         jobs: filteredJobs,
+        loading: isLoadingJobs,
         loadingMore,
         hasMore,
         totalCount,
@@ -496,13 +496,10 @@ export default function App() {
     }, [userProfile.isLoggedIn, userProfile.id, userProfile.welcomeEmailSent, i18n.language]);
 
     const loadRealJobs = useCallback(async () => {
-        setIsLoadingJobs(true);
         try {
             await loadInitialJobs();
         } catch (e) {
             console.error("Failed to load jobs", e);
-        } finally {
-            setIsLoadingJobs(false);
         }
     }, [loadInitialJobs]);
 
@@ -1623,6 +1620,7 @@ export default function App() {
                                 setIsMobileSwipeView(false);
                             }}
                             isLoadingMore={loadingMore}
+                            isLoading={isLoadingJobs}
                             hasMore={hasMore}
                             onLoadMore={loadMoreJobs}
                             theme={theme}

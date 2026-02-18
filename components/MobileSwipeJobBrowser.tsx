@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Job } from '../types';
-import { Bookmark, X, Check, ChevronDown, Sparkles, List } from 'lucide-react';
+import { Bookmark, X, Check, ChevronDown, Sparkles, List, Activity } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { trackJobInteraction } from '../services/jobInteractionService';
@@ -12,6 +12,7 @@ interface MobileSwipeJobBrowserProps {
     onOpenDetails: (jobId: string) => void;
     onSwitchToList: () => void;
     isLoadingMore: boolean;
+    isLoading?: boolean;
     hasMore: boolean;
     onLoadMore: () => void;
     theme: 'light' | 'dark';
@@ -30,6 +31,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     onOpenDetails,
     onSwitchToList,
     isLoadingMore,
+    isLoading = false,
     hasMore,
     onLoadMore,
     theme
@@ -290,6 +292,18 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
 
     // No jobs message
     if (jobs.length === 0) {
+        if (isLoading) {
+            return (
+                <div className={`flex flex-col items-center justify-center h-full p-6 text-center rounded-xl ${
+                    theme === 'dark' ? 'bg-slate-900' : 'bg-white'
+                }`}>
+                    <Activity className="animate-spin text-cyan-500 mb-3" size={28} />
+                    <p className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>
+                        {t('app.searching')}
+                    </p>
+                </div>
+            );
+        }
         return (
             <div className={`flex flex-col items-center justify-center h-full p-6 text-center rounded-xl ${
                 theme === 'dark' ? 'bg-slate-900' : 'bg-white'
