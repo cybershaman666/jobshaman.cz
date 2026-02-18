@@ -25,6 +25,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     profile,
     onClose,
     onComplete,
+    onGoToProfile,
     onUpdateProfile,
     onOpenPremium,
     onRefreshProfile
