@@ -398,14 +398,20 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         }
     }, [abroadOnly, globalSearch]);
 
-    // When language changes, default to that country's jobs (unless cross-border is enabled)
+    // When UI language changes, default to that country's jobs
     useEffect(() => {
-        if (globalSearch) return;
         const langCountry = getCountryCodeFromLanguage(i18n.language);
-        if (langCountry && (countryCodes.length !== 1 || countryCodes[0] !== langCountry)) {
+        if (!langCountry) return;
+        if (countryCodes.length !== 1 || countryCodes[0] !== langCountry) {
             setCountryCodes([langCountry]);
         }
-    }, [i18n.language, globalSearch, countryCodes]);
+        if (globalSearch) {
+            setGlobalSearch(false);
+        }
+        if (abroadOnly) {
+            setAbroadOnly(false);
+        }
+    }, [i18n.language, countryCodes, globalSearch, abroadOnly]);
 
     // Perform search is now just setting the search term
     const performSearch = useCallback((term: string) => {
