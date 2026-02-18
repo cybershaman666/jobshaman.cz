@@ -181,7 +181,14 @@
     "upload_instead": "Nahrát jiný soubor",
     "use_saved_cv": "Použít uložené CV z profilu",
     "saved_cv_ready": "Uložené CV připraveno",
-    "cv_from_profile": "Životopis z vašeho profilu"
+    "cv_from_profile": "Životopis z vašeho profilu",
+    "followup_title": "Ucházeli jste se o tuto pozici?",
+    "followup_desc": "Reagovali jste na pozici {{title}} ve společnosti {{company}}?",
+    "followup_yes": "Ano, odpověděl/a jsem",
+    "followup_no": "Ne, zatím ne",
+    "followup_later": "Připomenout později",
+    "followup_generic_title": "tuto pozici",
+    "followup_generic_company": "danou firmu"
   },
   "marketplace": {
     "title": "Vzdělávání",
@@ -248,7 +255,9 @@
     "email_confirm_notice_body": "Pokud jste se právě zaregistrovali, nejdřív potvrďte e‑mail v doručené zprávě.",
     "continue_with_google": "Pokračovat s Google",
     "continue_with_linkedin": "Pokračovat s LinkedIn",
-    "or": "nebo"
+    "or": "nebo",
+    "confirmation_required": "Děkujeme za registraci! Potvrďte prosím e-mail, abyste mohli pokračovat. Po potvrzení se přihlaste a onboarding se zobrazí.",
+    "confirmation_required_title": "Potvrďte e‑mail pro dokončení registrace"
   },
   "logistics": {
     "title": "Logistika dojíždění",
@@ -1866,6 +1875,47 @@
       "career_os_title": "JobShaman Career OS",
       "career_os_desc": "Hledá potenciál a přenositelné schopnosti. Neřeže lidi podle šablony, ale ukazuje, kde mohou uspět.",
       "quote": "Používáme AI tak, aby Vám vrátila férovou šanci a jasně ukázala Vaši reálnou hodnotu."
+    }
+  },
+  "onboarding": {
+    "title": "Dokončete svůj profil",
+    "step_location": {
+      "title": "Vaše poloha",
+      "desc": "Přidejte polohu, abychom spočítali dojíždění a zobrazili nabídky v okolí."
+    },
+    "step_cv": {
+      "title": "Váš životopis",
+      "desc": "Nahrajte CV a pomozte nám lépe personalizovat doporučení."
+    },
+    "step_done": {
+      "title": "Hotovo",
+      "desc": "Profil je připravený. Můžete pokračovat v prohlížení nabídek."
+    },
+    "cta_upload": "Nahrát CV",
+    "cta_dictate": "Nadiktovat CV (Premium)",
+    "cta_skip": "Přeskočit",
+    "cta_finish": "Začít prohlížet nabídky",
+    "cta_next": "Pokračovat",
+    "cta_back": "Zpět",
+    "cta_profile": "Přejít do profilu",
+    "feature_dictate": "Nadiktování CV",
+    "location": {
+      "use_current": "Použít aktuální polohu",
+      "verify": "Ověřit adresu",
+      "verified": "Adresa ověřena",
+      "error": "Adresu se nepodařilo ověřit"
+    },
+    "cv": {
+      "upload_success": "CV bylo úspěšně nahráno.",
+      "upload_error": "Nahrání CV se nepodařilo.",
+      "type_error": "Nepodporovaný formát souboru. Nahrajte PDF/DOC/DOCX.",
+      "size_error": "Soubor je příliš velký (max 10 MB)."
+    },
+    "summary": {
+      "location": "Poloha",
+      "cv": "Životopis",
+      "done": "Hotovo",
+      "missing": "Chybí"
     }
   }
 }

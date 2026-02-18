@@ -63,3 +63,72 @@ def send_recruiter_legality_email(recruiter_email, job_title, result):
     <p>S pozdravem,<br/>Tým JobShaman</p>
     """
     return send_email(recruiter_email, subject, html)
+
+def send_welcome_email(to_email: str, full_name: str = "", locale: str = "cs", app_url: str = "https://jobshaman.cz") -> bool:
+    locale = (locale or "cs").lower()
+    if locale.startswith("de") or locale == "at":
+        lang = "de"
+    elif locale.startswith("sk"):
+        lang = "sk"
+    elif locale.startswith("pl"):
+        lang = "pl"
+    elif locale.startswith("en"):
+        lang = "en"
+    else:
+        lang = "cs"
+
+    first_name = (full_name or "").strip().split(" ")[0] if full_name else ""
+
+    copy = {
+        "cs": {
+            "subject": "Vítejte v JobShaman",
+            "title": f"Ahoj{f' {first_name}' if first_name else ''}!",
+            "body": "Díky za registraci. Máte hotový účet a můžete začít hledat nabídky s chytrým filtrováním.",
+            "cta": "Začít prohlížet nabídky",
+            "footer": "Těšíme se, že vám JobShaman pomůže najít lepší práci."
+        },
+        "en": {
+            "subject": "Welcome to JobShaman",
+            "title": f"Hi{f' {first_name}' if first_name else ''}!",
+            "body": "Thanks for signing up. Your account is ready, and you can start browsing offers with smart filters.",
+            "cta": "Start browsing jobs",
+            "footer": "We are glad to help you find a better job with JobShaman."
+        },
+        "de": {
+            "subject": "Willkommen bei JobShaman",
+            "title": f"Hallo{f' {first_name}' if first_name else ''}!",
+            "body": "Danke für Ihre Registrierung. Ihr Konto ist bereit und Sie können sofort passende Angebote entdecken.",
+            "cta": "Jobs ansehen",
+            "footer": "Wir freuen uns, dass JobShaman bei der Jobsuche hilft."
+        },
+        "pl": {
+            "subject": "Witamy w JobShaman",
+            "title": f"Cześć{f' {first_name}' if first_name else ''}!",
+            "body": "Dziękujemy za rejestrację. Konto jest gotowe — możesz od razu przeglądać oferty.",
+            "cta": "Przeglądaj oferty",
+            "footer": "Cieszymy się, że JobShaman pomaga w znalezieniu lepszej pracy."
+        },
+        "sk": {
+            "subject": "Vitajte v JobShaman",
+            "title": f"Ahoj{f' {first_name}' if first_name else ''}!",
+            "body": "Ďakujeme za registráciu. Účet je pripravený a môžete začať prehliadať ponuky.",
+            "cta": "Začať prehliadať ponuky",
+            "footer": "Tešíme sa, že vám JobShaman pomôže nájsť lepšiu prácu."
+        }
+    }.get(lang)
+
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;">
+      <div style="background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
+        <h2 style="color: #0f172a; margin-bottom: 12px;">{copy['title']}</h2>
+        <p style="color: #475569; line-height: 1.6;">{copy['body']}</p>
+        <div style="margin: 24px 0;">
+          <a href="{app_url}" style="display: inline-block; padding: 12px 20px; background-color: #0ea5e9; color: #ffffff; border-radius: 8px; text-decoration: none; font-weight: 600;">{copy['cta']}</a>
+        </div>
+        <p style="color: #64748b; font-size: 14px;">{copy['footer']}</p>
+      </div>
+      <div style="text-align: center; margin-top: 24px; color: #94a3b8; font-size: 12px;">© 2024 JobShaman</div>
+    </div>
+    """
+
+    return send_email(to_email, copy["subject"], html)

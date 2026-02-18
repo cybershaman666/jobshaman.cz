@@ -170,7 +170,14 @@
     "success_desc": "Ihr Profil wurde sicher an {{company}} übermittelt.",
     "back_to_jobs": "Zurück zu den Angeboten",
     "send": "Senden",
-    "cancel": "Abbrechen"
+    "cancel": "Abbrechen",
+    "followup_title": "Haben Sie sich beworben?",
+    "followup_desc": "Haben Sie auf die Stelle {{title}} bei {{company}} geantwortet?",
+    "followup_yes": "Ja, ich habe mich beworben",
+    "followup_no": "Nein, noch nicht",
+    "followup_later": "Später erinnern",
+    "followup_generic_title": "diese Stelle",
+    "followup_generic_company": "das Unternehmen"
   },
   "marketplace": {
     "title": "Bildung",
@@ -237,7 +244,9 @@
     "email_confirm_notice_body": "Wenn Sie sich gerade registriert haben, bestätigen Sie Ihre E‑Mail über die Nachricht, die wir gesendet haben.",
     "continue_with_google": "Mit Google fortfahren",
     "continue_with_linkedin": "Mit LinkedIn fortfahren",
-    "or": "oder"
+    "or": "oder",
+    "confirmation_required": "Danke für die Registrierung! Bitte bestätigen Sie Ihre E-Mail, um fortzufahren. Danach melden Sie sich an und das Onboarding erscheint.",
+    "confirmation_required_title": "Bitte E‑Mail bestätigen, um fortzufahren"
   },
   "logistics": {
     "title": "Pendellogistik",
@@ -1689,6 +1698,47 @@
       "career_os_title": "JobShaman Career OS",
       "career_os_desc": "Es sucht Potenzial und übertragbare Stärken statt nur Vorlagen-Treffer.",
       "quote": "Wir nutzen KI, um Menschen eine faire Chance zu geben und ihren echten Marktwert sichtbar zu machen."
+    }
+  },
+  "onboarding": {
+    "title": "Profil vervollständigen",
+    "step_location": {
+      "title": "Ihr Standort",
+      "desc": "Fügen Sie Ihren Standort hinzu, damit wir Pendelzeiten berechnen und Jobs in der Nähe zeigen können."
+    },
+    "step_cv": {
+      "title": "Ihr Lebenslauf",
+      "desc": "Laden Sie Ihren Lebenslauf hoch, damit wir Empfehlungen personalisieren können."
+    },
+    "step_done": {
+      "title": "Fertig",
+      "desc": "Ihr Profil ist bereit. Sie können jetzt die Angebote durchsuchen."
+    },
+    "cta_upload": "Lebenslauf hochladen",
+    "cta_dictate": "Lebenslauf diktieren (Premium)",
+    "cta_skip": "Später",
+    "cta_finish": "Jobs ansehen",
+    "cta_next": "Weiter",
+    "cta_back": "Zurück",
+    "cta_profile": "Zum Profil",
+    "feature_dictate": "Lebenslauf diktieren",
+    "location": {
+      "use_current": "Aktuellen Standort verwenden",
+      "verify": "Adresse prüfen",
+      "verified": "Adresse bestätigt",
+      "error": "Adresse konnte nicht geprüft werden"
+    },
+    "cv": {
+      "upload_success": "Lebenslauf wurde hochgeladen.",
+      "upload_error": "Upload fehlgeschlagen.",
+      "type_error": "Nicht unterstütztes Format. Bitte PDF/DOC/DOCX hochladen.",
+      "size_error": "Datei ist zu groß (max. 10 MB)."
+    },
+    "summary": {
+      "location": "Standort",
+      "cv": "Lebenslauf",
+      "done": "Erledigt",
+      "missing": "Fehlt"
     }
   }
 }

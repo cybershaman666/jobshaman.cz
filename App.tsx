@@ -12,6 +12,8 @@ import CourseProviderDashboard from './components/CourseProviderDashboard';
 import CompanyOnboarding from './components/CompanyOnboarding';
 import ProfileEditor from './components/ProfileEditor';
 import AuthModal from './components/AuthModal';
+import CandidateOnboardingModal from './components/CandidateOnboardingModal';
+import ApplyFollowupModal from './components/ApplyFollowupModal';
 import CompanyRegistrationModal from './components/CompanyRegistrationModal';
 import FreelancerRegistrationModal from './components/FreelancerRegistrationModal';
 import CourseProviderRegistrationModal from './components/CourseProviderRegistrationModal';
@@ -42,6 +44,7 @@ import { checkPaymentStatus } from './services/stripeService';
 import { clearCsrfToken } from './services/csrfService';
 import { trackPageView } from './services/trafficAnalytics';
 import { trackJobInteraction } from './services/jobInteractionService';
+import { sendWelcomeEmail } from './services/welcomeEmailService';
 import { useUserProfile } from './hooks/useUserProfile';
 import { usePaginatedJobs } from './hooks/usePaginatedJobs';
 import { BACKEND_URL, DEFAULT_USER_PROFILE, SEARCH_BACKEND_URL } from './constants';
@@ -57,8 +60,25 @@ import {
     Car,
     Bus,
     Bike,
-    Footprints
+    Footprints,
+    AlertCircle
 } from 'lucide-react';
+
+type PendingApplyFollowup = {
+    jobId: number;
+    title?: string;
+    company?: string;
+    url?: string;
+    openedAt: string;
+    sessionId?: string;
+    requestId?: string;
+    scoringVersion?: string;
+    modelVersion?: string;
+    snoozeUntil?: number;
+};
+
+const APPLY_FOLLOWUP_STORAGE_KEY = 'jobshaman_apply_followup';
+const EMAIL_CONFIRMATION_STORAGE_KEY = 'jobshaman_email_confirmation_pending';
 
 // JHI and formatting utilities now imported from utils/
 
@@ -130,6 +150,10 @@ export default function App() {
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
     const [isOnboardingCompany, setIsOnboardingCompany] = useState(false);
+    const [showCandidateOnboarding, setShowCandidateOnboarding] = useState(false);
+    const [applyFollowup, setApplyFollowup] = useState<PendingApplyFollowup | null>(null);
+    const [showApplyFollowup, setShowApplyFollowup] = useState(false);
+    const [pendingEmailConfirmation, setPendingEmailConfirmation] = useState<{ email?: string } | null>(null);
     const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
     const [isCompanyRegistrationOpen, setIsCompanyRegistrationOpen] = useState(false);
     const [isFreelancerRegistrationOpen, setIsFreelancerRegistrationOpen] = useState(false);
@@ -141,6 +165,9 @@ export default function App() {
     const [isMobileScreen, setIsMobileScreen] = useState(false);
     const [mobileViewOverride, setMobileViewOverride] = useState<'swipe' | 'list' | null>(null);
     const [openedFromSwipe, setOpenedFromSwipe] = useState(false);
+
+    const onboardingDismissedRef = useRef(false);
+    const welcomeEmailAttemptedRef = useRef(false);
 
 
     // Use custom hooks
@@ -156,6 +183,28 @@ export default function App() {
         handleSessionRestoration
     } = useUserProfile();
 
+    const loadPendingEmailConfirmation = useCallback((): { email?: string } | null => {
+        try {
+            const raw = localStorage.getItem(EMAIL_CONFIRMATION_STORAGE_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (!parsed) return null;
+            return parsed as { email?: string };
+        } catch (error) {
+            console.warn('Failed to read email confirmation storage:', error);
+            return null;
+        }
+    }, []);
+
+    const clearPendingEmailConfirmation = useCallback(() => {
+        try {
+            localStorage.removeItem(EMAIL_CONFIRMATION_STORAGE_KEY);
+        } catch (error) {
+            console.warn('Failed to clear email confirmation storage:', error);
+        }
+        setPendingEmailConfirmation(null);
+    }, []);
+
     useEffect(() => {
         // Only keep onboarding modal open when explicitly requested and still applicable
         if (isOnboardingCompany) {
@@ -164,6 +213,126 @@ export default function App() {
             }
         }
     }, [isOnboardingCompany, userProfile.role, companyProfile?.id]);
+
+    useEffect(() => {
+        const syncPending = () => {
+            setPendingEmailConfirmation(loadPendingEmailConfirmation());
+        };
+        syncPending();
+        const handleEvent = () => syncPending();
+        window.addEventListener('jobshaman:email-confirmation', handleEvent);
+        return () => {
+            window.removeEventListener('jobshaman:email-confirmation', handleEvent);
+        };
+    }, [loadPendingEmailConfirmation]);
+
+    useEffect(() => {
+        if (userProfile.isLoggedIn) {
+            clearPendingEmailConfirmation();
+        }
+    }, [userProfile.isLoggedIn, clearPendingEmailConfirmation]);
+
+    const loadPendingApplyFollowup = useCallback((): PendingApplyFollowup | null => {
+        try {
+            const raw = localStorage.getItem(APPLY_FOLLOWUP_STORAGE_KEY);
+            if (!raw) return null;
+            const parsed = JSON.parse(raw);
+            if (!parsed || !parsed.jobId) return null;
+            return parsed as PendingApplyFollowup;
+        } catch (error) {
+            console.warn('Failed to read apply follow-up storage:', error);
+            return null;
+        }
+    }, []);
+
+    const savePendingApplyFollowup = useCallback((payload: PendingApplyFollowup) => {
+        try {
+            localStorage.setItem(APPLY_FOLLOWUP_STORAGE_KEY, JSON.stringify(payload));
+        } catch (error) {
+            console.warn('Failed to save apply follow-up storage:', error);
+        }
+    }, []);
+
+    const clearPendingApplyFollowup = useCallback(() => {
+        try {
+            localStorage.removeItem(APPLY_FOLLOWUP_STORAGE_KEY);
+        } catch (error) {
+            console.warn('Failed to clear apply follow-up storage:', error);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!userProfile.isLoggedIn) {
+            onboardingDismissedRef.current = false;
+            if (showCandidateOnboarding) {
+                setShowCandidateOnboarding(false);
+            }
+            setPendingEmailConfirmation(loadPendingEmailConfirmation());
+            return;
+        }
+
+        if (userProfile.role === 'recruiter') {
+            if (showCandidateOnboarding) {
+                setShowCandidateOnboarding(false);
+            }
+            return;
+        }
+
+        const missingLocation = !userProfile.address && !userProfile.coordinates;
+        const missingCv = !userProfile.cvUrl && !userProfile.cvText;
+        const shouldShow = (missingLocation || missingCv) && !onboardingDismissedRef.current;
+
+        if (shouldShow) {
+            setShowCandidateOnboarding(true);
+        } else if (!missingLocation && !missingCv) {
+            setShowCandidateOnboarding(false);
+        }
+    }, [
+        userProfile.isLoggedIn,
+        userProfile.role,
+        userProfile.address,
+        userProfile.coordinates,
+        userProfile.cvUrl,
+        userProfile.cvText,
+        showCandidateOnboarding,
+        loadPendingEmailConfirmation
+    ]);
+
+    useEffect(() => {
+        const minDelayMs = 5000;
+
+        const checkPending = () => {
+            if (showApplyFollowup) return;
+            const pending = loadPendingApplyFollowup();
+            if (!pending) return;
+
+            if (pending.snoozeUntil && Date.now() < pending.snoozeUntil) {
+                return;
+            }
+
+            const openedAtMs = pending.openedAt ? new Date(pending.openedAt).getTime() : 0;
+            if (openedAtMs && Date.now() - openedAtMs < minDelayMs) {
+                return;
+            }
+
+            setApplyFollowup(pending);
+            setShowApplyFollowup(true);
+        };
+
+        const handleFocus = () => {
+            if (document.visibilityState === 'hidden') return;
+            checkPending();
+        };
+
+        window.addEventListener('focus', handleFocus);
+        document.addEventListener('visibilitychange', handleFocus);
+        checkPending();
+
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            document.removeEventListener('visibilitychange', handleFocus);
+        };
+    }, [loadPendingApplyFollowup, showApplyFollowup]);
 
     const isCompanyProfile = userProfile.role === 'recruiter' && !!companyProfile && companyProfile.industry !== 'Freelancer';
     const companyCoordinates = (companyProfile?.lat != null && companyProfile?.lng != null)
@@ -300,6 +469,32 @@ export default function App() {
         }
     };
 
+    useEffect(() => {
+        if (!userProfile.isLoggedIn || !userProfile.id) {
+            welcomeEmailAttemptedRef.current = false;
+            return;
+        }
+        if (userProfile.welcomeEmailSent) {
+            return;
+        }
+        if (welcomeEmailAttemptedRef.current) {
+            return;
+        }
+
+        welcomeEmailAttemptedRef.current = true;
+        const locale = (i18n.resolvedLanguage || i18n.language || 'cs').toLowerCase();
+        const appUrl = window.location.origin;
+
+        (async () => {
+            const ok = await sendWelcomeEmail(locale, appUrl);
+            if (ok) {
+                await refreshUserProfile();
+            } else {
+                welcomeEmailAttemptedRef.current = false;
+            }
+        })();
+    }, [userProfile.isLoggedIn, userProfile.id, userProfile.welcomeEmailSent, i18n.language]);
+
     const loadRealJobs = useCallback(async () => {
         setIsLoadingJobs(true);
         try {
@@ -355,7 +550,10 @@ export default function App() {
             document.documentElement.classList.remove('dark');
         }
         // Job loading is driven by usePaginatedJobs; avoid forcing parallel initial reload here.
-        checkPaymentStatus();
+        const paymentStatus = checkPaymentStatus();
+        if (paymentStatus === 'success') {
+            refreshUserProfile();
+        }
 
         // AUTH LISTENER
         if (supabase) {
@@ -376,18 +574,26 @@ export default function App() {
                 console.log(`🔔 [App] Auth state changed: ${event}`);
 
                 if (session) {
-                    // INITIAL_SESSION is handled by explicit initSession() above.
-                    // Keep runtime stable by restoring only on explicit sign-in.
-                    if (event === 'SIGNED_IN') {
+                    // Restore on explicit sign-in and OAuth returns (INITIAL_SESSION)
+                    if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
                         // Ensure auth modal doesn't block onboarding/dashboard
                         setIsAuthModalOpen(false);
-                        handleSessionRestoration(session.user.id);
+                        if (!userProfile.isLoggedIn) {
+                            handleSessionRestoration(session.user.id);
+                        }
                     }
                 } else if (event === 'SIGNED_OUT') {
                     console.log('👤 [App] User signed out, clearing state.');
                     setUserProfile({ ...DEFAULT_USER_PROFILE, isLoggedIn: false });
                     setViewState(ViewState.LIST);
                     setCompanyProfile(null);
+                    onboardingDismissedRef.current = false;
+                    setShowCandidateOnboarding(false);
+                    clearPendingApplyFollowup();
+                    setApplyFollowup(null);
+                    setShowApplyFollowup(false);
+                    welcomeEmailAttemptedRef.current = false;
+                    clearPendingEmailConfirmation();
                     clearCsrfToken();
                 }
             });
@@ -970,13 +1176,17 @@ export default function App() {
     };
 
     const handleApplyToJob = (job: Job) => {
+        const requestId = (job as any)?.requestId || (job as any)?.aiRecommendationRequestId;
+        const scoringVersion = (job as any)?.aiMatchScoringVersion;
+        const modelVersion = (job as any)?.aiMatchModelVersion;
+
         trackJobInteraction({
             jobId: job.id,
             eventType: 'apply_click',
             sessionId: searchSessionIdRef.current,
-            requestId: (job as any)?.requestId || (job as any)?.aiRecommendationRequestId,
-            scoringVersion: (job as any)?.aiMatchScoringVersion,
-            modelVersion: (job as any)?.aiMatchModelVersion,
+            requestId,
+            scoringVersion,
+            modelVersion,
             signalValue: 1,
             metadata: {
                 source: 'job_apply',
@@ -985,10 +1195,66 @@ export default function App() {
         });
         handleJobSelect(job.id);
         if (job.source !== 'jobshaman.cz' && job.url) {
+            const pending: PendingApplyFollowup = {
+                jobId: Number(job.id),
+                title: job.title,
+                company: job.company,
+                url: job.url,
+                openedAt: new Date().toISOString(),
+                sessionId: searchSessionIdRef.current,
+                requestId,
+                scoringVersion,
+                modelVersion
+            };
+            savePendingApplyFollowup(pending);
+            setApplyFollowup(pending);
             window.open(job.url, '_blank', 'noopener,noreferrer');
             return;
         }
         setIsApplyModalOpen(true);
+    };
+
+    const handleApplyFollowupAnswer = async (didApply: boolean) => {
+        if (!applyFollowup) {
+            setShowApplyFollowup(false);
+            return;
+        }
+
+        try {
+            await trackJobInteraction({
+                jobId: applyFollowup.jobId,
+                eventType: 'apply_click',
+                sessionId: applyFollowup.sessionId,
+                requestId: applyFollowup.requestId,
+                scoringVersion: applyFollowup.scoringVersion,
+                modelVersion: applyFollowup.modelVersion,
+                signalValue: didApply ? 1 : 0,
+                metadata: {
+                    source: 'apply_followup',
+                    apply_outcome: didApply ? 'applied' : 'not_applied',
+                    opened_at: applyFollowup.openedAt,
+                    url: applyFollowup.url || null
+                }
+            });
+        } catch (error) {
+            console.warn('Failed to record apply follow-up:', error);
+        } finally {
+            clearPendingApplyFollowup();
+            setApplyFollowup(null);
+            setShowApplyFollowup(false);
+        }
+    };
+
+    const handleApplyFollowupLater = () => {
+        if (!applyFollowup) {
+            setShowApplyFollowup(false);
+            return;
+        }
+        const snoozeUntil = Date.now() + 6 * 60 * 60 * 1000;
+        const next = { ...applyFollowup, snoozeUntil };
+        savePendingApplyFollowup(next);
+        setApplyFollowup(next);
+        setShowApplyFollowup(false);
     };
 
     const handleJobSelect = (jobId: string | null) => {
@@ -1470,6 +1736,7 @@ export default function App() {
                             handleAnalyzeJob={handleAnalyzeJob}
                             selectedBlogPostSlug={selectedBlogPostSlug}
                             handleBlogPostSelect={handleBlogPostSelect}
+                            onApplyToJob={handleApplyToJob}
                         />
                     </>
                 )}
@@ -1494,11 +1761,70 @@ export default function App() {
                 onIntentionalListClick={() => { userIntentionallyClickedListRef.current = true; }}
             />
 
+            {!userProfile.isLoggedIn && pendingEmailConfirmation && (
+                <div className="max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8">
+                    <div className="mt-4 mb-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="flex items-start gap-3">
+                            <AlertCircle className="text-amber-600 dark:text-amber-300 mt-0.5" size={20} />
+                            <div>
+                                <div className="font-bold text-amber-900 dark:text-amber-200">
+                                    {t('auth.confirmation_required_title')}
+                                </div>
+                                <div className="text-sm text-amber-800 dark:text-amber-300">
+                                    {t('auth.confirmation_required')}
+                                </div>
+                                {pendingEmailConfirmation.email && (
+                                    <div className="text-xs text-amber-700 dark:text-amber-200 mt-1">
+                                        {pendingEmailConfirmation.email}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        <button
+                            onClick={clearPendingEmailConfirmation}
+                            className="px-4 py-2 text-sm font-semibold text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700 rounded-xl hover:bg-amber-100 dark:hover:bg-amber-800/40"
+                        >
+                            {t('app.close')}
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <main className="flex-1 max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 overflow-hidden">
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-120px)]">
                     {renderContent()}
                 </div>
             </main>
+
+            <CandidateOnboardingModal
+                isOpen={showCandidateOnboarding}
+                profile={userProfile}
+                onClose={() => {
+                    onboardingDismissedRef.current = true;
+                    setShowCandidateOnboarding(false);
+                }}
+                onComplete={() => {
+                    onboardingDismissedRef.current = true;
+                    setShowCandidateOnboarding(false);
+                }}
+                onGoToProfile={() => {
+                    onboardingDismissedRef.current = true;
+                    setShowCandidateOnboarding(false);
+                    setViewState(ViewState.PROFILE);
+                }}
+                onUpdateProfile={handleProfileUpdate}
+                onOpenPremium={(featureLabel) => setShowPremiumUpgrade({ open: true, feature: featureLabel })}
+                onRefreshProfile={refreshUserProfile}
+            />
+
+            <ApplyFollowupModal
+                isOpen={showApplyFollowup}
+                jobTitle={applyFollowup?.title}
+                company={applyFollowup?.company}
+                onConfirm={() => handleApplyFollowupAnswer(true)}
+                onReject={() => handleApplyFollowupAnswer(false)}
+                onLater={handleApplyFollowupLater}
+            />
 
             <PremiumUpgradeModal
                 show={{ open: showPremiumUpgrade.open, feature: showPremiumUpgrade.feature }}

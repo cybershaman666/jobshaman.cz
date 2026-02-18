@@ -393,14 +393,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     useEffect(() => {
         const langCountry = getCountryCodeFromLanguage(i18n.language);
         if (!langCountry) return;
-        if (countryCodes.length !== 1 || countryCodes[0] !== langCountry) {
-            setCountryCodes([langCountry]);
-        }
-        if (globalSearch) {
-            setGlobalSearch(false);
-        }
-        if (abroadOnly) {
-            setAbroadOnly(false);
+        if (!globalSearch && !abroadOnly) {
+            if (countryCodes.length !== 1 || countryCodes[0] !== langCountry) {
+                setCountryCodes([langCountry]);
+            }
         }
     }, [i18n.language, countryCodes, globalSearch, abroadOnly]);
 

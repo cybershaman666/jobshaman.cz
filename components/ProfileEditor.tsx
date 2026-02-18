@@ -21,9 +21,8 @@ import {
   Bookmark,
   Sparkles
 } from 'lucide-react';
-import { uploadProfilePhoto, uploadCVFile } from '../services/supabaseService';
-import { parseProfileFromCVWithFallback } from '../services/cvParserService';
-import { parseProfileFromCV } from '../services/geminiService';
+import { uploadProfilePhoto } from '../services/supabaseService';
+import { validateCvFile, uploadAndParseCv, mergeProfileWithParsedCv } from '../services/cvUploadService';
 import { resolveAddressToCoordinates } from '../services/commuteService';
 import PremiumFeaturesPreview from './PremiumFeaturesPreview';
 import MyInvitations from './MyInvitations';
@@ -110,31 +109,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const isPremium = normalizedCandidateTier === 'premium';
   const aiCvParsingEnabled = String(import.meta.env.VITE_ENABLE_AI_CV_PARSER || 'true').toLowerCase() !== 'false';
 
-  const parseUploadedCv = async (file: File): Promise<Partial<UserProfile>> => {
-    if (isPremium && aiCvParsingEnabled) {
-      try {
-        // Keep deterministic extraction from local parser, then enrich structure via backend AI.
-        const baseline = await parseProfileFromCVWithFallback(file);
-        const aiParsed = await parseProfileFromCV(baseline.cvText || '');
-        if (aiParsed && Object.keys(aiParsed).length > 0) {
-          return {
-            ...baseline,
-            ...aiParsed,
-            skills: (aiParsed.skills && aiParsed.skills.length > 0) ? aiParsed.skills : baseline.skills,
-            workHistory: (aiParsed.workHistory && aiParsed.workHistory.length > 0) ? aiParsed.workHistory : baseline.workHistory,
-            education: (aiParsed.education && aiParsed.education.length > 0) ? aiParsed.education : baseline.education,
-            cvText: aiParsed.cvText || baseline.cvText
-          };
-        }
-      } catch (aiError) {
-        console.warn('AI CV parsing failed, falling back to standard parser:', aiError);
-      }
-    }
-
-    // Free users (and premium fallback) use standard parser.
-    return await parseProfileFromCVWithFallback(file);
-  };
-
   const profileWithResolvedSubscription: UserProfile = {
     ...profile,
     subscription: {
@@ -206,12 +180,12 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
     if (isUploadingCV) return;
 
-    if (!file.type.match(/(pdf|doc|docx)/)) {
+    const validationError = validateCvFile(file);
+    if (validationError === 'type') {
       alert(t('profile.cv_type_error'));
       return;
     }
-
-    if (file.size > 10 * 1024 * 1024) {
+    if (validationError === 'size') {
       alert(t('profile.cv_size_error'));
       return;
     }
@@ -219,58 +193,38 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     setIsUploadingCV(true);
 
     try {
-      const cvUrl = await uploadCVFile(profile.id || '', file);
-      if (cvUrl) {
-        // Trigger CV parsing immediately after upload
-        try {
-          const parsedData = await parseUploadedCv(file);
+      const { cvUrl, parsedData } = await uploadAndParseCv(profile, file, {
+        isPremium,
+        aiCvParsingEnabled
+      });
 
-          // Merge parsed data into profile
-          const updatedProfile = {
-            ...profile,
-            cvUrl,
-            // Only update fields if they are available in parsed data and not already set logically
-            name: parsedData.name || profile.name,
-            email: parsedData.email || profile.email,
-            phone: parsedData.phone || profile.phone,
-            jobTitle: parsedData.jobTitle || profile.jobTitle,
-            skills: parsedData.skills && parsedData.skills.length > 0 ? parsedData.skills : profile.skills,
-            workHistory: parsedData.workHistory && parsedData.workHistory.length > 0 ? parsedData.workHistory : profile.workHistory,
-            education: parsedData.education && parsedData.education.length > 0 ? parsedData.education : profile.education,
-            cvText: parsedData.cvText || profile.cvText
-          };
+      // Merge parsed data into profile
+      const updatedProfile = mergeProfileWithParsedCv(profile, cvUrl, parsedData);
 
-          // Update local form data to sync UI immediately
-          setFormData({
-            personal: {
-              ...formData.personal,
-              name: parsedData.name || formData.personal.name,
-              email: parsedData.email || formData.personal.email,
-              phone: parsedData.phone || formData.personal.phone,
-              jobTitle: parsedData.jobTitle || formData.personal.jobTitle,
-            },
-            experience: (parsedData.workHistory && parsedData.workHistory.length > 0) ? parsedData.workHistory : formData.experience,
-            education: (parsedData.education && parsedData.education.length > 0) ? parsedData.education : formData.education,
-            skills: (parsedData.skills && parsedData.skills.length > 0) ? parsedData.skills : formData.skills
-          });
+      // Update local form data to sync UI immediately
+      setFormData({
+        personal: {
+          ...formData.personal,
+          name: parsedData.name || formData.personal.name,
+          email: parsedData.email || formData.personal.email,
+          phone: parsedData.phone || formData.personal.phone,
+          jobTitle: parsedData.jobTitle || formData.personal.jobTitle,
+        },
+        experience: (parsedData.workHistory && parsedData.workHistory.length > 0) ? parsedData.workHistory : formData.experience,
+        education: (parsedData.education && parsedData.education.length > 0) ? parsedData.education : formData.education,
+        skills: (parsedData.skills && parsedData.skills.length > 0) ? parsedData.skills : formData.skills
+      });
 
-          // Save the updated profile with parsed data
-          onChange(updatedProfile, true);
-          alert(t('profile.cv_upload_success'));
-        } catch (parseError) {
-          console.error('CV parsing failed, but upload succeeded:', parseError);
-          // Still save the URL if parsing fails
-          onChange({ ...profile, cvUrl }, true);
-          alert(t('profile.cv_upload_success'));
+      // Save the updated profile with parsed data
+      onChange(updatedProfile, true);
+      alert(t('profile.cv_upload_success'));
+
+      // Trigger profile refresh after a short delay to allow UI to sync
+      setTimeout(() => {
+        if (onRefreshProfile) {
+          onRefreshProfile();
         }
-
-        // Trigger profile refresh after a short delay to allow UI to sync
-        setTimeout(() => {
-          if (onRefreshProfile) {
-            onRefreshProfile();
-          }
-        }, 1000);
-      }
+      }, 1000);
     } catch (error) {
       console.error('CV upload failed:', error);
       alert(t('profile.cv_upload_error'));

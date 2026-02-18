@@ -36,6 +36,74 @@ export const sendEmail = async (emailData: EmailData): Promise<{ success: boolea
 
 // Templates for different email types
 export const EmailTemplates = {
+  welcomeCandidate: (payload: { name?: string; locale?: string; appUrl?: string }) => {
+    const localeRaw = (payload.locale || 'cs').toLowerCase();
+    const locale = localeRaw.startsWith('de') || localeRaw === 'at' ? 'de'
+      : localeRaw.startsWith('sk') ? 'sk'
+      : localeRaw.startsWith('pl') ? 'pl'
+      : localeRaw.startsWith('en') ? 'en'
+      : 'cs';
+
+    const name = payload.name ? payload.name.split(' ')[0] : '';
+
+    const copyByLocale: Record<string, { subject: string; title: string; body: string; cta: string; footer: string }> = {
+      cs: {
+        subject: 'Vítejte v JobShaman',
+        title: `Ahoj${name ? ` ${name}` : ''}!`,
+        body: 'Díky za registraci. Máte hotový účet a můžete začít hledat nabídky s chytrým filtrováním.',
+        cta: 'Začít prohlížet nabídky',
+        footer: 'Těšíme se, že vám JobShaman pomůže najít lepší práci.'
+      },
+      en: {
+        subject: 'Welcome to JobShaman',
+        title: `Hi${name ? ` ${name}` : ''}!`,
+        body: 'Thanks for signing up. Your account is ready, and you can start browsing offers with smart filters.',
+        cta: 'Start browsing jobs',
+        footer: 'We are glad to help you find a better job with JobShaman.'
+      },
+      de: {
+        subject: 'Willkommen bei JobShaman',
+        title: `Hallo${name ? ` ${name}` : ''}!`,
+        body: 'Danke für Ihre Registrierung. Ihr Konto ist bereit und Sie können sofort passende Angebote entdecken.',
+        cta: 'Jobs ansehen',
+        footer: 'Wir freuen uns, dass JobShaman bei der Jobsuche hilft.'
+      },
+      pl: {
+        subject: 'Witamy w JobShaman',
+        title: `Cześć${name ? ` ${name}` : ''}!`,
+        body: 'Dziękujemy za rejestrację. Konto jest gotowe — możesz od razu przeglądać oferty.',
+        cta: 'Przeglądaj oferty',
+        footer: 'Cieszymy się, że JobShaman pomaga w znalezieniu lepszej pracy.'
+      },
+      sk: {
+        subject: 'Vitajte v JobShaman',
+        title: `Ahoj${name ? ` ${name}` : ''}!`,
+        body: 'Ďakujeme za registráciu. Účet je pripravený a môžete začať prehliadať ponuky.',
+        cta: 'Začať prehliadať ponuky',
+        footer: 'Tešíme sa, že vám JobShaman pomôže nájsť lepšiu prácu.'
+      }
+    };
+
+    const copy = copyByLocale[locale] || copyByLocale.cs;
+    const appUrl = payload.appUrl || 'https://jobshaman.cz';
+
+    return {
+      subject: copy.subject,
+      html: `
+        <div style=\"font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9fafb;\">
+          <div style=\"background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);\">
+            <h2 style=\"color: #0f172a; margin-bottom: 12px;\">${copy.title}</h2>
+            <p style=\"color: #475569; line-height: 1.6;\">${copy.body}</p>
+            <div style=\"margin: 24px 0;\">
+              <a href=\"${appUrl}\" style=\"display: inline-block; padding: 12px 20px; background-color: #0ea5e9; color: #ffffff; border-radius: 8px; text-decoration: none; font-weight: 600;\">${copy.cta}</a>
+            </div>
+            <p style=\"color: #64748b; font-size: 14px;\">${copy.footer}</p>
+          </div>
+          <div style=\"text-align: center; margin-top: 24px; color: #94a3b8; font-size: 12px;\">© 2024 JobShaman</div>
+        </div>
+      `
+    };
+  },
   companyRegistration: (formData: any) => ({
     subject: `Nová registrace společnosti: ${formData.companyName}`,
     html: `

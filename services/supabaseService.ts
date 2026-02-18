@@ -144,7 +144,13 @@ export const signInWithEmail = async (email: string, pass: string) => {
         const profile = await getUserProfile(result.data.user.id);
         if (!profile) {
             console.log('👤 Profile not found for signed-in user, creating base profile...');
-            await createBaseProfile(result.data.user.id, email, email.split('@')[0]);
+            await createBaseProfile(
+                result.data.user.id,
+                email,
+                email.split('@')[0],
+                'candidate',
+                result.data.user.user_metadata?.avatar_url || result.data.user.user_metadata?.picture || undefined
+            );
         }
     }
 
@@ -170,7 +176,13 @@ export const signUpWithEmail = async (email: string, pass: string, fullName: str
     // 2. Create Base Profile (ONLY if session is established - i.e. no email confirmation)
     if (data.user && data.session) {
         console.log('👤 Session established after signUp, creating profile...');
-        await createBaseProfile(data.user.id, email, fullName);
+        await createBaseProfile(
+            data.user.id,
+            email,
+            fullName,
+            'candidate',
+            data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || undefined
+        );
     } else if (data.user) {
         console.log('📧 Email confirmation required. Profile will be created on first login.');
     }
@@ -236,7 +248,13 @@ export const getCurrentUser = async () => {
     }
 };
 
-export const createBaseProfile = async (userId: string, email: string, name: string, role: string = 'candidate') => {
+export const createBaseProfile = async (
+    userId: string,
+    email: string,
+    name: string,
+    role: string = 'candidate',
+    avatarUrl?: string
+) => {
     if (!supabase) throw new Error("Supabase not configured");
 
     console.log(`👤 Attempting to create base profile for ${userId} (${email})...`);
@@ -256,6 +274,7 @@ export const createBaseProfile = async (userId: string, email: string, name: str
             id: userId,
             email,
             full_name: name,
+            avatar_url: avatarUrl || null,
             role,
             subscription_tier: 'free',
             created_at: new Date().toISOString(),
@@ -308,6 +327,7 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
             updated_at,
             subscription_tier,
             usage_stats,
+            welcome_email_sent,
             has_assessment,
             candidate_profiles (*)
         `)
@@ -384,7 +404,8 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
             }
         },
         hasAssessment: profileData.has_assessment || false,
-        role: profileData.role
+        role: profileData.role,
+        welcomeEmailSent: profileData.welcome_email_sent || false
     };
 
     return userProfile;
