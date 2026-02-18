@@ -431,7 +431,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                 </button>
                                 {expandedSections.contract && (
                                     <div className="flex flex-wrap gap-2 animate-in slide-in-from-top-1">
-                                        {['HPP', 'IČO', 'Part-time'].map(type => (
+                                        {['HPP', 'IČO', 'Part-time', 'Brigáda'].map(type => (
                                             <button
                                                 key={type}
                                                 onClick={() => toggleContractTypeFilter(type)}

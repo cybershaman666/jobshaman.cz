@@ -1,120 +1,38 @@
-<div align="center">
-<h1>🧙‍♂️ JobShaman</h1>
-<p><em>Career OS for radical clarity in hiring. AI that decodes reality, reveals hidden skills, and raises your market value.</em></p>
+# JobShaman
 
-![Badge](https://img.shields.io/badge/React-18.2.0-blue)
-![Badge](https://img.shields.io/badge/FastAPI-0.109.0-green)
-![Badge](https://img.shields.io/badge/Supabase-PostgreSQL-green)
-![Badge](https://img.shields.io/badge/AI-Gemini_1.5_Flash-purple)
-![Badge](https://img.shields.io/badge/Stripe-Payments-blue)
+JobShaman je **Career OS** pro transparentní nábor a objevování práce. Nejsme klasický job board – kombinujeme AI, důraz na realitu nabídky a měřitelné signály chování.
 
-</div>
+## Klíčové funkce
 
-## 🎯 Vision: Radical Truth (Radikální pravda)
+- **Hybridní vyhledávání (Search v2)**: kombinuje FTS, trigramy, recenci a behaviorální signály.
+- **Chytré řazení**: default/recommended/newest + guardrails proti zahlcení jednou firmou.
+- **JHI (Job Happiness Index)**: srovnání nabídek podle užitku a reálné hodnoty.
+- **AI analýza nabídky**: detekce red‑flagů a kvality inzerátu.
+- **AI profil a doporučení**: personalizované výsledky podle profilu a chování.
+- **Telemetrie interakcí**: ukládání expozic a feedbacku pro zlepšování relevance.
+- **Compliance a bezpečnost**: role‑based přístup, auditovatelné signály, limitované akce.
 
-JobShaman isn't just another job board. It's a **Career OS** designed to eliminate corporate noise and shallow recruitment processes. We believe in **Radical Truth** for candidates and **No-Bullshit Evaluation** for companies.
+## Odlišnosti od běžných pracovních portálů
 
-Using advanced AI, we translate vague job descriptions into "Commute Reality" and "Salary Truth," while helping candidates **narrate their story**, uncover **hidden skills**, and generate a **tailored CV** that increases their market value. Recruiters get a **Digital Assessment Center** that evaluates the core essence of a candidate, not just their CV.
+- **Nejen full‑text**: ranking není jen „obsah shody“, ale i relevance, recence a behaviorální signály.
+- **Anti‑spam + kvalita**: systém aktivně odstraňuje nekvalitní/nevěrohodné nabídky.
+- **Transparence hodnoty**: JHI a AI vysvětlení „proč“ má nabídka smysl.
+- **Personalizace bez noise**: doporučování není reklamní feed, ale relevance pro kandidáta.
+- **Měřitelnost**: interakce uživatelů se ukládají jako signály pro zlepšení rankingů.
+- **Konzistentní UX**: stejné filtry a řazení napříč celým produktem.
 
----
+## AI a doporučování (high‑level)
 
-## ✨ Key Features
+- **Embeddings + akční pravděpodobnost**: kombinuje sémantiku a reálné chování.
+- **Guardrails**: limituje nadměrné opakování jedné firmy, preferuje čerstvé nabídky.
+- **Bezpečné fallbacky**: systém udržuje stabilní výsledky i při degradaci backendu.
 
-### 🏢 For Recruiters: The Digital AC
-*   **🤖 Digital Assessment Center (AC)**: Automated generation of comprehensive evaluation tests.
-    *   **Probing Scenarios**: "Bullshit vs. Reality" tasks that test integrity and ethics.
-    *   **Practical Case Studies**: Real-world job samples (Code for devs, Scenarios for planners, etc.).
-    *   **Cognitive Logic**: Evaluation of prioritization and analytical thinking.
-*   **🔬 Qualitative AI Analysis (Founder's Sidekick)**:
-    *   Gemini-powered evaluation of candidate answers.
-    *   Deep insights into *how* the candidate thinks, not just *what* they know.
-    *   Direct qualitative hiring recommendations (e.g., "High integrity professional", "Theoretical junior").
-*   **📊 Recruiter Dashboard**: Full control over job postings, applicant invitations, and detailed result analysis.
-*   **💳 Global Invoicing & Stripe**: Automated billing and subscription management for premium recruitment features.
+## Vyhledávání (high‑level)
 
-### 🔍 For Candidates: Career OS
-*   **📊 Job Happiness Index (JHI)**: A composite score (0-100) based on financial gain, time cost, and mental load.
-*   **🚫 Bullshit Meter**: AI-driven red-flag detection in job descriptions.
-*   **🚗 Commute Reality**: Real-time calculation of distance, cost, and time spent commuting (Public transport vs. Car).
-*   **💰 Financial Clarity**: Net salary calculators and benefit impact analysis.
-*   **🧠 AI Career Narrative**: Guided storytelling to surface hidden skills and strengths.
-*   **📝 Tailored CV**: AI-generated CV and profile enrichment based on your real story.
-
-### ✅ Focus (What We Don’t Do)
-*   **No freelance marketplace** — we focus on full-time roles and career growth.
-*   **No education marketplace** — learning content is not a product surface.
+- **Search v2** běží jako samostatná runtime služba.
+- **Pre‑computed indexace** na zápis: stabilní výkon i při vyšší zátěži.
+- **Geofilter** pouze při dostupných souřadnicích (nezpůsobí prázdné výsledky).
 
 ---
 
-## 🛠️ Tech Stack
-
-### Frontend & UI
-*   **React 18.2** with **TypeScript** & **Vite**.
-*   **Tailwind CSS**: Modern, dark-mode-first glassmorphic design.
-*   **Lucide React**: High-quality SVG icon system.
-*   **Framer Motion**: Smooth, performant micro-interactions.
-
-### Backend & Core
-*   **FastAPI (Python)**: Robust, asynchronous API handling.
-*   **Supabase (PostgreSQL)**: Managed database with RLS policies, Auth, and Storage.
-*   **Google Gemini 1.5 Flash**: Orchestrates high-speed AI analysis, CV enrichment, and assessment generation.
-*   **Stripe**: Secure payment processing and billing infrastructure.
-*   **Resend**: Transactional email delivery for invitation tokens.
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js >= 18.x
-- Python >= 3.10
-- Supabase Project & Google Gemini API Key
-
-### Installation
-
-1.  **Clone the infrastructure**
-    ```bash
-    git clone <repository-url>
-    cd jobshaman
-    npm install
-    ```
-
-2.  **Environment Setup**
-    Configure your `.env.local` (Frontend) and `backend/.env` (Backend) with:
-    - `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY`
-    - `GEMINI_API_KEY`
-    - `STRIPE_SECRET_KEY`
-    - `RESEND_API_KEY`
-
-3.  **Run the Shaman**
-    ```bash
-    # Terminal 1: Frontend
-    npm run dev
-
-    # Terminal 2: Backend
-    cd backend
-    uvicorn app.main:app --reload
-    ```
-
----
-
-## 📂 Project Structure
-
-```
-├── backend/app/          # FastAPI logic & Database models
-├── components/           # React Components (UI, Dashboard, AC)
-├── services/             # AI (Gemini), Supabase, & Stripe wrappers
-├── pages/                # High-level views (Search, Invitations, Profile)
-├── database/             # SQL Migrations & Schema definitions
-└── public/locales/       # I18n translations (CS, EN, DE, SK, PL)
-```
-
-## 📄 License & Status
-**Proprietary.** Developed as a next-generation hiring platform. 
-Join us in making job searching more transparent and humane.
-
----
-
-<div align="center">
-<p><em>Built for a world where everyone knows exactly what they're signing up for — and how much they're truly worth.</em></p>
-</div>
+**Status:** Proprietární systém. README je pouze informační přehled schopností produktu.

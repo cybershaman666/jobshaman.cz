@@ -1,6 +1,8 @@
 import hashlib
 import json
 import math
+import re
+import unicodedata
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
 
@@ -46,6 +48,53 @@ def _normalize_list(values: Optional[List[str]]) -> List[str]:
     if not values:
         return []
     return [str(v).strip().lower() for v in values if str(v).strip()]
+
+
+def _strip_accents(text: str) -> str:
+    if not text:
+        return ""
+    return "".join(
+        ch for ch in unicodedata.normalize("NFD", text) if unicodedata.category(ch) != "Mn"
+    )
+
+
+def _normalize_contract_text(value: Optional[str]) -> str:
+    if not value:
+        return ""
+    raw = _strip_accents(str(value).lower())
+    return re.sub(r"[^a-z0-9]+", " ", raw).strip()
+
+
+def _contract_type_tags(value: Optional[str]) -> set:
+    txt = _normalize_contract_text(value)
+    if not txt:
+        return set()
+    haystack = f" {txt} "
+    tags: set = set()
+
+    if re.search(r"\b(ico|osvc|szco|b2b|freelanc|contractor|self employed|selfemployed|dzialalnosc|gospodarcza)\b", haystack) or "zivnost" in haystack or "zivnostensk" in haystack or "freiberuf" in haystack or "gewerbe" in haystack or "selbst" in haystack:
+        tags.add("ico")
+
+    if re.search(r"\b(hpp|plny uvazek|plny pracovn|pracovni pomer|pracovny pomer|full time|fulltime|vollzeit|umowa o prace|pelny etat|festanstell)\b", haystack):
+        tags.add("hpp")
+
+    if re.search(r"\b(part time|parttime|teilzeit|zkracen|skracen|castecn|skrat|polovicn|niepelny etat|czesc etatu)\b", haystack):
+        tags.add("part_time")
+
+    if re.search(r"\b(brigad|dpp|dpc|dohod|minijob|aushilfe|umowa zlecenie|umowa o dzielo|temporary|temp|seasonal|casual)\b", haystack):
+        tags.add("brigada")
+
+    if re.search(r"\b(intern|staz|staz|praktik|trainee)\b", haystack):
+        tags.add("internship")
+
+    return tags
+
+
+def _normalize_contract_filters(values: List[str]) -> set:
+    tags: set = set()
+    for value in values:
+        tags |= _contract_type_tags(value)
+    return tags
 
 
 def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -258,6 +307,7 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
     filter_city = (filters.get("filter_city") or "").strip().lower()
     min_salary = filters.get("filter_min_salary")
     contract_types = set(_normalize_list(filters.get("filter_contract_types")))
+    contract_filter_tags = _normalize_contract_filters(list(contract_types)) if contract_types else set()
     required_benefits = _normalize_list(filters.get("filter_benefits"))
     experience_levels = _normalize_list(filters.get("filter_experience_levels"))
     country_codes = set(_normalize_list(filters.get("filter_country_codes")))
@@ -289,8 +339,7 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
             query = query.in_("language_code", list(language_codes))
         if min_salary:
             query = query.gte("salary_from", min_salary)
-        if contract_types:
-            query = query.in_("contract_type", list(contract_types))
+        # Contract type filtering handled in-memory with normalization.
         return query.execute().data or []
 
     global _JOBS_STATUS_COLUMN_AVAILABLE, _JOBS_STATUS_WARNING_EMITTED
@@ -323,6 +372,10 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
             continue
         if filter_city and filter_city not in (job.get("location") or "").lower():
             continue
+        if contract_filter_tags:
+            job_tags = _contract_type_tags(job.get("contract_type") or "")
+            if not job_tags.intersection(contract_filter_tags):
+                continue
         if not _benefits_match(job.get("benefits"), required_benefits):
             continue
         if not _experience_match(job, experience_levels):
