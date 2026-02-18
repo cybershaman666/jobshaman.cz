@@ -31,7 +31,7 @@ BEGIN
     END IF;
 
     -- IČO / OSVČ / B2B / Self-employed
-    IF v ~ '(^| )(ico|osvc|szco|b2b|freelanc|contractor|self employed|selfemployed|dzialalnosc|gospodarcza)( |$)'
+    IF v ~ '(^| )(ico|osvc|szco|b2b|freelanc[a-z]*|contractor|self employed|selfemployed|dzialalnosc|gospodarcza)( |$)'
         OR v LIKE '%zivnost%'
         OR v LIKE '%zivnostensk%'
         OR v LIKE '%freiberuf%'
@@ -42,17 +42,17 @@ BEGIN
     END IF;
 
     -- HPP / Full-time
-    IF v ~ '(^| )(hpp|plny uvazek|plny pracovn|pracovni pomer|pracovny pomer|full time|fulltime|vollzeit|umowa o prace|pelny etat|festanstell)( |$)' THEN
+    IF v ~ '(^| )(hpp|plny uvazek|plny pracovn[a-z]*|pracovni pomer|pracovny pomer|pracovn[a-z]* smlouv[a-z]*|pracovn[a-z]* zmluv[a-z]*|full time|fulltime|vollzeit|umowa o prace|pelny etat|festanstell[a-z]*|arbeitsvertrag|employment contract|contract of employment)( |$)' THEN
         out := array_append(out, 'hpp');
     END IF;
 
     -- Part-time / zkrácený úvazek
-    IF v ~ '(^| )(part time|parttime|teilzeit|zkracen|skracen|castecn|skrat|polovicn|niepelny etat|czesc etatu)( |$)' THEN
+    IF v ~ '(^| )(part time|parttime|teilzeit|zkracen[a-z]*|skracen[a-z]*|castecn[a-z]*|skrat[a-z]*|polovicn[a-z]*|kratk[a-z]* uvazek|niepelny etat|czesc etatu)( |$)' THEN
         out := array_append(out, 'part_time');
     END IF;
 
     -- Brigáda / dohoda / temporary
-    IF v ~ '(^| )(brigad|dpp|dpc|dohod|minijob|aushilfe|umowa zlecenie|umowa o dzielo|temporary|temp|seasonal|casual)( |$)' THEN
+    IF v ~ '(^| )(brigad[a-z]*|dpp|dpc|dohod[a-z]*|minijob|aushilfe|umowa zlecenie|umowa o dzielo|temporary|temp|seasonal|casual)( |$)' THEN
         out := array_append(out, 'brigada');
     END IF;
 
@@ -164,7 +164,9 @@ BEGIN
     WHERE j.ctid IN (
         SELECT ctid
         FROM public.jobs
-        WHERE contract_type_norm IS NULL OR work_model_norm IS NULL
+        WHERE
+            contract_type_norm IS DISTINCT FROM public.normalize_contract_type(contract_type)
+            OR work_model_norm IS DISTINCT FROM public.normalize_work_model(work_model, title, description, location)
         LIMIT GREATEST(1, COALESCE(p_batch_size, 2000))
     );
     GET DIAGNOSTICS v_updated = ROW_COUNT;

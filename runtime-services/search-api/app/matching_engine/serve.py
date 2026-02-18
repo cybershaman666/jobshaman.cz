@@ -72,16 +72,16 @@ def _contract_type_tags(value: Optional[str]) -> set:
     haystack = f" {txt} "
     tags: set = set()
 
-    if re.search(r"\b(ico|osvc|szco|b2b|freelanc|contractor|self employed|selfemployed|dzialalnosc|gospodarcza)\b", haystack) or "zivnost" in haystack or "zivnostensk" in haystack or "freiberuf" in haystack or "gewerbe" in haystack or "selbst" in haystack:
+    if re.search(r"\b(ico|osvc|szco|b2b|freelanc\w*|contractor|self employed|selfemployed|dzialalnosc|gospodarcza)\b", haystack) or "zivnost" in haystack or "zivnostensk" in haystack or "freiberuf" in haystack or "gewerbe" in haystack or "selbst" in haystack:
         tags.add("ico")
 
-    if re.search(r"\b(hpp|plny uvazek|plny pracovn|pracovni pomer|pracovny pomer|full time|fulltime|vollzeit|umowa o prace|pelny etat|festanstell)\b", haystack):
+    if re.search(r"\b(hpp|plny uvazek|plny pracovn\w*|pracovni pomer|pracovny pomer|pracovn\w* smlouv\w*|pracovn\w* zmluv\w*|full time|fulltime|vollzeit|umowa o prace|pelny etat|festanstell\w*|arbeitsvertrag|employment contract|contract of employment)\b", haystack):
         tags.add("hpp")
 
-    if re.search(r"\b(part time|parttime|teilzeit|zkracen|skracen|castecn|skrat|polovicn|niepelny etat|czesc etatu)\b", haystack):
+    if re.search(r"\b(part time|parttime|teilzeit|zkracen\w*|skracen\w*|castecn\w*|skrat\w*|polovicn\w*|kratk\w* uvazek|niepelny etat|czesc etatu)\b", haystack):
         tags.add("part_time")
 
-    if re.search(r"\b(brigad|dpp|dpc|dohod|minijob|aushilfe|umowa zlecenie|umowa o dzielo|temporary|temp|seasonal|casual)\b", haystack):
+    if re.search(r"\b(brigad\w*|dpp|dpc|dohod\w*|minijob|aushilfe|umowa zlecenie|umowa o dzielo|temporary|temp|seasonal|casual)\b", haystack):
         tags.add("brigada")
 
     if re.search(r"\b(intern|staz|staz|praktik|trainee)\b", haystack):
