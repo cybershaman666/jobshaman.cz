@@ -45,6 +45,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 }) => {
     const { t, i18n } = useTranslation();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [avatarFailed, setAvatarFailed] = useState(false);
     const isMarketplaceAccountContext = companyProfile?.industry === 'Freelancer' || companyProfile?.industry === 'Education';
     const canShowBusinessMenu = showCompanyLanding || !userProfile.isLoggedIn || userProfile.role === 'recruiter' || isMarketplaceAccountContext;
     const subscriptionSubjectId = userProfile.role === 'recruiter' && companyProfile?.id && companyProfile?.industry !== 'Freelancer'
@@ -224,8 +225,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-500"
                                     title={t('nav.profile')}
                                 >
-                                    {userProfile.photo ? (
-                                        <img src={userProfile.photo} alt={userProfile.name} className="w-full h-full object-cover" />
+                                    {userProfile.photo && !avatarFailed ? (
+                                        <img
+                                            src={userProfile.photo}
+                                            alt={userProfile.name}
+                                            className="w-full h-full object-cover"
+                                            onError={() => setAvatarFailed(true)}
+                                        />
                                     ) : (
                                         <span>{userProfile.name?.charAt(0) || 'U'}</span>
                                     )}

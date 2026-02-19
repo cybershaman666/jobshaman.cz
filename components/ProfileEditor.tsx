@@ -66,6 +66,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 }) => {
   const { t } = useTranslation();
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [profilePhotoFailed, setProfilePhotoFailed] = useState(false);
   const [isUploadingCV, setIsUploadingCV] = useState(false);
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'saved'>('profile');
@@ -458,11 +459,12 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
               <div className="relative">
-                {profile.photo ? (
+                {profile.photo && !profilePhotoFailed ? (
                   <img
                     src={profile.photo}
                     alt="Profile"
                     className="w-20 h-20 rounded-full object-cover border-2 border-cyan-500"
+                    onError={() => setProfilePhotoFailed(true)}
                   />
                 ) : (
                   <div className="w-20 h-20 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center">

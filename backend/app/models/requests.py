@@ -98,6 +98,9 @@ class AdminSubscriptionUpdateRequest(BaseModel):
 
 class AdminUserDigestUpdateRequest(BaseModel):
     daily_digest_enabled: Optional[bool] = None
+    daily_digest_push_enabled: Optional[bool] = None
+    daily_digest_time: Optional[str] = None
+    daily_digest_timezone: Optional[str] = None
 
 
 class PushSubscribeRequest(BaseModel):

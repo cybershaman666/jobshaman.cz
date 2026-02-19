@@ -686,6 +686,11 @@ export default function App() {
                 setShowCompanyLanding(false);
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
+            } else if (parts[0] === 'digest') {
+                setViewState(ViewState.LIST);
+                setShowCompanyLanding(false);
+                setSelectedJobId(null);
+                setSelectedBlogPostSlug(null);
             }
 
             return () => subscription.unsubscribe();
@@ -743,7 +748,8 @@ export default function App() {
                 || base === 'ochrana-osobnich-udaju'
                 || base === 'enterprise'
                 || base === 'assessment'
-                || base === 'admin';
+                || base === 'admin'
+                || base === 'digest';
             if (isExternalPage) return;
 
             const lng = getLocalePrefix();
@@ -1046,6 +1052,24 @@ export default function App() {
             // TODO: Implement in paginated version
         }
     }, [selectedJobId, userProfile]);
+
+    // Wake backend early to reduce cold start latency
+    useEffect(() => {
+        let didCancel = false;
+        const wakeBackend = async () => {
+            try {
+                await fetch(`${BACKEND_URL}/healthz`, { method: 'GET' });
+            } catch (err) {
+                if (!didCancel) {
+                    console.warn('Backend wake failed:', err);
+                }
+            }
+        };
+        wakeBackend();
+        return () => {
+            didCancel = true;
+        };
+    }, []);
 
     // Check cookie consent
     useEffect(() => {

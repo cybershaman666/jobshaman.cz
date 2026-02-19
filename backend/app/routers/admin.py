@@ -308,6 +308,44 @@ async def admin_search(
     return {"items": items}
 
 
+@router.get("/admin/push-subscriptions")
+async def admin_push_subscriptions(
+    request: Request,
+    user: dict = Depends(get_current_user),
+    q: str = Query("", max_length=120),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0, le=10_000),
+    active_only: bool = Query(True),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    query = supabase.table("push_subscriptions").select(
+        "id,user_id,endpoint,is_active,created_at,updated_at,user_agent,profiles(email,full_name)"
+    )
+    if active_only:
+        query = query.eq("is_active", True)
+
+    safe_q = _safe_query(q)
+    if safe_q:
+        try:
+            profiles = supabase.table("profiles").select("id").or_(f"email.ilike.%{safe_q}%,full_name.ilike.%{safe_q}%").execute()
+            user_ids = [p["id"] for p in (profiles.data or [])]
+            if user_ids:
+                query = query.in_("user_id", user_ids)
+        except Exception as e:
+            print(f"⚠️ Push subscription search failed: {e}")
+
+    resp = query.order("updated_at", desc=True).range(offset, offset + limit - 1).execute()
+    return {
+        "items": resp.data or [],
+        "count": resp.count or 0,
+        "limit": limit,
+        "offset": offset,
+    }
+
+
 @router.get("/admin/users/{user_id}/digest")
 async def admin_user_digest(
     user_id: str,
@@ -319,7 +357,7 @@ async def admin_user_digest(
         raise HTTPException(status_code=500, detail="Database unavailable")
 
     resp = supabase.table("profiles").select(
-        "id, email, full_name, preferred_locale, preferred_country_code, daily_digest_enabled, daily_digest_last_sent_at"
+        "id, email, full_name, preferred_locale, preferred_country_code, daily_digest_enabled, daily_digest_push_enabled, daily_digest_time, daily_digest_timezone, daily_digest_last_sent_at"
     ).eq("id", user_id).maybe_single().execute()
     profile = resp.data if resp else None
     if not profile:
@@ -344,6 +382,12 @@ async def admin_user_digest_update(
     update_data = {}
     if payload.daily_digest_enabled is not None:
         update_data["daily_digest_enabled"] = payload.daily_digest_enabled
+    if payload.daily_digest_push_enabled is not None:
+        update_data["daily_digest_push_enabled"] = payload.daily_digest_push_enabled
+    if payload.daily_digest_time is not None:
+        update_data["daily_digest_time"] = payload.daily_digest_time
+    if payload.daily_digest_timezone is not None:
+        update_data["daily_digest_timezone"] = payload.daily_digest_timezone
 
     if not update_data:
         raise HTTPException(status_code=400, detail="No updates provided")
@@ -354,7 +398,7 @@ async def admin_user_digest_update(
         raise HTTPException(status_code=500, detail=f"Update failed: {exc}")
 
     resp = supabase.table("profiles").select(
-        "id, email, full_name, preferred_locale, preferred_country_code, daily_digest_enabled, daily_digest_last_sent_at"
+        "id, email, full_name, preferred_locale, preferred_country_code, daily_digest_enabled, daily_digest_push_enabled, daily_digest_time, daily_digest_timezone, daily_digest_last_sent_at"
     ).eq("id", user_id).maybe_single().execute()
     profile = resp.data if resp else None
     if not profile:

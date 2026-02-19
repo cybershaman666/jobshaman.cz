@@ -248,7 +248,7 @@ def run_daily_job_digest() -> None:
                         {
                             "title": copy["title"],
                             "body": body or copy["fallback"],
-                            "url": _APP_URL,
+                            "url": f"{_APP_URL}/digest",
                         }
                     )
                     for sub in subs:
