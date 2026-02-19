@@ -1,18 +1,21 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, time, timedelta
 from zoneinfo import ZoneInfo
 from typing import Dict, List, Optional
 import math
+import json
 
 from ..core.config import API_BASE_URL
 from ..core.database import supabase
 from ..matching_engine import recommend_jobs_for_user
 from ..matching_engine.scoring import REMOTE_FLAGS
 from ..services.email import send_daily_digest_email
+from ..services.push_notifications import send_push, is_push_configured
 from ..services.unsubscribe import make_unsubscribe_token
 
-_DIGEST_TZ = ZoneInfo("Europe/Prague")
+_DEFAULT_TZ = "Europe/Prague"
 _DIGEST_RADIUS_KM = 50.0
 _APP_URL = "https://jobshaman.cz"
+_DIGEST_WINDOW_MINUTES = 20
 
 
 def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -59,6 +62,42 @@ def _resolve_locale(preferred_locale: Optional[str], preferred_country_code: Opt
     return "cs"
 
 
+def _parse_digest_time(value: Optional[str]) -> time:
+    if not value:
+        return time(7, 30)
+    try:
+        parts = str(value).split(":")
+        hour = int(parts[0])
+        minute = int(parts[1]) if len(parts) > 1 else 0
+        return time(hour=hour, minute=minute)
+    except Exception:
+        return time(7, 30)
+
+
+def _should_send_now(last_sent: Optional[str], digest_time: time, tz_name: str) -> bool:
+    try:
+        tz = ZoneInfo(tz_name or _DEFAULT_TZ)
+    except Exception:
+        tz = ZoneInfo(_DEFAULT_TZ)
+
+    now_local = datetime.now(tz)
+    today = now_local.date()
+
+    if last_sent:
+        try:
+            dt = datetime.fromisoformat(str(last_sent).replace("Z", "+00:00"))
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone.utc)
+            if dt.astimezone(tz).date() == today:
+                return False
+        except Exception:
+            pass
+
+    window_start = datetime.combine(today, digest_time, tzinfo=tz)
+    window_end = window_start + timedelta(minutes=_DIGEST_WINDOW_MINUTES)
+    return window_start <= now_local <= window_end
+
+
 def _candidate_location(candidate_profile) -> tuple[Optional[float], Optional[float]]:
     if isinstance(candidate_profile, list):
         candidate_profile = candidate_profile[0] if candidate_profile else None
@@ -76,8 +115,6 @@ def run_daily_job_digest() -> None:
     if not supabase:
         return
 
-    now_local = datetime.now(_DIGEST_TZ)
-    today = now_local.date()
     now_utc_iso = datetime.now(timezone.utc).isoformat()
 
     try:
@@ -85,10 +122,10 @@ def run_daily_job_digest() -> None:
             supabase.table("profiles")
             .select(
                 "id,email,full_name,preferred_locale,preferred_country_code,daily_digest_enabled,daily_digest_last_sent_at,"
+                "daily_digest_time,daily_digest_timezone,daily_digest_push_enabled,"
                 "candidate_profiles(lat,lng,address)"
             )
             .eq("role", "candidate")
-            .eq("daily_digest_enabled", True)
             .execute()
         )
     except Exception as exc:
@@ -99,19 +136,16 @@ def run_daily_job_digest() -> None:
     for row in rows:
         user_id = row.get("id")
         email = row.get("email")
-        if not user_id or not email:
+        email_enabled = bool(row.get("daily_digest_enabled")) and bool(email)
+        push_enabled = bool(row.get("daily_digest_push_enabled")) and is_push_configured()
+        if not user_id or (not email_enabled and not push_enabled):
             continue
 
+        digest_time = _parse_digest_time(row.get("daily_digest_time"))
+        digest_tz = row.get("daily_digest_timezone") or _DEFAULT_TZ
         last_sent = row.get("daily_digest_last_sent_at")
-        if last_sent:
-            try:
-                dt = datetime.fromisoformat(str(last_sent).replace("Z", "+00:00"))
-                if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=timezone.utc)
-                if dt.astimezone(_DIGEST_TZ).date() == today:
-                    continue
-            except Exception:
-                pass
+        if not _should_send_now(last_sent, digest_time, digest_tz):
+            continue
 
         candidate_profile = row.get("candidate_profiles")
         c_lat, c_lng = _candidate_location(candidate_profile)
@@ -157,19 +191,73 @@ def run_daily_job_digest() -> None:
             continue
 
         locale = _resolve_locale(row.get("preferred_locale"), row.get("preferred_country_code"))
-        unsubscribe_token = make_unsubscribe_token(user_id, email)
-        unsubscribe_url = f"{API_BASE_URL}/email/unsubscribe?uid={user_id}&token={unsubscribe_token}"
+        unsubscribe_url = ""
+        if email_enabled:
+            unsubscribe_token = make_unsubscribe_token(user_id, email)
+            unsubscribe_url = f"{API_BASE_URL}/email/unsubscribe?uid={user_id}&token={unsubscribe_token}"
 
-        ok = send_daily_digest_email(
-            to_email=email,
-            full_name=row.get("full_name") or "",
-            locale=locale,
-            jobs=digest_jobs,
-            app_url=_APP_URL,
-            unsubscribe_url=unsubscribe_url,
-        )
+        ok = False
+        if email_enabled:
+            ok = send_daily_digest_email(
+                to_email=email,
+                full_name=row.get("full_name") or "",
+                locale=locale,
+                jobs=digest_jobs,
+                app_url=_APP_URL,
+                unsubscribe_url=unsubscribe_url,
+            )
 
-        if ok:
+        push_ok = False
+        if push_enabled:
+            try:
+                subs_resp = (
+                    supabase.table("push_subscriptions")
+                    .select("endpoint,p256dh,auth")
+                    .eq("user_id", user_id)
+                    .eq("is_active", True)
+                    .execute()
+                )
+                subs = subs_resp.data or []
+                if subs:
+                    titles = [j.get("title") for j in digest_jobs if j.get("title")]
+                    body = "\n".join(titles[:5])
+                    push_copy = {
+                        "cs": {
+                            "title": "JobShaman – denní digest",
+                            "fallback": "Máte nový přehled pracovních nabídek.",
+                        },
+                        "en": {
+                            "title": "JobShaman – daily digest",
+                            "fallback": "Your daily job matches are ready.",
+                        },
+                        "de": {
+                            "title": "JobShaman – täglicher Digest",
+                            "fallback": "Ihr täglicher Job‑Digest ist bereit.",
+                        },
+                        "pl": {
+                            "title": "JobShaman – dzienny digest",
+                            "fallback": "Twoje dzienne dopasowania są gotowe.",
+                        },
+                        "sk": {
+                            "title": "JobShaman – denný digest",
+                            "fallback": "Váš denný prehľad ponúk je pripravený.",
+                        },
+                    }
+                    copy = push_copy.get(locale, push_copy["cs"])
+                    payload = json.dumps(
+                        {
+                            "title": copy["title"],
+                            "body": body or copy["fallback"],
+                            "url": _APP_URL,
+                        }
+                    )
+                    for sub in subs:
+                        send_push(sub, payload)
+                    push_ok = True
+            except Exception as exc:
+                print(f"⚠️ Push digest failed for {user_id}: {exc}")
+
+        if ok or push_ok:
             try:
                 supabase.table("profiles").update({"daily_digest_last_sent_at": now_utc_iso}).eq("id", user_id).execute()
             except Exception as exc:

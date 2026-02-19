@@ -84,6 +84,12 @@ try {
       </ErrorBoundary>
     </React.StrictMode>
   );
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch((error) => {
+      console.warn('Service worker registration failed:', error);
+    });
+  }
 } catch (e) {
   console.error("Mounting error:", e);
   document.body.innerHTML = `<div style="color:red; padding:20px;"><h1>Failed to mount app</h1><p>${e instanceof Error ? e.message : String(e)}</p></div>`;

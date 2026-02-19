@@ -12,7 +12,7 @@ from slowapi import _rate_limit_exceeded_handler
 from starlette.responses import JSONResponse
 
 from .core.limiter import limiter
-from .routers import jobs, billing, stripe, assessments, scraper, auth, admin, ai, email
+from .routers import jobs, billing, stripe, assessments, scraper, auth, admin, ai, email, push
 from .core.security import add_security_headers
 from .matching_engine import run_hourly_batch_jobs, run_daily_batch_jobs
 from .services.daily_digest import run_daily_job_digest
@@ -133,6 +133,7 @@ app.include_router(scraper.router, tags=["Scraper"])
 app.include_router(admin.router, tags=["Admin"])
 app.include_router(ai.router, tags=["AI"])
 app.include_router(email.router, tags=["Email"])
+app.include_router(push.router, tags=["Push"])
 
 from .core.security import cleanup_csrf_sessions
 
@@ -153,7 +154,7 @@ def _start_scheduler() -> None:
         scheduler.add_job(run_daily_batch_jobs, 'cron', hour=2, minute=15, id="matching_daily", max_instances=1, coalesce=True)
         scheduler.add_job(run_retention_cleanup, 'cron', hour=3, minute=10, id="retention_cleanup", max_instances=1, coalesce=True)
         if _daily_digest_enabled:
-            scheduler.add_job(run_daily_job_digest, 'cron', hour=7, minute=30, id="daily_digest", max_instances=1, coalesce=True)
+            scheduler.add_job(run_daily_job_digest, 'interval', minutes=15, id="daily_digest", max_instances=1, coalesce=True)
         scheduler.start()
         print("✅ Background scheduler started.")
     except Exception as exc:

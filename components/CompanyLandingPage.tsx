@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Building, TrendingUp, Shield, Target, Star, CheckCircle, Crown, Sparkles, Info, LogIn, SearchX, Lightbulb, BarChart3, ChevronDown } from 'lucide-react';
+import { Building, Shield, Target, Star, CheckCircle, Crown, Sparkles, Info, LogIn, SearchX, Lightbulb, BarChart3, ChevronDown } from 'lucide-react';
 import AnalyticsService from '../services/analyticsService';
 
 interface CompanyLandingPageProps {

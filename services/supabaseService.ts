@@ -179,7 +179,7 @@ export const signInWithEmail = async (email: string, pass: string) => {
     return result;
 };
 
-export const signUpWithEmail = async (email: string, pass: string, fullName: string, locale?: string) => {
+export const signUpWithEmail = async (email: string, pass: string, fullName: string, locale?: string, timezone?: string) => {
     if (!supabase) throw new Error("Supabase not configured");
 
     // 1. Sign Up
@@ -204,7 +204,8 @@ export const signUpWithEmail = async (email: string, pass: string, fullName: str
             fullName,
             'candidate',
             data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || undefined,
-            locale
+            locale,
+            timezone
         );
     } else if (data.user) {
         console.log('📧 Email confirmation required. Profile will be created on first login.');
@@ -277,7 +278,8 @@ export const createBaseProfile = async (
     name: string,
     role: string = 'candidate',
     avatarUrl?: string,
-    preferredLocale?: string
+    preferredLocale?: string,
+    preferredTimezone?: string
 ) => {
     if (!supabase) throw new Error("Supabase not configured");
 
@@ -303,6 +305,7 @@ export const createBaseProfile = async (
             subscription_tier: 'free',
             created_at: new Date().toISOString(),
             preferred_locale: preferredLocale || null,
+            daily_digest_timezone: preferredTimezone || null,
         });
 
     if (error) {
@@ -357,6 +360,9 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
             preferred_country_code,
             daily_digest_enabled,
             daily_digest_last_sent_at,
+            daily_digest_time,
+            daily_digest_timezone,
+            daily_digest_push_enabled,
             has_assessment,
             candidate_profiles (*)
         `)
@@ -438,7 +444,10 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         preferredLocale: profileData.preferred_locale || undefined,
         preferredCountryCode: profileData.preferred_country_code || undefined,
         dailyDigestEnabled: profileData.daily_digest_enabled ?? undefined,
-        dailyDigestLastSentAt: profileData.daily_digest_last_sent_at || undefined
+        dailyDigestLastSentAt: profileData.daily_digest_last_sent_at || undefined,
+        dailyDigestTime: profileData.daily_digest_time || undefined,
+        dailyDigestTimezone: profileData.daily_digest_timezone || undefined,
+        dailyDigestPushEnabled: profileData.daily_digest_push_enabled ?? undefined
     };
 
     return userProfile;
@@ -479,6 +488,9 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     if (updates.preferredCountryCode !== undefined) profileUpdates.preferred_country_code = updates.preferredCountryCode;
     if (updates.dailyDigestEnabled !== undefined) profileUpdates.daily_digest_enabled = updates.dailyDigestEnabled;
     if (updates.dailyDigestLastSentAt !== undefined) profileUpdates.daily_digest_last_sent_at = updates.dailyDigestLastSentAt;
+    if (updates.dailyDigestTime !== undefined) profileUpdates.daily_digest_time = updates.dailyDigestTime;
+    if (updates.dailyDigestTimezone !== undefined) profileUpdates.daily_digest_timezone = updates.dailyDigestTimezone;
+    if (updates.dailyDigestPushEnabled !== undefined) profileUpdates.daily_digest_push_enabled = updates.dailyDigestPushEnabled;
     if (updates.address !== undefined && updates.preferredCountryCode === undefined && inferredCountryCode !== undefined) {
         profileUpdates.preferred_country_code = inferredCountryCode;
     }
