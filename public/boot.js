@@ -85,7 +85,10 @@ window.onerror = function (message) {
 // Wake backend early to reduce cold starts
 (function () {
   try {
-    var backend = window.__BACKEND_URL__ || 'https://jobshaman-cz.onrender.com';
+    var meta = document.querySelector('meta[name="backend-url"]');
+    var metaValue = meta && meta.getAttribute('content');
+    var backend = (metaValue && metaValue !== '%VITE_BACKEND_URL%') ? metaValue : (window.__BACKEND_URL__ || 'https://jobshaman-cz.onrender.com');
+    window.__BACKEND_URL__ = backend;
     var url = backend.replace(/\/+$/, '') + '/healthz';
     fetch(url, { method: 'GET', mode: 'no-cors', cache: 'no-store' });
   } catch (e) {
