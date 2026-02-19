@@ -125,8 +125,20 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
         if (!selectedJob) return;
 
         const shareUrl = `${window.location.origin}/jobs/${selectedJob.id}`;
+        const shareTitle = selectedJob.title || t('job.title') || 'Job';
+        const shareText = selectedJob.company
+            ? `${shareTitle} · ${selectedJob.company}`
+            : shareTitle;
 
         try {
+            if (navigator.share) {
+                await navigator.share({
+                    title: shareTitle,
+                    text: shareText,
+                    url: shareUrl
+                });
+                return;
+            }
             await navigator.clipboard.writeText(shareUrl);
             setShareTooltip(true);
             setTimeout(() => setShareTooltip(false), 2000);
