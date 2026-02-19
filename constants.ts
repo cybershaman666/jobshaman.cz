@@ -3,7 +3,10 @@ import { Job, Candidate, BenefitInsight, CompanyProfile, UserProfile } from './t
 
 // Backend API Configuration
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://jobshaman-cz.onrender.com';
-export const SEARCH_BACKEND_URL = import.meta.env.VITE_SEARCH_BACKEND_URL || BACKEND_URL;
+export const SEARCH_BACKEND_URL =
+  import.meta.env.VITE_SEARCH_API_URL ||
+  import.meta.env.VITE_SEARCH_BACKEND_URL ||
+  BACKEND_URL;
 
 // EMPTY - Using Live Supabase Data
 export const MOCK_JOBS: Job[] = [];
