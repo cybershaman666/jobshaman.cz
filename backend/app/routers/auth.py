@@ -135,6 +135,7 @@ async def delete_account(request: Request, user: dict = Depends(get_current_user
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/welcome-email")
+@router.post("/auth/welcome-email")
 @limiter.limit("10/minute")
 async def send_welcome_email_endpoint(request: Request, user: dict = Depends(get_current_user)):
     if not verify_csrf_token_header(request, user):
