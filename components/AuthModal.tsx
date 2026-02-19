@@ -57,7 +57,8 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                     formData.email,
                     formData.password,
                     formData.fullName,
-                    i18n.language
+                    i18n.language,
+                    Intl.DateTimeFormat().resolvedOptions().timeZone
                 );
                 if (result.error) throw result.error;
                 userData = result.data?.user;

@@ -25,6 +25,11 @@ STRIPE_PRICE_FREELANCE_PREMIUM = os.getenv("STRIPE_PRICE_FREELANCE_PREMIUM", "pr
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 RESEND_API_KEY = os.getenv("RESEND_API_KEY") or os.getenv("VITE_RESEND_API_KEY")
 
+# Web Push (VAPID)
+VAPID_PUBLIC_KEY = os.getenv("VAPID_PUBLIC_KEY")
+VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY")
+VAPID_SUBJECT = os.getenv("VAPID_SUBJECT", "mailto:floki@jobshaman.cz")
+
 # Admin / internal
 SCRAPER_TOKEN = os.getenv("SCRAPER_TOKEN")
 

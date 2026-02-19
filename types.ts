@@ -343,6 +343,9 @@ export interface UserProfile {
   preferredCountryCode?: string;
   dailyDigestEnabled?: boolean;
   dailyDigestLastSentAt?: string;
+  dailyDigestTime?: string;
+  dailyDigestTimezone?: string;
+  dailyDigestPushEnabled?: boolean;
 }
 
 export interface AssessmentResult {

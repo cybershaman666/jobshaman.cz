@@ -19,7 +19,8 @@ import {
   CheckCircle,
   AlertCircle,
   Bookmark,
-  Sparkles
+  Sparkles,
+  Bell
 } from 'lucide-react';
 import { uploadProfilePhoto } from '../services/supabaseService';
 import { validateCvFile, uploadAndParseCv, mergeProfileWithParsedCv } from '../services/cvUploadService';
@@ -29,6 +30,7 @@ import MyInvitations from './MyInvitations';
 import AIGuidedProfileWizard from './AIGuidedProfileWizard';
 import { redirectToCheckout } from '../services/stripeService';
 import { getSubscriptionStatus } from '../services/serverSideBillingService';
+import { getCurrentSubscription, getPushPermission, isPushSupported, registerPushSubscription, subscribeToPush, unsubscribeFromPush } from '../services/pushNotificationsService';
 
 import TransportModeSelector from './TransportModeSelector';
 import SavedJobsPage from './SavedJobsPage';
@@ -69,6 +71,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [activeTab, setActiveTab] = useState<'profile' | 'saved'>('profile');
   const [showAIGuide, setShowAIGuide] = useState(false);
   const [effectiveTier, setEffectiveTier] = useState<string | null>(profile.subscription?.tier || null);
+  const [pushSupported, setPushSupported] = useState(false);
+  const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [pushBusy, setPushBusy] = useState(false);
 
   // Address Verification State
   const [isVerifyingAddress, setIsVerifyingAddress] = useState(false);
@@ -131,10 +137,28 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       portfolio: (profile as any).portfolio || '',
       github: (profile as any).github || ''
     },
+    notifications: {
+      dailyDigestEnabled: profile.dailyDigestEnabled ?? true,
+      dailyDigestPushEnabled: profile.dailyDigestPushEnabled ?? true,
+      dailyDigestTime: profile.dailyDigestTime || '07:30',
+      dailyDigestTimezone: profile.dailyDigestTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Prague'
+    },
     experience: profile.workHistory || [],
     education: profile.education || [],
     skills: profile.skills || []
   });
+
+  useEffect(() => {
+    const checkPushState = async () => {
+      const supported = isPushSupported();
+      setPushSupported(supported);
+      if (!supported) return;
+      setPushPermission(getPushPermission());
+      const existing = await getCurrentSubscription();
+      setPushSubscribed(Boolean(existing));
+    };
+    checkPushState();
+  }, []);
 
   // Photo upload handler
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -248,6 +272,69 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     // Reset verification if address changes
     if (field === 'address') {
       setAddressVerificationStatus('idle');
+    }
+  };
+
+  const handleNotificationChange = (field: string, value: string | boolean) => {
+    const newNotifications = { ...formData.notifications, [field]: value };
+    const newFormData = { ...formData, notifications: newNotifications };
+    setFormData(newFormData);
+    onChange({
+      ...profile,
+      dailyDigestEnabled: newNotifications.dailyDigestEnabled,
+      dailyDigestPushEnabled: newNotifications.dailyDigestPushEnabled,
+      dailyDigestTime: newNotifications.dailyDigestTime,
+      dailyDigestTimezone: newNotifications.dailyDigestTimezone
+    });
+  };
+
+  const handleEnablePush = async () => {
+    if (!pushSupported || pushBusy) return;
+    setPushBusy(true);
+    try {
+      const subscription = await subscribeToPush();
+      if (!subscription) {
+        setPushPermission(getPushPermission());
+        return;
+      }
+      await registerPushSubscription(subscription);
+      setPushSubscribed(true);
+      setPushPermission('granted');
+      const updatedProfile = {
+        ...profile,
+        dailyDigestPushEnabled: true
+      };
+      setFormData(prev => ({
+        ...prev,
+        notifications: { ...prev.notifications, dailyDigestPushEnabled: true }
+      }));
+      onChange(updatedProfile, true);
+    } catch (error) {
+      console.error('Push subscription failed:', error);
+    } finally {
+      setPushBusy(false);
+    }
+  };
+
+  const handleDisablePush = async () => {
+    if (!pushSupported || pushBusy) return;
+    setPushBusy(true);
+    try {
+      await unsubscribeFromPush();
+      setPushSubscribed(false);
+      const updatedProfile = {
+        ...profile,
+        dailyDigestPushEnabled: false
+      };
+      setFormData(prev => ({
+        ...prev,
+        notifications: { ...prev.notifications, dailyDigestPushEnabled: false }
+      }));
+      onChange(updatedProfile, true);
+    } catch (error) {
+      console.error('Push unsubscribe failed:', error);
+    } finally {
+      setPushBusy(false);
     }
   };
 
@@ -603,6 +690,95 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       />
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Notifications Section */}
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden mt-6">
+              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                      <Bell className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                      {t('profile.notifications', { defaultValue: 'Notifikace' })}
+                    </h2>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formData.notifications.dailyDigestEnabled)}
+                      onChange={(e) => handleNotificationChange('dailyDigestEnabled', e.target.checked)}
+                    />
+                    {t('profile.digest_email', { defaultValue: 'Denní digest e‑mailem' })}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formData.notifications.dailyDigestPushEnabled)}
+                      onChange={(e) => handleNotificationChange('dailyDigestPushEnabled', e.target.checked)}
+                    />
+                    {t('profile.digest_push', { defaultValue: 'Denní digest jako push' })}
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      {t('profile.digest_time', { defaultValue: 'Čas doručení' })}
+                    </label>
+                    <input
+                      type="time"
+                      value={formData.notifications.dailyDigestTime}
+                      onChange={(e) => handleNotificationChange('dailyDigestTime', e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      {t('profile.digest_timezone', { defaultValue: 'Časové pásmo' })}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.notifications.dailyDigestTimezone}
+                      onChange={(e) => handleNotificationChange('dailyDigestTimezone', e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                      placeholder="Europe/Prague"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="text-xs text-slate-500">
+                    {pushSupported
+                      ? `${t('profile.push_status', { defaultValue: 'Push status' })}: ${pushSubscribed ? 'aktivní' : 'neaktivní'} (${pushPermission})`
+                      : t('profile.push_unsupported', { defaultValue: 'Push notifikace nejsou v tomto prohlížeči dostupné.' })}
+                  </div>
+                  {pushSupported && (
+                    <>
+                      <button
+                        onClick={handleEnablePush}
+                        disabled={pushBusy}
+                        className="px-3 py-1.5 rounded-lg text-xs border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50"
+                      >
+                        {t('profile.push_enable', { defaultValue: 'Povolit push notifikace' })}
+                      </button>
+                      <button
+                        onClick={handleDisablePush}
+                        disabled={pushBusy}
+                        className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-rose-400 hover:text-rose-600 transition-colors disabled:opacity-50"
+                      >
+                        {t('profile.push_disable', { defaultValue: 'Vypnout push' })}
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

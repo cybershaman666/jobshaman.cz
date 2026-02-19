@@ -100,6 +100,15 @@ class AdminUserDigestUpdateRequest(BaseModel):
     daily_digest_enabled: Optional[bool] = None
 
 
+class PushSubscribeRequest(BaseModel):
+    subscription: dict
+    user_agent: Optional[str] = None
+
+
+class PushUnsubscribeRequest(BaseModel):
+    endpoint: str
+
+
 class AIGuidedProfileStep(BaseModel):
     id: str
     text: str
