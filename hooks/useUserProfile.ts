@@ -49,6 +49,14 @@ const hasDedicatedSearchRuntime = (): boolean => {
     return !!searchOrigin && !!coreOrigin && searchOrigin !== coreOrigin;
 };
 
+const isExternalProfilePhotoUrl = (url?: string | null): boolean => {
+    if (!url) return false;
+    const value = url.toLowerCase();
+    if (value.includes('/profile-photos/')) return false;
+    if (value.includes('/avatars/')) return false;
+    return value.startsWith('http://') || value.startsWith('https://');
+};
+
 export const useUserProfile = () => {
     const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_USER_PROFILE);
     const [companyProfile, setCompanyProfile] = useState<CompanyProfile | null>(null);
@@ -59,6 +67,27 @@ export const useUserProfile = () => {
     // Avoid repeated restore runs for the same user caused by INITIAL_SESSION + SIGNED_IN bursts.
     const lastSuccessfulRestorationRef = useRef<{ userId: string; at: number } | null>(null);
     const RESTORATION_DEDUPE_WINDOW_MS = 60_000;
+    const attemptedPhotoImportsRef = useRef<Set<string>>(new Set());
+
+    const importProfilePhotoFromUrl = async (url: string): Promise<string | null> => {
+        if (!url || attemptedPhotoImportsRef.current.has(url)) return null;
+        attemptedPhotoImportsRef.current.add(url);
+        try {
+            const response = await authenticatedFetch(`${BACKEND_URL}/profile/photo/import`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url })
+            });
+            if (!response.ok) {
+                return null;
+            }
+            const data = await response.json().catch(() => ({}));
+            return data.photo_url || null;
+        } catch (err) {
+            console.warn('⚠️ Profile photo import failed:', err);
+            return null;
+        }
+    };
 
     // Session restoration and profile management
     const handleSessionRestoration = async (userId: string) => {
@@ -251,7 +280,12 @@ export const useUserProfile = () => {
 
                         const updates: Partial<UserProfile> = {};
                         if (fullName && (!profile.name || !profile.name.trim())) updates.name = fullName;
-                        if (avatarUrl && (!profile.photo || !profile.photo.trim())) updates.photo = avatarUrl;
+                        if (avatarUrl && (!profile.photo || !profile.photo.trim())) {
+                            const importedUrl = isExternalProfilePhotoUrl(avatarUrl)
+                                ? await importProfilePhotoFromUrl(avatarUrl)
+                                : null;
+                            updates.photo = importedUrl || avatarUrl;
+                        }
                         if (headline && (!profile.jobTitle || !profile.jobTitle.trim())) updates.jobTitle = headline;
 
                         if (Object.keys(updates).length > 0) {
@@ -263,6 +297,21 @@ export const useUserProfile = () => {
                     }
                 } catch (err) {
                     console.warn('⚠️ LinkedIn metadata sync failed:', err);
+                }
+
+                // Attempt to import external profile photo (Google/LinkedIn) into our storage
+                if (profile.photo && isExternalProfilePhotoUrl(profile.photo)) {
+                    const importedUrl = await importProfilePhotoFromUrl(profile.photo);
+                    if (importedUrl) {
+                        try {
+                            await updateUserProfileService(userId, { photo: importedUrl });
+                            profile = { ...profile, photo: importedUrl };
+                            setUserProfile(prev => ({ ...prev, photo: importedUrl }));
+                            console.log('✅ External profile photo imported.');
+                        } catch (err) {
+                            console.warn('⚠️ Failed to persist imported profile photo:', err);
+                        }
+                    }
                 }
 
                 // If they are a recruiter (or just became one), but have no company, check metadata for company name and create it.

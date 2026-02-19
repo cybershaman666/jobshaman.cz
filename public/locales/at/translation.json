@@ -466,6 +466,10 @@
     "upload_cv_desc": "Laden Sie eine PDF-, DOC- oder DOCX-Datei hoch (max. 10 MB) für die automatische Analyse von Fähigkeiten und Erfahrung",
     "select_cv_file": "Datei auswählen",
     "uploading": "Wird hochgeladen...",
+    "photo_upload_success": "Foto erfolgreich hochgeladen!",
+    "photo_upload_error": "Foto konnte nicht hochgeladen werden. Bitte erneut versuchen.",
+    "photo_uploading": "Wird hochgeladen...",
+    "photo_repair": "Foto reparieren",
     "cv_analysis_title": "Automatische CV-Analyse",
     "cv_analysis_desc": "Ihr Lebenslauf wird automatisch verarbeitet, um Fähigkeiten, Erfahrung und Ausbildung zu extrahieren. Diese Daten helfen uns, Ihr Profil besser mit den Jobanforderungen abzugleichen.",
     "notifications": "Benachrichtigungen",
@@ -588,6 +592,32 @@
         "better_with_context": "Das Ergebnis ist präziser, weil der Guide genug Kontext aus mehreren Bereichen hatte."
       }
     }
+  },
+  "cv_manager": {
+    "title": "Lebenslauf-Verwaltung",
+    "upload_new": "Neuen Lebenslauf hochladen",
+    "no_cvs": "Noch keine Lebensläufe hochgeladen.",
+    "first_cv_desc": "Laden Sie Ihren ersten Lebenslauf hoch.",
+    "active": "Aktiv",
+    "stats": "{{skills}} Skills, {{exp}} Erfahrung, {{edu}} Ausbildung",
+    "download": "Lebenslauf herunterladen",
+    "set_active": "Als aktiv setzen",
+    "delete": "Lebenslauf löschen",
+    "delete_confirm": "Lebenslauf \"{{name}}\" löschen?",
+    "delete_success": "Lebenslauf gelöscht.",
+    "delete_error": "Lebenslauf konnte nicht gelöscht werden.",
+    "select_error": "Lebenslauf konnte nicht ausgewählt werden.",
+    "upload_success": "Lebenslauf hochgeladen und als aktiv gesetzt!",
+    "label_prompt": "Lebenslauf-Label (z.B. EN, DevOps, Sales)",
+    "locale_prompt": "Sprache des Lebenslaufs (z.B. cs, en, de) – optional",
+    "update_error": "Label konnte nicht gespeichert werden.",
+    "reparse": "Neu analysieren",
+    "reparse_success": "Lebenslauf neu analysiert.",
+    "reparse_error": "Lebenslauf konnte nicht neu analysiert werden.",
+    "edit_label": "Label bearbeiten",
+    "no_label": "Ohne Label",
+    "tip_title": "Tipp:",
+    "tip_desc": "Der aktive Lebenslauf wird bei Bewerbungen verwendet."
   },
   "company_registration": {
     "step1_title": "Erstellen Sie Ihr Unternehmenskonto",

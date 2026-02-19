@@ -217,6 +217,14 @@ export const EmailTemplates = {
             <p style="color: #059669;"><strong>✓ CV bylo nahráno</strong></p>
           </div>
           ` : ''}
+
+          ${formData.cvSelectedName ? `
+          <div style="margin-bottom: 20px;">
+            <h3 style="color: #374151; margin-bottom: 10px;">Vybrané CV:</h3>
+            <p><strong>${formData.cvSelectedName}</strong></p>
+            ${formData.cvSelectedUrl ? `<p><a href="${formData.cvSelectedUrl}" target="_blank" rel="noopener noreferrer">Otevřít CV</a></p>` : ''}
+          </div>
+          ` : ''}
           
           <div style="background-color: #f0f9ff; padding: 15px; border-radius: 5px; border-left: 4px solid #3b82f6;">
             <p style="margin: 0; color: #1e40af;">

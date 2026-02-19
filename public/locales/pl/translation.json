@@ -466,6 +466,10 @@
     "upload_cv_desc": "Prześlij plik PDF, DOC lub DOCX (maks. 10MB) w celu automatycznej analizy umiejętności i doświadczenia",
     "select_cv_file": "Wybierz plik",
     "uploading": "Przesyłanie...",
+    "photo_upload_success": "Zdjęcie zostało przesłane!",
+    "photo_upload_error": "Nie udało się przesłać zdjęcia. Spróbuj ponownie.",
+    "photo_uploading": "Przesyłanie...",
+    "photo_repair": "Napraw zdjęcie",
     "cv_analysis_title": "Automatyczna analiza CV",
     "cv_analysis_desc": "Twoje CV zostanie automatycznie przetworzone w celu wyodrębnienia umiejętności, doświadczenia i wykształcenia. Dane te pomagają nam lepiej dopasować Twój profil do wymagań stanowiska.",
     "notifications": "Powiadomienia",
@@ -588,6 +592,32 @@
         "better_with_context": "Wynik jest dokładniejszy, bo przewodnik miał wystarczający kontekst z wielu obszarów."
       }
     }
+  },
+  "cv_manager": {
+    "title": "Zarządzanie CV",
+    "upload_new": "Dodaj nowe CV",
+    "no_cvs": "Nie masz jeszcze żadnych CV.",
+    "first_cv_desc": "Dodaj pierwsze CV, aby zacząć aplikować.",
+    "active": "Aktywne",
+    "stats": "{{skills}} umiejętności, {{exp}} doświadczenie, {{edu}} edukacja",
+    "download": "Pobierz CV",
+    "set_active": "Ustaw jako aktywne",
+    "delete": "Usuń CV",
+    "delete_confirm": "Usunąć CV \"{{name}}\"?",
+    "delete_success": "CV usunięte.",
+    "delete_error": "Nie udało się usunąć CV.",
+    "select_error": "Nie udało się wybrać CV.",
+    "upload_success": "CV przesłane i ustawione jako aktywne!",
+    "label_prompt": "Etykieta CV (np. EN, DevOps, Sales)",
+    "locale_prompt": "Język CV (np. cs, en, de) – opcjonalne",
+    "update_error": "Nie udało się zapisać etykiety.",
+    "reparse": "Ponownie analizuj",
+    "reparse_success": "CV ponownie przeanalizowane.",
+    "reparse_error": "Nie udało się ponownie przeanalizować CV.",
+    "edit_label": "Edytuj etykietę",
+    "no_label": "Bez etykiety",
+    "tip_title": "Wskazówka:",
+    "tip_desc": "Aktywne CV będzie używane przy aplikacjach."
   },
   "footer": {
     "rights_reserved": "© 2026 JobShaman. Wszelkie prawa zastrzeżone.",

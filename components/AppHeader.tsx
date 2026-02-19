@@ -7,7 +7,10 @@ import {
     Menu,
     X,
     User,
-    LogOut
+    LogOut,
+    MoreHorizontal,
+    Globe,
+    ChevronDown
 } from 'lucide-react';
 import { ViewState, UserProfile, CompanyProfile } from '../types';
 import SubscriptionStatusBadge from './SubscriptionStatusBadge';
@@ -45,6 +48,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
 }) => {
     const { t, i18n } = useTranslation();
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [legalMenuOpen, setLegalMenuOpen] = useState(false);
+    const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
     const [avatarFailed, setAvatarFailed] = useState(false);
     const isMarketplaceAccountContext = companyProfile?.industry === 'Freelancer' || companyProfile?.industry === 'Education';
     const canShowBusinessMenu = showCompanyLanding || !userProfile.isLoggedIn || userProfile.role === 'recruiter' || isMarketplaceAccountContext;
@@ -53,12 +58,12 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         : userProfile.id;
 
     const languages = [
-        { code: 'cs', name: 'CZ', flag: '🇨🇿' },
-        { code: 'en', name: 'EN', flag: '🇬🇧' },
-        { code: 'pl', name: 'PL', flag: '🇵🇱' },
-        { code: 'de', name: 'DE', flag: '🇩🇪' },
-        { code: 'at', name: 'AT', flag: '🇦🇹' },
-        { code: 'sk', name: 'SK', flag: '🇸🇰' }
+        { code: 'cs', name: 'CZ', flagCode: 'cz' },
+        { code: 'en', name: 'EN', flagCode: 'gb' },
+        { code: 'pl', name: 'PL', flagCode: 'pl' },
+        { code: 'de', name: 'DE', flagCode: 'de' },
+        { code: 'at', name: 'AT', flagCode: 'at' },
+        { code: 'sk', name: 'SK', flagCode: 'sk' }
     ];
 
     const changeLanguage = (lng: string) => {
@@ -186,17 +191,52 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 {!showCompanyLanding && (
                     <div className="flex items-center gap-3">
                         {/* Language Switcher */}
-                        <div className="hidden lg:flex items-center gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-                            {languages.map((lang) => (
+                        <div className="hidden lg:flex items-center gap-2">
+                            <div className="relative">
                                 <button
-                                    key={lang.code}
-                                    onClick={() => changeLanguage(lang.code)}
-                                    className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${i18n.language === lang.code ? 'bg-white dark:bg-slate-700 text-cyan-600 shadow-sm' : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
-                                    title={lang.name}
+                                    onClick={() => setLanguageMenuOpen(!languageMenuOpen)}
+                                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors text-xs font-bold"
+                                    aria-label="Jazyk"
+                                    title="Jazyk"
                                 >
-                                    {lang.name}
+                                    <Globe size={14} />
+                                    <img
+                                        src={`https://flagcdn.com/w20/${languages.find(l => l.code === i18n.language)?.flagCode || 'cz'}.png`}
+                                        alt=""
+                                        className="w-4 h-3 rounded-sm opacity-85"
+                                        loading="lazy"
+                                    />
+                                    <span>{(languages.find(l => l.code === i18n.language)?.name || i18n.language || '').toUpperCase()}</span>
+                                    <ChevronDown size={14} />
                                 </button>
-                            ))}
+                                {languageMenuOpen && (
+                                    <div className="absolute right-0 mt-2 w-32 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg z-50">
+                                        {languages.map((lang) => (
+                                            <button
+                                                key={lang.code}
+                                                onClick={() => {
+                                                    changeLanguage(lang.code);
+                                                    setLanguageMenuOpen(false);
+                                                }}
+                                                className={`w-full text-left px-3 py-2 text-xs font-semibold transition-colors ${i18n.language === lang.code
+                                                    ? 'text-cyan-600 dark:text-cyan-300 bg-cyan-50/60 dark:bg-cyan-900/20'
+                                                    : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                                    }`}
+                                            >
+                                                <span className="flex items-center gap-2">
+                                                    <img
+                                                        src={`https://flagcdn.com/w20/${lang.flagCode}.png`}
+                                                        alt=""
+                                                        className="w-4 h-3 rounded-sm opacity-85"
+                                                        loading="lazy"
+                                                    />
+                                                    <span>{lang.name}</span>
+                                                </span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Mobile Language Switcher (Compact) */}
@@ -216,6 +256,36 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         >
                             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
                         </button>
+                        <div className="relative">
+                            <button
+                                onClick={() => setLegalMenuOpen(!legalMenuOpen)}
+                                className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
+                                aria-label="Více"
+                                title="Více"
+                            >
+                                <MoreHorizontal size={20} />
+                            </button>
+                            {legalMenuOpen && (
+                                <div className="absolute right-0 mt-2 w-48 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-lg z-50">
+                                    <a
+                                        href="/podminky-uziti"
+                                        target="_blank"
+                                        className="block px-3 py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                        onClick={() => setLegalMenuOpen(false)}
+                                    >
+                                        {t('footer.terms')}
+                                    </a>
+                                    <a
+                                        href="/ochrana-osobnich-udaju"
+                                        target="_blank"
+                                        className="block px-3 py-2 text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                        onClick={() => setLegalMenuOpen(false)}
+                                    >
+                                        {t('footer.privacy')}
+                                    </a>
+                                </div>
+                            )}
+                        </div>
 
                         <div className="h-6 w-px bg-slate-200 dark:bg-slate-800 mx-1"></div>
 
@@ -327,6 +397,25 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 {showCompanyLanding ? t('nav.back') : (isMarketplaceAccountContext ? t('nav.my_account') : t('nav.for_companies'))}
                             </button>
                         )}
+                        <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
+                            <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-2">Více</div>
+                            <a
+                                href="/podminky-uziti"
+                                target="_blank"
+                                className="block px-3 py-2 rounded-md text-sm font-bold text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-800 transition-colors"
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                {t('footer.terms')}
+                            </a>
+                            <a
+                                href="/ochrana-osobnich-udaju"
+                                target="_blank"
+                                className="block px-3 py-2 rounded-md text-sm font-bold text-slate-500 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-white dark:hover:bg-slate-800 transition-colors"
+                                onClick={() => setMobileMenuOpen(false)}
+                            >
+                                {t('footer.privacy')}
+                            </a>
+                        </div>
                     </div>
                 </div>
             )}

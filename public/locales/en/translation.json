@@ -466,6 +466,10 @@
     "upload_cv_desc": "Upload a PDF, DOC or DOCX file (max 10MB) for automatic analysis of skills and experience",
     "select_cv_file": "Select File",
     "uploading": "Uploading...",
+    "photo_upload_success": "Photo uploaded successfully!",
+    "photo_upload_error": "Failed to upload photo. Please try again.",
+    "photo_uploading": "Uploading...",
+    "photo_repair": "Fix photo",
     "cv_analysis_title": "Automatic CV Analysis",
     "cv_analysis_desc": "Your CV will be automatically processed to extract skills, experience and education. This data helps us better match your profile to job requirements.",
     "notifications": "Notifications",
@@ -588,6 +592,32 @@
         "better_with_context": "Output is more accurate because the guide had enough context across areas."
       }
     }
+  },
+  "cv_manager": {
+    "title": "CV Library",
+    "upload_new": "Upload new CV",
+    "no_cvs": "You have not uploaded any CVs yet.",
+    "first_cv_desc": "Upload your first CV to start applying.",
+    "active": "Active",
+    "stats": "{{skills}} skills, {{exp}} experience, {{edu}} education",
+    "download": "Download CV",
+    "set_active": "Set as active",
+    "delete": "Delete CV",
+    "delete_confirm": "Delete CV \"{{name}}\"?",
+    "delete_success": "CV deleted.",
+    "delete_error": "Failed to delete CV. Try again.",
+    "select_error": "Failed to select CV. Try again.",
+    "upload_success": "CV uploaded and set as active!",
+    "label_prompt": "CV label (e.g. EN, DevOps, Sales)",
+    "locale_prompt": "CV language (e.g. cs, en, de) – optional",
+    "update_error": "Failed to update CV label.",
+    "reparse": "Re-analyze",
+    "reparse_success": "CV re-analyzed.",
+    "reparse_error": "Failed to re-analyze CV.",
+    "edit_label": "Edit label",
+    "no_label": "No label",
+    "tip_title": "Tip:",
+    "tip_desc": "The active CV will be used for applications. You can switch anytime."
   },
   "footer": {
     "rights_reserved": "© 2026 JobShaman. All rights reserved.",

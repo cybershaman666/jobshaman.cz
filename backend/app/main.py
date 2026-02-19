@@ -12,7 +12,7 @@ from slowapi import _rate_limit_exceeded_handler
 from starlette.responses import JSONResponse
 
 from .core.limiter import limiter
-from .routers import jobs, billing, stripe, assessments, scraper, auth, admin, ai, email, push
+from .routers import jobs, billing, stripe, assessments, scraper, auth, admin, ai, email, push, profile
 from .core.security import add_security_headers
 from .matching_engine import run_hourly_batch_jobs, run_daily_batch_jobs
 from .services.daily_digest import run_daily_job_digest
@@ -137,6 +137,7 @@ app.include_router(admin.router, tags=["Admin"])
 app.include_router(ai.router, tags=["AI"])
 app.include_router(email.router, tags=["Email"])
 app.include_router(push.router, tags=["Push"])
+app.include_router(profile.router, tags=["Profile"])
 
 from .core.security import cleanup_csrf_sessions
 
