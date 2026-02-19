@@ -45,7 +45,10 @@ base_origins = [
     "http://localhost:3000",
     "http://localhost:5173",
 ]
-_ALLOWED_ORIGIN_REGEX = r"^https?://([a-z0-9-]+\.)?jobshaman\.(cz|com)(:\d+)?$"
+_ALLOWED_ORIGIN_REGEX = (
+    r"^https?://([a-z0-9-]+\.)?jobshaman\.(cz|com)(:\d+)?$"
+    r"|^https?://jobshaman(-[a-z0-9-]+)?\.vercel\.app(:\d+)?$"
+)
 
 
 def _normalize_origin(origin: str | None) -> str:
