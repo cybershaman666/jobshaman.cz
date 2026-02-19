@@ -71,6 +71,9 @@
   },
   "financial": {
     "reality_title": "Financial Reality",
+    "based_on_location": "Based on {{location}}",
+    "jhi_impact_label": "JHI Impact",
+    "points": "points",
     "unlock_title": "Unlock Financial Reality",
     "unlock_desc": "Log in and find out how much you really have left in your wallet after taxes and commute.",
     "unlock_commute_address": "To unlock commute reality, you must fill in your address in your profile.",

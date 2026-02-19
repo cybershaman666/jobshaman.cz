@@ -71,6 +71,9 @@
   },
   "financial": {
     "reality_title": "Rzeczywistość finansowa",
+    "based_on_location": "Na podstawie {{location}}",
+    "jhi_impact_label": "Wpływ JHI",
+    "points": "punktów",
     "unlock_title": "Odblokuj rzeczywistość finansową",
     "unlock_desc": "Zaloguj się i dowiedz się, ile naprawdę zostanie Ci w portfelu po odliczeniu podatków i kosztów dojazdu.",
     "unlock_commute_address": "Aby odblokować rzeczywistość dojazdów, musisz uzupełnić adres w swoim profilu.",
