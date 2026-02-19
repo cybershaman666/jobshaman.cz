@@ -119,7 +119,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     onUseCurrentLocation,
     onTrackImpression
 }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const seenImpressionsRef = useRef<Set<string>>(new Set());
     const lastRequestIdRef = useRef<string | null>(null);
@@ -300,36 +300,48 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                 className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                                             />
                                             <datalist id="location-suggestions">
-                                                <option value="Praha" />
-                                                <option value="Brno" />
-                                                <option value="Ostrava" />
-                                                <option value="Plzeň" />
-                                                <option value="Olomouc" />
-                                                <option value="Liberec" />
-                                                <option value="České Budějovice" />
-                                                <option value="Hradec Králové" />
-                                                <option value="Pardubice" />
-                                                <option value="Zlín" />
-                                                <option value="Středočeský kraj" />
-                                                <option value="Jihočeský kraj" />
-                                                <option value="Jihomoravský kraj" />
-                                                <option value="Moravskoslezský kraj" />
-                                                <option value="Plzeňský kraj" />
-                                                <option value="Olomoucký kraj" />
-                                                <option value="Ústecký kraj" />
-                                                <option value="Královéhradecký kraj" />
-                                                <option value="Pardubický kraj" />
-                                                <option value="Zlínský kraj" />
-                                                <option value="Bratislava" />
-                                                <option value="Košice" />
-                                                <option value="Bratislavský kraj" />
-                                                <option value="Košický kraj" />
-                                                <option value="Žilinský kraj" />
-                                                <option value="Prešovský kraj" />
-                                                <option value="Banskobystrický kraj" />
-                                                <option value="Trnavský kraj" />
-                                                <option value="Trenčiansky kraj" />
-                                                <option value="Nitriansky kraj" />
+                                                {((() => {
+                                                    const lang = (i18n.language || 'cs').split('-')[0];
+                                                    const country = (userProfile.preferredCountryCode || '').toUpperCase();
+                                                    const suggestionsByCountry: Record<string, string[]> = {
+                                                        CZ: [
+                                                            'Praha', 'Brno', 'Ostrava', 'Plzeň', 'Olomouc', 'Liberec', 'České Budějovice', 'Hradec Králové',
+                                                            'Pardubice', 'Zlín', 'Středočeský kraj', 'Jihočeský kraj', 'Jihomoravský kraj', 'Moravskoslezský kraj',
+                                                            'Plzeňský kraj', 'Olomoucký kraj', 'Ústecký kraj', 'Královéhradecký kraj', 'Pardubický kraj', 'Zlínský kraj'
+                                                        ],
+                                                        SK: [
+                                                            'Bratislava', 'Košice', 'Žilina', 'Prešov', 'Nitra', 'Trnava', 'Banská Bystrica',
+                                                            'Bratislavský kraj', 'Košický kraj', 'Žilinský kraj', 'Prešovský kraj', 'Banskobystrický kraj',
+                                                            'Trnavský kraj', 'Trenčiansky kraj', 'Nitriansky kraj'
+                                                        ],
+                                                        PL: [
+                                                            'Warszawa', 'Kraków', 'Wrocław', 'Poznań', 'Gdańsk', 'Łódź', 'Szczecin', 'Bydgoszcz', 'Lublin',
+                                                            'Mazowieckie', 'Małopolskie', 'Dolnośląskie', 'Wielkopolskie', 'Pomorskie', 'Łódzkie', 'Śląskie',
+                                                            'Zachodniopomorskie', 'Kujawsko-Pomorskie', 'Lubelskie'
+                                                        ],
+                                                        DE: [
+                                                            'Berlin', 'München', 'Hamburg', 'Köln', 'Frankfurt', 'Stuttgart', 'Düsseldorf', 'Leipzig', 'Dresden',
+                                                            'Bayern', 'Nordrhein-Westfalen', 'Baden-Württemberg', 'Hessen', 'Sachsen', 'Berlin', 'Hamburg'
+                                                        ],
+                                                        AT: [
+                                                            'Wien', 'Graz', 'Salzburg', 'Linz', 'Innsbruck', 'Klagenfurt', 'St. Pölten',
+                                                            'Wien', 'Steiermark', 'Salzburg', 'Oberösterreich', 'Tirol', 'Kärnten', 'Niederösterreich'
+                                                        ]
+                                                    };
+                                                    const suggestionsByLang: Record<string, string[]> = {
+                                                        cs: suggestionsByCountry.CZ,
+                                                        sk: suggestionsByCountry.SK,
+                                                        pl: suggestionsByCountry.PL,
+                                                        de: suggestionsByCountry.DE,
+                                                        at: suggestionsByCountry.AT,
+                                                        en: [
+                                                            'Vienna', 'Warsaw', 'Prague', 'Bratislava', 'Berlin', 'Munich', 'Krakow', 'Wroclaw',
+                                                            'Vienna', 'Warsaw', 'Prague', 'Brno', 'Gdansk', 'Hamburg', 'Frankfurt'
+                                                        ]
+                                                    };
+                                                    const list = suggestionsByCountry[country] || suggestionsByLang[lang] || suggestionsByCountry.CZ;
+                                                    return list.map((item) => <option key={item} value={item} />);
+                                                })())}
                                             </datalist>
                                         </div>
                                         {!filterCity && !userProfile.coordinates && (
@@ -548,18 +560,29 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                             {/* FILTER: Benefits */}
                             <div className="space-y-3">
                                 <button onClick={() => toggleSection('benefits')} className="flex items-center justify-between w-full text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                                    <span>Klíčové Benefity</span>
+                                    <span>{t('filters.key_benefits.title')}</span>
                                     {expandedSections.benefits ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                                 </button>
                                 {expandedSections.benefits && (
                                     <div className="space-y-2 animate-in slide-in-from-top-1">
-                                        {['Auto pro osobní použití', 'Přátelské k dětem', 'Flexibilní hodiny', 'Vzdělávací kurzy', 'Multisport karta', 'Příspěvek na stravu', 'Home Office', '5 týdnů dovolené', 'Dog Friendly', 'Zaměstnanecké akcie'].map(benefit => (
-                                            <label key={benefit} className="flex items-center gap-3 cursor-pointer group">
-                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${filterBenefits.includes(benefit) ? 'bg-cyan-600 border-cyan-600' : 'border-slate-300 dark:border-slate-600 group-hover:border-cyan-400'}`}>
-                                                    {filterBenefits.includes(benefit) && <CheckCircle size={10} className="text-white" />}
+                                        {[
+                                            { id: 'car', value: 'Auto pro osobní použití', label: t('filters.key_benefits.items.car') },
+                                            { id: 'kids_friendly', value: 'Přátelské k dětem', label: t('filters.key_benefits.items.kids_friendly') },
+                                            { id: 'flex_hours', value: 'Flexibilní hodiny', label: t('filters.key_benefits.items.flex_hours') },
+                                            { id: 'education', value: 'Vzdělávací kurzy', label: t('filters.key_benefits.items.education') },
+                                            { id: 'multisport', value: 'Multisport karta', label: t('filters.key_benefits.items.multisport') },
+                                            { id: 'meal', value: 'Příspěvek na stravu', label: t('filters.key_benefits.items.meal') },
+                                            { id: 'home_office', value: 'Home Office', label: t('filters.key_benefits.items.home_office') },
+                                            { id: 'vacation_5w', value: '5 týdnů dovolené', label: t('filters.key_benefits.items.vacation_5w') },
+                                            { id: 'dog_friendly', value: 'Dog Friendly', label: t('filters.key_benefits.items.dog_friendly') },
+                                            { id: 'stock', value: 'Zaměstnanecké akcie', label: t('filters.key_benefits.items.stock') }
+                                        ].map(benefit => (
+                                            <label key={benefit.id} className="flex items-center gap-3 cursor-pointer group">
+                                                <div className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${filterBenefits.includes(benefit.value) ? 'bg-cyan-600 border-cyan-600' : 'border-slate-300 dark:border-slate-600 group-hover:border-cyan-400'}`}>
+                                                    {filterBenefits.includes(benefit.value) && <CheckCircle size={10} className="text-white" />}
                                                 </div>
-                                                <input type="checkbox" className="hidden" checked={filterBenefits.includes(benefit)} onChange={() => toggleBenefitFilter(benefit)} />
-                                                <span className="text-sm text-slate-700 dark:text-slate-300">{benefit}</span>
+                                                <input type="checkbox" className="hidden" checked={filterBenefits.includes(benefit.value)} onChange={() => toggleBenefitFilter(benefit.value)} />
+                                                <span className="text-sm text-slate-700 dark:text-slate-300">{benefit.label}</span>
                                             </label>
                                         ))}
                                     </div>

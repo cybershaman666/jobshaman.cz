@@ -46,6 +46,21 @@
       "remote": "Remote"
     },
     "benefits": "Benefity",
+    "key_benefits": {
+      "title": "Klíčové benefity",
+      "items": {
+        "car": "Auto pro osobní použití",
+        "kids_friendly": "Přátelské k dětem",
+        "flex_hours": "Flexibilní hodiny",
+        "education": "Vzdělávací kurzy",
+        "multisport": "Multisport karta",
+        "meal": "Příspěvek na stravu",
+        "home_office": "Home Office",
+        "vacation_5w": "5 týdnů dovolené",
+        "dog_friendly": "Dog Friendly",
+        "stock": "Zaměstnanecké akcie"
+      }
+    },
     "date_posted": "Datum zveřejnění",
     "any_time": "Kdykoliv",
     "last_24h": "Posledních 24 hodin",

@@ -46,6 +46,21 @@
       "remote": "Remote"
     },
     "benefits": "Benefits",
+    "key_benefits": {
+      "title": "Wesentliche Benefits",
+      "items": {
+        "car": "Firmenwagen zur privaten Nutzung",
+        "kids_friendly": "Kinderfreundlich",
+        "flex_hours": "Flexible Arbeitszeiten",
+        "education": "Weiterbildungskurse",
+        "multisport": "Multisport-Karte",
+        "meal": "Essenszuschuss",
+        "home_office": "Home Office",
+        "vacation_5w": "5 Wochen Urlaub",
+        "dog_friendly": "Hundefreundlich",
+        "stock": "Mitarbeiteraktien"
+      }
+    },
     "date_posted": "Veröffentlichungsdatum",
     "any_time": "Jederzeit",
     "last_24h": "Letzte 24 Stunden",

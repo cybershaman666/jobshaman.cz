@@ -46,6 +46,21 @@
       "remote": "Remote"
     },
     "benefits": "Benefits",
+    "key_benefits": {
+      "title": "Key benefits",
+      "items": {
+        "car": "Company car for personal use",
+        "kids_friendly": "Kid-friendly",
+        "flex_hours": "Flexible hours",
+        "education": "Training courses",
+        "multisport": "Multisport card",
+        "meal": "Meal allowance",
+        "home_office": "Home Office",
+        "vacation_5w": "5 weeks of vacation",
+        "dog_friendly": "Dog friendly",
+        "stock": "Employee stock"
+      }
+    },
     "date_posted": "Date Posted",
     "any_time": "Any time",
     "last_24h": "Last 24 hours",
