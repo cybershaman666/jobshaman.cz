@@ -105,3 +105,4 @@ Disallow: /*.json$
 
 # Sitemap
 Sitemap: https://jobshaman.cz/sitemap.xml
+Sitemap: https://jobshaman.cz/sitemap-jobs.xml

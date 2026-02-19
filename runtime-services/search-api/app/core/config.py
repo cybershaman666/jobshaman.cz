@@ -6,6 +6,7 @@ load_dotenv()
 # Required runtime configuration
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_KEY", os.getenv("SUPABASE_KEY"))
+APP_PUBLIC_URL = os.getenv("APP_PUBLIC_URL", "https://jobshaman.cz")
 
 SECRET_KEY = os.getenv("JWT_SECRET", os.getenv("SECRET_KEY"))
 if not SECRET_KEY:
