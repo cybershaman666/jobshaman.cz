@@ -1,7 +1,12 @@
 export const formatJobDescription = (description: string): string => {
     if (!description) return '';
 
-    const rawLines = description.split(/\r?\n/);
+    const rawLines = description
+        // Preserve list-like separators into newlines so we can render bullets naturally.
+        .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
+        .replace(/([a-záčďéěíňóřšťúůýž])([A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n$2')
+        .replace(/\s{2,}/g, '\n')
+        .split(/\r?\n/);
 
     type Line = {
         text: string;
@@ -708,6 +713,19 @@ export const formatJobDescription = (description: string): string => {
     const output: string[] = [];
     let i = 0;
 
+    const splitInlineList = (text: string): string[] => {
+        const normalized = text
+            .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
+            .replace(/([a-záčďéěíňóřšťúůýž])([A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n$2')
+            .replace(/\s{2,}/g, '\n');
+        const pieces = normalized
+            .split(/\r?\n/)
+            .map((part) => part.trim())
+            .filter(Boolean)
+            .map((part) => part.replace(/^[•◦▪▫∙‣⁃\-\*]+\s*/g, ''));
+        return pieces.length ? pieces : [text];
+    };
+
     const pushParagraph = (chunk: string[]) => {
         if (!chunk.length) return;
         if (output.length > 0) output.push('');
@@ -753,19 +771,22 @@ export const formatJobDescription = (description: string): string => {
                 continue;
             }
 
+            const exploded = texts.flatMap((item) => splitInlineList(item));
+            const uniqueTexts = Array.from(new Set(exploded));
+
             if (isTagCloud) {
-                const unique = Array.from(new Set(texts));
+                const unique = uniqueTexts;
                 const sliced = unique.slice(0, 30);
                 const suffix = unique.length > sliced.length ? '…' : '';
                 output.push('');
                 output.push(sliced.join(', ') + suffix);
             } else if (hasList) {
                 output.push('');
-                for (const item of texts) {
+                for (const item of uniqueTexts) {
                     output.push(`- ${item}`);
                 }
             } else {
-                pushParagraph(texts);
+                pushParagraph(uniqueTexts);
             }
 
             i = j;
@@ -777,7 +798,14 @@ export const formatJobDescription = (description: string): string => {
             if (output.length > 0 && output[output.length - 1] !== '') {
                 output.push('');
             }
-            output.push(`- ${current.text}`);
+            const parts = splitInlineList(current.text);
+            if (parts.length > 1) {
+                for (const part of parts) {
+                    output.push(`- ${part}`);
+                }
+            } else {
+                output.push(`- ${current.text}`);
+            }
             i += 1;
             continue;
         }
