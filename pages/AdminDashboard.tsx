@@ -1,7 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Bell, BarChart3, RefreshCcw, Search, Sparkles } from 'lucide-react';
 import { UserProfile } from '../types';
-import { adminSearch, getAdminAiQuality, getAdminNotifications, getAdminStats, getAdminSubscriptionAudit, getAdminSubscriptions, getAdminUserDigest, updateAdminSubscription, updateAdminUserDigest } from '../services/adminService';
+import { BACKEND_URL } from '../constants';
+import { adminSearch, getAdminAiQuality, getAdminNotifications, getAdminPushSubscriptions, getAdminStats, getAdminSubscriptionAudit, getAdminSubscriptions, getAdminUserDigest, updateAdminSubscription, updateAdminUserDigest } from '../services/adminService';
 
 interface AdminDashboardProps {
   userProfile: UserProfile;
@@ -44,6 +45,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const [digestLoading, setDigestLoading] = useState(false);
   const [digestSaving, setDigestSaving] = useState(false);
   const [digestError, setDigestError] = useState<string | null>(null);
+  const [pushSubs, setPushSubs] = useState<any[]>([]);
+  const [pushSubsLoading, setPushSubsLoading] = useState(false);
+  const [pushSubsQuery, setPushSubsQuery] = useState('');
+  const [mailingQuery, setMailingQuery] = useState('');
+  const [mailingResults, setMailingResults] = useState<any[]>([]);
+  const [mailingLoading, setMailingLoading] = useState(false);
+  const [wakeStatus, setWakeStatus] = useState<'idle' | 'ok' | 'error' | 'loading'>('idle');
 
   const [filters, setFilters] = useState({
     q: '',
@@ -145,6 +153,72 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     }
   };
 
+  const loadPushSubscriptions = async () => {
+    setPushSubsLoading(true);
+    try {
+      const data = await getAdminPushSubscriptions({
+        q: pushSubsQuery || undefined,
+        limit: 100,
+        offset: 0,
+        activeOnly: true
+      });
+      setPushSubs(data.items || []);
+    } catch (err) {
+      setPushSubs([]);
+    } finally {
+      setPushSubsLoading(false);
+    }
+  };
+
+  const handleMailingSearch = async () => {
+    if (mailingQuery.trim().length < 2) {
+      setMailingResults([]);
+      return;
+    }
+    setMailingLoading(true);
+    try {
+      const data = await adminSearch(mailingQuery.trim(), 'user');
+      setMailingResults(data.items || []);
+    } catch (err) {
+      setMailingResults([]);
+    } finally {
+      setMailingLoading(false);
+    }
+  };
+
+  const handleWakeBackend = async () => {
+    setWakeStatus('loading');
+    try {
+      const response = await fetch(`${BACKEND_URL}/healthz`, { method: 'GET' });
+      setWakeStatus(response.ok ? 'ok' : 'error');
+    } catch {
+      setWakeStatus('error');
+    }
+  };
+
+  const exportPushCsv = () => {
+    if (pushSubs.length === 0) return;
+    const header = ['name', 'email', 'updated_at', 'user_agent'];
+    const rows = pushSubs.map((row: any) => ([
+      (row.profiles?.full_name || '').replaceAll('"', '""'),
+      (row.profiles?.email || '').replaceAll('"', '""'),
+      row.updated_at || '',
+      (row.user_agent || '').replaceAll('"', '""')
+    ]));
+    const csv = [header, ...rows]
+      .map(line => line.map(value => `"${value}"`).join(','))
+      .join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `push_subscriptions_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const loadAudit = async (subscriptionId: string) => {
     setLoadingAudit(true);
     try {
@@ -163,8 +237,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       loadNotifications();
       loadStats();
       loadAiQuality();
+      loadPushSubscriptions();
+      handleWakeBackend();
     }
-  }, [filters.q, filters.tier, filters.status, filters.kind, filters.limit, filters.offset, userProfile?.isLoggedIn]);
+  }, [filters.q, filters.tier, filters.status, filters.kind, filters.limit, filters.offset, pushSubsQuery, userProfile?.isLoggedIn]);
 
   const formatDate = (value?: string) => {
     if (!value) return '—';
@@ -334,7 +410,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     setDigestError(null);
     try {
       const data = await updateAdminUserDigest(digestUser.id, {
-        daily_digest_enabled: Boolean(digestUser.daily_digest_enabled)
+        daily_digest_enabled: Boolean(digestUser.daily_digest_enabled),
+        daily_digest_push_enabled: Boolean(digestUser.daily_digest_push_enabled),
+        daily_digest_time: digestUser.daily_digest_time,
+        daily_digest_timezone: digestUser.daily_digest_timezone
       });
       setDigestUser(data);
     } catch (err: any) {
@@ -436,11 +515,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   loadNotifications();
                   loadStats();
                   loadAiQuality();
+                  loadPushSubscriptions();
                 }}
                 className="px-3 py-2 rounded-lg bg-cyan-600 text-white text-sm font-semibold hover:bg-cyan-500 shadow-sm transition-colors flex items-center gap-2"
               >
                 <RefreshCcw size={16} />
                 Obnovit data
+              </button>
+              <button
+                onClick={handleWakeBackend}
+                className="px-3 py-2 rounded-lg text-sm border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors flex items-center gap-2"
+              >
+                <span className={`inline-flex w-2.5 h-2.5 rounded-full ${wakeStatus === 'ok' ? 'bg-emerald-500' : wakeStatus === 'error' ? 'bg-rose-500' : wakeStatus === 'loading' ? 'bg-amber-500' : 'bg-slate-400'}`} />
+                {wakeStatus === 'loading' ? 'Probouzím…' : wakeStatus === 'ok' ? 'Backend OK' : 'Probudit backend'}
               </button>
             </div>
           </div>
@@ -662,6 +749,205 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               )}
             </div>
           </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm mb-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Push subscriptions</h3>
+              <p className="text-xs text-slate-500">Aktivní odběry pro PWA notifikace</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <input
+                value={pushSubsQuery}
+                onChange={(e) => setPushSubsQuery(e.target.value)}
+                placeholder="Hledat email nebo jméno..."
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
+              />
+              <button
+                onClick={loadPushSubscriptions}
+                className="px-3 py-2 rounded-lg text-sm border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors flex items-center gap-2"
+              >
+                <RefreshCcw size={14} />
+                Obnovit
+              </button>
+              <button
+                onClick={exportPushCsv}
+                className="px-3 py-2 rounded-lg text-sm border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:text-emerald-600 transition-colors"
+              >
+                Export CSV
+              </button>
+            </div>
+          </div>
+          {pushSubsLoading ? (
+            <p className="text-sm text-slate-500">Načítám...</p>
+          ) : pushSubs.length === 0 ? (
+            <p className="text-sm text-slate-500">Žádné aktivní push subscriptions.</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                    <th className="py-2 pr-3">Uživatel</th>
+                    <th className="py-2 pr-3">Email</th>
+                    <th className="py-2 pr-3">Aktualizace</th>
+                    <th className="py-2 pr-3">User Agent</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pushSubs.map((row: any) => (
+                    <tr key={row.id} className="border-b border-slate-100 dark:border-slate-800">
+                      <td className="py-2 pr-3 text-slate-700 dark:text-slate-300">
+                        {row.profiles?.full_name || row.user_id}
+                      </td>
+                      <td className="py-2 pr-3 text-slate-600 dark:text-slate-400">
+                        {row.profiles?.email || '—'}
+                      </td>
+                      <td className="py-2 pr-3 text-slate-600 dark:text-slate-400">
+                        {formatDate(row.updated_at)}
+                      </td>
+                      <td className="py-2 pr-3 text-xs text-slate-500">
+                        {row.user_agent || '—'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm mb-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Mailing / Odběry digestu</h3>
+              <p className="text-xs text-slate-500">Správa e‑mail/push odběrů pro kandidáty</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <input
+                value={mailingQuery}
+                onChange={(e) => setMailingQuery(e.target.value)}
+                placeholder="Hledat email nebo jméno..."
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
+              />
+              <button
+                onClick={handleMailingSearch}
+                className="px-3 py-2 rounded-lg text-sm border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
+              >
+                Vyhledat
+              </button>
+            </div>
+          </div>
+
+          {mailingLoading && (
+            <div className="text-xs text-slate-500">Hledám...</div>
+          )}
+
+          {mailingResults.length > 0 && (
+            <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
+              {mailingResults.map(item => (
+                <button
+                  key={item.id}
+                  onClick={() => loadDigestUser(item.id)}
+                  className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-left hover:bg-cyan-50/60 dark:hover:bg-cyan-950/30 transition-colors"
+                >
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">{item.label}</div>
+                  <div className="text-xs text-slate-500">{item.secondary || item.id}</div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {(digestLoading || digestUser || digestError) && (
+            <div className="mt-4 border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+              <div className="flex items-center justify-between gap-3 mb-3">
+                <div>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">Nastavení digestu</div>
+                  <div className="text-xs text-slate-500">Email + push + čas doručení</div>
+                </div>
+                {digestUser && (
+                  <button
+                    onClick={() => setDigestUser(null)}
+                    className="px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
+                  >
+                    Zavřít
+                  </button>
+                )}
+              </div>
+
+              {digestLoading && (
+                <div className="text-xs text-slate-500">Načítám nastavení…</div>
+              )}
+
+              {digestError && (
+                <div className="text-xs text-rose-600">{digestError}</div>
+              )}
+
+              {digestUser && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900">
+                    <div className="text-xs text-slate-500">Uživatel</div>
+                    <div className="font-semibold text-slate-900 dark:text-white">{digestUser.full_name || '—'}</div>
+                    <div className="text-xs text-slate-500">{digestUser.email}</div>
+                  </div>
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900">
+                    <div className="text-xs text-slate-500">Locale / Country</div>
+                    <div className="text-slate-700 dark:text-slate-300">{digestUser.preferred_locale || '—'}</div>
+                    <div className="text-slate-700 dark:text-slate-300">{digestUser.preferred_country_code || '—'}</div>
+                  </div>
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900">
+                    <div className="text-xs text-slate-500">Poslední odeslání</div>
+                    <div className="text-slate-700 dark:text-slate-300">{digestUser.daily_digest_last_sent_at ? formatDate(digestUser.daily_digest_last_sent_at) : '—'}</div>
+                  </div>
+                  <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900 md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(digestUser.daily_digest_enabled)}
+                        onChange={e => setDigestUser((prev: any) => ({ ...prev, daily_digest_enabled: e.target.checked }))}
+                      />
+                      Email digest
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(digestUser.daily_digest_push_enabled)}
+                        onChange={e => setDigestUser((prev: any) => ({ ...prev, daily_digest_push_enabled: e.target.checked }))}
+                      />
+                      Push digest
+                    </label>
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1">Čas</label>
+                      <input
+                        type="time"
+                        value={digestUser.daily_digest_time || '07:30'}
+                        onChange={e => setDigestUser((prev: any) => ({ ...prev, daily_digest_time: e.target.value }))}
+                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-slate-500 mb-1">Timezone</label>
+                      <input
+                        type="text"
+                        value={digestUser.daily_digest_timezone || 'Europe/Prague'}
+                        onChange={e => setDigestUser((prev: any) => ({ ...prev, daily_digest_timezone: e.target.value }))}
+                        className="w-full px-3 py-2 text-sm border border-slate-200 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-900"
+                      />
+                    </div>
+                    <div className="md:col-span-2 flex justify-end">
+                      <button
+                        onClick={saveDigestUser}
+                        disabled={digestSaving}
+                        className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:text-emerald-600 transition-colors disabled:opacity-60"
+                      >
+                        {digestSaving ? 'Ukládám…' : 'Uložit'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">

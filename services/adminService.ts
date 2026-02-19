@@ -132,6 +132,26 @@ export async function adminSearch(query: string, kind: 'company' | 'user') {
   return response.json();
 }
 
+export async function getAdminPushSubscriptions(params: { q?: string; limit?: number; offset?: number; activeOnly?: boolean } = {}) {
+  const search = new URLSearchParams();
+  if (params.q) search.set('q', params.q);
+  if (params.limit) search.set('limit', String(params.limit));
+  if (params.offset) search.set('offset', String(params.offset));
+  if (params.activeOnly !== undefined) search.set('active_only', params.activeOnly ? 'true' : 'false');
+
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/push-subscriptions?${search.toString()}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Failed to load push subscriptions');
+  }
+
+  return response.json();
+}
+
 export async function getAdminUserDigest(userId: string) {
   const response = await authenticatedFetch(`${BACKEND_URL}/admin/users/${userId}/digest`, {
     method: 'GET',
@@ -146,7 +166,12 @@ export async function getAdminUserDigest(userId: string) {
   return response.json();
 }
 
-export async function updateAdminUserDigest(userId: string, payload: { daily_digest_enabled?: boolean }) {
+export async function updateAdminUserDigest(userId: string, payload: {
+  daily_digest_enabled?: boolean;
+  daily_digest_push_enabled?: boolean;
+  daily_digest_time?: string;
+  daily_digest_timezone?: string;
+}) {
   const response = await authenticatedFetch(`${BACKEND_URL}/admin/users/${userId}/digest`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
