@@ -23,6 +23,11 @@ interface PricingPlan {
 const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onRequestDemo, onLogin }) => {
   const { t, i18n } = useTranslation();
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+  const [hiresPerYear, setHiresPerYear] = useState(10);
+  const [screeningHoursPerHire, setScreeningHoursPerHire] = useState(10);
+  const [hrHourlyCostCzk, setHrHourlyCostCzk] = useState(350);
+  const [adsPerMonth, setAdsPerMonth] = useState(3);
+  const [portalDailyCostCzk, setPortalDailyCostCzk] = useState(1350);
   const hasTrackedView = useRef(false);
 
   const trackEvent = (eventName: string, metadata?: Record<string, unknown>) => {
@@ -147,14 +152,46 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
   ];
 
   const benefits = [
-    { icon: Lightbulb, text: t('company_landing.benefits.skill_discovery') },
-    { icon: Target, text: t('company_landing.benefits.explainable_relevance') },
+    { icon: Target, text: t('company_landing.benefits.relevance') },
+    { icon: CheckCircle, text: t('company_landing.benefits.transparency') },
     { icon: BarChart3, text: t('company_landing.benefits.measurable_funnel') },
+    { icon: Lightbulb, text: t('company_landing.benefits.hidden_talents') }
+  ];
+
+  const statsCards = [
     {
-      icon: CheckCircle,
-      text: t('company_landing.benefits.conversion_without_assessment')
+      title: t('company_landing.stats.cards.avg_time_fill_eu_title'),
+      value: t('company_landing.stats.cards.avg_time_fill_eu_value'),
+      note: t('company_landing.stats.cards.avg_time_fill_eu_note')
+    },
+    {
+      title: t('company_landing.stats.cards.avg_time_fill_uk_title'),
+      value: t('company_landing.stats.cards.avg_time_fill_uk_value'),
+      note: t('company_landing.stats.cards.avg_time_fill_uk_note')
+    },
+    {
+      title: t('company_landing.stats.cards.ai_speedup_title'),
+      value: t('company_landing.stats.cards.ai_speedup_value'),
+      note: t('company_landing.stats.cards.ai_speedup_note')
+    },
+    {
+      title: t('company_landing.stats.cards.eu_labor_cost_title'),
+      value: t('company_landing.stats.cards.eu_labor_cost_value'),
+      note: t('company_landing.stats.cards.eu_labor_cost_note')
     }
   ];
+
+  const speedupRate = 0.26;
+  const savedHoursPerYear = hiresPerYear * screeningHoursPerHire * speedupRate;
+  const savedCzkPerYear = savedHoursPerYear * hrHourlyCostCzk;
+  const daysPerMonth = 30;
+  const portalMonthlyCostCzk = adsPerMonth * portalDailyCostCzk * daysPerMonth;
+  const jobshamanPromoMonthly = 4990;
+  const jobshamanStandardMonthly = 9990;
+  const jobshamanPromoSavings = Math.max(0, portalMonthlyCostCzk - jobshamanPromoMonthly);
+  const jobshamanStandardSavings = Math.max(0, portalMonthlyCostCzk - jobshamanStandardMonthly);
+  const numberFormatter = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 0 });
+  const currencyFormatter = new Intl.NumberFormat(i18n.language, { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 });
 
   return (
     <div className="h-full flex flex-col overflow-y-auto custom-scrollbar relative w-full bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
@@ -172,22 +209,19 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
         </button>
       </div>
       <div className="relative z-10 flex-1 flex flex-col items-center justify-start p-8 lg:p-16 w-full">
-        <div className="my-auto w-full max-w-5xl">
-          <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-200/50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold mb-6 border border-slate-300/50 dark:border-slate-700">
+        <div className="my-auto w-full max-w-5xl relative">
+          <div className="relative text-center mb-16">
+            <div className="absolute inset-x-0 -top-8 h-40 bg-gradient-to-r from-cyan-100/60 via-transparent to-emerald-100/60 dark:from-cyan-950/50 dark:via-transparent dark:to-emerald-950/40 blur-3xl" />
+            <div className="relative inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-200/50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold mb-6 border border-slate-300/50 dark:border-slate-700">
               <Building size={12} />
               {t('company_landing.hero.badge')}
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold text-slate-900 dark:text-white mb-6 tracking-tight">
-              {t('company_landing.hero.title_start')} <span className="text-cyan-600 dark:text-cyan-400">{t('company_landing.hero.title_highlight')}</span> {t('company_landing.hero.title_end')}
+            <h1 className="relative text-4xl md:text-6xl font-bold text-slate-900 dark:text-white mb-6 tracking-tight">
+              {t('company_landing.hero.title_start')} <span className="bg-gradient-to-r from-cyan-600 via-emerald-500 to-cyan-600 bg-clip-text text-transparent">{t('company_landing.hero.title_highlight')}</span> {t('company_landing.hero.title_end')}
             </h1>
-            <p className="text-slate-600 dark:text-slate-300 text-lg md:text-xl leading-relaxed max-w-3xl mx-auto">
-              {t('company_landing.hero.subtitle')}
+            <p className="text-sm md:text-base text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-widest mb-6">
+              {t('company_landing.hero.tagline')}
             </p>
-            <div className="mt-5 inline-flex items-center gap-2 rounded-full border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/30 px-4 py-2 text-sm font-semibold text-emerald-700 dark:text-emerald-300">
-              <TrendingUp size={16} />
-              {t('company_landing.hero.value_prop')}
-            </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mt-8">
               <button
                 onClick={() => {
@@ -202,15 +236,19 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
               <button
                 onClick={() => {
                   trackEvent('company_landing_cta_login_click', { section: 'hero' });
-                  onLogin?.();
+                  if (onRequestDemo) {
+                    onRequestDemo();
+                  } else {
+                    onLogin?.();
+                  }
                 }}
                 className="flex items-center gap-2 text-sm font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 px-8 py-3 rounded-lg transition-colors border border-slate-300 dark:border-slate-600"
               >
                 <LogIn size={18} />
-                {t('company_landing.hero.login')}
+                {t('company_landing.hero.cta_companies')}
               </button>
             </div>
-            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
+            <div className="mt-6 inline-flex items-center gap-2 rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-4 py-2 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-sm">
               <Shield size={14} />
               {t('company_landing.hero.trust')}
             </div>
@@ -219,21 +257,13 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
-            {benefits.map((benefit, index) => (
-              <div key={index} className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
-                <div className="flex items-center gap-3">
-                  <div className="bg-cyan-100 dark:bg-cyan-900/30 p-2 rounded-lg">
-                    <benefit.icon className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-                  </div>
-                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{benefit.text}</p>
-                </div>
-              </div>
-            ))}
+          <div aria-hidden="true" className="absolute right-6 top-24 hidden lg:block h-[1320px] w-[2px] bg-gradient-to-b from-cyan-400/0 via-cyan-400/35 to-emerald-400/0">
+            <div className="guide-dot absolute h-3 w-3 rounded-full bg-cyan-400/70 shadow-[0_0_14px_rgba(34,211,238,0.6)]" />
           </div>
 
           <div className="grid lg:grid-cols-2 gap-6 mb-12">
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-1 bg-rose-500/70" />
               <div className="flex items-center gap-2 mb-4">
                 <SearchX size={22} className="text-rose-500" />
                 <h3 className="text-slate-900 dark:text-white font-bold text-lg">{t('company_landing.ats_problem.ats_title')}</h3>
@@ -246,9 +276,13 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                   </li>
                 ))}
               </ul>
+              <div className="mt-4 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                {t('company_landing.ats_problem.ats_result')}
+              </div>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800">
+            <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden">
+              <div className="absolute inset-x-0 top-0 h-1 bg-emerald-500/70" />
               <div className="flex items-center gap-2 mb-4">
                 <Target size={22} className="text-cyan-500" />
                 <h3 className="text-slate-900 dark:text-white font-bold text-lg">{t('company_landing.ats_problem.js_title')}</h3>
@@ -261,14 +295,18 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                   </li>
                 ))}
               </ul>
+              <div className="mt-4 text-sm font-semibold text-slate-700 dark:text-slate-300">
+                {t('company_landing.ats_problem.js_result')}
+              </div>
             </div>
           </div>
 
           <div className="text-center mb-6">
             <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{t('company_landing.solution.title')}</h3>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">{t('company_landing.solution.subtitle')}</p>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative mb-12">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative mb-12">
             <div className="grid md:grid-cols-3 gap-6">
               {solutionPillars.map((feature, index) => (
                 <div key={index} className="p-6 bg-slate-50 dark:bg-slate-950 rounded-lg">
@@ -286,7 +324,156 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative mb-12">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative mb-12">
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-semibold mb-3 border border-slate-200 dark:border-slate-700">
+                  <BarChart3 size={12} />
+                  {t('company_landing.stats.badge')}
+                </div>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{t('company_landing.stats.title')}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('company_landing.stats.subtitle')}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {statsCards.map((card, index) => (
+                <div key={index} className="bg-slate-50 dark:bg-slate-950 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <div className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{card.value}</div>
+                  <div className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">{card.title}</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400">{card.note}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative mb-12 overflow-hidden">
+            <div className="absolute inset-x-0 -top-8 h-24 bg-gradient-to-r from-emerald-100/80 via-cyan-100/50 to-emerald-100/80 dark:from-emerald-950/40 dark:via-cyan-950/30 dark:to-emerald-950/40 blur-2xl" />
+            <div className="flex items-center justify-between mb-6">
+              <div>
+                <h3 className="text-2xl font-bold text-slate-900 dark:text-white">{t('company_landing.calculator.title')}</h3>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{t('company_landing.calculator.subtitle')}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+              <label className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{t('company_landing.calculator.input_hires')}</span>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={hiresPerYear}
+                    onChange={(event) => setHiresPerYear(Math.max(0, Number(event.target.value) || 0))}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
+                  />
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{t('company_landing.calculator.unit_hires')}</span>
+                </div>
+              </label>
+              <label className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{t('company_landing.calculator.input_screening_hours')}</span>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={screeningHoursPerHire}
+                    onChange={(event) => setScreeningHoursPerHire(Math.max(0, Number(event.target.value) || 0))}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
+                  />
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{t('company_landing.calculator.unit_hours')}</span>
+                </div>
+              </label>
+              <label className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{t('company_landing.calculator.input_hourly_cost')}</span>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    step={10}
+                    value={hrHourlyCostCzk}
+                    onChange={(event) => setHrHourlyCostCzk(Math.max(0, Number(event.target.value) || 0))}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
+                  />
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{t('company_landing.calculator.unit_czk')}</span>
+                </div>
+              </label>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+              <label className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{t('company_landing.calculator.input_ads_per_month')}</span>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    step={1}
+                    value={adsPerMonth}
+                    onChange={(event) => setAdsPerMonth(Math.max(0, Number(event.target.value) || 0))}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
+                  />
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{t('company_landing.calculator.unit_ads')}</span>
+                </div>
+              </label>
+              <label className="bg-slate-50 dark:bg-slate-950 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
+                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">{t('company_landing.calculator.input_portal_daily_cost')}</span>
+                <div className="mt-2 flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0}
+                    step={10}
+                    value={portalDailyCostCzk}
+                    onChange={(event) => setPortalDailyCostCzk(Math.max(0, Number(event.target.value) || 0))}
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
+                  />
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{t('company_landing.calculator.unit_czk')}</span>
+                </div>
+              </label>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">{t('company_landing.calculator.output_saved_hours')}</div>
+                <div className="text-2xl font-bold text-slate-900 dark:text-white">{numberFormatter.format(savedHoursPerYear)} {t('company_landing.calculator.unit_hours')}</div>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">{t('company_landing.calculator.output_saved_czk')}</div>
+                <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{currencyFormatter.format(savedCzkPerYear)}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+              <div className="bg-emerald-50 dark:bg-emerald-950/30 rounded-xl p-5 border border-emerald-200 dark:border-emerald-900/60 shadow-md relative overflow-hidden">
+                <div className="absolute right-3 top-3 rounded-full bg-emerald-600 text-white text-[10px] font-bold px-2 py-1">
+                  {t('company_landing.calculator.badge_best')}
+                </div>
+                <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-2">{t('company_landing.calculator.output_portal_savings_promo')}</div>
+                <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{currencyFormatter.format(jobshamanPromoSavings)}</div>
+                <p className="text-xs text-emerald-700/80 dark:text-emerald-300/80 mt-1">
+                  {t('company_landing.calculator.output_portal_savings_promo_note')}
+                </p>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
+                <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">{t('company_landing.calculator.output_portal_savings_standard')}</div>
+                <div className="text-2xl font-bold text-slate-900 dark:text-white">{currencyFormatter.format(jobshamanStandardSavings)}</div>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                  {t('company_landing.calculator.output_portal_savings_standard_note')}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-4">{t('company_landing.calculator.note')}</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+            {benefits.map((benefit, index) => (
+              <div key={index} className="bg-white dark:bg-slate-900 rounded-2xl p-6 shadow-sm border border-slate-200 dark:border-slate-800">
+                <div className="flex items-center gap-3">
+                  <div className="bg-cyan-100 dark:bg-cyan-900/30 p-2 rounded-lg">
+                    <benefit.icon className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                  </div>
+                  <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">{benefit.text}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative mb-12">
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-2">
                 <Crown size={24} className="text-amber-500" />
@@ -415,7 +602,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative mb-12">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative mb-12">
             <div className="flex items-center gap-2 mb-6">
               <Info size={22} className="text-cyan-500" />
               <h3 className="text-slate-900 dark:text-white font-bold text-lg">{t('company_landing.faq.title')}</h3>
@@ -450,6 +637,22 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                 );
               })}
             </div>
+          </div>
+
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative mb-12">
+            <div className="flex items-center gap-2 mb-4">
+              <Shield size={20} className="text-cyan-500" />
+              <h3 className="text-slate-900 dark:text-white font-bold text-lg">{t('company_landing.trust_block.title')}</h3>
+            </div>
+            <p className="text-sm text-slate-600 dark:text-slate-300">{t('company_landing.trust_block.text')}</p>
+          </div>
+
+          <div className="bg-amber-50 dark:bg-amber-950/30 rounded-xl p-8 shadow-sm border border-amber-200 dark:border-amber-900/60 relative mb-12">
+            <div className="flex items-center gap-2 mb-4">
+              <Shield size={20} className="text-amber-600 dark:text-amber-300" />
+              <h3 className="text-amber-900 dark:text-amber-200 font-bold text-lg">{t('company_landing.risk.title')}</h3>
+            </div>
+            <p className="text-sm text-amber-900/80 dark:text-amber-200/80">{t('company_landing.risk.text')}</p>
           </div>
 
           <div className="bg-slate-900 dark:bg-slate-800 rounded-xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative">

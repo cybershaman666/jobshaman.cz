@@ -339,6 +339,10 @@ export interface UserProfile {
     usage?: CandidateUsageStats;
   };
   welcomeEmailSent?: boolean;
+  preferredLocale?: string;
+  preferredCountryCode?: string;
+  dailyDigestEnabled?: boolean;
+  dailyDigestLastSentAt?: string;
 }
 
 export interface AssessmentResult {

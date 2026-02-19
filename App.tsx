@@ -182,6 +182,10 @@ export default function App() {
         handleSessionRestoration
     } = useUserProfile();
 
+    const onboardingStorageKey = useMemo(() => {
+        return userProfile.id ? `jobshaman_candidate_onboarding_seen:${userProfile.id}` : null;
+    }, [userProfile.id]);
+
     const loadPendingEmailConfirmation = useCallback((): { email?: string } | null => {
         try {
             const raw = localStorage.getItem(EMAIL_CONFIRMATION_STORAGE_KEY);
@@ -203,6 +207,26 @@ export default function App() {
         }
         setPendingEmailConfirmation(null);
     }, []);
+
+    const markCandidateOnboardingSeen = useCallback(() => {
+        onboardingDismissedRef.current = true;
+        if (!onboardingStorageKey) return;
+        try {
+            localStorage.setItem(onboardingStorageKey, 'true');
+        } catch (error) {
+            console.warn('Failed to persist onboarding flag:', error);
+        }
+    }, [onboardingStorageKey]);
+
+    const hasSeenCandidateOnboarding = useCallback(() => {
+        if (!onboardingStorageKey) return false;
+        try {
+            return localStorage.getItem(onboardingStorageKey) === 'true';
+        } catch (error) {
+            console.warn('Failed to read onboarding flag:', error);
+            return false;
+        }
+    }, [onboardingStorageKey]);
 
     useEffect(() => {
         // Only keep onboarding modal open when explicitly requested and still applicable
@@ -279,7 +303,8 @@ export default function App() {
 
         const missingLocation = !userProfile.address && !userProfile.coordinates;
         const missingCv = !userProfile.cvUrl && !userProfile.cvText;
-        const shouldShow = (missingLocation || missingCv) && !onboardingDismissedRef.current;
+        const alreadySeen = hasSeenCandidateOnboarding();
+        const shouldShow = (missingLocation || missingCv) && !onboardingDismissedRef.current && !alreadySeen;
 
         if (shouldShow) {
             setShowCandidateOnboarding(true);
@@ -1798,15 +1823,15 @@ export default function App() {
                 isOpen={showCandidateOnboarding}
                 profile={userProfile}
                 onClose={() => {
-                    onboardingDismissedRef.current = true;
+                    markCandidateOnboardingSeen();
                     setShowCandidateOnboarding(false);
                 }}
                 onComplete={() => {
-                    onboardingDismissedRef.current = true;
+                    markCandidateOnboardingSeen();
                     setShowCandidateOnboarding(false);
                 }}
                 onGoToProfile={() => {
-                    onboardingDismissedRef.current = true;
+                    markCandidateOnboardingSeen();
                     setShowCandidateOnboarding(false);
                     setViewState(ViewState.PROFILE);
                 }}

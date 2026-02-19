@@ -933,24 +933,60 @@
   "company_landing": {
     "hero": {
       "badge": "Hiring-Plattform für Unternehmen",
-      "title_start": "ATS filtert nach Begriffen.",
-      "title_highlight": "JobShaman",
-      "title_end": "matched nach Fähigkeiten.",
-      "subtitle": "Weniger irrelevante Reaktionen, bessere Kandidatenqualität und höhere Conversion im Standardprozess.",
-      "value_prop": "Sie zahlen nicht für Rauschen. Sie zahlen für relevante Antworten.",
+      "title_start": "Sie stellen nach CV ein.",
+      "title_highlight": "Wir",
+      "title_end": "nach realer Relevanz.",
+      "tagline": "Stellen Sie nach Charakter ein. Fähigkeiten kann man lernen.",
       "value_prop_detail": "Empfehlungen basieren auf realem Verhalten und Skill-Fit, nicht nur auf CV-Formulierungen.",
       "start_free": "Kostenlos starten",
       "login": "Anmelden",
+      "cta_companies": "Für Unternehmen",
       "view_demo": "Demo ansehen",
       "trust": "Keine überzogenen Versprechen. Klare Metriken und nachvollziehbare Empfehlungen."
     },
     "stats": {
-      "title": "Ergebnisse in Zahlen",
-      "badge": "Statistiken",
+      "title": "Marktrealität",
+      "badge": "Daten und Belege",
+      "subtitle": "EU/UK-Benchmarks als Proxy für CZ.",
       "screening": "Weniger Zeit für Screening",
       "costs": "Geringere Recruiting-Kosten",
       "filling": "Schnellere Stellenbesetzung",
-      "satisfaction": "Zufriedenheit der Unternehmen"
+      "satisfaction": "Zufriedenheit der Unternehmen",
+      "cards": {
+        "avg_time_fill_eu_title": "Durchschnittliche Besetzungszeit in der EU",
+        "avg_time_fill_eu_value": "4,9 Wochen (≈34 Tage)",
+        "avg_time_fill_eu_note": "Q2 2024, Stepstone/FT, EU-Proxy",
+        "avg_time_fill_uk_title": "Besetzungszeit im UK",
+        "avg_time_fill_uk_value": "35,9 Tage",
+        "avg_time_fill_uk_note": "Adzuna, 12/2025, UK-Proxy",
+        "ai_speedup_title": "Beschleunigung durch KI",
+        "ai_speedup_value": "+26%",
+        "ai_speedup_note": "SmartRecruiters, 03/2025",
+        "eu_labor_cost_title": "Durchschnittliche Arbeitskosten pro Stunde in der EU",
+        "eu_labor_cost_value": "€33,5/h",
+        "eu_labor_cost_note": "Eurostat 2024"
+      }
+    },
+    "calculator": {
+      "title": "Berechnen Sie Ihren Impact",
+      "subtitle": "5 Eingaben genügen, um jährliche Zeit- und Kosteneinsparungen zu schätzen.",
+      "input_hires": "Einstellungen pro Jahr",
+      "input_screening_hours": "Durchschnittliche Screening-Stunden pro Einstellung",
+      "input_hourly_cost": "HR-Stundensatz",
+      "input_ads_per_month": "Jobportal-Anzeigen pro Monat",
+      "input_portal_daily_cost": "Tagespreis im Jobportal",
+      "output_saved_hours": "Eingesparte Stunden pro Jahr",
+      "output_saved_czk": "Eingesparte Kosten pro Jahr",
+      "output_portal_savings_promo": "Ersparnis vs. Jobportal (Aktionspreis)",
+      "output_portal_savings_promo_note": "JobShaman 4.990 CZK / Monat, unbegrenzte Anzeigen",
+      "output_portal_savings_standard": "Ersparnis vs. Jobportal (Standardpreis)",
+      "output_portal_savings_standard_note": "JobShaman 9.990 CZK / Monat, unbegrenzte Anzeigen",
+      "badge_best": "Bestes Preis-Leistungs-Verhältnis",
+      "unit_hires": "Einstellungen",
+      "unit_hours": "Std.",
+      "unit_czk": "CZK",
+      "unit_ads": "Anzeigen",
+      "note": "Konservatives Modell: zählt nur Screening-Zeit und nutzt 26% schnelleres Hiring als Proxy; Jobportal-Kosten mit 30 Tagen pro Monat."
     },
     "benefits": {
       "ai_powered": "KI-Anzeigenoptimierung",
@@ -960,7 +996,10 @@
       "conversion_without_assessment": "Bessere Conversion und relevantere Antworten auch ohne AI Assessment",
       "skill_discovery": "Skill Discovery statt starrer Keyword-Filter",
       "explainable_relevance": "Sie sehen, warum ein Kandidat relevant ist",
-      "measurable_funnel": "Messbarer Funnel von Sichtbarkeit bis Reaktion"
+      "measurable_funnel": "Messbarer Funnel von Sichtbarkeit bis Reaktion",
+      "relevance": "Relevanz statt Zufall — Shortlist, die zur Rolle passt",
+      "transparency": "Transparente Entscheidungen — klare Gründe für Empfehlungen",
+      "hidden_talents": "Verborgene Talente — Kandidaten, die ATS übersieht"
     },
     "features": {
       "title": "KI-Tools",
@@ -1017,7 +1056,7 @@
         "basic": {
           "name": "Basis",
           "desc": "Für kleine Teams und Anfänger",
-          "f1": "Bis zu 5 Anzeigen monatlich",
+          "f1": "Bis zu 3 Anzeigen monatlich",
           "f2": "Grundlegende Anzeigenverwaltung",
           "f3": "E-Mail-Support",
           "f4": "Basisstatistiken",
@@ -1070,34 +1109,45 @@
     "testimonials": {
       "title": "Referenzen von Unternehmen"
     },
+    "trust_block": {
+      "title": "Keine leeren Versprechen",
+      "text": "Jede Empfehlung ist erklärbar und auditierbar."
+    },
     "cta": {
-      "badge": "Jetzt starten",
+      "badge": "Ohne Risiko starten",
       "title_start": "Bereit das",
       "title_highlight": "Recruiting",
       "title_end": "zu verbessern?",
-      "subtitle": "Schließen Sie sich hunderten zufriedenen Unternehmen an und finden Sie die besten Talente effizienter.",
-      "register": "Unternehmen registrieren",
+      "subtitle": "Testen Sie JobShaman für die erste Position kostenlos und vergleichen Sie mit Ihrem aktuellen Prozess.",
+      "register": "Erste Einstellung starten",
       "login": "Anmelden",
       "demo": "Demo vereinbaren"
     },
     "ats_problem": {
-      "ats_title": "Problem klassischer ATS-Filter",
-      "ats_p1": "Gute Kandidaten fallen raus, weil ihnen einzelne Keywords fehlen.",
-      "ats_p2": "HR verliert Zeit mit irrelevanten Bewerbungen statt mit passenden Gesprächen.",
-      "ats_p3": "Oft ist unklar, warum Kandidaten empfohlen oder abgelehnt wurden.",
-      "js_title": "So löst JobShaman das",
-      "js_p1": "Matching nach Fähigkeiten und Kontext statt nur nach exakten Begriffen im CV.",
-      "js_p2": "Jede Empfehlung enthält nachvollziehbare Relevanzgründe.",
-      "js_p3": "Der Funnel ist von Impression bis Reaktion messbar und optimierbar."
+      "ats_title": "Warum standardisiertes Recruiting scheitert",
+      "ats_p1": "Kandidaten fallen wegen CV-Formulierungen heraus, nicht wegen fehlender Skills.",
+      "ats_p2": "HR verbringt Stunden mit irrelevanten Bewerbungen.",
+      "ats_p3": "ATS erklärt nicht, warum ein Kandidat empfohlen wurde.",
+      "ats_result": "Ergebnis: langsameres Hiring und sinkende Auswahlqualität.",
+      "js_title": "JobShaman analysiert Passung statt zu filtern",
+      "js_p1": "Skills im Kontext der Rolle, nicht isoliert.",
+      "js_p2": "Reales Kandidatenverhalten im Prozess.",
+      "js_p3": "Strukturelle Übereinstimmung mit den Anforderungen.",
+      "js_result": "Jede Empfehlung enthält eine Begründung — kein anonymer Score."
     },
     "solution": {
-      "title": "Was Unternehmen konkret bekommen",
-      "pillar_skill_title": "Skill Discovery statt Keyword-Fokus",
-      "pillar_skill_desc": "Sie finden Kandidaten, die klassische ATS-Prozesse übersehen.",
-      "pillar_relevance_title": "Nachvollziehbare Relevanz",
-      "pillar_relevance_desc": "Sie sehen klar, warum ein Kandidat zu Ihrer Rolle passt.",
-      "pillar_measure_title": "Messbarer Recruiting-Funnel",
-      "pillar_measure_desc": "Sie erkennen, wo Kandidaten aussteigen und wo Conversion entsteht."
+      "title": "Das System bewertet",
+      "subtitle": "Konkrete Signale statt Keyword-Matches.",
+      "pillar_skill_title": "Skills im Kontext",
+      "pillar_skill_desc": "Bewertung nach Rollenanforderungen, nicht CV-Formulierungen.",
+      "pillar_relevance_title": "Reales Verhalten",
+      "pillar_relevance_desc": "Antworten, Aktivität und Kontext fließen ein.",
+      "pillar_measure_title": "Strukturelle Passung",
+      "pillar_measure_desc": "Abgleich von Anforderungen und Profil auf Skill-Ebene."
+    },
+    "risk": {
+      "title": "Risiko des Nichtstuns",
+      "text": "Jeder Tag einer unbesetzten Position bedeutet direkte finanzielle Verluste und geringere Teamleistung."
     },
     "faq": {
       "title": "FAQ für Unternehmen",

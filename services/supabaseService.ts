@@ -1,7 +1,7 @@
 // Updated Supabase service functions for new paywall schema
 import { refreshSession, supabase } from './supabaseClient';
 import { calculateDistanceKm } from './commuteService';
-import { geocodeWithCaching } from './geocodingService';
+import { geocodeWithCaching, normalizeAddress } from './geocodingService';
 export { supabase };
 import { UserProfile, CompanyProfile, CVDocument } from '../types';
 
@@ -56,6 +56,28 @@ const getTestAccountTier = (email: string | undefined): 'premium' | null => {
 
 export const isSupabaseConfigured = (): boolean => {
     return !!supabase;
+};
+
+const inferCountryCodeFromAddress = (address: string | undefined | null): string | null => {
+    if (!address) return null;
+    const normalized = normalizeAddress(address);
+    if (!normalized) return null;
+
+    const tokens = new Set(normalized.split(/\s+/).filter(Boolean));
+    const matches = [
+        { code: 'CZ', tokens: ['cz', 'cr', 'czech', 'cesko', 'ceska', 'republika'] },
+        { code: 'SK', tokens: ['sk', 'slovensko', 'slovakia'] },
+        { code: 'PL', tokens: ['pl', 'poland', 'polsko'] },
+        { code: 'DE', tokens: ['de', 'germany', 'deutschland'] },
+        { code: 'AT', tokens: ['at', 'austria', 'osterreich'] },
+    ];
+
+    for (const entry of matches) {
+        if (entry.tokens.some(token => tokens.has(token))) {
+            return entry.code;
+        }
+    }
+    return null;
 };
 
 // Runtime guard for deployments where freelancer tables were removed.
@@ -157,7 +179,7 @@ export const signInWithEmail = async (email: string, pass: string) => {
     return result;
 };
 
-export const signUpWithEmail = async (email: string, pass: string, fullName: string) => {
+export const signUpWithEmail = async (email: string, pass: string, fullName: string, locale?: string) => {
     if (!supabase) throw new Error("Supabase not configured");
 
     // 1. Sign Up
@@ -181,7 +203,8 @@ export const signUpWithEmail = async (email: string, pass: string, fullName: str
             email,
             fullName,
             'candidate',
-            data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || undefined
+            data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || undefined,
+            locale
         );
     } else if (data.user) {
         console.log('📧 Email confirmation required. Profile will be created on first login.');
@@ -253,7 +276,8 @@ export const createBaseProfile = async (
     email: string,
     name: string,
     role: string = 'candidate',
-    avatarUrl?: string
+    avatarUrl?: string,
+    preferredLocale?: string
 ) => {
     if (!supabase) throw new Error("Supabase not configured");
 
@@ -278,6 +302,7 @@ export const createBaseProfile = async (
             role,
             subscription_tier: 'free',
             created_at: new Date().toISOString(),
+            preferred_locale: preferredLocale || null,
         });
 
     if (error) {
@@ -328,6 +353,10 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
             subscription_tier,
             usage_stats,
             welcome_email_sent,
+            preferred_locale,
+            preferred_country_code,
+            daily_digest_enabled,
+            daily_digest_last_sent_at,
             has_assessment,
             candidate_profiles (*)
         `)
@@ -405,7 +434,11 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         },
         hasAssessment: profileData.has_assessment || false,
         role: profileData.role,
-        welcomeEmailSent: profileData.welcome_email_sent || false
+        welcomeEmailSent: profileData.welcome_email_sent || false,
+        preferredLocale: profileData.preferred_locale || undefined,
+        preferredCountryCode: profileData.preferred_country_code || undefined,
+        dailyDigestEnabled: profileData.daily_digest_enabled ?? undefined,
+        dailyDigestLastSentAt: profileData.daily_digest_last_sent_at || undefined
     };
 
     return userProfile;
@@ -415,10 +448,12 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     if (!supabase) throw new Error("Supabase not configured");
 
     let resolvedCoords: { lat: number; lng: number } | null | undefined = undefined;
+    let inferredCountryCode: string | null | undefined = undefined;
     if (updates.address !== undefined) {
         const trimmed = typeof updates.address === 'string' ? updates.address.trim() : '';
         if (!trimmed) {
             resolvedCoords = null;
+            inferredCountryCode = null;
         } else {
             try {
                 const geo = await geocodeWithCaching(trimmed);
@@ -428,6 +463,7 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
             } catch (e) {
                 console.warn('Candidate address geocoding failed:', e);
             }
+            inferredCountryCode = inferCountryCodeFromAddress(trimmed);
         }
     }
 
@@ -439,6 +475,13 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     if (updates.role !== undefined) profileUpdates.role = updates.role;
     if (updates.subscription?.tier !== undefined) profileUpdates.subscription_tier = updates.subscription.tier;
     if (updates.hasAssessment !== undefined) profileUpdates.has_assessment = updates.hasAssessment;
+    if (updates.preferredLocale !== undefined) profileUpdates.preferred_locale = updates.preferredLocale;
+    if (updates.preferredCountryCode !== undefined) profileUpdates.preferred_country_code = updates.preferredCountryCode;
+    if (updates.dailyDigestEnabled !== undefined) profileUpdates.daily_digest_enabled = updates.dailyDigestEnabled;
+    if (updates.dailyDigestLastSentAt !== undefined) profileUpdates.daily_digest_last_sent_at = updates.dailyDigestLastSentAt;
+    if (updates.address !== undefined && updates.preferredCountryCode === undefined && inferredCountryCode !== undefined) {
+        profileUpdates.preferred_country_code = inferredCountryCode;
+    }
 
     if (Object.keys(profileUpdates).length > 0) {
         const { error: profileError } = await supabase

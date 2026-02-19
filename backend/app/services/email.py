@@ -11,7 +11,7 @@ def send_email(to_email: str, subject: str, html: str):
     try:
         print("📧 Attempting to send email.")
         params = {
-            "from": "JobShaman <noreply@jobshaman.cz>",
+            "from": "JobShaman <floki@jobshaman.cz>",
             "to": [to_email],
             "subject": subject,
             "html": html,
@@ -128,6 +128,145 @@ def send_welcome_email(to_email: str, full_name: str = "", locale: str = "cs", a
         <p style="color: #64748b; font-size: 14px;">{copy['footer']}</p>
       </div>
       <div style="text-align: center; margin-top: 24px; color: #94a3b8; font-size: 12px;">© 2024 JobShaman</div>
+    </div>
+    """
+
+    return send_email(to_email, copy["subject"], html)
+
+
+def send_daily_digest_email(
+    to_email: str,
+    full_name: str,
+    locale: str,
+    jobs,
+    app_url: str,
+    unsubscribe_url: str,
+) -> bool:
+    locale = (locale or "cs").lower()
+    if locale.startswith("de") or locale == "at":
+        lang = "de"
+    elif locale.startswith("sk"):
+        lang = "sk"
+    elif locale.startswith("pl"):
+        lang = "pl"
+    elif locale.startswith("en"):
+        lang = "en"
+    else:
+        lang = "cs"
+
+    first_name = (full_name or "").strip().split(" ")[0] if full_name else ""
+
+    copy = {
+        "cs": {
+            "subject": "Váš denní digest nabídek",
+            "title": f"Dobrý den{f' {first_name}' if first_name else ''},",
+            "intro": "Zde je Váš denní přehled nabídek, které odpovídají Vašemu profilu.",
+            "top_title": "Vaše top shody",
+            "summary_title": "Shrnutí",
+            "summary_1": "Nalezeno {count} kvalitních příležitostí",
+            "summary_2": "Shody v rozmezí {min_score}% až {max_score}%",
+            "summary_3": "Čerstvé nabídky z poslední doby",
+            "summary_tip": "Tip: Nejlepší nabídky se rychle plní. Doporučujeme je zkontrolovat ještě dnes.",
+            "cta": "Zobrazit detail",
+        },
+        "en": {
+            "subject": "Your daily job digest",
+            "title": f"Hi{f' {first_name}' if first_name else ''}! Your digest is ready",
+            "intro": "Here is your daily shortlist of roles that match your profile.",
+            "top_title": "Your top matches",
+            "summary_title": "Summary",
+            "summary_1": "{count} high-quality opportunities found",
+            "summary_2": "Match scores range from {min_score}% to {max_score}%",
+            "summary_3": "Fresh opportunities posted recently",
+            "summary_tip": "Tip: The best opportunities fill quickly. Review and apply today.",
+            "cta": "View job details",
+        },
+        "de": {
+            "subject": "Ihr täglicher Job‑Digest",
+            "title": f"Hallo{f' {first_name}' if first_name else ''}! Ihr Digest ist da",
+            "intro": "Hier ist Ihre tägliche Übersicht passender Angebote.",
+            "top_title": "Ihre Top‑Matches",
+            "summary_title": "Zusammenfassung",
+            "summary_1": "{count} hochwertige Chancen gefunden",
+            "summary_2": "Match‑Scores zwischen {min_score}% und {max_score}%",
+            "summary_3": "Frische Angebote aus den letzten Tagen",
+            "summary_tip": "Tipp: Gute Stellen sind schnell weg. Jetzt ansehen und bewerben.",
+            "cta": "Job ansehen",
+        },
+        "pl": {
+            "subject": "Twój dzienny digest ofert",
+            "title": f"Cześć{f' {first_name}' if first_name else ''}! Twój digest jest gotowy",
+            "intro": "Oto dzienny zestaw ofert dopasowanych do Twojego profilu.",
+            "top_title": "Twoje najlepsze dopasowania",
+            "summary_title": "Podsumowanie",
+            "summary_1": "Znaleziono {count} wartościowych ofert",
+            "summary_2": "Dopasowanie od {min_score}% do {max_score}%",
+            "summary_3": "Świeże ogłoszenia z ostatnich dni",
+            "summary_tip": "Wskazówka: Najlepsze oferty szybko znikają. Sprawdź je dziś.",
+            "cta": "Zobacz ofertę",
+        },
+        "sk": {
+            "subject": "Váš denný digest ponúk",
+            "title": f"Ahoj{f' {first_name}' if first_name else ''}! Máte nový digest",
+            "intro": "Tu je váš denný prehľad ponúk, ktoré sa hodia k vášmu profilu.",
+            "top_title": "Vaše top zhody",
+            "summary_title": "Zhrnutie",
+            "summary_1": "Nájdených {count} kvalitných príležitostí",
+            "summary_2": "Zhody v rozmedzí {min_score}% až {max_score}%",
+            "summary_3": "Čerstvé ponuky z poslednej doby",
+            "summary_tip": "Tip: Najlepšie ponuky sa rýchlo obsadia. Odporúčame ich pozrieť dnes.",
+            "cta": "Zobraziť detail",
+        },
+    }[lang]
+
+    if not jobs:
+        return False
+
+    scores = [float(j.get("match_score") or 0) for j in jobs]
+    score_min = int(min(scores)) if scores else 0
+    score_max = int(max(scores)) if scores else 0
+
+    job_cards = ""
+    for job in jobs:
+        title = job.get("title") or "Job"
+        company = job.get("company") or job.get("company_name") or ""
+        location = job.get("location") or ""
+        match_score = int(job.get("match_score") or 0)
+        job_id = job.get("id")
+        job_url = job.get("detail_url") or (f"{app_url}/jobs/{job_id}" if job_id else app_url)
+
+        job_cards += f"""
+        <div style="border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:12px;background:#ffffff;">
+          <div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:4px;">{title}</div>
+          <div style="font-size:13px;color:#64748b;margin-bottom:6px;">{company}</div>
+          <div style="font-size:13px;color:#0f172a;margin-bottom:6px;">{match_score}% Match</div>
+          <div style="font-size:13px;color:#475569;margin-bottom:10px;">{location}</div>
+          <a href="{job_url}" style="display:inline-block;padding:10px 14px;background:#0ea5e9;color:#ffffff;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px;">{copy['cta']}</a>
+        </div>
+        """
+
+    html = f"""
+    <div style="font-family: Arial, sans-serif; max-width: 640px; margin: 0 auto; padding: 20px; background-color: #f1f5f9;">
+      <div style="background-color: #ffffff; padding: 28px; border-radius: 14px; box-shadow: 0 2px 12px rgba(0,0,0,0.06);">
+        <h2 style="color: #0f172a; margin-bottom: 8px;">{copy['title']}</h2>
+        <p style="color: #475569; line-height: 1.6;">{copy['intro']}</p>
+
+        <h3 style="color:#0f172a;margin:20px 0 12px;">{copy['top_title']}</h3>
+        {job_cards}
+
+        <h3 style="color:#0f172a;margin:20px 0 8px;">{copy['summary_title']}</h3>
+        <ul style="color:#475569;margin:0;padding-left:18px;">
+          <li>{copy['summary_1'].format(count=len(jobs))}</li>
+          <li>{copy['summary_2'].format(min_score=score_min, max_score=score_max)}</li>
+          <li>{copy['summary_3']}</li>
+        </ul>
+
+        <p style="color:#64748b;margin-top:16px;font-size:13px;">{copy['summary_tip']}</p>
+        <p style="color:#94a3b8;margin-top:18px;font-size:12px;">
+          <a href="{unsubscribe_url}" style="color:#94a3b8;text-decoration:underline;">Unsubscribe</a>
+        </p>
+      </div>
+      <div style="text-align:center;margin-top:18px;color:#94a3b8;font-size:12px;">© 2024 JobShaman</div>
     </div>
     """
 
