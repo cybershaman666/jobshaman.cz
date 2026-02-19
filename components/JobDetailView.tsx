@@ -72,7 +72,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     handleBlogPostSelect,
     onApplyToJob
 }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const highValueKeywords = [
         'remote',
         'home office',
@@ -102,6 +102,58 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     const [shareTooltip, setShareTooltip] = React.useState(false);
     const [companyLogoUrl, setCompanyLogoUrl] = React.useState<string | null>(null);
     const [companyPublicInfo, setCompanyPublicInfo] = React.useState<any | null>(null);
+    const metaDefaultsRef = React.useRef<{
+        title: string;
+        meta: Record<string, string | null>;
+        canonical: string | null;
+        og: Record<string, string | null>;
+        twitter: Record<string, string | null>;
+    } | null>(null);
+
+    const setMetaByName = (name: string, content: string) => {
+        let el = document.head.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+        if (!el) {
+            el = document.createElement('meta');
+            el.setAttribute('name', name);
+            document.head.appendChild(el);
+        }
+        el.setAttribute('content', content);
+    };
+
+    const setMetaByProperty = (property: string, content: string) => {
+        let el = document.head.querySelector(`meta[property="${property}"]`) as HTMLMetaElement | null;
+        if (!el) {
+            el = document.createElement('meta');
+            el.setAttribute('property', property);
+            document.head.appendChild(el);
+        }
+        el.setAttribute('content', content);
+    };
+
+    const setCanonical = (url: string) => {
+        let el = document.head.querySelector('link[rel="canonical"]') as HTMLLinkElement | null;
+        if (!el) {
+            el = document.createElement('link');
+            el.setAttribute('rel', 'canonical');
+            document.head.appendChild(el);
+        }
+        el.setAttribute('href', url);
+    };
+
+    const stripToPlainText = (input: string) => {
+        if (!input) return '';
+        const withoutHtml = input.replace(/<[^>]*>/g, ' ');
+        const withoutCode = withoutHtml.replace(/`{1,3}[^`]*`{1,3}/g, ' ');
+        const withoutImages = withoutCode.replace(/!\[[^\]]*\]\([^)]+\)/g, ' ');
+        const withoutLinks = withoutImages.replace(/\[[^\]]*\]\([^)]+\)/g, ' ');
+        const withoutMd = withoutLinks.replace(/[#>*_~\-]+/g, ' ');
+        return withoutMd.replace(/\s+/g, ' ').trim();
+    };
+
+    const clampText = (input: string, maxLen: number) => {
+        if (input.length <= maxLen) return input;
+        return `${input.slice(0, maxLen - 1).trim()}…`;
+    };
 
     const formatWorkModelLabel = (raw: string) => {
         if (!raw) return t('job.work_model.unknown') || t('job.contract_types.unknown') || 'Neuvedeno';
@@ -161,6 +213,153 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
             });
         }
     }, [selectedJobId, selectedJob?.id]);
+
+    useEffect(() => {
+        if (typeof document === 'undefined') return;
+        if (!metaDefaultsRef.current) {
+            metaDefaultsRef.current = {
+                title: document.title,
+                meta: {
+                    description: document.querySelector('meta[name="description"]')?.getAttribute('content') || null,
+                    'description:extended': document.querySelector('meta[name="description:extended"]')?.getAttribute('content') || null,
+                    'ai-summary': document.querySelector('meta[name="ai-summary"]')?.getAttribute('content') || null,
+                    language: document.querySelector('meta[name="language"]')?.getAttribute('content') || null
+                },
+                canonical: document.querySelector('link[rel="canonical"]')?.getAttribute('href') || null,
+                og: {
+                    'og:title': document.querySelector('meta[property="og:title"]')?.getAttribute('content') || null,
+                    'og:description': document.querySelector('meta[property="og:description"]')?.getAttribute('content') || null,
+                    'og:image': document.querySelector('meta[property="og:image"]')?.getAttribute('content') || null,
+                    'og:url': document.querySelector('meta[property="og:url"]')?.getAttribute('content') || null,
+                    'og:type': document.querySelector('meta[property="og:type"]')?.getAttribute('content') || null,
+                    'og:locale': document.querySelector('meta[property="og:locale"]')?.getAttribute('content') || null
+                },
+                twitter: {
+                    'twitter:title': document.querySelector('meta[property="twitter:title"]')?.getAttribute('content') || null,
+                    'twitter:description': document.querySelector('meta[property="twitter:description"]')?.getAttribute('content') || null,
+                    'twitter:image': document.querySelector('meta[property="twitter:image"]')?.getAttribute('content') || null,
+                    'twitter:url': document.querySelector('meta[property="twitter:url"]')?.getAttribute('content') || null,
+                    'twitter:card': document.querySelector('meta[property="twitter:card"]')?.getAttribute('content') || null
+                }
+            };
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!selectedJob || typeof document === 'undefined') return;
+        const origin = window.location.origin;
+        const jobUrl = `${origin}/jobs/${selectedJob.id}`;
+        const jobTitle = selectedJob.title || t('job.title') || 'Job';
+        const jobCompany = selectedJob.company || 'JobShaman';
+        const rawDescription = stripToPlainText(selectedJob.description || '');
+        const fallbackDescription = `${jobTitle}${selectedJob.location ? ` · ${selectedJob.location}` : ''} · ${jobCompany}`;
+        const description = clampText(rawDescription || fallbackDescription, 180);
+        const extendedDescription = clampText(rawDescription || fallbackDescription, 420);
+        const ogImage = companyLogoUrl || 'https://jobshaman.cz/og-image.jpg';
+        const lang = i18n?.language || 'cs';
+        const localeMap: Record<string, string> = {
+            cs: 'cs_CZ',
+            sk: 'sk_SK',
+            en: 'en_US',
+            de: 'de_DE',
+            pl: 'pl_PL'
+        };
+        const locale = localeMap[lang] || 'cs_CZ';
+
+        document.title = `${jobTitle} | ${jobCompany} | JobShaman`;
+        setMetaByName('description', description);
+        setMetaByName('description:extended', extendedDescription);
+        setMetaByName('ai-summary', description);
+        setCanonical(jobUrl);
+        setMetaByProperty('og:title', `${jobTitle} | ${jobCompany}`);
+        setMetaByProperty('og:description', description);
+        setMetaByProperty('og:image', ogImage);
+        setMetaByProperty('og:url', jobUrl);
+        setMetaByProperty('og:type', 'article');
+        setMetaByProperty('og:locale', locale);
+        setMetaByProperty('twitter:title', `${jobTitle} | ${jobCompany}`);
+        setMetaByProperty('twitter:description', description);
+        setMetaByProperty('twitter:image', ogImage);
+        setMetaByProperty('twitter:url', jobUrl);
+        setMetaByProperty('twitter:card', 'summary_large_image');
+
+        const jobPosting = {
+            "@context": "https://schema.org",
+            "@type": "JobPosting",
+            title: jobTitle,
+            description: rawDescription || fallbackDescription,
+            identifier: {
+                "@type": "PropertyValue",
+                name: "JobShaman",
+                value: selectedJob.id
+            },
+            datePosted: selectedJob.postedAt || selectedJob.scrapedAt || undefined,
+            hiringOrganization: {
+                "@type": "Organization",
+                name: jobCompany,
+                sameAs: companyPublicInfo?.website || undefined,
+                logo: companyLogoUrl || undefined
+            },
+            jobLocation: selectedJob.work_model?.toLowerCase().includes('remote') ? undefined : {
+                "@type": "Place",
+                address: {
+                    "@type": "PostalAddress",
+                    addressLocality: selectedJob.location || undefined,
+                    addressCountry: selectedJob.country_code || undefined
+                }
+            },
+            jobLocationType: selectedJob.work_model?.toLowerCase().includes('remote') ? "TELECOMMUTE" : undefined,
+            applicantLocationRequirements: selectedJob.work_model?.toLowerCase().includes('remote') && selectedJob.country_code ? {
+                "@type": "Country",
+                name: selectedJob.country_code
+            } : undefined,
+            baseSalary: (selectedJob.salary_from || selectedJob.salary_to || selectedJob.aiEstimatedSalary) ? {
+                "@type": "MonetaryAmount",
+                currency: selectedJob.aiEstimatedSalary?.currency || 'CZK',
+                value: {
+                    "@type": "QuantitativeValue",
+                    minValue: selectedJob.salary_from || selectedJob.aiEstimatedSalary?.min || undefined,
+                    maxValue: selectedJob.salary_to || selectedJob.aiEstimatedSalary?.max || undefined,
+                    unitText: "MONTH"
+                }
+            } : undefined,
+            skills: selectedJob.required_skills?.length ? selectedJob.required_skills : undefined,
+            url: jobUrl
+        };
+
+        const scriptId = 'jobposting-ldjson';
+        let scriptEl = document.getElementById(scriptId) as HTMLScriptElement | null;
+        if (!scriptEl) {
+            scriptEl = document.createElement('script');
+            scriptEl.type = 'application/ld+json';
+            scriptEl.id = scriptId;
+            document.head.appendChild(scriptEl);
+        }
+        scriptEl.textContent = JSON.stringify(jobPosting);
+
+        return () => {
+            if (!metaDefaultsRef.current) return;
+            const defaults = metaDefaultsRef.current;
+            document.title = defaults.title;
+            if (defaults.meta.description) setMetaByName('description', defaults.meta.description);
+            if (defaults.meta['description:extended']) setMetaByName('description:extended', defaults.meta['description:extended']);
+            if (defaults.meta['ai-summary']) setMetaByName('ai-summary', defaults.meta['ai-summary']);
+            if (defaults.canonical) setCanonical(defaults.canonical);
+            if (defaults.og['og:title']) setMetaByProperty('og:title', defaults.og['og:title']);
+            if (defaults.og['og:description']) setMetaByProperty('og:description', defaults.og['og:description']);
+            if (defaults.og['og:image']) setMetaByProperty('og:image', defaults.og['og:image']);
+            if (defaults.og['og:url']) setMetaByProperty('og:url', defaults.og['og:url']);
+            if (defaults.og['og:type']) setMetaByProperty('og:type', defaults.og['og:type']);
+            if (defaults.og['og:locale']) setMetaByProperty('og:locale', defaults.og['og:locale']);
+            if (defaults.twitter['twitter:title']) setMetaByProperty('twitter:title', defaults.twitter['twitter:title']);
+            if (defaults.twitter['twitter:description']) setMetaByProperty('twitter:description', defaults.twitter['twitter:description']);
+            if (defaults.twitter['twitter:image']) setMetaByProperty('twitter:image', defaults.twitter['twitter:image']);
+            if (defaults.twitter['twitter:url']) setMetaByProperty('twitter:url', defaults.twitter['twitter:url']);
+            if (defaults.twitter['twitter:card']) setMetaByProperty('twitter:card', defaults.twitter['twitter:card']);
+            const cleanupScript = document.getElementById(scriptId);
+            if (cleanupScript) cleanupScript.remove();
+        };
+    }, [selectedJob?.id, selectedJob?.title, selectedJob?.company, selectedJob?.location, selectedJob?.description, selectedJob?.postedAt, selectedJob?.scrapedAt, selectedJob?.type, selectedJob?.work_model, selectedJob?.country_code, selectedJob?.salary_from, selectedJob?.salary_to, selectedJob?.aiEstimatedSalary, selectedJob?.required_skills, companyLogoUrl, companyPublicInfo?.website, t]);
 
     useEffect(() => {
         let isMounted = true;

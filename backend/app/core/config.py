@@ -5,6 +5,8 @@ load_dotenv()
 
 # API Base URL
 API_BASE_URL = os.getenv("API_BASE_URL", "https://jobshaman-cz.onrender.com")
+# Public site URL (for canonical/sitemap)
+APP_PUBLIC_URL = os.getenv("APP_PUBLIC_URL", "https://jobshaman.cz")
 
 # Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL")

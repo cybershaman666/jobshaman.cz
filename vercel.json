@@ -12,6 +12,14 @@
     ],
     "rewrites": [
         {
+            "source": "/sitemap-jobs.xml",
+            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/sitemap-jobs.xml"
+        },
+        {
+            "source": "/seo/(.*)",
+            "destination": "https://site--jobshaman--rb4dlj74d5kc.code.run/seo/$1"
+        },
+        {
             "source": "/(.*)",
             "destination": "/index.html"
         }

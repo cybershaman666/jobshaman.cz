@@ -13,7 +13,7 @@ from starlette.responses import JSONResponse
 
 from .core.limiter import limiter
 from .core.security import add_security_headers
-from .routers import search_runtime
+from .routers import search_runtime, seo
 
 app = FastAPI(title="JobShaman Search API")
 app.state.limiter = limiter
@@ -114,6 +114,7 @@ async def add_custom_headers(request: Request, call_next):
 
 
 app.include_router(search_runtime.router, tags=["Search"])
+app.include_router(seo.router, tags=["SEO"])
 
 
 def _ping_backend_once(url: str) -> None:
