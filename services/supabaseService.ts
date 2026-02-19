@@ -2424,6 +2424,20 @@ export const updateUserCVSelection = async (userId: string, cvId: string): Promi
             return false;
         }
 
+        try {
+            const { data: cvData } = await supabase
+                .from('cv_documents')
+                .select('file_url, parsed_data')
+                .eq('id', cvId)
+                .eq('user_id', userId)
+                .maybeSingle();
+            if (cvData?.parsed_data || cvData?.file_url) {
+                await applyParsedCvToCandidateProfile(userId, cvData.parsed_data || {}, cvData.file_url || null);
+            }
+        } catch (syncError) {
+            console.warn('Failed to sync active CV into candidate profile:', syncError);
+        }
+
         return true;
     } catch (error) {
         console.error('CV selection failed:', error);
@@ -2519,11 +2533,45 @@ export const updateCVDocumentParsedData = async (
             console.error('CV parsed data update error:', error);
             return false;
         }
+        try {
+            const { data: cvData } = await supabase
+                .from('cv_documents')
+                .select('file_url, is_active')
+                .eq('id', cvId)
+                .eq('user_id', userId)
+                .maybeSingle();
+            if (cvData?.is_active) {
+                await applyParsedCvToCandidateProfile(userId, parsedData || {}, cvData.file_url || null);
+            }
+        } catch (syncError) {
+            console.warn('Failed to sync re-parsed CV into candidate profile:', syncError);
+        }
         return true;
     } catch (error) {
         console.error('CV parsed data update failed:', error);
         return false;
     }
+};
+
+const applyParsedCvToCandidateProfile = async (
+    userId: string,
+    parsedData: any,
+    fileUrl: string | null
+): Promise<void> => {
+    if (!supabase) return;
+    const updates: any = {};
+    if (fileUrl) updates.cv_url = fileUrl;
+    if (parsedData?.cvText) updates.cv_text = parsedData.cvText;
+    if (parsedData?.cvAiText) updates.cv_ai_text = parsedData.cvAiText;
+    if (parsedData?.skills) updates.skills = parsedData.skills;
+    if (parsedData?.workHistory) updates.work_history = parsedData.workHistory;
+    if (parsedData?.education) updates.education = parsedData.education;
+    if (parsedData?.jobTitle) updates.job_title = parsedData.jobTitle;
+    if (Object.keys(updates).length === 0) return;
+    await supabase
+        .from('candidate_profiles')
+        .update(updates)
+        .eq('id', userId);
 };
 
 // ========================================

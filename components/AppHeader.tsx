@@ -9,7 +9,6 @@ import {
     User,
     LogOut,
     MoreHorizontal,
-    Globe,
     ChevronDown
 } from 'lucide-react';
 import { ViewState, UserProfile, CompanyProfile } from '../types';
@@ -199,7 +198,6 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     aria-label="Jazyk"
                                     title="Jazyk"
                                 >
-                                    <Globe size={14} />
                                     <img
                                         src={`https://flagcdn.com/w20/${languages.find(l => l.code === i18n.language)?.flagCode || 'cz'}.png`}
                                         alt=""
