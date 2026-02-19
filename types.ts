@@ -292,6 +292,7 @@ export interface CVDocument {
     workHistory?: WorkExperience[];
     education?: Education[];
     cvText?: string;
+    cvAiText?: string;
   };
   uploadedAt: string;
   lastUsed?: string; // When this CV was last used for application

@@ -58,6 +58,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
         locale: suggestedLocale || undefined
       });
       if (newCV) {
+        await updateUserCVSelection(userId, newCV.id);
         await loadCVs(); // Refresh list
         if (onCVSelected) {
           onCVSelected(newCV);
