@@ -42,6 +42,7 @@ base_origins = [
     "https://www.jobshaman.com",
     "https://jobshaman-api.onrender.com",
     "https://jobshaman-cz.onrender.com",
+    "https://jobshaman.vercel.app",
     "http://localhost:3000",
     "http://localhost:5173",
 ]

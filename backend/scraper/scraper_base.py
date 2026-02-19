@@ -5,6 +5,7 @@ Includes geocoding support for PostGIS spatial queries
 """
 
 import requests
+import random
 from bs4 import BeautifulSoup
 import json
 import time
@@ -99,12 +100,57 @@ def guess_currency(country_code: str) -> str:
 
 _SESSION = requests.Session()
 _SESSION.headers.update({
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-                  "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.9,cs;q=0.8,sk;q=0.7,de;q=0.7,pl;q=0.7",
+    "Accept-Language": "pl-PL,pl;q=0.9,en-US;q=0.8,cs;q=0.6,de;q=0.6",
     "Connection": "keep-alive",
 })
+
+_USER_AGENTS = [
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Safari/605.1.15",
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+]
+
+_DOMAIN_MIN_DELAY = {
+    "praca.pl": 6.0,
+    "pracuj.pl": 6.0,
+    "nofluffjobs.com": 3.0,
+    "justjoin.it": 3.0,
+}
+_DOMAIN_LAST_REQUEST: Dict[str, float] = {}
+_DOMAIN_COOLDOWN_UNTIL: Dict[str, float] = {}
+
+
+def _get_domain(url: str) -> str:
+    try:
+        return urlparse(url).netloc.lower()
+    except Exception:
+        return ""
+
+
+def _get_headers(url: str) -> Dict[str, str]:
+    domain = _get_domain(url)
+    referer = f"https://{domain}/" if domain else ""
+    return {
+        "User-Agent": random.choice(_USER_AGENTS),
+        "Referer": referer,
+    }
+
+
+def _respect_domain_throttle(domain: str) -> None:
+    if not domain:
+        return
+    now_ts = time.time()
+    cooldown_until = _DOMAIN_COOLDOWN_UNTIL.get(domain, 0.0)
+    if cooldown_until > now_ts:
+        time.sleep(max(0.0, cooldown_until - now_ts))
+    min_delay = _DOMAIN_MIN_DELAY.get(domain, 1.5)
+    last_at = _DOMAIN_LAST_REQUEST.get(domain, 0.0)
+    wait_for = min_delay - (now_ts - last_at)
+    if wait_for > 0:
+        time.sleep(wait_for + random.uniform(0.2, 0.8))
+    _DOMAIN_LAST_REQUEST[domain] = time.time()
 
 # --- Utility Functions ---
 
@@ -285,9 +331,12 @@ def scrape_page(url: str, max_retries: int = 2) -> Optional[BeautifulSoup]:
         BeautifulSoup object or None on error
     """
     backoff = 1.5
+    domain = _get_domain(url)
     for attempt in range(max_retries + 1):
         try:
-            resp = _SESSION.get(url, timeout=15)
+            _respect_domain_throttle(domain)
+            headers = _get_headers(url)
+            resp = _SESSION.get(url, timeout=20, headers=headers)
             if resp.status_code in (403, 429, 503):
                 wait = backoff
                 if resp.status_code == 429:
@@ -297,6 +346,10 @@ def scrape_page(url: str, max_retries: int = 2) -> Optional[BeautifulSoup]:
                             wait = min(int(retry_after), 120)
                         except ValueError:
                             wait = backoff
+                    # Increase domain delay after 429s
+                    if domain:
+                        _DOMAIN_MIN_DELAY[domain] = min(_DOMAIN_MIN_DELAY.get(domain, 2.0) * 1.5, 30.0)
+                        _DOMAIN_COOLDOWN_UNTIL[domain] = time.time() + wait
                 print(f"⚠️  Blokace/limit ({resp.status_code}) pro {url}, pokus {attempt + 1}/{max_retries + 1} (čekám {wait}s)")
                 time.sleep(wait)
                 backoff *= 1.8

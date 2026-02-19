@@ -361,10 +361,10 @@ class PolandScraper(BaseScraper):
                         continue
                     
                     # Praca.pl is rate-limited; slow down before detail fetch
-                    time.sleep(3)
+                    time.sleep(5)
 
                     # fetch detail for full description when possible
-                    detail_soup = scrape_page(url, max_retries=4)
+                    detail_soup = scrape_page(url, max_retries=2)
                     full_description = description
                     benefits = []
                     detail_company = None
