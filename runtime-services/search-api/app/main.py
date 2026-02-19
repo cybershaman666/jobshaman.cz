@@ -1,4 +1,6 @@
 import os
+import asyncio
+import urllib.request
 import re
 import traceback
 from urllib.parse import urlsplit
@@ -29,6 +31,9 @@ base_origins = [
 ]
 _ALLOWED_ORIGIN_REGEX = r"^https?://([a-z0-9-]+\.)?jobshaman\.(cz|com)(:\d+)?$"
 EXPOSE_DEBUG_ERRORS = os.getenv("EXPOSE_DEBUG_ERRORS", "false").strip().lower() in {"1", "true", "yes", "on"}
+BACKEND_WAKE_URL = os.getenv("BACKEND_WAKE_URL", "https://jobshaman-cz.onrender.com/healthz").strip()
+BACKEND_WAKE_INTERVAL_SECONDS = int(os.getenv("BACKEND_WAKE_INTERVAL_SECONDS", "300"))
+ENABLE_BACKEND_WAKE = os.getenv("ENABLE_BACKEND_WAKE", "true").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _normalize_origin(origin: str | None) -> str:
@@ -109,6 +114,40 @@ async def add_custom_headers(request: Request, call_next):
 
 
 app.include_router(search_runtime.router, tags=["Search"])
+
+
+def _ping_backend_once(url: str) -> None:
+    request = urllib.request.Request(
+        url,
+        headers={"User-Agent": "jobshaman-search-api/wake"},
+        method="GET",
+    )
+    with urllib.request.urlopen(request, timeout=10) as response:
+        response.read(1)
+
+
+async def _backend_wake_loop() -> None:
+    if not ENABLE_BACKEND_WAKE or not BACKEND_WAKE_URL:
+        return
+    while True:
+        try:
+            await asyncio.to_thread(_ping_backend_once, BACKEND_WAKE_URL)
+        except Exception as exc:
+            print(f"⚠️ Backend wake failed: {exc}")
+        await asyncio.sleep(max(BACKEND_WAKE_INTERVAL_SECONDS, 60))
+
+
+@app.on_event("startup")
+async def start_backend_wake_task() -> None:
+    if ENABLE_BACKEND_WAKE and BACKEND_WAKE_URL:
+        app.state.backend_wake_task = asyncio.create_task(_backend_wake_loop())
+
+
+@app.on_event("shutdown")
+async def stop_backend_wake_task() -> None:
+    task = getattr(app.state, "backend_wake_task", None)
+    if task:
+        task.cancel()
 
 
 @app.get("/")

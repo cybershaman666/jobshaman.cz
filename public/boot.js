@@ -81,3 +81,14 @@ window.onerror = function (message) {
     }
   }
 };
+
+// Wake backend early to reduce cold starts
+(function () {
+  try {
+    var backend = window.__BACKEND_URL__ || 'https://jobshaman-cz.onrender.com';
+    var url = backend.replace(/\/+$/, '') + '/healthz';
+    fetch(url, { method: 'GET', mode: 'no-cors', cache: 'no-store' });
+  } catch (e) {
+    console.warn('Backend wake failed (boot):', e);
+  }
+})();

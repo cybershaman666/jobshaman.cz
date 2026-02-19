@@ -178,6 +178,7 @@ async def _on_shutdown():
 
 @app.get("/healthz")
 async def healthz():
+    print("✅ /healthz ping")
     return {"status": "ok"}
 
 if __name__ == "__main__":
