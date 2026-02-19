@@ -46,6 +46,21 @@
       "remote": "Zdalnie"
     },
     "benefits": "Benefity",
+    "key_benefits": {
+      "title": "Kluczowe benefity",
+      "items": {
+        "car": "Samochód do użytku prywatnego",
+        "kids_friendly": "Przyjazne dzieciom",
+        "flex_hours": "Elastyczne godziny",
+        "education": "Kursy szkoleniowe",
+        "multisport": "Karta Multisport",
+        "meal": "Dopłata do posiłków",
+        "home_office": "Home office",
+        "vacation_5w": "5 tygodni urlopu",
+        "dog_friendly": "Przyjazne psom",
+        "stock": "Akcje pracownicze"
+      }
+    },
     "date_posted": "Data publikacji",
     "any_time": "Kiedykolwiek",
     "last_24h": "Ostatnie 24 godziny",

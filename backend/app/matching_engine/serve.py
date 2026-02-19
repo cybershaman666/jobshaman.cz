@@ -104,6 +104,28 @@ def _benefit_tags_from_text(value: Optional[str]) -> set:
     v = f" {txt} "
     tags: set = set()
 
+    # Support benefit keys from frontend filters
+    if re.search(r"\b(home_office|homeoffice|work_from_home)\b", v):
+        tags.add("home_office")
+    if re.search(r"\b(dog_friendly|dogfriendly)\b", v):
+        tags.add("dog_friendly")
+    if re.search(r"\b(kids_friendly|child_friendly|children_friendly)\b", v):
+        tags.add("child_friendly")
+    if re.search(r"\b(flex_hours|flex_time|flexible_hours)\b", v):
+        tags.add("flex_time")
+    if re.search(r"\b(education|training|courses)\b", v):
+        tags.add("education")
+    if re.search(r"\b(multisport)\b", v):
+        tags.add("multisport")
+    if re.search(r"\b(meal|meal_allowance|meal_vouchers|meal_voucher)\b", v):
+        tags.add("meal_allowance")
+    if re.search(r"\b(vacation_5w|5_weeks_vacation)\b", v):
+        tags.add("vacation_5w")
+    if re.search(r"\b(stock|employee_stock|employee_shares|equity)\b", v):
+        tags.add("employee_shares")
+    if re.search(r"\b(car|company_car|car_personal)\b", v):
+        tags.add("car_personal")
+
     if re.search(r"(^| )(home office|homeoffice|work from home|remote|telework|prace z domova|praca z domu|z domova|na dalku|zdaln)( |$)", v):
         tags.add("home_office")
 
