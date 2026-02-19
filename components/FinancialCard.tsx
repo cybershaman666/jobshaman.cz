@@ -59,14 +59,18 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                         <Wallet className="text-emerald-400" size={20} /> {t('financial.reality_title')}
                     </h3>
                     <p className="text-xs text-slate-400 mt-1">
-                        {showCommuteDetails ? `Na základě ${locationLabel}` : t('financial.reality_desc', 'Kalkulace čistého příjmu a nákladů na dojíždění.')}
+                        {showCommuteDetails
+                            ? t('financial.based_on_location', { location: locationLabel })
+                            : t('financial.reality_desc', 'Kalkulace čistého příjmu a nákladů na dojíždění.')}
                     </p>
                 </div>
                 {showCommuteDetails && commuteAnalysis && (
                     <div className="text-right">
-                        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">JHI DOPAD</div>
+                        <div className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                            {t('financial.jhi_impact_label')}
+                        </div>
                         <div className={`text-xl font-bold ${commuteAnalysis.jhiImpact >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            {commuteAnalysis.jhiImpact > 0 ? '+' : ''}{commuteAnalysis.jhiImpact} bodů
+                            {commuteAnalysis.jhiImpact > 0 ? '+' : ''}{commuteAnalysis.jhiImpact} {t('financial.points')}
                         </div>
                     </div>
                 )}

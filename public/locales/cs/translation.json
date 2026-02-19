@@ -71,6 +71,9 @@
   },
   "financial": {
     "reality_title": "Finanční Realita",
+    "based_on_location": "Na základě {{location}}",
+    "jhi_impact_label": "JHI Dopad",
+    "points": "bodů",
     "unlock_title": "Odemkněte Finanční Realitu",
     "unlock_desc": "Přihlaste se a zjistěte, kolik vám skutečně zbude v kapse po odečtení daní a dojezdu.",
     "unlock_commute_address": "Pro odemčení dojezdové reality je nutné vyplnit adresu ve svém profilu.",

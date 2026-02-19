@@ -71,6 +71,9 @@
   },
   "financial": {
     "reality_title": "Finanzielle Realität",
+    "based_on_location": "Basierend auf {{location}}",
+    "jhi_impact_label": "JHI-Auswirkung",
+    "points": "Punkte",
     "unlock_title": "Finanzielle Realität freischalten",
     "unlock_desc": "Melden Sie sich an und finden Sie heraus, wie viel Ihnen nach Steuern und Arbeitsweg wirklich im Portemonnaie bleibt.",
     "unlock_commute_address": "Um die Pendelrealität freizuschalten, müssen Sie Ihre Adresse im Profil ausfüllen.",
