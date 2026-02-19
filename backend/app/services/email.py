@@ -162,6 +162,7 @@ def send_daily_digest_email(
             "title": f"Dobrý den{f' {first_name}' if first_name else ''},",
             "intro": "Zde je Váš denní přehled nabídek, které odpovídají Vašemu profilu.",
             "top_title": "Vaše top shody",
+            "browse_cta": "Zobrazit další nabídky",
             "summary_title": "Shrnutí",
             "summary_1": "Nalezeno {count} kvalitních příležitostí",
             "summary_2": "Shody v rozmezí {min_score}% až {max_score}%",
@@ -174,6 +175,7 @@ def send_daily_digest_email(
             "title": f"Hi{f' {first_name}' if first_name else ''}! Your digest is ready",
             "intro": "Here is your daily shortlist of roles that match your profile.",
             "top_title": "Your top matches",
+            "browse_cta": "Browse more jobs",
             "summary_title": "Summary",
             "summary_1": "{count} high-quality opportunities found",
             "summary_2": "Match scores range from {min_score}% to {max_score}%",
@@ -186,6 +188,7 @@ def send_daily_digest_email(
             "title": f"Hallo{f' {first_name}' if first_name else ''}! Ihr Digest ist da",
             "intro": "Hier ist Ihre tägliche Übersicht passender Angebote.",
             "top_title": "Ihre Top‑Matches",
+            "browse_cta": "Weitere Jobs ansehen",
             "summary_title": "Zusammenfassung",
             "summary_1": "{count} hochwertige Chancen gefunden",
             "summary_2": "Match‑Scores zwischen {min_score}% und {max_score}%",
@@ -198,6 +201,7 @@ def send_daily_digest_email(
             "title": f"Cześć{f' {first_name}' if first_name else ''}! Twój digest jest gotowy",
             "intro": "Oto dzienny zestaw ofert dopasowanych do Twojego profilu.",
             "top_title": "Twoje najlepsze dopasowania",
+            "browse_cta": "Zobacz więcej ofert",
             "summary_title": "Podsumowanie",
             "summary_1": "Znaleziono {count} wartościowych ofert",
             "summary_2": "Dopasowanie od {min_score}% do {max_score}%",
@@ -210,6 +214,7 @@ def send_daily_digest_email(
             "title": f"Ahoj{f' {first_name}' if first_name else ''}! Máte nový digest",
             "intro": "Tu je váš denný prehľad ponúk, ktoré sa hodia k vášmu profilu.",
             "top_title": "Vaše top zhody",
+            "browse_cta": "Zobraziť ďalšie ponuky",
             "summary_title": "Zhrnutie",
             "summary_1": "Nájdených {count} kvalitných príležitostí",
             "summary_2": "Zhody v rozmedzí {min_score}% až {max_score}%",
@@ -253,6 +258,9 @@ def send_daily_digest_email(
 
         <h3 style="color:#0f172a;margin:20px 0 12px;">{copy['top_title']}</h3>
         {job_cards}
+        <div style="margin: 10px 0 20px;">
+          <a href="{app_url}" style="display:inline-block;padding:12px 18px;background:#0f172a;color:#ffffff;border-radius:10px;text-decoration:none;font-weight:700;font-size:13px;">{copy['browse_cta']}</a>
+        </div>
 
         <h3 style="color:#0f172a;margin:20px 0 8px;">{copy['summary_title']}</h3>
         <ul style="color:#475569;margin:0;padding-left:18px;">
