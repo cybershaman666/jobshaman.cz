@@ -25,9 +25,12 @@ import {
 import { uploadProfilePhoto } from '../services/supabaseService';
 import { validateCvFile, uploadAndParseCv, mergeProfileWithParsedCv } from '../services/cvUploadService';
 import { resolveAddressToCoordinates } from '../services/commuteService';
+import { authenticatedFetch } from '../services/csrfService';
+import { BACKEND_URL } from '../constants';
 import PremiumFeaturesPreview from './PremiumFeaturesPreview';
 import MyInvitations from './MyInvitations';
 import AIGuidedProfileWizard from './AIGuidedProfileWizard';
+import CVManager from './CVManager';
 import { redirectToCheckout } from '../services/stripeService';
 import { getSubscriptionStatus } from '../services/serverSideBillingService';
 import { getCurrentSubscription, getPushPermission, isPushSupported, registerPushSubscription, subscribeToPush, unsubscribeFromPush } from '../services/pushNotificationsService';
@@ -68,6 +71,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [profilePhotoFailed, setProfilePhotoFailed] = useState(false);
   const [isUploadingCV, setIsUploadingCV] = useState(false);
+  const [isRepairingPhoto, setIsRepairingPhoto] = useState(false);
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'saved'>('profile');
   const [showAIGuide, setShowAIGuide] = useState(false);
@@ -83,6 +87,14 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
   const photoInputRef = useRef<HTMLInputElement>(null);
   const cvInputRef = useRef<HTMLInputElement>(null);
+
+  const isExternalProfilePhotoUrl = (url?: string | null): boolean => {
+    if (!url) return false;
+    const value = url.toLowerCase();
+    if (value.includes('/profile-photos/')) return false;
+    if (value.includes('/avatars/')) return false;
+    return value.startsWith('http://') || value.startsWith('https://');
+  };
 
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -195,6 +207,32 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       if (photoInputRef.current) {
         photoInputRef.current.value = '';
       }
+    }
+  };
+
+  const handlePhotoRepair = async () => {
+    if (!profile.photo || !isExternalProfilePhotoUrl(profile.photo)) return;
+    if (isRepairingPhoto) return;
+    setIsRepairingPhoto(true);
+    try {
+      const response = await authenticatedFetch(`${BACKEND_URL}/profile/photo/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: profile.photo })
+      });
+      if (!response.ok) {
+        throw new Error(`Import failed: ${response.status}`);
+      }
+      const data = await response.json().catch(() => ({}));
+      if (data?.photo_url) {
+        onChange({ ...profile, photo: data.photo_url }, true);
+        setProfilePhotoFailed(false);
+      }
+    } catch (error) {
+      console.error('Profile photo repair failed:', error);
+      alert(t('profile.photo_upload_error'));
+    } finally {
+      setIsRepairingPhoto(false);
     }
   };
 
@@ -491,6 +529,15 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 <p className="text-slate-600 dark:text-slate-400">
                   {profile.jobTitle || t('profile.placeholder_job')}
                 </p>
+                {isExternalProfilePhotoUrl(profile.photo) && (
+                  <button
+                    onClick={handlePhotoRepair}
+                    disabled={isRepairingPhoto}
+                    className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
+                  >
+                    {isRepairingPhoto ? t('profile.photo_uploading') : t('profile.photo_repair')}
+                  </button>
+                )}
               </div>
             </div>
 
@@ -948,6 +995,22 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 )}
               </div>
             </div>
+
+            {profile.id && (
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
+                      <FileText className="w-5 h-5 text-slate-600 dark:text-slate-300" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('cv_manager.title')}</h2>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <CVManager userId={profile.id} isPremium={isPremium} />
+                </div>
+              </div>
+            )}
 
             {/* Work Experience Section */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">

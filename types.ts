@@ -281,6 +281,8 @@ export interface CVDocument {
   fileSize: number;
   contentType: string;
   isActive: boolean; // Currently selected CV
+  label?: string;
+  locale?: string;
   parsedData?: {
     name?: string;
     email?: string;
@@ -293,6 +295,7 @@ export interface CVDocument {
   };
   uploadedAt: string;
   lastUsed?: string; // When this CV was last used for application
+  parsedAt?: string;
 }
 
 export interface UserProfile {

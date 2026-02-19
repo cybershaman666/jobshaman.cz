@@ -32,7 +32,6 @@ import MobileSwipeJobBrowser from './components/MobileSwipeJobBrowser';
 
 import InvitationLanding from './pages/InvitationLanding';
 import PremiumUpgradeModal from './components/PremiumUpgradeModal';
-import AppFooter from './components/AppFooter';
 import { analyzeJobDescription } from './services/geminiService';
 import { calculateCommuteReality } from './services/commuteService';
 import { fetchJobById } from './services/jobService';
@@ -1949,7 +1948,6 @@ export default function App() {
                 />
             )}
 
-            <AppFooter />
         </div>
     );
 }

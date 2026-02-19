@@ -1,19 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CVDocument } from '../types';
-import { getUserCVDocuments, updateUserCVSelection, deleteCVDocument, uploadCVDocument } from '../services/supabaseService';
-import { FileText, Download, Trash2, Check, Upload, Calendar } from 'lucide-react';
+import { getUserCVDocuments, updateUserCVSelection, deleteCVDocument, uploadCVDocument, updateCVDocumentMetadata, updateCVDocumentParsedData } from '../services/supabaseService';
+import { parseCvFile } from '../services/cvUploadService';
+import { FileText, Download, Trash2, Check, Upload, Calendar, RefreshCw, Tag } from 'lucide-react';
 
 interface CVManagerProps {
   userId: string;
   onCVSelected?: (cv: CVDocument) => void;
+  isPremium?: boolean;
 }
 
-const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
+const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium = false }) => {
   const { t } = useTranslation();
   const [cvs, setCvs] = useState<CVDocument[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [reparsingId, setReparsingId] = useState<string | null>(null);
 
   useEffect(() => {
     loadCVs();
@@ -48,7 +51,12 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
 
     setUploading(true);
     try {
-      const newCV = await uploadCVDocument(userId, file);
+      const suggestedLabel = prompt(t('cv_manager.label_prompt'), '');
+      const suggestedLocale = prompt(t('cv_manager.locale_prompt'), '');
+      const newCV = await uploadCVDocument(userId, file, {
+        label: suggestedLabel || undefined,
+        locale: suggestedLocale || undefined
+      });
       if (newCV) {
         await loadCVs(); // Refresh list
         if (onCVSelected) {
@@ -104,6 +112,47 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
     } catch (error) {
       console.error('Failed to delete CV:', error);
       alert(t('cv_manager.delete_error'));
+    }
+  };
+
+  const handleEditLabel = async (cvId: string) => {
+    const cv = cvs.find(c => c.id === cvId);
+    if (!cv) return;
+    const label = prompt(t('cv_manager.label_prompt'), cv.label || cv.originalName || '');
+    if (label === null) return;
+    const locale = prompt(t('cv_manager.locale_prompt'), cv.locale || '');
+    const success = await updateCVDocumentMetadata(userId, cvId, {
+      label: label.trim() ? label.trim() : null,
+      locale: locale?.trim() || null
+    });
+    if (success) {
+      await loadCVs();
+    } else {
+      alert(t('cv_manager.update_error'));
+    }
+  };
+
+  const handleReparseCV = async (cvId: string) => {
+    const cv = cvs.find(c => c.id === cvId);
+    if (!cv) return;
+    setReparsingId(cvId);
+    try {
+      const response = await fetch(cv.fileUrl);
+      const blob = await response.blob();
+      const file = new File([blob], cv.originalName || 'cv', { type: cv.contentType || blob.type || 'application/pdf' });
+      const parsedData = await parseCvFile(file, { isPremium });
+      const success = await updateCVDocumentParsedData(userId, cvId, parsedData);
+      if (success) {
+        await loadCVs();
+        alert(t('cv_manager.reparse_success'));
+      } else {
+        alert(t('cv_manager.reparse_error'));
+      }
+    } catch (error) {
+      console.error('CV reparse failed:', error);
+      alert(t('cv_manager.reparse_error'));
+    } finally {
+      setReparsingId(null);
     }
   };
 
@@ -183,7 +232,19 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
                   <div className="flex items-center gap-3">
                     <FileText size={20} className="text-gray-400" />
                     <div>
-                      <h4 className="font-medium text-gray-900">{cv.originalName}</h4>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-medium text-gray-900">{cv.label || cv.originalName}</h4>
+                        {cv.locale && (
+                          <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                            {cv.locale}
+                          </span>
+                        )}
+                        {!cv.label && (
+                          <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-50 text-slate-400">
+                            {t('cv_manager.no_label')}
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
                         <span className="flex items-center gap-1">
                           <Calendar size={14} />
@@ -216,6 +277,21 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected }) => {
                 </div>
 
                 <div className="flex items-center gap-2 ml-4">
+                  <button
+                    onClick={() => handleReparseCV(cv.id)}
+                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                    title={t('cv_manager.reparse')}
+                    disabled={reparsingId === cv.id}
+                  >
+                    <RefreshCw size={16} className={reparsingId === cv.id ? 'animate-spin' : ''} />
+                  </button>
+                  <button
+                    onClick={() => handleEditLabel(cv.id)}
+                    className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                    title={t('cv_manager.edit_label')}
+                  >
+                    <Tag size={16} />
+                  </button>
                   <a
                     href={cv.fileUrl}
                     target="_blank"

@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Job, UserProfile } from '../types';
+import { Job, UserProfile, CVDocument } from '../types';
 import { X, Upload, FileText, Wand2, CheckCircle, Send, Loader2, BrainCircuit, User, Mail, Phone, Linkedin, Link as LinkIcon, Crown } from 'lucide-react';
 import { generateCoverLetter } from '../services/geminiService';
 import { sendEmail, EmailTemplates } from '../services/emailService';
-import { supabase, trackAnalyticsEvent } from '../services/supabaseService';
+import { supabase, trackAnalyticsEvent, getUserCVDocuments, updateUserCVSelection } from '../services/supabaseService';
 import { getSubscriptionStatus } from '../services/serverSideBillingService';
 
 interface ApplicationModalProps {
@@ -30,6 +30,9 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
   });
 
   const [useSavedCv, setUseSavedCv] = useState(!!user.cvText || !!user.cvUrl);
+  const [cvDocuments, setCvDocuments] = useState<CVDocument[]>([]);
+  const [cvDocumentsLoading, setCvDocumentsLoading] = useState(false);
+  const [selectedCvId, setSelectedCvId] = useState<string | null>(null);
 
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [coverLetter, setCoverLetter] = useState('');
@@ -48,6 +51,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
 
   const showAiAssessment = !isManualLabor;
   const hasPremiumCoverLetter = effectiveTier === 'premium';
+  const selectedCv = cvDocuments.find(doc => doc.id === selectedCvId) || cvDocuments.find(doc => doc.isActive) || null;
 
   useEffect(() => {
     let isMounted = true;
@@ -66,6 +70,30 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
     refreshSubscriptionTier();
     return () => { isMounted = false; };
   }, [user.id, user.isLoggedIn, user.subscription?.tier]);
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadCVs = async () => {
+      if (!user.id) return;
+      setCvDocumentsLoading(true);
+      try {
+        const docs = await getUserCVDocuments(user.id);
+        if (!isMounted) return;
+        setCvDocuments(docs);
+        const active = docs.find(doc => doc.isActive) || docs[0] || null;
+        if (active) {
+          setSelectedCvId(active.id);
+          setUseSavedCv(true);
+        }
+      } catch (error) {
+        console.error('Failed to load CV documents:', error);
+      } finally {
+        if (isMounted) setCvDocumentsLoading(false);
+      }
+    };
+    loadCVs();
+    return () => { isMounted = false; };
+  }, [user.id, isOpen]);
 
   if (!isOpen) return null;
 
@@ -108,9 +136,17 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
       const recipientEmail = import.meta.env.VITE_CONTACT_EMAIL || 'floki@jobshaman.cz';
 
       // Send email notification
+      const applicationPayload = {
+        ...formData,
+        coverLetter,
+        cvFile: cvFile ? cvFile.name : null,
+        cvSelectedName: selectedCv?.originalName || selectedCv?.label || null,
+        cvSelectedUrl: selectedCv?.fileUrl || null
+      };
+
       const emailResult = await sendEmail({
         to: recipientEmail,
-        ...EmailTemplates.jobApplication(formData, job)
+        ...EmailTemplates.jobApplication(applicationPayload, job)
       });
 
       if (emailResult.success) {
@@ -284,7 +320,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">{t('apply.cv_section')}</h3>
-            {(user.cvText || user.cvUrl) && (
+            {(cvDocuments.length > 0 || user.cvText || user.cvUrl) && (
               <button
                 onClick={() => setUseSavedCv(!useSavedCv)}
                 className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
@@ -299,9 +335,36 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
               <div className="p-2 bg-indigo-100 dark:bg-indigo-500/20 rounded-lg text-indigo-600 dark:text-indigo-400">
                 <FileText size={20} />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 space-y-2">
                 <p className="text-sm font-bold text-slate-900 dark:text-white">{t('apply.saved_cv_ready')}</p>
-                <p className="text-xs text-slate-500">{user.cvUrl ? 'CV_Document.pdf' : t('apply.cv_from_profile')}</p>
+                {cvDocumentsLoading ? (
+                  <p className="text-xs text-slate-500">{t('app.loading')}</p>
+                ) : cvDocuments.length > 0 ? (
+                  <div className="space-y-2">
+                    <select
+                      value={selectedCv?.id || ''}
+                      onChange={async (e) => {
+                        const nextId = e.target.value || null;
+                        setSelectedCvId(nextId);
+                        if (nextId && user.id) {
+                          await updateUserCVSelection(user.id, nextId);
+                        }
+                      }}
+                      className="w-full text-xs bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-500/40 rounded-lg px-2 py-1 text-slate-700 dark:text-slate-200"
+                    >
+                      {cvDocuments.map(doc => (
+                        <option key={doc.id} value={doc.id}>
+                          {doc.originalName}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[11px] text-slate-500">
+                      {selectedCv?.originalName || t('apply.cv_from_profile')}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500">{user.cvUrl ? 'CV_Document.pdf' : t('apply.cv_from_profile')}</p>
+                )}
               </div>
               <CheckCircle className="text-emerald-500" size={20} />
             </div>

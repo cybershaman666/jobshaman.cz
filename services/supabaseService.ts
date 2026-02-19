@@ -2251,13 +2251,20 @@ export const getUserCVDocuments = async (userId: string): Promise<CVDocument[]> 
         fileSize: doc.file_size,
         contentType: doc.content_type,
         isActive: doc.is_active || false,
+        label: doc.label || undefined,
+        locale: doc.locale || undefined,
         parsedData: doc.parsed_data,
         uploadedAt: doc.uploaded_at,
-        lastUsed: doc.last_used
+        lastUsed: doc.last_used,
+        parsedAt: doc.parsed_at
     }));
 };
 
-export const uploadCVDocument = async (userId: string, file: File): Promise<CVDocument | null> => {
+export const uploadCVDocument = async (
+    userId: string,
+    file: File,
+    meta: { label?: string; locale?: string } = {}
+): Promise<CVDocument | null> => {
     if (!supabase) return null;
 
     try {
@@ -2301,6 +2308,8 @@ export const uploadCVDocument = async (userId: string, file: File): Promise<CVDo
                 file_size: file.size,
                 content_type: file.type,
                 is_active: false,
+                label: meta.label || null,
+                locale: meta.locale || null,
                 virus_scan_status: 'pending', // Add virus scanning
                 upload_ip: null // Could be passed from client for IP tracking
             })
@@ -2322,8 +2331,11 @@ export const uploadCVDocument = async (userId: string, file: File): Promise<CVDo
             fileSize: data.file_size,
             contentType: data.content_type,
             isActive: data.is_active || false,
+            label: data.label || undefined,
+            locale: data.locale || undefined,
             uploadedAt: data.uploaded_at,
-            lastUsed: data.last_used
+            lastUsed: data.last_used,
+            parsedAt: data.parsed_at
         };
     } catch (error) {
         console.error('CV upload failed:', error);
@@ -2461,6 +2473,58 @@ export const deleteCVDocument = async (userId: string, cvId: string): Promise<bo
         return false;
     }
 }
+
+export const updateCVDocumentMetadata = async (
+    userId: string,
+    cvId: string,
+    updates: { label?: string | null; locale?: string | null }
+): Promise<boolean> => {
+    if (!supabase) return false;
+    try {
+        const payload: any = {};
+        if (updates.label !== undefined) payload.label = updates.label;
+        if (updates.locale !== undefined) payload.locale = updates.locale;
+        const { error } = await supabase
+            .from('cv_documents')
+            .update(payload)
+            .eq('id', cvId)
+            .eq('user_id', userId);
+        if (error) {
+            console.error('CV metadata update error:', error);
+            return false;
+        }
+        return true;
+    } catch (error) {
+        console.error('CV metadata update failed:', error);
+        return false;
+    }
+};
+
+export const updateCVDocumentParsedData = async (
+    userId: string,
+    cvId: string,
+    parsedData: any
+): Promise<boolean> => {
+    if (!supabase) return false;
+    try {
+        const { error } = await supabase
+            .from('cv_documents')
+            .update({
+                parsed_data: parsedData,
+                parsed_at: new Date().toISOString()
+            })
+            .eq('id', cvId)
+            .eq('user_id', userId);
+        if (error) {
+            console.error('CV parsed data update error:', error);
+            return false;
+        }
+        return true;
+    } catch (error) {
+        console.error('CV parsed data update failed:', error);
+        return false;
+    }
+};
 
 // ========================================
 // PORTFOLIO FUNCTIONS (new)
