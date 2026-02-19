@@ -89,6 +89,8 @@ export const formatJobDescription = (description: string): string => {
         'co nabízíme',
         'nabizime',
         'nabízíme',
+        'nabizime:',
+        'nabízíme:',
         'benefity a vyhody',
         'benefity a výhody',
         'co budes delat',
@@ -684,13 +686,14 @@ export const formatJobDescription = (description: string): string => {
         'details',
         'details:'
     ];
+    const normalizeHeadingToken = (value: string) => normalizeToken(value.replace(/:\s*$/, ''));
     const isListHeading = (header: string) => {
-        const normalized = normalizeToken(header.replace(/:\s*$/, ''));
-        return LIST_HEADINGS.some((keyword) => normalized.includes(normalizeToken(keyword)));
+        const normalized = normalizeHeadingToken(header);
+        return LIST_HEADINGS.some((keyword) => normalized.includes(normalizeHeadingToken(keyword)));
     };
     const isTagHeading = (header: string) => {
-        const normalized = normalizeToken(header.replace(/:\s*$/, ''));
-        return TAG_HEADINGS.some((keyword) => normalized.includes(normalizeToken(keyword)));
+        const normalized = normalizeHeadingToken(header);
+        return TAG_HEADINGS.some((keyword) => normalized.includes(normalizeHeadingToken(keyword)));
     };
     const isShortToken = (line: string) => {
         if (!line) return false;
