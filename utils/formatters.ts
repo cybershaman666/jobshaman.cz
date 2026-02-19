@@ -1,7 +1,43 @@
 export const formatJobDescription = (description: string): string => {
     if (!description) return '';
 
+    const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const INLINE_HEADINGS = [
+        'Nabízíme',
+        'Nabizime',
+        'Požadujeme',
+        'Pozadujeme',
+        'Pracovní náplň',
+        'Pracovní napln',
+        'Náplň práce',
+        'Napln prace',
+        'Odpovědnosti',
+        'Odpovednosti',
+        'Zodpovednosti',
+        'Požiadavky',
+        'Poziadavky',
+        'Ponúkame',
+        'Ponukame',
+        'Wymagania',
+        'Oferujemy',
+        'Zakres obowiązków',
+        'Zakres obowiazkow',
+        'Opis stanowiska',
+        'Responsibilities',
+        'Requirements',
+        'We offer',
+        'Benefits',
+        'What we offer',
+        'What you will do',
+        'Job description',
+        'Aufgaben',
+        'Anforderungen',
+        'Wir bieten'
+    ];
+    const inlineHeadingRegex = new RegExp(`\\s*(${INLINE_HEADINGS.map(escapeRegex).join('|')})\\s*:`, 'gi');
+
     const rawLines = description
+        .replace(inlineHeadingRegex, '\n$1:\n')
         // Preserve list-like separators into newlines so we can render bullets naturally.
         .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
         .replace(/([a-záčďéěíňóřšťúůýž])([A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n$2')
@@ -715,14 +751,21 @@ export const formatJobDescription = (description: string): string => {
 
     const splitInlineList = (text: string): string[] => {
         const normalized = text
+            .replace(inlineHeadingRegex, '\n$1:\n')
             .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
             .replace(/([a-záčďéěíňóřšťúůýž])([A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n$2')
             .replace(/\s{2,}/g, '\n');
-        const pieces = normalized
+        let pieces = normalized
             .split(/\r?\n/)
             .map((part) => part.trim())
             .filter(Boolean)
             .map((part) => part.replace(/^[•◦▪▫∙‣⁃\-\*]+\s*/g, ''));
+        if (pieces.length === 1 && pieces[0].split(',').length >= 3) {
+            pieces = pieces[0]
+                .split(',')
+                .map((part) => part.trim())
+                .filter(Boolean);
+        }
         return pieces.length ? pieces : [text];
     };
 
