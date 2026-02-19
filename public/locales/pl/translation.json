@@ -386,6 +386,7 @@
   },
   "job": {
     "jhi_score": "Wynik JHI",
+    "ai_match": "Dopasowanie AI",
     "points": "punktów",
     "location": "Lokalizacja",
     "salary": "Wynagrodzenie",

@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Job } from '../types';
 import { UserProfile } from '../types';
-import { fetchJobsPaginated, fetchJobsWithFilters } from '../services/jobService';
+import { fetchJobsPaginated, fetchJobsWithFilters, fetchRecommendedJobs } from '../services/jobService';
 import { geocodeWithCaching, getStaticCoordinates } from '../services/geocodingService';
 import AnalyticsService from '../services/analyticsService';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
@@ -114,6 +114,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [globalSearch, setGlobalSearch] = useState(() => !initialCountry); // Toggle for searching entire database
     const [abroadOnly, setAbroadOnly] = useState(false);
     const [sortBy, setSortBy] = useState<string>('default'); // default | recommended | jhi_desc | jhi_asc | newest
+    const hasAutoSortAppliedRef = useRef(false);
 
     // Load saved job IDs from localStorage on mount
     const [savedJobIds, setSavedJobIds] = useState<string[]>(() => {
@@ -154,6 +155,19 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             }
         };
     }, []);
+
+    // Auto-switch to recommended sorting when we have a parsed CV or skills signal.
+    useEffect(() => {
+        if (hasAutoSortAppliedRef.current) return;
+        const hasCvSignal =
+            !!userProfile.cvText ||
+            !!userProfile.cvAiText ||
+            !!(userProfile.skills && userProfile.skills.length > 0);
+        if (userProfile.isLoggedIn && hasCvSignal && sortBy === 'default') {
+            setSortBy('recommended');
+            hasAutoSortAppliedRef.current = true;
+        }
+    }, [userProfile.isLoggedIn, userProfile.cvText, userProfile.cvAiText, userProfile.skills, sortBy]);
 
 
     // UI state
@@ -223,10 +237,32 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 !!filterLanguage ||
                 abroadOnly;
 
+            const canUseRecommendations =
+                sortBy === 'recommended' &&
+                !searchTerm &&
+                !filterCity &&
+                filterContractType.length === 0 &&
+                filterBenefits.length === 0 &&
+                !filterMinSalary &&
+                filterDate === 'all' &&
+                filterExperience.length === 0 &&
+                !enableCommuteFilter &&
+                !filterLanguage &&
+                !abroadOnly;
+
             const canUseSimplePagination =
                 !dedicatedSearchRuntime &&
                 !hasAnyFilters &&
                 (!hasCountryFilter || normalizedCountryCodes.length === 1);
+
+            if (canUseRecommendations) {
+                const recs = await fetchRecommendedJobs(initialPageSize);
+                if (isStaleRequest()) return;
+                setJobs(recs);
+                setHasMore(false);
+                setTotalCount(recs.length);
+                return;
+            }
 
             if (canUseSimplePagination) {
                 const singleCountry = hasCountryFilter ? normalizedCountryCodes[0] : undefined;

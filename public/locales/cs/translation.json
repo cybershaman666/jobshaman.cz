@@ -397,6 +397,7 @@
   },
   "job": {
     "jhi_score": "JHI Skóre",
+    "ai_match": "AI shoda",
     "points": "bodů",
     "location": "Lokalita",
     "salary": "Mzda",

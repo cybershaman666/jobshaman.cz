@@ -54,6 +54,9 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     const currentJob = jobs[currentIndex];
     const isSaved = currentJob && savedJobIds.includes(currentJob.id);
     const jhiScore = currentJob?.jhi?.score;
+    const aiMatchScore = typeof (currentJob as any)?.aiMatchScore === 'number'
+        ? Math.round((currentJob as any).aiMatchScore)
+        : null;
     const dragDelta = Math.abs(swipeState.currentX - swipeState.startX);
     const isTap = !swipeState.isDragging && dragDelta < 10;
 
@@ -551,6 +554,20 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                         </p>
                                         <p className="text-sm font-semibold text-cyan-600">
                                             {Math.round(jhiScore)} {t('job.points') || 'points'}
+                                        </p>
+                                    </div>
+                                )}
+                                {aiMatchScore !== null && (
+                                    <div className={`p-3 rounded-lg ${
+                                        theme === 'dark' ? 'bg-emerald-900/20' : 'bg-emerald-50'
+                                    }`}>
+                                        <p className={`text-xs font-semibold ${
+                                            theme === 'dark' ? 'text-emerald-300' : 'text-emerald-700'
+                                        }`}>
+                                            {t('job.ai_match') || 'AI Match'}
+                                        </p>
+                                        <p className="text-sm font-semibold text-emerald-600">
+                                            {aiMatchScore}%
                                         </p>
                                     </div>
                                 )}
