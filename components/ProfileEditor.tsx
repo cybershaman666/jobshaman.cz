@@ -226,18 +226,19 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       const updatedProfile = mergeProfileWithParsedCv(profile, cvUrl, parsedData);
 
       // Update local form data to sync UI immediately
-      setFormData({
+      setFormData(prev => ({
+        ...prev,
         personal: {
-          ...formData.personal,
-          name: parsedData.name || formData.personal.name,
-          email: parsedData.email || formData.personal.email,
-          phone: parsedData.phone || formData.personal.phone,
-          jobTitle: parsedData.jobTitle || formData.personal.jobTitle,
+          ...prev.personal,
+          name: parsedData.name || prev.personal.name,
+          email: parsedData.email || prev.personal.email,
+          phone: parsedData.phone || prev.personal.phone,
+          jobTitle: parsedData.jobTitle || prev.personal.jobTitle,
         },
-        experience: (parsedData.workHistory && parsedData.workHistory.length > 0) ? parsedData.workHistory : formData.experience,
-        education: (parsedData.education && parsedData.education.length > 0) ? parsedData.education : formData.education,
-        skills: (parsedData.skills && parsedData.skills.length > 0) ? parsedData.skills : formData.skills
-      });
+        experience: (parsedData.workHistory && parsedData.workHistory.length > 0) ? parsedData.workHistory : prev.experience,
+        education: (parsedData.education && parsedData.education.length > 0) ? parsedData.education : prev.education,
+        skills: (parsedData.skills && parsedData.skills.length > 0) ? parsedData.skills : prev.skills
+      }));
 
       // Save the updated profile with parsed data
       onChange(updatedProfile, true);
