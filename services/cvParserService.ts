@@ -399,7 +399,7 @@ export const parseCVContent = async (file: File): Promise<ParseResult> => {
     console.log(`Extracted text length: ${text.length} chars`);
 
     const result: ParseResult = {
-      cvText: text.substring(0, 300) // First 300 chars for summary
+      cvText: text.substring(0, 8000) // Store more content for better matching
     };
 
     // Extract email
@@ -587,19 +587,22 @@ const extractWorkExperience = (text: string): WorkExperience[] => {
     let currentEntry: Partial<WorkExperience> | null = null;
     let descriptionLines: string[] = [];
 
-    for (let i = workSectionStart; i < workSectionEnd; i++) {
+    const isDateLine = (value: string) => /(\d{4})\s*[-–]\s*(současnost|present|\d{4})/i.test(value);
+    const isHeaderLike = (value: string) =>
+      WORK_SECTION_HEADERS.some(h => value.toLowerCase().includes(h)) ||
+      NON_WORK_SECTION_HEADERS.some(h => value.toLowerCase().includes(h));
+    const looksLikeCompany = (value: string) =>
+      /(\bhotel\b|\bcompany\b|\bfirma\b|s\.r\.o\.|a\.s\.|ltd|gmbh|inc\.|·)/i.test(value);
+
+    let i = workSectionStart;
+    while (i < workSectionEnd) {
       const line = lines[i];
-
-      // Date range pattern - usually indicates new entry
       const dateMatch = line.match(/(\d{4})\s*[-–]\s*(současnost|present|\d{4})/i);
+      const nextLine = i + 1 < workSectionEnd ? lines[i + 1] : '';
+      const nextIsDate = !!nextLine && isDateLine(nextLine);
 
-      // Check if this looks like a new job entry header
-      const isNewEntry = dateMatch ||
-        (line.includes('–') && line.length < 100 && !line.startsWith('•')) ||
-        /^[A-Z][A-Za-záčďéěíňóřšťúůýž\s]+,?\s+(s\.r\.o\.|a\.s\.|ltd|gmbh|inc\.)/i.test(line);
-
-      if (isNewEntry && !line.startsWith('•')) {
-        // Save previous entry
+      // Pattern: Role line + date line (+ company line)
+      if (!line.startsWith('•') && !dateMatch && nextIsDate && !isHeaderLike(line)) {
         if (currentEntry && currentEntry.company) {
           currentEntry.description = descriptionLines.slice(0, 5).join(' ').substring(0, 200);
           experiences.push({
@@ -611,24 +614,72 @@ const extractWorkExperience = (text: string): WorkExperience[] => {
           });
         }
 
-        // Start new entry
+        currentEntry = { role: line };
+        descriptionLines = [];
+
+        // consume date line
+        const dateLine = nextLine;
+        const dm = dateLine.match(/(\d{4})\s*[-–]\s*(současnost|present|\d{4})/i);
+        if (dm) currentEntry.duration = dm[0];
+
+        // company line after date
+        const companyLine = i + 2 < workSectionEnd ? lines[i + 2] : '';
+        if (companyLine && !isDateLine(companyLine) && !companyLine.startsWith('•') && !isHeaderLike(companyLine)) {
+          currentEntry.company = companyLine.split('·')[0].trim();
+          i += 2;
+        } else {
+          i += 1;
+        }
+
+        console.log(`New work entry (role/date/company): company="${currentEntry.company}", role="${currentEntry.role}"`);
+        i++;
+        continue;
+      }
+
+      // Check if this looks like a new job entry header
+      const isNewEntry = dateMatch ||
+        (line.includes('–') && line.length < 100 && !line.startsWith('•')) ||
+        looksLikeCompany(line);
+
+      if (isNewEntry && !line.startsWith('•')) {
+        if (currentEntry && currentEntry.company) {
+          currentEntry.description = descriptionLines.slice(0, 5).join(' ').substring(0, 200);
+          experiences.push({
+            id: `exp-${experiences.length}`,
+            company: currentEntry.company || '',
+            role: currentEntry.role || '',
+            duration: currentEntry.duration || '',
+            description: currentEntry.description || ''
+          });
+        }
+
         currentEntry = {};
         descriptionLines = [];
 
-        // Parse the entry line
         if (dateMatch) {
           currentEntry.duration = dateMatch[0];
-          // Company/role is likely before or in the same line
           const beforeDate = line.substring(0, line.indexOf(dateMatch[0])).trim();
           const parts = beforeDate.split(/\s*–\s*/);
           if (parts.length >= 2) {
             currentEntry.company = parts[0].trim();
             currentEntry.role = parts[1].trim();
-          } else {
+          } else if (beforeDate) {
             currentEntry.company = beforeDate;
+          } else {
+            // Look back for role, forward for company
+            const prevLine = i > workSectionStart ? lines[i - 1] : '';
+            if (prevLine && !isHeaderLike(prevLine) && !isDateLine(prevLine) && !prevLine.startsWith('•')) {
+              currentEntry.role = prevLine;
+            }
+            const companyLine = nextLine && !isDateLine(nextLine) && !nextLine.startsWith('•') && !isHeaderLike(nextLine)
+              ? nextLine
+              : '';
+            if (companyLine) {
+              currentEntry.company = companyLine.split('·')[0].trim();
+              i += 1;
+            }
           }
         } else {
-          // Parse "Company – Role" or "Company – Role – Date" format
           const parts = line.split(/\s*–\s*/);
           if (parts.length >= 3) {
             currentEntry.company = parts[0].trim();
@@ -637,23 +688,27 @@ const extractWorkExperience = (text: string): WorkExperience[] => {
           } else if (parts.length === 2) {
             currentEntry.company = parts[0].trim();
             currentEntry.role = parts[1].trim();
+          } else if (looksLikeCompany(line)) {
+            currentEntry.company = line.split('·')[0].trim();
           } else {
-            currentEntry.company = line;
+            currentEntry.role = line;
           }
         }
 
         console.log(`New work entry: company="${currentEntry.company}", role="${currentEntry.role}"`);
       } else if (currentEntry && line.startsWith('•')) {
-        // Bullet point - add to description
         descriptionLines.push(line.substring(1).trim());
       } else if (currentEntry && line.length > 10 && !dateMatch) {
-        // Additional info - might be role or description
-        if (!currentEntry.role && line.length < 60) {
+        if (!currentEntry.company && looksLikeCompany(line)) {
+          currentEntry.company = line.split('·')[0].trim();
+        } else if (!currentEntry.role && line.length < 80 && !looksLikeCompany(line)) {
           currentEntry.role = line;
         } else {
           descriptionLines.push(line);
         }
       }
+
+      i++;
     }
 
     // Don't forget last entry
@@ -727,6 +782,11 @@ const extractEducation = (text: string): Education[] => {
     'diploma', 'certificate'
   ];
 
+  const workIndicators = [
+    'praxe', 'zkušenosti', 'zaměstnání', 'work experience', 'employment', 'position',
+    'pozice', 'role', 's.r.o.', 'a.s.', 'ltd', 'gmbh', 'inc.', 'company', 'firma'
+  ];
+
   let inEduSection = false;
   let i = 0;
 
@@ -734,7 +794,7 @@ const extractEducation = (text: string): Education[] => {
     const line = lines[i].toLowerCase().trim();
 
     // Check if we're entering an education section
-    if (eduIndicators.some(indicator => line.includes(indicator))) {
+    if (eduIndicators.some(indicator => line.includes(indicator)) && !workIndicators.some(w => line.includes(w))) {
       inEduSection = true;
       i++;
       continue;
@@ -759,7 +819,7 @@ const extractEducation = (text: string): Education[] => {
       const hasYear = /\d{4}/.test(currentLine);
       const hasUniversity = /(university|college|fakulta|univerzita|vysoká škola)/i.test(currentLine);
 
-      if (hasDegree || hasYear || hasUniversity) {
+      if (hasDegree || hasUniversity || (hasYear && !workIndicators.some(ind => currentLine.toLowerCase().includes(ind)))) {
         const edu: Education = {
           id: `edu-${education.length}`,
           degree: currentLine,
@@ -808,7 +868,7 @@ const extractEducation = (text: string): Education[] => {
     i++;
   }
 
-  // If no structured section found, look for any degree/year combinations
+  // If no structured section found, look for degree/university indicators (not just years)
   if (education.length === 0) {
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
@@ -817,8 +877,11 @@ const extractEducation = (text: string): Education[] => {
         line.toLowerCase().includes(degree)
       );
       const hasYear = /\d{4}/.test(line);
+      const hasUniversity = /(university|college|fakulta|univerzita|vysoká škola|škola)/i.test(line);
+      const hasEduKeyword = eduIndicators.some(ind => line.toLowerCase().includes(ind));
+      const hasWorkKeyword = workIndicators.some(ind => line.toLowerCase().includes(ind));
 
-      if (hasDegree || hasYear) {
+      if (!hasWorkKeyword && (hasDegree || hasUniversity || (hasEduKeyword && hasYear))) {
         const yearMatch = line.match(/(\d{4})/);
         education.push({
           id: `edu-${education.length}`,

@@ -20,6 +20,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
 
   // Defensive check for JHI score
   const jhiScore = job.jhi?.score || 0;
+  const aiMatchScore = typeof (job as any)?.aiMatchScore === 'number' ? Math.round((job as any).aiMatchScore) : null;
 
   const formatJobTypeLabel = (raw: string) => {
     if (!raw) return t('job.contract_types.unknown') || 'Neuvedeno';
@@ -165,6 +166,17 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
 
         {/* Right Side Actions */}
         <div className="flex items-center gap-3">
+          {aiMatchScore !== null && (
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold
+                bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/50
+                text-emerald-700 dark:text-emerald-300"
+              title={`${t('job.ai_match') || 'AI shoda'}: ${aiMatchScore}%`}
+            >
+              <Sparkles size={12} className="text-emerald-600 dark:text-emerald-300" />
+              <span>{aiMatchScore}%</span>
+            </div>
+          )}
           {/* JHI Circular Progress */}
           <div className="flex items-center gap-2" title={`Job Health Index: ${jhiScore}/100`}>
             <div className="relative w-9 h-9 flex items-center justify-center">

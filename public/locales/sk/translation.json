@@ -377,6 +377,7 @@
   },
   "job": {
     "jhi_score": "JHI Skóre",
+    "ai_match": "AI zhoda",
     "points": "bodov",
     "location": "Lokalita",
     "salary": "Mzda",
