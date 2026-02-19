@@ -15,7 +15,7 @@ interface AuthModalProps {
 }
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defaultMode = 'login' }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
     const [isLogin, setIsLogin] = useState(defaultMode === 'login');
     const [loading, setLoading] = useState(false);
     const [oauthLoading, setOauthLoading] = useState<null | 'google' | 'linkedin_oidc'>(null);
@@ -53,7 +53,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                 if (result.error) throw result.error;
                 userData = result.data?.user;
             } else {
-                const result = await signUpWithEmail(formData.email, formData.password, formData.fullName);
+                const result = await signUpWithEmail(
+                    formData.email,
+                    formData.password,
+                    formData.fullName,
+                    i18n.language
+                );
                 if (result.error) throw result.error;
                 userData = result.data?.user;
 

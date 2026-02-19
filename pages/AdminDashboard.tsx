@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Bell, BarChart3, RefreshCcw, Search, Sparkles } from 'lucide-react';
 import { UserProfile } from '../types';
-import { adminSearch, getAdminAiQuality, getAdminNotifications, getAdminStats, getAdminSubscriptionAudit, getAdminSubscriptions, updateAdminSubscription } from '../services/adminService';
+import { adminSearch, getAdminAiQuality, getAdminNotifications, getAdminStats, getAdminSubscriptionAudit, getAdminSubscriptions, getAdminUserDigest, updateAdminSubscription, updateAdminUserDigest } from '../services/adminService';
 
 interface AdminDashboardProps {
   userProfile: UserProfile;
@@ -40,6 +40,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const [searchLoading, setSearchLoading] = useState(false);
   const [showTrafficDetails, setShowTrafficDetails] = useState(false);
   const [showAiDetails, setShowAiDetails] = useState(false);
+  const [digestUser, setDigestUser] = useState<any | null>(null);
+  const [digestLoading, setDigestLoading] = useState(false);
+  const [digestSaving, setDigestSaving] = useState(false);
+  const [digestError, setDigestError] = useState<string | null>(null);
 
   const [filters, setFilters] = useState({
     q: '',
@@ -310,6 +314,36 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     }
   };
 
+  const loadDigestUser = async (userId: string) => {
+    setDigestLoading(true);
+    setDigestError(null);
+    try {
+      const data = await getAdminUserDigest(userId);
+      setDigestUser(data);
+    } catch (err: any) {
+      setDigestUser(null);
+      setDigestError(err?.message || 'Načtení digestu selhalo');
+    } finally {
+      setDigestLoading(false);
+    }
+  };
+
+  const saveDigestUser = async () => {
+    if (!digestUser?.id) return;
+    setDigestSaving(true);
+    setDigestError(null);
+    try {
+      const data = await updateAdminUserDigest(digestUser.id, {
+        daily_digest_enabled: Boolean(digestUser.daily_digest_enabled)
+      });
+      setDigestUser(data);
+    } catch (err: any) {
+      setDigestError(err?.message || 'Uložení digestu selhalo');
+    } finally {
+      setDigestSaving(false);
+    }
+  };
+
   const paginationLabel = useMemo(() => {
     const start = total === 0 ? 0 : filters.offset + 1;
     const end = Math.min(total, filters.offset + filters.limit);
@@ -532,21 +566,98 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               {searchResults.length > 0 && (
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
                   {searchResults.map(item => (
-                    <button
+                    <div
                       key={item.id}
-                      onClick={() => {
-                        setCreateForm(prev => ({
-                          ...prev,
-                          target_type: item.kind,
-                          target_id: item.id
-                        }));
-                      }}
                       className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-left hover:bg-cyan-50/60 dark:hover:bg-cyan-950/30 transition-colors"
                     >
                       <div className="text-sm font-semibold text-slate-900 dark:text-white">{item.label}</div>
                       <div className="text-xs text-slate-500">{item.secondary || item.id}</div>
-                    </button>
+                      <div className="flex flex-wrap gap-2 mt-2">
+                        <button
+                          onClick={() => {
+                            setCreateForm(prev => ({
+                              ...prev,
+                              target_type: item.kind,
+                              target_id: item.id
+                            }));
+                          }}
+                          className="px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
+                        >
+                          Použít pro předplatné
+                        </button>
+                        {item.kind === 'user' && (
+                          <button
+                            onClick={() => loadDigestUser(item.id)}
+                            className="px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:text-emerald-600 transition-colors"
+                          >
+                            Spravovat digest
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   ))}
+                </div>
+              )}
+              {(digestLoading || digestUser || digestError) && (
+                <div className="mt-4 border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
+                  <div className="flex items-center justify-between gap-3 mb-3">
+                    <div>
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white">Denní digest (mailing list)</div>
+                      <div className="text-xs text-slate-500">Správa odebírání pro vybraného uživatele</div>
+                    </div>
+                    {digestUser && (
+                      <button
+                        onClick={() => setDigestUser(null)}
+                        className="px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
+                      >
+                        Zavřít
+                      </button>
+                    )}
+                  </div>
+
+                  {digestLoading && (
+                    <div className="text-xs text-slate-500">Načítám nastavení…</div>
+                  )}
+
+                  {digestError && (
+                    <div className="text-xs text-rose-600">{digestError}</div>
+                  )}
+
+                  {digestUser && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                      <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900">
+                        <div className="text-xs text-slate-500">Uživatel</div>
+                        <div className="font-semibold text-slate-900 dark:text-white">{digestUser.full_name || '—'}</div>
+                        <div className="text-xs text-slate-500">{digestUser.email}</div>
+                      </div>
+                      <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900">
+                        <div className="text-xs text-slate-500">Locale / Country</div>
+                        <div className="text-slate-700 dark:text-slate-300">{digestUser.preferred_locale || '—'}</div>
+                        <div className="text-slate-700 dark:text-slate-300">{digestUser.preferred_country_code || '—'}</div>
+                      </div>
+                      <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900">
+                        <div className="text-xs text-slate-500">Poslední odeslání</div>
+                        <div className="text-slate-700 dark:text-slate-300">{digestUser.daily_digest_last_sent_at ? formatDate(digestUser.daily_digest_last_sent_at) : '—'}</div>
+                      </div>
+                      <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900 md:col-span-3 flex flex-wrap items-center justify-between gap-3">
+                        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(digestUser.daily_digest_enabled)}
+                            onChange={e => setDigestUser((prev: any) => ({ ...prev, daily_digest_enabled: e.target.checked }))}
+                          />
+                          Odebírat denní digest
+                        </label>
+                        <button
+                          onClick={saveDigestUser}
+                          disabled={digestSaving}
+                          className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:text-emerald-600 transition-colors disabled:opacity-60"
+                        >
+                          {digestSaving ? 'Ukládám…' : 'Uložit'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

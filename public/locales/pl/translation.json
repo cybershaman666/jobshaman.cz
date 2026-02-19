@@ -919,24 +919,60 @@
   "company_landing": {
     "hero": {
       "badge": "Platforma rekrutacyjna dla firm",
-      "title_start": "ATS filtruje po słowach.",
-      "title_highlight": "JobShaman",
-      "title_end": "dopasowuje po umiejętnościach.",
-      "subtitle": "Mniej przypadkowych zgłoszeń, lepsza jakość kandydatów i wyższa konwersja w standardowym procesie.",
-      "value_prop": "Nie płacisz za szum. Płacisz za trafne odpowiedzi.",
+      "title_start": "Zatrudniasz według CV.",
+      "title_highlight": "My",
+      "title_end": "według realnej trafności.",
+      "tagline": "Zatrudniaj za charakter. Umiejętności można nauczyć.",
       "value_prop_detail": "Rekomendacje wynikają z realnych zachowań kandydatów i dopasowania umiejętności, a nie tylko z formy CV.",
       "start_free": "Zacznij za darmo",
       "login": "Zaloguj się",
+      "cta_companies": "Dla firm",
       "view_demo": "Zobacz demo",
       "trust": "Bez zawyżonych obietnic. Jasne metryki i wyjaśnialne rekomendacje."
     },
     "stats": {
-      "title": "Wyniki w liczbach",
-      "badge": "Statystyki",
+      "title": "Rzeczywistość rynku",
+      "badge": "Dowody i dane",
+      "subtitle": "Benchmarki EU/UK jako proxy dla rynku CZ.",
       "screening": "Mniej czasu na screening",
       "costs": "Niższe koszty rekrutacji",
       "filling": "Szybsze obsadzanie stanowisk",
-      "satisfaction": "Satysfakcja firm"
+      "satisfaction": "Satysfakcja firm",
+      "cards": {
+        "avg_time_fill_eu_title": "Średni czas obsadzenia w UE",
+        "avg_time_fill_eu_value": "4,9 tygodnia (≈34 dni)",
+        "avg_time_fill_eu_note": "Q2 2024, Stepstone/FT, proxy UE",
+        "avg_time_fill_uk_title": "Czas obsadzenia w UK",
+        "avg_time_fill_uk_value": "35,9 dni",
+        "avg_time_fill_uk_note": "Adzuna, 12/2025, proxy UK",
+        "ai_speedup_title": "Przyspieszenie dzięki AI",
+        "ai_speedup_value": "+26%",
+        "ai_speedup_note": "SmartRecruiters, 03/2025",
+        "eu_labor_cost_title": "Średni koszt pracy za godzinę w UE",
+        "eu_labor_cost_value": "€33,5/h",
+        "eu_labor_cost_note": "Eurostat 2024"
+      }
+    },
+    "calculator": {
+      "title": "Policz swój wpływ",
+      "subtitle": "5 wejść wystarczy, aby oszacować roczne oszczędności czasu i kosztów.",
+      "input_hires": "Liczba zatrudnień rocznie",
+      "input_screening_hours": "Średni czas screeningu na zatrudnienie",
+      "input_hourly_cost": "Stawka godzinowa HR",
+      "input_ads_per_month": "Ogłoszenia na portalu miesięcznie",
+      "input_portal_daily_cost": "Cena dzienna na portalu",
+      "output_saved_hours": "Zaoszczędzone godziny rocznie",
+      "output_saved_czk": "Zaoszczędzony koszt rocznie",
+      "output_portal_savings_promo": "Oszczędność vs portal (cena promocyjna)",
+      "output_portal_savings_promo_note": "JobShaman 4 990 CZK / miesiąc, nielimitowane ogłoszenia",
+      "output_portal_savings_standard": "Oszczędność vs portal (cena standardowa)",
+      "output_portal_savings_standard_note": "JobShaman 9 990 CZK / miesiąc, nielimitowane ogłoszenia",
+      "badge_best": "Najlepsza opcja",
+      "unit_hires": "zatrudnienia",
+      "unit_hours": "h",
+      "unit_czk": "CZK",
+      "unit_ads": "ogłoszenia",
+      "note": "Model konserwatywny: liczymy tylko czas screeningu i 26% szybszy hiring jako proxy; koszt portalu liczymy jako 30 dni w miesiącu."
     },
     "benefits": {
       "ai_powered": "AI Optymalizacja ogłoszeń",
@@ -946,7 +982,10 @@
       "conversion_without_assessment": "Lepsza konwersja i trafność odpowiedzi nawet bez AI assessmentu",
       "skill_discovery": "Odkrywanie umiejętności zamiast twardego filtrowania po słowach",
       "explainable_relevance": "Widzisz, dlaczego kandydat jest trafny",
-      "measurable_funnel": "Mierzysz wyświetlenia, reakcje i jakość odpowiedzi"
+      "measurable_funnel": "Mierzalny funnel od wyświetlenia do reakcji",
+      "relevance": "Trafność zamiast przypadku — shortlist pasujący do roli",
+      "transparency": "Transparentne decyzje — jasne powody rekomendacji",
+      "hidden_talents": "Ukryte talenty — kandydaci pomijani przez ATS"
     },
     "features": {
       "title": "Narzędzia AI",
@@ -1003,7 +1042,7 @@
         "basic": {
           "name": "Podstawowy",
           "desc": "Dla małych zespołów i początkujących",
-          "f1": "Do 5 ogłoszeń miesięcznie",
+          "f1": "Do 3 ogłoszeń miesięcznie",
           "f2": "Podstawowe zarządzanie ogłoszeniami",
           "f3": "Wsparcie e-mail",
           "f4": "Podstawowe statystyki",
@@ -1056,34 +1095,45 @@
     "testimonials": {
       "title": "Referencje firm"
     },
+    "trust_block": {
+      "title": "Bez pustych obietnic",
+      "text": "Każda rekomendacja jest wyjaśnialna i możliwa do audytu."
+    },
     "cta": {
-      "badge": "Zacznij teraz",
+      "badge": "Zacznij bez ryzyka",
       "title_start": "Gotowi",
       "title_highlight": "ulepszyć",
       "title_end": "rekrutację?",
-      "subtitle": "Dołącz do setek zadowolonych firm i znajduj najlepsze talenty skuteczniej.",
-      "register": "Zarejestruj firmę",
+      "subtitle": "Wypróbuj JobShaman przy pierwszym zatrudnieniu za darmo i porównaj z obecnym procesem.",
+      "register": "Uruchom pierwszy nabór",
       "login": "Zaloguj się",
       "demo": "Umów demo"
     },
     "ats_problem": {
-      "ats_title": "Problem klasycznego ATS",
-      "ats_p1": "Dobry kandydat odpada, bo nie użył właściwego słowa kluczowego.",
-      "ats_p2": "HR traci czas na selekcję szumu zamiast rozmów z właściwymi osobami.",
-      "ats_p3": "Często nie wiadomo, dlaczego kandydat został polecony lub odrzucony.",
-      "js_title": "Jak rozwiązuje to JobShaman",
-      "js_p1": "Dopasowanie opiera się na umiejętnościach i kontekście, nie tylko na frazach z CV.",
-      "js_p2": "Każda rekomendacja zawiera powód trafności, nie tylko wynik.",
-      "js_p3": "Lejek rekrutacyjny jest mierzalny od wyświetlenia po reakcję."
+      "ats_title": "Dlaczego standardowa rekrutacja zawodzi",
+      "ats_p1": "Kandydaci odpadają przez sformułowania CV, nie przez brak umiejętności.",
+      "ats_p2": "HR spędza godziny na selekcji nieistotnych zgłoszeń.",
+      "ats_p3": "ATS nie potrafi wyjaśnić, dlaczego polecił kandydata.",
+      "ats_result": "Efekt: wolniejszy hiring i spadek jakości wyboru.",
+      "js_title": "JobShaman analizuje dopasowanie zamiast filtrowania",
+      "js_p1": "Umiejętności w kontekście roli, nie w izolacji.",
+      "js_p2": "Realne zachowania kandydata w procesie.",
+      "js_p3": "Strukturalna zgodność z wymaganiami.",
+      "js_result": "Każda rekomendacja ma uzasadnienie — nie anonimowy wynik."
     },
     "solution": {
-      "title": "Co realnie zyskuje firma",
-      "pillar_skill_title": "Skill discovery zamiast słów kluczowych",
-      "pillar_skill_desc": "Znajdujesz kandydatów, których klasyczny ATS mógłby odrzucić.",
-      "pillar_relevance_title": "Trafność z uzasadnieniem",
-      "pillar_relevance_desc": "Widzisz, dlaczego kandydat pasuje do wymagań roli.",
-      "pillar_measure_title": "Mierzalny lejek rekrutacji",
-      "pillar_measure_desc": "Wiesz, gdzie kandydaci odpadają i gdzie rośnie konwersja."
+      "title": "System ocenia",
+      "subtitle": "Konkretną jakość, nie tylko słowa kluczowe.",
+      "pillar_skill_title": "Umiejętności w kontekście",
+      "pillar_skill_desc": "Oceniamy umiejętności względem wymagań roli.",
+      "pillar_relevance_title": "Realne zachowanie",
+      "pillar_relevance_desc": "Bierzemy pod uwagę odpowiedzi, aktywność i kontekst.",
+      "pillar_measure_title": "Strukturalne dopasowanie",
+      "pillar_measure_desc": "Porównujemy wymagania i profil na poziomie umiejętności."
+    },
+    "risk": {
+      "title": "Ryzyko bezczynności",
+      "text": "Każdy dzień nieobsadzonej roli to bezpośrednia strata finansowa i spadek wydajności zespołu."
     },
     "faq": {
       "title": "FAQ dla firm",

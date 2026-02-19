@@ -25,6 +25,13 @@
   100% { transform: translateX(0); opacity: 0.6; }
 }
 
+@keyframes guideDotTravel {
+  0% { opacity: 0; top: 0; }
+  10% { opacity: 0.7; }
+  90% { opacity: 0.7; }
+  100% { opacity: 0; top: calc(100% - 12px); }
+}
+
 .swipe-coach-card {
   animation: swipeCardWiggle 2.4s ease-in-out infinite;
 }
@@ -35,6 +42,13 @@
 
 .swipe-coach-arrow-right {
   animation: swipeArrowRight 1.4s ease-in-out infinite;
+}
+
+.guide-dot {
+  animation: guideDotTravel 6s ease-in-out infinite;
+  pointer-events: none;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 html, body {

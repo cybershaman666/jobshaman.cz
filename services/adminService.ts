@@ -131,3 +131,33 @@ export async function adminSearch(query: string, kind: 'company' | 'user') {
 
   return response.json();
 }
+
+export async function getAdminUserDigest(userId: string) {
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/users/${userId}/digest`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Failed to load user digest settings');
+  }
+
+  return response.json();
+}
+
+export async function updateAdminUserDigest(userId: string, payload: { daily_digest_enabled?: boolean }) {
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/users/${userId}/digest`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    const detail = error.detail || error.message || `HTTP ${response.status}`;
+    throw new Error(`Failed to update user digest: ${detail}`);
+  }
+
+  return response.json();
+}

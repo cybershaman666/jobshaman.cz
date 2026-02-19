@@ -1078,24 +1078,60 @@
   "company_landing": {
     "hero": {
       "badge": "Náborová platforma pro firmy",
-      "title_start": "Běžné náborové systémy filtrují podle slov.",
-      "title_highlight": "JobShaman",
-      "title_end": "páruje kandidáty podle dovedností.",
-      "subtitle": "Méně nerelevantních reakcí, vyšší kvalita kandidátů a lepší konverze už v základním náboru.",
-      "value_prop": "Neplatíte za šum. Platíte za relevantní odpovědi.",
+      "title_start": "Najímáte podle CV.",
+      "title_highlight": "My",
+      "title_end": "podle reálné relevance.",
+      "tagline": "Najímejte charakter. Dovednosti se dají naučit.",
       "value_prop_detail": "Doporučení vychází z reálného chování kandidátů a shody dovedností, ne jen z toho, jak je napsané CV.",
       "start_free": "Začít zdarma",
       "login": "Přihlásit se",
+      "cta_companies": "Pro firmy",
       "view_demo": "Prohlédnout demo",
       "trust": "Bez neověřených slibů. Přehledné metriky a jasné důvody doporučení."
     },
     "stats": {
-      "title": "Výsledky v číslech",
-      "badge": "Statistiky",
+      "title": "Realita trhu",
+      "badge": "Důkaz a data",
+      "subtitle": "Benchmarks z EU/UK jako proxy pro CZ trh.",
       "screening": "Méně času na screening",
       "costs": "Nižší náklady na nábor",
       "filling": "Rychlejší obsazení pozic",
-      "satisfaction": "Spokojenost firem"
+      "satisfaction": "Spokojenost firem",
+      "cards": {
+        "avg_time_fill_eu_title": "Průměrná doba obsazení v EU",
+        "avg_time_fill_eu_value": "4,9 týdne (≈34 dní)",
+        "avg_time_fill_eu_note": "Q2 2024, Stepstone/FT, EU proxy",
+        "avg_time_fill_uk_title": "Doba obsazení v UK",
+        "avg_time_fill_uk_value": "35,9 dní",
+        "avg_time_fill_uk_note": "Adzuna, 12/2025, UK proxy",
+        "ai_speedup_title": "Zrychlení díky AI",
+        "ai_speedup_value": "+26 %",
+        "ai_speedup_note": "SmartRecruiters, 03/2025",
+        "eu_labor_cost_title": "Průměrné hodinové náklady práce v EU",
+        "eu_labor_cost_value": "€33,5/h",
+        "eu_labor_cost_note": "Eurostat 2024"
+      }
+    },
+    "calculator": {
+      "title": "Spočítejte si vlastní dopad",
+      "subtitle": "Stačí 5 vstupů a získáte reálnou roční úsporu času i nákladů.",
+      "input_hires": "Počet obsazení za rok",
+      "input_screening_hours": "Průměrný čas screeningu na obsazení",
+      "input_hourly_cost": "Hodinová mzda HR",
+      "input_ads_per_month": "Počet inzerátů na jobportálu za měsíc",
+      "input_portal_daily_cost": "Cena za den na jobportálu",
+      "output_saved_hours": "Ušetřený čas za rok",
+      "output_saved_czk": "Ušetřené náklady za rok",
+      "output_portal_savings_promo": "Úspora proti jobportálu (akční cena)",
+      "output_portal_savings_promo_note": "JobShaman 4 990 Kč / měsíc, neomezené inzeráty",
+      "output_portal_savings_standard": "Úspora proti jobportálu (standardní cena)",
+      "output_portal_savings_standard_note": "JobShaman 9 990 Kč / měsíc, neomezené inzeráty",
+      "badge_best": "Nejvýhodnější",
+      "unit_hires": "obsazení",
+      "unit_hours": "h",
+      "unit_czk": "Kč",
+      "unit_ads": "inzeráty",
+      "note": "Model je konzervativní: počítá jen s časem screeningu a 26% zrychlením náboru; jobportál počítáme jako 30 dní v měsíci."
     },
     "benefits": {
       "ai_powered": "AI optimalizace inzerátů",
@@ -1105,7 +1141,10 @@
       "conversion_without_assessment": "Lepší konverze a relevance odpovědí i bez AI assessmentu",
       "skill_discovery": "Skill discovery místo filtrování podle klíčových slov",
       "explainable_relevance": "U každého kandidáta vidíte, proč je relevantní",
-      "measurable_funnel": "Měříte zobrazení, reakce i kvalitu odpovědí"
+      "measurable_funnel": "Měřitelný funnel od zobrazení po odpověď",
+      "relevance": "Relevance místo náhody — shortlist kandidátů, kteří odpovídají roli",
+      "transparency": "Transparentní rozhodování — jasné důvody doporučení",
+      "hidden_talents": "Skryté talenty — kandidáti, které ATS běžně vyřadí"
     },
     "features": {
       "title": "AI Nástroje",
@@ -1150,7 +1189,7 @@
         "basic": {
           "name": "Základní",
           "desc": "Pro malé týmy a začátečníky",
-          "f1": "Až 5 inzerátů měsíčně",
+          "f1": "Až 3 inzeráty měsíčně",
           "f2": "Základní správa inzerátů",
           "f3": "Emailová podpora",
           "f4": "Základní statistiky",
@@ -1178,34 +1217,45 @@
     "testimonials": {
       "title": "Reference Firem"
     },
+    "trust_block": {
+      "title": "Bez neověřených slibů",
+      "text": "Každé doporučení je vysvětlitelné a auditovatelné."
+    },
     "cta": {
-      "badge": "Začněte hned",
+      "badge": "Začněte bez rizika",
       "title_start": "Připraveni",
       "title_highlight": "zlepšit",
       "title_end": "nábor?",
-      "subtitle": "Přidejte se ke stovkám spokojených firem a najděte ty nejlepší talenty efektivněji.",
-      "register": "Registrovat firmu",
+      "subtitle": "Vyzkoušejte JobShaman na první pozici zdarma a porovnejte výsledky s vaším současným náborem.",
+      "register": "Spustit první nábor",
       "login": "Přihlásit se",
       "demo": "Domluvit demo"
     },
     "ats_problem": {
-      "ats_title": "Problém běžného ATS přístupu",
-      "ats_p1": "Dobří kandidáti vypadnou jen proto, že nepoužili správná klíčová slova.",
-      "ats_p2": "HR tým tráví čas tříděním nerelevantních reakcí místo rozhovorů s vhodnými lidmi.",
-      "ats_p3": "Systém často neukáže, proč kandidáta doporučil nebo zamítl.",
-      "js_title": "Jak to řeší JobShaman",
-      "js_p1": "Matchování probíhá podle dovedností a kontextu, ne jen podle slov v CV.",
-      "js_p2": "U kandidátů vidíte přehled důvodů relevance, ne jen anonymní skóre.",
-      "js_p3": "Náborový funnel je měřitelný od zobrazení po reakci, takže víte, co funguje."
+      "ats_title": "Proč běžný nábor selhává",
+      "ats_p1": "Kandidáti vypadnou kvůli formulaci CV, ne kvůli schopnostem.",
+      "ats_p2": "HR tráví hodiny tříděním nerelevantních reakcí.",
+      "ats_p3": "ATS neumí vysvětlit, proč kandidáta doporučilo.",
+      "ats_result": "Výsledek: nábor se zpomaluje a kvalita výběru klesá.",
+      "js_title": "JobShaman místo filtrování analyzuje shodu",
+      "js_p1": "Dovednosti v kontextu role, ne izolovaně.",
+      "js_p2": "Reálné chování kandidátů v náboru.",
+      "js_p3": "Strukturální shoda s požadavky pozice.",
+      "js_result": "Každé doporučení obsahuje vysvětlení relevance — ne anonymní skóre."
     },
     "solution": {
-      "title": "Co firmy reálně získají",
-      "pillar_skill_title": "Skill discovery, ne jen klíčová slova",
-      "pillar_skill_desc": "Najdete i kandidáty, které by běžné ATS vyřadilo kvůli formě CV.",
-      "pillar_relevance_title": "Relevance s vysvětlením",
-      "pillar_relevance_desc": "U každého doporučení vidíte, proč kandidát odpovídá požadavkům role.",
-      "pillar_measure_title": "Měřitelný náborový funnel",
-      "pillar_measure_desc": "Máte přehled, kde se kandidáti ztrácí a kde naopak konvertují."
+      "title": "Systém vyhodnocuje",
+      "subtitle": "Konkrétní signály místo keyword shody.",
+      "pillar_skill_title": "Dovednosti v kontextu",
+      "pillar_skill_desc": "Hodnotíme schopnosti podle požadavků role, ne podle slov v CV.",
+      "pillar_relevance_title": "Reálné chování kandidátů",
+      "pillar_relevance_desc": "Zohledňujeme reakce, aktivitu a kontext náboru.",
+      "pillar_measure_title": "Strukturální shoda",
+      "pillar_measure_desc": "Porovnáváme požadavky a profil kandidáta na úrovni dovedností."
+    },
+    "risk": {
+      "title": "Riziko neakce",
+      "text": "Každý den neobsazené pozice znamená přímou finanční ztrátu a nižší výkon týmu."
     },
     "faq": {
       "title": "FAQ pro firmy",

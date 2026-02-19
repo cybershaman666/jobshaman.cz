@@ -9,7 +9,7 @@ import traceback
 from ..core.security import get_current_user, verify_csrf_token_header
 from ..core.database import supabase
 from ..matching_engine.evaluation import run_offline_recommendation_evaluation
-from ..models.requests import AdminSubscriptionUpdateRequest
+from ..models.requests import AdminSubscriptionUpdateRequest, AdminUserDigestUpdateRequest
 from ..utils.helpers import now_iso
 
 router = APIRouter()
@@ -306,6 +306,61 @@ async def admin_search(
         for r in (resp.data or [])
     ]
     return {"items": items}
+
+
+@router.get("/admin/users/{user_id}/digest")
+async def admin_user_digest(
+    user_id: str,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    resp = supabase.table("profiles").select(
+        "id, email, full_name, preferred_locale, preferred_country_code, daily_digest_enabled, daily_digest_last_sent_at"
+    ).eq("id", user_id).maybe_single().execute()
+    profile = resp.data if resp else None
+    if not profile:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return profile
+
+
+@router.post("/admin/users/{user_id}/digest")
+async def admin_user_digest_update(
+    user_id: str,
+    payload: AdminUserDigestUpdateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    require_admin_user(user)
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    update_data = {}
+    if payload.daily_digest_enabled is not None:
+        update_data["daily_digest_enabled"] = payload.daily_digest_enabled
+
+    if not update_data:
+        raise HTTPException(status_code=400, detail="No updates provided")
+
+    try:
+        supabase.table("profiles").update(update_data).eq("id", user_id).execute()
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Update failed: {exc}")
+
+    resp = supabase.table("profiles").select(
+        "id, email, full_name, preferred_locale, preferred_country_code, daily_digest_enabled, daily_digest_last_sent_at"
+    ).eq("id", user_id).maybe_single().execute()
+    profile = resp.data if resp else None
+    if not profile:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return profile
 
 @router.get("/admin/stats")
 async def admin_stats(

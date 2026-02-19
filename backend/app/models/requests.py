@@ -96,6 +96,10 @@ class AdminSubscriptionUpdateRequest(BaseModel):
     set_trial_until: Optional[str] = None
 
 
+class AdminUserDigestUpdateRequest(BaseModel):
+    daily_digest_enabled: Optional[bool] = None
+
+
 class AIGuidedProfileStep(BaseModel):
     id: str
     text: str
