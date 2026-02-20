@@ -1,1 +1,1 @@
-from . import jobs, billing, stripe, assessments, scraper, auth, admin, ai, email, push
+from . import jobs, billing, stripe, assessments, scraper, auth, admin, ai, email, push, analytics

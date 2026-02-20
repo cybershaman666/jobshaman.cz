@@ -904,9 +904,24 @@ export const trackAnalyticsEvent = async (event: {
     tier?: string;
     metadata?: any;
 }): Promise<void> => {
-    if (!supabase) return;
-
     try {
+        const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || '';
+        if (backendUrl) {
+            const response = await fetch(`${backendUrl.replace(/\/$/, '')}/analytics/track`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    event_type: event.event_type,
+                    company_id: event.company_id || null,
+                    feature: event.feature || null,
+                    tier: event.tier || null,
+                    metadata: event.metadata || {}
+                })
+            });
+            if (response.ok) return;
+        }
+
+        if (!supabase) return;
         const { data: { user } } = await supabase.auth.getUser();
         const safeUserId = user?.id || null;
         const { error } = await supabase

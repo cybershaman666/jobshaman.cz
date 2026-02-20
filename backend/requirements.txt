@@ -16,3 +16,4 @@ bleach
 slowapi
 langdetect
 google-generativeai
+user-agents
