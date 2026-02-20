@@ -404,7 +404,7 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
         query = (
             supabase.table("jobs")
             .select(
-                "id,title,company,location,description,benefits,contract_type,salary_from,salary_to,"
+                "id,title,company,location,description,benefits,contract_type,salary_from,salary_to,salary_timeframe,"
                 "work_type,work_model,scraped_at,source,education_level,url,lat,lng,country_code,"
                 "language_code,legality_status,verification_notes,status"
             )
