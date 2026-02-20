@@ -26,7 +26,18 @@
     "back_to_top": "Back to top",
     "backend_wake_title": "Waking up the backend… ☕🔮",
     "backend_wake_desc": "This can take a moment - I’m checking whether the server is out of bed. I’ll retry automatically.",
-    "backend_wake_waiting": "Waiting for backend…"
+    "backend_wake_waiting": "Waiting for backend…",
+    "near_matches_banner_title": "Showing closest possible matches",
+    "near_matches_banner_desc": "Your active constraints are strict, so we’re showing offers with the smallest trade-offs.",
+    "constraint_compromise": {
+      "label": "Trade-off:",
+      "remote_required": "Not fully remote",
+      "shift_excluded": "Includes shift work",
+      "growth_required": "Lower growth potential",
+      "commute_over": "Commute +{{minutes}} min",
+      "net_below": "Net income is {{amount}} below your minimum",
+      "net_unknown": "Net income cannot be reliably estimated"
+    }
   },
   "filters": {
     "location_commute": "Location & Commute",
