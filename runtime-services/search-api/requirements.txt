@@ -5,3 +5,5 @@ supabase
 python-dotenv
 pydantic
 slowapi
+requests
+user-agents
