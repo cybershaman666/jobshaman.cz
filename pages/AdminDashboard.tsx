@@ -1134,6 +1134,82 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         )}
                       </div>
                     </div>
+                    <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                      <div className="text-xs text-slate-500 mb-2">Top země (30 dní)</div>
+                      <div className="space-y-2">
+                        {(stats?.traffic?.geo?.top_countries || []).length === 0 ? (
+                          <div className="text-xs text-slate-400">Žádná data.</div>
+                        ) : (
+                          stats?.traffic?.geo?.top_countries?.map((item: any) => (
+                            <div key={item.label} className="flex items-center justify-between text-sm">
+                              <span className="text-slate-700 dark:text-slate-300 truncate">
+                                {item.label}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {formatNumber(item.count)}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                    <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                      <div className="text-xs text-slate-500 mb-2">Zařízení (30 dní)</div>
+                      <div className="space-y-2">
+                        {(stats?.traffic?.geo?.top_devices || []).length === 0 ? (
+                          <div className="text-xs text-slate-400">Žádná data.</div>
+                        ) : (
+                          stats?.traffic?.geo?.top_devices?.map((item: any) => (
+                            <div key={item.label} className="flex items-center justify-between text-sm">
+                              <span className="text-slate-700 dark:text-slate-300 truncate">
+                                {item.label}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {formatNumber(item.count)}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                    <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                      <div className="text-xs text-slate-500 mb-2">OS (30 dní)</div>
+                      <div className="space-y-2">
+                        {(stats?.traffic?.geo?.top_os || []).length === 0 ? (
+                          <div className="text-xs text-slate-400">Žádná data.</div>
+                        ) : (
+                          stats?.traffic?.geo?.top_os?.map((item: any) => (
+                            <div key={item.label} className="flex items-center justify-between text-sm">
+                              <span className="text-slate-700 dark:text-slate-300 truncate">
+                                {item.label}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {formatNumber(item.count)}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
+                    <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+                      <div className="text-xs text-slate-500 mb-2">Prohlížeče (30 dní)</div>
+                      <div className="space-y-2">
+                        {(stats?.traffic?.geo?.top_browsers || []).length === 0 ? (
+                          <div className="text-xs text-slate-400">Žádná data.</div>
+                        ) : (
+                          stats?.traffic?.geo?.top_browsers?.map((item: any) => (
+                            <div key={item.label} className="flex items-center justify-between text-sm">
+                              <span className="text-slate-700 dark:text-slate-300 truncate">
+                                {item.label}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {formatNumber(item.count)}
+                              </span>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
               )}

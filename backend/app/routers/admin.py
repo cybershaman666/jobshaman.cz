@@ -450,6 +450,55 @@ async def admin_stats(
     except Exception as e:
         print(f"⚠️ Admin traffic stats failed: {e}")
 
+    geo_breakdown = {}
+    try:
+        events_resp = (
+            supabase.table("analytics_events")
+            .select("metadata, event_type, created_at")
+            .gte("created_at", last_30)
+            .execute()
+        )
+        events = events_resp.data or []
+        country_counts = {}
+        device_counts = {}
+        os_counts = {}
+        browser_counts = {}
+        for row in events:
+            if row.get("event_type") != "page_view":
+                continue
+            metadata = row.get("metadata") or {}
+            if isinstance(metadata, str):
+                try:
+                    metadata = json.loads(metadata)
+                except Exception:
+                    metadata = {}
+
+            country = (metadata.get("country_code") or metadata.get("country") or "Unknown").upper()
+            device = metadata.get("device_type") or "unknown"
+            os_name = metadata.get("os") or "unknown"
+            browser = metadata.get("browser") or "unknown"
+
+            country_counts[country] = country_counts.get(country, 0) + 1
+            device_counts[device] = device_counts.get(device, 0) + 1
+            os_counts[os_name] = os_counts.get(os_name, 0) + 1
+            browser_counts[browser] = browser_counts.get(browser, 0) + 1
+
+        def _top_items(counts: dict, limit: int = 8):
+            return sorted(
+                [{"label": k, "count": v} for k, v in counts.items()],
+                key=lambda x: x["count"],
+                reverse=True,
+            )[:limit]
+
+        geo_breakdown = {
+            "top_countries": _top_items(country_counts, 8),
+            "top_devices": _top_items(device_counts, 5),
+            "top_os": _top_items(os_counts, 6),
+            "top_browsers": _top_items(browser_counts, 6),
+        }
+    except Exception as e:
+        print(f"⚠️ Admin geo stats failed: {e}")
+
     return {
         "users": {"total": users_total, "new_7d": users_7, "new_30d": users_30},
         "companies": {"total": companies_total, "new_7d": companies_7, "new_30d": companies_30},
@@ -459,7 +508,10 @@ async def admin_stats(
             "paid_companies": paid_company,
             "paid_users": paid_user,
         },
-        "traffic": traffic,
+        "traffic": {
+            **(traffic or {}),
+            **({"geo": geo_breakdown} if geo_breakdown else {}),
+        } if traffic or geo_breakdown else None,
     }
 
 
