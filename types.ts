@@ -161,6 +161,8 @@ export interface Job {
   salary_from?: number;
   salary_to?: number;
   salary_timeframe?: string;
+  constraint_compromises?: string[];
+  constraint_mode?: 'strict' | 'near';
   distanceKm?: number;
   searchScore?: number;
   rankPosition?: number;

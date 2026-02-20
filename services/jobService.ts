@@ -1,9 +1,9 @@
 import { supabase, isSupabaseConfigured, isSupabaseNetworkCooldownActive, noteSupabaseNetworkFailure } from './supabaseService';
-import { Job, NoiseMetrics } from '../types';
+import { Job, NoiseMetrics, JHIPreferences, TaxProfile } from '../types';
 import { contextualRelevanceScorer, ContextualRelevanceScorer } from './contextualRelevanceService';
 import { calculateJHI } from '../utils/jhiCalculator';
 import { matchesIcoKeywords, matchesFullTimeKeywords, matchesPartTimeKeywords, matchesBrigadaKeywords } from '../utils/contractType';
-import { detectCurrencyFromLocation } from './financialService';
+import { detectCurrency, detectCurrencyFromLocation, estimateNetSalaryByCountry } from './financialService';
 import { geocodeWithCaching } from './geocodingService';
 import i18n from '../src/i18n';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
@@ -768,6 +768,8 @@ export interface JobFilterOptions {
     filterLanguageCodes?: string[];
     searchTerm?: string;
     sortMode?: 'default' | 'newest' | 'jhi_desc' | 'jhi_asc' | 'recommended' | 'personalized_jhi_desc';
+    jhiPreferences?: JHIPreferences;
+    userTaxProfile?: TaxProfile;
     abortSignal?: AbortSignal;
 }
 
@@ -1185,6 +1187,8 @@ export const fetchJobsWithFilters = async (
         filterLanguageCodes,
         searchTerm: rawSearchTerm,
         sortMode = 'default',
+        jhiPreferences,
+        userTaxProfile,
         abortSignal
     } = options;
 
@@ -1407,6 +1411,142 @@ export const fetchJobsWithFilters = async (
         });
     };
 
+    const estimateGrossMonthlyForConstraints = (job: Job): number => {
+        let salary = 0;
+        if (job.salary_from && job.salary_to) {
+            salary = Math.round((Number(job.salary_from) + Number(job.salary_to)) / 2);
+        } else {
+            salary = Number(job.salary_from || job.salary_to || 0);
+        }
+        if (!salary) return 0;
+
+        const tf = String(job.salary_timeframe || '').toLowerCase();
+        if (tf === 'hour' || tf === 'hourly') return Math.round(salary * 22 * 8);
+        if (tf === 'day' || tf === 'daily') return Math.round(salary * 22);
+        if (tf === 'week' || tf === 'weekly') return Math.round(salary * 4.345);
+        if (tf === 'year' || tf === 'yearly' || tf === 'annual') return Math.round(salary / 12);
+        return salary;
+    };
+
+    const evaluateHardConstraintViolations = (job: Job): { violations: string[]; distance: number } => {
+        const constraints = jhiPreferences?.hardConstraints;
+        if (!constraints) return { violations: [], distance: 0 };
+
+        const violations: string[] = [];
+        let distance = 0;
+
+        const type = String(job.type || '').toLowerCase();
+        const workModel = String(job.work_model || '').toLowerCase();
+        const desc = String(job.description || '').toLowerCase();
+
+        if (constraints.mustRemote && !(type.includes('remote') || workModel.includes('remote'))) {
+            violations.push('Není remote');
+            distance += 100;
+        }
+
+        if (constraints.excludeShift && /směn|smen|shift|schicht/.test(desc)) {
+            violations.push('Směnný provoz');
+            distance += 60;
+        }
+
+        if (constraints.growthRequired && Number(job.jhi?.growth || 0) < 55) {
+            violations.push('Nízký růst');
+            distance += 45;
+        }
+
+        if (constraints.maxCommuteMinutes && constraints.maxCommuteMinutes > 0) {
+            const distanceKm = resolveJobDistanceKm(job);
+            if (distanceKm !== null) {
+                const commuteMinutes = Math.round(distanceKm * 2.5 * 2);
+                if (commuteMinutes > constraints.maxCommuteMinutes) {
+                    const overBy = commuteMinutes - constraints.maxCommuteMinutes;
+                    violations.push(`Dojíždění +${overBy} min`);
+                    distance += Math.min(80, overBy);
+                }
+            }
+        }
+
+        if (constraints.minNetMonthly && constraints.minNetMonthly > 0) {
+            const grossMonthly = estimateGrossMonthlyForConstraints(job);
+            if (grossMonthly > 0) {
+                const currency = (job.salaryRange && job.salaryRange !== 'Mzda neuvedena' && job.salaryRange !== 'Salary not specified')
+                    ? detectCurrency(job.salaryRange)
+                    : detectCurrencyFromLocation(job.location || '');
+                const taxResult = estimateNetSalaryByCountry(
+                    grossMonthly,
+                    userTaxProfile?.employmentType === 'contractor',
+                    job.country_code,
+                    job.location || '',
+                    currency,
+                    userTaxProfile
+                );
+                if (taxResult.net < constraints.minNetMonthly) {
+                    const deficit = Math.round(constraints.minNetMonthly - taxResult.net);
+                    violations.push(`Čistý příjem -${deficit.toLocaleString('cs-CZ')}`);
+                    distance += Math.min(120, Math.round(deficit / 1000) * 8);
+                }
+            } else {
+                violations.push('Neznámý čistý příjem');
+                distance += 50;
+            }
+        }
+
+        return { violations, distance };
+    };
+
+    const applyHardConstraintsWithNearFallback = (
+        jobs: Job[],
+        hasMore: boolean,
+        totalCount: number
+    ): { jobs: Job[]; hasMore: boolean; totalCount: number } => {
+        const constraints = jhiPreferences?.hardConstraints;
+        const hasActiveConstraints = !!constraints && (
+            !!constraints.mustRemote ||
+            !!constraints.excludeShift ||
+            !!constraints.growthRequired ||
+            (constraints.maxCommuteMinutes ?? 0) > 0 ||
+            (constraints.minNetMonthly ?? 0) > 0
+        );
+        if (!hasActiveConstraints) {
+            return { jobs, hasMore, totalCount };
+        }
+
+        const evaluated = jobs.map((job, index) => {
+            const { violations, distance } = evaluateHardConstraintViolations(job);
+            return { job, violations, distance, index };
+        });
+
+        const strictMatches = evaluated.filter((item) => item.violations.length === 0).map((item) => ({
+            ...item.job,
+            constraint_mode: 'strict' as const,
+            constraint_compromises: undefined
+        }));
+        if (strictMatches.length > 0) {
+            return {
+                jobs: strictMatches,
+                hasMore,
+                totalCount: strictMatches.length
+            };
+        }
+
+        const nearMatches = [...evaluated]
+            .sort((a, b) => (a.distance - b.distance) || (a.index - b.index))
+            .map((item) => ({
+                ...item.job,
+                constraint_mode: 'near' as const,
+                constraint_compromises: item.violations.slice(0, 3)
+            }));
+
+        return {
+            jobs: nearMatches,
+            hasMore: false,
+            totalCount: nearMatches.length
+        };
+    };
+
+    const finalizeResults = (result: { jobs: Job[]; hasMore: boolean; totalCount: number }) =>
+        applyHardConstraintsWithNearFallback(result.jobs, result.hasMore, result.totalCount);
+
     const fetchViaStrictClientFallback = async (
         reason: string
     ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
@@ -1468,11 +1608,11 @@ export const fetchJobsWithFilters = async (
             throttleMs: 20_000
         });
         console.warn(`⚠️ Using strict client fallback for filters (${reason}).`);
-        return {
+        return finalizeResults({
             jobs: pagedJobs,
             hasMore,
             totalCount: totalCountEstimate
-        };
+        });
     };
 
     const fetchViaTextFallback = async (): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number } | null> => {
@@ -1524,11 +1664,11 @@ export const fetchJobsWithFilters = async (
         fallbackJobs = sortJobsForMode(applyStrictClientFilters(fallbackJobs), sortMode);
 
         const totalCountForResponse = fallbackJobs.length;
-        return {
+        return finalizeResults({
             jobs: fallbackJobs,
             hasMore: fallbackJobs.length === pageSize && !isShortSingleTokenQuery && !!count && count > (page + 1) * pageSize,
             totalCount: totalCountForResponse
-        };
+        });
     };
 
     const fetchViaBackendHybrid = async (): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
@@ -1677,11 +1817,11 @@ export const fetchJobsWithFilters = async (
                     const fallbackPayload = await fallbackResponse.json();
                     const fallbackRows = fallbackPayload.jobs || [];
                     const fallbackJobs = mapFallbackRowsToJobs(fallbackRows);
-                    return {
+                    return finalizeResults({
                         jobs: fallbackJobs,
                         hasMore: !!fallbackPayload.has_more,
                         totalCount: Number(fallbackPayload.total_count || fallbackJobs.length)
-                    };
+                    });
                 }
 
                 if (!hybridResponse.ok) {
@@ -1708,11 +1848,11 @@ export const fetchJobsWithFilters = async (
 
                 const hybridRows = hybridPayload.jobs || [];
                 const processedJobs = mapHybridRowsToJobs(hybridRows, hybridPayload);
-                return {
+                return finalizeResults({
                     jobs: processedJobs,
                     hasMore: !!hybridPayload.has_more,
                     totalCount: Number(hybridPayload.total_count || processedJobs.length)
-                };
+                });
             } catch (err) {
                 if (isAbortFetchError(err)) {
                     throw err;
@@ -1906,11 +2046,11 @@ export const fetchJobsWithFilters = async (
         console.log(`✅ Found ${processedJobs.length} filtered jobs (total: ${totalCount}, has more: ${hasMore})`);
 
         throwIfAborted();
-        return {
+        return finalizeResults({
             jobs: processedJobs,
             hasMore,
             totalCount
-        };
+        });
 
     } catch (e: any) {
         if (isAbortFetchError(e)) {
@@ -2001,7 +2141,9 @@ export const fetchJobById = async (jobId: string): Promise<Job | null> => {
             contract_type: data.contract_type,
             salary_from: data.salary_from,
             salary_to: data.salary_to,
+            salary_currency: data.salary_currency,
             currency: data.currency,
+            salary_timeframe: data.salary_timeframe,
             work_type: data.work_type,
             scraped_at: data.scraped_at,
             source: data.source,
