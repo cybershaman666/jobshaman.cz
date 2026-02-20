@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Job, UserProfile } from '../types';
-import { MapPin, Briefcase, Banknote, Clock, Bookmark, Car, Sparkles, Euro, Home } from 'lucide-react';
+import { MapPin, Briefcase, Banknote, Clock, Bookmark, Car, Sparkles, Euro, Home, AlertTriangle } from 'lucide-react';
 import { calculateCommuteReality, calculateDistanceKm, getCoordinates } from '../services/commuteService';
 import { useTranslation } from 'react-i18next';
 
@@ -84,6 +84,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
   // Check if job has transparent salary information (salary range or both salary_from and salary_to)
   const hasTransparentSalary = !!(job.salaryRange && job.salaryRange !== "Mzda neuvedena" && job.salaryRange !== "Salary not specified") ||
     !!(job.salary_from && job.salary_to);
+  const constraintCompromises = Array.isArray(job.constraint_compromises) ? job.constraint_compromises : [];
 
   // Calculate quick distance if user profile is available
   let distanceBadge = null;
@@ -263,6 +264,15 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
           <Clock size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{job.postedAt}</span>
         </div>
       </div>
+
+      {job.constraint_mode === 'near' && constraintCompromises.length > 0 && (
+        <div className="mt-2 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2 text-xs text-amber-800 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-300">
+          <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
+          <span className="leading-relaxed">
+            <strong>Kompromis:</strong> {constraintCompromises.join(' · ')}
+          </span>
+        </div>
+      )}
 
 
     </div>

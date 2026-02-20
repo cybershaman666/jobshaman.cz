@@ -308,6 +308,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 countryCodes: effectiveCountryCodes,
                 excludeCountryCodes,
                 filterLanguageCodes: filterLanguage ? [filterLanguage] : undefined,
+                jhiPreferences: userProfile.jhiPreferences,
+                userTaxProfile: userProfile.taxProfile,
                 abortSignal: fetchController.signal
             });
             if (isStaleRequest()) return;
@@ -357,7 +359,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [
         initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch, filterLanguage, abroadOnly, sortBy, userProfile.isLoggedIn
+        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch, filterLanguage, abroadOnly, sortBy, userProfile.isLoggedIn, userProfile.jhiPreferences, userProfile.taxProfile
     ]);
 
 
