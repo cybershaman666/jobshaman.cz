@@ -81,7 +81,8 @@
       "default": "Recommended",
       "newest": "Newest",
       "jhi_desc": "JHI highest",
-      "jhi_asc": "JHI lowest"
+      "jhi_asc": "JHI lowest",
+      "personalized_jhi_desc": "Personalized JHI"
     }
   },
   "financial": {
@@ -513,6 +514,48 @@
     "degree": "Degree",
     "field": "Field",
     "year": "Year of Graduation",
+    "tax": {
+      "title": "Tax Profile",
+      "country": "Country",
+      "year": "Tax year",
+      "employment_type": "Employment type",
+      "employee": "Employee",
+      "contractor": "Contractor / self-employed",
+      "marital_status": "Marital status",
+      "single": "Single",
+      "married": "Married",
+      "children": "Children",
+      "spouse_income": "Partner income (annual)"
+    },
+    "jhi": {
+      "title": "JHI Preferences",
+      "explainer": "Set what matters to you most. Higher percentage means stronger impact on your final score.",
+      "weights_auto_normalized": "Note: weights are auto-normalized, so they work even if total is not exactly 100%.",
+      "weights": {
+        "financial": "Money",
+        "timeCost": "Time",
+        "mentalLoad": "Mental well-being",
+        "growth": "Growth",
+        "values": "Values fit"
+      },
+      "constraints": {
+        "must_remote": "Remote only",
+        "exclude_shift": "Exclude shift jobs",
+        "growth_required": "Growth is required",
+        "max_commute": "Max commute (min)",
+        "min_net": "Min net income / month"
+      },
+      "presets": {
+        "balanced": "Balanced",
+        "money": "Max income",
+        "calm": "Max calm"
+      },
+      "work_style": {
+        "peopleIntensity": "People interaction",
+        "careerGrowthPreference": "Career growth focus",
+        "homeOfficePreference": "Home-office preference"
+      }
+    },
     "danger_zone": "Danger Zone",
     "danger_zone_title": "Danger Zone",
     "delete_account_title": "Delete Account",

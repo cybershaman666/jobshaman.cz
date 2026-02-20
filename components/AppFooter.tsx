@@ -6,7 +6,7 @@ interface FooterProps { }
 const Footer: React.FC<FooterProps> = () => {
     const { t } = useTranslation();
     return (
-        <footer className="bg-slate-50 dark:bg-slate-950 border-t border-slate-200 dark:border-slate-800 py-2 px-4 sm:px-6 lg:px-8 mt-auto flex-shrink-0 text-xs">
+        <footer className="bg-slate-50 dark:bg-slate-950 py-2 px-4 sm:px-6 lg:px-8 mt-auto flex-shrink-0 text-xs">
             <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
                 <div className="text-slate-600 dark:text-slate-500">
                     {t('footer.rights_reserved')}

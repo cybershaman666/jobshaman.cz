@@ -15,6 +15,7 @@ import {
 import { refreshCsrfTokenIfNeeded, clearCsrfToken, authenticatedFetch, isBackendNetworkCooldownActive } from '../services/csrfService';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
 import { supabase } from '../services/supabaseClient';
+import { createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from '../services/profileDefaults';
 
 // Default user profile
 const DEFAULT_USER_PROFILE: UserProfile = {
@@ -29,7 +30,9 @@ const DEFAULT_USER_PROFILE: UserProfile = {
         financialGoals: 50,
         commuteTolerance: 45,
         priorities: []
-    }
+    },
+    taxProfile: createDefaultTaxProfileByCountry('CZ'),
+    jhiPreferences: createDefaultJHIPreferences()
 };
 
 const normalizeOrigin = (value: string): string => {

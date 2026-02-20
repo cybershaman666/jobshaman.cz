@@ -2,6 +2,7 @@
 import { refreshSession, supabase } from './supabaseClient';
 import { calculateDistanceKm } from './commuteService';
 import { geocodeWithCaching, normalizeAddress } from './geocodingService';
+import { createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from './profileDefaults';
 export { supabase };
 import { UserProfile, CompanyProfile, CVDocument } from '../types';
 
@@ -78,6 +79,14 @@ const inferCountryCodeFromAddress = (address: string | undefined | null): string
         }
     }
     return null;
+};
+
+const toSupportedCountryCode = (value?: string | null): 'CZ' | 'SK' | 'PL' | 'DE' | 'AT' => {
+    const normalized = String(value || '').toUpperCase();
+    if (normalized === 'CZ' || normalized === 'SK' || normalized === 'PL' || normalized === 'DE' || normalized === 'AT') {
+        return normalized;
+    }
+    return 'CZ';
 };
 
 // Runtime guard for deployments where freelancer tables were removed.
@@ -392,6 +401,39 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         ? profileData.candidate_profiles[0]
         : profileData.candidate_profiles;
 
+    const resolveText = (value: unknown): string => (typeof value === 'string' ? value.trim() : '');
+    let resolvedCvUrl = resolveText(candidateData?.cv_url);
+    let resolvedCvText = resolveText(candidateData?.cv_text);
+    let resolvedCvAiText = resolveText(candidateData?.cv_ai_text);
+
+    // Fallback: if candidate profile CV fields are empty, try active CV document.
+    // This avoids intermittent "missing CV" states when candidate_profiles got stale/overwritten.
+    if (!resolvedCvUrl && !resolvedCvText) {
+        try {
+            const { data: activeCv } = await supabase
+                .from('cv_documents')
+                .select('file_url, parsed_data')
+                .eq('user_id', userId)
+                .eq('is_active', true)
+                .order('last_used', { ascending: false })
+                .limit(1)
+                .maybeSingle();
+
+            const parsedData = (activeCv as any)?.parsed_data || {};
+            const fallbackCvUrl = resolveText((activeCv as any)?.file_url);
+            const fallbackCvText = resolveText(parsedData?.cvText);
+            const fallbackCvAiText = resolveText(parsedData?.cvAiText);
+
+            if (fallbackCvUrl || fallbackCvText || fallbackCvAiText) {
+                resolvedCvUrl = fallbackCvUrl || resolvedCvUrl;
+                resolvedCvText = fallbackCvText || resolvedCvText;
+                resolvedCvAiText = fallbackCvAiText || resolvedCvAiText;
+            }
+        } catch (fallbackError) {
+            console.warn('Failed to resolve active CV fallback for profile:', fallbackError);
+        }
+    }
+
     // Map to UserProfile structure - ENSURE id is always included
     const userProfile: UserProfile = {
         id: profileData.id,
@@ -404,9 +446,9 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         address: candidateData?.address || '',
         coordinates: candidateData?.lat && candidateData?.lng ? { lat: candidateData.lat, lon: candidateData.lng } : undefined,
         transportMode: (candidateData?.transport_mode as any) || 'public',
-        cvText: candidateData?.cv_text || '',
-        cvUrl: candidateData?.cv_url || '',
-        cvAiText: candidateData?.cv_ai_text || '',
+        cvText: resolvedCvText,
+        cvUrl: resolvedCvUrl,
+        cvAiText: resolvedCvAiText,
         skills: candidateData?.skills || [],
         workHistory: candidateData?.work_history || [],
         education: candidateData?.education || [],
@@ -428,6 +470,10 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
             commuteTolerance: 45,
             priorities: []
         },
+        taxProfile: candidateData?.tax_profile || createDefaultTaxProfileByCountry(
+            toSupportedCountryCode(profileData.preferred_country_code)
+        ),
+        jhiPreferences: candidateData?.jhi_preferences || createDefaultJHIPreferences(),
         cvAnalysis: undefined,
         subscription: {
             tier: getTestAccountTier(profileData.email) || profileData.subscription_tier || 'free',
@@ -521,9 +567,21 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
         candidateUpdates.lng = updates.coordinates.lon;
     }
     if (updates.transportMode !== undefined) candidateUpdates.transport_mode = updates.transportMode;
-    if (updates.cvText !== undefined) candidateUpdates.cv_text = updates.cvText;
-    if (updates.cvUrl !== undefined) candidateUpdates.cv_url = updates.cvUrl;
-    if (updates.cvAiText !== undefined) candidateUpdates.cv_ai_text = updates.cvAiText;
+    const normalizeOptionalText = (value: unknown): string | null | undefined => {
+        if (value === undefined) return undefined;
+        if (value === null) return null;
+        if (typeof value !== 'string') return undefined;
+        const trimmed = value.trim();
+        return trimmed.length > 0 ? trimmed : undefined;
+    };
+    const normalizedCvText = normalizeOptionalText((updates as any).cvText);
+    const normalizedCvUrl = normalizeOptionalText((updates as any).cvUrl);
+    const normalizedCvAiText = normalizeOptionalText((updates as any).cvAiText);
+
+    // Guard against accidental clearing when full profile objects are persisted from stale UI state.
+    if (normalizedCvText !== undefined) candidateUpdates.cv_text = normalizedCvText;
+    if (normalizedCvUrl !== undefined) candidateUpdates.cv_url = normalizedCvUrl;
+    if (normalizedCvAiText !== undefined) candidateUpdates.cv_ai_text = normalizedCvAiText;
     if (updates.skills !== undefined) candidateUpdates.skills = updates.skills;
     if (updates.workHistory !== undefined) candidateUpdates.work_history = updates.workHistory;
     if (updates.education !== undefined) candidateUpdates.education = updates.education;
@@ -540,6 +598,8 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
     if (updates.motivations !== undefined) candidateUpdates.motivations = updates.motivations;
     if (updates.workPreferences !== undefined) candidateUpdates.work_preferences = updates.workPreferences;
     if (updates.preferences !== undefined) candidateUpdates.preferences = updates.preferences;
+    if (updates.taxProfile !== undefined) candidateUpdates.tax_profile = updates.taxProfile;
+    if (updates.jhiPreferences !== undefined) candidateUpdates.jhi_preferences = updates.jhiPreferences;
 
     if (Object.keys(candidateUpdates).length > 0) {
         // First check if candidate profile exists

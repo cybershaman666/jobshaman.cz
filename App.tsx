@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react';
 import './src/i18n'; // Initialize i18n
 import { useTranslation } from 'react-i18next';
 import { Job, ViewState, AIAnalysisResult, UserProfile, CommuteAnalysis, CompanyProfile } from './types';
@@ -7,30 +7,19 @@ import { Analytics } from '@vercel/analytics/react';
 import { initialBlogPosts } from './src/data/blogPosts';
 import AppHeader from './components/AppHeader';
 import { generateSEOMetadata, updatePageMeta } from './utils/seo';
-import CompanyDashboard from './components/CompanyDashboard';
-import CourseProviderDashboard from './components/CourseProviderDashboard';
 import CompanyOnboarding from './components/CompanyOnboarding';
-import ProfileEditor from './components/ProfileEditor';
 import AuthModal from './components/AuthModal';
 import CandidateOnboardingModal from './components/CandidateOnboardingModal';
 import ApplyFollowupModal from './components/ApplyFollowupModal';
 import CompanyRegistrationModal from './components/CompanyRegistrationModal';
 import FreelancerRegistrationModal from './components/FreelancerRegistrationModal';
 import CourseProviderRegistrationModal from './components/CourseProviderRegistrationModal';
-import ServicesMarketplace from './components/ServicesMarketplace';
 import EnterpriseSignup from './components/EnterpriseSignup';
-import CompanyLandingPage from './components/CompanyLandingPage';
 import ApplicationModal from './components/ApplicationModal';
 import CookieBanner from './components/CookieBanner';
 import PodminkyUziti from './pages/PodminkyUziti';
 import OchranaSoukromi from './pages/OchranaSoukromi';
-import AdminDashboard from './pages/AdminDashboard';
-import SavedJobsPage from './components/SavedJobsPage';
 import JobListSidebar from './components/JobListSidebar';
-import JobDetailView from './components/JobDetailView';
-import MobileSwipeJobBrowser from './components/MobileSwipeJobBrowser';
-
-import InvitationLanding from './pages/InvitationLanding';
 import PremiumUpgradeModal from './components/PremiumUpgradeModal';
 import { analyzeJobDescription } from './services/geminiService';
 import { calculateCommuteReality } from './services/commuteService';
@@ -54,6 +43,7 @@ import {
     calculateNetBenefitBonus,
     calculateOverallScore
 } from './utils/jhi';
+import { calculateJHI } from './utils/jhiCalculator';
 import { formatJobDescription } from './utils/formatters';
 import {
     Car,
@@ -78,6 +68,17 @@ type PendingApplyFollowup = {
 
 const APPLY_FOLLOWUP_STORAGE_KEY = 'jobshaman_apply_followup';
 const EMAIL_CONFIRMATION_STORAGE_KEY = 'jobshaman_email_confirmation_pending';
+
+const CompanyDashboard = lazy(() => import('./components/CompanyDashboard'));
+const CourseProviderDashboard = lazy(() => import('./components/CourseProviderDashboard'));
+const ProfileEditor = lazy(() => import('./components/ProfileEditor'));
+const ServicesMarketplace = lazy(() => import('./components/ServicesMarketplace'));
+const CompanyLandingPage = lazy(() => import('./components/CompanyLandingPage'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+const SavedJobsPage = lazy(() => import('./components/SavedJobsPage'));
+const JobDetailView = lazy(() => import('./components/JobDetailView'));
+const MobileSwipeJobBrowser = lazy(() => import('./components/MobileSwipeJobBrowser'));
+const InvitationLanding = lazy(() => import('./pages/InvitationLanding'));
 
 // JHI and formatting utilities now imported from utils/
 
@@ -442,7 +443,26 @@ export default function App() {
         return () => window.removeEventListener('resize', handleResize);
     }, [userProfile.isLoggedIn, mobileViewOverride]);
 
-    const selectedJob = filteredJobs.find(j => j.id === selectedJobId) || directlyFetchedJob;
+    const jobsForDisplay = useMemo(() => {
+        const personalized = filteredJobs.map((job) => ({
+            ...job,
+            jhi: calculateJHI({
+                salary_from: job.salary_from,
+                salary_to: job.salary_to,
+                type: job.type,
+                benefits: job.benefits,
+                description: job.description,
+                location: job.location,
+                distanceKm: job.distanceKm
+            }, 0, effectiveUserProfile.jhiPreferences)
+        }));
+        if (sortBy === 'personalized_jhi_desc') {
+            return personalized.sort((a, b) => (b.jhi.personalizedScore || b.jhi.score) - (a.jhi.personalizedScore || a.jhi.score));
+        }
+        return personalized;
+    }, [filteredJobs, sortBy, effectiveUserProfile.jhiPreferences]);
+
+    const selectedJob = jobsForDisplay.find(j => j.id === selectedJobId) || directlyFetchedJob;
 
     // --- EFFECTS ---
 
@@ -510,10 +530,15 @@ export default function App() {
         const appUrl = window.location.origin;
 
         (async () => {
-            const ok = await sendWelcomeEmail(locale, appUrl);
-            if (ok) {
-                await refreshUserProfile();
-            } else {
+            try {
+                const ok = await sendWelcomeEmail(locale, appUrl);
+                if (ok) {
+                    await refreshUserProfile();
+                } else {
+                    welcomeEmailAttemptedRef.current = false;
+                }
+            } catch (error) {
+                console.warn('Welcome email flow failed:', error);
                 welcomeEmailAttemptedRef.current = false;
             }
         })();
@@ -1194,7 +1219,7 @@ export default function App() {
 
     const handleToggleSave = (jobId: string) => {
         const isAlreadySaved = savedJobIds.includes(jobId);
-        const job = filteredJobs.find((j) => j.id === jobId) || (selectedJob?.id === jobId ? selectedJob : null);
+        const job = jobsForDisplay.find((j) => j.id === jobId) || (selectedJob?.id === jobId ? selectedJob : null);
         const requestId = (job as any)?.requestId || (job as any)?.aiRecommendationRequestId;
         const scoringVersion = (job as any)?.aiMatchScoringVersion;
         const modelVersion = (job as any)?.aiMatchModelVersion;
@@ -1304,7 +1329,7 @@ export default function App() {
 
     const handleJobSelect = (jobId: string | null) => {
         if (jobId) {
-            const job = filteredJobs.find((j) => j.id === jobId) || (selectedJob?.id === jobId ? selectedJob : null);
+            const job = jobsForDisplay.find((j) => j.id === jobId) || (selectedJob?.id === jobId ? selectedJob : null);
             trackJobInteraction({
                 jobId,
                 eventType: 'open_detail',
@@ -1495,7 +1520,7 @@ export default function App() {
                         onSave={handleProfileSave}
                         onRefreshProfile={refreshUserProfile}
                         onDeleteAccount={deleteAccount}
-                        savedJobs={filteredJobs.filter(job => savedJobIds.includes(job.id))}
+                        savedJobs={jobsForDisplay.filter(job => savedJobIds.includes(job.id))}
                         savedJobIds={savedJobIds}
                         onToggleSave={handleToggleSave}
                         onJobSelect={handleJobSelect}
@@ -1575,7 +1600,7 @@ export default function App() {
                         onSave={handleProfileSave} // Explicit save button
                         onRefreshProfile={refreshUserProfile}
                         onDeleteAccount={deleteAccount}
-                        savedJobs={filteredJobs.filter(job => savedJobIds.includes(job.id))}
+                        savedJobs={jobsForDisplay.filter(job => savedJobIds.includes(job.id))}
                         savedJobIds={savedJobIds}
                         onToggleSave={handleToggleSave}
                         onJobSelect={handleJobSelect}
@@ -1588,7 +1613,7 @@ export default function App() {
 
 
         if (viewState === ViewState.SAVED) {
-            const savedJobs = filteredJobs.filter(job => savedJobIds.includes(job.id));
+            const savedJobs = jobsForDisplay.filter(job => savedJobIds.includes(job.id));
             return (
                 <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
                     <SavedJobsPage
@@ -1638,7 +1663,9 @@ export default function App() {
             dynamicJHI.growth = clamp(dynamicJHI.growth + netBonus);
 
             // Final score
-            dynamicJHI.score = calculateOverallScore(dynamicJHI);
+            const recomputedScore = calculateOverallScore(dynamicJHI);
+            dynamicJHI.score = recomputedScore;
+            dynamicJHI.personalizedScore = recomputedScore;
         }
 
         // Determine what to show in the Financial Card
@@ -1659,7 +1686,7 @@ export default function App() {
                 {isMobileSwipeView && userProfile.isLoggedIn ? (
                     <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
                         <MobileSwipeJobBrowser
-                            jobs={filteredJobs}
+                            jobs={jobsForDisplay}
                             savedJobIds={savedJobIds}
                             onToggleSave={handleToggleSave}
                             onOpenDetails={handleOpenJobDetailsFromSwipe}
@@ -1721,7 +1748,7 @@ export default function App() {
                             setSortBy={setSortBy}
                             isLoadingJobs={isLoadingJobs}
                             isSearching={isSearching}
-                            filteredJobs={filteredJobs}
+                            filteredJobs={jobsForDisplay}
                             savedJobIds={savedJobIds}
                             handleToggleSave={handleToggleSave}
                             handleJobSelect={handleJobSelect}
@@ -1836,9 +1863,17 @@ export default function App() {
                 </div>
             )}
 
-            <main className="flex-1 max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 overflow-hidden">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-120px)]">
-                    {renderContent()}
+            <main className="flex-1 min-h-0 max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 overflow-hidden">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100dvh-120px)]">
+                    <Suspense
+                        fallback={
+                            <div className="col-span-1 lg:col-span-12 flex items-center justify-center py-16">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div>
+                            </div>
+                        }
+                    >
+                        {renderContent()}
+                    </Suspense>
                 </div>
             </main>
 

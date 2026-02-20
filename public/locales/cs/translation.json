@@ -81,7 +81,8 @@
       "default": "Doporučené",
       "newest": "Nejnovější",
       "jhi_desc": "JHI od nejvyššího",
-      "jhi_asc": "JHI od nejnižšího"
+      "jhi_asc": "JHI od nejnižšího",
+      "personalized_jhi_desc": "Personalizované JHI"
     }
   },
   "financial": {
@@ -565,6 +566,48 @@
     "github_placeholder": "github.com/jmeno",
     "transport_pref": "Preferovaná doprava",
     "transport_desc": "Jak se raději dopravujete do práce? Tuto informaci budeme používat ve \"Finanční a dojezdové realitě\" u každé pozice.",
+    "tax": {
+      "title": "Daňový profil",
+      "country": "Země",
+      "year": "Rok",
+      "employment_type": "Typ práce",
+      "employee": "Zaměstnanec",
+      "contractor": "OSVČ / kontraktor",
+      "marital_status": "Rodinný stav",
+      "single": "Svobodný/á",
+      "married": "Ženatý/vdaná",
+      "children": "Počet dětí",
+      "spouse_income": "Příjem partnera/ky (ročně)"
+    },
+    "jhi": {
+      "title": "JHI preference",
+      "explainer": "Nastavte, co je pro vás důležité. Čím vyšší procento, tím větší vliv dané oblasti na výsledné skóre.",
+      "weights_auto_normalized": "Pozn.: váhy se automaticky normalizují, takže fungují i když jejich součet není přesně 100 %.",
+      "weights": {
+        "financial": "Finance",
+        "timeCost": "Čas",
+        "mentalLoad": "Psychická pohoda",
+        "growth": "Růst",
+        "values": "Soulad hodnot"
+      },
+      "constraints": {
+        "must_remote": "Chci pouze remote",
+        "exclude_shift": "Nechci směnný provoz",
+        "growth_required": "Chci možnost růstu",
+        "max_commute": "Max. dojíždění (min)",
+        "min_net": "Min. čistý příjem / měsíc"
+      },
+      "presets": {
+        "balanced": "Rovnováha",
+        "money": "Max příjem",
+        "calm": "Max klid"
+      },
+      "work_style": {
+        "peopleIntensity": "Kontakt s lidmi",
+        "careerGrowthPreference": "Důraz na kariérní růst",
+        "homeOfficePreference": "Preference home office"
+      }
+    },
     "photo_upload_success": "Fotka úspěšně nahrána!",
     "photo_upload_error": "Nepodařilo se nahrát fotku. Zkuste to znovu.",
     "photo_uploading": "Nahrávám...",

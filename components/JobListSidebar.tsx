@@ -239,6 +239,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                     <option value="newest">{t('filters.sort_options.newest')}</option>
                                     <option value="jhi_desc">{t('filters.sort_options.jhi_desc')}</option>
                                     <option value="jhi_asc">{t('filters.sort_options.jhi_asc')}</option>
+                                    <option value="personalized_jhi_desc">{t('filters.sort_options.personalized_jhi_desc') || 'Personalizované JHI'}</option>
                                 </select>
                             </div>
                         </div>
