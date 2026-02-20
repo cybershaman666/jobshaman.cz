@@ -23,6 +23,7 @@ interface ScrapedJob {
     salary_to?: number | string;
     currency?: string;
     salary_currency?: string;
+    salary_timeframe?: string;
     work_type?: string;
     work_model?: string;
     scraped_at?: string;
@@ -45,6 +46,29 @@ const safeParseInt = (value: any): number | undefined => {
     if (value === undefined || value === null) return undefined;
     const parsed = parseInt(String(value), 10);
     return isNaN(parsed) ? undefined : parsed;
+};
+
+const hasShortSalaryTimeframe = (salaryTimeframe: unknown, contextText: string): boolean => {
+    const timeframe = String(salaryTimeframe || '').toLowerCase();
+    if (timeframe === 'hour' || timeframe === 'day' || timeframe === 'week') return true;
+
+    const context = (contextText || '').toLowerCase();
+    return (
+        /(^|[^\w])(kč|kc|czk)\s*\/\s*h([^\w]|$)/i.test(context) ||
+        /(^|[^\w])\/\s*(h|hod|hod\.|hodin|hour|day|den|week|tyd)([^\w]|$)/i.test(context) ||
+        /\b(hodinov[aá]|hourly|denn[ií]|daily|t[ýy]denn[ií]|weekly)\b/i.test(context)
+    );
+};
+
+const normalizeSalaryAmount = (
+    value: number | undefined,
+    salaryTimeframe: unknown,
+    contextText: string
+): number | undefined => {
+    if (!value) return value;
+    if (value >= 1000) return value;
+    if (hasShortSalaryTimeframe(salaryTimeframe, contextText)) return value;
+    return value * 1000;
 };
 
 const calculateDistanceKm = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -239,8 +263,17 @@ const BENEFIT_PATTERNS = [
 
 // Job transformation helper
 const transformJob = (scrapedJob: any): Job => {
-    const salaryFrom = safeParseInt(scrapedJob.salary_from);
-    const salaryTo = safeParseInt(scrapedJob.salary_to);
+    const salaryContext = `${scrapedJob.title || ''} ${scrapedJob.description || ''}`;
+    const salaryFrom = normalizeSalaryAmount(
+        safeParseInt(scrapedJob.salary_from),
+        scrapedJob.salary_timeframe,
+        salaryContext
+    );
+    const salaryTo = normalizeSalaryAmount(
+        safeParseInt(scrapedJob.salary_to),
+        scrapedJob.salary_timeframe,
+        salaryContext
+    );
     const currency = scrapedJob.salary_currency || scrapedJob.currency;
     const salaryRange = formatSalaryRange(salaryFrom, salaryTo, currency, scrapedJob.location, scrapedJob.country_code);
 
@@ -303,6 +336,7 @@ const transformJob = (scrapedJob: any): Job => {
         required_skills: [], // Initialize empty array
         salary_from: salaryFrom || undefined,
         salary_to: salaryTo || undefined,
+        salary_timeframe: scrapedJob.salary_timeframe,
         country_code: scrapedJob.country_code,
         language_code: scrapedJob.language_code,
         // Map cached AI analysis if present
@@ -440,6 +474,7 @@ export const fetchJobsPaginated = async (
                     contract_type: row.contract_type,
                     salary_from: row.salary_from,
                     salary_to: row.salary_to,
+                    salary_timeframe: row.salary_timeframe,
                     work_type: row.work_type,
                     scraped_at: row.scraped_at,
                     source: row.source,
@@ -1527,6 +1562,7 @@ export const fetchJobsWithFilters = async (
                     contract_type: row.contract_type,
                     salary_from: row.salary_from,
                     salary_to: row.salary_to,
+                    salary_timeframe: row.salary_timeframe,
                     work_type: row.work_type,
                     work_model: row.work_model,
                     scraped_at: row.scraped_at,
@@ -1571,6 +1607,7 @@ export const fetchJobsWithFilters = async (
                     contract_type: row.contract_type,
                     salary_from: row.salary_from,
                     salary_to: row.salary_to,
+                    salary_timeframe: row.salary_timeframe,
                     work_type: row.work_type,
                     work_model: row.work_model,
                     scraped_at: row.scraped_at,
@@ -1830,6 +1867,7 @@ export const fetchJobsWithFilters = async (
                 contract_type: row.contract_type,
                 salary_from: row.salary_from,
                 salary_to: row.salary_to,
+                salary_timeframe: row.salary_timeframe,
                 work_type: row.work_type,
                 scraped_at: row.scraped_at,
                 source: row.source,
@@ -2102,14 +2140,11 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
             // 2. Salary Processing
             let salaryFrom = safeParseInt(scraped.salary_from);
             let salaryTo = safeParseInt(scraped.salary_to);
+            const salaryContext = `${scraped.title || ''} ${fullDesc}`;
 
             // Fix for salaries stored as thousands (e.g., 38 should be 38,000)
-            if (salaryFrom && salaryFrom < 1000) {
-                salaryFrom = salaryFrom * 1000;
-            }
-            if (salaryTo && salaryTo < 1000) {
-                salaryTo = salaryTo * 1000;
-            }
+            salaryFrom = normalizeSalaryAmount(salaryFrom, scraped.salary_timeframe, salaryContext);
+            salaryTo = normalizeSalaryAmount(salaryTo, scraped.salary_timeframe, salaryContext);
 
             const currency = scraped.salary_currency || scraped.currency;
             const salaryRange = formatSalaryRange(salaryFrom, salaryTo, currency, scraped.location, scraped.country_code);
@@ -2252,6 +2287,9 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
                 benefits: benefits,
                 contextualRelevance: contextualRelevance,
                 required_skills: [],
+                salary_from: salaryFrom || undefined,
+                salary_to: salaryTo || undefined,
+                salary_timeframe: scraped.salary_timeframe,
                 legality_status: scraped.legality_status,
                 legality_reasons: scraped.verification_notes ? scraped.verification_notes.split(',').map((s: string) => s.trim()) : []
             };

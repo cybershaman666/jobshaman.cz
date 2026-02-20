@@ -160,6 +160,7 @@ export interface Job {
   lng?: number;
   salary_from?: number;
   salary_to?: number;
+  salary_timeframe?: string;
   distanceKm?: number;
   searchScore?: number;
   rankPosition?: number;
@@ -226,6 +227,7 @@ export interface DatabaseJob {
   contract_type?: string;
   salary_from?: number | string | null;
   salary_to?: number | string | null;
+  salary_timeframe?: string | null;
   work_type?: string;
   scraped_at?: string;
   source?: string;
