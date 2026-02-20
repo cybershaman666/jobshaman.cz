@@ -12,7 +12,8 @@ import {
     CheckCircle,
     RefreshCw,
     Globe,
-    ArrowUp
+    ArrowUp,
+    AlertTriangle
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { FilterSuggestions } from './FilterSuggestions';
@@ -120,6 +121,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     onTrackImpression
 }) => {
     const { t, i18n } = useTranslation();
+    const hasNearConstraintMatches = filteredJobs.some((job) => job.constraint_mode === 'near');
     const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const seenImpressionsRef = useRef<Set<string>>(new Set());
     const lastRequestIdRef = useRef<string | null>(null);
@@ -600,6 +602,17 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                             <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                                 {t('app.found_jobs', { count: totalCount })}
                             </span>
+                        </div>
+                    )}
+                    {hasNearConstraintMatches && !isLoadingJobs && (
+                        <div className="mb-3 rounded-lg border border-cyan-200 bg-cyan-50/80 px-3 py-2 text-xs text-cyan-900 dark:border-cyan-800/70 dark:bg-cyan-950/30 dark:text-cyan-200">
+                            <div className="flex items-start gap-2">
+                                <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-cyan-700 dark:text-cyan-300" />
+                                <div>
+                                    <p className="font-semibold">{t('app.near_matches_banner_title')}</p>
+                                    <p className="opacity-90">{t('app.near_matches_banner_desc')}</p>
+                                </div>
+                            </div>
                         </div>
                     )}
                     {isLoadingJobs && filteredJobs.length > 0 && (

@@ -1440,17 +1440,17 @@ export const fetchJobsWithFilters = async (
         const desc = String(job.description || '').toLowerCase();
 
         if (constraints.mustRemote && !(type.includes('remote') || workModel.includes('remote'))) {
-            violations.push('Není remote');
+            violations.push('remote_required');
             distance += 100;
         }
 
         if (constraints.excludeShift && /směn|smen|shift|schicht/.test(desc)) {
-            violations.push('Směnný provoz');
+            violations.push('shift_excluded');
             distance += 60;
         }
 
         if (constraints.growthRequired && Number(job.jhi?.growth || 0) < 55) {
-            violations.push('Nízký růst');
+            violations.push('growth_required');
             distance += 45;
         }
 
@@ -1460,7 +1460,7 @@ export const fetchJobsWithFilters = async (
                 const commuteMinutes = Math.round(distanceKm * 2.5 * 2);
                 if (commuteMinutes > constraints.maxCommuteMinutes) {
                     const overBy = commuteMinutes - constraints.maxCommuteMinutes;
-                    violations.push(`Dojíždění +${overBy} min`);
+                    violations.push(`commute_over:${overBy}`);
                     distance += Math.min(80, overBy);
                 }
             }
@@ -1482,11 +1482,11 @@ export const fetchJobsWithFilters = async (
                 );
                 if (taxResult.net < constraints.minNetMonthly) {
                     const deficit = Math.round(constraints.minNetMonthly - taxResult.net);
-                    violations.push(`Čistý příjem -${deficit.toLocaleString('cs-CZ')}`);
+                    violations.push(`net_below:${deficit}`);
                     distance += Math.min(120, Math.round(deficit / 1000) * 8);
                 }
             } else {
-                violations.push('Neznámý čistý příjem');
+                violations.push('net_unknown');
                 distance += 50;
             }
         }

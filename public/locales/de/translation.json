@@ -26,7 +26,18 @@
     "back_to_top": "Nach oben",
     "backend_wake_title": "Ich wecke das Backend auf… ☕🔮",
     "backend_wake_desc": "Das dauert einen Moment - ich prüfe, ob der Server schon aus dem Bett ist. Ich versuche es automatisch erneut.",
-    "backend_wake_waiting": "Warte auf das Backend…"
+    "backend_wake_waiting": "Warte auf das Backend…",
+    "near_matches_banner_title": "Wir zeigen die nächstbesten passenden Optionen",
+    "near_matches_banner_desc": "Ihre aktiven Einschränkungen sind streng, daher zeigen wir Angebote mit dem kleinsten Kompromiss.",
+    "constraint_compromise": {
+      "label": "Kompromiss:",
+      "remote_required": "Nicht vollständig remote",
+      "shift_excluded": "Enthält Schichtarbeit",
+      "growth_required": "Geringeres Wachstumspotenzial",
+      "commute_over": "Pendeln +{{minutes}} Min.",
+      "net_below": "Nettoeinkommen liegt um {{amount}} unter Ihrem Minimum",
+      "net_unknown": "Nettoeinkommen kann nicht zuverlässig geschätzt werden"
+    }
   },
   "filters": {
     "location_commute": "Standort und Arbeitsweg",

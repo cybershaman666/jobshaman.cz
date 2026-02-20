@@ -28,7 +28,18 @@
     "back_to_top": "Na vrch",
     "backend_wake_title": "Prebúdzam backend… ☕🔮",
     "backend_wake_desc": "Chvíľu to trvá - kontrolujem, či server už vstal z postele. Skúsim to znovu automaticky.",
-    "backend_wake_waiting": "Čakám na backend…"
+    "backend_wake_waiting": "Čakám na backend…",
+    "near_matches_banner_title": "Zobrazujeme najbližšie možné varianty",
+    "near_matches_banner_desc": "Aktívne obmedzenia sú prísne, preto zobrazujeme ponuky s najmenším kompromisom.",
+    "constraint_compromise": {
+      "label": "Kompromis:",
+      "remote_required": "Nie je plne remote",
+      "shift_excluded": "Obsahuje zmenovú prevádzku",
+      "growth_required": "Nižší rastový potenciál",
+      "commute_over": "Dochádzanie +{{minutes}} min",
+      "net_below": "Čistý príjem je o {{amount}} pod minimom",
+      "net_unknown": "Čistý príjem sa nedá spoľahlivo odhadnúť"
+    }
   },
   "filters": {
     "location_commute": "Lokalita a Dojazd",
