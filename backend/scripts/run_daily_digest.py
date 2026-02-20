@@ -1,5 +1,12 @@
 import sys
 from datetime import datetime, timezone
+from pathlib import Path
+
+# Allow running this file directly (e.g. /backend/scripts/run_daily_digest.py)
+# while still resolving imports from /backend/app.
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+if str(BACKEND_ROOT) not in sys.path:
+    sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.services.daily_digest import run_daily_job_digest
 
