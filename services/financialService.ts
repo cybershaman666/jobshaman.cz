@@ -153,6 +153,23 @@ const hasMonthlyMarker = (text: string): boolean =>
 const hasShortTimeframeMarker = (text: string): boolean =>
   /(?:\/\s*h|\/\s*hod|hodin|hour|hourly|\/\s*den|daily|\/\s*t[ýy]d|weekly)/i.test(text);
 
+const WORK_DAYS_PER_MONTH = 22;
+const WORK_HOURS_PER_DAY = 8;
+const WEEKS_PER_MONTH = 4.345;
+
+const convertShortTimeframeToMonthly = (amount: number, timeframe: 'hour' | 'day' | 'week'): number => {
+  if (timeframe === 'hour') return Math.round(amount * WORK_DAYS_PER_MONTH * WORK_HOURS_PER_DAY);
+  if (timeframe === 'day') return Math.round(amount * WORK_DAYS_PER_MONTH);
+  return Math.round(amount * WEEKS_PER_MONTH);
+};
+
+const detectShortTimeframe = (text: string): 'hour' | 'day' | 'week' | null => {
+  if (/(?:\/\s*h|\/\s*hod|hodin|hour|hourly)/i.test(text)) return 'hour';
+  if (/(?:\/\s*den|daily)/i.test(text)) return 'day';
+  if (/(?:\/\s*t[ýy]d|weekly)/i.test(text)) return 'week';
+  return null;
+};
+
 const inferAnnualByAmount = (amount: number, currency: string): boolean => {
   const code = normalizeCurrencyCode(currency);
   if (code === 'EUR') return amount >= 10000;
@@ -172,10 +189,16 @@ const normalizeSalaryToMonthly = (
   const tf = String(timeframe || '').toLowerCase();
   if (tf === 'year' || tf === 'yearly' || tf === 'annual') return Math.round(amount / 12);
   if (tf === 'month' || tf === 'monthly') return amount;
-  if (tf === 'hour' || tf === 'day' || tf === 'week') return amount;
+  if (tf === 'hour' || tf === 'hourly') return convertShortTimeframeToMonthly(amount, 'hour');
+  if (tf === 'day' || tf === 'daily') return convertShortTimeframeToMonthly(amount, 'day');
+  if (tf === 'week' || tf === 'weekly') return convertShortTimeframeToMonthly(amount, 'week');
 
   const lower = (contextText || '').toLowerCase();
-  if (hasShortTimeframeMarker(lower)) return amount;
+  if (hasShortTimeframeMarker(lower)) {
+    const detected = detectShortTimeframe(lower);
+    if (detected) return convertShortTimeframeToMonthly(amount, detected);
+    return amount;
+  }
   if (hasMonthlyMarker(lower)) return amount;
   if (hasYearlyMarker(lower)) return Math.round(amount / 12);
   if (inferAnnualByAmount(amount, currency)) return Math.round(amount / 12);
@@ -204,6 +227,11 @@ export const parseMonthlySalary = (salaryRange: string | undefined): number => {
   // Handle "k" suffix (e.g. 85k)
   if (hasThousandSuffix && value < 1000) {
     value *= 1000;
+  }
+
+  if (hasShortTimeframeMarker(lower)) {
+    const detected = detectShortTimeframe(lower);
+    if (detected) return convertShortTimeframeToMonthly(value, detected);
   }
 
   if (hasThousandSuffix || isAnnualByText || (inferAnnualByAmount(value, currency) && !hasMonthlyMarker(lower) && !hasShortTimeframeMarker(lower))) {
