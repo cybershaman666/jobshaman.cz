@@ -81,7 +81,8 @@
       "default": "Empfohlen",
       "newest": "Neueste",
       "jhi_desc": "JHI absteigend",
-      "jhi_asc": "JHI aufsteigend"
+      "jhi_asc": "JHI aufsteigend",
+      "personalized_jhi_desc": "Personalisiertes JHI"
     }
   },
   "financial": {
@@ -513,6 +514,48 @@
     "degree": "Abschluss",
     "field": "Fachrichtung",
     "year": "Abschlussjahr",
+    "tax": {
+      "title": "Steuerprofil",
+      "country": "Land",
+      "year": "Steuerjahr",
+      "employment_type": "Beschäftigungsart",
+      "employee": "Angestellt",
+      "contractor": "Selbstständig / Auftragnehmer",
+      "marital_status": "Familienstand",
+      "single": "Ledig",
+      "married": "Verheiratet",
+      "children": "Kinder",
+      "spouse_income": "Einkommen Partner/in (jährlich)"
+    },
+    "jhi": {
+      "title": "JHI-Präferenzen",
+      "explainer": "Legen Sie fest, was Ihnen wichtig ist. Ein höherer Prozentsatz hat mehr Einfluss auf den End-Score.",
+      "weights_auto_normalized": "Hinweis: Gewichte werden automatisch normalisiert, auch wenn die Summe nicht exakt 100 % ist.",
+      "weights": {
+        "financial": "Finanzen",
+        "timeCost": "Zeit",
+        "mentalLoad": "Psychisches Wohlbefinden",
+        "growth": "Entwicklung",
+        "values": "Werte-Fit"
+      },
+      "constraints": {
+        "must_remote": "Nur Remote",
+        "exclude_shift": "Schichtarbeit ausschließen",
+        "growth_required": "Entwicklung erforderlich",
+        "max_commute": "Max. Pendelzeit (Min.)",
+        "min_net": "Min. Nettoeinkommen / Monat"
+      },
+      "presets": {
+        "balanced": "Balance",
+        "money": "Max Einkommen",
+        "calm": "Max Ruhe"
+      },
+      "work_style": {
+        "peopleIntensity": "Kontakt mit Menschen",
+        "careerGrowthPreference": "Fokus auf Karrierewachstum",
+        "homeOfficePreference": "Home-Office-Präferenz"
+      }
+    },
     "danger_zone": "Gefahrenzone",
     "danger_zone_title": "Gefahrenzone",
     "delete_account_title": "Konto löschen",

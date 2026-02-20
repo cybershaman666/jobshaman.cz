@@ -1,11 +1,57 @@
 
 export interface JHI {
   score: number; // 0-100
+  baseScore: number; // Cross-user comparable baseline score
+  personalizedScore: number; // User-specific score after preferences
   financial: number;
   timeCost: number;
   mentalLoad: number;
   growth: number;
   values: number;
+  explanations?: string[];
+}
+
+export type SupportedCountryCode = 'CZ' | 'SK' | 'PL' | 'DE' | 'AT';
+export type EmploymentType = 'employee' | 'contractor';
+export type MaritalStatus = 'single' | 'married';
+
+export interface TaxProfile {
+  countryCode: SupportedCountryCode;
+  taxYear: number;
+  employmentType: EmploymentType;
+  maritalStatus: MaritalStatus;
+  spouseAnnualIncome?: number;
+  childrenCount: number;
+  isSingleParent?: boolean;
+  specialReliefs?: string[];
+}
+
+export interface JHIPillarWeights {
+  financial: number;
+  timeCost: number;
+  mentalLoad: number;
+  growth: number;
+  values: number;
+}
+
+export interface JHIHardConstraints {
+  mustRemote: boolean;
+  maxCommuteMinutes: number | null;
+  minNetMonthly: number | null;
+  excludeShift: boolean;
+  growthRequired: boolean;
+}
+
+export interface JHIWorkStyle {
+  peopleIntensity: number; // 0-100
+  careerGrowthPreference: number; // 0-100
+  homeOfficePreference: number; // 0-100
+}
+
+export interface JHIPreferences {
+  pillarWeights: JHIPillarWeights;
+  hardConstraints: JHIHardConstraints;
+  workStyle: JHIWorkStyle;
 }
 
 export interface NoiseMetrics {
@@ -336,6 +382,8 @@ export interface UserProfile {
     commuteTolerance: number; // Minutes
     priorities: string[]; // e.g. "Dog Friendly", "Wheelchair Access"
   };
+  taxProfile?: TaxProfile;
+  jhiPreferences?: JHIPreferences;
   hasAssessment?: boolean;
   subscription?: {
     tier: CandidateSubscriptionTier;
@@ -456,6 +504,15 @@ export interface FinancialReality {
   finalRealMonthlyValue: number; // Net + Benefits - Commute
   scoreAdjustment: number;
   isIco: boolean; // Is contractor
+  taxBreakdown?: {
+    incomeTax: number;
+    employeeSocial: number;
+    employeeHealth: number;
+    reliefsApplied: number;
+    details: string[];
+    effectiveRate: number;
+  };
+  ruleVersion?: string;
 }
 
 export interface SkillsGapAnalysis {

@@ -721,7 +721,7 @@ export interface JobFilterOptions {
     // Languages
     filterLanguageCodes?: string[];
     searchTerm?: string;
-    sortMode?: 'default' | 'newest' | 'jhi_desc' | 'jhi_asc' | 'recommended';
+    sortMode?: 'default' | 'newest' | 'jhi_desc' | 'jhi_asc' | 'recommended' | 'personalized_jhi_desc';
     abortSignal?: AbortSignal;
 }
 
@@ -1087,7 +1087,7 @@ const getDatePostedCutoffMs = (filterDatePosted: string): number | null => {
 
 const sortJobsForMode = (
     jobs: Job[],
-    sortMode: 'default' | 'newest' | 'jhi_desc' | 'jhi_asc' | 'recommended'
+    sortMode: 'default' | 'newest' | 'jhi_desc' | 'jhi_asc' | 'recommended' | 'personalized_jhi_desc'
 ): Job[] => {
     if (!jobs.length || sortMode === 'default' || sortMode === 'recommended') {
         return jobs;
@@ -1102,6 +1102,9 @@ const sortJobsForMode = (
     }
     if (sortMode === 'jhi_asc') {
         return sorted.sort((a, b) => (a.jhi?.score || 0) - (b.jhi?.score || 0));
+    }
+    if (sortMode === 'personalized_jhi_desc') {
+        return sorted.sort((a, b) => (b.jhi?.personalizedScore || b.jhi?.score || 0) - (a.jhi?.personalizedScore || a.jhi?.score || 0));
     }
     return jobs;
 };

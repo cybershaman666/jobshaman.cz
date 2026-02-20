@@ -171,6 +171,31 @@ const FinancialRealityComponent: React.FC<FinancialRealityComponentProps> = ({
         </div>
       </div>
 
+      {(financialReality.ruleVersion || financialReality.taxBreakdown) && (
+        <div className="mt-4 bg-white dark:bg-slate-800 rounded-lg p-4 border border-emerald-100 dark:border-emerald-700">
+          <h4 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Legislativní výpočet</h4>
+          {financialReality.ruleVersion && (
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">Ruleset: {financialReality.ruleVersion}</p>
+          )}
+          {financialReality.taxBreakdown && (
+            <div className="space-y-1 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-600 dark:text-slate-300">Daň z příjmu</span>
+                <span className="text-slate-900 dark:text-white">{formatCurrency(financialReality.taxBreakdown.incomeTax, financialReality.currency)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600 dark:text-slate-300">Sociální</span>
+                <span className="text-slate-900 dark:text-white">{formatCurrency(financialReality.taxBreakdown.employeeSocial, financialReality.currency)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600 dark:text-slate-300">Zdravotní</span>
+                <span className="text-slate-900 dark:text-white">{formatCurrency(financialReality.taxBreakdown.employeeHealth, financialReality.currency)}</span>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* JHI Score Impact */}
       {financialReality.scoreAdjustment !== 0 && (
         <div className="mt-4 p-3 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg border border-emerald-200 dark:border-emerald-700">

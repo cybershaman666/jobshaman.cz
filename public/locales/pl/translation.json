@@ -81,7 +81,8 @@
       "default": "Polecane",
       "newest": "Najnowsze",
       "jhi_desc": "JHI malejąco",
-      "jhi_asc": "JHI rosnąco"
+      "jhi_asc": "JHI rosnąco",
+      "personalized_jhi_desc": "Spersonalizowane JHI"
     }
   },
   "financial": {
@@ -513,6 +514,48 @@
     "degree": "Stopień",
     "field": "Kierunek",
     "year": "Rok ukończenia",
+    "tax": {
+      "title": "Profil podatkowy",
+      "country": "Kraj",
+      "year": "Rok podatkowy",
+      "employment_type": "Typ zatrudnienia",
+      "employee": "Pracownik",
+      "contractor": "Kontraktor / samozatrudniony",
+      "marital_status": "Stan cywilny",
+      "single": "Singiel",
+      "married": "Małżeństwo",
+      "children": "Liczba dzieci",
+      "spouse_income": "Dochód partnera/partnerki (rocznie)"
+    },
+    "jhi": {
+      "title": "Preferencje JHI",
+      "explainer": "Ustaw, co jest dla Ciebie najważniejsze. Im wyższy procent, tym większy wpływ na końcowy wynik.",
+      "weights_auto_normalized": "Uwaga: wagi są automatycznie normalizowane, nawet gdy suma nie wynosi dokładnie 100%.",
+      "weights": {
+        "financial": "Finanse",
+        "timeCost": "Czas",
+        "mentalLoad": "Dobrostan psychiczny",
+        "growth": "Rozwój",
+        "values": "Dopasowanie wartości"
+      },
+      "constraints": {
+        "must_remote": "Tylko praca zdalna",
+        "exclude_shift": "Wyklucz pracę zmianową",
+        "growth_required": "Wymagany rozwój",
+        "max_commute": "Maks. dojazd (min)",
+        "min_net": "Min. dochód netto / miesiąc"
+      },
+      "presets": {
+        "balanced": "Równowaga",
+        "money": "Maks dochód",
+        "calm": "Maks spokój"
+      },
+      "work_style": {
+        "peopleIntensity": "Kontakt z ludźmi",
+        "careerGrowthPreference": "Nacisk na rozwój kariery",
+        "homeOfficePreference": "Preferencja home office"
+      }
+    },
     "danger_zone": "Strefa zagrożenia",
     "danger_zone_title": "Strefa zagrożenia",
     "delete_account_title": "Usuń konto",

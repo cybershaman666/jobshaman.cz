@@ -1,5 +1,7 @@
 
-import { Job, UserProfile, FinancialReality, BenefitValuation } from '../types';
+import { Job, UserProfile, FinancialReality, BenefitValuation, SupportedCountryCode, TaxProfile } from '../types';
+import { convertCurrency, getExchangeRateSnapshot } from './exchangeRatesService';
+import { computeTaxByProfile, createDefaultTaxProfile, DEFAULT_TAX_YEAR } from './taxEngine';
 
 // MVP Benefit values - Conservative estimates based on CZ market averages
 // Base is EUR, 1 EUR ~ 25 CZK
@@ -98,15 +100,13 @@ const BENEFIT_VALUES: Record<string, number> = {
   'Privatkrankenversicherung': 80
 };
 
-const CURRENCY_MULTIPLIERS: Record<string, number> = {
-  '€': 1,
-  '$': 1,
-  '£': 1.15,
-  'CHF': 1.05,
-  'Kč': 25, // 1 EUR = 25 CZK (Approx)
-  'CZK': 25,
-  'PLN': 4.3,
-  'zł': 4.3
+const normalizeCurrencyCode = (currency: string): string => {
+  if (currency === '€') return 'EUR';
+  if (currency === 'Kč') return 'CZK';
+  if (currency === 'zł') return 'PLN';
+  if (currency === '$') return 'USD';
+  if (currency === '£') return 'GBP';
+  return currency.toUpperCase();
 };
 
 export const detectCurrency = (text: string): string => {
@@ -178,7 +178,8 @@ export const parseMonthlySalary = (salaryRange: string | undefined): number => {
 };
 
 export const calculateBenefitsValue = (benefits: string[], currency: string, grossMonthlySalary?: number): number => {
-  const multiplier = CURRENCY_MULTIPLIERS[currency] || 1;
+  const currencyCode = normalizeCurrencyCode(currency);
+  const multiplier = convertCurrency(1, 'EUR', currencyCode);
 
   if (!benefits || benefits.length === 0) return 0;
 
@@ -205,42 +206,7 @@ export const calculateBenefitsValue = (benefits: string[], currency: string, gro
   return Math.round(totalValue);
 };
 
-// Simple estimator for Czech taxes
-export const estimateCzechNetSalary = (gross: number, isIco: boolean): { tax: number, net: number } => {
-  if (gross === 0) return { tax: 0, net: 0 };
-
-  if (isIco) {
-    // IČO / Contractor
-    // Estimate: Flat tax (Paušální daň) or 60% expense lump sum.
-    // Assuming typical IT freelancer with lump sum expenses:
-    // Real tax burden is low.
-    // Approx 15% combined tax/social/health for simplicity on average earnings.
-    // Low earning (<50k) pays fixed tax (~7500 CZK).
-    let estimatedTax = 0;
-    if (gross < 60000) {
-      estimatedTax = 7500; // Minimum flat tax approx
-    } else {
-      estimatedTax = gross * 0.13; // Higher earnings
-    }
-    return {
-      tax: Math.round(estimatedTax),
-      net: Math.round(gross - estimatedTax)
-    };
-  } else {
-    // Employee (HPP)
-    // 2024 Context:
-    // Social + Health paid by employee: ~11%
-    // Income Tax: 15% of Gross (minus deductions, but we simplify)
-    // Approx 21-23% deduction from Gross.
-    const estimatedDeductions = gross * 0.21;
-    return {
-      tax: Math.round(estimatedDeductions),
-      net: Math.round(gross - estimatedDeductions)
-    };
-  }
-};
-
-const inferCountryCode = (location: string, currency: string, explicit?: string): 'CZ' | 'SK' | 'PL' | 'DE' | 'AT' => {
+const inferCountryCode = (location: string, currency: string, explicit?: string): SupportedCountryCode => {
   if (explicit) {
     const code = explicit.toUpperCase();
     if (code === 'CZ' || code === 'SK' || code === 'PL' || code === 'DE' || code === 'AT') return code;
@@ -256,136 +222,39 @@ const inferCountryCode = (location: string, currency: string, explicit?: string)
   return 'CZ';
 };
 
-// Approximate net salary by country (employee), using statutory contribution + simplified tax brackets.
 export const estimateNetSalaryByCountry = (
   grossMonthly: number,
   isIco: boolean,
   countryCode?: string,
   location: string = '',
-  currency: string = 'CZK'
-): { tax: number, net: number } => {
+  currency: string = 'CZK',
+  taxProfile?: TaxProfile
+): { tax: number, net: number, breakdown?: FinancialReality['taxBreakdown'], ruleVersion?: string } => {
   if (!grossMonthly) return { tax: 0, net: 0 };
 
   const cc = inferCountryCode(location, currency, countryCode);
+  const fallbackTaxProfile = createDefaultTaxProfile(cc, DEFAULT_TAX_YEAR);
+  const profile: TaxProfile = {
+    ...fallbackTaxProfile,
+    ...(taxProfile || {}),
+    countryCode: cc,
+    employmentType: isIco ? 'contractor' : (taxProfile?.employmentType || 'employee'),
+  };
 
-  // Default: CZ logic
-  if (cc === 'CZ') {
-    return estimateCzechNetSalary(grossMonthly, isIco);
-  }
-
-  // For non-CZ contractor/IČO, use conservative flat effective deduction
-  if (isIco) {
-    const estimatedTax = grossMonthly * 0.22;
-    return { tax: Math.round(estimatedTax), net: Math.round(grossMonthly - estimatedTax) };
-  }
-
-  // Annualize for tax brackets
-  const annualGross = grossMonthly * 12;
-
-  if (cc === 'PL') {
-    // Poland: employee social 13.71%, health 9% of base (gross minus social),
-    // PIT 12% up to 120k PLN, 32% above, tax-free allowance 30k (tax reduction 3,600 PLN)
-    const annualSocial = annualGross * 0.1371;
-    const annualHealth = (annualGross - annualSocial) * 0.09;
-    const annualTaxable = Math.max(0, annualGross - annualSocial);
-    let annualTax = 0;
-    if (annualTaxable <= 120000) {
-      annualTax = Math.max(0, annualTaxable * 0.12 - 3600);
-    } else {
-      annualTax = 10800 + (annualTaxable - 120000) * 0.32;
-    }
-    const annualNet = annualGross - annualSocial - annualHealth - annualTax;
-    const monthlyTax = (annualSocial + annualHealth + annualTax) / 12;
-    return { tax: Math.round(monthlyTax), net: Math.round(annualNet / 12) };
-  }
-
-  if (cc === 'SK') {
-    // Slovakia: employee contributions ~14.4% in 2026, income tax progressive 19/25/30/35 (2026 brackets),
-    // basic allowance ~497.23 EUR/month (phases out at higher income; simplified here)
-    const annualSocial = annualGross * 0.144;
-    const monthlyAllowance = 497.23;
-    const annualTaxable = Math.max(0, (grossMonthly - monthlyAllowance) * 12 - annualSocial);
-
-    const thresholds = [43983.32, 60349.21, 75010.32];
-    const rates = [0.19, 0.25, 0.30, 0.35];
-    let remaining = annualTaxable;
-    let annualTax = 0;
-
-    const bracket1 = Math.min(remaining, thresholds[0]);
-    annualTax += bracket1 * rates[0];
-    remaining -= bracket1;
-
-    if (remaining > 0) {
-      const bracket2 = Math.min(remaining, thresholds[1] - thresholds[0]);
-      annualTax += bracket2 * rates[1];
-      remaining -= bracket2;
-    }
-    if (remaining > 0) {
-      const bracket3 = Math.min(remaining, thresholds[2] - thresholds[1]);
-      annualTax += bracket3 * rates[2];
-      remaining -= bracket3;
-    }
-    if (remaining > 0) {
-      annualTax += remaining * rates[3];
-    }
-
-    const annualNet = annualGross - annualSocial - annualTax;
-    const monthlyTax = (annualSocial + annualTax) / 12;
-    return { tax: Math.round(monthlyTax), net: Math.round(annualNet / 12) };
-  }
-
-  if (cc === 'AT') {
-    // Austria: employee social ~18.07%, income tax 0-55% (2026 brackets). Simplified with annual brackets.
-    const annualSocial = annualGross * 0.1807;
-    const annualTaxable = Math.max(0, annualGross - annualSocial);
-    let annualTax = 0;
-    const brackets = [
-      { upTo: 13539, rate: 0 },
-      { upTo: 21992, rate: 0.20 },
-      { upTo: 36458, rate: 0.30 },
-      { upTo: 70365, rate: 0.40 },
-      { upTo: 104859, rate: 0.48 },
-      { upTo: 1000000, rate: 0.50 },
-      { upTo: Infinity, rate: 0.55 }
-    ];
-    let prev = 0;
-    for (const b of brackets) {
-      if (annualTaxable <= prev) break;
-      const taxableInBracket = Math.min(annualTaxable, b.upTo) - prev;
-      annualTax += taxableInBracket * b.rate;
-      prev = b.upTo;
-    }
-    const annualNet = annualGross - annualSocial - annualTax;
-    const monthlyTax = (annualSocial + annualTax) / 12;
-    return { tax: Math.round(monthlyTax), net: Math.round(annualNet / 12) };
-  }
-
-  if (cc === 'DE') {
-    // Germany: employee social ~21.05% (incl. avg health add-on, LTC),
-    // progressive income tax with basic allowance (2025 brackets).
-    const annualSocial = annualGross * 0.2105;
-    const basicAllowance = 12096;
-    const annualTaxable = Math.max(0, annualGross - annualSocial - basicAllowance);
-    let annualTax = 0;
-    if (annualTaxable <= 0) {
-      annualTax = 0;
-    } else if (annualTaxable <= 68429 - basicAllowance) {
-      const lower = 0.14;
-      const upper = 0.42;
-      const span = (68429 - basicAllowance);
-      const rate = lower + ((upper - lower) * (annualTaxable / span));
-      annualTax = annualTaxable * rate;
-    } else if (annualTaxable <= 277825 - basicAllowance) {
-      annualTax = annualTaxable * 0.42;
-    } else {
-      annualTax = annualTaxable * 0.45;
-    }
-    const annualNet = annualGross - annualSocial - annualTax;
-    const monthlyTax = (annualSocial + annualTax) / 12;
-    return { tax: Math.round(monthlyTax), net: Math.round(annualNet / 12) };
-  }
-
-  return estimateCzechNetSalary(grossMonthly, isIco);
+  const result = computeTaxByProfile({ grossMonthly, taxProfile: profile });
+  return {
+    tax: result.totalDeductionsMonthly,
+    net: result.netMonthly,
+    ruleVersion: result.ruleVersion,
+    breakdown: {
+      incomeTax: result.breakdown.incomeTax,
+      employeeSocial: result.breakdown.employeeSocial,
+      employeeHealth: result.breakdown.employeeHealth,
+      reliefsApplied: result.breakdown.reliefsApplied,
+      details: result.breakdown.details,
+      effectiveRate: result.effectiveRate,
+    },
+  };
 };
 
 export const calculateFinancialScoreAdjustment = (
@@ -519,7 +388,7 @@ export const calculateBenefitsValueWithTable = async (
   if (!benefits.length) return 0;
 
   let totalValue = 0;
-  const multiplier = CURRENCY_MULTIPLIERS[currency] || 25; // Default to CZK
+  const multiplier = convertCurrency(1, 'EUR', normalizeCurrencyCode(currency)) || 1;
 
   for (const benefit of benefits) {
     const valuation = benefitValuations.find(
@@ -583,40 +452,35 @@ export const calculateFinancialReality = async (
   // Convert commute cost to the same currency
   const convertedCommuteCost = currency === 'CZK' || currency === 'Kč'
     ? commuteDetails.monthlyCost
-    : Math.round(commuteDetails.monthlyCost / (CURRENCY_MULTIPLIERS[currency] || 25));
+    : Math.round(convertCurrency(commuteDetails.monthlyCost, 'CZK', normalizeCurrencyCode(currency)));
 
-  // Calculate net monthly (using country-aware tax estimation)
+  // Calculate net monthly (country-specific, versioned tax engine)
   const grossMonthly = baseSalary + (benefitsValue / 12);
-  const { net: netMonthly } = estimateNetSalaryByCountry(
+  const taxResult = estimateNetSalaryByCountry(
     grossMonthly,
-    false,
+    userProfile.taxProfile?.employmentType === 'contractor',
     job.country_code,
     job.location,
-    currency
+    currency,
+    userProfile.taxProfile
   );
-  const netAfterCommute = netMonthly - convertedCommuteCost;
-
-
-
-  const { tax: estimatedTaxAndInsurance, net: netBaseSalary } = estimateNetSalaryByCountry(
-    grossMonthly,
-    false,
-    job.country_code,
-    job.location,
-    currency
-  );
+  const netAfterCommute = taxResult.net - convertedCommuteCost;
+  const ratesSnapshot = getExchangeRateSnapshot();
+  const normalizedCurrency = normalizeCurrencyCode(currency);
 
   return {
-    currency: currency === 'CZK' || currency === 'Kč' ? 'CZK' : currency,
+    currency: normalizedCurrency,
     grossMonthlySalary: grossMonthly,
-    estimatedTaxAndInsurance,
-    netBaseSalary,
+    estimatedTaxAndInsurance: taxResult.tax,
+    netBaseSalary: taxResult.net,
     benefitsValue,
     commuteCost: convertedCommuteCost,
     avoidedCommuteCost: 0, // Could be calculated for remote jobs
     finalRealMonthlyValue: Math.max(0, netAfterCommute),
-    scoreAdjustment: calculateFinancialScoreAdjustment(netBaseSalary, baseSalary, benefitsValue, convertedCommuteCost),
-    isIco: false,
+    scoreAdjustment: calculateFinancialScoreAdjustment(taxResult.net, baseSalary, benefitsValue, convertedCommuteCost),
+    isIco: userProfile.taxProfile?.employmentType === 'contractor',
+    taxBreakdown: taxResult.breakdown,
+    ruleVersion: `${taxResult.ruleVersion}@fx-${ratesSnapshot.asOf}`,
     commuteDetails
   };
 };

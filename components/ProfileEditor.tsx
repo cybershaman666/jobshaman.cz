@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { UserProfile, WorkExperience, Education, TransportMode, Job } from '../types';
+import { UserProfile, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences } from '../types';
 import {
   User,
   Upload,
@@ -20,7 +20,9 @@ import {
   AlertCircle,
   Bookmark,
   Sparkles,
-  Bell
+  Bell,
+  Calculator,
+  SlidersHorizontal
 } from 'lucide-react';
 import { uploadProfilePhoto } from '../services/supabaseService';
 import { validateCvFile, uploadAndParseCv, mergeProfileWithParsedCv } from '../services/cvUploadService';
@@ -37,6 +39,7 @@ import { getCurrentSubscription, getPushPermission, isPushSupported, registerPus
 
 import TransportModeSelector from './TransportModeSelector';
 import SavedJobsPage from './SavedJobsPage';
+import { createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from '../services/profileDefaults';
 
 import { useTranslation } from 'react-i18next';
 
@@ -158,7 +161,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     },
     experience: profile.workHistory || [],
     education: profile.education || [],
-    skills: profile.skills || []
+    skills: profile.skills || [],
+    taxProfile: profile.taxProfile || createDefaultTaxProfileByCountry('CZ'),
+    jhiPreferences: profile.jhiPreferences || createDefaultJHIPreferences()
   });
 
   useEffect(() => {
@@ -172,6 +177,17 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     };
     checkPushState();
   }, []);
+
+  const jhiWeightEntries = (Object.entries(formData.jhiPreferences.pillarWeights) as Array<[keyof JHIPreferences['pillarWeights'], number]>)
+    .sort((a, b) => b[1] - a[1]);
+  const topJhiWeights = jhiWeightEntries.slice(0, 2);
+  const activeJhiConstraintsCount = [
+    formData.jhiPreferences.hardConstraints.mustRemote,
+    formData.jhiPreferences.hardConstraints.excludeShift,
+    formData.jhiPreferences.hardConstraints.growthRequired,
+    formData.jhiPreferences.hardConstraints.maxCommuteMinutes != null,
+    formData.jhiPreferences.hardConstraints.minNetMonthly != null
+  ].filter(Boolean).length;
 
   // Photo upload handler
   const handlePhotoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -326,6 +342,109 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       dailyDigestTime: newNotifications.dailyDigestTime,
       dailyDigestTimezone: newNotifications.dailyDigestTimezone
     });
+  };
+
+  const handleTaxProfileChange = <K extends keyof TaxProfile>(field: K, value: TaxProfile[K]) => {
+    const updatedTaxProfile: TaxProfile = { ...formData.taxProfile, [field]: value };
+    setFormData(prev => ({ ...prev, taxProfile: updatedTaxProfile }));
+    onChange({ ...profile, taxProfile: updatedTaxProfile });
+  };
+
+  const handleJhiPreferenceWeightChange = (field: keyof JHIPreferences['pillarWeights'], value: number) => {
+    const updated: JHIPreferences = {
+      ...formData.jhiPreferences,
+      pillarWeights: {
+        ...formData.jhiPreferences.pillarWeights,
+        [field]: Math.max(0, Math.min(1, value))
+      }
+    };
+    setFormData(prev => ({ ...prev, jhiPreferences: updated }));
+    onChange({ ...profile, jhiPreferences: updated });
+  };
+
+  const handleJhiConstraintChange = <K extends keyof JHIPreferences['hardConstraints']>(
+    field: K,
+    value: JHIPreferences['hardConstraints'][K]
+  ) => {
+    const updated: JHIPreferences = {
+      ...formData.jhiPreferences,
+      hardConstraints: {
+        ...formData.jhiPreferences.hardConstraints,
+        [field]: value
+      }
+    };
+    setFormData(prev => ({ ...prev, jhiPreferences: updated }));
+    onChange({ ...profile, jhiPreferences: updated });
+  };
+
+  const handleJhiWorkStyleChange = <K extends keyof JHIPreferences['workStyle']>(
+    field: K,
+    value: JHIPreferences['workStyle'][K]
+  ) => {
+    const updated: JHIPreferences = {
+      ...formData.jhiPreferences,
+      workStyle: {
+        ...formData.jhiPreferences.workStyle,
+        [field]: value
+      }
+    };
+    setFormData(prev => ({ ...prev, jhiPreferences: updated }));
+    onChange({ ...profile, jhiPreferences: updated });
+  };
+
+  const sliderTrackStyle = (value: number) => ({
+    background: `linear-gradient(90deg, rgb(6 182 212) ${value}%, rgb(203 213 225) ${value}%)`
+  });
+
+  const applyJhiPreset = (preset: 'balanced' | 'money' | 'calm') => {
+    const next: JHIPreferences = preset === 'money'
+      ? {
+        pillarWeights: {
+          financial: 0.5,
+          timeCost: 0.15,
+          mentalLoad: 0.1,
+          growth: 0.15,
+          values: 0.1
+        },
+        hardConstraints: {
+          mustRemote: false,
+          maxCommuteMinutes: 60,
+          minNetMonthly: formData.jhiPreferences.hardConstraints.minNetMonthly,
+          excludeShift: false,
+          growthRequired: false
+        },
+        workStyle: {
+          peopleIntensity: 55,
+          careerGrowthPreference: 75,
+          homeOfficePreference: 55
+        }
+      }
+      : preset === 'calm'
+        ? {
+          pillarWeights: {
+            financial: 0.15,
+            timeCost: 0.35,
+            mentalLoad: 0.3,
+            growth: 0.05,
+            values: 0.15
+          },
+          hardConstraints: {
+            mustRemote: false,
+            maxCommuteMinutes: 35,
+            minNetMonthly: formData.jhiPreferences.hardConstraints.minNetMonthly,
+            excludeShift: true,
+            growthRequired: false
+          },
+          workStyle: {
+            peopleIntensity: 35,
+            careerGrowthPreference: 35,
+            homeOfficePreference: 80
+          }
+        }
+        : createDefaultJHIPreferences();
+
+    setFormData(prev => ({ ...prev, jhiPreferences: next }));
+    onChange({ ...profile, jhiPreferences: next });
   };
 
   const handleEnablePush = async () => {
@@ -744,185 +863,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
             </div>
 
-            {/* Notifications Section */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden mt-6">
-              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                      <Bell className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-                    </div>
-                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
-                      {t('profile.notifications', { defaultValue: 'Notifikace' })}
-                    </h2>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6 space-y-6">
-                <div className="flex flex-wrap items-center gap-4">
-                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(formData.notifications.dailyDigestEnabled)}
-                      onChange={(e) => handleNotificationChange('dailyDigestEnabled', e.target.checked)}
-                    />
-                    {t('profile.digest_email', { defaultValue: 'Denní digest e‑mailem' })}
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(formData.notifications.dailyDigestPushEnabled)}
-                      onChange={(e) => handleNotificationChange('dailyDigestPushEnabled', e.target.checked)}
-                    />
-                    {t('profile.digest_push', { defaultValue: 'Denní digest jako push' })}
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      {t('profile.digest_time', { defaultValue: 'Čas doručení' })}
-                    </label>
-                    <input
-                      type="time"
-                      value={formData.notifications.dailyDigestTime}
-                      onChange={(e) => handleNotificationChange('dailyDigestTime', e.target.value)}
-                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                      {t('profile.digest_timezone', { defaultValue: 'Časové pásmo' })}
-                    </label>
-                    <input
-                      type="text"
-                      value={formData.notifications.dailyDigestTimezone}
-                      onChange={(e) => handleNotificationChange('dailyDigestTimezone', e.target.value)}
-                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                      placeholder="Europe/Prague"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-3">
-                  <div className="text-xs text-slate-500">
-                    {pushSupported
-                      ? `${t('profile.push_status', { defaultValue: 'Push status' })}: ${pushSubscribed ? 'aktivní' : 'neaktivní'} (${pushPermission})`
-                      : t('profile.push_unsupported', { defaultValue: 'Push notifikace nejsou v tomto prohlížeči dostupné.' })}
-                  </div>
-                  {pushSupported && (
-                    <>
-                      <button
-                        onClick={handleEnablePush}
-                        disabled={pushBusy}
-                        className="px-3 py-1.5 rounded-lg text-xs border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50"
-                      >
-                        {t('profile.push_enable', { defaultValue: 'Povolit push notifikace' })}
-                      </button>
-                      <button
-                        onClick={handleDisablePush}
-                        disabled={pushBusy}
-                        className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-rose-400 hover:text-rose-600 transition-colors disabled:opacity-50"
-                      >
-                        {t('profile.push_disable', { defaultValue: 'Vypnout push' })}
-                      </button>
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Transport Mode Section */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                      <MapPin className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-                    </div>
-                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.transport_pref')}</h2>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-6">
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  {t('profile.transport_desc')}
-                </p>
-
-                <TransportModeSelector
-                  selectedMode={profile.transportMode || 'public'}
-                  onModeChange={(mode: TransportMode) => onChange({ ...profile, transportMode: mode })}
-                  compact={true}
-                />
-              </div>
-            </div>
-
-            {/* AI Guided CV / Profile */}
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                    <Sparkles className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-                  </div>
-                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white">AI Průvodce životopisem</h2>
-                </div>
-              </div>
-
-              <div className="p-6">
-                <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                  Nadiktujte svůj příběh. AI odhalí skryté talenty, doplní profil a vytvoří CV na míru.
-                </p>
-
-                {isPremium ? (
-                  <button
-                    onClick={() => setShowAIGuide(true)}
-                    className="px-4 py-2 bg-cyan-600 hover:bg-cyan-700 text-white rounded-lg font-semibold text-sm flex items-center gap-2"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    Spustit průvodce
-                  </button>
-                ) : (
-                  <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4 flex items-center justify-between gap-4">
-                    <div>
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                        Dostupné pouze v Premium
-                      </p>
-                      <p className="text-xs text-slate-600 dark:text-slate-400">
-                        Odemkněte AI průvodce a personalizované doporučení pozic.
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => {
-                        if (profile.id) {
-                          redirectToCheckout('premium', profile.id);
-                        }
-                      }}
-                      className="px-3 py-2 bg-cyan-600 text-white rounded-lg text-sm font-semibold hover:bg-cyan-700"
-                    >
-                      Upgradovat
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {showAIGuide && (
-              <AIGuidedProfileWizard
-                profile={profile}
-                onClose={() => setShowAIGuide(false)}
-                onApply={async (updates) => {
-                  const updated = { ...profile, ...updates };
-                  await Promise.resolve(onChange(updated, true));
-                  if (onRefreshProfile) {
-                    await onRefreshProfile();
-                  }
-                  setShowAIGuide(false);
-                }}
-              />
-            )}
-
             {/* CV Upload Section */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
@@ -943,10 +883,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   className="hidden"
                 />
 
-                <div className={`w-full p-8 border-2 border-dashed rounded-lg transition-colors ${profile.cvUrl ? 'border-cyan-600 bg-cyan-50 dark:bg-cyan-900/20' : 'border-slate-300 hover:border-cyan-400'
+                <div className={`w-full p-5 border-2 border-dashed rounded-lg transition-colors ${profile.cvUrl ? 'border-cyan-600 bg-cyan-50 dark:bg-cyan-900/20' : 'border-slate-300 hover:border-cyan-400'
                   }`}>
                   <div className="text-center">
-                    <FileText className={`w-12 h-12 mx-auto mb-4 ${profile.cvUrl ? 'text-cyan-600' : 'text-slate-400'}`} />
+                    <FileText className={`w-10 h-10 mx-auto mb-3 ${profile.cvUrl ? 'text-cyan-600' : 'text-slate-400'}`} />
 
                     {profile.cvUrl ? (
                       <div>
@@ -993,24 +933,15 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     </p>
                   </div>
                 )}
+
+                {profile.id && (
+                  <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-6">
+                    <h4 className="font-semibold text-slate-900 dark:text-white mb-3">{t('cv_manager.title')}</h4>
+                    <CVManager userId={profile.id} isPremium={isPremium} />
+                  </div>
+                )}
               </div>
             </div>
-
-            {profile.id && (
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-                <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg">
-                      <FileText className="w-5 h-5 text-slate-600 dark:text-slate-300" />
-                    </div>
-                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('cv_manager.title')}</h2>
-                  </div>
-                </div>
-                <div className="p-6">
-                  <CVManager userId={profile.id} isPremium={isPremium} />
-                </div>
-              </div>
-            )}
 
             {/* Work Experience Section */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -1275,6 +1206,403 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+              <div className="bg-gradient-to-br from-cyan-50 to-white dark:from-cyan-950/30 dark:to-slate-900 rounded-xl shadow-xl border-2 border-cyan-200/80 dark:border-cyan-800/60 overflow-hidden">
+                <div className="border-b border-cyan-200 dark:border-cyan-800 p-4 bg-cyan-50/70 dark:bg-cyan-950/20">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-cyan-200 dark:bg-cyan-900/40 rounded-lg">
+                      <Sparkles className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                    </div>
+                    <div>
+                      <h2 className="text-xl font-semibold text-slate-900 dark:text-white">AI Průvodce životopisem</h2>
+                      <p className="text-xs font-medium text-cyan-700 dark:text-cyan-300">Core Premium funkce</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-6">
+                  <p className="text-sm text-slate-700 dark:text-slate-300 mb-5">
+                    Nadiktujte svůj příběh. AI odhalí skryté talenty, doplní profil a vytvoří CV na míru.
+                  </p>
+
+                  {isPremium ? (
+                    <button
+                      onClick={() => setShowAIGuide(true)}
+                      className="w-full px-5 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/30"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Spustit průvodce
+                    </button>
+                  ) : (
+                    <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4 flex items-center justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                          Dostupné pouze v Premium
+                        </p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400">
+                          Odemkněte AI průvodce a personalizované doporučení pozic.
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => {
+                          if (profile.id) {
+                            redirectToCheckout('premium', profile.id);
+                          }
+                        }}
+                        className="px-3 py-2 bg-cyan-600 text-white rounded-lg text-sm font-semibold hover:bg-cyan-700 shadow-md shadow-cyan-500/30"
+                      >
+                        Upgradovat
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                      <MapPin className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.transport_pref')}</h2>
+                  </div>
+                </div>
+
+                <div className="p-6">
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                    {t('profile.transport_desc')}
+                  </p>
+                  <TransportModeSelector
+                    selectedMode={profile.transportMode || 'public'}
+                    onModeChange={(mode: TransportMode) => onChange({ ...profile, transportMode: mode })}
+                    compact={true}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {showAIGuide && (
+              <AIGuidedProfileWizard
+                profile={profile}
+                onClose={() => setShowAIGuide(false)}
+                onApply={async (updates) => {
+                  const updated = { ...profile, ...updates };
+                  await Promise.resolve(onChange(updated, true));
+                  if (onRefreshProfile) {
+                    await onRefreshProfile();
+                  }
+                  setShowAIGuide(false);
+                }}
+              />
+            )}
+
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                    <Bell className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                  </div>
+                  <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                    {t('profile.notifications', { defaultValue: 'Notifikace' })}
+                  </h2>
+                </div>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="flex flex-wrap items-center gap-4">
+                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formData.notifications.dailyDigestEnabled)}
+                      onChange={(e) => handleNotificationChange('dailyDigestEnabled', e.target.checked)}
+                    />
+                    {t('profile.digest_email', { defaultValue: 'Denní digest e‑mailem' })}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(formData.notifications.dailyDigestPushEnabled)}
+                      onChange={(e) => handleNotificationChange('dailyDigestPushEnabled', e.target.checked)}
+                    />
+                    {t('profile.digest_push', { defaultValue: 'Denní digest jako push' })}
+                  </label>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      {t('profile.digest_time', { defaultValue: 'Čas doručení' })}
+                    </label>
+                    <input
+                      type="time"
+                      value={formData.notifications.dailyDigestTime}
+                      onChange={(e) => handleNotificationChange('dailyDigestTime', e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      {t('profile.digest_timezone', { defaultValue: 'Časové pásmo' })}
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.notifications.dailyDigestTimezone}
+                      onChange={(e) => handleNotificationChange('dailyDigestTimezone', e.target.value)}
+                      className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                      placeholder="Europe/Prague"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="text-xs text-slate-500">
+                    {pushSupported
+                      ? `${t('profile.push_status', { defaultValue: 'Push status' })}: ${pushSubscribed ? 'aktivní' : 'neaktivní'} (${pushPermission})`
+                      : t('profile.push_unsupported', { defaultValue: 'Push notifikace nejsou v tomto prohlížeči dostupné.' })}
+                  </div>
+                  {pushSupported && (
+                    <>
+                      <button
+                        onClick={handleEnablePush}
+                        disabled={pushBusy}
+                        className="px-3 py-1.5 rounded-lg text-xs border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:opacity-50"
+                      >
+                        {t('profile.push_enable', { defaultValue: 'Povolit push notifikace' })}
+                      </button>
+                      <button
+                        onClick={handleDisablePush}
+                        disabled={pushBusy}
+                        className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-rose-400 hover:text-rose-600 transition-colors disabled:opacity-50"
+                      >
+                        {t('profile.push_disable', { defaultValue: 'Vypnout push' })}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                    <Calculator className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('profile.tax.title')}</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {formData.taxProfile.countryCode} • {formData.taxProfile.taxYear} • {t(`profile.tax.${formData.taxProfile.employmentType}`)} • {t('profile.tax.children')}: {formData.taxProfile.childrenCount}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.country')}</label>
+                  <select
+                    value={formData.taxProfile.countryCode}
+                    onChange={(e) => handleTaxProfileChange('countryCode', e.target.value as TaxProfile['countryCode'])}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                  >
+                    <option value="CZ">CZ</option>
+                    <option value="SK">SK</option>
+                    <option value="PL">PL</option>
+                    <option value="DE">DE</option>
+                    <option value="AT">AT</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.year')}</label>
+                  <input
+                    type="number"
+                    value={formData.taxProfile.taxYear}
+                    onChange={(e) => handleTaxProfileChange('taxYear', Number(e.target.value) || 2026)}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.employment_type')}</label>
+                  <select
+                    value={formData.taxProfile.employmentType}
+                    onChange={(e) => handleTaxProfileChange('employmentType', e.target.value as TaxProfile['employmentType'])}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                  >
+                    <option value="employee">{t('profile.tax.employee')}</option>
+                    <option value="contractor">{t('profile.tax.contractor')}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.marital_status')}</label>
+                  <select
+                    value={formData.taxProfile.maritalStatus}
+                    onChange={(e) => handleTaxProfileChange('maritalStatus', e.target.value as TaxProfile['maritalStatus'])}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                  >
+                    <option value="single">{t('profile.tax.single')}</option>
+                    <option value="married">{t('profile.tax.married')}</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.children')}</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={formData.taxProfile.childrenCount}
+                    onChange={(e) => handleTaxProfileChange('childrenCount', Math.max(0, Number(e.target.value) || 0))}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.spouse_income')}</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={formData.taxProfile.spouseAnnualIncome || 0}
+                    onChange={(e) => handleTaxProfileChange('spouseAnnualIncome', Math.max(0, Number(e.target.value) || 0))}
+                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                    <SlidersHorizontal className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">{t('profile.jhi.title')}</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      {topJhiWeights.map(([key, value]) => `${t(`profile.jhi.weights.${key}`)} ${Math.round(value * 100)}%`).join(' · ')}
+                      {activeJhiConstraintsCount > 0 ? ` · ${activeJhiConstraintsCount} ${t('profile.jhi.constraints.label', { defaultValue: 'omezení' })}` : ''}
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="p-6 space-y-4">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {t('profile.jhi.explainer')}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => applyJhiPreset('balanced')}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-full border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-900/20"
+                  >
+                    {t('profile.jhi.presets.balanced')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyJhiPreset('money')}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-full border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                  >
+                    {t('profile.jhi.presets.money')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => applyJhiPreset('calm')}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/40"
+                  >
+                    {t('profile.jhi.presets.calm')}
+                  </button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  {(['financial', 'timeCost', 'mentalLoad', 'growth', 'values'] as const).map((weightKey) => (
+                    <div key={weightKey}>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        {t(`profile.jhi.weights.${weightKey}`)}
+                      </label>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+                        {Math.round(formData.jhiPreferences.pillarWeights[weightKey] * 100)} %
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={5}
+                        value={Math.round(formData.jhiPreferences.pillarWeights[weightKey] * 100)}
+                        onChange={(e) => handleJhiPreferenceWeightChange(weightKey, (Number(e.target.value) || 0) / 100)}
+                        className="w-full jhi-slider"
+                        style={sliderTrackStyle(Math.round(formData.jhiPreferences.pillarWeights[weightKey] * 100))}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  {t('profile.jhi.weights_auto_normalized')}
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={formData.jhiPreferences.hardConstraints.mustRemote}
+                      onChange={(e) => handleJhiConstraintChange('mustRemote', e.target.checked)}
+                    />
+                    {t('profile.jhi.constraints.must_remote')}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={formData.jhiPreferences.hardConstraints.excludeShift}
+                      onChange={(e) => handleJhiConstraintChange('excludeShift', e.target.checked)}
+                    />
+                    {t('profile.jhi.constraints.exclude_shift')}
+                  </label>
+                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      checked={formData.jhiPreferences.hardConstraints.growthRequired}
+                      onChange={(e) => handleJhiConstraintChange('growthRequired', e.target.checked)}
+                    />
+                    {t('profile.jhi.constraints.growth_required')}
+                  </label>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.jhi.constraints.max_commute')}</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={formData.jhiPreferences.hardConstraints.maxCommuteMinutes ?? ''}
+                      onChange={(e) => handleJhiConstraintChange('maxCommuteMinutes', e.target.value ? Number(e.target.value) : null)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.jhi.constraints.min_net')}</label>
+                    <input
+                      type="number"
+                      min={0}
+                      value={formData.jhiPreferences.hardConstraints.minNetMonthly ?? ''}
+                      onChange={(e) => handleJhiConstraintChange('minNetMonthly', e.target.value ? Number(e.target.value) : null)}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {(['peopleIntensity', 'careerGrowthPreference', 'homeOfficePreference'] as const).map((key) => (
+                    <div key={key}>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        {t(`profile.jhi.work_style.${key}`)}
+                      </label>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+                        {formData.jhiPreferences.workStyle[key]} %
+                      </div>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        step={5}
+                        value={formData.jhiPreferences.workStyle[key]}
+                        onChange={(e) => handleJhiWorkStyleChange(key, Number(e.target.value) || 0)}
+                        className="w-full jhi-slider"
+                        style={sliderTrackStyle(formData.jhiPreferences.workStyle[key])}
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 

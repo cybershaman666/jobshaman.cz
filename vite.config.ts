@@ -20,8 +20,13 @@ export default defineConfig({
           // Keep Sentry with the generic vendor chunk to avoid circular-chunk edge cases.
           if (id.includes('/@sentry/')) return 'vendor';
           if (id.includes('/@google/genai/')) return 'vendor-ai';
+          if (id.includes('/pdfjs-dist/build/pdf.worker')) return 'vendor-pdf-worker';
           if (id.includes('/pdfjs-dist/') || id.includes('/mammoth/')) return 'vendor-docs';
           if (id.includes('/recharts/')) return 'vendor-charts';
+          if (id.includes('/@openrouter/sdk/')) return 'vendor-ai';
+          if (id.includes('/@stripe/')) return 'vendor-stripe';
+          if (id.includes('/resend/')) return 'vendor-email';
+          if (id.includes('/lodash') || id.includes('/underscore')) return 'vendor-utils';
           // Keep i18n in generic vendor to avoid circular chunk graph.
           if (id.includes('/i18next/') || id.includes('/react-i18next/') || id.includes('/i18next-browser-languagedetector/') || id.includes('/i18next-http-backend/')) return 'vendor';
           if (id.includes('/@stripe/stripe-js/')) return 'vendor-stripe';

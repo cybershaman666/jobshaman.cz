@@ -77,6 +77,8 @@ CREATE TABLE public.candidate_profiles (
   transport_mode text DEFAULT 'public'::text,
   skills ARRAY DEFAULT '{}'::text[],
   preferences jsonb DEFAULT '{"priorities": [], "financialGoals": 50, "workLifeBalance": 50, "commuteTolerance": 45}'::jsonb,
+  tax_profile jsonb,
+  jhi_preferences jsonb DEFAULT '{"pillarWeights": {"financial": 0.3, "timeCost": 0.25, "mentalLoad": 0.2, "growth": 0.15, "values": 0.1}, "hardConstraints": {"mustRemote": false, "maxCommuteMinutes": null, "minNetMonthly": null, "excludeShift": false, "growthRequired": false}, "workStyle": {"peopleIntensity": 50, "careerGrowthPreference": 50, "homeOfficePreference": 50}}'::jsonb,
   work_history jsonb DEFAULT '[]'::jsonb,
   education jsonb DEFAULT '[]'::jsonb,
   lat double precision,

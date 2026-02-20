@@ -113,7 +113,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [filterLanguage, setFilterLanguage] = useState<string>(''); // ISO code or empty for all
     const [globalSearch, setGlobalSearch] = useState(() => !initialCountry); // Toggle for searching entire database
     const [abroadOnly, setAbroadOnly] = useState(false);
-    const [sortBy, setSortBy] = useState<string>('default'); // default | recommended | jhi_desc | jhi_asc | newest
+    const [sortBy, setSortBy] = useState<string>('default'); // default | recommended | jhi_desc | jhi_asc | personalized_jhi_desc | newest
     const hasAutoSortAppliedRef = useRef(false);
 
     // Load saved job IDs from localStorage on mount
@@ -295,7 +295,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 page,
                 pageSize: initialPageSize,
                 searchTerm,
-                sortMode: sortBy as 'default' | 'newest' | 'jhi_desc' | 'jhi_asc' | 'recommended',
+                sortMode: (sortBy === 'personalized_jhi_desc' ? 'default' : sortBy) as 'default' | 'newest' | 'jhi_desc' | 'jhi_asc' | 'recommended',
                 filterCity,
                 filterContractTypes: filterContractType,
                 filterBenefits,

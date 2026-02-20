@@ -83,7 +83,8 @@
       "default": "Odporúčané",
       "newest": "Najnovšie",
       "jhi_desc": "JHI od najvyššieho",
-      "jhi_asc": "JHI od najnižšieho"
+      "jhi_asc": "JHI od najnižšieho",
+      "personalized_jhi_desc": "Personalizované JHI"
     }
   },
   "financial": {
@@ -538,6 +539,48 @@
     "field": "Odbor",
     "field_placeholder": "napr. Informačné technológie",
     "year": "Rok ukončenia",
+    "tax": {
+      "title": "Daňový profil",
+      "country": "Krajina",
+      "year": "Rok",
+      "employment_type": "Typ práce",
+      "employee": "Zamestnanec",
+      "contractor": "SZČO / kontraktor",
+      "marital_status": "Rodinný stav",
+      "single": "Slobodný/á",
+      "married": "Ženatý/vydatá",
+      "children": "Počet detí",
+      "spouse_income": "Príjem partnera/partnerky (ročne)"
+    },
+    "jhi": {
+      "title": "JHI preferencie",
+      "explainer": "Nastavte, čo je pre vás dôležité. Čím vyššie percento, tým väčší vplyv na výsledné skóre.",
+      "weights_auto_normalized": "Pozn.: váhy sa automaticky normalizujú, takže fungujú aj keď ich súčet nie je presne 100 %.",
+      "weights": {
+        "financial": "Financie",
+        "timeCost": "Čas",
+        "mentalLoad": "Psychická pohoda",
+        "growth": "Rast",
+        "values": "Súlad hodnôt"
+      },
+      "constraints": {
+        "must_remote": "Chcem iba remote",
+        "exclude_shift": "Nechcem zmenovú prevádzku",
+        "growth_required": "Chcem možnosť rastu",
+        "max_commute": "Max. dochádzanie (min)",
+        "min_net": "Min. čistý príjem / mesiac"
+      },
+      "presets": {
+        "balanced": "Rovnováha",
+        "money": "Max príjem",
+        "calm": "Max pokoj"
+      },
+      "work_style": {
+        "peopleIntensity": "Kontakt s ľuďmi",
+        "careerGrowthPreference": "Dôraz na kariérny rast",
+        "homeOfficePreference": "Preferencia home office"
+      }
+    },
     "year_placeholder": "napr. 2020",
     "placeholder_name": "Vaše meno",
     "placeholder_job": "Vaša pracovná pozícia",

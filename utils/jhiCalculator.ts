@@ -1,4 +1,4 @@
-import { Job, JHI } from '../types';
+import { Job, JHI, JHIPreferences } from '../types';
 import { detectCurrency, detectCurrencyFromLocation } from '../services/financialService';
 
 // --- CONFIGURATION ---
@@ -224,6 +224,61 @@ const AVG_COMMUTE_PENALTY_PER_MIN = 1.2;
 // --- HELPERS ---
 
 const clamp = (val: number, min = 0, max = 100) => Math.min(Math.max(val, min), max);
+const normalizeWeight = (value: number): number => Math.max(0, value);
+
+export const DEFAULT_JHI_PREFERENCES: JHIPreferences = {
+    pillarWeights: {
+        financial: 0.3,
+        timeCost: 0.25,
+        mentalLoad: 0.2,
+        growth: 0.15,
+        values: 0.1
+    },
+    hardConstraints: {
+        mustRemote: false,
+        maxCommuteMinutes: null,
+        minNetMonthly: null,
+        excludeShift: false,
+        growthRequired: false
+    },
+    workStyle: {
+        peopleIntensity: 50,
+        careerGrowthPreference: 50,
+        homeOfficePreference: 50
+    }
+};
+
+const resolvePreferences = (prefs?: JHIPreferencesInput): JHIPreferences => {
+    const merged: JHIPreferences = {
+        pillarWeights: {
+            ...DEFAULT_JHI_PREFERENCES.pillarWeights,
+            ...(prefs?.pillarWeights || {})
+        },
+        hardConstraints: {
+            ...DEFAULT_JHI_PREFERENCES.hardConstraints,
+            ...(prefs?.hardConstraints || {})
+        },
+        workStyle: {
+            ...DEFAULT_JHI_PREFERENCES.workStyle,
+            ...(prefs?.workStyle || {})
+        }
+    };
+
+    const raw = merged.pillarWeights;
+    const sum = normalizeWeight(raw.financial) + normalizeWeight(raw.timeCost) + normalizeWeight(raw.mentalLoad) + normalizeWeight(raw.growth) + normalizeWeight(raw.values);
+    if (sum <= 0) return DEFAULT_JHI_PREFERENCES;
+
+    return {
+        ...merged,
+        pillarWeights: {
+            financial: normalizeWeight(raw.financial) / sum,
+            timeCost: normalizeWeight(raw.timeCost) / sum,
+            mentalLoad: normalizeWeight(raw.mentalLoad) / sum,
+            growth: normalizeWeight(raw.growth) / sum,
+            values: normalizeWeight(raw.values) / sum,
+        }
+    };
+};
 
 const normalizeSalary = (amount: number, currency: string): number => {
     if (!amount) return 0;
@@ -504,7 +559,79 @@ const applyWeight = (raw: number, weight: number): number => {
     return clamp(50 + (raw - 50) * multiplier);
 };
 
-export const calculateJHI = (job: Partial<Job>, aiRiskScore: number = 0): JHI => {
+const estimateCommuteMinutes = (job: Partial<Job>): number => {
+    if (!job.distanceKm) return 0;
+    return Math.round(job.distanceKm * 2.5 * 2); // one-way km to two-way minutes
+};
+
+const applyUserPersonalization = (
+    raw: { financial: number; timeCost: number; mentalLoad: number; growth: number; values: number; },
+    job: Partial<Job>,
+    preferences?: JHIPreferencesInput
+): { score: number; explanations: string[] } => {
+    const resolved = resolvePreferences(preferences);
+    const explanations: string[] = [];
+
+    const weights = resolved.pillarWeights;
+    let score =
+        (raw.financial * weights.financial) +
+        (raw.timeCost * weights.timeCost) +
+        (raw.mentalLoad * weights.mentalLoad) +
+        (raw.growth * weights.growth) +
+        (raw.values * weights.values);
+
+    const desc = (job.description || '').toLowerCase();
+    const type = (job.type || '').toLowerCase();
+
+    if (resolved.hardConstraints.mustRemote && type !== 'remote') {
+        score -= 25;
+        explanations.push('Penalized: non-remote role while must-remote is enabled');
+    }
+
+    if (resolved.hardConstraints.excludeShift && /směn|shift|schicht/.test(desc)) {
+        score -= 20;
+        explanations.push('Penalized: shift-based role excluded by preference');
+    }
+
+    if (resolved.hardConstraints.growthRequired && raw.growth < 55) {
+        score -= 15;
+        explanations.push('Penalized: growth required but role shows low growth signal');
+    }
+
+    const maxCommute = resolved.hardConstraints.maxCommuteMinutes;
+    if (maxCommute && maxCommute > 0) {
+        const estimatedCommute = estimateCommuteMinutes(job);
+        if (estimatedCommute > maxCommute) {
+            score -= Math.min(20, Math.round((estimatedCommute - maxCommute) / 5));
+            explanations.push(`Penalized: estimated commute ${estimatedCommute}m exceeds limit ${maxCommute}m`);
+        }
+    }
+
+    const peopleIntensity = resolved.workStyle.peopleIntensity;
+    const peopleRole = /sales|customer|zákaznick|support|obchod|call\s*center|recep/.test((job.title || '').toLowerCase()) || /zákazník|klient|customer/.test(desc);
+    if (peopleRole) {
+        const peopleDelta = Math.round((peopleIntensity - 50) / 5);
+        score += peopleDelta;
+    }
+
+    const homeOfficePref = resolved.workStyle.homeOfficePreference;
+    if (type === 'remote') {
+        score += Math.round((homeOfficePref - 50) / 4);
+    } else if (type === 'on-site') {
+        score -= Math.round((homeOfficePref - 50) / 4);
+    }
+
+    const growthPref = resolved.workStyle.careerGrowthPreference;
+    score += Math.round(((growthPref - 50) / 100) * ((raw.growth - 50) / 2));
+
+    if (!explanations.length) {
+        explanations.push('Personalized using pillar weights and work-style preferences');
+    }
+
+    return { score: clamp(Math.round(score)), explanations };
+};
+
+export const calculateJHI = (job: Partial<Job>, aiRiskScore: number = 0, preferences?: JHIPreferencesInput): JHI => {
 
     const rawF = calculateFinancialReality(job);
     const rawT = calculateTimeAllocation(job);
@@ -519,15 +646,27 @@ export const calculateJHI = (job: Partial<Job>, aiRiskScore: number = 0): JHI =>
     const G = applyWeight(rawG, PILLAR_WEIGHTS.growth);
     const V = applyWeight(rawV, PILLAR_WEIGHTS.values);
 
-    // Overall score = average of weighted pillars (transparent and consistent with UI)
-    const totalScore = (F + T + W + G + V) / 5;
+    const baseScore = (F + T + W + G + V) / 5;
+    const personalized = applyUserPersonalization(
+        { financial: F, timeCost: T, mentalLoad: W, growth: G, values: V },
+        job,
+        preferences
+    );
 
     return {
-        score: Math.round(totalScore),
+        score: personalized.score,
+        baseScore: Math.round(baseScore),
+        personalizedScore: personalized.score,
         financial: Math.round(F),
         timeCost: Math.round(T),
         mentalLoad: Math.round(W),
         growth: Math.round(G),
-        values: Math.round(V)
+        values: Math.round(V),
+        explanations: personalized.explanations
     };
+};
+type JHIPreferencesInput = {
+    pillarWeights?: Partial<JHIPreferences['pillarWeights']>;
+    hardConstraints?: Partial<JHIPreferences['hardConstraints']>;
+    workStyle?: Partial<JHIPreferences['workStyle']>;
 };

@@ -8,8 +8,8 @@ import {
     detectCurrencyFromLocation
 } from './financialService';
 import { geocodeWithCaching, getStaticCoordinates } from './geocodingService';
-import { calculateCompleteJHIScore } from './transportService';
 import { matchesIcoKeywords } from '../utils/contractType';
+import { calculateJHI } from '../utils/jhiCalculator';
 
 // --- UTILITIES ---
 
@@ -737,12 +737,13 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     // 3. Financial Analysis (NET Basis)
     const isIco = matchesIcoKeywords(job.title, job.description, ...job.tags);
 
-    const { tax, net } = estimateNetSalaryByCountry(
+    const { tax, net, breakdown, ruleVersion } = estimateNetSalaryByCountry(
         grossMonthlySalary,
         isIco,
         job.country_code,
         job.location,
-        currency
+        currency,
+        user.taxProfile
     );
     const benefitsValue = calculateBenefitsValue(job.benefits, currency, grossMonthlySalary);
 
@@ -751,38 +752,18 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
 
     const scoreAdjustment = calculateFinancialScoreAdjustment(net, grossMonthlySalary, benefitsValue, realMonthlyCost);
 
-    // 4. Calculate Complete JHI Score
-    // New formula accounts for: salary vs average, benefits, commute time, transport costs
-    // Baseline = 50 (average job)
-    let completeJhiScore = 50; // Default if cannot calculate
-
-    // Convert monthly to gross salary for JHI calculation (approximate)
-    // We use the gross salary directly as passed in
-    const monthlyBenefitsForJhi = benefitsValue > 0 ? benefitsValue : 0;
     const distanceForJhi = (isRemote || isRelocation || distanceKm === -1) ? 0 : distanceKm;
-
-    try {
-        completeJhiScore = calculateCompleteJHIScore(
-            grossMonthlySalary || 35000, // Use average if no salary info
-            monthlyBenefitsForJhi,
-            distanceForJhi,
-            mode,
-            job.location,
-            getCountryCode(job.location, currency)
-        );
-    } catch (error) {
-        // Fallback to basic calculation if new formula fails
-        console.warn('JHI calculation failed, using fallback:', error);
-        completeJhiScore = 50 + scoreAdjustment;
-    }
-
-    // Bonus for remote work (work-life balance)
-    if (isRemote && completeJhiScore < 85) {
-        completeJhiScore = Math.min(85, completeJhiScore + 8);
-    }
-
-    // Convert absolute score to impact (delta from baseline 50)
-    const jhiImpactDelta = completeJhiScore - 50;
+    const calculatedJhi = calculateJHI({
+        salary_from: Math.round(grossMonthlySalary),
+        salary_to: Math.round(grossMonthlySalary),
+        type: job.type,
+        benefits: job.benefits,
+        description: job.description,
+        location: job.location,
+        distanceKm: distanceForJhi
+    }, 0, user.jhiPreferences);
+    const adjustedPersonalizedJhiScore = Math.max(0, Math.min(100, calculatedJhi.personalizedScore + scoreAdjustment));
+    const jhiImpactDelta = adjustedPersonalizedJhiScore - 50;
 
     // Calculate individual JHI dimensions
     const mentalScore = calculateMentalHealthScore(job, distanceForJhi, timeMinutes);
@@ -790,8 +771,8 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
     const timeScore = calculateTimeScore(job, timeMinutes, isRemote);
     const valuesScore = calculateValuesScore(job, job.benefits);
 
-    // Financial score (already calculated above as completeJhiScore)
-    const financialScore = completeJhiScore;
+    // Financial score starts from base pillar and applies commute financial adjustment.
+    const financialScore = Math.max(0, Math.min(100, calculatedJhi.financial + scoreAdjustment));
 
     return {
         distanceKm,
@@ -810,16 +791,21 @@ export const calculateCommuteReality = (job: Job, user: UserProfile): CommuteAna
             avoidedCommuteCost,
             finalRealMonthlyValue,
             scoreAdjustment,
-            isIco
+            isIco,
+            taxBreakdown: breakdown,
+            ruleVersion
         },
         // Add complete JHI breakdown with individual dimensions
         jhi: {
             score: Math.round((financialScore + timeScore + mentalScore + growthScore + valuesScore) / 5),
+            baseScore: calculatedJhi.baseScore,
+            personalizedScore: adjustedPersonalizedJhiScore,
             financial: financialScore,
             timeCost: timeScore,
             mentalLoad: mentalScore,
             growth: growthScore,
-            values: valuesScore
+            values: valuesScore,
+            explanations: calculatedJhi.explanations
         }
     };
 };

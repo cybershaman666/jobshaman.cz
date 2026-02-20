@@ -20,7 +20,17 @@ interface WelcomeGuideProps {
 
 const WelcomeGuide: React.FC<WelcomeGuideProps> = ({ theme }) => {
     const { t } = useTranslation();
-    const demoJHI: JHI = { score: 70, financial: 75, timeCost: 65, mentalLoad: 70, growth: 75, values: 60 };
+    const demoJHI: JHI = {
+        score: 70,
+        baseScore: 70,
+        personalizedScore: 70,
+        financial: 75,
+        timeCost: 65,
+        mentalLoad: 70,
+        growth: 75,
+        values: 60,
+        explanations: ['Demo score']
+    };
 
     return (
         <div className="h-full flex flex-col overflow-y-auto custom-scrollbar relative w-full bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
