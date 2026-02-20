@@ -905,7 +905,12 @@ export const trackAnalyticsEvent = async (event: {
     metadata?: any;
 }): Promise<void> => {
     try {
-        const backendUrl = import.meta.env.VITE_BACKEND_URL || import.meta.env.VITE_API_URL || '';
+        const backendUrl =
+            import.meta.env.VITE_SEARCH_API_URL ||
+            import.meta.env.VITE_SEARCH_BACKEND_URL ||
+            import.meta.env.VITE_BACKEND_URL ||
+            import.meta.env.VITE_API_URL ||
+            '';
         if (backendUrl) {
             const response = await fetch(`${backendUrl.replace(/\/$/, '')}/analytics/track`, {
                 method: 'POST',

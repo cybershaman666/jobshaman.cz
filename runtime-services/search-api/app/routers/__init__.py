@@ -1,3 +1,3 @@
-from . import search_runtime, seo
+from . import search_runtime, seo, analytics
 
-__all__ = ["search_runtime"]
+__all__ = ["search_runtime", "seo", "analytics"]
