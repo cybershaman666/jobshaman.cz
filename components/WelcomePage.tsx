@@ -220,7 +220,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
 
   if (!WELCOME_V2_ENABLED) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <div className="min-h-screen app-grid-bg app-grid-bg--soft">
         <section className="max-w-6xl mx-auto px-4 py-14 lg:py-20">
           <h1 className="text-4xl lg:text-5xl font-bold text-slate-900 dark:text-white mb-4">{t('welcome_v2.legacy_fallback_title')}</h1>
           <p className="text-lg text-slate-600 dark:text-slate-400 mb-8">{t('welcome_v2.legacy_fallback_desc')}</p>
@@ -238,7 +238,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   }
 
   return (
-    <div className="min-h-screen bg-[#f4f6f8] dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+    <div className="min-h-screen app-grid-bg app-grid-bg--soft text-slate-900 dark:text-slate-100">
       <section className="max-w-7xl mx-auto px-4 lg:px-8 pt-10 pb-14 lg:pt-16 lg:pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div>

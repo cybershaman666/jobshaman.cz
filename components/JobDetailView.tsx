@@ -551,11 +551,20 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
 
                         {/* Bottom section with JHI Chart and Analysis */}
                         <div className="bg-slate-50 dark:bg-slate-950/30 border-t border-slate-200 dark:border-slate-800 p-6 sm:p-8">
-                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                                {/* Left Column - JHI Chart and AI Analysis */}
-                                <div className="space-y-6">
-                                    {/* JHI Chart with Spider Graph */}
-                                    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800 relative">
+                            <div className="flex items-center justify-between mb-6">
+                                <div>
+                                    <div className="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Analytický panel</div>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Kvalita nabídky & signály</h3>
+                                </div>
+                                <div className="text-xs text-slate-500 dark:text-slate-400">
+                                    Data: JobShaman AI + veřejné zdroje
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+                                {/* JHI Chart */}
+                                <div className="xl:col-span-5 xl:row-span-2">
+                                    <div className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-800 relative h-full">
                                         <div className="flex items-center justify-between mb-2">
                                             <div className="flex items-center gap-3">
                                                 <div className="p-2 bg-emerald-100 dark:bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20"><Zap size={20} /></div>
@@ -574,53 +583,31 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                             highlightGrowth={false}
                                         />
                                     </div>
+                                </div>
 
-                                    {/* AI Analysis Section */}
+                                {/* AI Analysis Section */}
+                                <div className="xl:col-span-7">
                                     {aiAnalysis ? (
-                                        <div className="bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-500/30 rounded-xl p-6 shadow-sm">
+                                        <div className="bg-white dark:bg-slate-900 border border-cyan-200 dark:border-cyan-500/30 rounded-xl p-6 shadow-sm h-full">
                                             <h3 className="font-bold text-cyan-600 dark:text-cyan-400 mb-2">{t('job_detail.ai_analysis')}</h3>
                                             <p className="text-sm text-slate-700 dark:text-slate-200">{aiAnalysis.summary}</p>
                                         </div>
                                     ) : (
-                                        <button onClick={handleAnalyzeJob} disabled={analyzing} className="w-full py-4 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 text-cyan-600 dark:text-cyan-400 border border-slate-200 dark:border-slate-700 hover:border-cyan-300 rounded-xl flex items-center justify-center gap-3 text-sm font-bold shadow-sm">
-                                            {analyzing ? t('job_detail.analyzing') : t('job_detail.run_ai_analysis')}
-                                        </button>
-                                    )}
-
-                                    {typeof selectedJob.aiMatchScore === 'number' && (
-                                        <div className="bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-500/30 rounded-xl p-6 shadow-sm">
-                                            <h3 className="font-bold text-emerald-700 dark:text-emerald-400 mb-2">
-                                                AI Doporučení: {Math.round(selectedJob.aiMatchScore)}%
-                                            </h3>
-                                            {selectedJob.aiMatchBreakdown && (
-                                                <div className="text-xs text-slate-600 dark:text-slate-300 mb-2">
-                                                    skill={Math.round((selectedJob.aiMatchBreakdown.skill_match || 0) * 100)}% ·
-                                                    demand={Math.round((selectedJob.aiMatchBreakdown.demand_boost || 0) * 100)}% ·
-                                                    salary={Math.round((selectedJob.aiMatchBreakdown.salary_alignment || 0) * 100)}%
-                                                </div>
-                                            )}
-                                            {!!selectedJob.aiMatchReasons?.length && (
-                                                <ul className="text-sm text-slate-700 dark:text-slate-200 space-y-1 list-disc pl-5">
-                                                    {selectedJob.aiMatchReasons.slice(0, 3).map((reason, idx) => (
-                                                        <li key={`${reason}-${idx}`}>{reason}</li>
-                                                    ))}
-                                                </ul>
-                                            )}
-                                            {!!selectedJob.aiMatchBreakdown?.missing_core_skills?.length && (
-                                                <div className="mt-2 text-xs text-amber-700 dark:text-amber-300">
-                                                    Chybějící klíčové dovednosti: {selectedJob.aiMatchBreakdown.missing_core_skills.slice(0, 3).join(', ')}
-                                                </div>
-                                            )}
+                                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-6 shadow-sm h-full flex items-center justify-center">
+                                            <button onClick={handleAnalyzeJob} disabled={analyzing} className="w-full py-4 bg-slate-50 dark:bg-slate-800 hover:bg-white dark:hover:bg-slate-700 text-cyan-600 dark:text-cyan-400 border border-slate-200 dark:border-slate-700 hover:border-cyan-300 rounded-xl flex items-center justify-center gap-3 text-sm font-bold">
+                                                {analyzing ? t('job_detail.analyzing') : t('job_detail.run_ai_analysis')}
+                                            </button>
                                         </div>
                                     )}
+                                </div>
 
-                                    {/* Transparency Card */}
+                                {/* Transparency Card */}
+                                <div className="xl:col-span-7">
                                     <TransparencyCard variant={theme} />
                                 </div>
 
-                                {/* Right Column - BullshitMeter */}
-                                <div className="space-y-6">
-                                    {/* BullshitMeter */}
+                                {/* BullshitMeter */}
+                                <div className="xl:col-span-12">
                                     <BullshitMeter metrics={selectedJob.noiseMetrics} variant={theme} />
                                 </div>
                             </div>

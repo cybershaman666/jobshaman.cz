@@ -1791,7 +1791,7 @@ export default function App() {
     };
 
     return (
-        <div className={`flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white font-sans transition-colors duration-300 selection:bg-cyan-500/30 selection:text-cyan-900 dark:selection:text-cyan-100`}>
+        <div className={`flex flex-col min-h-screen app-grid-bg text-slate-900 dark:text-white font-sans transition-colors duration-300 selection:bg-cyan-500/30 selection:text-cyan-900 dark:selection:text-cyan-100`}>
             <AppHeader
                 viewState={viewState}
                 setViewState={setViewState}
