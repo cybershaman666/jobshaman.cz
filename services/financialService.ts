@@ -144,34 +144,70 @@ export const detectCurrencyFromLocation = (location: string): string => {
   return 'CZK';
 }
 
+const hasYearlyMarker = (text: string): boolean =>
+  /(?:\/\s*rok|ročn|rocni|rok|year|annual|annually|jahr|jährlich|jaehrlich|rocznie|rok(?:u)?|p\.a\.)/i.test(text);
+
+const hasMonthlyMarker = (text: string): boolean =>
+  /(?:\/\s*m[eě]s|měs|mesi|month|monthly|monat|miesi[ąa]c)/i.test(text);
+
+const hasShortTimeframeMarker = (text: string): boolean =>
+  /(?:\/\s*h|\/\s*hod|hodin|hour|hourly|\/\s*den|daily|\/\s*t[ýy]d|weekly)/i.test(text);
+
+const inferAnnualByAmount = (amount: number, currency: string): boolean => {
+  const code = normalizeCurrencyCode(currency);
+  if (code === 'EUR') return amount >= 10000;
+  if (code === 'PLN') return amount >= 30000;
+  if (code === 'USD' || code === 'GBP' || code === 'CHF') return amount >= 12000;
+  return false;
+};
+
+const normalizeSalaryToMonthly = (
+  amount: number,
+  currency: string,
+  contextText: string,
+  timeframe?: string
+): number => {
+  if (!amount || amount <= 0) return 0;
+
+  const tf = String(timeframe || '').toLowerCase();
+  if (tf === 'year' || tf === 'yearly' || tf === 'annual') return Math.round(amount / 12);
+  if (tf === 'month' || tf === 'monthly') return amount;
+  if (tf === 'hour' || tf === 'day' || tf === 'week') return amount;
+
+  const lower = (contextText || '').toLowerCase();
+  if (hasShortTimeframeMarker(lower)) return amount;
+  if (hasMonthlyMarker(lower)) return amount;
+  if (hasYearlyMarker(lower)) return Math.round(amount / 12);
+  if (inferAnnualByAmount(amount, currency)) return Math.round(amount / 12);
+
+  return amount;
+};
+
 export const parseMonthlySalary = (salaryRange: string | undefined): number => {
   if (!salaryRange) return 0;
 
   // Remove commas and spaces
   const cleanString = salaryRange.replace(/,/g, '').replace(/\s/g, '');
+  const lower = salaryRange.toLowerCase();
 
   // Extract first number found
   const match = cleanString.match(/(\d+)/);
   if (!match) return 0;
 
   let value = parseInt(match[0], 10);
+  const currency = detectCurrency(salaryRange);
 
   // Detect annual vs monthly
-  const isAnnual = salaryRange.toLowerCase().includes('k') || value < 200; // e.g. 85k or 85
+  const hasThousandSuffix = /\d+\s*k(?!\s*(č|c|czk))\b/.test(lower); // e.g. 85k, but not Kč/CZK
+  const isAnnualByText = hasYearlyMarker(lower) && !hasMonthlyMarker(lower) && !hasShortTimeframeMarker(lower);
 
   // Handle "k" suffix (e.g. 85k)
-  if (salaryRange.toLowerCase().includes('k') && value < 1000) {
+  if (hasThousandSuffix && value < 1000) {
     value *= 1000;
   }
 
-  // Convert annual to monthly
-  if (isAnnual || value > 150000 && !salaryRange.includes('mo') && !salaryRange.includes('mth')) {
-    const currency = detectCurrency(salaryRange);
-    if (currency === 'Kč' || currency === 'CZK') {
-      if (value > 200000) return Math.round(value / 12);
-    } else {
-      if (value > 20000) return Math.round(value / 12);
-    }
+  if (hasThousandSuffix || isAnnualByText || (inferAnnualByAmount(value, currency) && !hasMonthlyMarker(lower) && !hasShortTimeframeMarker(lower))) {
+    return Math.round(value / 12);
   }
 
   return value;
@@ -417,8 +453,20 @@ export const calculateFinancialReality = async (
   userProfile: UserProfile,
   benefitValuations: BenefitValuation[]
 ): Promise<(FinancialReality & { commuteDetails: { distance: number; monthlyCost: number } }) | null> => {
+  // Detect currency first so salary_from conversion can use it.
+  const currency = job.salaryRange
+    ? detectCurrency(job.salaryRange)
+    : detectCurrencyFromLocation(job.location);
+
   // Extract salary information
-  const baseSalary = job.salary_from ||
+  const rawSalaryFrom = job.salary_from || 0;
+  const monthlySalaryFrom = normalizeSalaryToMonthly(
+    rawSalaryFrom,
+    currency,
+    `${job.salaryRange || ''} ${job.description || ''}`,
+    job.salary_timeframe
+  );
+  const baseSalary = monthlySalaryFrom ||
     parseMonthlySalary(job.salaryRange) ||
     (job.aiEstimatedSalary ? job.aiEstimatedSalary.min : 0);
 
@@ -426,9 +474,6 @@ export const calculateFinancialReality = async (
     console.warn('No salary information available for job:', job.title);
     return null; // Return null instead of throwing error
   }
-
-  // Detect currency
-  const currency = detectCurrency(job.salaryRange || '') || detectCurrencyFromLocation(job.location);
 
   // Calculate benefits value
   const benefitsValue = await calculateBenefitsValueWithTable(
