@@ -63,11 +63,20 @@ const hasShortSalaryTimeframe = (salaryTimeframe: unknown, contextText: string):
 const normalizeSalaryAmount = (
     value: number | undefined,
     salaryTimeframe: unknown,
-    contextText: string
+    contextText: string,
+    currency?: unknown
 ): number | undefined => {
     if (!value) return value;
     if (value >= 1000) return value;
     if (hasShortSalaryTimeframe(salaryTimeframe, contextText)) return value;
+    const context = (contextText || '').toLowerCase();
+    const cur = String(currency || '').toLowerCase();
+    const hasThousandMarker = /\b(k|tis|tis[ií]c|thousand)\b/i.test(context);
+
+    // Conservative guard: values like 150-300 CZK are often hourly ranges.
+    if (!hasThousandMarker && (cur.includes('kč') || cur.includes('czk')) && value >= 80 && value <= 500) {
+        return value;
+    }
     return value * 1000;
 };
 
@@ -267,12 +276,14 @@ const transformJob = (scrapedJob: any): Job => {
     const salaryFrom = normalizeSalaryAmount(
         safeParseInt(scrapedJob.salary_from),
         scrapedJob.salary_timeframe,
-        salaryContext
+        salaryContext,
+        scrapedJob.salary_currency || scrapedJob.currency
     );
     const salaryTo = normalizeSalaryAmount(
         safeParseInt(scrapedJob.salary_to),
         scrapedJob.salary_timeframe,
-        salaryContext
+        salaryContext,
+        scrapedJob.salary_currency || scrapedJob.currency
     );
     const currency = scrapedJob.salary_currency || scrapedJob.currency;
     const salaryRange = formatSalaryRange(salaryFrom, salaryTo, currency, scrapedJob.location, scrapedJob.country_code);
@@ -2143,8 +2154,18 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
             const salaryContext = `${scraped.title || ''} ${fullDesc}`;
 
             // Fix for salaries stored as thousands (e.g., 38 should be 38,000)
-            salaryFrom = normalizeSalaryAmount(salaryFrom, scraped.salary_timeframe, salaryContext);
-            salaryTo = normalizeSalaryAmount(salaryTo, scraped.salary_timeframe, salaryContext);
+            salaryFrom = normalizeSalaryAmount(
+                salaryFrom,
+                scraped.salary_timeframe,
+                salaryContext,
+                scraped.salary_currency || scraped.currency
+            );
+            salaryTo = normalizeSalaryAmount(
+                salaryTo,
+                scraped.salary_timeframe,
+                salaryContext,
+                scraped.salary_currency || scraped.currency
+            );
 
             const currency = scraped.salary_currency || scraped.currency;
             const salaryRange = formatSalaryRange(salaryFrom, salaryTo, currency, scraped.location, scraped.country_code);
