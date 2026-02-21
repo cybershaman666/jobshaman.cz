@@ -89,14 +89,14 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     },
     {
       key: 'growth',
-      name: t('company_landing.pricing.plans.professional.name', { defaultValue: 'Growth' }),
+      name: t('company_landing.pricing.plans.growth.name', { defaultValue: 'Growth' }),
       price: '599 €',
       period: t('company_landing.pricing.period'),
-      description: t('company_landing.pricing.plans.professional.desc', { defaultValue: 'For SMEs and active recruiters' }),
+      description: t('company_landing.pricing.plans.growth.desc', { defaultValue: 'For SMEs and active recruiters' }),
       features: [
-        t('company_landing.pricing.plans.professional.f1', { defaultValue: '10 active job postings' }),
-        t('company_landing.pricing.plans.professional.f2', { defaultValue: '60 AI screenings / month' }),
-        t('company_landing.pricing.plans.professional.f3', { defaultValue: 'JHI insights' })
+        t('company_landing.pricing.plans.growth.f1', { defaultValue: '10 active job postings' }),
+        t('company_landing.pricing.plans.growth.f2', { defaultValue: '60 AI screenings / month' }),
+        t('company_landing.pricing.plans.growth.f3', { defaultValue: 'JHI insights' })
       ],
       highlighted: true
     },
