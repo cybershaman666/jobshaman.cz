@@ -50,8 +50,9 @@ const resolveInteractionBackends = (): string[] => {
     return Array.from(new Set(bases));
 };
 
-const INTERACTION_BACKEND_COOLDOWN_MS = 90_000;
+const INTERACTION_BACKEND_COOLDOWN_MS = 20_000;
 const interactionBackendCooldownByHost = new Map<string, number>();
+const interactionBackendFailureCountByHost = new Map<string, number>();
 
 const isInteractionBackendCooldownActive = (baseUrl: string): boolean =>
     Date.now() < (interactionBackendCooldownByHost.get(baseUrl) || 0);
@@ -62,6 +63,7 @@ const markInteractionBackendCooldown = (baseUrl: string): void => {
 
 const clearInteractionBackendCooldown = (baseUrl: string): void => {
     interactionBackendCooldownByHost.delete(baseUrl);
+    interactionBackendFailureCountByHost.delete(baseUrl);
 };
 
 export const trackJobInteraction = async (payload: JobInteractionPayload): Promise<void> => {
@@ -123,6 +125,7 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
 
             if (response.status >= 500 || response.status === 429) {
                 markInteractionBackendCooldown(baseUrl);
+                interactionBackendFailureCountByHost.delete(baseUrl);
                 recordRuntimeSignal('interaction_tracking_degraded', {
                     reason: 'server_error',
                     status: response.status,
@@ -148,7 +151,13 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
                 msg.includes('cors');
 
             if (isTransient) {
-                markInteractionBackendCooldown(baseUrl);
+                const currentFailures = (interactionBackendFailureCountByHost.get(baseUrl) || 0) + 1;
+                interactionBackendFailureCountByHost.set(baseUrl, currentFailures);
+                // Avoid aggressive cooldown on single transient timeout.
+                if (currentFailures >= 2) {
+                    markInteractionBackendCooldown(baseUrl);
+                    interactionBackendFailureCountByHost.delete(baseUrl);
+                }
                 continue;
             }
 
