@@ -14,6 +14,7 @@ import ApplyFollowupModal from './components/ApplyFollowupModal';
 import CompanyRegistrationModal from './components/CompanyRegistrationModal';
 import EnterpriseSignup from './components/EnterpriseSignup';
 import ApplicationModal from './components/ApplicationModal';
+import ProfileEditor from './components/ProfileEditor';
 import CookieBanner from './components/CookieBanner';
 import PodminkyUziti from './pages/PodminkyUziti';
 import OchranaSoukromi from './pages/OchranaSoukromi';
@@ -68,7 +69,6 @@ const APPLY_FOLLOWUP_STORAGE_KEY = 'jobshaman_apply_followup';
 const EMAIL_CONFIRMATION_STORAGE_KEY = 'jobshaman_email_confirmation_pending';
 
 const CompanyDashboard = lazy(() => import('./components/CompanyDashboard'));
-const ProfileEditor = lazy(() => import('./components/ProfileEditor'));
 const CompanyLandingPage = lazy(() => import('./components/CompanyLandingPage'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const SavedJobsPage = lazy(() => import('./components/SavedJobsPage'));
