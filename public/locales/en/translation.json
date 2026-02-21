@@ -787,7 +787,7 @@
     "portfolio_placeholder": "vasewebova.cz",
     "role_placeholder": "Název pozice",
     "save_error": "Nepodařilo se uložit profil. Zkuste to znovu.",
-    "saved_jobs": "Uloženo ({{count}})",
+    "saved_jobs": "Saved ({{count}})",
     "school_placeholder": "Název instituce",
     "selection": "Vybráno",
     "skills_count": "{{count}} skills",
@@ -797,7 +797,7 @@
       "personal": "Osobní údaje",
       "skills": "Dovednosti"
     },
-    "title": "Profil",
+    "title": "Profile",
     "transport_desc": "Jak se raději dopravujete do práce? Tuto informaci budeme používat ve \"Finanční a dojezdové realitě\" u každé pozice.",
     "transport_pref": "Preferovaná doprava",
     "year_placeholder": "např. 2020"
