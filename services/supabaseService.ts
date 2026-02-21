@@ -1,5 +1,5 @@
 // Updated Supabase service functions for new paywall schema
-import { refreshSession, supabase } from './supabaseClient';
+import { clearSupabaseAuthStorage, refreshSession, supabase } from './supabaseClient';
 import { geocodeWithCaching, normalizeAddress } from './geocodingService';
 import { createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from './profileDefaults';
 export { supabase };
@@ -102,6 +102,13 @@ export const verifyAuthSession = async (context: string) => {
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error) {
+            const authMsg = String(error?.message || '').toLowerCase();
+            const hasInvalidRefreshToken = authMsg.includes('invalid refresh token') || authMsg.includes('refresh token not found');
+            if (hasInvalidRefreshToken) {
+                console.warn(`🧹 Invalid refresh token detected [${context}]. Clearing stale auth storage.`);
+                clearSupabaseAuthStorage();
+                return { isValid: false, error: 'Invalid refresh token' };
+            }
             if (isLikelySupabaseNetworkError(error)) {
                 noteSupabaseNetworkFailure(`verifyAuthSession:${context}`, error);
                 return { isValid: false, error: 'Supabase network unavailable' };
@@ -241,6 +248,7 @@ export const getCurrentUser = async () => {
 
             // If it's a refresh token error, try to refresh the session
             if (error.message.includes('Invalid Refresh Token') || error.message.includes('Refresh Token Not Found')) {
+                clearSupabaseAuthStorage();
                 console.log('Attempting to refresh session...');
 
                 const refreshedSession = await refreshSession();

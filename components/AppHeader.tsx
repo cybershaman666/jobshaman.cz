@@ -51,7 +51,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
     const [avatarFailed, setAvatarFailed] = useState(false);
     const canShowBusinessMenu = showCompanyLanding || !userProfile.isLoggedIn || userProfile.role === 'recruiter';
-    const subscriptionSubjectId = userProfile.role === 'recruiter' && companyProfile?.id
+    const subscriptionSubjectId = (viewState === ViewState.COMPANY_DASHBOARD && userProfile.role === 'recruiter' && companyProfile?.id)
         ? companyProfile.id
         : userProfile.id;
 

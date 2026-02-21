@@ -1,4 +1,4 @@
-import React, { RefObject } from 'react';
+import React, { RefObject, useEffect, useState } from 'react';
 import { Job, UserProfile, CommuteAnalysis, ViewState, AIAnalysisResult } from '../types';
 import FinancialCard from './FinancialCard';
 import WelcomePage from './WelcomePage';
@@ -10,9 +10,9 @@ import { ArrowUpRight, Bookmark, Gift, Zap, Share2, Sparkles, Home, Briefcase } 
 import { useTranslation } from 'react-i18next';
 import Markdown from 'markdown-to-jsx';
 import { getCompanyLogoUrl, getCompanyPublicInfo, trackAnalyticsEvent } from '../services/supabaseService';
-import { useEffect } from 'react';
 import { removeAccents } from '../utils/benefits';
 import { matchesBrigadaKeywords, matchesFullTimeKeywords, matchesIcoKeywords, matchesPartTimeKeywords } from '../utils/contractType';
+import { optimizeCvForAts } from '../services/geminiService';
 
 interface JobDetailViewProps {
     mounted: boolean;
@@ -42,6 +42,8 @@ interface JobDetailViewProps {
     selectedBlogPostSlug: string | null;
     handleBlogPostSelect: (slug: string | null) => void;
     onApplyToJob?: (job: Job) => void;
+    onOpenPremium?: (featureLabel: string) => void;
+    onSaveOptimizedCv?: (optimizedCvText: string) => Promise<boolean>;
 }
 
 const JobDetailView: React.FC<JobDetailViewProps> = ({
@@ -71,9 +73,19 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     handleAnalyzeJob,
     selectedBlogPostSlug,
     handleBlogPostSelect,
-    onApplyToJob
+    onApplyToJob,
+    onOpenPremium,
+    onSaveOptimizedCv
 }) => {
     const { t, i18n } = useTranslation();
+    const isPremium = userProfile.subscription?.tier === 'premium';
+    const [isOptimizingCv, setIsOptimizingCv] = useState(false);
+    const [optimizedCvText, setOptimizedCvText] = useState('');
+    const [optimizationImprovements, setOptimizationImprovements] = useState<string[]>([]);
+    const [cvOptimizationError, setCvOptimizationError] = useState<string | null>(null);
+    const [cvCopied, setCvCopied] = useState(false);
+    const [isSavingOptimizedCv, setIsSavingOptimizedCv] = useState(false);
+    const [optimizedCvSaved, setOptimizedCvSaved] = useState(false);
     const highValueKeywords = [
         'remote',
         'home office',
@@ -240,6 +252,72 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
             setTimeout(() => setShareTooltip(false), 2000);
         } catch (err) {
             console.error('Failed to copy:', err);
+        }
+    };
+
+    const handleOptimizeCv = async () => {
+        if (!isPremium) {
+            onOpenPremium?.(t('job_detail.cv_ai_tools_feature_label'));
+            return;
+        }
+
+        const sourceCv = (userProfile.cvAiText || userProfile.cvText || '').trim();
+        if (!sourceCv) {
+            setCvOptimizationError(t('job_detail.cv_ai_tools_missing_cv'));
+            return;
+        }
+
+        setCvOptimizationError(null);
+        setCvCopied(false);
+        setOptimizedCvSaved(false);
+        setIsOptimizingCv(true);
+        try {
+            const jobContext = [
+                `Target role: ${selectedJob?.title || ''}`,
+                `Company: ${selectedJob?.company || ''}`,
+                `Location: ${selectedJob?.location || ''}`,
+                selectedJob?.description ? `Job description:\n${selectedJob.description}` : '',
+                selectedJob?.required_skills?.length ? `Required skills: ${selectedJob.required_skills.join(', ')}` : ''
+            ].filter(Boolean).join('\n');
+
+            const result = await optimizeCvForAts(`${sourceCv}\n\n${jobContext}`);
+            setOptimizedCvText(result.optimizedText || '');
+            setOptimizationImprovements(Array.isArray(result.improvements) ? result.improvements : []);
+        } catch (error) {
+            console.error('CV optimization failed:', error);
+            setCvOptimizationError(t('job_detail.cv_ai_tools_failed'));
+        } finally {
+            setIsOptimizingCv(false);
+        }
+    };
+
+    const handleCopyOptimizedCv = async () => {
+        if (!optimizedCvText) return;
+        try {
+            await navigator.clipboard.writeText(optimizedCvText);
+            setCvCopied(true);
+            setTimeout(() => setCvCopied(false), 2000);
+        } catch (error) {
+            console.error('Failed to copy optimized CV text:', error);
+        }
+    };
+
+    const handleSaveOptimizedCv = async () => {
+        if (!optimizedCvText.trim() || !onSaveOptimizedCv) return;
+        setIsSavingOptimizedCv(true);
+        setCvOptimizationError(null);
+        try {
+            const saved = await onSaveOptimizedCv(optimizedCvText);
+            if (!saved) {
+                setCvOptimizationError(t('job_detail.cv_ai_tools_save_failed'));
+                return;
+            }
+            setOptimizedCvSaved(true);
+        } catch (error) {
+            console.error('Failed to save optimized CV:', error);
+            setCvOptimizationError(t('job_detail.cv_ai_tools_save_failed'));
+        } finally {
+            setIsSavingOptimizedCv(false);
         }
     };
 
@@ -521,6 +599,88 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                 setShowFinancialMethodology={setShowFinancialMethodology}
                                 getTransportIcon={getTransportIcon}
                             />
+
+                            <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-6 border border-slate-200 dark:border-slate-800">
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+                                    <div>
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('job_detail.cv_ai_tools_title')}</h3>
+                                        <p className="text-sm text-slate-600 dark:text-slate-300">{t('job_detail.cv_ai_tools_desc')}</p>
+                                    </div>
+                                    {!isPremium && (
+                                        <button
+                                            onClick={() => onOpenPremium?.(t('job_detail.cv_ai_tools_feature_label'))}
+                                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900 dark:bg-cyan-500/20 text-white dark:text-cyan-200 text-sm font-bold hover:bg-slate-800 dark:hover:bg-cyan-500/30"
+                                        >
+                                            {t('premium.upgrade_btn_short')}
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={handleOptimizeCv}
+                                        disabled={isOptimizingCv}
+                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-cyan-300 dark:border-cyan-700 bg-white dark:bg-slate-900 text-cyan-700 dark:text-cyan-300 text-sm font-semibold hover:bg-cyan-50 dark:hover:bg-cyan-900/30 disabled:opacity-60"
+                                    >
+                                        {isOptimizingCv ? t('job_detail.cv_ai_tools_optimizing') : t('job_detail.cv_ai_tools_optimize')}
+                                    </button>
+                                    <button
+                                        onClick={() => setViewState(ViewState.PROFILE)}
+                                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800"
+                                    >
+                                        {t('job_detail.cv_ai_tools_open_profile')}
+                                    </button>
+                                </div>
+
+                                {!isPremium && (
+                                    <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">{t('job_detail.cv_ai_tools_upgrade_hint')}</p>
+                                )}
+
+                                {cvOptimizationError && (
+                                    <p className="mt-3 text-sm text-rose-600 dark:text-rose-400">{cvOptimizationError}</p>
+                                )}
+
+                                {!!optimizedCvText && (
+                                    <div className="mt-5 space-y-3">
+                                        <div className="flex items-center justify-between">
+                                            <h4 className="text-sm font-bold text-slate-900 dark:text-white">{t('job_detail.cv_ai_tools_result_title')}</h4>
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={handleSaveOptimizedCv}
+                                                    disabled={isSavingOptimizedCv}
+                                                    className="text-xs font-semibold px-3 py-1.5 rounded-md border border-cyan-300 dark:border-cyan-700 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-900/30 disabled:opacity-60"
+                                                >
+                                                    {isSavingOptimizedCv ? t('job_detail.cv_ai_tools_saving') : t('job_detail.cv_ai_tools_save_profile')}
+                                                </button>
+                                                <button
+                                                    onClick={handleCopyOptimizedCv}
+                                                    className="text-xs font-semibold px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                                >
+                                                    {cvCopied ? t('job_detail.cv_ai_tools_copied') : t('job_detail.cv_ai_tools_copy')}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <textarea
+                                            value={optimizedCvText}
+                                            readOnly
+                                            className="w-full min-h-[220px] p-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-sm text-slate-800 dark:text-slate-200"
+                                        />
+                                        {optimizationImprovements.length > 0 && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">{t('job_detail.cv_ai_tools_improvements_title')}</p>
+                                                <ul className="text-xs text-slate-600 dark:text-slate-300 space-y-1">
+                                                    {optimizationImprovements.slice(0, 5).map((item, idx) => (
+                                                        <li key={`${item}-${idx}`}>• {item}</li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        {optimizedCvSaved && (
+                                            <p className="text-xs text-emerald-600 dark:text-emerald-400">{t('job_detail.cv_ai_tools_saved_profile')}</p>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
 
                             {/* Benefits Section */}
                             {selectedJob.benefits && selectedJob.benefits.length > 0 && (

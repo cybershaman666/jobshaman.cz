@@ -1027,12 +1027,14 @@ export default function App() {
     // Wake backend early to reduce cold start latency
     useEffect(() => {
         let didCancel = false;
+        let loggedWakeFailure = false;
         const wakeBackend = async () => {
             try {
                 await fetch(`${BACKEND_URL}/healthz`, { method: 'GET' });
             } catch (err) {
-                if (!didCancel) {
+                if (!didCancel && !loggedWakeFailure) {
                     console.warn('Backend wake failed:', err);
+                    loggedWakeFailure = true;
                 }
             }
         };
@@ -1369,6 +1371,21 @@ export default function App() {
         }
     };
 
+    const handleSaveOptimizedCvToProfile = async (optimizedCvText: string): Promise<boolean> => {
+        const normalized = (optimizedCvText || '').trim();
+        if (!normalized || !userProfile.id) {
+            return false;
+        }
+
+        const updatedProfile: UserProfile = {
+            ...userProfile,
+            cvAiText: normalized
+        };
+
+        await handleProfileUpdate(updatedProfile, true);
+        return true;
+    };
+
     const toggleSection = (section: string) => {
         setExpandedSections(prev => ({ ...prev, [section]: !prev[section as keyof typeof prev] }));
     };
@@ -1459,12 +1476,6 @@ export default function App() {
         }
 
         if (viewState === ViewState.PROFILE) {
-            if (userProfile.role === 'recruiter' && !!companyProfile) {
-                // Defer state update to next tick to avoid render-phase update warning
-                setTimeout(() => setViewState(ViewState.COMPANY_DASHBOARD), 0);
-                return null;
-            }
-
             return (
                 <div className="col-span-1 lg:col-span-12 max-w-4xl mx-auto w-full h-full overflow-y-auto custom-scrollbar pb-6 px-1">
                     <ProfileEditor
@@ -1683,6 +1694,8 @@ export default function App() {
                             selectedBlogPostSlug={selectedBlogPostSlug}
                             handleBlogPostSelect={handleBlogPostSelect}
                             onApplyToJob={handleApplyToJob}
+                            onOpenPremium={(featureLabel) => setShowPremiumUpgrade({ open: true, feature: featureLabel })}
+                            onSaveOptimizedCv={handleSaveOptimizedCvToProfile}
                         />
                     </>
                 )}

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { authenticatedFetch } from '../services/csrfService';
+import { authenticatedFetch, isBackendNetworkCooldownActive } from '../services/csrfService';
 import { BACKEND_URL } from '../constants';
 import { supabase } from '../services/supabaseService';
 import AssessmentTaker from './AssessmentTaker';
@@ -30,13 +30,27 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
     setError(null);
     setLoading(true);
     try {
+      if (isBackendNetworkCooldownActive()) {
+        setError(t('my_invitations.backend_unavailable', { defaultValue: 'Backend is temporarily unavailable. Please try again in a moment.' }));
+        setInvitations([]);
+        return;
+      }
       const res = await authenticatedFetch(`${BACKEND_URL}/assessments/invitations${forCompany ? '?for_company=true' : ''}`, { method: 'GET' });
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const data = await res.json();
       setInvitations(data.invitations || []);
     } catch (e: any) {
-      console.error(e);
-      setError(e.message || t('my_invitations.load_failed'));
+      const message = String(e?.message || '');
+      const isBackendUnavailable = message.includes('cooldown active')
+        || message.toLowerCase().includes('networkerror')
+        || message.toLowerCase().includes('failed to fetch')
+        || message.toLowerCase().includes('timeout');
+      if (isBackendUnavailable) {
+        setError(t('my_invitations.backend_unavailable', { defaultValue: 'Backend is temporarily unavailable. Please try again in a moment.' }));
+      } else {
+        console.error(e);
+        setError(e.message || t('my_invitations.load_failed'));
+      }
     } finally {
       setLoading(false);
     }

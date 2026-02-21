@@ -3,6 +3,7 @@ import { CheckCircle, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { UserProfile } from '../types';
 import { redirectToCheckout } from '../services/stripeService';
+import { getPremiumPriceDisplay } from '../services/premiumPricingService';
 
 interface PremiumUpgradeModalProps {
     show: { open: boolean; feature?: string };
@@ -17,7 +18,8 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
     userProfile, 
     onAuth 
 }) => {
-    const { t } = useTranslation();
+    const { t, i18n } = useTranslation();
+    const price = getPremiumPriceDisplay(i18n.language || 'cs');
     if (!show.open) return null;
 
     return (
@@ -43,6 +45,9 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                             t('premium_upgrade_modal.benefits.unlimited_ai'),
                             t('premium_upgrade_modal.benefits.cover_letters'),
                             t('premium_upgrade_modal.benefits.cv_optimization'),
+                            t('premium_upgrade_modal.benefits.ats_optimization'),
+                            t('premium_upgrade_modal.benefits.ai_cv_dictation'),
+                            t('premium_upgrade_modal.benefits.jhi_personalization'),
                             t('premium_upgrade_modal.benefits.priority_visibility')
                         ].map((f, i) => (
                         <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-100 dark:border-slate-800">
@@ -63,8 +68,11 @@ const PremiumUpgradeModal: React.FC<PremiumUpgradeModalProps> = ({
                     }}
                     className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black rounded-2xl transition-all shadow-xl hover:scale-[1.02] active:scale-95 mb-4"
                 >
-                    {t('premium_upgrade_modal.upgrade_cta')}
+                    {`${t('premium.upgrade_btn_short')} • ${price.eurMonthlyLabel}/${t('financial.per_month')}`}
                 </button>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">
+                    {`≈ ${price.czkMonthlyLabel} / ${price.plnMonthlyLabel}`}
+                </p>
 
                 <button
                     onClick={onClose}

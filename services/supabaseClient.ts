@@ -84,3 +84,26 @@ export const refreshSession = async () => {
         return null;
     }
 };
+
+const SUPABASE_STORAGE_PREFIXES = [
+    'sb-auth-token',
+    'supabase.auth.token',
+    'sb-'
+];
+
+export const clearSupabaseAuthStorage = () => {
+    if (typeof window === 'undefined') return;
+    try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < window.localStorage.length; i += 1) {
+            const key = window.localStorage.key(i);
+            if (!key) continue;
+            if (SUPABASE_STORAGE_PREFIXES.some(prefix => key === prefix || key.startsWith(prefix))) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach((key) => window.localStorage.removeItem(key));
+    } catch (error) {
+        console.warn('Failed to clear Supabase auth storage:', error);
+    }
+};
