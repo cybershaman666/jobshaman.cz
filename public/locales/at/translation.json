@@ -40,7 +40,10 @@
       "commute_over": "Pendeln +{{minutes}} Min.",
       "net_below": "Nettoeinkommen liegt um {{amount}} unter Ihrem Minimum",
       "net_unknown": "Nettoeinkommen kann nicht zuverlässig geschätzt werden"
-    }
+    },
+    "clear": "Löschen",
+    "demo_alert": "Demo-Modus aktiv",
+    "saving": "Speichern..."
   },
   "filters": {
     "location_commute": "Standort und Arbeitsweg",
@@ -173,7 +176,8 @@
     "reality_desc": "Berechnung von Nettoeinkommen und Pendelkosten.",
     "home_office": "Homeoffice",
     "saved_commute_time_money": "Gesparte Zeit und Pendelkosten.",
-    "eco_friendly_choice": "Eine umweltfreundlichere Wahl."
+    "eco_friendly_choice": "Eine umweltfreundlichere Wahl.",
+    "calculation_hint": "Schätzung von Nettoeinkommen und Pendelkosten."
   },
   "job_detail": {
     "benefits_title": "Benefits und Vorteile",
@@ -264,7 +268,18 @@
     "followup_no": "Nein, noch nicht",
     "followup_later": "Später erinnern",
     "followup_generic_title": "diese Stelle",
-    "followup_generic_company": "das Unternehmen"
+    "followup_generic_company": "das Unternehmen",
+    "ai_assessment_desc": "Tato společnost akceptuje ověřené hodnocení dovedností. Propojte svůj JobShaman profil a přeskočte úvodní technické kolo.",
+    "ai_assessment_title": "JobShaman AI Ověření Kompetencí",
+    "ai_evaluation_desc": "Vyhodnocujeme vaši vhodnost na základě dovedností a hodnot, nejen klíčových slov. Pomáháme vám přeskočit první kolo pohovorů.",
+    "ai_processing": "Zpracovávám shodu kompetencí...",
+    "ai_prompt_label": "Řekněte AI o svých zkušenostech",
+    "connect_profile": "Propojit profil hodnocení",
+    "cover_letter_placeholder": "Sem napište svůj motivační dopis...",
+    "cv_from_profile": "Životopis z vašeho profilu",
+    "saved_cv_ready": "Uložené CV připraveno",
+    "upload_instead": "Nahrát jiný soubor",
+    "use_saved_cv": "Použít uložené CV z profilu"
   },
   "auth": {
     "login": "Login",
@@ -392,7 +407,43 @@
       "diff_label": "Unterschied zum anderen Szenario:",
       "benefits_hint_home": "13. Gehalt, Essensgutscheine, Sportkarte",
       "benefits_hint_commute": "Essensgutscheine, Zuschuss für Ausstattung"
-    }
+    },
+    "ai_analysis_desc": "KI-Qualitätsanalyse und Signalaufschlüsselung",
+    "ai_analysis_label": "KI-Analyse",
+    "benefit_validation_title": "Benefit-Validierung",
+    "canteen": "Kantine",
+    "case_study": "Fallbeispiel",
+    "clean_signal": "Sauberes Signal",
+    "cliche_desc": "Keine Warnsignale erkannt.",
+    "cliche_detector": "Klischee-Detektor",
+    "cliche_tone": "Erkannter Ton",
+    "dog_friendly_office": "Hundefreundliches Büro",
+    "dog_joke": "Bürohund bei Remote-Job?",
+    "eu_transparent_desc": "Gehaltsspannen-Transparenz gemäß den kommenden EU-Regeln.",
+    "eu_transparent_title": "EU-Transparent-Badge",
+    "finance_stat": "Finanzen",
+    "flexible_hours": "Flexible Arbeitszeiten",
+    "fluctuation": "Fluktuation",
+    "fluctuation_val": "Hoch",
+    "ghosting": "Ghosting",
+    "ghosting_val": "Niedrig",
+    "great_atmosphere": "Tolles Arbeitsklima",
+    "growth_stat": "Wachstum",
+    "ho_equipment": "Homeoffice-Ausstattung",
+    "how_it_works": "So funktioniert es",
+    "jhi_desc": "Zusammengesetzter Qualitätsscore",
+    "jhi_score": "Job Happiness Index (JHI)",
+    "next_gen_tag": "Next-Gen-Matching",
+    "not_applicable": "k. A.",
+    "office_dog_remote": "Bürohund in einer Remote-First-Anzeige",
+    "relevant_benefits": "Relevante Benefits",
+    "remote_job_example": "Remote-Job-Beispiel",
+    "signal_noise": "Signal vs. Rauschen",
+    "tone_professional": "Professionell",
+    "transparency_desc": "Daten von JobShaman AI + öffentlichen Quellen",
+    "transparency_title": "Radikale Transparenz",
+    "virtual_teambuilding": "Virtuelles Teambuilding",
+    "warning_signals": "Warnsignale"
   },
   "promo": {
     "cross_border": {
@@ -490,7 +541,8 @@
     "swipe_left_title": "Nach links wischen oder ← zum Ablehnen",
     "swipe_right_title": "Nach rechts wischen oder → zum Speichern",
     "see_full_details_title": "Vollständige Details anzeigen",
-    "switch_to_list_title": "Zur Listenansicht wechseln"
+    "switch_to_list_title": "Zur Listenansicht wechseln",
+    "title": "Stellenbezeichnung"
   },
   "profile": {
     "personal_info": "Persönliche Informationen",
@@ -595,7 +647,8 @@
         "exclude_shift": "Schichtarbeit ausschließen",
         "growth_required": "Entwicklung erforderlich",
         "max_commute": "Max. Pendelzeit (Min.)",
-        "min_net": "Min. Nettoeinkommen / Monat"
+        "min_net": "Min. Nettoeinkommen / Monat",
+        "label": "Harte Kriterien"
       },
       "presets": {
         "balanced": "Balance",
@@ -606,7 +659,8 @@
         "peopleIntensity": "Kontakt mit Menschen",
         "careerGrowthPreference": "Fokus auf Karrierewachstum",
         "homeOfficePreference": "Home-Office-Präferenz"
-      }
+      },
+      "paywall_hint": "Mit Premium verfügbar"
     },
     "danger_zone": "Gefahrenzone",
     "danger_zone_title": "Gefahrenzone",
@@ -705,7 +759,48 @@
         "cv_fulltext": "Der vollständige KI-CV-Text kombiniert Ihre Eingaben mit Fokus auf übertragbare Stärken.",
         "better_with_context": "Das Ergebnis ist präziser, weil der Guide genug Kontext aus mehreren Bereichen hatte."
       }
-    }
+    },
+    "add_skill_prompt": "Přidejte novou dovednost:",
+    "company_placeholder": "Název společnosti",
+    "cv_size_error": "Soubor je příliš velký. Maximální velikost je 10MB.",
+    "cv_text_manual": "Text životopisu (volitelně)",
+    "cv_text_placeholder": "Vložte text vašeho životopisu sem nebo nahrajte CV výše...",
+    "cv_type_error": "Prosím nahrávejte pouze PDF, DOC nebo DOCX soubory.",
+    "cv_upload_error": "Nepodařilo se nahrát CV. Zkuste to znovu.",
+    "cv_upload_success": "CV úspěšně nahráno a zpracováno!",
+    "degree_placeholder": "např. Ing., Bc., Mgr.",
+    "description_placeholder": "Popište své hlavní odpovědnosti a úspěchy...",
+    "duration_placeholder": "např. 2020 - 2022 (2 roky)",
+    "editor_title": "Editor životopisu",
+    "field_placeholder": "např. Informační technologie",
+    "github": "GitHub",
+    "github_placeholder": "github.com/jmeno",
+    "linkedin": "LinkedIn",
+    "linkedin_placeholder": "linkedin.com/in/jmeno-prijmeni",
+    "new_education": "Nové vzdělání",
+    "new_role": "Nová pozice",
+    "photo_size_error": "Obrázek je příliš velký. Maximální velikost je 5MB.",
+    "photo_type_error": "Prosím nahrávejte pouze obrázky.",
+    "placeholder_job": "Vaše pracovní pozice",
+    "placeholder_name": "Vaše jméno",
+    "portfolio": "Portfolio",
+    "portfolio_placeholder": "vasewebova.cz",
+    "role_placeholder": "Název pozice",
+    "save_error": "Nepodařilo se uložit profil. Zkuste to znovu.",
+    "saved_jobs": "Uloženo ({{count}})",
+    "school_placeholder": "Název instituce",
+    "selection": "Vybráno",
+    "skills_count": "{{count}} Fähigkeiten",
+    "tabs": {
+      "education": "Vzdělání",
+      "experience": "Zkušenosti",
+      "personal": "Osobní údaje",
+      "skills": "Dovednosti"
+    },
+    "title": "Profil",
+    "transport_desc": "Jak se raději dopravujete do práce? Tuto informaci budeme používat ve \"Finanční a dojezdové realitě\" u každé pozice.",
+    "transport_pref": "Preferovaná doprava",
+    "year_placeholder": "např. 2020"
   },
   "cv_manager": {
     "title": "Lebenslauf-Verwaltung",
@@ -850,12 +945,15 @@
         "projected": "Progn.",
         "potential_savings": "Potenzielle Einsparungen",
         "analyzing_market": "Analysiere Markt...",
-        "currency": "CZK"
+        "currency": "CZK",
+        "new": "Neu"
       },
       "ai_insights": {
         "title": "Strategische KI-Einblicke",
         "hired_prediction": "Basierend auf der Historie werden Sie in {{days}} Tagen einstellen ({{count}} Kandidaten in der Pipeline). Sie sind auf Kurs.",
-        "low_match_warning": "Niedriger KI-Match (durchschnittlich {{avg}}%). Wir empfehlen, die Beschreibung der Arbeitszeit in der Anzeige anzupassen."
+        "low_match_warning": "Niedriger KI-Match (durchschnittlich {{avg}}%). Wir empfehlen, die Beschreibung der Arbeitszeit in der Anzeige anzupassen.",
+        "analyzing_market": "Marktsignale werden analysiert...",
+        "awaiting_data": "Warten auf erste Datenpunkte..."
       },
       "actions": {
         "view_as_user": "Als Benutzer ansehen",
@@ -863,10 +961,12 @@
         "close": "Als geschlossen markieren",
         "delete": "Position löschen",
         "confirm_delete": "Sind Sie sicher, dass Sie diese Position löschen möchten?",
-        "confirm_close": "Sind Sie sicher, dass Sie diese Position als geschlossen markieren möchten?"
+        "confirm_close": "Sind Sie sicher, dass Sie diese Position als geschlossen markieren möchten?",
+        "create_assessment": "Assessment erstellen"
       },
       "team_activity": "Teamaktivität",
-      "leaderboard": "Rangliste"
+      "leaderboard": "Rangliste",
+      "leaderboard_empty": "Noch keine Recruiter-Daten."
     },
     "settings": {
       "title": "Unternehmenseinstellungen",
@@ -915,7 +1015,13 @@
       "legal_address": "Rechtliche Adresse",
       "legal_address_placeholder": "z. B. Straße 1, 11000 Prag",
       "registry_info": "Registereintrag",
-      "registry_info_placeholder": "z. B. eingetragen beim Stadtgericht, Abteilung C, Blatt 123456"
+      "registry_info_placeholder": "z. B. eingetragen beim Stadtgericht, Abteilung C, Blatt 123456",
+      "address": "Adresse",
+      "address_placeholder": "Firmenadresse eingeben",
+      "employess": "Mitarbeiter",
+      "industry": "Branche",
+      "industry_placeholder": "Branche auswählen",
+      "size": "Unternehmensgröße"
     },
     "subscription": {
       "title": "Unternehmens-Abonnement",
@@ -936,8 +1042,11 @@
       "tiers": {
         "business": "Professional",
         "basic": "Basis",
-        "free": "Kostenlos"
-      }
+        "free": "Kostenlos",
+        "professional": "Professional",
+        "trial": "Kostenlose Testphase"
+      },
+      "plan_suffix": "Tarif"
     },
     "ad_editor": {
       "title": "Stellenanzeigen-Editor",
@@ -989,14 +1098,30 @@
     },
     "candidates": {
       "no_candidates_title": "Keine Kandidaten",
-      "no_candidates_desc": "Sobald Sie ein Angebot veröffentlichen, werden hier Kandidatenprofile mit berechneten Match-Scores angezeigt."
+      "no_candidates_desc": "Sobald Sie ein Angebot veröffentlichen, werden hier Kandidatenprofile mit berechneten Match-Scores angezeigt.",
+      "ai_disclaimer": "KI-Signale dienen nur zur Orientierung.",
+      "exp_years": "J.",
+      "flight_risk": "Wechselrisiko",
+      "match_btn": "Kandidaten matchen",
+      "match_label": "Match",
+      "matching_analysing": "Matches werden analysiert...",
+      "risk_analysis": "Risikoanalyse",
+      "risk_levels": {
+        "high": "Hoch",
+        "low": "Niedrig",
+        "medium": "Mittel"
+      },
+      "salary_per_month": "/Monat"
     }
   },
   "common": {
     "unknown": "Unbekannt",
     "none": "Keine",
     "standard_package": "Standardpaket",
-    "search": "Suche"
+    "search": "Suche",
+    "error_occurred": "Etwas ist schiefgelaufen.",
+    "loading": "Wird geladen...",
+    "saving": "Speichern..."
   },
   "welcome_extra": {
     "metrics": {
@@ -1203,6 +1328,26 @@
           "f2": "Unbegrenzte KI-Assessments",
           "f3": "Integration mit ATS-Systemen",
           "f4": "Dedizierter Account Manager"
+        },
+        "basic_v2": {
+          "desc": "Für Startups und kleinere Agenturen.",
+          "f1": "5 Stellenanzeigen",
+          "f2": "5 KI-Assessments",
+          "f3": "Basis-Matching",
+          "name": "Basic"
+        },
+        "professional": {
+          "desc": "Für KMU und aktive Recruiter.",
+          "f1": "20 Stellenanzeigen",
+          "f2": "50 KI-Assessments",
+          "f3": "JHI-Insights",
+          "name": "Professional"
+        },
+        "trial": {
+          "desc": "Für lokale Teams zum Einstieg.",
+          "f1": "1 aktive Stellenanzeige",
+          "f2": "Keine KI-Assessments",
+          "name": "Free (Trial)"
         }
       }
     },
@@ -1681,7 +1826,8 @@
     "trial": "Free (Trial)",
     "enterprise": "Enterprise",
     "assessment_bundle": "Bundle",
-    "single_assessment": "Single Assessment"
+    "single_assessment": "Single Assessment",
+    "professional": "Professional"
   },
   "assessment_creator": {
     "limit_reached": "Sie haben das Limit von {{limit}} Assessments für Ihren aktuellen Tarif erreicht. Für weitere Assessments upgraden.",
@@ -1692,7 +1838,8 @@
       "business": "Professional",
       "trial": "Free (Trial)",
       "assessment_bundle": "Assessment Bundle",
-      "basic": "Basic"
+      "basic": "Basic",
+      "professional": "Professional"
     },
     "more_credits": "Mehr Credits",
     "title": "Kompetenz-Generator",
@@ -2098,7 +2245,8 @@
     "empty_tip": "Tipp: Gespeicherte Jobs finden Sie auch im Tab „Profil“.",
     "no_results_title": "Keine Ergebnisse gefunden",
     "no_results_desc": "Versuchen Sie, den Suchbegriff zu ändern.",
-    "remove_from_saved": "Aus gespeichert entfernen"
+    "remove_from_saved": "Aus gespeichert entfernen",
+    "count": "{{count}} gespeicherte Jobs"
   },
   "invitation_landing": {
     "invalid_link": "Ungültiger Einladungslink (ID oder Token fehlt).",
@@ -2135,7 +2283,8 @@
     "status_pending": "Ausstehend",
     "status_completed": "Abgeschlossen",
     "status_expired": "Abgelaufen",
-    "start_test": "Test starten"
+    "start_test": "Test starten",
+    "backend_unavailable": "Backend vorübergehend nicht verfügbar. Bitte gleich erneut versuchen."
   },
   "premium_upsell": {
     "badge": "NEUE FUNKTION",
@@ -2194,7 +2343,8 @@
       "feature_2": "Basis-Dashboard",
       "feature_3": "Keine KI-Funktionen",
       "feature_4": "Keine Assessments",
-      "cta": "Kostenlos nutzen"
+      "cta": "Kostenlos nutzen",
+      "recommended_badge": "Bestes Preis-Leistungs-Verhältnis"
     },
     "business": {
       "recommended_badge": "Empfohlen",
@@ -2233,7 +2383,34 @@
       "email_subject": "Anfrage individueller Plan",
       "email_body": "Guten Tag,\n\nich interessiere mich für einen individuellen Plan für unser Unternehmen.\n\nMit freundlichen Grüßen,"
     },
-    "close_continue": "Schließen und mit der Basisversion fortfahren"
+    "close_continue": "Schließen und mit der Basisversion fortfahren",
+    "basic_plus": {
+      "cta": "Basic wählen",
+      "feature_1": "5 Stellenanzeigen",
+      "feature_2": "5 KI-Assessments",
+      "feature_3": "Basis-Matching",
+      "price_suffix": "/Monat",
+      "subtitle": "Für Startups und kleinere Agenturen",
+      "title": "Basic"
+    },
+    "professional": {
+      "cta": "Professional wählen",
+      "feature_1": "20 Stellenanzeigen",
+      "feature_2": "50 KI-Assessments",
+      "feature_3": "JHI-Insights",
+      "price_suffix": "/Monat",
+      "recommended_badge": "Empfohlen",
+      "subtitle": "Für KMU und aktive Recruiter",
+      "title": "Professional"
+    },
+    "trial": {
+      "cta": "Mit Test starten",
+      "feature_1": "1 aktive Stellenanzeige",
+      "feature_2": "Keine KI-Assessments",
+      "price_suffix": "/Monat",
+      "subtitle": "Plattform testen",
+      "title": "Free (Trial)"
+    }
   },
   "assessment_invitation_modal": {
     "title": "Kandidaten zum Assessment einladen",
@@ -2284,7 +2461,9 @@
       "rollover_q": "Werden ungenutzte Credits übertragen?",
       "rollover_a": "Nein. Monatliche Credits werden am Verlängerungstag zurückgesetzt. Bundle-Käufe sind 12 Monate ab Kauf gültig.",
       "support_q": "Wie kontaktiere ich den Support?",
-      "support_a": "Schreiben Sie uns an support@jobshaman.cz oder nutzen Sie den Chat in der App. Business-Nutzer erhalten 24/7 priorisierten Support."
+      "support_a": "Schreiben Sie uns an support@jobshaman.cz oder nutzen Sie den Chat in der App. Business-Nutzer erhalten 24/7 priorisierten Support.",
+      "plan_basic_v2": "Basic: 5 Stellenanzeigen, 5 KI-Assessments, Basis-Matching.",
+      "plan_professional_v2": "Professional: 20 Stellenanzeigen, 50 KI-Assessments, JHI-Insights."
     }
   },
   "subscription_card": {
@@ -2527,6 +2706,66 @@
     }
   },
   "premium": {
-    "price_value": "14.99 EUR"
+    "price_value": "14.99 EUR",
+    "upgrade_btn_short": "Upgrade",
+    "upgrade_btn": "Auf Premium upgraden",
+    "cancel_anytime": "Jederzeit ohne Gebühren kündbar",
+    "feature_1_benefit_1": "Relevanzanalyse deiner Erfahrung",
+    "feature_1_benefit_2": "Marktlücken erkennen",
+    "feature_1_benefit_3": "Konkrete Entwicklungsempfehlungen",
+    "feature_1_benefit_4": "Markt-Benchmarking",
+    "feature_1_desc": "Tiefe CV-Analyse mit konkreten Empfehlungen",
+    "feature_1_title": "KI-CV-Analyse",
+    "feature_2_benefit_1": "Automatisch pro Stelle erstellt",
+    "feature_2_benefit_2": "An das Unternehmen angepasst",
+    "feature_2_benefit_3": "Höhere Interview-Chancen",
+    "feature_2_benefit_4": "Professionelle Textqualität",
+    "feature_2_desc": "Personalisierte Anschreiben generieren",
+    "feature_2_title": "KI-Anschreiben",
+    "feature_3_benefit_1": "Personalisierter Karrierebezug",
+    "feature_3_benefit_2": "Steigert deinen Marktwert",
+    "feature_3_benefit_3": "Relevant für Zielrollen",
+    "feature_3_benefit_4": "Verifizierte Quellen",
+    "feature_3_desc": "KI-Empfehlungen auf Basis deines Profils",
+    "feature_3_title": "Lernempfehlungen",
+    "price_access_all": "Zugriff auf alle Funktionen für",
+    "reason_1_desc": "KI-Optimierung erhöht die Rollenrelevanz",
+    "reason_1_title": "Höhere Chance auf Einstellung",
+    "reason_2_desc": "Automatische Anschreiben-Erstellung",
+    "reason_2_title": "Zeit sparen",
+    "reason_3_desc": "Von Profis gestaltete Vorlagen",
+    "reason_3_title": "Professionelle Unterlagen",
+    "reason_4_desc": "Nutze die Tools wann immer du willst",
+    "reason_4_title": "Jederzeit verfügbar",
+    "short_ai_letter": "KI-Anschreiben",
+    "short_ai_letter_desc": "Personalisierte Inhalte",
+    "short_ai_rewrite": "KI-CV-Überarbeitung",
+    "short_ai_rewrite_desc": "Rollenbezogene Optimierung",
+    "short_cv_templates": "CV-Vorlagen",
+    "short_cv_templates_desc": "Professionelle Designs",
+    "trust_1": "Sichere Zahlung",
+    "trust_2": "Keine langfristige Bindung",
+    "trust_3": "Sofortiger Zugriff",
+    "unlock_desc_full": "Erhalte Zugriff auf KI-Tools für den nächsten Karriereschritt",
+    "unlock_subtitle": "KI-Tools für Lebenslauf, Anschreiben und Optimierung",
+    "unlock_title": "JobShaman Premium freischalten",
+    "why_upgrade": "Warum upgraden?"
+  },
+  "blog": {
+    "category_label": "Kategorie",
+    "read_more": "Mehr lesen",
+    "stats": {
+      "active_jobs": "Aktive Jobs",
+      "avg_jhi": "Ø JHI",
+      "transparency_rate": "Transparenzquote"
+    },
+    "subtitle": "Einblicke aus dem Arbeitsmarkt",
+    "title": "Karriere-Blog",
+    "view_all": "Alle anzeigen"
+  },
+  "footer": {
+    "privacy": "Datenschutz",
+    "rights_reserved": "© 2026 JobShaman. Alle Rechte vorbehalten.",
+    "terms": "Nutzungsbedingungen"
   }
 }

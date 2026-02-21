@@ -164,5 +164,129 @@ Nenechte se opít „motivačními bonusy“ u firem, které vám neřeknou ani 
             { question: 'Proč je „neomezený výdělek“ varovný signál?', answer: 'Často jde o provizní model bez fixu. Bez prodeje není výdělek a riziko nese výhradně kandidát.' },
             { question: 'Co by měl férový inzerát uvádět?', answer: 'Jasné mzdové rozmezí, popis produktu/služby a realistické očekávání výkonu.' }
         ]
+    },
+    {
+        id: 5,
+        slug: 'product-update-unor-2026-ai-metriky-jhi-mzdy',
+        title: 'Product Update: AI optimalizace, metriky interakcí, přesná kalkulačka mezd a JHI preference',
+        excerpt: 'Shrnutí největších změn posledního týdne: rychlejší AI analýzy, lepší měření user behavior, stabilnější backend flow a nový finanční engine s personalizací JHI.',
+        content: `
+# Product Update: co se změnilo za poslední týden v JobShamanu
+
+Poslední týden byl v JobShamanu čistě produktový sprint. Cíl byl jasný: zvýšit kvalitu rozhodování kandidáta i firmy pomocí přesnějších dat, rychlejší AI a stabilnější infrastruktury.
+
+## 1) AI optimalizace: méně šumu, více použitelného signálu
+
+Vyladili jsme AI vrstvu tak, aby:
+
+- lépe oddělovala marketingové klišé od reálně užitečných informací v inzerátu,
+- konzistentněji vracela výstupy pro porovnání více nabídek vedle sebe,
+- byla připravená na personalizaci podle preferencí kandidáta (ne jen podle textu nabídky).
+
+Praktický dopad: kandidát rychleji vidí, *proč* je nabídka kvalitní nebo riziková, místo generických AI komentářů.
+
+## 2) Metriky a sledování uživatelské interakce
+
+Zapracovali jsme na telemetry vrstvě a sledování interakcí v jobfeedu i detailu pozice:
+
+- přesnější eventy pro impresi, otevření detailu a engagement,
+- robustnější chování při výpadku backendu (graceful fallback místo tvrdého failu),
+- lepší podklady pro měření relevance feedu a kvality doporučení.
+
+Praktický dopad: máme přesnější data o tom, co lidé opravdu používají, a podle toho lze cíleně ladit ranking i UX.
+
+## 3) Stabilita backendu a platebních toků
+
+V průběhu týdne proběhly úpravy směrování kritických endpointů, hlavně pro billing/checkout:
+
+- oddělení citlivých platebních flow od endpointů, kde hrozil cooldown,
+- lepší chování CSRF/token toku při komunikaci mezi různými backend originy,
+- méně timeoutů v momentech, kdy uživatel přechází do platby nebo ověřuje předplatné.
+
+Praktický dopad: menší riziko, že upgrade nebo ověření předplatného spadne na síťové timeouty.
+
+## 4) Včerejší release: přesná kalkulačka mezd + personalizace JHI
+
+Největší změna včera: finanční vrstva už nefunguje jen jako hrubý odhad.
+
+### Co je nové ve finanční kalkulaci
+
+- přesnější výpočet čistého příjmu podle daňového profilu,
+- započtení nákladů na dojíždění do finanční reality nabídky,
+- lepší základ pro porovnání „vysoká hrubá mzda vs. reálné čisté peníze“.
+
+### Co je nové v JHI preferencích
+
+- uživatel může víc personalizovat váhy pilířů (finance, čas, mentální zátěž, růst, hodnoty),
+- přibyly tvrdé limity (např. minimální čistý příjem, commute omezení),
+- výsledek JHI je bližší tomu, co kandidát skutečně hledá.
+
+Praktický dopad: JHI už není jen obecné skóre nabídky. Je to personalizovaný decision tool.
+
+## 5) Co to znamená pro kandidáty a firmy
+
+Pro kandidáty:
+
+- rychlejší orientace v tom, která nabídka dává smysl *reálně* (ne marketingově),
+- méně času ztraceného na inzerátech, které neodpovídají preferencím,
+- lepší rozhodování díky propojení AI analýzy a finanční reality.
+
+Pro firmy:
+
+- transparentnější prezentace nabídky zvyšuje důvěru i konverzi,
+- jasnější signály, proč kandidáti nabídku otevírají nebo ignorují,
+- lepší podklady pro úpravu inzerátu a hiring funnelu.
+
+## 6) Co bude následovat
+
+V dalších iteracích navážeme na:
+
+- hlubší personalizaci feedu podle JHI preferencí,
+- další zpřesnění finančního modelu pro více zemí a typů úvazků,
+- lepší viditelnost AI doporučení přímo v klíčových rozhodovacích momentech (job detail, apply flow, profil).
+
+---
+
+Pokud chcete tyto novinky využít naplno, aktualizujte si profil, nastavte JHI preference a porovnávejte nabídky přes finanční realitu, ne jen přes hrubou mzdu.
+    `,
+        date: '21. února 2026',
+        modifiedDate: '21. února 2026',
+        readTime: '7 min čtení',
+        category: 'Product Update',
+        image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=1200',
+        author: 'Tým JobShaman',
+        keywords: [
+            'product update',
+            'JobShaman',
+            'AI optimalizace',
+            'metriky interakcí',
+            'tracking uživatelského chování',
+            'kalkulačka čisté mzdy',
+            'výpočet čisté mzdy',
+            'dojíždění a náklady',
+            'JHI preference',
+            'Job Happiness Index',
+            'personalizace hledání práce',
+            'transparentní nábor'
+        ],
+        shamanSummary: 'Za poslední týden jsme v JobShamanu vyladili AI analýzy, zpřesnili metriky uživatelských interakcí, stabilizovali kritické backend flow a nasadili přesnou kalkulačku čisté mzdy s náklady na dojíždění. Včerejší release zároveň přinesl personalizované JHI preference a hard constraints, takže skóre nabídky je teď výrazně blíž reálnému rozhodování kandidáta.',
+        qa: [
+            {
+                question: 'Co je hlavní přínos nové kalkulačky mezd v JobShamanu?',
+                answer: 'Kalkulačka nově pracuje s daňovým profilem a náklady na dojíždění, takže ukazuje reálnější čistý příjem místo orientačního odhadu z hrubé mzdy.'
+            },
+            {
+                question: 'Jak JHI preference mění výsledné skóre pracovních nabídek?',
+                answer: 'Uživatel si nastaví váhy pilířů a hard constraints, proto je JHI personalizované. Dvě nabídky se stejnou mzdou tak mohou mít odlišné skóre podle vašich priorit.'
+            },
+            {
+                question: 'Jaké backend změny zlepšily stabilitu upgradu a plateb?',
+                answer: 'Oddělili jsme klíčové billing/checkout flow od endpointů náchylných na cooldown a upravili CSRF/token tok, aby při platbách docházelo k méně timeoutům.'
+            },
+            {
+                question: 'Proč jsou metriky interakcí důležité pro kandidáty i firmy?',
+                answer: 'Přesnější telemetry ukazuje, které nabídky mají skutečný engagement. Kandidát vidí relevantnější feed a firmy získají lepší podklady pro optimalizaci inzerce.'
+            }
+        ]
     }
 ];

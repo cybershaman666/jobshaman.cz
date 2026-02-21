@@ -22,7 +22,7 @@
     "cancel": "Zrušiť",
     "delete": "Odstrániť",
     "saving": "Ukladám...",
-    "demo_alert": "Demo prístup: Táto funkcia bude dostupná čoskoro.",
+    "demo_alert": "Demo režim je aktívny",
     "beta_badge": "BETA",
     "beta_description": "Beta verzia - môže obsahovať chyby",
     "found_jobs": "Nájdených {{count}} ponúk",
@@ -42,7 +42,8 @@
       "commute_over": "Dochádzanie +{{minutes}} min",
       "net_below": "Čistý príjem je o {{amount}} pod minimom",
       "net_unknown": "Čistý príjem sa nedá spoľahlivo odhadnúť"
-    }
+    },
+    "clear": "Vymazať"
   },
   "filters": {
     "location_commute": "Lokalita a Dojazd",
@@ -175,7 +176,8 @@
     "reality_desc": "Kalkulácia čistého príjmu a nákladov na dochádzanie.",
     "home_office": "Home Office",
     "saved_commute_time_money": "Ušetrený čas a peniaze na dochádzaní.",
-    "eco_friendly_choice": "Ekologickejšia voľba."
+    "eco_friendly_choice": "Ekologickejšia voľba.",
+    "calculation_hint": "Odhad čistého príjmu a nákladov na dochádzanie."
   },
   "job_detail": {
     "benefits_title": "Benefity a výhody",
@@ -255,7 +257,29 @@
     "followup_no": "Nie, zatiaľ nie",
     "followup_later": "Pripomenúť neskôr",
     "followup_generic_title": "túto pozíciu",
-    "followup_generic_company": "firmu"
+    "followup_generic_company": "firmu",
+    "ai_generate": "Generovať pomocou AI",
+    "ai_hide": "Skryť AI asistenta",
+    "ai_write": "Napísať pomocou AI",
+    "back_to_jobs": "Späť na ponuky",
+    "contact_info": "Kontaktné údaje",
+    "cover_letter": "Motivačný list",
+    "cv_from_profile": "Použiť CV z profilu",
+    "cv_section": "Životopis",
+    "email": "E-mail",
+    "first_name": "Meno",
+    "last_name": "Priezvisko",
+    "linkedin": "LinkedIn",
+    "phone": "Telefón",
+    "saved_cv_ready": "Uložené CV je pripravené",
+    "submitting": "Odosielam...",
+    "submitting_desc": "Vaša odpoveď sa spracúva.",
+    "success_desc": "Odpoveď bola úspešne odoslaná.",
+    "success_title": "Hotovo",
+    "title": "Odpovedať na ponuku",
+    "upload_instead": "Radšej nahrať súbor",
+    "upload_prompt": "Nahrajte svoj životopis",
+    "use_saved_cv": "Použiť uložené CV"
   },
   "auth": {
     "login": "Prihlásiť",
@@ -383,7 +407,43 @@
       "diff_label": "Rozdiel oproti druhému scenáru:",
       "benefits_hint_home": "13. plat, stravné, športová karta",
       "benefits_hint_commute": "stravné, príspevok na vybavenie"
-    }
+    },
+    "ai_analysis_desc": "AI analýza kvality a rozpad signálov",
+    "ai_analysis_label": "AI analýza",
+    "benefit_validation_title": "Validácia benefitov",
+    "canteen": "Jedáleň",
+    "case_study": "Prípadová štúdia",
+    "clean_signal": "Čistý signál",
+    "cliche_desc": "Neboli nájdené žiadne varovné signály.",
+    "cliche_detector": "Detektor klišé",
+    "cliche_tone": "Detegovaný tón",
+    "dog_friendly_office": "Dog-friendly office",
+    "dog_joke": "Kancelársky pes pri remote pozícii?",
+    "eu_transparent_desc": "Transparentnosť platového rozpätia podľa pripravovaných pravidiel EÚ.",
+    "eu_transparent_title": "EU Transparent odznak",
+    "finance_stat": "Financie",
+    "flexible_hours": "Flexibilné hodiny",
+    "fluctuation": "Fluktuácia",
+    "fluctuation_val": "Vysoká",
+    "ghosting": "Ghosting",
+    "ghosting_val": "Nízky",
+    "great_atmosphere": "Skvelá atmosféra",
+    "growth_stat": "Rast",
+    "ho_equipment": "Home office vybavenie",
+    "how_it_works": "Ako to funguje",
+    "jhi_desc": "Zložené skóre kvality",
+    "jhi_score": "Job Happiness Index (JHI)",
+    "next_gen_tag": "Next-gen matching",
+    "not_applicable": "N/A",
+    "office_dog_remote": "Kancelársky pes v remote-first inzeráte",
+    "relevant_benefits": "Relevantné benefity",
+    "remote_job_example": "Príklad remote pozície",
+    "signal_noise": "Signál vs šum",
+    "tone_professional": "Profesionálny",
+    "transparency_desc": "Dáta: JobShaman AI + verejné zdroje",
+    "transparency_title": "Brutálna transparentnosť",
+    "virtual_teambuilding": "Virtuálny teambuilding",
+    "warning_signals": "Varovné signály"
   },
   "promo": {
     "cross_border": {
@@ -481,7 +541,8 @@
     "swipe_left_title": "Potiahnite doľava alebo stlačte ← pre odmietnutie",
     "swipe_right_title": "Potiahnite doprava alebo stlačte → pre uloženie",
     "see_full_details_title": "Zobraziť plný detail ponuky",
-    "switch_to_list_title": "Prepnúť na zoznam"
+    "switch_to_list_title": "Prepnúť na zoznam",
+    "title": "Názov pozície"
   },
   "profile": {
     "title": "Profil",
@@ -612,7 +673,8 @@
         "exclude_shift": "Nechcem zmenovú prevádzku",
         "growth_required": "Chcem možnosť rastu",
         "max_commute": "Max. dochádzanie (min)",
-        "min_net": "Min. čistý príjem / mesiac"
+        "min_net": "Min. čistý príjem / mesiac",
+        "label": "Tvrdé obmedzenia"
       },
       "presets": {
         "balanced": "Rovnováha",
@@ -623,7 +685,8 @@
         "peopleIntensity": "Kontakt s ľuďmi",
         "careerGrowthPreference": "Dôraz na kariérny rast",
         "homeOfficePreference": "Preferencia home office"
-      }
+      },
+      "paywall_hint": "Dostupné s Premium"
     },
     "year_placeholder": "napr. 2020",
     "placeholder_name": "Vaše meno",
@@ -740,7 +803,8 @@
         "cv_fulltext": "Plný AI text životopisu kombinuje vaše vstupy s dôrazom na prenositeľné silné stránky.",
         "better_with_context": "Výstup je presnejší, pretože sprievodca mal dostatok kontextu naprieč viacerými oblasťami."
       }
-    }
+    },
+    "skills_count": "{{count}} zručností"
   },
   "cv_manager": {
     "title": "Správa životopisov",
@@ -770,47 +834,47 @@
   },
   "premium": {
     "unlock_title": "Odomknite JobShaman Premium",
-    "unlock_subtitle": "AI nástroje pre CV, motivačné dopisy a optimalizáciu",
-    "short_cv_templates": "CV Šablóny",
-    "short_cv_templates_desc": "Profesionálne designy",
-    "short_ai_rewrite": "AI Prepísanie CV",
+    "unlock_subtitle": "AI nástroje pre CV, motivačné listy a optimalizáciu",
+    "short_cv_templates": "CV šablóny",
+    "short_cv_templates_desc": "Profesionálne dizajny",
+    "short_ai_rewrite": "AI prepis CV",
     "short_ai_rewrite_desc": "Optimalizácia na pozíciu",
-    "short_ai_letter": "AI Motivačný List",
-    "short_ai_letter_desc": "Personalizované",
+    "short_ai_letter": "AI motivačný list",
+    "short_ai_letter_desc": "Personalizovaný obsah",
     "price_access_all": "Prístup ku všetkým funkciám za",
     "price_value": "14.99 EUR",
     "upgrade_btn_short": "Upgradovať",
     "upgrade_btn": "Upgradovať na Premium",
-    "unlock_desc_full": "Získajte prístup k AI nástrojom, ktoré vám pomôžu dostať sa na vyššiu pozíciu",
-    "feature_1_title": "AI Analýza CV",
-    "feature_1_desc": "Hlboká analýza vášho CV a odporúčania zlepšenia",
-    "feature_1_benefit_1": "Analýza relevancie vašich skúseností",
-    "feature_1_benefit_2": "Identifikácia nedostatkov na trhu",
-    "feature_1_benefit_3": "Konkrétne odporúčania pre rozvoj",
+    "unlock_desc_full": "Získajte prístup k AI nástrojom, ktoré vám pomôžu získať lepšiu rolu",
+    "feature_1_title": "AI analýza CV",
+    "feature_1_desc": "Hlboká analýza CV s konkrétnymi odporúčaniami",
+    "feature_1_benefit_1": "Analýza relevancie skúseností",
+    "feature_1_benefit_2": "Identifikácia medzier na trhu",
+    "feature_1_benefit_3": "Konkrétne odporúčania rozvoja",
     "feature_1_benefit_4": "Porovnanie s trhom",
-    "feature_2_title": "AI Motivačný List",
+    "feature_2_title": "AI motivačný list",
     "feature_2_desc": "Generovanie personalizovaných motivačných listov",
-    "feature_2_benefit_1": "Automatické vytvorenie na mieru",
-    "feature_2_benefit_2": "Prispôbenie pre konkrétnu firmu",
-    "feature_2_benefit_3": "Zvýšenie šancí na pohovor",
-    "feature_2_benefit_4": "Profesionálne písanie",
-    "feature_3_title": "Odporúčania Kurzov",
-    "feature_3_desc": "AI odporúčania kurzov na základe vášho profilu",
-    "feature_3_benefit_1": "Personalizované na vašu kariéru",
+    "feature_2_benefit_1": "Automaticky pre každú pozíciu",
+    "feature_2_benefit_2": "Prispôsobenie konkrétnej firme",
+    "feature_2_benefit_3": "Vyššia šanca na pohovor",
+    "feature_2_benefit_4": "Profesionálna kvalita textu",
+    "feature_3_title": "Odporúčanie učenia",
+    "feature_3_desc": "AI odporúčania na základe vášho profilu",
+    "feature_3_benefit_1": "Personalizované pre vašu kariéru",
     "feature_3_benefit_2": "Zvyšujú vašu hodnotu na trhu",
-    "feature_3_benefit_3": "Relevantné pre hľadané pozície",
+    "feature_3_benefit_3": "Relevantné pre cieľové pozície",
     "feature_3_benefit_4": "Overené zdroje",
-    "why_upgrade": "Prečo upgrade?",
+    "why_upgrade": "Prečo upgradovať?",
     "reason_1_title": "Vyššia šanca na zamestnanie",
-    "reason_1_desc": "AI optimalizácia vášho CV zvýši relevanciu pre danou pozíciu",
+    "reason_1_desc": "AI optimalizácia zvýši relevanciu pre pozíciu",
     "reason_2_title": "Ušetrite čas",
     "reason_2_desc": "Automatické generovanie motivačných listov",
     "reason_3_title": "Profesionálne materiály",
-    "reason_3_desc": "Šablóny navrhnuté profesionálmi",
+    "reason_3_desc": "Šablóny vytvorené profesionálmi",
     "reason_4_title": "Trvalý prístup",
     "reason_4_desc": "Používajte nástroje kedykoľvek potrebujete",
-    "cancel_anytime": "Zrušiť kedykoľvek bez pokút",
-    "trust_1": "Zabezpečená platba",
+    "cancel_anytime": "Zrušiť kedykoľvek bez poplatkov",
+    "trust_1": "Bezpečná platba",
     "trust_2": "Bez dlhodobého záväzku",
     "trust_3": "Okamžitý prístup"
   },
@@ -887,12 +951,15 @@
         "projected": "Progn.",
         "potential_savings": "Potenciálna úspora",
         "analyzing_market": "Analyzujeme trh...",
-        "currency": "CZK"
+        "currency": "CZK",
+        "new": "Nové"
       },
       "ai_insights": {
         "title": "AI Strategické Postrehy",
         "hired_prediction": "Na základe histórie budete najímať v {{days}} dňoch ({{count}} kandidátov v pipeline). Ste na ceste.",
-        "low_match_warning": "Nízka AI zhoda ({{avg}}% priemer). Odporúčame dostosovať opis pracovného času v pracovnom inzeráte."
+        "low_match_warning": "Nízka AI zhoda ({{avg}}% priemer). Odporúčame dostosovať opis pracovného času v pracovnom inzeráte.",
+        "analyzing_market": "Analyzujeme trhové signály...",
+        "awaiting_data": "Čakáme na prvé dáta..."
       },
       "actions": {
         "view_as_user": "Zobraziť ako používateľ",
@@ -900,10 +967,12 @@
         "close": "Označiť ako Zatvorenú",
         "delete": "Odstrániť Pozíciu",
         "confirm_delete": "Ste si istí, že chcete odstrániť túto pozíciu?",
-        "confirm_close": "Ste si istí, že chcete označiť túto pozíciu ako zatvorenú?"
+        "confirm_close": "Ste si istí, že chcete označiť túto pozíciu ako zatvorenú?",
+        "create_assessment": "Vytvoriť assessment"
       },
       "team_activity": "Aktivita Tímu",
-      "leaderboard": "Rebríček"
+      "leaderboard": "Rebríček",
+      "leaderboard_empty": "Zatiaľ žiadne dáta recruiterov."
     },
     "settings": {
       "title": "Nastavenia Firmy",
@@ -952,7 +1021,13 @@
       "legal_address": "Právna adresa",
       "legal_address_placeholder": "Napr. Ulica 1, 811 01 Bratislava",
       "registry_info": "Zápis v registri",
-      "registry_info_placeholder": "Napr. zapísané v Obchodnom registri, oddiel Sro, vložka 12345"
+      "registry_info_placeholder": "Napr. zapísané v Obchodnom registri, oddiel Sro, vložka 12345",
+      "address": "Adresa",
+      "address_placeholder": "Zadajte adresu firmy",
+      "employess": "Zamestnanci",
+      "industry": "Odvetvie",
+      "industry_placeholder": "Vyberte odvetvie",
+      "size": "Veľkosť firmy"
     },
     "subscription": {
       "title": "Predplatné Firmy",
@@ -973,8 +1048,11 @@
       "tiers": {
         "business": "Professional",
         "basic": "Základný",
-        "free": "Bezplatný"
-      }
+        "free": "Bezplatný",
+        "professional": "Professional",
+        "trial": "Bezplatná skúška"
+      },
+      "plan_suffix": "plán"
     },
     "ad_editor": {
       "title": "Editor ponúk",
@@ -1015,7 +1093,8 @@
       "profile_label": "Profil:",
       "publish_success": "Inzerát bol odoslaný na kontrolu a bude čoskoro publikovaný!",
       "publish_error": "Chyba pri publikovaní pracovného inzerátu.",
-      "post_limit_exceeded": "Viac ako 5 pracovných inzerátov"
+      "post_limit_exceeded": "Viac ako 5 pracovných inzerátov",
+      "settings_title": "Details & Benefits"
     },
     "assessments_tab": {
       "desc": "Vytvárajte a spravujte AI posudky pre kandidátov.",
@@ -1027,14 +1106,28 @@
       "no_candidates_title": "Žiadni kandidáti",
       "no_candidates_desc": "Akonáhle zverejníte ponuku, tu sa začnú objavovať profily uchádzačov s vypočítaným skóre zhody.",
       "matching_analysing": "Analyzujem zhodu...",
-      "match_btn": "Nájsť najlepšiu zhodu"
+      "match_btn": "Nájsť najlepšiu zhodu",
+      "ai_disclaimer": "AI signály slúžia iba orientačne.",
+      "exp_years": "r.",
+      "flight_risk": "Riziko odchodu",
+      "match_label": "Zhoda",
+      "risk_analysis": "Analýza rizika",
+      "risk_levels": {
+        "high": "Vysoké",
+        "low": "Nízke",
+        "medium": "Stredné"
+      },
+      "salary_per_month": "/mesiac"
     }
   },
   "common": {
     "unknown": "Neznámy",
     "none": "Žiadne",
     "standard_package": "Štandardný balík",
-    "search": "Hľadať"
+    "search": "Hľadať",
+    "error_occurred": "Niečo sa pokazilo.",
+    "loading": "Načítavam...",
+    "saving": "Ukladám..."
   },
   "seo": {
     "base_title": "JobShaman - Career OS",
@@ -1234,6 +1327,26 @@
           "f2": "Neobmedzené AI assessmenty",
           "f3": "Integrácia s ATS systémami",
           "f4": "Dedikovaný account manager"
+        },
+        "basic_v2": {
+          "desc": "Pre startupy a menšie agentúry.",
+          "f1": "5 inzerátov",
+          "f2": "5 AI assessmentov",
+          "f3": "Základný matching",
+          "name": "Basic"
+        },
+        "professional": {
+          "desc": "Pre SME a aktívnych recruiterov.",
+          "f1": "20 inzerátov",
+          "f2": "50 AI assessmentov",
+          "f3": "JHI Insights",
+          "name": "Professional"
+        },
+        "trial": {
+          "desc": "Pre lokálne tímy na vyskúšanie.",
+          "f1": "1 aktívny inzerát",
+          "f2": "Bez AI assessmentov",
+          "name": "Free (Trial)"
         }
       }
     },
@@ -1453,7 +1566,9 @@
         "title": "AI ako váš kariérny kouč",
         "excerpt": "Ako efektívne využiť Career Pathfinder a AI analýzu k posunu vo vašej profesijnej dráhe."
       }
-    }
+    },
+    "category_label": "Kategória",
+    "view_all": "Zobraziť všetko"
   },
   "skillsGap": {
     "hero_title": "Získajte náskok s cieleným vzdelávaním",
@@ -1739,7 +1854,8 @@
     "trial": "Free (Trial)",
     "enterprise": "Enterprise",
     "assessment_bundle": "Bundle",
-    "single_assessment": "Single Assessment"
+    "single_assessment": "Single Assessment",
+    "professional": "Professional"
   },
   "assessment_creator": {
     "limit_reached": "Dosiahli ste limit {{limit}} assessmentov pre aktuálny plán. Upgradujte pre ďalšie assessmenty.",
@@ -1750,7 +1866,8 @@
       "business": "Professional",
       "trial": "Free (Trial)",
       "assessment_bundle": "Assessment Bundle",
-      "basic": "Basic"
+      "basic": "Basic",
+      "professional": "Professional"
     },
     "more_credits": "Ďalší kredit",
     "title": "Generátor kompetencií",
@@ -2157,7 +2274,8 @@
     "empty_tip": "Tip: Uložené pozície nájdete aj v záložke „Profil“.",
     "no_results_title": "Nenašli sa žiadne výsledky",
     "no_results_desc": "Skúste zmeniť hľadaný výraz.",
-    "remove_from_saved": "Odstrániť z uložených"
+    "remove_from_saved": "Odstrániť z uložených",
+    "count": "{{count}} uložených ponúk"
   },
   "invitation_landing": {
     "invalid_link": "Neplatný odkaz na pozvánku (chýba ID alebo token).",
@@ -2194,7 +2312,8 @@
     "status_pending": "Čaká na vypracovanie",
     "status_completed": "Dokončené",
     "status_expired": "Vypršalo",
-    "start_test": "Spustiť test"
+    "start_test": "Spustiť test",
+    "backend_unavailable": "Backend je dočasne nedostupný. Skúste to prosím o chvíľu."
   },
   "premium_upsell": {
     "badge": "NOVÁ FUNKCIA",
@@ -2253,7 +2372,8 @@
       "feature_2": "Základný dashboard",
       "feature_3": "Bez AI funkcií",
       "feature_4": "Bez assessmentov",
-      "cta": "Používať zadarmo"
+      "cta": "Používať zadarmo",
+      "recommended_badge": "Najvýhodnejšie"
     },
     "business": {
       "recommended_badge": "Odporúčané",
@@ -2292,7 +2412,34 @@
       "email_subject": "Dopyt na individuálny plán",
       "email_body": "Dobrý deň,\n\nmám záujem o individuálny plán pre našu spoločnosť.\n\nS pozdravom,"
     },
-    "close_continue": "Zavrieť a pokračovať v základnej verzii"
+    "close_continue": "Zavrieť a pokračovať v základnej verzii",
+    "basic_plus": {
+      "cta": "Vybrať Basic",
+      "feature_1": "5 inzerátov",
+      "feature_2": "5 AI assessmentov",
+      "feature_3": "Základný matching",
+      "price_suffix": "/mesiac",
+      "subtitle": "Pre startupy a menšie agentúry",
+      "title": "Basic"
+    },
+    "professional": {
+      "cta": "Vybrať Professional",
+      "feature_1": "20 inzerátov",
+      "feature_2": "50 AI assessmentov",
+      "feature_3": "JHI Insights",
+      "price_suffix": "/mesiac",
+      "recommended_badge": "Odporúčané",
+      "subtitle": "Pre SME a aktívnych recruiterov",
+      "title": "Professional"
+    },
+    "trial": {
+      "cta": "Pokračovať v triale",
+      "feature_1": "1 aktívny inzerát",
+      "feature_2": "Bez AI assessmentov",
+      "price_suffix": "/mesiac",
+      "subtitle": "Vyskúšajte platformu",
+      "title": "Free (Trial)"
+    }
   },
   "assessment_invitation_modal": {
     "title": "Pozvať kandidáta na assessment",
@@ -2343,7 +2490,9 @@
       "rollover_q": "Prenášajú sa nevyužité kredity?",
       "rollover_a": "Nie. Mesačné kredity sa resetujú v deň obnovy. Nákupy balíkov sú platné 12 mesiacov od nákupu.",
       "support_q": "Ako kontaktujem podporu?",
-      "support_a": "Napíšte nám na support@jobshaman.cz alebo použite chat widget v aplikácii. Používatelia Business plánu majú prioritnú podporu 24/7."
+      "support_a": "Napíšte nám na support@jobshaman.cz alebo použite chat widget v aplikácii. Používatelia Business plánu majú prioritnú podporu 24/7.",
+      "plan_basic_v2": "Basic: 5 inzerátov, 5 AI assessmentov, základný matching.",
+      "plan_professional_v2": "Professional: 20 inzerátov, 50 AI assessmentov, JHI Insights."
     }
   },
   "subscription_card": {
@@ -2584,5 +2733,33 @@
       "privacy_notice": "JobShaman rešpektuje vaše súkromie podľa GDPR a ePrivacy smernice",
       "last_update": "Posledná aktualizácia: {{date}}"
     }
+  },
+  "company_onboarding": {
+    "back": "Späť",
+    "cancel": "Zrušiť",
+    "continue": "Pokračovať",
+    "error_creating": "Nepodarilo sa vytvoriť profil firmy.",
+    "finish": "Dokončiť",
+    "step": "Krok",
+    "step1": {
+      "address": "Adresa",
+      "address_placeholder": "Zadajte adresu firmy",
+      "company_name": "Názov firmy",
+      "company_name_placeholder": "Zadajte názov firmy",
+      "dic": "DIČ",
+      "dic_placeholder": "Zadajte DIČ (voliteľné)",
+      "ico": "IČO",
+      "ico_placeholder": "Zadajte IČO",
+      "info_box": "Tieto údaje môžete neskôr upraviť v nastaveniach.",
+      "title": "Základné údaje"
+    },
+    "step2": {
+      "industry": "Odvetvie",
+      "industry_placeholder": "Vyberte odvetvie",
+      "philosophy": "Firemná filozofia",
+      "philosophy_placeholder": "Stručne opíšte, ako fungujete ako tím",
+      "title": "Profil firmy"
+    },
+    "title": "Onboarding firmy"
   }
 }

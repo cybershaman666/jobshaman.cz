@@ -40,7 +40,10 @@
       "commute_over": "Dojíždění +{{minutes}} min",
       "net_below": "Čistý příjem pod limitem o {{amount}}",
       "net_unknown": "Čistý příjem nelze spolehlivě odhadnout"
-    }
+    },
+    "clear": "Clear",
+    "demo_alert": "Demo alert",
+    "saving": "Saving"
   },
   "filters": {
     "location_commute": "Lokalita a Dojezd",
@@ -173,7 +176,8 @@
     "reality_desc": "Kalkulace čistého příjmu a nákladů na dojíždění.",
     "home_office": "Home Office",
     "saved_commute_time_money": "Ušetřený čas a peníze za dojíždění.",
-    "eco_friendly_choice": "Ekologicky šetrnější volba."
+    "eco_friendly_choice": "Ekologicky šetrnější volba.",
+    "calculation_hint": "Calculation hint"
   },
   "job_detail": {
     "benefits_title": "Benefity a výhody",
@@ -403,7 +407,43 @@
       "diff_label": "Rozdíl oproti druhému scénáři:",
       "benefits_hint_home": "13. plat, stravenky, multisport karta",
       "benefits_hint_commute": "stravenky, příspěvek na vybavení"
-    }
+    },
+    "ai_analysis_desc": "Ai analysis desc",
+    "ai_analysis_label": "Ai analysis label",
+    "benefit_validation_title": "Benefit validation title",
+    "canteen": "Canteen",
+    "case_study": "Case study",
+    "clean_signal": "Clean signal",
+    "cliche_desc": "Cliche desc",
+    "cliche_detector": "Cliche detector",
+    "cliche_tone": "Cliche tone",
+    "dog_friendly_office": "Dog friendly office",
+    "dog_joke": "Dog joke",
+    "eu_transparent_desc": "Eu transparent desc",
+    "eu_transparent_title": "Eu transparent title",
+    "finance_stat": "Finance stat",
+    "flexible_hours": "Flexible hours",
+    "fluctuation": "Fluctuation",
+    "fluctuation_val": "Fluctuation val",
+    "ghosting": "Ghosting",
+    "ghosting_val": "Ghosting val",
+    "great_atmosphere": "Great atmosphere",
+    "growth_stat": "Growth stat",
+    "ho_equipment": "Ho equipment",
+    "how_it_works": "How it works",
+    "jhi_desc": "Jhi desc",
+    "jhi_score": "Jhi score",
+    "next_gen_tag": "Next gen tag",
+    "not_applicable": "Not applicable",
+    "office_dog_remote": "Office dog remote",
+    "relevant_benefits": "Relevant benefits",
+    "remote_job_example": "Remote job example",
+    "signal_noise": "Signal noise",
+    "tone_professional": "Tone professional",
+    "transparency_desc": "Transparency desc",
+    "transparency_title": "Transparency title",
+    "virtual_teambuilding": "Virtual teambuilding",
+    "warning_signals": "Warning signals"
   },
   "promo": {
     "cross_border": {
@@ -501,7 +541,8 @@
     "swipe_left_title": "Potáhněte doleva nebo stiskněte ← pro zamítnutí",
     "swipe_right_title": "Potáhněte doprava nebo stiskněte → pro uložení",
     "see_full_details_title": "Zobrazit plný detail nabídky",
-    "switch_to_list_title": "Přepnout na seznam"
+    "switch_to_list_title": "Přepnout na seznam",
+    "title": "Title"
   },
   "profile": {
     "title": "Profil",
@@ -639,7 +680,8 @@
         "exclude_shift": "Nechci směnný provoz",
         "growth_required": "Chci možnost růstu",
         "max_commute": "Max. dojíždění (min)",
-        "min_net": "Min. čistý příjem / měsíc"
+        "min_net": "Min. čistý příjem / měsíc",
+        "label": "Label"
       },
       "presets": {
         "balanced": "Rovnováha",
@@ -650,7 +692,8 @@
         "peopleIntensity": "Kontakt s lidmi",
         "careerGrowthPreference": "Důraz na kariérní růst",
         "homeOfficePreference": "Preference home office"
-      }
+      },
+      "paywall_hint": "Paywall hint"
     },
     "photo_upload_success": "Fotka úspěšně nahrána!",
     "photo_upload_error": "Nepodařilo se nahrát fotku. Zkuste to znovu.",
@@ -760,7 +803,8 @@
         "cv_fulltext": "Plný AI text životopisu kombinuje vaše vstupy s důrazem na přenositelné silné stránky.",
         "better_with_context": "Výstup je přesnější, protože průvodce měl dostatek kontextu napříč více oblastmi."
       }
-    }
+    },
+    "skills_count": "Skills count"
   },
   "cv_manager": {
     "title": "Správa životopisů",
@@ -1009,7 +1053,9 @@
       "tiers": {
         "business": "Professional",
         "basic": "Basic",
-        "free": "Bezplatný"
+        "free": "Bezplatný",
+        "professional": "Professional",
+        "trial": "Trial"
       }
     },
     "ad_editor": {
@@ -1064,7 +1110,18 @@
       "no_candidates_title": "Žádní kandidáti",
       "no_candidates_desc": "Jakmile zveřejníte nabídku, zde se začnou objevovat profily uchazečů s vypočítaným skóre shody.",
       "matching_analysing": "Analyzuji shodu...",
-      "match_btn": "Najít nejlepší shodu"
+      "match_btn": "Najít nejlepší shodu",
+      "ai_disclaimer": "Ai disclaimer",
+      "exp_years": "Exp years",
+      "flight_risk": "Flight risk",
+      "match_label": "Match label",
+      "risk_analysis": "Risk analysis",
+      "risk_levels": {
+        "high": "High",
+        "low": "Low",
+        "medium": "Medium"
+      },
+      "salary_per_month": "Salary per month"
     },
     "benefits": {
       "home_office": "Home Office",
@@ -1083,7 +1140,10 @@
     "unknown": "Neznámý",
     "none": "Žádné",
     "standard_package": "Standardní balíček",
-    "search": "Hledat"
+    "search": "Hledat",
+    "error_occurred": "Error occurred",
+    "loading": "Loading",
+    "saving": "Saving"
   },
   "seo": {
     "base_title": "JobShaman - Career OS pro práci",
@@ -1301,6 +1361,25 @@
           "f2": "Neomezené AI assessmenty",
           "f3": "Integracja s ATS systémy",
           "f4": "Dedikovaný account manager"
+        },
+        "basic_v2": {
+          "desc": "Desc",
+          "f1": "F1",
+          "f2": "F2",
+          "f3": "F3"
+        },
+        "professional": {
+          "desc": "Desc",
+          "f1": "F1",
+          "f2": "F2",
+          "f3": "F3",
+          "name": "Name"
+        },
+        "trial": {
+          "desc": "Desc",
+          "f1": "F1",
+          "f2": "F2",
+          "name": "Name"
         }
       }
     },
@@ -1530,7 +1609,9 @@
         "title": "AI jako váš kariérní kouč",
         "excerpt": "Jak efektivně využít Career Pathfinder a AI analýzu k posunu ve vaší profesní dráze."
       }
-    }
+    },
+    "category_label": "Category label",
+    "view_all": "View all"
   },
   "skillsGap": {
     "hero_title": "Získejte náskok s cíleným vzděláváním",
@@ -1816,7 +1897,8 @@
     "trial": "Free (Trial)",
     "enterprise": "Enterprise",
     "assessment_bundle": "Bundle",
-    "single_assessment": "Single Assessment"
+    "single_assessment": "Single Assessment",
+    "professional": "Professional"
   },
   "assessment_creator": {
     "limit_reached": "Dosáhli jste limitu {{limit}} assessmentů pro aktuální tarif. Upgradujte pro další assessmenty.",
@@ -1827,7 +1909,8 @@
       "business": "Professional",
       "trial": "Free (Trial)",
       "assessment_bundle": "Assessment Bundle",
-      "basic": "Základní"
+      "basic": "Základní",
+      "professional": "Professional"
     },
     "more_credits": "Další kredit",
     "title": "Generátor kompetencí",
@@ -2234,7 +2317,8 @@
     "empty_tip": "Tip: Uložené pozice najdete také v záložce \"Profil\".",
     "no_results_title": "Nebyly nalezeny žádné výsledky",
     "no_results_desc": "Zkuste změnit hledaný výraz.",
-    "remove_from_saved": "Odebrat z uložených"
+    "remove_from_saved": "Odebrat z uložených",
+    "count": "Count"
   },
   "invitation_landing": {
     "invalid_link": "Neplatný odkaz na pozvánku (chybí id nebo token).",
@@ -2271,7 +2355,8 @@
     "status_pending": "Čeká na vypracování",
     "status_completed": "Dokončeno",
     "status_expired": "Vypršelo",
-    "start_test": "Spustit test"
+    "start_test": "Spustit test",
+    "backend_unavailable": "Backend unavailable"
   },
   "premium_upsell": {
     "badge": "NOVÁ FUNKCIONALITA",
@@ -2330,7 +2415,8 @@
       "feature_2": "Základní dashboard",
       "feature_3": "Bez AI funkcí",
       "feature_4": "Bez assessmentů",
-      "cta": "Používat zdarma"
+      "cta": "Používat zdarma",
+      "recommended_badge": "Recommended badge"
     },
     "business": {
       "recommended_badge": "Doporučeno",
@@ -2369,7 +2455,34 @@
       "email_subject": "Poptávka individuálního plánu",
       "email_body": "Dobrý den,\n\nmám zájem o individuální plán pro naši společnost.\n\nS pozdravem,"
     },
-    "close_continue": "Zavřít a pokračovat v základní verzi"
+    "close_continue": "Zavřít a pokračovat v základní verzi",
+    "basic_plus": {
+      "cta": "Cta",
+      "feature_1": "Feature 1",
+      "feature_2": "Feature 2",
+      "feature_3": "Feature 3",
+      "price_suffix": "Price suffix",
+      "subtitle": "Subtitle",
+      "title": "Title"
+    },
+    "professional": {
+      "cta": "Cta",
+      "feature_1": "Feature 1",
+      "feature_2": "Feature 2",
+      "feature_3": "Feature 3",
+      "price_suffix": "Price suffix",
+      "recommended_badge": "Recommended badge",
+      "subtitle": "Subtitle",
+      "title": "Title"
+    },
+    "trial": {
+      "cta": "Cta",
+      "feature_1": "Feature 1",
+      "feature_2": "Feature 2",
+      "price_suffix": "Price suffix",
+      "subtitle": "Subtitle",
+      "title": "Title"
+    }
   },
   "assessment_invitation_modal": {
     "title": "Pozvat kandidáta k assessmentu",
@@ -2420,7 +2533,9 @@
       "rollover_q": "Jsou nevyužité kredity převedeny?",
       "rollover_a": "Ne, měsíční kredity se resetují v den obnovení. Nákupy balíčků hodnocení jsou však platné 12 měsíců od nákupu.",
       "support_q": "Jak se kontaktuji podpora?",
-      "support_a": "Napište nám na support@jobshaman.cz nebo použijte widget chatu v aplikaci. Uživatelé plánu Business získávají prioritní podporu 24/7."
+      "support_a": "Napište nám na support@jobshaman.cz nebo použijte widget chatu v aplikaci. Uživatelé plánu Business získávají prioritní podporu 24/7.",
+      "plan_basic_v2": "Plan basic v2",
+      "plan_professional_v2": "Plan professional v2"
     }
   },
   "subscription_card": {

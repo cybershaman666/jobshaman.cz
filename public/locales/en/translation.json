@@ -40,7 +40,10 @@
       "commute_over": "Commute +{{minutes}} min",
       "net_below": "Net income is {{amount}} below your minimum",
       "net_unknown": "Net income cannot be reliably estimated"
-    }
+    },
+    "clear": "Clear",
+    "demo_alert": "Demo mode active",
+    "saving": "Saving..."
   },
   "filters": {
     "location_commute": "Location & Commute",
@@ -173,7 +176,8 @@
     "reality_desc": "Calculation of net income and commuting costs.",
     "home_office": "Home Office",
     "saved_commute_time_money": "Saved commute time and money.",
-    "eco_friendly_choice": "A more eco-friendly choice."
+    "eco_friendly_choice": "A more eco-friendly choice.",
+    "calculation_hint": "Net income and commute-cost estimate."
   },
   "job_detail": {
     "benefits_title": "Benefits and Advantages",
@@ -264,7 +268,18 @@
     "followup_no": "No, not yet",
     "followup_later": "Ask me later",
     "followup_generic_title": "this position",
-    "followup_generic_company": "the company"
+    "followup_generic_company": "the company",
+    "ai_assessment_desc": "Tato společnost akceptuje ověřené hodnocení dovedností. Propojte svůj JobShaman profil a přeskočte úvodní technické kolo.",
+    "ai_assessment_title": "JobShaman AI Ověření Kompetencí",
+    "ai_evaluation_desc": "Vyhodnocujeme vaši vhodnost na základě dovedností a hodnot, nejen klíčových slov. Pomáháme vám přeskočit první kolo pohovorů.",
+    "ai_processing": "Zpracovávám shodu kompetencí...",
+    "ai_prompt_label": "Řekněte AI o svých zkušenostech",
+    "connect_profile": "Propojit profil hodnocení",
+    "cover_letter_placeholder": "Sem napište svůj motivační dopis...",
+    "cv_from_profile": "Životopis z vašeho profilu",
+    "saved_cv_ready": "Uložené CV připraveno",
+    "upload_instead": "Nahrát jiný soubor",
+    "use_saved_cv": "Použít uložené CV z profilu"
   },
   "auth": {
     "login": "Login",
@@ -392,7 +407,43 @@
       "diff_label": "Difference vs. the other scenario:",
       "benefits_hint_home": "13th salary, meal vouchers, sport card",
       "benefits_hint_commute": "meal vouchers, equipment allowance"
-    }
+    },
+    "ai_analysis_desc": "AI quality analysis and signal breakdown",
+    "ai_analysis_label": "AI analysis",
+    "benefit_validation_title": "Benefit validation",
+    "canteen": "Canteen",
+    "case_study": "Case study",
+    "clean_signal": "Clean signal",
+    "cliche_desc": "No warning signals detected.",
+    "cliche_detector": "Cliche detector",
+    "cliche_tone": "Detected tone",
+    "dog_friendly_office": "Dog-friendly office",
+    "dog_joke": "Office dog, remote role?",
+    "eu_transparent_desc": "Salary range transparency aligned with upcoming EU rules.",
+    "eu_transparent_title": "EU Transparent badge",
+    "finance_stat": "Finance",
+    "flexible_hours": "Flexible hours",
+    "fluctuation": "Turnover",
+    "fluctuation_val": "High",
+    "ghosting": "Ghosting",
+    "ghosting_val": "Low",
+    "great_atmosphere": "Great atmosphere",
+    "growth_stat": "Growth",
+    "ho_equipment": "Home-office equipment",
+    "how_it_works": "How it works",
+    "jhi_desc": "Composite quality score",
+    "jhi_score": "Job Happiness Index (JHI)",
+    "next_gen_tag": "Next-gen matching",
+    "not_applicable": "N/A",
+    "office_dog_remote": "Office dog in a remote-first ad",
+    "relevant_benefits": "Relevant benefits",
+    "remote_job_example": "Remote role example",
+    "signal_noise": "Signal vs noise",
+    "tone_professional": "Professional",
+    "transparency_desc": "Data from JobShaman AI + public sources",
+    "transparency_title": "Radical transparency",
+    "virtual_teambuilding": "Virtual teambuilding",
+    "warning_signals": "Warning signals"
   },
   "promo": {
     "cross_border": {
@@ -490,7 +541,8 @@
     "swipe_left_title": "Swipe left or press ← to reject",
     "swipe_right_title": "Swipe right or press → to save",
     "see_full_details_title": "See full job details",
-    "switch_to_list_title": "Switch to list view"
+    "switch_to_list_title": "Switch to list view",
+    "title": "Job title"
   },
   "profile": {
     "personal_info": "Personal Information",
@@ -595,7 +647,8 @@
         "exclude_shift": "Exclude shift jobs",
         "growth_required": "Growth is required",
         "max_commute": "Max commute (min)",
-        "min_net": "Min net income / month"
+        "min_net": "Min net income / month",
+        "label": "Hard constraints"
       },
       "presets": {
         "balanced": "Balanced",
@@ -606,7 +659,8 @@
         "peopleIntensity": "People interaction",
         "careerGrowthPreference": "Career growth focus",
         "homeOfficePreference": "Home-office preference"
-      }
+      },
+      "paywall_hint": "Available with Premium"
     },
     "danger_zone": "Danger Zone",
     "danger_zone_title": "Danger Zone",
@@ -705,7 +759,48 @@
         "cv_fulltext": "The full AI CV text combines your inputs with emphasis on transferable strengths.",
         "better_with_context": "Output is more accurate because the guide had enough context across areas."
       }
-    }
+    },
+    "add_skill_prompt": "Přidejte novou dovednost:",
+    "company_placeholder": "Název společnosti",
+    "cv_size_error": "Soubor je příliš velký. Maximální velikost je 10MB.",
+    "cv_text_manual": "Text životopisu (volitelně)",
+    "cv_text_placeholder": "Vložte text vašeho životopisu sem nebo nahrajte CV výše...",
+    "cv_type_error": "Prosím nahrávejte pouze PDF, DOC nebo DOCX soubory.",
+    "cv_upload_error": "Nepodařilo se nahrát CV. Zkuste to znovu.",
+    "cv_upload_success": "CV úspěšně nahráno a zpracováno!",
+    "degree_placeholder": "např. Ing., Bc., Mgr.",
+    "description_placeholder": "Popište své hlavní odpovědnosti a úspěchy...",
+    "duration_placeholder": "např. 2020 - 2022 (2 roky)",
+    "editor_title": "Editor životopisu",
+    "field_placeholder": "např. Informační technologie",
+    "github": "GitHub",
+    "github_placeholder": "github.com/jmeno",
+    "linkedin": "LinkedIn",
+    "linkedin_placeholder": "linkedin.com/in/jmeno-prijmeni",
+    "new_education": "Nové vzdělání",
+    "new_role": "Nová pozice",
+    "photo_size_error": "Obrázek je příliš velký. Maximální velikost je 5MB.",
+    "photo_type_error": "Prosím nahrávejte pouze obrázky.",
+    "placeholder_job": "Vaše pracovní pozice",
+    "placeholder_name": "Vaše jméno",
+    "portfolio": "Portfolio",
+    "portfolio_placeholder": "vasewebova.cz",
+    "role_placeholder": "Název pozice",
+    "save_error": "Nepodařilo se uložit profil. Zkuste to znovu.",
+    "saved_jobs": "Uloženo ({{count}})",
+    "school_placeholder": "Název instituce",
+    "selection": "Vybráno",
+    "skills_count": "{{count}} skills",
+    "tabs": {
+      "education": "Vzdělání",
+      "experience": "Zkušenosti",
+      "personal": "Osobní údaje",
+      "skills": "Dovednosti"
+    },
+    "title": "Profil",
+    "transport_desc": "Jak se raději dopravujete do práce? Tuto informaci budeme používat ve \"Finanční a dojezdové realitě\" u každé pozice.",
+    "transport_pref": "Preferovaná doprava",
+    "year_placeholder": "např. 2020"
   },
   "cv_manager": {
     "title": "CV Library",
@@ -806,12 +901,15 @@
         "projected": "Proj.",
         "potential_savings": "Potential Savings",
         "analyzing_market": "Analyzing market...",
-        "currency": "CZK"
+        "currency": "CZK",
+        "new": "New"
       },
       "ai_insights": {
         "title": "AI Strategic Insights",
         "hired_prediction": "Based on history, you will hire in {{days}} days ({{count}} candidates in pipeline). You are on track.",
-        "low_match_warning": "Low AI match ({{avg}}% average). We recommend adjusting the working time description in the ad."
+        "low_match_warning": "Low AI match ({{avg}}% average). We recommend adjusting the working time description in the ad.",
+        "analyzing_market": "Analyzing market signals...",
+        "awaiting_data": "Waiting for first data points..."
       },
       "actions": {
         "view_as_user": "View as User",
@@ -819,10 +917,12 @@
         "close": "Mark as Closed",
         "delete": "Delete Position",
         "confirm_delete": "Are you sure you want to delete this position?",
-        "confirm_close": "Are you sure you want to mark this position as closed?"
+        "confirm_close": "Are you sure you want to mark this position as closed?",
+        "create_assessment": "Create assessment"
       },
       "team_activity": "Team Activity",
-      "leaderboard": "Leaderboard"
+      "leaderboard": "Leaderboard",
+      "leaderboard_empty": "No recruiter data yet."
     },
     "settings": {
       "title": "Company Settings",
@@ -871,7 +971,13 @@
       "legal_address": "Legal address",
       "legal_address_placeholder": "e.g. Street 1, City, ZIP",
       "registry_info": "Registry entry",
-      "registry_info_placeholder": "e.g. registered at City Court, section C, file 123456"
+      "registry_info_placeholder": "e.g. registered at City Court, section C, file 123456",
+      "address": "Address",
+      "address_placeholder": "Enter company address",
+      "employess": "Employees",
+      "industry": "Industry",
+      "industry_placeholder": "Select industry",
+      "size": "Company size"
     },
     "subscription": {
       "title": "Company Subscription",
@@ -892,8 +998,11 @@
       "tiers": {
         "business": "Professional",
         "basic": "Basic",
-        "free": "Free"
-      }
+        "free": "Free",
+        "professional": "Professional",
+        "trial": "Free Trial"
+      },
+      "plan_suffix": "plan"
     },
     "ad_editor": {
       "title": "Offer Editor",
@@ -946,15 +1055,29 @@
     "candidates": {
       "no_candidates_title": "No candidates",
       "no_candidates_desc": "Once you publish an offer, candidate profiles with calculated match scores will start appearing here.",
-      "matching_analysing": "Analyzing match...",
-      "match_btn": "Find best match"
+      "matching_analysing": "Analyzing matches...",
+      "match_btn": "Match candidates",
+      "ai_disclaimer": "AI-generated signals for guidance only.",
+      "exp_years": "yrs",
+      "flight_risk": "Flight risk",
+      "match_label": "Match",
+      "risk_analysis": "Risk analysis",
+      "risk_levels": {
+        "high": "High",
+        "low": "Low",
+        "medium": "Medium"
+      },
+      "salary_per_month": "/month"
     }
   },
   "common": {
     "unknown": "Unknown",
     "none": "None",
     "standard_package": "Standard package",
-    "search": "Search"
+    "search": "Search",
+    "error_occurred": "Something went wrong.",
+    "loading": "Loading...",
+    "saving": "Saving..."
   },
   "seo": {
     "base_title": "JobShaman - Career OS",
@@ -1184,6 +1307,26 @@
           "f2": "Unlimited AI assessments",
           "f3": "Integration with ATS systems",
           "f4": "Dedicated account manager"
+        },
+        "basic_v2": {
+          "desc": "For startups and smaller agencies.",
+          "f1": "5 job posts",
+          "f2": "5 AI assessments",
+          "f3": "Basic matching",
+          "name": "Basic"
+        },
+        "professional": {
+          "desc": "For SMEs and active recruiters.",
+          "f1": "20 job posts",
+          "f2": "50 AI assessments",
+          "f3": "JHI insights",
+          "name": "Professional"
+        },
+        "trial": {
+          "desc": "For local teams getting started.",
+          "f1": "1 active job post",
+          "f2": "No AI assessments",
+          "name": "Free (Trial)"
         }
       }
     },
@@ -1391,14 +1534,14 @@
     "missing_skills": "Missing skills"
   },
   "blog": {
-    "title": "Shamanic Insights",
-    "subtitle": "Analysis, data and reality of the job market without the gloss.",
+    "title": "Career Blog",
+    "subtitle": "Insights from the jobs market",
     "read_more": "Read more",
     "all_articles": "All articles",
     "stats": {
-      "active_jobs": "Active listings",
+      "active_jobs": "Active jobs",
       "transparency_rate": "Transparency rate",
-      "avg_jhi": "Average JHI"
+      "avg_jhi": "Avg. JHI"
     },
     "posts": {
       "post1": {
@@ -1413,7 +1556,9 @@
         "title": "AI as your career coach",
         "excerpt": "How to effectively use Career Pathfinder and AI analysis to move forward in your career path."
       }
-    }
+    },
+    "category_label": "Category",
+    "view_all": "View all"
   },
   "skillsGap": {
     "hero_title": "Get ahead with targeted education",
@@ -1699,7 +1844,8 @@
     "trial": "Free (Trial)",
     "enterprise": "Enterprise",
     "assessment_bundle": "Bundle",
-    "single_assessment": "Single Assessment"
+    "single_assessment": "Single Assessment",
+    "professional": "Professional"
   },
   "assessment_creator": {
     "limit_reached": "You have reached the limit of {{limit}} assessments for your current plan. Upgrade for more assessments.",
@@ -1710,7 +1856,8 @@
       "business": "Professional",
       "trial": "Free (Trial)",
       "assessment_bundle": "Assessment Bundle",
-      "basic": "Basic"
+      "basic": "Basic",
+      "professional": "Professional"
     },
     "more_credits": "More credits",
     "title": "Competency Generator",
@@ -2116,7 +2263,8 @@
     "empty_tip": "Tip: You can also find saved jobs in the \"Profile\" tab.",
     "no_results_title": "No results found",
     "no_results_desc": "Try changing your search term.",
-    "remove_from_saved": "Remove from saved"
+    "remove_from_saved": "Remove from saved",
+    "count": "{{count}} saved jobs"
   },
   "invitation_landing": {
     "invalid_link": "Invalid invitation link (missing id or token).",
@@ -2153,7 +2301,8 @@
     "status_pending": "Pending",
     "status_completed": "Completed",
     "status_expired": "Expired",
-    "start_test": "Start test"
+    "start_test": "Start test",
+    "backend_unavailable": "Backend temporarily unavailable. Please try again in a moment."
   },
   "premium_upsell": {
     "badge": "NEW FEATURE",
@@ -2212,7 +2361,8 @@
       "feature_2": "Basic dashboard",
       "feature_3": "No AI features",
       "feature_4": "No assessments",
-      "cta": "Use for free"
+      "cta": "Use for free",
+      "recommended_badge": "Best value"
     },
     "business": {
       "recommended_badge": "Recommended",
@@ -2251,7 +2401,34 @@
       "email_subject": "Custom plan inquiry",
       "email_body": "Hello,\n\nI am interested in a custom plan for our company.\n\nBest regards,"
     },
-    "close_continue": "Close and continue with the basic version"
+    "close_continue": "Close and continue with the basic version",
+    "basic_plus": {
+      "cta": "Choose Basic",
+      "feature_1": "5 job posts",
+      "feature_2": "5 AI assessments",
+      "feature_3": "Basic matching",
+      "price_suffix": "/month",
+      "subtitle": "For startups and smaller agencies",
+      "title": "Basic"
+    },
+    "professional": {
+      "cta": "Choose Professional",
+      "feature_1": "20 job posts",
+      "feature_2": "50 AI assessments",
+      "feature_3": "JHI insights",
+      "price_suffix": "/month",
+      "recommended_badge": "Recommended",
+      "subtitle": "For SMEs and active recruiters",
+      "title": "Professional"
+    },
+    "trial": {
+      "cta": "Continue with trial",
+      "feature_1": "1 active job post",
+      "feature_2": "No AI assessments",
+      "price_suffix": "/month",
+      "subtitle": "Try the platform",
+      "title": "Free (Trial)"
+    }
   },
   "assessment_invitation_modal": {
     "title": "Invite candidate to assessment",
@@ -2302,7 +2479,9 @@
       "rollover_q": "Do unused credits roll over?",
       "rollover_a": "No. Monthly credits reset on renewal day. Assessment bundle purchases remain valid for 12 months from purchase.",
       "support_q": "How do I contact support?",
-      "support_a": "Email us at support@jobshaman.cz or use the in-app chat widget. Business users get 24/7 priority support."
+      "support_a": "Email us at support@jobshaman.cz or use the in-app chat widget. Business users get 24/7 priority support.",
+      "plan_basic_v2": "Basic: 5 job posts, 5 AI assessments, basic matching.",
+      "plan_professional_v2": "Professional: 20 job posts, 50 AI assessments, JHI insights."
     }
   },
   "subscription_card": {
@@ -2545,6 +2724,49 @@
     }
   },
   "premium": {
-    "price_value": "14.99 EUR"
+    "price_value": "14.99 EUR",
+    "upgrade_btn_short": "Upgrade",
+    "upgrade_btn": "Upgrade to Premium",
+    "cancel_anytime": "Cancel anytime with no penalties",
+    "feature_1_benefit_1": "Relevance analysis of your experience",
+    "feature_1_benefit_2": "Market gap identification",
+    "feature_1_benefit_3": "Concrete growth recommendations",
+    "feature_1_benefit_4": "Market benchmarking",
+    "feature_1_desc": "Deep CV analysis with concrete recommendations",
+    "feature_1_title": "AI CV analysis",
+    "feature_2_benefit_1": "Auto-generated for each role",
+    "feature_2_benefit_2": "Company-specific adaptation",
+    "feature_2_benefit_3": "Higher interview chances",
+    "feature_2_benefit_4": "Professional writing quality",
+    "feature_2_desc": "Generate personalized cover letters",
+    "feature_2_title": "AI cover letter",
+    "feature_3_benefit_1": "Personalized to your career path",
+    "feature_3_benefit_2": "Increases your market value",
+    "feature_3_benefit_3": "Relevant for target roles",
+    "feature_3_benefit_4": "Verified resources",
+    "feature_3_desc": "AI recommendations based on your profile",
+    "feature_3_title": "Learning recommendations",
+    "price_access_all": "Access all features for",
+    "reason_1_desc": "AI optimization increases role relevance",
+    "reason_1_title": "Higher chance to get hired",
+    "reason_2_desc": "Automatic cover letter generation",
+    "reason_2_title": "Save time",
+    "reason_3_desc": "Templates crafted by professionals",
+    "reason_3_title": "Professional materials",
+    "reason_4_desc": "Use tools whenever you need",
+    "reason_4_title": "Always-on access",
+    "short_ai_letter": "AI cover letter",
+    "short_ai_letter_desc": "Personalized content",
+    "short_ai_rewrite": "AI CV rewrite",
+    "short_ai_rewrite_desc": "Role-tailored optimization",
+    "short_cv_templates": "CV templates",
+    "short_cv_templates_desc": "Professional designs",
+    "trust_1": "Secure payment",
+    "trust_2": "No long-term commitment",
+    "trust_3": "Instant access",
+    "unlock_desc_full": "Get access to AI tools that help you reach a better role",
+    "unlock_subtitle": "AI tools for CV, cover letters, and optimization",
+    "unlock_title": "Unlock JobShaman Premium",
+    "why_upgrade": "Why upgrade?"
   }
 }
