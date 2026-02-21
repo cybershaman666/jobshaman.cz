@@ -141,7 +141,7 @@ def mock_supabase(monkeypatch):
     mock._subscriptions[company_id] = {
         'id': 'sub_1',
         'company_id': company_id,
-        'tier': 'assessment_bundle',
+        'tier': 'starter',
         'status': 'active',
         'ai_assessments_used': 0,
     }

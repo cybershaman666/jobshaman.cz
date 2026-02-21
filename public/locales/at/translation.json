@@ -1236,7 +1236,8 @@
       "unit_hours": "Std.",
       "unit_czk": "CZK",
       "unit_ads": "Anzeigen",
-      "note": "Konservatives Modell: zählt nur Screening-Zeit und nutzt 26% schnelleres Hiring als Proxy; Jobportal-Kosten mit 30 Tagen pro Monat."
+      "note": "Konservatives Modell: zählt nur Screening-Zeit und nutzt 26% schnelleres Hiring als Proxy; Jobportal-Kosten mit 30 Tagen pro Monat.",
+      "output_portal_savings_note": "JobShaman {{price}} / Monat, unbegrenzte Anzeigen"
     },
     "benefits": {
       "ai_powered": "KI-Anzeigenoptimierung",

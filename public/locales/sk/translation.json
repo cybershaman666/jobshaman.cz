@@ -1247,7 +1247,8 @@
       "unit_hours": "h",
       "unit_czk": "Kč",
       "unit_ads": "inzeráty",
-      "note": "Model je konzervatívny: počíta len čas screeningu a 26% zrýchlenie náboru ako proxy; portál počítame ako 30 dní v mesiaci."
+      "note": "Model je konzervatívny: počíta len čas screeningu a 26% zrýchlenie náboru ako proxy; portál počítame ako 30 dní v mesiaci.",
+      "output_portal_savings_note": "JobShaman {{price}} / mesiac, neobmedzené inzeráty"
     },
     "benefits": {
       "ai_powered": "AI optimalizácia inzerátov",

@@ -1215,7 +1215,8 @@
       "unit_hours": "hrs",
       "unit_czk": "CZK",
       "unit_ads": "ads",
-      "note": "Conservative model: counts only screening time and uses 26% faster hiring as a proxy; job board cost assumes 30 days per month."
+      "note": "Conservative model: counts only screening time and uses 26% faster hiring as a proxy; job board cost assumes 30 days per month.",
+      "output_portal_savings_note": "JobShaman {{price}} / month, unlimited ads"
     },
     "benefits": {
       "ai_powered": "AI job ad optimization",

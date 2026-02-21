@@ -89,7 +89,7 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                             </button>
                         </div>
 
-                        {/* Option 2: Basic Plan */}
+                        {/* Option 2: Starter Plan */}
                         <div className="p-4 rounded-xl border-2 border-cyan-500 bg-cyan-50/10 relative">
                             <div className="absolute -top-3 right-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">{t('plan_upgrade_modal.basic.recommended_badge', { defaultValue: 'Popular' })}</div>
                             <div className="flex justify-between items-center mb-2">
@@ -98,32 +98,32 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                         <Crown size={20} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white">{t('plan_upgrade_modal.basic_plus.title', { defaultValue: 'Basic plan' })}</h4>
-                                        <p className="text-xs text-slate-500">{t('plan_upgrade_modal.basic_plus.subtitle', { defaultValue: 'For startups and small agencies' })}</p>
+                                        <h4 className="font-bold text-slate-900 dark:text-white">{t('plan_upgrade_modal.basic_plus.title', { defaultValue: 'Starter plan' })}</h4>
+                                        <p className="text-xs text-slate-500">{t('plan_upgrade_modal.basic_plus.subtitle', { defaultValue: 'For small local teams and startups' })}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="font-black text-cyan-600 dark:text-cyan-400 text-xl">399 €</div>
+                                    <div className="font-black text-cyan-600 dark:text-cyan-400 text-xl">249 €</div>
                                     <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{t('plan_upgrade_modal.basic_plus.price_suffix', { defaultValue: '/ month' })}</div>
                                 </div>
                             </div>
                             <ul className="grid grid-cols-2 gap-2 mb-4">
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.basic_plus.feature_1', { defaultValue: '5 active job postings' })}</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.basic_plus.feature_2', { defaultValue: '5 AI assessments' })}</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.basic_plus.feature_3', { defaultValue: 'Basic matching' })}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.basic_plus.feature_1', { defaultValue: '3 active job postings' })}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.basic_plus.feature_2', { defaultValue: '15 AI screenings / month' })}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.basic_plus.feature_3', { defaultValue: 'Basic decision overview' })}</li>
                             </ul>
                             <button
                                 onClick={() => {
                                     if (companyProfile?.id) {
                                         AnalyticsService.trackUpgradeTrigger({
                                             companyId: companyProfile.id,
-                                            feature: 'BASIC_COMPANY_PLAN',
-                                            currentTier: companyProfile.subscription?.tier || 'basic',
-                                            reason: 'User clicked basic company plan'
+                                            feature: 'STARTER_COMPANY_PLAN',
+                                            currentTier: companyProfile.subscription?.tier || 'starter',
+                                            reason: 'User clicked starter company plan'
                                         });
 
-                                        ABTestService.trackConversion('pricing_display_test', 'basic_clicked', 399);
-                                        redirectToCheckout('basic', companyProfile.id);
+                                        ABTestService.trackConversion('pricing_display_test', 'starter_clicked', 249);
+                                        redirectToCheckout('starter', companyProfile.id);
                                     } else {
                                         console.error('❌ Company ID missing in profile!');
                                         alert(t('alerts.company_id_load_failed'));
@@ -131,11 +131,11 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                 }}
                                 className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition-colors shadow-lg shadow-cyan-900/20"
                             >
-                                {t('plan_upgrade_modal.basic_plus.cta', { defaultValue: 'Activate Basic' })}
+                                {t('plan_upgrade_modal.basic_plus.cta', { defaultValue: 'Activate Starter' })}
                             </button>
                         </div>
 
-                        {/* Option 3: Professional Plan */}
+                        {/* Option 3: Growth Plan */}
                         <div className="p-4 rounded-xl border-2 border-purple-500 bg-purple-50/10 relative">
                             <div className="absolute -top-3 right-4 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">{t('plan_upgrade_modal.professional.recommended_badge', { defaultValue: 'Best value' })}</div>
                             <div className="flex justify-between items-center mb-2">
@@ -144,32 +144,32 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                         <Crown size={20} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white">{t('plan_upgrade_modal.professional.title', { defaultValue: 'Professional plan' })}</h4>
-                                        <p className="text-xs text-slate-500">{t('plan_upgrade_modal.professional.subtitle', { defaultValue: 'For SMEs and active recruiters' })}</p>
+                                        <h4 className="font-bold text-slate-900 dark:text-white">{t('plan_upgrade_modal.professional.title', { defaultValue: 'Growth plan' })}</h4>
+                                        <p className="text-xs text-slate-500">{t('plan_upgrade_modal.professional.subtitle', { defaultValue: 'For growing SMEs and active recruiters' })}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="font-black text-purple-600 dark:text-purple-400 text-xl">999 €</div>
+                                    <div className="font-black text-purple-600 dark:text-purple-400 text-xl">599 €</div>
                                     <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{t('plan_upgrade_modal.professional.price_suffix', { defaultValue: '/ month' })}</div>
                                 </div>
                             </div>
                             <ul className="grid grid-cols-2 gap-2 mb-4">
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-purple-500" /> {t('plan_upgrade_modal.professional.feature_1', { defaultValue: '20 active job postings' })}</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-purple-500" /> {t('plan_upgrade_modal.professional.feature_2', { defaultValue: '50 AI assessments' })}</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-purple-500" /> {t('plan_upgrade_modal.professional.feature_3', { defaultValue: 'JHI insights' })}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-purple-500" /> {t('plan_upgrade_modal.professional.feature_1', { defaultValue: '10 active job postings' })}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-purple-500" /> {t('plan_upgrade_modal.professional.feature_2', { defaultValue: '60 AI screenings / month' })}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-purple-500" /> {t('plan_upgrade_modal.professional.feature_3', { defaultValue: 'JHI insights and reporting' })}</li>
                             </ul>
                             <button
                                 onClick={() => {
                                     if (companyProfile?.id) {
                                         AnalyticsService.trackUpgradeTrigger({
                                             companyId: companyProfile.id,
-                                            feature: 'PROFESSIONAL_COMPANY_PLAN',
-                                            currentTier: companyProfile.subscription?.tier || 'basic',
-                                            reason: 'User clicked professional company plan'
+                                            feature: 'GROWTH_COMPANY_PLAN',
+                                            currentTier: companyProfile.subscription?.tier || 'starter',
+                                            reason: 'User clicked growth company plan'
                                         });
 
-                                        ABTestService.trackConversion('pricing_display_test', 'professional_clicked', 999);
-                                        redirectToCheckout('professional', companyProfile.id);
+                                        ABTestService.trackConversion('pricing_display_test', 'growth_clicked', 599);
+                                        redirectToCheckout('growth', companyProfile.id);
                                     } else {
                                         console.error('❌ Company ID missing in profile!');
                                         alert(t('alerts.company_id_load_failed'));
@@ -177,97 +177,54 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                 }}
                                 className="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition-colors shadow-lg shadow-purple-900/20"
                             >
-                                {t('plan_upgrade_modal.professional.cta', { defaultValue: 'Activate Professional' })}
+                                {t('plan_upgrade_modal.professional.cta', { defaultValue: 'Activate Growth' })}
                             </button>
                         </div>
 
-                        {/* Option 4: Assessment Add-ons */}
-                        <div className="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-cyan-500 dark:hover:border-cyan-500 transition-all cursor-pointer group relative overflow-hidden">
+                        {/* Option 4: Professional Plan */}
+                        <div className="p-4 rounded-xl border-2 border-fuchsia-500 bg-fuchsia-50/10 relative">
                             <div className="flex justify-between items-center mb-2">
                                 <div className="flex items-center gap-2">
-                                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-lg">
+                                    <div className="p-2 bg-fuchsia-100 dark:bg-fuchsia-900/30 text-fuchsia-600 dark:text-fuchsia-400 rounded-lg">
                                         <BrainCircuit size={20} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white">{t('plan_upgrade_modal.assessment_center.title')}</h4>
-                                        <p className="text-xs text-slate-500">{t('plan_upgrade_modal.assessment_center.subtitle')}</p>
+                                        <h4 className="font-bold text-slate-900 dark:text-white">{t('plan_upgrade_modal.enterprise.pro_title', { defaultValue: 'Professional plan' })}</h4>
+                                        <p className="text-xs text-slate-500">{t('plan_upgrade_modal.enterprise.pro_subtitle', { defaultValue: 'For larger teams needing advanced analytics' })}</p>
                                     </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="font-black text-fuchsia-600 dark:text-fuchsia-400 text-xl">899 €</div>
+                                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{t('plan_upgrade_modal.professional.price_suffix', { defaultValue: '/ month' })}</div>
                                 </div>
                             </div>
+                            <ul className="grid grid-cols-2 gap-2 mb-4">
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-fuchsia-500" /> {t('plan_upgrade_modal.enterprise.pro_feature_1', { defaultValue: '20 active job postings' })}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-fuchsia-500" /> {t('plan_upgrade_modal.enterprise.pro_feature_2', { defaultValue: '150 AI screenings / month' })}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-fuchsia-500" /> {t('plan_upgrade_modal.enterprise.pro_feature_3', { defaultValue: 'Decision analytics dashboard' })}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-fuchsia-500" /> {t('plan_upgrade_modal.enterprise.pro_feature_4', { defaultValue: 'API access & priority support' })}</li>
+                            </ul>
+                            <button
+                                onClick={() => {
+                                    if (companyProfile?.id) {
+                                        AnalyticsService.trackUpgradeTrigger({
+                                            companyId: companyProfile.id,
+                                            feature: 'PROFESSIONAL_COMPANY_PLAN',
+                                            currentTier: companyProfile.subscription?.tier || 'starter',
+                                            reason: 'User clicked professional company plan'
+                                        });
 
-                            <div className="space-y-3">
-                                {/* Single Assessment */}
-                                <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700">
-                                    <div>
-                                        <div className="font-bold text-sm text-slate-900 dark:text-white">{t('plan_upgrade_modal.assessment_center.single_title')}</div>
-                                        <div className="text-xs text-slate-500">{t('plan_upgrade_modal.assessment_center.single_subtitle')}</div>
-                                    </div>
-                                    <button
-                                        onClick={async () => {
-                                            if (!companyProfile?.id) {
-                                                console.error('❌ Company ID missing!', companyProfile);
-                                                alert(t('alerts.company_identify_failed'));
-                                                return;
-                                            }
-
-                                            AnalyticsService.trackUpgradeTrigger({
-                                                companyId: companyProfile.id,
-                                                feature: 'SINGLE_ASSESSMENT',
-                                                currentTier: companyProfile.subscription?.tier || 'basic',
-                                                reason: 'User clicked single assessment'
-                                            });
-
-                                            ABTestService.trackConversion('pricing_display_test', 'single_assessment_clicked', 99);
-
-                                            try {
-                                                await redirectToCheckout('single_assessment', companyProfile.id);
-                                            } catch (err) {
-                                                console.error('❌ Error during checkout redirect:', err);
-                                                alert(`${t('alerts.payment_start_failed')}: ${err instanceof Error ? err.message : String(err)}`);
-                                            }
-                                        }}
-                                        className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg text-sm transition-colors"
-                                    >
-                                        99 Kč
-                                    </button>
-                                </div>
-
-                                {/* Assessment Bundle */}
-                                <div className="flex justify-between items-center p-3 bg-cyan-50 dark:bg-cyan-950/20 rounded-lg border-2 border-cyan-200 dark:border-cyan-800">
-                                    <div>
-                                        <div className="font-bold text-sm text-slate-900 dark:text-white">{t('plan_upgrade_modal.assessment_center.bundle_title')}</div>
-                                        <div className="text-xs text-slate-500">{t('plan_upgrade_modal.assessment_center.bundle_subtitle')}</div>
-                                    </div>
-                                    <button
-                                        onClick={async () => {
-                                            if (!companyProfile?.id) {
-                                                console.error('❌ Company ID missing!', companyProfile);
-                                                alert(t('alerts.company_identify_failed'));
-                                                return;
-                                            }
-
-                                            try {
-                                                AnalyticsService.trackUpgradeTrigger({
-                                                    companyId: companyProfile.id,
-                                                    feature: 'ASSESSMENT_BUNDLE_10',
-                                                    currentTier: companyProfile.subscription?.tier || 'basic',
-                                                    reason: 'User clicked 10 assessment bundle'
-                                                });
-
-                                                ABTestService.trackConversion('pricing_display_test', 'assessment_bundle_10_clicked', 990);
-
-                                                await redirectToCheckout('assessment_bundle', companyProfile.id);
-                                            } catch (err) {
-                                                console.error('❌ Error during checkout redirect:', err);
-                                                alert(`${t('alerts.payment_start_failed')}: ${err instanceof Error ? err.message : String(err)}`);
-                                            }
-                                        }}
-                                        className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg text-sm transition-colors shadow-sm"
-                                    >
-                                        990 Kč
-                                    </button>
-                                </div>
-                            </div>
+                                        ABTestService.trackConversion('pricing_display_test', 'professional_clicked', 899);
+                                        redirectToCheckout('professional', companyProfile.id);
+                                    } else {
+                                        console.error('❌ Company ID missing in profile!');
+                                        alert(t('alerts.company_id_load_failed'));
+                                    }
+                                }}
+                                className="w-full py-2 bg-fuchsia-600 hover:bg-fuchsia-500 text-white font-bold rounded-lg transition-colors shadow-lg shadow-fuchsia-900/20"
+                            >
+                                {t('plan_upgrade_modal.professional.cta', { defaultValue: 'Activate Professional' })}
+                            </button>
                         </div>
 
                         {/* Option 5: Enterprise Plan */}
@@ -300,7 +257,7 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                     AnalyticsService.trackUpgradeTrigger({
                                         companyId: companyProfile?.id || 'unknown',
                                         feature: 'ENTERPRISE_PLAN',
-                                        currentTier: companyProfile?.subscription?.tier || 'basic',
+                                        currentTier: companyProfile?.subscription?.tier || 'starter',
                                         reason: 'User clicked enterprise plan'
                                     });
                                     window.open('mailto:obchod@jobshaman.cz?subject=' + encodeURIComponent(t('plan_upgrade_modal.enterprise.email_subject')) + '&body=' + encodeURIComponent(t('plan_upgrade_modal.enterprise.email_body')), '_blank');

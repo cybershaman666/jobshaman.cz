@@ -27,7 +27,7 @@ class JobCheckRequest(BaseModel):
         return bleach.clean(v.strip(), tags=allowed, attributes={}, strip=True)
 
 class CheckoutRequest(BaseModel):
-    tier: str = Field(..., pattern=r"^(premium|basic|professional|assessment|assessment_bundle|single_assessment)$")
+    tier: str = Field(..., pattern=r"^(premium|starter|growth|professional)$")
     userId: str = Field(..., min_length=1)
     successUrl: str = Field(..., pattern=r"^https?://.+")
     cancelUrl: str = Field(..., pattern=r"^https?://.+")
@@ -87,7 +87,7 @@ class AdminSubscriptionUpdateRequest(BaseModel):
     subscription_id: Optional[str] = None
     target_type: Optional[Literal["company", "user"]] = None
     target_id: Optional[str] = None
-    tier: Optional[str] = Field(None, pattern=r"^(free|premium|basic|professional|trial|enterprise|assessment_bundle|single_assessment)$")
+    tier: Optional[str] = Field(None, pattern=r"^(free|premium|starter|growth|professional|trial|enterprise)$")
     status: Optional[str] = Field(None, pattern=r"^(active|trialing|inactive|canceled)$")
     current_period_start: Optional[str] = None
     current_period_end: Optional[str] = None

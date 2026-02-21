@@ -63,12 +63,11 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
     tier_limits = {
         "free": {"assessments": 0, "job_postings": 1, "name": "Free"},
         "premium": {"assessments": 0, "job_postings": 10, "name": "Premium"},
-        "basic": {"assessments": 5, "job_postings": 5, "name": "Basic"},
-        "professional": {"assessments": 50, "job_postings": 20, "name": "Professional"},
+        "starter": {"assessments": 15, "job_postings": 3, "name": "Starter"},
+        "growth": {"assessments": 60, "job_postings": 10, "name": "Growth"},
+        "professional": {"assessments": 150, "job_postings": 20, "name": "Professional"},
         "trial": {"assessments": 0, "job_postings": 1, "name": "Free (Trial)"},
         "enterprise": {"assessments": 999999, "job_postings": 999, "name": "Enterprise"},
-        "assessment_bundle": {"assessments": 10, "job_postings": 0, "name": "Assessment Bundle"},
-        "single_assessment": {"assessments": 1, "job_postings": 0, "name": "Single Assessment"},
     }
 
     sub_details = {"tier": "free", "status": "active"}
@@ -155,12 +154,11 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
 async def verify_billing(billing_request: BillingVerificationRequest, request: Request, user: dict = Depends(verify_subscription)):
     feature_access = {
         "premium": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS"],
-        "basic": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS", "COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS"],
-        "professional": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS", "COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS", "COMPANY_UNLIMITED_JOBS"],
+        "starter": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS", "COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS"],
+        "growth": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS", "COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS"],
+        "professional": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS", "COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS"],
         "trial": [],
         "enterprise": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS", "COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS", "COMPANY_UNLIMITED_JOBS"],
-        "assessment_bundle": ["COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS"],
-        "single_assessment": [],
         "free": [],
     }
 

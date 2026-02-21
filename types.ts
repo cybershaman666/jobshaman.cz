@@ -101,7 +101,7 @@ export interface CompanyProfile {
   };
 }
 
-export type CompanyServiceTier = 'free' | 'trial' | 'basic' | 'professional' | 'enterprise' | 'assessment_bundle';
+export type CompanyServiceTier = 'free' | 'trial' | 'starter' | 'growth' | 'professional' | 'enterprise';
 
 export interface CompanyUsageStats {
   activeJobsCount: number;

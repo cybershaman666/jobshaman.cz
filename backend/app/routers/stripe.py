@@ -5,17 +5,16 @@ from ..core.config import (
     STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET,
     STRIPE_PRICE_PREMIUM,
-    STRIPE_PRICE_BASIC,
+    STRIPE_PRICE_STARTER,
+    STRIPE_PRICE_GROWTH,
     STRIPE_PRICE_PROFESSIONAL,
-    STRIPE_PRICE_ASSESSMENT_BUNDLE,
-    STRIPE_PRICE_SINGLE_ASSESSMENT,
 )
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_csrf_token_header
 from ..models.requests import CheckoutRequest
 from ..core.database import supabase
 from ..utils.helpers import now_iso
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 
 router = APIRouter()
 
@@ -41,10 +40,9 @@ async def create_checkout_session(req: CheckoutRequest, request: Request, user: 
 
         tier_mapping = {
             "premium": "premium",
-            "basic": "basic",
+            "starter": "starter",
+            "growth": "growth",
             "professional": "professional",
-            "assessment_bundle": "assessment_bundle",
-            "single_assessment": "single_assessment",
         }
 
         backend_tier = tier_mapping.get(req.tier)
@@ -53,16 +51,15 @@ async def create_checkout_session(req: CheckoutRequest, request: Request, user: 
 
         prices = {
             "premium": STRIPE_PRICE_PREMIUM,
-            "basic": STRIPE_PRICE_BASIC,
+            "starter": STRIPE_PRICE_STARTER,
+            "growth": STRIPE_PRICE_GROWTH,
             "professional": STRIPE_PRICE_PROFESSIONAL,
-            "assessment_bundle": STRIPE_PRICE_ASSESSMENT_BUNDLE,
-            "single_assessment": STRIPE_PRICE_SINGLE_ASSESSMENT,
         }
 
         price_id = prices.get(backend_tier)
         if not price_id:
             raise HTTPException(status_code=500, detail=f"Stripe price not configured for tier: {backend_tier}")
-        mode = "subscription" if backend_tier in ["premium", "basic", "professional"] else "payment"
+        mode = "subscription"
 
         checkout_session = stripe.checkout.Session.create(
             line_items=[{"price": price_id, "quantity": 1}],
@@ -115,23 +112,12 @@ async def stripe_webhook(request: Request):
                 }
                 supabase.table("subscriptions").upsert(data, on_conflict="user_id").execute()
             
-            elif tier in ["basic", "professional"]:
+            elif tier in ["starter", "growth", "professional"]:
                 data = {
                     "company_id": user_id,
                     "tier": tier,
                     "status": "active",
                     "stripe_subscription_id": session.get("subscription"),
-                    "updated_at": now_iso(),
-                }
-                supabase.table("subscriptions").upsert(data, on_conflict="company_id").execute()
-            
-            elif tier in ["assessment_bundle", "single_assessment"]:
-                data = {
-                    "company_id": user_id,
-                    "tier": tier,
-                    "status": "active",
-                    "stripe_subscription_id": session.get("subscription") or f"oneshot_{session.get('id')}",
-                    "current_period_end": (datetime.now(timezone.utc) + timedelta(days=365)).isoformat(),
                     "updated_at": now_iso(),
                 }
                 supabase.table("subscriptions").upsert(data, on_conflict="company_id").execute()

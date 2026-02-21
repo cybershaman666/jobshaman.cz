@@ -12,12 +12,11 @@ interface AdminDashboardProps {
 const TIERS = [
   'free',
   'premium',
-  'basic',
+  'starter',
+  'growth',
   'professional',
   'trial',
-  'enterprise',
-  'assessment_bundle',
-  'single_assessment'
+  'enterprise'
 ];
 
 const STATUSES = ['active', 'trialing', 'inactive', 'canceled'];

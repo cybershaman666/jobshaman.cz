@@ -227,7 +227,7 @@ def send_daily_digest_email(
     if not jobs:
         return False
 
-    scores = [float(j.get("match_score") or 0) for j in jobs]
+    scores = [float(j.get("match_score")) for j in jobs if j.get("match_score") is not None]
     score_min = int(min(scores)) if scores else 0
     score_max = int(max(scores)) if scores else 0
 
@@ -236,7 +236,18 @@ def send_daily_digest_email(
         title = job.get("title") or "Job"
         company = job.get("company") or job.get("company_name") or ""
         location = job.get("location") or ""
-        match_score = int(job.get("match_score") or 0)
+        raw_match_score = job.get("match_score")
+        match_line = (
+            f"{int(raw_match_score)}% Match"
+            if raw_match_score is not None
+            else {
+                "cs": "Nejnovější nabídka",
+                "en": "Newest local job",
+                "de": "Neueste lokale Stelle",
+                "pl": "Najnowsza lokalna oferta",
+                "sk": "Najnovšia lokálna ponuka",
+            }[lang]
+        )
         job_id = job.get("id")
         job_url = job.get("detail_url") or (f"{app_url}/jobs/{job_id}" if job_id else app_url)
 
@@ -244,7 +255,7 @@ def send_daily_digest_email(
         <div style="border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:12px;background:#ffffff;">
           <div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:4px;">{title}</div>
           <div style="font-size:13px;color:#64748b;margin-bottom:6px;">{company}</div>
-          <div style="font-size:13px;color:#0f172a;margin-bottom:6px;">{match_score}% Match</div>
+          <div style="font-size:13px;color:#0f172a;margin-bottom:6px;">{match_line}</div>
           <div style="font-size:13px;color:#475569;margin-bottom:10px;">{location}</div>
           <a href="{job_url}" style="display:inline-block;padding:10px 14px;background:#0ea5e9;color:#ffffff;border-radius:8px;text-decoration:none;font-weight:600;font-size:13px;">{copy['cta']}</a>
         </div>
@@ -265,7 +276,17 @@ def send_daily_digest_email(
         <h3 style="color:#0f172a;margin:20px 0 8px;">{copy['summary_title']}</h3>
         <ul style="color:#475569;margin:0;padding-left:18px;">
           <li>{copy['summary_1'].format(count=len(jobs))}</li>
-          <li>{copy['summary_2'].format(min_score=score_min, max_score=score_max)}</li>
+          <li>{
+              copy['summary_2'].format(min_score=score_min, max_score=score_max)
+              if scores
+              else {
+                  "cs": "Výběr je založený na nejnovějších nabídkách ve vašem okolí",
+                  "en": "Selection is based on the newest jobs in your area",
+                  "de": "Auswahl basiert auf den neuesten Stellen in Ihrer Umgebung",
+                  "pl": "Wybór opiera się na najnowszych ofertach w Twojej okolicy",
+                  "sk": "Výber je založený na najnovších ponukách vo vašom okolí",
+              }[lang]
+          }</li>
           <li>{copy['summary_3']}</li>
         </ul>
 
