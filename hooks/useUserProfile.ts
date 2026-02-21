@@ -13,6 +13,7 @@ import {
 import { refreshCsrfTokenIfNeeded, clearCsrfToken, authenticatedFetch, isBackendNetworkCooldownActive } from '../services/csrfService';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
 import { supabase } from '../services/supabaseClient';
+import { clearSupabaseAuthStorage } from '../services/supabaseClient';
 import { createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from '../services/profileDefaults';
 
 // Default user profile
@@ -56,6 +57,16 @@ const isExternalProfilePhotoUrl = (url?: string | null): boolean => {
     if (value.includes('/profile-photos/')) return false;
     if (value.includes('/avatars/')) return false;
     return value.startsWith('http://') || value.startsWith('https://');
+};
+
+const isLegacyFreelancerResidueCompany = (company: any | null | undefined): boolean => {
+    if (!company) return false;
+    const industry = String(company?.industry || '').trim().toLowerCase();
+    const name = String(company?.name || '').trim().toLowerCase();
+    const hasLegacyIndustry = industry === 'freelancer' || industry === 'freelance';
+    const hasLegacyName = name.includes('freelancer') || name.includes('freelance');
+    const hasNoRealBusinessSignals = !company?.website && !company?.ico && !company?.description;
+    return (hasLegacyIndustry || hasLegacyName) && hasNoRealBusinessSignals;
 };
 
 export const useUserProfile = () => {
@@ -342,6 +353,21 @@ export const useUserProfile = () => {
                     }
                 }
 
+                // Legacy cleanup: some candidate accounts were historically auto-linked to
+                // placeholder "Freelancer" companies. Treat these as candidate accounts.
+                if (profile.role === 'recruiter' && isLegacyFreelancerResidueCompany(company)) {
+                    console.warn('🧹 Legacy freelancer company residue detected. Reverting user role to candidate.');
+                    profile = { ...profile, role: 'candidate' };
+                    setCompanyProfile(null);
+                    setUserProfile(prev => ({ ...prev, role: 'candidate' }));
+                    try {
+                        await updateUserProfileService(userId, { role: 'candidate' });
+                    } catch (err) {
+                        console.warn('⚠️ Failed to persist role reset to candidate:', err);
+                    }
+                    company = null;
+                }
+
                 // Auto-Upgrade Logic for Admin Tester - REMOVED for Strict Separation conformance
                 // Admin can manually switch roles if needed via DB or specific admin tool, 
                 // but should not auto-convert when testing as candidate.
@@ -421,7 +447,7 @@ export const useUserProfile = () => {
             // to prevent the client from trying to use the invalid token again.
             if (error?.message?.includes('Refresh Token') || error?.message?.includes('Invalid Refresh Token')) {
                 console.log('🧹 Manual storage cleanup due to refresh token error');
-                localStorage.removeItem('sb-auth-token');
+                clearSupabaseAuthStorage();
             }
         } finally {
             clearCsrfToken();  // Clear CSRF token on logout
@@ -431,9 +457,7 @@ export const useUserProfile = () => {
             lastSuccessfulRestorationRef.current = null;
 
             // Final safety net: clear the specific Supabase storage key if it still exists
-            if (localStorage.getItem('sb-auth-token')) {
-                localStorage.removeItem('sb-auth-token');
-            }
+            clearSupabaseAuthStorage();
 
             console.log('🧹 Local auth state and storage cleared');
         }

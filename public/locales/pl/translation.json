@@ -186,6 +186,23 @@
     "ai_analysis": "Analiza AI",
     "run_ai_analysis": "Uruchom analizę AI",
     "analyzing": "Analyzuję...",
+    "cv_ai_tools_title": "Narzędzia AI CV dla tej oferty",
+    "cv_ai_tools_desc": "Zoptymalizuj CV pod tę konkretną ofertę i popraw czytelność dla ATS przed aplikowaniem.",
+    "cv_ai_tools_feature_label": "AI optymalizacja CV + ATS",
+    "cv_ai_tools_optimize": "Optymalizuj CV pod tę ofertę",
+    "cv_ai_tools_optimizing": "Optymalizuję CV...",
+    "cv_ai_tools_open_profile": "Otwórz AI przewodnik CV",
+    "cv_ai_tools_upgrade_hint": "Premium odblokowuje optymalizację CV, poprawki ATS i AI dyktowanie CV.",
+    "cv_ai_tools_missing_cv": "Najpierw dodaj CV w profilu.",
+    "cv_ai_tools_failed": "Optymalizacja CV nie powiodła się. Spróbuj ponownie.",
+    "cv_ai_tools_result_title": "Zoptymalizowany szkic CV",
+    "cv_ai_tools_copy": "Kopiuj tekst",
+    "cv_ai_tools_copied": "Skopiowano",
+    "cv_ai_tools_improvements_title": "Wykryte ulepszenia",
+    "cv_ai_tools_save_profile": "Zapisz w profilu",
+    "cv_ai_tools_saving": "Zapisywanie...",
+    "cv_ai_tools_saved_profile": "Zapisano w profilu.",
+    "cv_ai_tools_save_failed": "Zapis do profilu nie powiódł się. Spróbuj ponownie.",
     "company_legal_title": "Informacje prawne o firmie",
     "company_ico": "NIP / REGON",
     "company_dic": "VAT ID",
@@ -526,6 +543,20 @@
     "skills_importance_2": "Pomagają rekomendować odpowiednie kursy rozwojowe",
     "skills_importance_3": "Zwiększają Twoją widoczność dla rekruterów",
     "skills_importance_4": "Umożliwiają personalizowane rekomendacje",
+    "ai_guide_core_badge": "Kluczowa funkcja Premium",
+    "ai_guide_short_desc": "Podyktuj swoją historię. AI wykryje ukryte mocne strony, uzupełni profil i stworzy CV dopasowane do Ciebie.",
+    "ai_guide_start": "Uruchom przewodnik",
+    "ai_guide_upgrade_hint": "Odblokuj przewodnik AI i zaawansowaną optymalizację CV w Premium.",
+    "ai_cv_editor": {
+      "title": "Zapisany tekst AI CV",
+      "desc": "Możesz ręcznie edytować i zapisać tekst AI CV, aby unikać ponownego wywoływania AI.",
+      "load_cv": "Wczytaj bazowy tekst CV",
+      "placeholder": "Wklej lub edytuj tekst AI CV tutaj...",
+      "count": "{{count}} znaków",
+      "save": "Zapisz tekst AI CV",
+      "saving": "Zapisywanie...",
+      "saved": "Tekst AI CV został zapisany."
+    },
     "add_skill": "Dodaj umiejętność",
     "company": "Firma",
     "role": "Stanowisko",
@@ -2134,7 +2165,7 @@
     "compact": {
       "title": "Wypróbuj funkcje Premium",
       "desc": "Szablony CV, przeredagowanie AI i generowanie listów motywacyjnych",
-      "cta": "Ulepsz za 99 CZK/miesiąc"
+      "cta": "Ulepsz za 14.99 EUR/miesiąc (≈ 376 CZK / 65 PLN)"
     },
     "features": {
       "cv_templates_title": "Szablony CV",
@@ -2149,12 +2180,15 @@
     "title": "Odblokuj JobShaman Premium",
     "desc_prefix": "Funkcja",
     "desc_suffix": "oraz inne narzędzia AI są dostępne tylko dla członków Premium.",
-    "upgrade_cta": "Ulepsz do Premium za 99 CZK/miesiąc",
+    "upgrade_cta": "Ulepsz do Premium za 14.99 EUR/miesiąc (≈ 376 CZK / 65 PLN)",
     "maybe_later": "Może później",
     "benefits": {
       "unlimited_ai": "Nielimitowana analiza ofert pracy AI",
       "cover_letters": "Automatyczne generowanie listów motywacyjnych",
       "cv_optimization": "Inteligentna optymalizacja CV pod stanowisko",
+      "ats_optimization": "Przeredagowanie CV pod ATS dla każdej oferty",
+      "ai_cv_dictation": "Dyktowanie CV z AI w profilu",
+      "jhi_personalization": "Spersonalizowane ustawienia wyniku JHI",
       "priority_visibility": "Priorytetowa widoczność dla rekruterów"
     }
   },
@@ -2508,5 +2542,8 @@
       "privacy_notice": "JobShaman szanuje Twoją prywatność zgodnie z RODO i dyrektywą ePrivacy",
       "last_update": "Ostatnia aktualizacja: {{date}}"
     }
+  },
+  "premium": {
+    "price_value": "14.99 EUR"
   }
 }

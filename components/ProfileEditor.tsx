@@ -40,6 +40,7 @@ import { getCurrentSubscription, getPushPermission, isPushSupported, registerPus
 import TransportModeSelector from './TransportModeSelector';
 import SavedJobsPage from './SavedJobsPage';
 import { createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from '../services/profileDefaults';
+import { getPremiumPriceDisplay } from '../services/premiumPricingService';
 
 import { useTranslation } from 'react-i18next';
 
@@ -70,7 +71,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   selectedJobId,
   onDeleteAccount
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [profilePhotoFailed, setProfilePhotoFailed] = useState(false);
   const [isUploadingCV, setIsUploadingCV] = useState(false);
@@ -78,6 +79,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'saved'>('profile');
   const [showAIGuide, setShowAIGuide] = useState(false);
+  const [editableCvAiText, setEditableCvAiText] = useState(profile.cvAiText || '');
+  const [isSavingCvAiText, setIsSavingCvAiText] = useState(false);
   const [effectiveTier, setEffectiveTier] = useState<string | null>(profile.subscription?.tier || null);
   const [pushSupported, setPushSupported] = useState(false);
   const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
@@ -129,6 +132,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const resolvedTier = (effectiveTier || profile.subscription?.tier || 'free').toLowerCase();
   const normalizedCandidateTier: 'free' | 'premium' = resolvedTier === 'free' ? 'free' : 'premium';
   const isPremium = normalizedCandidateTier === 'premium';
+  const premiumPrice = getPremiumPriceDisplay(i18n.language || 'cs');
   const aiCvParsingEnabled = String(import.meta.env.VITE_ENABLE_AI_CV_PARSER || 'true').toLowerCase() !== 'false';
 
   const profileWithResolvedSubscription: UserProfile = {
@@ -138,6 +142,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       tier: normalizedCandidateTier
     }
   };
+
+  useEffect(() => {
+    setEditableCvAiText(profile.cvAiText || '');
+  }, [profile.cvAiText]);
 
 
 
@@ -351,6 +359,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   };
 
   const handleJhiPreferenceWeightChange = (field: keyof JHIPreferences['pillarWeights'], value: number) => {
+    if (!isPremium) return;
     const updated: JHIPreferences = {
       ...formData.jhiPreferences,
       pillarWeights: {
@@ -366,6 +375,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     field: K,
     value: JHIPreferences['hardConstraints'][K]
   ) => {
+    if (!isPremium) return;
     const updated: JHIPreferences = {
       ...formData.jhiPreferences,
       hardConstraints: {
@@ -381,6 +391,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     field: K,
     value: JHIPreferences['workStyle'][K]
   ) => {
+    if (!isPremium) return;
     const updated: JHIPreferences = {
       ...formData.jhiPreferences,
       workStyle: {
@@ -397,6 +408,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   });
 
   const applyJhiPreset = (preset: 'balanced' | 'money' | 'calm') => {
+    if (!isPremium) return;
     const next: JHIPreferences = preset === 'money'
       ? {
         pillarWeights: {
@@ -1217,15 +1229,15 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       <Sparkles className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
                     </div>
                     <div>
-                      <h2 className="text-xl font-semibold text-slate-900 dark:text-white">AI Průvodce životopisem</h2>
-                      <p className="text-xs font-medium text-cyan-700 dark:text-cyan-300">Core Premium funkce</p>
+                      <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.ai_guide.title')}</h2>
+                      <p className="text-xs font-medium text-cyan-700 dark:text-cyan-300">{t('profile.ai_guide_core_badge', { defaultValue: 'Core Premium feature' })}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="p-6">
                   <p className="text-sm text-slate-700 dark:text-slate-300 mb-5">
-                    Nadiktujte svůj příběh. AI odhalí skryté talenty, doplní profil a vytvoří CV na míru.
+                    {t('profile.ai_guide_short_desc', { defaultValue: 'Dictate your story. AI reveals hidden strengths, enriches your profile, and creates a tailored CV.' })}
                   </p>
 
                   {isPremium ? (
@@ -1234,16 +1246,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       className="w-full px-5 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/30"
                     >
                       <Sparkles className="w-4 h-4" />
-                      Spustit průvodce
+                      {t('profile.ai_guide_start', { defaultValue: 'Start AI guide' })}
                     </button>
                   ) : (
                     <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4 flex items-center justify-between gap-4">
                       <div>
                         <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                          Dostupné pouze v Premium
+                          {t('alerts.premium_only_feature')}
                         </p>
                         <p className="text-xs text-slate-600 dark:text-slate-400">
-                          Odemkněte AI průvodce a personalizované doporučení pozic.
+                          {t('profile.ai_guide_upgrade_hint', { defaultValue: 'Unlock AI guide and advanced CV optimization in Premium.' })}
                         </p>
                       </div>
                       <button
@@ -1254,10 +1266,74 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         }}
                         className="px-3 py-2 bg-cyan-600 text-white rounded-lg text-sm font-semibold hover:bg-cyan-700 shadow-md shadow-cyan-500/30"
                       >
-                        Upgradovat
+                        {t('premium.upgrade_btn_short')}
                       </button>
                     </div>
                   )}
+
+                  <div className="mt-6 pt-6 border-t border-cyan-200 dark:border-cyan-800">
+                    <div className="flex items-center justify-between gap-3 mb-3">
+                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {t('profile.ai_cv_editor.title', { defaultValue: 'Saved AI CV text' })}
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setEditableCvAiText(profile.cvText || '')}
+                          type="button"
+                          className="px-2.5 py-1.5 text-xs rounded-md border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        >
+                          {t('profile.ai_cv_editor.load_cv', { defaultValue: 'Load base CV text' })}
+                        </button>
+                        <button
+                          onClick={() => setEditableCvAiText('')}
+                          type="button"
+                          className="px-2.5 py-1.5 text-xs rounded-md border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+                        >
+                          {t('app.clear', { defaultValue: 'Clear' })}
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
+                      {t('profile.ai_cv_editor.desc', { defaultValue: 'You can edit and save AI CV text manually to avoid repeated AI generation.' })}
+                    </p>
+                    <textarea
+                      value={editableCvAiText}
+                      onChange={(e) => setEditableCvAiText(e.target.value)}
+                      rows={9}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                      placeholder={t('profile.ai_cv_editor.placeholder', { defaultValue: 'Paste or edit your AI CV text here...' })}
+                    />
+                    <div className="mt-3 flex items-center justify-between gap-3">
+                      <span className="text-xs text-slate-500 dark:text-slate-400">
+                        {t('profile.ai_cv_editor.count', { defaultValue: '{{count}} characters', count: editableCvAiText.length })}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={isSavingCvAiText}
+                        onClick={async () => {
+                          if (!profile.id) return;
+                          setIsSavingCvAiText(true);
+                          try {
+                            await Promise.resolve(onChange({ ...profile, cvAiText: editableCvAiText.trim() }, true));
+                            if (onRefreshProfile) {
+                              await onRefreshProfile();
+                            }
+                            alert(t('profile.ai_cv_editor.saved', { defaultValue: 'AI CV text saved.' }));
+                          } catch (error) {
+                            console.error('Saving AI CV text failed:', error);
+                            alert(t('profile.save_error'));
+                          } finally {
+                            setIsSavingCvAiText(false);
+                          }
+                        }}
+                        className="px-3 py-2 bg-cyan-600 text-white rounded-lg text-sm font-semibold hover:bg-cyan-700 shadow-md shadow-cyan-500/30 disabled:opacity-60"
+                      >
+                        {isSavingCvAiText
+                          ? t('profile.ai_cv_editor.saving', { defaultValue: 'Saving...' })
+                          : t('profile.ai_cv_editor.save', { defaultValue: 'Save AI CV text' })}
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -1487,122 +1563,146 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 <p className="text-sm text-slate-600 dark:text-slate-400">
                   {t('profile.jhi.explainer')}
                 </p>
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => applyJhiPreset('balanced')}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-full border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-900/20"
-                  >
-                    {t('profile.jhi.presets.balanced')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyJhiPreset('money')}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-full border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
-                  >
-                    {t('profile.jhi.presets.money')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => applyJhiPreset('calm')}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/40"
-                  >
-                    {t('profile.jhi.presets.calm')}
-                  </button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                  {(['financial', 'timeCost', 'mentalLoad', 'growth', 'values'] as const).map((weightKey) => (
-                    <div key={weightKey}>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        {t(`profile.jhi.weights.${weightKey}`)}
-                      </label>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
-                        {Math.round(formData.jhiPreferences.pillarWeights[weightKey] * 100)} %
+                {!isPremium && (
+                  <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {t('alerts.premium_only_feature')}
+                      </p>
+                      <p className="text-xs text-slate-600 dark:text-slate-400">
+                        {t('profile.jhi.paywall_hint', { defaultValue: 'Personalizace JHI skóre je dostupná pouze v Premium.' })}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (profile.id) {
+                          redirectToCheckout('premium', profile.id);
+                        }
+                      }}
+                      className="px-3 py-2 bg-cyan-600 text-white rounded-lg text-sm font-semibold hover:bg-cyan-700 shadow-md shadow-cyan-500/30 whitespace-nowrap"
+                    >
+                      {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurMonthlyLabel}`}
+                    </button>
+                  </div>
+                )}
+                <fieldset disabled={!isPremium} className={!isPremium ? 'opacity-60' : ''}>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={() => applyJhiPreset('balanced')}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-full border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 disabled:cursor-not-allowed"
+                    >
+                      {t('profile.jhi.presets.balanced')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyJhiPreset('money')}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-full border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 disabled:cursor-not-allowed"
+                    >
+                      {t('profile.jhi.presets.money')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => applyJhiPreset('calm')}
+                      className="px-3 py-1.5 text-xs font-semibold rounded-full border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/40 disabled:cursor-not-allowed"
+                    >
+                      {t('profile.jhi.presets.calm')}
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
+                    {(['financial', 'timeCost', 'mentalLoad', 'growth', 'values'] as const).map((weightKey) => (
+                      <div key={weightKey}>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          {t(`profile.jhi.weights.${weightKey}`)}
+                        </label>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+                          {Math.round(formData.jhiPreferences.pillarWeights[weightKey] * 100)} %
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          step={5}
+                          value={Math.round(formData.jhiPreferences.pillarWeights[weightKey] * 100)}
+                          onChange={(e) => handleJhiPreferenceWeightChange(weightKey, (Number(e.target.value) || 0) / 100)}
+                          className="w-full jhi-slider disabled:cursor-not-allowed"
+                          style={sliderTrackStyle(Math.round(formData.jhiPreferences.pillarWeights[weightKey] * 100))}
+                        />
                       </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
+                    {t('profile.jhi.weights_auto_normalized')}
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mt-3">
+                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                       <input
-                        type="range"
+                        type="checkbox"
+                        checked={formData.jhiPreferences.hardConstraints.mustRemote}
+                        onChange={(e) => handleJhiConstraintChange('mustRemote', e.target.checked)}
+                      />
+                      {t('profile.jhi.constraints.must_remote')}
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={formData.jhiPreferences.hardConstraints.excludeShift}
+                        onChange={(e) => handleJhiConstraintChange('excludeShift', e.target.checked)}
+                      />
+                      {t('profile.jhi.constraints.exclude_shift')}
+                    </label>
+                    <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={formData.jhiPreferences.hardConstraints.growthRequired}
+                        onChange={(e) => handleJhiConstraintChange('growthRequired', e.target.checked)}
+                      />
+                      {t('profile.jhi.constraints.growth_required')}
+                    </label>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.jhi.constraints.max_commute')}</label>
+                      <input
+                        type="number"
                         min={0}
-                        max={100}
-                        step={5}
-                        value={Math.round(formData.jhiPreferences.pillarWeights[weightKey] * 100)}
-                        onChange={(e) => handleJhiPreferenceWeightChange(weightKey, (Number(e.target.value) || 0) / 100)}
-                        className="w-full jhi-slider"
-                        style={sliderTrackStyle(Math.round(formData.jhiPreferences.pillarWeights[weightKey] * 100))}
+                        value={formData.jhiPreferences.hardConstraints.maxCommuteMinutes ?? ''}
+                        onChange={(e) => handleJhiConstraintChange('maxCommuteMinutes', e.target.value ? Number(e.target.value) : null)}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white disabled:cursor-not-allowed"
                       />
                     </div>
-                  ))}
-                </div>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  {t('profile.jhi.weights_auto_normalized')}
-                </p>
-                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={formData.jhiPreferences.hardConstraints.mustRemote}
-                      onChange={(e) => handleJhiConstraintChange('mustRemote', e.target.checked)}
-                    />
-                    {t('profile.jhi.constraints.must_remote')}
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={formData.jhiPreferences.hardConstraints.excludeShift}
-                      onChange={(e) => handleJhiConstraintChange('excludeShift', e.target.checked)}
-                    />
-                    {t('profile.jhi.constraints.exclude_shift')}
-                  </label>
-                  <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-                    <input
-                      type="checkbox"
-                      checked={formData.jhiPreferences.hardConstraints.growthRequired}
-                      onChange={(e) => handleJhiConstraintChange('growthRequired', e.target.checked)}
-                    />
-                    {t('profile.jhi.constraints.growth_required')}
-                  </label>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.jhi.constraints.max_commute')}</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={formData.jhiPreferences.hardConstraints.maxCommuteMinutes ?? ''}
-                      onChange={(e) => handleJhiConstraintChange('maxCommuteMinutes', e.target.value ? Number(e.target.value) : null)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.jhi.constraints.min_net')}</label>
-                    <input
-                      type="number"
-                      min={0}
-                      value={formData.jhiPreferences.hardConstraints.minNetMonthly ?? ''}
-                      onChange={(e) => handleJhiConstraintChange('minNetMonthly', e.target.value ? Number(e.target.value) : null)}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
-                    />
-                  </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {(['peopleIntensity', 'careerGrowthPreference', 'homeOfficePreference'] as const).map((key) => (
-                    <div key={key}>
-                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
-                        {t(`profile.jhi.work_style.${key}`)}
-                      </label>
-                      <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
-                        {formData.jhiPreferences.workStyle[key]} %
-                      </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.jhi.constraints.min_net')}</label>
                       <input
-                        type="range"
+                        type="number"
                         min={0}
-                        max={100}
-                        step={5}
-                        value={formData.jhiPreferences.workStyle[key]}
-                        onChange={(e) => handleJhiWorkStyleChange(key, Number(e.target.value) || 0)}
-                        className="w-full jhi-slider"
-                        style={sliderTrackStyle(formData.jhiPreferences.workStyle[key])}
+                        value={formData.jhiPreferences.hardConstraints.minNetMonthly ?? ''}
+                        onChange={(e) => handleJhiConstraintChange('minNetMonthly', e.target.value ? Number(e.target.value) : null)}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white disabled:cursor-not-allowed"
                       />
                     </div>
-                  ))}
-                </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                    {(['peopleIntensity', 'careerGrowthPreference', 'homeOfficePreference'] as const).map((key) => (
+                      <div key={key}>
+                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                          {t(`profile.jhi.work_style.${key}`)}
+                        </label>
+                        <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">
+                          {formData.jhiPreferences.workStyle[key]} %
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          step={5}
+                          value={formData.jhiPreferences.workStyle[key]}
+                          onChange={(e) => handleJhiWorkStyleChange(key, Number(e.target.value) || 0)}
+                          className="w-full jhi-slider disabled:cursor-not-allowed"
+                          style={sliderTrackStyle(formData.jhiPreferences.workStyle[key])}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </fieldset>
               </div>
             </div>
 

@@ -12,6 +12,7 @@ import {
 import { UserProfile } from '../types';
 import { redirectToCheckout } from '../services/stripeService';
 import { useTranslation } from 'react-i18next';
+import { getPremiumPriceDisplay } from '../services/premiumPricingService';
 
 interface PremiumFeaturesPreviewProps {
   userProfile: UserProfile;
@@ -22,7 +23,8 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
   userProfile,
   onUpgradeClick
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const price = getPremiumPriceDisplay(i18n.language || 'cs');
   const isPremium = userProfile.subscription?.tier === 'premium';
 
   // If user is not logged in or has no id, show a simpler version
@@ -130,7 +132,10 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
             <div>
               <p className="text-slate-600 dark:text-slate-300 mb-1">{t('premium.price_access_all')}</p>
               <p className="text-3xl font-bold text-slate-900 dark:text-white">
-                {t('premium.price_value')} <span className="text-lg text-slate-500 dark:text-slate-400">/{t('financial.per_month')}</span>
+                {price.eurMonthlyLabel} <span className="text-lg text-slate-500 dark:text-slate-400">/{t('financial.per_month')}</span>
+              </p>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                {`≈ ${price.czkMonthlyLabel} / ${price.plnMonthlyLabel}`}
               </p>
             </div>
 
@@ -277,7 +282,10 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
               {t('premium.price_access_all')}
             </p>
             <p className="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">
-              {t('premium.price_value')} <span className="text-lg text-slate-500 dark:text-slate-400">/{t('financial.per_month')}</span>
+              {price.eurMonthlyLabel} <span className="text-lg text-slate-500 dark:text-slate-400">/{t('financial.per_month')}</span>
+            </p>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+              {`≈ ${price.czkMonthlyLabel} / ${price.plnMonthlyLabel}`}
             </p>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-2">
               {t('premium.cancel_anytime')}

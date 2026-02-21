@@ -17,7 +17,7 @@ const API_URL = BACKEND_URL || import.meta.env.VITE_API_URL || 'http://localhost
 
 /**
  * Initiates a Stripe Checkout session for a specific subscription tier.
- * @param tier 'premium' for personal users (99 CZK/month), 'business' for companies (4990 CZK/month), 'assessment_bundle' (990 CZK), 'single_assessment' (99 CZK)
+ * @param tier 'premium' for personal users (14.99 EUR/month), 'business' for companies (4990 CZK/month), 'assessment_bundle' (990 CZK), 'single_assessment' (99 CZK)
  * @param userId The ID of the user or company to associate with the payment
  */
 export const redirectToCheckout = async (tier: 'premium' | 'basic' | 'business' | 'assessment_bundle' | 'single_assessment', userId: string) => {

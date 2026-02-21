@@ -5,11 +5,11 @@ import { recordRuntimeSignal } from './runtimeSignals';
 
 const CSRF_TOKEN_KEY = 'csrf_token';
 const CSRF_TOKEN_EXPIRY_KEY = 'csrf_token_expiry';
-const BACKEND_NETWORK_COOLDOWN_MS = 60_000;
+const BACKEND_NETWORK_COOLDOWN_MS = 20_000;
 const CSRF_TOKEN_COOLDOWN_MS = 60_000;
 const REQUEST_LOG_THROTTLE_MS = 15_000;
 const DEFAULT_FETCH_TIMEOUT_MS = 45_000;
-const CSRF_FETCH_TIMEOUT_MS = 15_000;
+const CSRF_FETCH_TIMEOUT_MS = 35_000;
 const HYBRID_FETCH_TIMEOUT_MS = 25_000;
 const SUBSCRIPTION_FETCH_TIMEOUT_MS = 35_000;
 const INTERACTION_FETCH_TIMEOUT_MS = 8_000;
@@ -154,7 +154,7 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
                     dedupeKey: '/csrf-token',
                     throttleMs: 15_000
                 });
-                controller.abort();
+                controller.abort('csrf-timeout');
             }, csrfTimeoutMs);
 
             const response = await fetch(csrfTokenUrl, {
@@ -205,18 +205,22 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
 
             if (isConnectivityIssue) {
                 csrfTokenCooldownUntil = Date.now() + CSRF_TOKEN_COOLDOWN_MS;
-                backendNetworkCooldownUntil = Date.now() + BACKEND_NETWORK_COOLDOWN_MS;
+                // CSRF can fail during cold starts; do not block the whole backend on first failed attempt.
+                if (attempt >= maxRetries) {
+                    backendNetworkCooldownUntil = Date.now() + BACKEND_NETWORK_COOLDOWN_MS;
+                }
                 recordRuntimeSignal('csrf_fetch_unavailable', {
                     attempt,
                     aborted: isAborted,
-                    error: String((error as any)?.message || '')
+                    error: isAborted ? 'csrf-timeout' : String((error as any)?.message || '')
                 }, {
                     dedupeKey: isAborted ? 'timeout' : 'network',
                     throttleMs: 15_000
                 });
                 const now = Date.now();
                 if (now - lastCsrfNetworkLogAt > REQUEST_LOG_THROTTLE_MS) {
-                    console.warn(`⚠️ CSRF fetch unavailable (attempt ${attempt}), backend cooldown enabled.`);
+                    const cooldownState = attempt >= maxRetries ? 'backend cooldown enabled' : 'will retry without backend cooldown';
+                    console.warn(`⚠️ CSRF fetch unavailable (attempt ${attempt}), ${cooldownState}.`);
                     lastCsrfNetworkLogAt = now;
                 }
             } else {
@@ -412,7 +416,8 @@ export const authenticatedFetch = async (
     if (
         isBackendUrlRequest(url) &&
         Date.now() < backendNetworkCooldownUntil &&
-        !shouldBypassBackendCooldown(requestPath)
+        !shouldBypassBackendCooldown(requestPath) &&
+        method !== 'GET'
     ) {
         recordRuntimeSignal('request_blocked_by_cooldown', {
             path: requestPath,

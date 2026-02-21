@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { redirectToCheckout } from '../services/stripeService';
+import { getPremiumPriceDisplay } from '../services/premiumPricingService';
 
 interface PremiumUpsellCardProps {
   userId: string;
@@ -16,7 +17,8 @@ interface PremiumUpsellCardProps {
 }
 
 const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ userId, isCompact = false }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const price = getPremiumPriceDisplay(i18n.language || 'cs');
   const handleUpgrade = () => {
     if (!userId) {
       alert(t('alerts.login_required'));
@@ -44,7 +46,7 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ userId, isCompact
           onClick={handleUpgrade}
           className="w-full py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold rounded-lg transition-all hover:shadow-lg text-sm"
         >
-          {t('premium_upsell.compact.cta')}
+          {`${t('premium.upgrade_btn_short')} • ${price.eurMonthlyLabel}/${t('financial.per_month')}`}
         </button>
       </div>
     );
@@ -111,8 +113,11 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ userId, isCompact
 
         <div className="bg-white dark:bg-slate-800 rounded-lg p-4 mb-6 border border-slate-200 dark:border-slate-700">
           <p className="text-center">
-            <span className="text-3xl font-bold text-slate-900 dark:text-white">99 Kč</span>
+            <span className="text-3xl font-bold text-slate-900 dark:text-white">{price.eurMonthlyLabel}</span>
             <span className="text-slate-600 dark:text-slate-400 ml-2">{t('premium_upsell.per_month')}</span>
+          </p>
+          <p className="text-center text-xs text-slate-500 dark:text-slate-400 mt-2">
+            {`≈ ${price.czkMonthlyLabel} / ${price.plnMonthlyLabel}`}
           </p>
           <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-2">
             {t('premium_upsell.cancel_anytime')}

@@ -186,6 +186,23 @@
     "ai_analysis": "AI Analysis",
     "run_ai_analysis": "Run AI Analysis",
     "analyzing": "Analyzing...",
+    "cv_ai_tools_title": "AI CV tools for this role",
+    "cv_ai_tools_desc": "Optimize your CV for this specific listing and improve ATS readability before you apply.",
+    "cv_ai_tools_feature_label": "AI CV optimization + ATS",
+    "cv_ai_tools_optimize": "Optimize CV for this role",
+    "cv_ai_tools_optimizing": "Optimizing CV...",
+    "cv_ai_tools_open_profile": "Open AI CV guide",
+    "cv_ai_tools_upgrade_hint": "Premium unlocks CV optimization, ATS improvements, and AI CV dictation.",
+    "cv_ai_tools_missing_cv": "Add your CV in profile first to run optimization.",
+    "cv_ai_tools_failed": "CV optimization failed. Please try again.",
+    "cv_ai_tools_result_title": "Optimized CV draft",
+    "cv_ai_tools_copy": "Copy text",
+    "cv_ai_tools_copied": "Copied",
+    "cv_ai_tools_improvements_title": "Detected improvements",
+    "cv_ai_tools_save_profile": "Save to profile",
+    "cv_ai_tools_saving": "Saving...",
+    "cv_ai_tools_saved_profile": "Saved to your profile.",
+    "cv_ai_tools_save_failed": "Saving to profile failed. Please try again.",
     "company_legal_title": "Company legal information",
     "company_ico": "Company ID",
     "company_dic": "VAT ID",
@@ -526,6 +543,20 @@
     "skills_importance_2": "They help recommend relevant courses for your growth",
     "skills_importance_3": "They increase your visibility to recruiters",
     "skills_importance_4": "They enable personalized recommendations",
+    "ai_guide_core_badge": "Core Premium feature",
+    "ai_guide_short_desc": "Dictate your story. AI reveals hidden strengths, enriches your profile, and creates a tailored CV.",
+    "ai_guide_start": "Start AI guide",
+    "ai_guide_upgrade_hint": "Unlock AI guide and advanced CV optimization in Premium.",
+    "ai_cv_editor": {
+      "title": "Saved AI CV text",
+      "desc": "You can edit and save AI CV text manually to avoid repeated AI generation.",
+      "load_cv": "Load base CV text",
+      "placeholder": "Paste or edit your AI CV text here...",
+      "count": "{{count}} characters",
+      "save": "Save AI CV text",
+      "saving": "Saving...",
+      "saved": "AI CV text saved."
+    },
     "add_skill": "Add Skill",
     "company": "Company",
     "role": "Position",
@@ -2135,7 +2166,7 @@
     "compact": {
       "title": "Try Premium functionality",
       "desc": "CV templates, AI rewrites and cover letter generation",
-      "cta": "Upgrade for CZK 99/month"
+      "cta": "Upgrade for 14.99 EUR/month (≈ 376 CZK / 65 PLN)"
     },
     "features": {
       "cv_templates_title": "CV Templates",
@@ -2150,12 +2181,15 @@
     "title": "Unlock JobShaman Premium",
     "desc_prefix": "Feature",
     "desc_suffix": "and other AI tools are available only for premium members.",
-    "upgrade_cta": "Upgrade to Premium for CZK 99/month",
+    "upgrade_cta": "Upgrade to Premium for 14.99 EUR/month (≈ 376 CZK / 65 PLN)",
     "maybe_later": "Maybe later",
     "benefits": {
       "unlimited_ai": "Unlimited AI analysis of job listings",
       "cover_letters": "Automatic cover letter generation",
       "cv_optimization": "Smart CV optimization tailored to a role",
+      "ats_optimization": "ATS-focused CV rewrite for each job",
+      "ai_cv_dictation": "AI-guided CV dictation in profile",
+      "jhi_personalization": "Personalized JHI score settings",
       "priority_visibility": "Priority visibility for recruiters"
     }
   },
@@ -2509,5 +2543,8 @@
       "privacy_notice": "JobShaman respects your privacy under GDPR and the ePrivacy Directive",
       "last_update": "Last update: {{date}}"
     }
+  },
+  "premium": {
+    "price_value": "14.99 EUR"
   }
 }

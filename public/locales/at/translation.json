@@ -186,6 +186,23 @@
     "ai_analysis": "KI-Analyse",
     "run_ai_analysis": "KI-Analyse starten",
     "analyzing": "Analysiere...",
+    "cv_ai_tools_title": "KI-CV-Tools für diese Stelle",
+    "cv_ai_tools_desc": "Optimieren Sie Ihren Lebenslauf für diese konkrete Anzeige und verbessern Sie die ATS-Lesbarkeit vor der Bewerbung.",
+    "cv_ai_tools_feature_label": "KI-CV-Optimierung + ATS",
+    "cv_ai_tools_optimize": "Lebenslauf für diese Stelle optimieren",
+    "cv_ai_tools_optimizing": "Lebenslauf wird optimiert...",
+    "cv_ai_tools_open_profile": "KI-CV-Assistent öffnen",
+    "cv_ai_tools_upgrade_hint": "Premium schaltet CV-Optimierung, ATS-Verbesserungen und KI-CV-Diktat frei.",
+    "cv_ai_tools_missing_cv": "Fügen Sie zuerst Ihren Lebenslauf im Profil hinzu.",
+    "cv_ai_tools_failed": "CV-Optimierung fehlgeschlagen. Bitte versuchen Sie es erneut.",
+    "cv_ai_tools_result_title": "Optimierter CV-Entwurf",
+    "cv_ai_tools_copy": "Text kopieren",
+    "cv_ai_tools_copied": "Kopiert",
+    "cv_ai_tools_improvements_title": "Erkannte Verbesserungen",
+    "cv_ai_tools_save_profile": "Im Profil speichern",
+    "cv_ai_tools_saving": "Speichere...",
+    "cv_ai_tools_saved_profile": "Im Profil gespeichert.",
+    "cv_ai_tools_save_failed": "Speichern im Profil fehlgeschlagen. Bitte erneut versuchen.",
     "company_legal_title": "Rechtliche Informationen zum Unternehmen",
     "company_ico": "Unternehmens-ID",
     "company_dic": "USt-IdNr.",
@@ -526,6 +543,20 @@
     "skills_importance_2": "Sie helfen, passende Kurse für Ihre Entwicklung zu empfehlen",
     "skills_importance_3": "Sie erhöhen Ihre Sichtbarkeit für Recruiter",
     "skills_importance_4": "Sie ermöglichen personalisierte Empfehlungen",
+    "ai_guide_core_badge": "Kernfunktion von Premium",
+    "ai_guide_short_desc": "Diktieren Sie Ihre Geschichte. KI erkennt verborgene Stärken, ergänzt Ihr Profil und erstellt einen passenden CV.",
+    "ai_guide_start": "Assistent starten",
+    "ai_guide_upgrade_hint": "Schalten Sie KI-Assistent und fortgeschrittene CV-Optimierung mit Premium frei.",
+    "ai_cv_editor": {
+      "title": "Gespeicherter KI-CV-Text",
+      "desc": "Sie können den gespeicherten KI-CV-Text manuell bearbeiten und speichern, um wiederholte KI-Aufrufe zu vermeiden.",
+      "load_cv": "Basis-CV-Text laden",
+      "placeholder": "Fügen Sie hier Ihren KI-CV-Text ein oder bearbeiten Sie ihn...",
+      "count": "{{count}} Zeichen",
+      "save": "KI-CV-Text speichern",
+      "saving": "Speichere...",
+      "saved": "KI-CV-Text wurde gespeichert."
+    },
     "add_skill": "Fähigkeit hinzufügen",
     "company": "Unternehmen",
     "role": "Position",
@@ -2117,7 +2148,7 @@
     "compact": {
       "title": "Premium-Funktionen testen",
       "desc": "CV-Vorlagen, KI-Umschreiben und Anschreiben-Generierung",
-      "cta": "Upgrade für 99 CZK/Monat"
+      "cta": "Upgrade für 14.99 EUR/Monat (≈ 376 CZK / 65 PLN)"
     },
     "features": {
       "cv_templates_title": "CV-Vorlagen",
@@ -2132,12 +2163,15 @@
     "title": "JobShaman Premium freischalten",
     "desc_prefix": "Die Funktion",
     "desc_suffix": "und weitere KI-Tools sind nur für Premium-Mitglieder verfügbar.",
-    "upgrade_cta": "Auf Premium upgraden für 99 CZK/Monat",
+    "upgrade_cta": "Auf Premium upgraden für 14.99 EUR/Monat (≈ 376 CZK / 65 PLN)",
     "maybe_later": "Vielleicht später",
     "benefits": {
       "unlimited_ai": "Unbegrenzte KI-Analyse von Stellenanzeigen",
       "cover_letters": "Automatische Erstellung von Anschreiben",
       "cv_optimization": "Intelligente CV-Optimierung passend zur Position",
+      "ats_optimization": "ATS-orientiertes CV-Rewriting pro Stelle",
+      "ai_cv_dictation": "KI-gestütztes CV-Diktat im Profil",
+      "jhi_personalization": "Personalisierte JHI-Score-Einstellungen",
       "priority_visibility": "Priorisierte Sichtbarkeit für Recruiter"
     }
   },
@@ -2491,5 +2525,8 @@
       "privacy_notice": "JobShaman respektiert Ihre Privatsphäre gemäß DSGVO und ePrivacy-Richtlinie",
       "last_update": "Letzte Aktualisierung: {{date}}"
     }
+  },
+  "premium": {
+    "price_value": "14.99 EUR"
   }
 }
