@@ -1016,7 +1016,7 @@ async def update_subscription(
             update_data["current_period_end"] = end_dt.isoformat()
             update_data["status"] = "trialing"
             if "tier" not in update_data:
-                update_data["tier"] = "business"
+                update_data["tier"] = "trial"
 
         if payload.status == "canceled":
             update_data["canceled_at"] = now_iso()

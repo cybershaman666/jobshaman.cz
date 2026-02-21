@@ -3,6 +3,10 @@ import { Job, Candidate, BenefitInsight, CompanyProfile, UserProfile } from './t
 
 // Backend API Configuration
 export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://jobshaman-cz.onrender.com';
+export const BILLING_BACKEND_URL =
+  import.meta.env.VITE_BILLING_BACKEND_URL ||
+  import.meta.env.VITE_STRIPE_BACKEND_URL ||
+  'https://site--jobshaman--rb4dlj74d5kc.code.run';
 export const SEARCH_BACKEND_URL =
   import.meta.env.VITE_SEARCH_API_URL ||
   import.meta.env.VITE_SEARCH_BACKEND_URL ||

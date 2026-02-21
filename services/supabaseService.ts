@@ -1168,7 +1168,7 @@ export const updateSubscriptionStatus = async (companyId: string, status: string
 export const initializeCompanySubscription = async (companyId: string): Promise<any> => {
     if (!supabase) return;
 
-    // Create TRIAL subscription record (Business features for 14 days)
+    // Create TRIAL subscription record (free-trial limits for 14 days)
     const trialEndDate = new Date();
     trialEndDate.setDate(trialEndDate.getDate() + 14);
 
@@ -1223,7 +1223,7 @@ export const initializeCompanySubscription = async (companyId: string): Promise<
             console.log('✅ Linked subscription to company');
         }
 
-        console.log(`✅ Activated 14-day BUSINESS trial for company ${companyId}`);
+        console.log(`✅ Activated 14-day trial for company ${companyId}`);
         return data as any;
     }
 

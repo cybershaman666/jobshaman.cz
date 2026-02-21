@@ -60,7 +60,7 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                     </h3>
 
                     <div className="grid grid-cols-1 gap-4">
-                        {/* Option 1: Basic Plan (Free) */}
+                        {/* Option 1: Free Trial */}
                         <div className="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-cyan-500 dark:hover:border-cyan-500 transition-all cursor-pointer group relative overflow-hidden">
                             <div className="flex justify-between items-center mb-2">
                                 <div className="flex items-center gap-2">
@@ -68,68 +68,62 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                         <Briefcase size={20} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white">{t('plan_upgrade_modal.basic.title')}</h4>
-                                        <p className="text-xs text-slate-500">{t('plan_upgrade_modal.basic.subtitle')}</p>
+                                        <h4 className="font-bold text-slate-900 dark:text-white">{t('plan_upgrade_modal.trial.title', { defaultValue: 'Free (Trial)' })}</h4>
+                                        <p className="text-xs text-slate-500">{t('plan_upgrade_modal.trial.subtitle', { defaultValue: 'For small local companies to try' })}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="font-black text-green-600 dark:text-green-400 text-xl">{t('plan_upgrade_modal.basic.price')}</div>
-                                    <div className="text-[10px] text-slate-400">{t('plan_upgrade_modal.basic.price_suffix')}</div>
+                                    <div className="font-black text-green-600 dark:text-green-400 text-xl">0 €</div>
+                                    <div className="text-[10px] text-slate-400">{t('plan_upgrade_modal.trial.price_suffix', { defaultValue: '/ month' })}</div>
                                 </div>
                             </div>
                             <ul className="grid grid-cols-2 gap-2 mb-4">
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-green-500" /> {t('plan_upgrade_modal.basic.feature_1')}</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-green-500" /> {t('plan_upgrade_modal.basic.feature_2')}</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-3 inline-block"></span> {t('plan_upgrade_modal.basic.feature_3')}</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-3 inline-block"></span> {t('plan_upgrade_modal.basic.feature_4')}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-green-500" /> {t('plan_upgrade_modal.trial.feature_1', { defaultValue: '1 active job posting' })}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-3 inline-block"></span> {t('plan_upgrade_modal.trial.feature_2', { defaultValue: 'No AI assessments' })}</li>
                             </ul>
                             <button
                                 onClick={onClose}
                                 className="w-full py-2 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition-colors shadow-sm"
                             >
-                                {t('plan_upgrade_modal.basic.cta')}
+                                {t('plan_upgrade_modal.trial.cta', { defaultValue: 'Continue with trial' })}
                             </button>
                         </div>
 
-                        {/* Option 2: Business Plan */}
+                        {/* Option 2: Basic Plan */}
                         <div className="p-4 rounded-xl border-2 border-cyan-500 bg-cyan-50/10 relative">
-                            <div className="absolute -top-3 right-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">{t('plan_upgrade_modal.business.recommended_badge')}</div>
+                            <div className="absolute -top-3 right-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">{t('plan_upgrade_modal.basic.recommended_badge', { defaultValue: 'Popular' })}</div>
                             <div className="flex justify-between items-center mb-2">
                                 <div className="flex items-center gap-2">
                                     <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-lg">
                                         <Crown size={20} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white">{t('plan_upgrade_modal.business.title')}</h4>
-                                        <p className="text-xs text-slate-500">{t('plan_upgrade_modal.business.subtitle')}</p>
+                                        <h4 className="font-bold text-slate-900 dark:text-white">{t('plan_upgrade_modal.basic_plus.title', { defaultValue: 'Basic plan' })}</h4>
+                                        <p className="text-xs text-slate-500">{t('plan_upgrade_modal.basic_plus.subtitle', { defaultValue: 'For startups and small agencies' })}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="font-black text-cyan-600 dark:text-cyan-400 text-xl">4 990 Kč</div>
-                                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{t('plan_upgrade_modal.business.price_suffix')}</div>
-                                    <div className="text-[9px] text-slate-400 line-through">{t('plan_upgrade_modal.business.price_regular')}</div>
+                                    <div className="font-black text-cyan-600 dark:text-cyan-400 text-xl">399 €</div>
+                                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{t('plan_upgrade_modal.basic_plus.price_suffix', { defaultValue: '/ month' })}</div>
                                 </div>
                             </div>
                             <ul className="grid grid-cols-2 gap-2 mb-4">
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.business.feature_1')}</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.business.feature_2')}</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.business.feature_3')}</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.business.feature_4')}</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.business.feature_5')}</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.business.feature_6')}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.basic_plus.feature_1', { defaultValue: '5 active job postings' })}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.basic_plus.feature_2', { defaultValue: '5 AI assessments' })}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.basic_plus.feature_3', { defaultValue: 'Basic matching' })}</li>
                             </ul>
                             <button
                                 onClick={() => {
                                     if (companyProfile?.id) {
                                         AnalyticsService.trackUpgradeTrigger({
                                             companyId: companyProfile.id,
-                                            feature: 'BUSINESS_COMPANY_PLAN',
+                                            feature: 'BASIC_COMPANY_PLAN',
                                             currentTier: companyProfile.subscription?.tier || 'basic',
-                                            reason: 'User clicked business company plan'
+                                            reason: 'User clicked basic company plan'
                                         });
 
-                                        ABTestService.trackConversion('pricing_display_test', 'business_clicked', 4990);
-                                        redirectToCheckout('business', companyProfile.id);
+                                        ABTestService.trackConversion('pricing_display_test', 'basic_clicked', 399);
+                                        redirectToCheckout('basic', companyProfile.id);
                                     } else {
                                         console.error('❌ Company ID missing in profile!');
                                         alert(t('alerts.company_id_load_failed'));
@@ -137,11 +131,57 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                 }}
                                 className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition-colors shadow-lg shadow-cyan-900/20"
                             >
-                                {t('plan_upgrade_modal.business.cta')}
+                                {t('plan_upgrade_modal.basic_plus.cta', { defaultValue: 'Activate Basic' })}
                             </button>
                         </div>
 
-                        {/* Option 3: Assessment Add-ons */}
+                        {/* Option 3: Professional Plan */}
+                        <div className="p-4 rounded-xl border-2 border-purple-500 bg-purple-50/10 relative">
+                            <div className="absolute -top-3 right-4 bg-gradient-to-r from-purple-600 to-fuchsia-600 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">{t('plan_upgrade_modal.professional.recommended_badge', { defaultValue: 'Best value' })}</div>
+                            <div className="flex justify-between items-center mb-2">
+                                <div className="flex items-center gap-2">
+                                    <div className="p-2 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded-lg">
+                                        <Crown size={20} />
+                                    </div>
+                                    <div>
+                                        <h4 className="font-bold text-slate-900 dark:text-white">{t('plan_upgrade_modal.professional.title', { defaultValue: 'Professional plan' })}</h4>
+                                        <p className="text-xs text-slate-500">{t('plan_upgrade_modal.professional.subtitle', { defaultValue: 'For SMEs and active recruiters' })}</p>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <div className="font-black text-purple-600 dark:text-purple-400 text-xl">999 €</div>
+                                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{t('plan_upgrade_modal.professional.price_suffix', { defaultValue: '/ month' })}</div>
+                                </div>
+                            </div>
+                            <ul className="grid grid-cols-2 gap-2 mb-4">
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-purple-500" /> {t('plan_upgrade_modal.professional.feature_1', { defaultValue: '20 active job postings' })}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-purple-500" /> {t('plan_upgrade_modal.professional.feature_2', { defaultValue: '50 AI assessments' })}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-purple-500" /> {t('plan_upgrade_modal.professional.feature_3', { defaultValue: 'JHI insights' })}</li>
+                            </ul>
+                            <button
+                                onClick={() => {
+                                    if (companyProfile?.id) {
+                                        AnalyticsService.trackUpgradeTrigger({
+                                            companyId: companyProfile.id,
+                                            feature: 'PROFESSIONAL_COMPANY_PLAN',
+                                            currentTier: companyProfile.subscription?.tier || 'basic',
+                                            reason: 'User clicked professional company plan'
+                                        });
+
+                                        ABTestService.trackConversion('pricing_display_test', 'professional_clicked', 999);
+                                        redirectToCheckout('professional', companyProfile.id);
+                                    } else {
+                                        console.error('❌ Company ID missing in profile!');
+                                        alert(t('alerts.company_id_load_failed'));
+                                    }
+                                }}
+                                className="w-full py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition-colors shadow-lg shadow-purple-900/20"
+                            >
+                                {t('plan_upgrade_modal.professional.cta', { defaultValue: 'Activate Professional' })}
+                            </button>
+                        </div>
+
+                        {/* Option 4: Assessment Add-ons */}
                         <div className="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-cyan-500 dark:hover:border-cyan-500 transition-all cursor-pointer group relative overflow-hidden">
                             <div className="flex justify-between items-center mb-2">
                                 <div className="flex items-center gap-2">
@@ -230,7 +270,7 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                             </div>
                         </div>
 
-                        {/* Option 4: Enterprise Plan */}
+                        {/* Option 5: Enterprise Plan */}
                         <div className="p-4 rounded-xl border-2 border-slate-200 dark:border-slate-800 hover:border-amber-500 dark:hover:border-amber-500 transition-all cursor-pointer group relative overflow-hidden">
                             <div className="flex justify-between items-center mb-2">
                                 <div className="flex items-center gap-2">

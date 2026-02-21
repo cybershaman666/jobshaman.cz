@@ -4,7 +4,7 @@
  */
 
 import { authenticatedFetch, isBackendNetworkCooldownActive } from './csrfService';
-import { BACKEND_URL } from '../constants';
+import { BILLING_BACKEND_URL } from '../constants';
 
 export interface ServerSideBillingCheck {
   userId: string;
@@ -80,7 +80,7 @@ export async function verifyServerSideBilling(
   check: ServerSideBillingCheck
 ): Promise<BillingVerificationResult> {
   try {
-    const response = await authenticatedFetch(`${BACKEND_URL}/verify-billing`, {
+    const response = await authenticatedFetch(`${BILLING_BACKEND_URL}/verify-billing`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -148,15 +148,15 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
     // MOCK DATA INTERCEPTION
     if (userId === 'mock_company_id') {
       const mockResult: SubscriptionStatus = {
-        tier: 'business', // Default to business for testing
-        tierName: 'Business Plan (Mock)',
+        tier: 'professional',
+        tierName: 'Professional Plan (Mock)',
         status: 'active',
         daysUntilRenewal: 30,
         currentPeriodStart: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        assessmentsAvailable: 10,
+        assessmentsAvailable: 50,
         assessmentsUsed: 2,
-        jobPostingsAvailable: 999
+        jobPostingsAvailable: 20
       };
       writeCachedSubscriptionStatus(userId, mockResult);
       return mockResult;
@@ -167,7 +167,7 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const response = await authenticatedFetch(`${BACKEND_URL}/subscription-status?userId=${userId}`, {
+        const response = await authenticatedFetch(`${BILLING_BACKEND_URL}/subscription-status?userId=${userId}`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json'

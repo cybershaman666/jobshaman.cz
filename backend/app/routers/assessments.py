@@ -39,7 +39,7 @@ async def create_assessment_invitation(invitation_req: AssessmentInvitationReque
         raise HTTPException(status_code=403, detail="Active subscription required")
     
     tier = tier_check.data[0].get("tier")
-    if tier not in ["business", "assessment_bundle"]:
+    if tier not in ["basic", "professional", "assessment_bundle", "enterprise"]:
         raise HTTPException(status_code=403, detail="Tier not allowed to send invitations")
 
     invitation_token = generate_invitation_token()

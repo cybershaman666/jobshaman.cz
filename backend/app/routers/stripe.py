@@ -1,7 +1,15 @@
 import os
 import stripe
 from fastapi import APIRouter, Request, Depends, HTTPException
-from ..core.config import STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_PREMIUM, STRIPE_PRICE_BUSINESS, STRIPE_PRICE_ASSESSMENT_BUNDLE, STRIPE_PRICE_SINGLE_ASSESSMENT
+from ..core.config import (
+    STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET,
+    STRIPE_PRICE_PREMIUM,
+    STRIPE_PRICE_BASIC,
+    STRIPE_PRICE_PROFESSIONAL,
+    STRIPE_PRICE_ASSESSMENT_BUNDLE,
+    STRIPE_PRICE_SINGLE_ASSESSMENT,
+)
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_csrf_token_header
 from ..models.requests import CheckoutRequest
@@ -33,8 +41,8 @@ async def create_checkout_session(req: CheckoutRequest, request: Request, user: 
 
         tier_mapping = {
             "premium": "premium",
-            "basic": "premium",
-            "business": "business",
+            "basic": "basic",
+            "professional": "professional",
             "assessment_bundle": "assessment_bundle",
             "single_assessment": "single_assessment",
         }
@@ -45,7 +53,8 @@ async def create_checkout_session(req: CheckoutRequest, request: Request, user: 
 
         prices = {
             "premium": STRIPE_PRICE_PREMIUM,
-            "business": STRIPE_PRICE_BUSINESS,
+            "basic": STRIPE_PRICE_BASIC,
+            "professional": STRIPE_PRICE_PROFESSIONAL,
             "assessment_bundle": STRIPE_PRICE_ASSESSMENT_BUNDLE,
             "single_assessment": STRIPE_PRICE_SINGLE_ASSESSMENT,
         }
@@ -53,7 +62,7 @@ async def create_checkout_session(req: CheckoutRequest, request: Request, user: 
         price_id = prices.get(backend_tier)
         if not price_id:
             raise HTTPException(status_code=500, detail=f"Stripe price not configured for tier: {backend_tier}")
-        mode = "subscription" if backend_tier in ["premium", "business"] else "payment"
+        mode = "subscription" if backend_tier in ["premium", "basic", "professional"] else "payment"
 
         checkout_session = stripe.checkout.Session.create(
             line_items=[{"price": price_id, "quantity": 1}],
@@ -95,7 +104,7 @@ async def stripe_webhook(request: Request):
             raise HTTPException(status_code=400, detail="Invalid metadata")
 
         if supabase:
-            if tier in ["premium", "basic"]:
+            if tier == "premium":
                 # Logic for candidates
                 data = {
                     "user_id": user_id,
@@ -106,10 +115,10 @@ async def stripe_webhook(request: Request):
                 }
                 supabase.table("subscriptions").upsert(data, on_conflict="user_id").execute()
             
-            elif tier == "business":
+            elif tier in ["basic", "professional"]:
                 data = {
                     "company_id": user_id,
-                    "tier": "business",
+                    "tier": tier,
                     "status": "active",
                     "stripe_subscription_id": session.get("subscription"),
                     "updated_at": now_iso(),

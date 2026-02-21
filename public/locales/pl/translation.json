@@ -892,7 +892,7 @@
       "active": "Aktywni",
       "inactive": "Nieaktywni",
       "tiers": {
-        "business": "Business",
+        "business": "Professional",
         "basic": "Podstawowy",
         "free": "Bezpłatny"
       }
@@ -1082,9 +1082,9 @@
       "output_saved_hours": "Zaoszczędzone godziny rocznie",
       "output_saved_czk": "Zaoszczędzony koszt rocznie",
       "output_portal_savings_promo": "Oszczędność vs portal (cena promocyjna)",
-      "output_portal_savings_promo_note": "JobShaman 4 990 CZK / miesiąc, nielimitowane ogłoszenia",
+      "output_portal_savings_promo_note": "JobShaman 399 €/miesiąc, nielimitowane ogłoszenia",
       "output_portal_savings_standard": "Oszczędność vs portal (cena standardowa)",
-      "output_portal_savings_standard_note": "JobShaman 9 990 CZK / miesiąc, nielimitowane ogłoszenia",
+      "output_portal_savings_standard_note": "JobShaman 999 €/miesiąc, nielimitowane ogłoszenia",
       "badge_best": "Najlepsza opcja",
       "unit_hires": "zatrudnienia",
       "unit_hours": "h",
@@ -1693,8 +1693,8 @@
     "free": "Free",
     "premium": "Premium",
     "basic": "Basic",
-    "business": "Business",
-    "trial": "Business (Trial)",
+    "business": "Professional",
+    "trial": "Free (Trial)",
     "enterprise": "Enterprise",
     "assessment_bundle": "Bundle",
     "single_assessment": "Single Assessment"
@@ -1705,8 +1705,8 @@
     "plan": "Plan",
     "tiers": {
       "enterprise": "Enterprise",
-      "business": "Business",
-      "trial": "Business (Trial)",
+      "business": "Professional",
+      "trial": "Free (Trial)",
       "assessment_bundle": "Assessment Bundle",
       "basic": "Basic"
     },
@@ -2218,7 +2218,7 @@
       "title": "Plan Business",
       "subtitle": "Dla rosnących firm",
       "price_suffix": "/ miesiąc (promocja)",
-      "price_regular": "normalnie 9 990 CZK",
+      "price_regular": "normalnie 999 €",
       "feature_1": "Nielimitowane ogłoszenia",
       "feature_2": "Optymalizacja AI",
       "feature_3": "10 assessmentów / miesiąc",
@@ -2296,7 +2296,7 @@
       "plan_contents_q": "Co zawierają plany?",
       "plan_free": "Darmowy: ograniczony dostęp do ofert, podstawowe funkcje",
       "plan_basic": "Podstawowy: 20 assessmentów/mies., 50 ofert/mies.",
-      "plan_business": "Business: nielimitowane assessmenty, nielimitowane oferty, priorytetowe wsparcie",
+      "plan_business": "Professional: nielimitowane assessmenty, nielimitowane oferty, priorytetowe wsparcie",
       "plan_bundle": "Pakiet assessmentów: 50 jednorazowych assessmentów ważnych 12 miesięcy",
       "rollover_q": "Czy niewykorzystane kredyty przechodzą?",
       "rollover_a": "Nie. Miesięczne kredyty resetują się w dniu odnowienia. Zakupy pakietów są ważne 12 miesięcy od zakupu.",

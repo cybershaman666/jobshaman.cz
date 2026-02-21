@@ -39,8 +39,8 @@ class ABTestService {
                             showMonthly: true,
                             showAnnual: false,
                             highlightAnnual: false,
-                            ctaText: 'Aktivovat Business',
-                            priceDisplay: '4 990 Kč/měsíc'
+                            ctaText: 'Aktivovat Professional',
+                            priceDisplay: '999 €/měsíc'
                         },
                         weight: 50
                     },
@@ -52,8 +52,8 @@ class ABTestService {
                             showAnnual: true,
                             highlightAnnual: true,
                             ctaText: 'Ušetřete 10% - Roční plán',
-                            priceDisplay: '53 908 Kč/rok (4 990 Kč/měsíc)',
-                            originalPrice: '4 990 Kč/měsíc'
+                            priceDisplay: '10 789 €/rok (999 €/měsíc)',
+                            originalPrice: '999 €/měsíc'
                         },
                         weight: 30
                     },
@@ -65,7 +65,7 @@ class ABTestService {
                             showAnnual: false,
                             highlightAnnual: false,
                             ctaText: 'Zrychlete nábor o 40%',
-                            priceDisplay: 'Investice: 4 990 Kč/měsíc',
+                            priceDisplay: 'Investice: 999 €/měsíc',
                             valueProps: ['Neomezené inzeráty', 'AI Assessmenty', 'Rychlejší nábor']
                         },
                         weight: 20
