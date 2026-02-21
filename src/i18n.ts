@@ -16,8 +16,12 @@ i18n
     // for all options read: https://www.i18next.com/overview/configuration-options
     .init({
         fallbackLng: {
-            at: ['de'],
-            default: ['en']
+            at: ['de', 'en', 'cs'],
+            de: ['en', 'cs'],
+            pl: ['en', 'cs'],
+            sk: ['cs', 'en'],
+            cs: ['en'],
+            default: ['en', 'cs']
         },
         debug: false,
 
