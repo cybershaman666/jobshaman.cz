@@ -12,7 +12,7 @@ const DEFAULT_FETCH_TIMEOUT_MS = 45_000;
 const CSRF_FETCH_TIMEOUT_MS = 35_000;
 const HYBRID_FETCH_TIMEOUT_MS = 25_000;
 const SUBSCRIPTION_FETCH_TIMEOUT_MS = 35_000;
-const INTERACTION_FETCH_TIMEOUT_MS = 8_000;
+const INTERACTION_FETCH_TIMEOUT_MS = 20_000;
 const AI_FETCH_TIMEOUT_MS = 90_000;
 
 let backendNetworkCooldownUntil = 0;
@@ -505,7 +505,9 @@ export const authenticatedFetch = async (
                     signal: controller.signal
                 });
             } catch (error) {
-                const shouldTriggerCooldown = (isLikelyNetworkError(error) || (isAbortError(error) && !abortedByCaller)) && isBackendUrlRequest(url);
+                const shouldTriggerCooldown = (isLikelyNetworkError(error) || (isAbortError(error) && !abortedByCaller))
+                    && isBackendUrlRequest(url)
+                    && !shouldBypassBackendCooldown(requestPath);
                 if (shouldTriggerCooldown) {
                     const cooldownWasActive = Date.now() < backendNetworkCooldownUntil;
                     backendNetworkCooldownUntil = Date.now() + BACKEND_NETWORK_COOLDOWN_MS;
