@@ -1,5 +1,5 @@
 // CSRF Token Management Service
-import { BACKEND_URL } from '../constants';
+import { BACKEND_URL, BILLING_BACKEND_URL } from '../constants';
 import { supabase } from './supabaseClient';
 import { recordRuntimeSignal } from './runtimeSignals';
 
@@ -17,7 +17,7 @@ const AI_FETCH_TIMEOUT_MS = 90_000;
 
 let backendNetworkCooldownUntil = 0;
 let csrfTokenCooldownUntil = 0;
-let csrfFetchInFlight: Promise<string | null> | null = null;
+const csrfFetchInFlight = new Map<string, Promise<string | null>>();
 let lastCsrfNetworkLogAt = 0;
 let lastRequestTimeoutLogAt = 0;
 let lastMissingCsrfLogAt = 0;
@@ -53,14 +53,28 @@ const resolveRequestTimeoutMs = (url: string): number => {
     return DEFAULT_FETCH_TIMEOUT_MS;
 };
 
-const isBackendUrlRequest = (url: string): boolean => {
+const getRequestOrigin = (url: string): string | null => {
     try {
         const parsed = new URL(url, window.location.origin);
-        const backend = new URL(BACKEND_URL, window.location.origin);
-        return parsed.origin === backend.origin;
+        return parsed.origin;
     } catch {
-        return false;
+        return null;
     }
+};
+
+const isBackendUrlRequest = (url: string): boolean => {
+    const requestOrigin = getRequestOrigin(url);
+    if (!requestOrigin) return false;
+    const backendOrigins = [BACKEND_URL, BILLING_BACKEND_URL]
+        .map((value) => {
+            try {
+                return new URL(value, window.location.origin).origin;
+            } catch {
+                return null;
+            }
+        })
+        .filter((value): value is string => Boolean(value));
+    return backendOrigins.includes(requestOrigin);
 };
 
 const shouldBypassBackendCooldown = (path: string): boolean => {
@@ -109,15 +123,16 @@ const endpointDoesNotRequireCsrf = (url: string): boolean => {
  * Generate and fetch a new CSRF token from the backend
  * Must be called after successful authentication
  */
-export const fetchCsrfToken = async (authToken: string): Promise<string | null> => {
-    if (csrfFetchInFlight) {
-        return csrfFetchInFlight;
+export const fetchCsrfToken = async (authToken: string, backendBaseUrl: string = BACKEND_URL): Promise<string | null> => {
+    const csrfFetchKey = backendBaseUrl || BACKEND_URL;
+    if (csrfFetchInFlight.has(csrfFetchKey)) {
+        return csrfFetchInFlight.get(csrfFetchKey)!;
     }
     if (Date.now() < csrfTokenCooldownUntil || Date.now() < backendNetworkCooldownUntil) {
         return null;
     }
 
-    csrfFetchInFlight = (async () => {
+    const run = (async () => {
     // Validate authToken before attempting to fetch
     if (!authToken || typeof authToken !== 'string' || authToken.length === 0) {
         console.warn('⚠️ Invalid auth token provided to fetchCsrfToken - cannot fetch CSRF token');
@@ -131,7 +146,7 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
 
     const maxRetries = 2;
     let lastError: any = null;
-    const csrfTokenUrl = `${BACKEND_URL}/csrf-token`;
+    const csrfTokenUrl = `${backendBaseUrl}/csrf-token`;
     const csrfTimeoutMs = resolveRequestTimeoutMs(csrfTokenUrl);
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -243,11 +258,12 @@ export const fetchCsrfToken = async (authToken: string): Promise<string | null> 
     }
     return null;
     })();
+    csrfFetchInFlight.set(csrfFetchKey, run);
 
     try {
-        return await csrfFetchInFlight;
+        return await run;
     } finally {
-        csrfFetchInFlight = null;
+        csrfFetchInFlight.delete(csrfFetchKey);
     }
 };
 
@@ -454,7 +470,11 @@ export const authenticatedFetch = async (
         if (requiresCsrf) {
             let csrfToken = forceFreshCsrf ? null : getCsrfToken();
             if (!csrfToken && resolvedAuthToken) {
-                csrfToken = await fetchCsrfToken(resolvedAuthToken);
+                const requestOrigin = getRequestOrigin(url);
+                csrfToken = await fetchCsrfToken(
+                    resolvedAuthToken,
+                    requestOrigin || BACKEND_URL
+                );
             }
 
             if (csrfToken) {

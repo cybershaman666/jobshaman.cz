@@ -12,7 +12,8 @@ interface AdminDashboardProps {
 const TIERS = [
   'free',
   'premium',
-  'business',
+  'basic',
+  'professional',
   'trial',
   'enterprise',
   'assessment_bundle',
@@ -69,7 +70,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const [createForm, setCreateForm] = useState({
     target_type: 'company',
     target_id: '',
-    tier: 'business',
+    tier: 'professional',
     status: 'active',
     set_trial_days: '14'
   });
@@ -327,7 +328,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
         await updateAdminSubscription({
           subscription_id: sub.id,
           set_trial_days: 14,
-          tier: 'business'
+          tier: 'trial'
         });
       } else if (action === 'activate') {
         await updateAdminSubscription({

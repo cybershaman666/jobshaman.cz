@@ -45,34 +45,39 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
 
   const plans: PricingPlan[] = [
     {
-      name: t('company_landing.pricing.plans.basic.name'),
-      price: t('company_landing.pricing.always_free'),
+      name: t('company_landing.pricing.plans.trial.name', { defaultValue: 'Free (Trial)' }),
+      price: '0 €',
       period: '',
-      description: t('company_landing.pricing.plans.basic.desc'),
+      description: t('company_landing.pricing.plans.trial.desc', { defaultValue: 'For small local companies to try' }),
       features: [
-        t('company_landing.pricing.plans.basic.f1'),
-        t('company_landing.pricing.plans.basic.f2'),
-        t('company_landing.pricing.plans.basic.f3'),
-        t('company_landing.pricing.plans.basic.f4'),
-        t('company_landing.pricing.plans.basic.f5')
+        t('company_landing.pricing.plans.trial.f1', { defaultValue: '1 active job posting' }),
+        t('company_landing.pricing.plans.trial.f2', { defaultValue: 'No AI assessment' })
       ],
       highlighted: false
     },
     {
-      name: t('company_landing.pricing.plans.business.name'),
-      price: '4 990 Kč',
-      originalPrice: '9 990 Kč',
+      name: t('company_landing.pricing.plans.basic.name'),
+      price: '399 €',
       period: t('company_landing.pricing.period'),
-      description: t('company_landing.pricing.plans.business.desc'),
+      description: t('company_landing.pricing.plans.basic_v2.desc', { defaultValue: 'For startups and smaller agencies' }),
       features: [
-        t('company_landing.pricing.plans.business.f1'),
-        t('company_landing.pricing.plans.business.f2'),
-        t('company_landing.pricing.plans.business.f3'),
-        t('company_landing.pricing.plans.business.f4'),
-        t('company_landing.pricing.plans.business.f5')
+        t('company_landing.pricing.plans.basic_v2.f1', { defaultValue: '5 active job postings' }),
+        t('company_landing.pricing.plans.basic_v2.f2', { defaultValue: '5 AI assessments' }),
+        t('company_landing.pricing.plans.basic_v2.f3', { defaultValue: 'Basic matching' })
       ],
-      highlighted: true,
-      isPromotional: true
+      highlighted: false
+    },
+    {
+      name: t('company_landing.pricing.plans.professional.name', { defaultValue: 'Professional' }),
+      price: '999 €',
+      period: t('company_landing.pricing.period'),
+      description: t('company_landing.pricing.plans.professional.desc', { defaultValue: 'For SMEs and active recruiters' }),
+      features: [
+        t('company_landing.pricing.plans.professional.f1', { defaultValue: '20 active job postings' }),
+        t('company_landing.pricing.plans.professional.f2', { defaultValue: '50 AI assessments' }),
+        t('company_landing.pricing.plans.professional.f3', { defaultValue: 'JHI Insights' })
+      ],
+      highlighted: true
     },
     {
       name: t('company_landing.pricing.plans.enterprise.name'),
@@ -186,10 +191,11 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
   const savedCzkPerYear = savedHoursPerYear * hrHourlyCostCzk;
   const daysPerMonth = 30;
   const portalMonthlyCostCzk = adsPerMonth * portalDailyCostCzk * daysPerMonth;
-  const jobshamanPromoMonthly = 4990;
-  const jobshamanStandardMonthly = 9990;
-  const jobshamanPromoSavings = Math.max(0, portalMonthlyCostCzk - jobshamanPromoMonthly);
-  const jobshamanStandardSavings = Math.max(0, portalMonthlyCostCzk - jobshamanStandardMonthly);
+  const eurToCzkApprox = 25;
+  const jobshamanBasicMonthly = 399 * eurToCzkApprox;
+  const jobshamanProfessionalMonthly = 999 * eurToCzkApprox;
+  const jobshamanPromoSavings = Math.max(0, portalMonthlyCostCzk - jobshamanBasicMonthly);
+  const jobshamanStandardSavings = Math.max(0, portalMonthlyCostCzk - jobshamanProfessionalMonthly);
   const numberFormatter = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 0 });
   const currencyFormatter = new Intl.NumberFormat(i18n.language, { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 });
 
@@ -307,7 +313,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
           </div>
 
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 shadow-sm border border-slate-200 dark:border-slate-800 relative mb-12">
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-4 gap-6">
               {solutionPillars.map((feature, index) => (
                 <div key={index} className="p-6 bg-slate-50 dark:bg-slate-950 rounded-lg">
                   <div className={`w-12 h-12 rounded-lg flex items-center justify-center mb-4 ${feature.color}`}>
@@ -488,15 +494,15 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
               {plans.map((plan, index) => (
                 <div key={index} className={`relative bg-slate-50 dark:bg-slate-950 rounded-xl p-6 border-2 transition-all ${plan.highlighted
                   ? 'border-cyan-500 dark:border-cyan-400 bg-cyan-50/50 dark:bg-cyan-950/20'
-                  : plan.price === 'Zdarma'
+                  : plan.price === '0 €'
                     ? 'border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 hover:border-emerald-300 dark:hover:border-emerald-700'
                     : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
                   }`}>
-                  {plan.price === t('company_landing.pricing.always_free') && (
+                  {plan.price === '0 €' && (
                     <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
                       <div className="flex items-center gap-1 bg-emerald-600 text-white px-3 py-1 rounded-full text-xs font-bold">
                         <Star className="w-3 h-3" />
-                        {t('company_landing.pricing.always_free')}
+                          {t('company_landing.pricing.always_free', { defaultValue: 'Free' })}
                       </div>
                     </div>
                   )}
@@ -536,7 +542,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                           </div>
                         )}
                         <div className="flex items-baseline gap-2">
-                          <span className={`text-2xl font-bold ${plan.price === t('company_landing.pricing.always_free')
+                          <span className={`text-2xl font-bold ${plan.price === '0 €'
                             ? 'text-emerald-600 dark:text-emerald-400'
                             : 'text-cyan-600 dark:text-cyan-400'
                             }`}>
@@ -554,7 +560,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                           {t('company_landing.pricing.promo_hint')}
                         </p>
                       )}
-                      {plan.name === t('company_landing.pricing.plans.business.name') && (
+                      {plan.name === t('company_landing.pricing.plans.professional.name', { defaultValue: 'Professional' }) && (
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                           {t('company_landing.pricing.extra_assessment')}
                         </p>
@@ -588,14 +594,14 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                         onRegister?.();
                       }
                     }}
-                    className={`w-full py-2.5 rounded-lg font-semibold transition-all text-sm ${plan.price === t('company_landing.pricing.always_free')
+                    className={`w-full py-2.5 rounded-lg font-semibold transition-all text-sm ${plan.price === '0 €'
                       ? 'bg-emerald-600 hover:bg-emerald-500 text-white'
                       : plan.highlighted
                         ? 'bg-cyan-600 hover:bg-cyan-500 text-white'
                         : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white'
                       }`}
                   >
-                    {plan.name === t('company_landing.pricing.plans.enterprise.name') ? t('company_landing.pricing.cta_contact') : plan.price === t('company_landing.pricing.always_free') ? t('company_landing.pricing.cta_start_free') : t('company_landing.pricing.cta_start')}
+                    {plan.name === t('company_landing.pricing.plans.enterprise.name') ? t('company_landing.pricing.cta_contact') : plan.price === '0 €' ? t('company_landing.pricing.cta_start_free') : t('company_landing.pricing.cta_start')}
                   </button>
                 </div>
               ))}

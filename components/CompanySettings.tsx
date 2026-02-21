@@ -396,7 +396,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                             </div>
                             <div className="text-right">
                                 <span className="text-sm font-medium text-slate-500">
-                                    {t('company.settings.plan_label')} {profile.subscription?.tier === 'business' ? t('company.subscription.tiers.business') : profile.subscription?.tier === 'basic' ? t('company.subscription.tiers.basic') : t('company.subscription.tiers.free')}
+                                    {t('company.settings.plan_label')} {profile.subscription?.tier === 'professional' ? t('company.subscription.tiers.professional', { defaultValue: 'Professional' }) : profile.subscription?.tier === 'basic' ? t('company.subscription.tiers.basic') : profile.subscription?.tier === 'trial' ? t('company.subscription.tiers.trial', { defaultValue: 'Free (Trial)' }) : t('company.subscription.tiers.free')}
                                 </span>
                                 {profile.subscription?.expiresAt && (
                                     <div className="text-xs text-emerald-600 dark:text-emerald-400">

@@ -51,7 +51,7 @@ export const canCompanyUseFeature = (company: CompanyProfile, feature: PremiumFe
 
     switch (feature) {
         case 'COMPANY_RECOMMENDATIONS':
-            return tier === 'business'; // Enterprise already returned true at line 50
+            return tier === 'professional'; // Enterprise already returned true above
         case 'COMPANY_UNLIMITED_JOBS':
             return false; // Only enterprise (line 50)
         default:
@@ -66,19 +66,27 @@ export const canCompanyPostJob = (company: CompanyProfile, _userEmail?: string):
     const tier = company.subscription?.tier || 'free';
     const activeJobs = company.subscription?.usage?.activeJobsCount || 0;
 
-    // Trial/Free tier limit: 3 active jobs
-    if ((tier === 'free' || tier === 'basic') && activeJobs >= 3) {
+    // Free and trial tier limit: 1 active job
+    if ((tier === 'free' || tier === 'trial') && activeJobs >= 1) {
         return {
             allowed: false,
-            reason: 'Dosáhli jste limitu 3 aktivních inzerátů pro váš aktuální plán.'
+            reason: 'Dosáhli jste limitu 1 aktivního inzerátu pro váš aktuální plán.'
         };
     }
 
-    // Trial and Business tier limit: 20 active jobs (example limit, can be adjusted)
-    if ((tier === 'trial' || tier === 'business') && activeJobs >= 20) {
+    // Basic tier limit: 5 active jobs
+    if (tier === 'basic' && activeJobs >= 5) {
         return {
             allowed: false,
-            reason: 'Dosáhli jste limitu 20 aktivních inzerátů pro váš tarif.'
+            reason: 'Dosáhli jste limitu 5 aktivních inzerátů pro tarif Basic.'
+        };
+    }
+
+    // Professional tier limit: 20 active jobs
+    if (tier === 'professional' && activeJobs >= 20) {
+        return {
+            allowed: false,
+            reason: 'Dosáhli jste limitu 20 aktivních inzerátů pro tarif Professional.'
         };
     }
 
@@ -98,7 +106,9 @@ export const getRemainingAssessments = (company: CompanyProfile): number => {
     const used = company.subscription?.usage?.aiAssessmentsUsed || 0;
 
     if (tier === 'enterprise') return 999999; // Practically unlimited
-    if (tier === 'business' || tier === 'assessment_bundle' || tier === 'trial') return Math.max(0, 10 - used);
+    if (tier === 'professional') return Math.max(0, 50 - used);
+    if (tier === 'basic') return Math.max(0, 5 - used);
+    if (tier === 'assessment_bundle') return Math.max(0, 10 - used);
 
     return 0; // No free assessments
 };

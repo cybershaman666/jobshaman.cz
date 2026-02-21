@@ -478,10 +478,11 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
     const renderOverview = () => {
         const subscriptionTier = (subscription?.tier || effectiveCompanyProfile.subscription?.tier || 'free').toLowerCase();
-        const isFreeLikeTier = subscriptionTier === 'free' || subscriptionTier === 'basic';
+        const isFreeLikeTier = subscriptionTier === 'free' || subscriptionTier === 'trial';
         const subscriptionLabel = subscription?.tierName
-            || (subscriptionTier === 'business' ? t('company.subscription.tiers.business')
+            || (subscriptionTier === 'professional' ? t('company.subscription.tiers.professional', { defaultValue: 'Professional' })
                 : subscriptionTier === 'basic' ? t('company.subscription.tiers.basic')
+                    : subscriptionTier === 'trial' ? t('company.subscription.tiers.trial', { defaultValue: 'Free (Trial)' })
                     : t('company.subscription.tiers.free'));
 
         return (
@@ -554,7 +555,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 <span className="text-xs font-medium text-gray-600 dark:text-gray-400">{t('company.subscription.job_ads')}</span>
                             </div>
                             <div className="text-lg font-bold text-slate-900 dark:text-white">
-                                {subscription?.jobPostingsUsed || 0} / {subscription?.jobPostingsAvailable === 999 ? t('company.subscription.unlimited') : subscription?.jobPostingsAvailable || '3'}
+                                {subscription?.jobPostingsUsed || 0} / {subscription?.jobPostingsAvailable === 999 ? t('company.subscription.unlimited') : subscription?.jobPostingsAvailable || '1'}
                             </div>
                             <div className="text-xs text-slate-500">
                                 {t('company.subscription.used')}
@@ -579,7 +580,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 {companyProfile?.members?.length || 1}
                             </div>
                             <div className="text-xs text-slate-500">
-                                {['business', 'enterprise', 'trial'].includes(subscriptionTier) ? t('company.subscription.unlimited') : t('company.subscription.no_limit')}
+                                {['professional', 'enterprise'].includes(subscriptionTier) ? t('company.subscription.unlimited') : t('company.subscription.no_limit')}
                             </div>
                         </div>
                     </div>

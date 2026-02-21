@@ -971,7 +971,7 @@
       "active": "Aktívni",
       "inactive": "Neaktívni",
       "tiers": {
-        "business": "Business",
+        "business": "Professional",
         "basic": "Základný",
         "free": "Bezplatný"
       }
@@ -1146,9 +1146,9 @@
       "output_saved_hours": "Ušetrený čas za rok",
       "output_saved_czk": "Ušetrené náklady za rok",
       "output_portal_savings_promo": "Úspora vs portál (akčná cena)",
-      "output_portal_savings_promo_note": "JobShaman 4 990 Kč / mesiac, neobmedzené inzeráty",
+      "output_portal_savings_promo_note": "JobShaman 399 €/mesiac, neobmedzené inzeráty",
       "output_portal_savings_standard": "Úspora vs portál (štandardná cena)",
-      "output_portal_savings_standard_note": "JobShaman 9 990 Kč / mesiac, neobmedzené inzeráty",
+      "output_portal_savings_standard_note": "JobShaman 999 €/mesiac, neobmedzené inzeráty",
       "badge_best": "Najvýhodnejšia",
       "unit_hires": "obsadenia",
       "unit_hours": "h",
@@ -1735,8 +1735,8 @@
     "free": "Free",
     "premium": "Premium",
     "basic": "Basic",
-    "business": "Business",
-    "trial": "Business (Trial)",
+    "business": "Professional",
+    "trial": "Free (Trial)",
     "enterprise": "Enterprise",
     "assessment_bundle": "Bundle",
     "single_assessment": "Single Assessment"
@@ -1747,8 +1747,8 @@
     "plan": "Plán",
     "tiers": {
       "enterprise": "Enterprise",
-      "business": "Business",
-      "trial": "Business (Trial)",
+      "business": "Professional",
+      "trial": "Free (Trial)",
       "assessment_bundle": "Assessment Bundle",
       "basic": "Basic"
     },
@@ -2260,7 +2260,7 @@
       "title": "Business plán",
       "subtitle": "Pre rastúce firmy",
       "price_suffix": "/ mesiac (akcia)",
-      "price_regular": "bežne 9 990 CZK",
+      "price_regular": "bežne 999 €",
       "feature_1": "Neobmedzené inzeráty",
       "feature_2": "AI optimalizácia",
       "feature_3": "10 assessmentov / mesiac",
@@ -2338,7 +2338,7 @@
       "plan_contents_q": "Čo obsahujú jednotlivé plány?",
       "plan_free": "Zdarma: Obmedzený prístup k pracovným ponukám, základné funkcie",
       "plan_basic": "Základný: 20 assessmentov/mesiac, 50 pracovných ponúk/mesiac",
-      "plan_business": "Business: Neobmedzené assessmenty, neobmedzené ponuky, prioritná podpora",
+      "plan_business": "Professional: Neobmedzené assessmenty, neobmedzené ponuky, prioritná podpora",
       "plan_bundle": "Balík assessmentov: 50 jednorazových assessmentov platných 12 mesiacov",
       "rollover_q": "Prenášajú sa nevyužité kredity?",
       "rollover_a": "Nie. Mesačné kredity sa resetujú v deň obnovy. Nákupy balíkov sú platné 12 mesiacov od nákupu.",

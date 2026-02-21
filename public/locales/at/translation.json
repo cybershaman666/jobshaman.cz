@@ -934,7 +934,7 @@
       "active": "Aktiv",
       "inactive": "Inaktiv",
       "tiers": {
-        "business": "Business",
+        "business": "Professional",
         "basic": "Basis",
         "free": "Kostenlos"
       }
@@ -1677,8 +1677,8 @@
     "free": "Free",
     "premium": "Premium",
     "basic": "Basic",
-    "business": "Business",
-    "trial": "Business (Trial)",
+    "business": "Professional",
+    "trial": "Free (Trial)",
     "enterprise": "Enterprise",
     "assessment_bundle": "Bundle",
     "single_assessment": "Single Assessment"
@@ -1689,8 +1689,8 @@
     "plan": "Tarif",
     "tiers": {
       "enterprise": "Enterprise",
-      "business": "Business",
-      "trial": "Business (Trial)",
+      "business": "Professional",
+      "trial": "Free (Trial)",
       "assessment_bundle": "Assessment Bundle",
       "basic": "Basic"
     },
@@ -2279,7 +2279,7 @@
       "plan_contents_q": "Was ist in den einzelnen Plänen enthalten?",
       "plan_free": "Kostenlos: Eingeschränkter Zugang zu Jobs, Basisfunktionen",
       "plan_basic": "Basic: 20 Assessments/Monat, 50 Stellenanzeigen/Monat",
-      "plan_business": "Business: Unbegrenzte Assessments, unbegrenzte Anzeigen, priorisierter Support",
+      "plan_business": "Professional: Unbegrenzte Assessments, unbegrenzte Anzeigen, priorisierter Support",
       "plan_bundle": "Assessment-Bundle: 50 einmalige Assessments, 12 Monate gültig",
       "rollover_q": "Werden ungenutzte Credits übertragen?",
       "rollover_a": "Nein. Monatliche Credits werden am Verlängerungstag zurückgesetzt. Bundle-Käufe sind 12 Monate ab Kauf gültig.",

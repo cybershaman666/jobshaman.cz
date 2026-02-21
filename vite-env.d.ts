@@ -4,6 +4,8 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL: string
   readonly VITE_SUPABASE_KEY: string
   readonly VITE_BACKEND_URL?: string
+  readonly VITE_BILLING_BACKEND_URL?: string
+  readonly VITE_STRIPE_BACKEND_URL?: string
   readonly VITE_SEARCH_API_URL?: string
   readonly VITE_SEARCH_BACKEND_URL?: string
   readonly VITE_SEARCH_V2_ENABLED?: string

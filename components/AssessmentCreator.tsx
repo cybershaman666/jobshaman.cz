@@ -70,7 +70,12 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
         if (companyProfile) {
             const tier = companyProfile.subscription?.tier || 'basic';
             const used = companyProfile.subscription?.usage?.aiAssessmentsUsed || 0;
-            const limit = (tier === 'enterprise' || tier === 'business' || tier === 'trial' || tier === 'assessment_bundle') ? (tier === 'enterprise' ? 999999 : 10) : 0;
+            const limit =
+                tier === 'enterprise' ? 999999 :
+                tier === 'professional' ? 50 :
+                tier === 'basic' ? 5 :
+                tier === 'assessment_bundle' ? 10 :
+                0;
 
             if (used >= limit) {
                 alert(t('assessment_creator.limit_reached', { limit }));
@@ -122,7 +127,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                 <div className="text-xs text-slate-500 dark:text-slate-400">
                                     {t('assessment_creator.plan')}: <span className="font-medium">
                                         {tier === 'enterprise' ? t('assessment_creator.tiers.enterprise') :
-                                            tier === 'business' ? t('assessment_creator.tiers.business') :
+                                            tier === 'professional' ? t('assessment_creator.tiers.professional', { defaultValue: 'Professional' }) :
                                                 tier === 'trial' ? t('assessment_creator.tiers.trial') :
                                                     tier === 'assessment_bundle' ? t('assessment_creator.tiers.assessment_bundle') :
                                                         t('assessment_creator.tiers.basic')}

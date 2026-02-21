@@ -10,17 +10,17 @@ if (!STRIPE_PUBLIC_KEY) {
     );
 }
 
-import { BACKEND_URL } from '../constants';
+import { BILLING_BACKEND_URL } from '../constants';
 import { authenticatedFetch } from './csrfService';
 
-const API_URL = BACKEND_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_URL = BILLING_BACKEND_URL || import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 /**
  * Initiates a Stripe Checkout session for a specific subscription tier.
- * @param tier 'premium' for personal users (14.99 EUR/month), 'business' for companies (4990 CZK/month), 'assessment_bundle' (990 CZK), 'single_assessment' (99 CZK)
+ * @param tier 'premium' for personal users (14.99 EUR/month), 'basic'/'professional' for companies, 'assessment_bundle' (990 CZK), 'single_assessment' (99 CZK)
  * @param userId The ID of the user or company to associate with the payment
  */
-export const redirectToCheckout = async (tier: 'premium' | 'basic' | 'business' | 'assessment_bundle' | 'single_assessment', userId: string) => {
+export const redirectToCheckout = async (tier: 'premium' | 'basic' | 'professional' | 'assessment_bundle' | 'single_assessment', userId: string) => {
     try {
         const response = await authenticatedFetch(`${API_URL}/create-checkout-session`, {
             method: 'POST',

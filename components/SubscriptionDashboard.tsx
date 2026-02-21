@@ -109,7 +109,7 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
   const tierColors = {
     free: 'bg-gray-50 border-gray-200',
     basic: 'bg-blue-50 border-blue-200',
-    business: 'bg-purple-50 border-purple-200',
+    professional: 'bg-purple-50 border-purple-200',
     trial: 'bg-indigo-50 border-indigo-200',
     enterprise: 'bg-emerald-50 border-emerald-200',
     assessment_bundle: 'bg-amber-50 border-amber-200',
@@ -118,7 +118,7 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
   const tierBadgeColors = {
     free: 'bg-gray-100 text-gray-800',
     basic: 'bg-blue-100 text-blue-800',
-    business: 'bg-purple-100 text-purple-800',
+    professional: 'bg-purple-100 text-purple-800',
     trial: 'bg-indigo-100 text-indigo-800',
     enterprise: 'bg-emerald-100 text-emerald-800',
     assessment_bundle: 'bg-amber-100 text-amber-800',
@@ -143,16 +143,17 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
     !isExpired &&
     subscription.daysUntilRenewal !== undefined &&
     subscription.daysUntilRenewal <= 7;
+  const normalizedTier = subscription.tier;
 
   return (
-    <div className={`border rounded-lg p-6 ${tierColors[subscription.tier as keyof typeof tierColors]}`}>
+    <div className={`border rounded-lg p-6 ${tierColors[normalizedTier as keyof typeof tierColors] || tierColors.free}`}>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <h2 className="text-2xl font-bold text-gray-900">{subscription.tierName} Plan</h2>
-            <span className={`px-3 py-1 rounded-full text-sm font-medium ${tierBadgeColors[subscription.tier as keyof typeof tierBadgeColors]}`}>
-              {subscription.tier.toUpperCase()}
+            <span className={`px-3 py-1 rounded-full text-sm font-medium ${tierBadgeColors[normalizedTier as keyof typeof tierBadgeColors] || tierBadgeColors.free}`}>
+              {normalizedTier.toUpperCase()}
             </span>
           </div>
           <div className="flex items-center gap-2">
@@ -162,7 +163,7 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
           </div>
         </div>
 
-        {subscription.tier === 'free' && onUpgradeClick && (
+        {normalizedTier === 'free' && onUpgradeClick && (
           <button
             onClick={onUpgradeClick}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
@@ -388,7 +389,7 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
       <div className="border-t pt-4">
         <h3 className="font-medium text-gray-900 mb-3">Plan Features</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
-          {subscription.tier === 'free' && (
+          {normalizedTier === 'free' && (
             <>
               <div className="flex items-center gap-2 text-gray-700">
                 <span className="w-1.5 h-1.5 bg-gray-400 rounded-full"></span>
@@ -409,17 +410,17 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
             </>
           )}
 
-          {subscription.tier === 'basic' && (
+          {normalizedTier === 'basic' && (
             <>
               {isCompany ? (
                 <>
                   <div className="flex items-center gap-2 text-blue-700">
                     <CheckCircle className="w-4 h-4" />
-                    20 AI assessments/month
+                    5 AI assessments/month
                   </div>
                   <div className="flex items-center gap-2 text-blue-700">
                     <CheckCircle className="w-4 h-4" />
-                    50 job postings/month
+                    5 active job postings
                   </div>
                 </>
               ) : (
@@ -449,15 +450,15 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
             </>
           )}
 
-          {subscription.tier === 'business' && (
+          {normalizedTier === 'professional' && (
             <>
               <div className="flex items-center gap-2 text-purple-700">
                 <CheckCircle className="w-4 h-4" />
-                10 AI assessments/month
+                50 AI assessments/month
               </div>
               <div className="flex items-center gap-2 text-purple-700">
                 <CheckCircle className="w-4 h-4" />
-                Unlimited job postings
+                20 active job postings
               </div>
               <div className="flex items-center gap-2 text-purple-700">
                 <CheckCircle className="w-4 h-4" />
@@ -478,19 +479,19 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
             </>
           )}
 
-          {subscription.tier === 'trial' && (
+          {normalizedTier === 'trial' && (
             <>
               <div className="flex items-center gap-2 text-indigo-700">
                 <CheckCircle className="w-4 h-4" />
-                10 AI assessments (Trial)
+                0 AI assessments (Trial)
               </div>
               <div className="flex items-center gap-2 text-indigo-700">
                 <CheckCircle className="w-4 h-4" />
-                Unlimited job postings
+                1 active job posting
               </div>
               <div className="flex items-center gap-2 text-indigo-700">
                 <CheckCircle className="w-4 h-4" />
-                All Business features included
+                Core posting features
               </div>
               <div className="flex items-center gap-2 text-indigo-700">
                 <CheckCircle className="w-4 h-4" />

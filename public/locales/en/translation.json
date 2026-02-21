@@ -890,7 +890,7 @@
       "active": "Active",
       "inactive": "Inactive",
       "tiers": {
-        "business": "Business",
+        "business": "Professional",
         "basic": "Basic",
         "free": "Free"
       }
@@ -1695,8 +1695,8 @@
     "free": "Free",
     "premium": "Premium",
     "basic": "Basic",
-    "business": "Business",
-    "trial": "Business (Trial)",
+    "business": "Professional",
+    "trial": "Free (Trial)",
     "enterprise": "Enterprise",
     "assessment_bundle": "Bundle",
     "single_assessment": "Single Assessment"
@@ -1707,8 +1707,8 @@
     "plan": "Plan",
     "tiers": {
       "enterprise": "Enterprise",
-      "business": "Business",
-      "trial": "Business (Trial)",
+      "business": "Professional",
+      "trial": "Free (Trial)",
       "assessment_bundle": "Assessment Bundle",
       "basic": "Basic"
     },
@@ -2297,7 +2297,7 @@
       "plan_contents_q": "What is included in each plan?",
       "plan_free": "Free: Limited access to jobs, basic features",
       "plan_basic": "Basic: 20 assessments/month, 50 job postings/month",
-      "plan_business": "Business: Unlimited assessments, unlimited postings, priority support",
+      "plan_business": "Professional: Unlimited assessments, unlimited postings, priority support",
       "plan_bundle": "Assessment bundle: 50 one-time assessments valid for 12 months",
       "rollover_q": "Do unused credits roll over?",
       "rollover_a": "No. Monthly credits reset on renewal day. Assessment bundle purchases remain valid for 12 months from purchase.",
