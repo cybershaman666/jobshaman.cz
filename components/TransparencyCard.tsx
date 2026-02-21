@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 import { Activity, Info, Euro } from 'lucide-react';
 
@@ -8,6 +9,7 @@ interface TransparencyCardProps {
 }
 
 const TransparencyCard: React.FC<TransparencyCardProps> = ({ variant = 'light' }) => {
+   const { t } = useTranslation();
    const isDark = variant === 'dark';
 
    // Styles
@@ -28,10 +30,10 @@ const TransparencyCard: React.FC<TransparencyCardProps> = ({ variant = 'light' }
             <div className="flex items-center gap-2">
                <Activity size={16} className="text-indigo-500" />
                <h3 className={`text-xs font-bold uppercase tracking-widest ${headerTitleColor}`}>
-                  Brutální Transparentnost
+                  {t('transparency_card.title')}
                </h3>
             </div>
-            <span className={`text-[10px] ${subTextColor}`}>Data: JobShaman</span>
+            <span className={`text-[10px] ${subTextColor}`}>{t('transparency_card.data_source')}</span>
          </div>
 
          {/* EU Transparent Badge Explanation */}
@@ -40,13 +42,11 @@ const TransparencyCard: React.FC<TransparencyCardProps> = ({ variant = 'light' }
                <Euro size={14} className="text-emerald-600 mt-0.5" />
                <div className="flex-1">
                   <div className="flex items-center gap-1.5 mb-1">
-                     <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400">Proč vidíte EU Transparent odznak?</h4>
+                     <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400">{t('transparency_card.badge_why_title')}</h4>
                      <Info size={10} className="text-emerald-500" />
                   </div>
                   <p className={`text-xs leading-relaxed ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                     Od června 2026 bude uvádění platového rozmezí v EU povinné.
-                     My v JobShamanu věříme, že váš čas má svou cenu už dnes.
-                     Firmy s tímto označením hrají fér a otevřeně ukazují odměnu jako první.
+                     {t('transparency_card.badge_why_desc')}
                   </p>
                </div>
             </div>

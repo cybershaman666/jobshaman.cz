@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import AnalyticsService, { PopularFilterCombination } from '../services/analyticsService';
 import { UserProfile } from '../types';
 
@@ -9,6 +10,7 @@ interface FilterSuggestionsProps {
 }
 
 export const FilterSuggestions: React.FC<FilterSuggestionsProps> = ({ onApplyFilter, hasActiveFilters, userProfile }) => {
+    const { t } = useTranslation();
     const [suggestions, setSuggestions] = useState<PopularFilterCombination[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -51,7 +53,7 @@ export const FilterSuggestions: React.FC<FilterSuggestionsProps> = ({ onApplyFil
     return (
         <div className="filter-suggestions">
             <h4 className="suggestions-title">
-                {userProfile.isLoggedIn ? '🔥 Často hledané pro vás' : '🔥 Nejčastější hledání'}
+                {userProfile.isLoggedIn ? t('filter_suggestions.title_personal') : t('filter_suggestions.title_popular')}
             </h4>
             <div className="suggestion-chips">
                 {suggestions.map((suggestion, index) => (

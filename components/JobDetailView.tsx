@@ -12,6 +12,7 @@ import Markdown from 'markdown-to-jsx';
 import { getCompanyLogoUrl, getCompanyPublicInfo, trackAnalyticsEvent } from '../services/supabaseService';
 import { useEffect } from 'react';
 import { removeAccents } from '../utils/benefits';
+import { matchesBrigadaKeywords, matchesFullTimeKeywords, matchesIcoKeywords, matchesPartTimeKeywords } from '../utils/contractType';
 
 interface JobDetailViewProps {
     mounted: boolean;
@@ -157,6 +158,9 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
 
     const formatWorkModelLabel = (raw: string) => {
         if (!raw) return t('job.work_model.unknown') || t('job.contract_types.unknown') || 'Neuvedeno';
+        if (/(home[\s-]?office|remote|na\s+dalku|na\s+dia[ľl]ku)/i.test(raw)) return t('job.work_model.remote');
+        if (/(hybrid|hybridni|hybridný)/i.test(raw)) return t('job.work_model.hybrid');
+        if (/(onsite|on[\s-]?site|office|kancelar|kancelár)/i.test(raw)) return t('job.work_model.on_site');
         const normalized = raw.trim().toLowerCase();
         const key = normalized
             .replace(/\s+/g, '_')
@@ -168,6 +172,46 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
             hybrid: t('job.work_model.hybrid') || 'Hybrid',
             on_site: t('job.work_model.on_site') || 'On-site',
             onsite: t('job.work_model.on_site') || 'On-site'
+        };
+
+        return labelMap[key] || raw;
+    };
+
+    const formatJobTypeLabel = (raw: string) => {
+        if (!raw) return t('job.contract_types.unknown') || 'Neuvedeno';
+        if (matchesIcoKeywords(raw)) return t('job.contract_types.ico');
+        if (matchesFullTimeKeywords(raw)) return t('job.contract_types.hpp');
+        if (matchesPartTimeKeywords(raw)) return t('job.contract_types.part_time');
+        if (matchesBrigadaKeywords(raw)) return t('job.contract_types.brigada');
+        const normalized = raw.trim().toLowerCase();
+        const key = normalized
+            .replace(/\s+/g, '_')
+            .replace(/-+/g, '_')
+            .replace(/[^\wáčďéěíňóřšťúůýž]+/g, '');
+
+        const labelMap: Record<string, string> = {
+            full_time: t('job.contract_types.full_time') || 'Full-time',
+            part_time: t('job.contract_types.part_time') || 'Part-time',
+            contract: t('job.contract_types.contract') || 'Contract',
+            temporary: t('job.contract_types.temporary') || 'Temporary',
+            internship: t('job.contract_types.internship') || 'Internship',
+            freelance: t('job.contract_types.freelance') || 'Freelance',
+            freelance_service: t('job.contract_types.freelance_service') || 'Freelance Service',
+            hpp: t('job.contract_types.hpp') || 'HPP',
+            dpp: t('job.contract_types.dpp') || 'DPP',
+            dpc: t('job.contract_types.dpc') || 'DPČ',
+            dpč: t('job.contract_types.dpc') || 'DPČ',
+            brigada: t('job.contract_types.brigada') || 'Temporary job',
+            brigáda: t('job.contract_types.brigada') || 'Temporary job',
+            ico: t('job.contract_types.ico') || 'IČO',
+            ičo: t('job.contract_types.ico') || 'IČO',
+            osvc: t('job.contract_types.osvc') || 'OSVČ',
+            osvč: t('job.contract_types.osvc') || 'OSVČ',
+            b2b: t('job.contract_types.b2b') || 'B2B',
+            remote: t('job.contract_types.remote') || 'Remote',
+            hybrid: t('job.contract_types.hybrid') || 'Hybrid',
+            on_site: t('job.contract_types.on_site') || 'On-site',
+            onsite: t('job.contract_types.on_site') || 'On-site'
         };
 
         return labelMap[key] || raw;
@@ -397,7 +441,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                 </div>
                                 <div className="flex flex-wrap items-center gap-2 mt-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
                                     <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
-                                        <Briefcase size={12} /> {selectedJob.type}
+                                        <Briefcase size={12} /> {formatJobTypeLabel(selectedJob.type)}
                                     </span>
                                     {selectedJob.work_model && (
                                         <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
@@ -553,11 +597,11 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                         <div className="bg-slate-50 dark:bg-slate-950/30 border-t border-slate-200 dark:border-slate-800 p-6 sm:p-8">
                             <div className="flex items-center justify-between mb-6">
                                 <div>
-                                    <div className="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Analytický panel</div>
-                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Kvalita nabídky & signály</h3>
+                                    <div className="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{t('job_detail.analytics_panel_label')}</div>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('job_detail.analytics_panel_title')}</h3>
                                 </div>
                                 <div className="text-xs text-slate-500 dark:text-slate-400">
-                                    Data: JobShaman AI + veřejné zdroje
+                                    {t('job_detail.analytics_panel_data_source')}
                                 </div>
                             </div>
 
@@ -574,7 +618,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                         </div>
                                         {(!selectedJob?.salary_from && !selectedJob?.salary_to) && (
                                             <div className="mb-4 text-[11px] text-amber-700 dark:text-amber-400">
-                                                {t('job_detail.jhi_missing_salary_hint') || 'Nízké JHI je způsobené chybějící mzdou v inzerátu.'}
+                                                {t('job_detail.jhi_missing_salary_hint')}
                                             </div>
                                         )}
                                         <JHIChart

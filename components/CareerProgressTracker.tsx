@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { X, TrendingUp, Clock, Target, Briefcase, Award, Calendar } from 'lucide-react';
 
 interface CareerTrack {
@@ -21,6 +22,7 @@ interface CareerProgressTrackerProps {
 }
 
 const CareerProgressTracker: React.FC<CareerProgressTrackerProps> = ({ tracks, onClose }) => {
+  const { t, i18n } = useTranslation();
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'completed': return 'text-emerald-600 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/30';
@@ -39,14 +41,14 @@ const CareerProgressTracker: React.FC<CareerProgressTrackerProps> = ({ tracks, o
 
   const getStatusText = (status: string) => {
     switch (status) {
-      case 'completed': return 'Dokončeno';
-      case 'hired': return 'Pracovní místa';
-      default: return 'Probíhám';
+      case 'completed': return t('career_tracker.status.completed');
+      case 'hired': return t('career_tracker.status.hired');
+      default: return t('career_tracker.status.in_progress');
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('cs-CZ', {
+    return new Date(dateString).toLocaleDateString(i18n.language || 'en', {
       day: 'numeric',
       month: 'short',
       year: 'numeric'
@@ -95,10 +97,10 @@ const CareerProgressTracker: React.FC<CareerProgressTrackerProps> = ({ tracks, o
               </div>
               <div>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                  Vaše kariérní cesta
+                  {t('career_tracker.title')}
                 </h2>
                 <p className="text-slate-600 dark:text-slate-300 text-sm">
-                  Sledujeme váš pokrok a úspěchy od dokončení kurzů
+                  {t('career_tracker.subtitle')}
                 </p>
               </div>
             </div>
@@ -115,21 +117,21 @@ const CareerProgressTracker: React.FC<CareerProgressTrackerProps> = ({ tracks, o
         <div className="bg-gradient-to-r from-emerald-50 to-cyan-50 dark:from-emerald-900/20 dark:to-cyan-900/20 p-6 border-b border-slate-200 dark:border-slate-800">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="text-center">
-              <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Dokončené kurzy</div>
+              <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">{t('career_tracker.completed_courses')}</div>
               <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                 {tracks.filter(t => t.status === 'completed' || t.status === 'hired').length}
               </div>
             </div>
             <div className="text-center">
-              <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Průměrné zvýšení platu</div>
+              <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">{t('career_tracker.avg_salary_increase')}</div>
               <div className="text-2xl font-bold text-cyan-600 dark:text-cyan-400">
                 {Number(totalROI) > 0 ? `+${totalROI}%` : '0%'}
               </div>
             </div>
             <div className="text-center">
-              <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">Celková ROI</div>
+              <div className="text-sm text-slate-600 dark:text-slate-400 mb-1">{t('career_tracker.total_roi')}</div>
               <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                {Number(totalROI) > 0 ? 'Vynikající' : 'Vyhodnocující'}
+                {Number(totalROI) > 0 ? t('career_tracker.roi_excellent') : t('career_tracker.roi_evaluating')}
               </div>
             </div>
           </div>
@@ -137,15 +139,15 @@ const CareerProgressTracker: React.FC<CareerProgressTrackerProps> = ({ tracks, o
 
         {/* Career Tracks Timeline */}
         <div className="p-6 space-y-6 max-h-96 overflow-y-auto">
-          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">Detailní přehled</h3>
+          <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-4">{t('career_tracker.detail_overview')}</h3>
           
           {sortedTracks.length === 0 ? (
             <div className="text-center py-12">
               <Calendar className="w-12 h-12 mx-auto mb-4 text-slate-400" />
               <p className="text-slate-600 dark:text-slate-300">
-                Ještě nemáte žádné záznamy o kariérním postupu.
+                {t('career_tracker.empty_line1')}
                 <br />
-                Po dokončení prvního kurzu se zde objeví vaše statistiky.
+                {t('career_tracker.empty_line2')}
               </p>
             </div>
           ) : (
@@ -172,19 +174,19 @@ const CareerProgressTracker: React.FC<CareerProgressTrackerProps> = ({ tracks, o
                             {track.course_title}
                           </h4>
                           <p className="text-sm text-slate-600 dark:text-slate-300">
-                            Původní pozice: {track.original_job_title}
+                            {t('career_tracker.original_position')}: {track.original_job_title}
                           </p>
                         </div>
                         <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                           <Clock className="w-3 h-3" />
-                          {track.duration_hours ? `${track.duration_hours}h` : 'Neuvedeno'}
+                          {track.duration_hours ? `${track.duration_hours}h` : t('career_tracker.not_specified')}
                         </div>
                       </div>
 
                       {/* Progress Bar */}
                       <div className="mb-3">
                         <div className="flex justify-between text-xs text-slate-600 dark:text-slate-400 mb-1">
-                          <span>Průběh</span>
+                          <span>{t('career_tracker.progress')}</span>
                           <span>{getProgressBarWidth(track)}%</span>
                         </div>
                         <div className="w-full bg-slate-200 dark:bg-slate-700 rounded-full h-2 overflow-hidden">
@@ -207,7 +209,7 @@ const CareerProgressTracker: React.FC<CareerProgressTrackerProps> = ({ tracks, o
                               <Briefcase className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                               <div>
                                 <div className="text-sm font-medium text-emerald-600 dark:text-emerald-400">
-                                  Nová pracovní pozice získána
+                                  {t('career_tracker.new_job_obtained')}
                                 </div>
                               </div>
                             </div>
@@ -217,7 +219,7 @@ const CareerProgressTracker: React.FC<CareerProgressTrackerProps> = ({ tracks, o
                               <TrendingUp className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
                               <div>
                                 <div className="text-sm font-medium text-cyan-600 dark:text-cyan-400">
-                                  Platu zvýšen o {track.salary_increase_percent}%
+                                  {t('career_tracker.salary_increased_by', { percent: track.salary_increase_percent })}
                                 </div>
                               </div>
                             </div>
@@ -226,7 +228,7 @@ const CareerProgressTracker: React.FC<CareerProgressTrackerProps> = ({ tracks, o
                       ) : (
                         <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
                           <p className="text-sm text-slate-600 dark:text-slate-400">
-                            Kurz stále probíhá...
+                            {t('career_tracker.course_in_progress')}
                           </p>
                         </div>
                       )}

@@ -4,6 +4,7 @@ import { Bookmark, X, Check, ChevronDown, Sparkles, List, Activity } from 'lucid
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { trackJobInteraction } from '../services/jobInteractionService';
+import { matchesBrigadaKeywords, matchesFullTimeKeywords, matchesIcoKeywords, matchesPartTimeKeywords } from '../utils/contractType';
 
 interface MobileSwipeJobBrowserProps {
     jobs: Job[];
@@ -59,6 +60,15 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
         : null;
     const dragDelta = Math.abs(swipeState.currentX - swipeState.startX);
     const isTap = !swipeState.isDragging && dragDelta < 10;
+
+    const formatJobTypeLabel = (raw?: string) => {
+        if (!raw) return t('job.contract_types.unknown');
+        if (matchesIcoKeywords(raw)) return t('job.contract_types.ico');
+        if (matchesFullTimeKeywords(raw)) return t('job.contract_types.hpp');
+        if (matchesPartTimeKeywords(raw)) return t('job.contract_types.part_time');
+        if (matchesBrigadaKeywords(raw)) return t('job.contract_types.brigada');
+        return raw;
+    };
 
     const currentRecommendationMeta = () => ({
         request_id: (currentJob as any)?.aiRecommendationRequestId,
@@ -314,9 +324,9 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                 <div className={`text-5xl mb-4 ${theme === 'dark' ? 'text-slate-600' : 'text-slate-300'}`}>
                     🎯
                 </div>
-                <h2 className="text-xl font-bold mb-2">{t('job.no_jobs_title') || 'No jobs available'}</h2>
+                <h2 className="text-xl font-bold mb-2">{t('job.no_jobs_title')}</h2>
                 <p className={theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}>
-                    {t('job.no_jobs_message') || 'Try adjusting your filters'}
+                    {t('job.no_jobs_message')}
                 </p>
             </div>
         );
@@ -329,18 +339,15 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                 theme === 'dark' ? 'bg-slate-900' : 'bg-white'
             }`}>
                 <div className="text-5xl mb-4">🎉</div>
-                <h2 className="text-xl font-bold mb-2">{t('job.all_reviewed') || 'You\'ve reviewed all jobs'}</h2>
+                <h2 className="text-xl font-bold mb-2">{t('job.all_reviewed')}</h2>
                 <p className={`mb-6 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {t('job.swiped_count', {
-                        count: currentIndex,
-                        defaultValue: `You swiped through ${currentIndex} jobs`
-                    })}
+                    {t('job.swiped_count', { count: currentIndex })}
                 </p>
                 <button
                     onClick={() => setCurrentIndex(0)}
                     className="px-6 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium"
                 >
-                    {t('job.start_over') || 'Start over'}
+                    {t('job.start_over')}
                 </button>
             </div>
         );
@@ -374,11 +381,11 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                     <div className="flex items-center gap-2">
                         <span className="text-sm font-semibold text-cyan-600">{currentIndex + 1}</span>
                         <span className={`text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
-                            / {jobs.length} {t('job.jobs') || 'jobs'}
+                            / {jobs.length} {t('job.jobs')}
                         </span>
                     </div>
                     <div className="text-xs text-slate-500 font-medium">
-                        {t('job.swipe_hint') || 'Swipe to decide'}
+                        {t('job.swipe_hint')}
                     </div>
                 </div>
                 {/* Progress bar */}
@@ -411,10 +418,10 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                 className="relative z-10 w-[90%] max-w-sm rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-2xl p-5 text-center"
                             >
                                 <div className="text-sm font-bold text-slate-900 dark:text-white mb-1">
-                                    {t('job.swipe_tutorial_title') || 'Jak funguje swipování'}
+                                    {t('job.swipe_tutorial_title')}
                                 </div>
                                 <div className="text-xs text-slate-500 dark:text-slate-400 mb-4">
-                                    {t('job.swipe_tutorial_desc') || 'Táhni kartu doleva pro zamítnutí, doprava pro uložení.'}
+                                    {t('job.swipe_tutorial_desc')}
                                 </div>
                                 <div className="relative h-16 mb-4 flex items-center justify-center">
                                     <motion.div
@@ -441,7 +448,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                     onClick={() => setShowSwipeCoach(false)}
                                     className="w-full py-2 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold transition-colors"
                                 >
-                                    {t('job.swipe_tutorial_cta') || 'Rozumím'}
+                                    {t('job.swipe_tutorial_cta')}
                                 </button>
                             </motion.div>
                         </motion.div>
@@ -502,7 +509,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                         <p className={`text-xs font-semibold ${
                                             theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                                         }`}>
-                                            {t('job.location') || 'Location'}
+                                            {t('job.location')}
                                         </p>
                                         <p className={`text-sm font-medium leading-snug break-words ${
                                             theme === 'dark' ? 'text-white' : 'text-slate-900'
@@ -518,7 +525,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                         <p className={`text-xs font-semibold ${
                                             theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                                         }`}>
-                                            {t('job.salary') || 'Salary'}
+                                            {t('job.salary')}
                                         </p>
                                         <p className={`text-sm font-medium leading-snug break-words ${
                                             theme === 'dark' ? 'text-white' : 'text-slate-900'
@@ -534,12 +541,12 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                         <p className={`text-xs font-semibold ${
                                             theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                                         }`}>
-                                            {t('job.type') || 'Type'}
+                                            {t('job.type')}
                                         </p>
                                         <p className={`text-sm font-medium leading-snug break-words ${
                                             theme === 'dark' ? 'text-white' : 'text-slate-900'
                                         }`}>
-                                            {currentJob.type}
+                                            {formatJobTypeLabel(currentJob.type)}
                                         </p>
                                     </div>
                                 )}
@@ -550,10 +557,10 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                         <p className={`text-xs font-semibold ${
                                             theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                                         }`}>
-                                            {t('job.jhi_score') || 'JHI Score'}
+                                            {t('job.jhi_score')}
                                         </p>
                                         <p className="text-sm font-semibold text-cyan-600">
-                                            {Math.round(jhiScore)} {t('job.points') || 'points'}
+                                            {Math.round(jhiScore)} {t('job.points')}
                                         </p>
                                     </div>
                                 )}
@@ -564,7 +571,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                         <p className={`text-xs font-semibold ${
                                             theme === 'dark' ? 'text-emerald-300' : 'text-emerald-700'
                                         }`}>
-                                            {t('job.ai_match') || 'AI Match'}
+                                            {t('job.ai_match')}
                                         </p>
                                         <p className="text-sm font-semibold text-emerald-600">
                                             {aiMatchScore}%
@@ -578,7 +585,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                                 <h3 className={`text-sm font-bold uppercase mb-2 ${
                                     theme === 'dark' ? 'text-slate-400' : 'text-slate-600'
                                 }`}>
-                                    {t('job.description') || 'Description'}
+                                    {t('job.description')}
                                 </h3>
                                 <p className={`text-sm leading-relaxed line-clamp-6 ${
                                     theme === 'dark' ? 'text-slate-300' : 'text-slate-700'
@@ -593,7 +600,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                             }`}>
                                 <ChevronDown size={16} className="text-cyan-600 flex-shrink-0" />
                                 <p className="text-xs text-cyan-600 font-medium">
-                                    {t('job.tap_to_see_more') || 'Tap card to see full details'}
+                                    {t('job.tap_to_see_more')}
                                 </p>
                             </div>
                         </motion.div>
@@ -636,10 +643,10 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                             ? 'bg-slate-800 hover:bg-slate-700 text-slate-100 border-slate-700 hover:border-slate-600'
                             : 'bg-slate-100 hover:bg-slate-200 text-slate-900 border-slate-300 hover:border-slate-400'
                     }`}
-                    title="Swipe left or press ← to reject"
+                    title={t('job.swipe_left_title')}
                 >
                     <X size={20} />
-                    <span className="hidden sm:inline">{t('job.pass') || 'Pass'}</span>
+                    <span className="hidden sm:inline">{t('job.pass')}</span>
                 </button>
 
                 {/* Save Button */}
@@ -652,11 +659,11 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                             ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
                             : 'bg-cyan-500 hover:bg-cyan-600 text-white'
                     }`}
-                    title="Swipe right or press → to save"
+                    title={t('job.swipe_right_title')}
                 >
                     <Bookmark size={20} fill={isSaved ? 'currentColor' : 'none'} />
                     <span className="hidden sm:inline">
-                        {isSaved ? (t('job.saved') || 'Saved') : (t('job.save') || 'Save')}
+                        {isSaved ? t('job.saved') : t('job.save')}
                     </span>
                 </button>
 
@@ -668,10 +675,10 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                             ? 'bg-slate-800 hover:bg-slate-700 text-slate-100 border-slate-700 hover:border-slate-600'
                             : 'bg-slate-100 hover:bg-slate-200 text-slate-900 border-slate-300 hover:border-slate-400'
                     }`}
-                    title="See full job details"
+                    title={t('job.see_full_details_title')}
                 >
                     <Sparkles size={20} />
-                    <span className="hidden sm:inline">{t('job.details') || 'Details'}</span>
+                    <span className="hidden sm:inline">{t('job.details')}</span>
                 </button>
 
                 {/* List View */}
@@ -682,10 +689,10 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                             ? 'bg-slate-800 hover:bg-slate-700 text-slate-100 border-slate-700 hover:border-slate-600'
                             : 'bg-slate-100 hover:bg-slate-200 text-slate-900 border-slate-300 hover:border-slate-400'
                     }`}
-                    title="Switch to list view"
+                    title={t('job.switch_to_list_title')}
                 >
                     <List size={20} />
-                    <span className="hidden sm:inline">{t('job.list_view') || 'List'}</span>
+                    <span className="hidden sm:inline">{t('job.list_view')}</span>
                 </button>
             </div>
 

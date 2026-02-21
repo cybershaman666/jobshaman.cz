@@ -12,8 +12,6 @@ import AuthModal from './components/AuthModal';
 import CandidateOnboardingModal from './components/CandidateOnboardingModal';
 import ApplyFollowupModal from './components/ApplyFollowupModal';
 import CompanyRegistrationModal from './components/CompanyRegistrationModal';
-import FreelancerRegistrationModal from './components/FreelancerRegistrationModal';
-import CourseProviderRegistrationModal from './components/CourseProviderRegistrationModal';
 import EnterpriseSignup from './components/EnterpriseSignup';
 import ApplicationModal from './components/ApplicationModal';
 import CookieBanner from './components/CookieBanner';
@@ -70,9 +68,7 @@ const APPLY_FOLLOWUP_STORAGE_KEY = 'jobshaman_apply_followup';
 const EMAIL_CONFIRMATION_STORAGE_KEY = 'jobshaman_email_confirmation_pending';
 
 const CompanyDashboard = lazy(() => import('./components/CompanyDashboard'));
-const CourseProviderDashboard = lazy(() => import('./components/CourseProviderDashboard'));
 const ProfileEditor = lazy(() => import('./components/ProfileEditor'));
-const ServicesMarketplace = lazy(() => import('./components/ServicesMarketplace'));
 const CompanyLandingPage = lazy(() => import('./components/CompanyLandingPage'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const SavedJobsPage = lazy(() => import('./components/SavedJobsPage'));
@@ -155,8 +151,6 @@ export default function App() {
     const [pendingEmailConfirmation, setPendingEmailConfirmation] = useState<{ email?: string } | null>(null);
     const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
     const [isCompanyRegistrationOpen, setIsCompanyRegistrationOpen] = useState(false);
-    const [isFreelancerRegistrationOpen, setIsFreelancerRegistrationOpen] = useState(false);
-    const [isCourseProviderRegistrationOpen, setIsCourseProviderRegistrationOpen] = useState(false);
     const [showCompanyLanding, setShowCompanyLanding] = useState(false);
     const [commuteAnalysis, setCommuteAnalysis] = useState<CommuteAnalysis | null>(null);
     const [showFinancialMethodology, setShowFinancialMethodology] = useState(false);
@@ -358,7 +352,7 @@ export default function App() {
         };
     }, [loadPendingApplyFollowup, showApplyFollowup]);
 
-    const isCompanyProfile = userProfile.role === 'recruiter' && !!companyProfile && companyProfile.industry !== 'Freelancer';
+    const isCompanyProfile = userProfile.role === 'recruiter' && !!companyProfile;
     const companyCoordinates = (companyProfile?.lat != null && companyProfile?.lng != null)
         ? { lat: Number(companyProfile.lat), lon: Number(companyProfile.lng) }
         : undefined;
@@ -485,14 +479,7 @@ export default function App() {
             return;
         }
 
-        if (companyProfile.industry === 'Freelancer') {
-            setViewState(ViewState.PROFILE);
-            return;
-        }
-
-        if (companyProfile.industry === 'Education') {
-            setViewState(ViewState.COURSE_PROVIDER_DASHBOARD);
-        }
+        setViewState(ViewState.COMPANY_DASHBOARD);
     }, [viewState, userProfile.isLoggedIn, userProfile.role, companyProfile?.id, companyProfile?.industry, setViewState]);
 
     const refreshUserProfile = async () => {
@@ -666,16 +653,6 @@ export default function App() {
                     setSelectedBlogPostSlug(slug);
                     setSelectedJobId(null);
                 }
-            } else if (parts[0] === 'kurzy-a-rekvalifikace') {
-                setViewState(ViewState.LIST);
-                setShowCompanyLanding(false);
-                setSelectedJobId(null);
-                setSelectedBlogPostSlug(null);
-            } else if (parts[0] === 'sluzby') {
-                setViewState(ViewState.SERVICES);
-                setShowCompanyLanding(false);
-                setSelectedJobId(null);
-                setSelectedBlogPostSlug(null);
             } else if (parts[0] === 'ulozene') {
                 setViewState(ViewState.SAVED);
                 setShowCompanyLanding(false);
@@ -695,16 +672,6 @@ export default function App() {
                 setShowCompanyLanding(true);
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
-            } else if (parts[0] === 'freelancer-dashboard') {
-                setViewState(ViewState.PROFILE);
-                setShowCompanyLanding(false);
-                setSelectedJobId(null);
-                setSelectedBlogPostSlug(null);
-            } else if (parts[0] === 'course-provider-dashboard') {
-                setViewState(ViewState.COURSE_PROVIDER_DASHBOARD);
-                setShowCompanyLanding(false);
-                setSelectedJobId(null);
-                setSelectedBlogPostSlug(null);
             } else if (parts[0] === 'company-dashboard' || parts[0] === 'dashboard') {
                 setViewState(ViewState.COMPANY_DASHBOARD);
                 setShowCompanyLanding(false);
@@ -722,7 +689,6 @@ export default function App() {
     }, []);
 
     // RESTORE DASHBOARD VIEW STATE when navigating back to home (selectedJobId becomes null)
-    // BUT: Only restore if we're coming from a job detail view, NOT from other views like MARKETPLACE
     const prevSelectedJobIdRef = useRef<string | null>(selectedJobId);
     useEffect(() => {
         const prev = prevSelectedJobIdRef.current;
@@ -736,17 +702,10 @@ export default function App() {
                 console.log("🔄 [NavRestore] Checking profile to restore dashboard. companyProfile:", {
                     id: companyProfile?.id,
                     name: companyProfile?.name,
-                    industry: companyProfile?.industry,
-                    isFreelancer: companyProfile?.industry === 'Freelancer'
+                    industry: companyProfile?.industry
                 });
 
-                if (companyProfile?.industry === 'Education') {
-                    setViewState(ViewState.COURSE_PROVIDER_DASHBOARD);
-                    console.log("✅ Restored COURSE_PROVIDER_DASHBOARD after returning from job detail");
-                } else if (companyProfile?.industry === 'Freelancer') {
-                    setViewState(ViewState.PROFILE);
-                    console.log("✅ Restored PROFILE after returning from job detail (freelancer dashboard disabled)");
-                } else if (companyProfile) {
+                if (companyProfile) {
                     setViewState(ViewState.COMPANY_DASHBOARD);
                     console.log("✅ Restored COMPANY_DASHBOARD after returning from job detail");
                 }
@@ -785,20 +744,12 @@ export default function App() {
                 targetPath = `/${lng}/blog/${selectedBlogPostSlug}`;
             } else if (showCompanyLanding) {
                 targetPath = `/${lng}/pro-firmy`;
-            } else if (viewState === ViewState.MARKETPLACE) {
-                targetPath = `/${lng}/`;
-            } else if (viewState === ViewState.SERVICES) {
-                targetPath = `/${lng}/sluzby`;
             } else if (viewState === ViewState.SAVED) {
                 targetPath = `/${lng}/ulozene`;
             } else if (viewState === ViewState.ASSESSMENT) {
                 targetPath = `/${lng}/assessment-centrum`;
             } else if (viewState === ViewState.PROFILE) {
                 targetPath = `/${lng}/profil`;
-            } else if (viewState === ViewState.FREELANCER_DASHBOARD) {
-                targetPath = `/${lng}/profil`;
-            } else if (viewState === ViewState.COURSE_PROVIDER_DASHBOARD) {
-                targetPath = `/${lng}/course-provider-dashboard`;
             } else if (viewState === ViewState.COMPANY_DASHBOARD) {
                 targetPath = `/${lng}/company-dashboard`;
             }
@@ -1018,13 +969,9 @@ export default function App() {
         const pageName = showCompanyLanding ? 'company-dashboard' :
                     viewState === ViewState.LIST ? 'home' :
                         viewState === ViewState.PROFILE ? 'profile' :
-                            viewState === ViewState.MARKETPLACE ? 'home' :
-                                viewState === ViewState.SERVICES ? 'services' :
-                            viewState === ViewState.FREELANCER_DASHBOARD ? 'profile' :
-                                viewState === ViewState.COURSE_PROVIDER_DASHBOARD ? 'course-provider-dashboard' :
-                                    viewState === ViewState.SAVED ? 'saved' :
-                                        viewState === ViewState.ASSESSMENT ? 'assessment' :
-                                            viewState === ViewState.COMPANY_DASHBOARD ? 'company-dashboard' : 'home';
+                            viewState === ViewState.SAVED ? 'saved' :
+                                viewState === ViewState.ASSESSMENT ? 'assessment' :
+                                    viewState === ViewState.COMPANY_DASHBOARD ? 'company-dashboard' : 'home';
 
         // Wait until translations are ready to avoid raw keys in browser tab
         if (t('seo.base_title') === 'seo.base_title') return;
@@ -1062,7 +1009,7 @@ export default function App() {
                     ? userProfile
                     : {
                         ...userProfile,
-                        address: t('financial.current_location_label', { defaultValue: 'Aktuální poloha' }) as string
+                        address: t('financial.current_location_label') as string
                     };
                 const analysis = calculateCommuteReality(selectedJob, commuteProfile);
                 setCommuteAnalysis(analysis);
@@ -1177,13 +1124,13 @@ export default function App() {
 
         } catch (error) {
             console.error("Failed to save profile:", error);
-            alert("Nepodařilo se uložit profil. Zkuste to znovu.");
+            alert(t('alerts.profile_save_failed'));
         }
     };
 
     const handleUseCurrentLocation = useCallback(() => {
         if (!navigator.geolocation) {
-            alert('Geolokace není v tomto prohlížeči dostupná.');
+            alert(t('alerts.geolocation_not_supported'));
             return;
         }
 
@@ -1196,7 +1143,7 @@ export default function App() {
                 setUserProfile({
                     ...userProfile,
                     coordinates: coords,
-                    address: userProfile.address || (t('financial.current_location_label', { defaultValue: 'Aktuální poloha' }) as string)
+                    address: userProfile.address || (t('financial.current_location_label') as string)
                 });
                 setEnableCommuteFilter(true);
                 setFilterMaxDistance(50);
@@ -1205,7 +1152,7 @@ export default function App() {
             },
             (error) => {
                 console.warn('Geolocation failed:', error);
-                alert('Nepodařilo se získat polohu. Zkontrolujte prosím oprávnění prohlížeče.');
+                alert(t('alerts.geolocation_fetch_failed'));
             },
             { enableHighAccuracy: true, timeout: 12000, maximumAge: 300000 }
         );
@@ -1383,7 +1330,7 @@ export default function App() {
         if (!selectedJob) return;
 
         if (!userProfile.isLoggedIn || !userProfile.id) {
-            setShowPremiumUpgrade({ open: true, feature: 'AI analýza pracovních inzerátů' });
+            setShowPremiumUpgrade({ open: true, feature: t('alerts.ai_job_analysis_feature') as string });
             return;
         }
 
@@ -1397,11 +1344,11 @@ export default function App() {
             const reason = (billing.reason || '').toLowerCase();
             const isEntitlementDeny = reason.includes('feature') || reason.includes('tier') || reason.includes('inactive subscription');
             if (isEntitlementDeny) {
-                setShowPremiumUpgrade({ open: true, feature: 'AI analýza pracovních inzerátů' });
+                setShowPremiumUpgrade({ open: true, feature: t('alerts.ai_job_analysis_feature') as string });
             } else if (billing.reason) {
                 alert(billing.reason);
             } else {
-                alert('Nepodařilo se ověřit předplatné. Zkuste to prosím znovu.');
+                alert(t('alerts.subscription_verification_failed'));
             }
             return;
         }
@@ -1511,82 +1458,8 @@ export default function App() {
             );
         }
 
-        if (viewState === ViewState.FREELANCER_DASHBOARD) {
-            return (
-                <div className="col-span-1 lg:col-span-12 max-w-4xl mx-auto w-full h-full overflow-y-auto custom-scrollbar pb-6 px-1">
-                    <ProfileEditor
-                        profile={userProfile}
-                        onChange={(p, persist) => handleProfileUpdate(p, persist)}
-                        onSave={handleProfileSave}
-                        onRefreshProfile={refreshUserProfile}
-                        onDeleteAccount={deleteAccount}
-                        savedJobs={jobsForDisplay.filter(job => savedJobIds.includes(job.id))}
-                        savedJobIds={savedJobIds}
-                        onToggleSave={handleToggleSave}
-                        onJobSelect={handleJobSelect}
-                        onApplyToJob={handleApplyToJob}
-                        selectedJobId={selectedJobId}
-                    />
-                </div>
-            );
-        }
-
-        if (viewState === ViewState.COURSE_PROVIDER_DASHBOARD) {
-            if (!companyProfile || companyProfile?.industry !== 'Education') {
-                return (
-                    <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
-                        <div className="max-w-xl mx-auto mt-10 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 text-center shadow-sm">
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
-                                {t('course_provider.dashboard.register_title', { defaultValue: 'Staňte se poskytovatelem kurzů' })}
-                            </h2>
-                            <p className="text-sm text-slate-600 dark:text-slate-400 mb-6">
-                                {t('course_provider.dashboard.register_desc', { defaultValue: 'Pro přístup do dashboardu je potřeba krátká registrace.' })}
-                            </p>
-                            <button
-                                onClick={() => setIsCourseProviderRegistrationOpen(true)}
-                                className="px-5 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-sm transition-colors"
-                            >
-                                {t('course_provider.dashboard.register_cta', { defaultValue: 'Zaregistrovat se jako poskytovatel kurzů' })}
-                            </button>
-                        </div>
-                    </div>
-                );
-            }
-            return (
-                <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
-                    <CourseProviderDashboard
-                        userProfile={userProfile}
-                        companyProfile={companyProfile}
-                        onLogout={signOut}
-                    />
-                </div>
-            );
-        }
-
-        if (viewState === ViewState.MARKETPLACE) {
-            // Education marketplace disabled
-            setTimeout(() => setViewState(ViewState.LIST), 0);
-            return null;
-        }
-
-        if (viewState === ViewState.SERVICES) {
-            return (
-                <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
-                    <ServicesMarketplace userProfile={userProfile} />
-                </div>
-            );
-        }
-
         if (viewState === ViewState.PROFILE) {
-            // STRICT SEPARATION: Recruiters cannot access candidate profile editor
-            // Exception: Freelancers (industry=Freelancer) can also manage candidate profile
-            // Important: only redirect when we have a confirmed non-marketplace company profile.
-            if (
-                userProfile.role === 'recruiter'
-                && !!companyProfile
-                && companyProfile.industry !== 'Freelancer'
-                && companyProfile.industry !== 'Education'
-            ) {
+            if (userProfile.role === 'recruiter' && !!companyProfile) {
                 // Defer state update to next tick to avoid render-phase update warning
                 setTimeout(() => setViewState(ViewState.COMPANY_DASHBOARD), 0);
                 return null;
@@ -1712,7 +1585,7 @@ export default function App() {
                                     }}
                                     className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 text-sm font-semibold shadow-sm hover:bg-white dark:hover:bg-slate-900 transition-colors"
                                 >
-                                    {t('job.swipe_view') || 'Swipe view'}
+                                    {t('job.swipe_view')}
                                 </button>
                             </div>
                         )}
@@ -1927,24 +1800,6 @@ export default function App() {
                 onSuccess={() => {
                     setIsCompanyRegistrationOpen(false);
                     console.log('Company registration successful');
-                }}
-            />
-
-            <FreelancerRegistrationModal
-                isOpen={isFreelancerRegistrationOpen}
-                onClose={() => setIsFreelancerRegistrationOpen(false)}
-                onSuccess={() => {
-                    setIsFreelancerRegistrationOpen(false);
-                    window.location.reload();
-                }}
-            />
-
-            <CourseProviderRegistrationModal
-                isOpen={isCourseProviderRegistrationOpen}
-                onClose={() => setIsCourseProviderRegistrationOpen(false)}
-                onSuccess={() => {
-                    setIsCourseProviderRegistrationOpen(false);
-                    window.location.reload();
                 }}
             />
 

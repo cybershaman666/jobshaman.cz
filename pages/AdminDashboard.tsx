@@ -3,6 +3,7 @@ import { Bell, BarChart3, RefreshCcw, Search, Sparkles } from 'lucide-react';
 import { UserProfile } from '../types';
 import { BACKEND_URL } from '../constants';
 import { adminSearch, getAdminAiQuality, getAdminNotifications, getAdminPushSubscriptions, getAdminStats, getAdminSubscriptionAudit, getAdminSubscriptions, getAdminUserDigest, updateAdminSubscription, updateAdminUserDigest } from '../services/adminService';
+import { useTranslation } from 'react-i18next';
 
 interface AdminDashboardProps {
   userProfile: UserProfile;
@@ -12,7 +13,6 @@ const TIERS = [
   'free',
   'premium',
   'business',
-  'freelance_premium',
   'trial',
   'enterprise',
   'assessment_bundle',
@@ -22,6 +22,7 @@ const TIERS = [
 const STATUSES = ['active', 'trialing', 'inactive', 'canceled'];
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
+  const { t, i18n } = useTranslation();
   const [subscriptions, setSubscriptions] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -106,7 +107,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       });
       setEdits(nextEdits);
     } catch (err: any) {
-      const message = err?.message || 'Načtení selhalo';
+      const message = err?.message || t('admin_dashboard.errors.load_failed');
       if (message.toLowerCase().includes('admin') || message.toLowerCase().includes('forbidden')) {
         setForbidden(true);
       } else {
@@ -246,12 +247,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     if (!value) return '—';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return value;
-    return date.toLocaleString('cs-CZ', { dateStyle: 'medium', timeStyle: 'short' });
+    return date.toLocaleString(i18n.language, { dateStyle: 'medium', timeStyle: 'short' });
   };
 
   const formatNumber = (value?: number) => {
     if (value === null || value === undefined) return '—';
-    return new Intl.NumberFormat('cs-CZ').format(value);
+    return new Intl.NumberFormat(i18n.language).format(value);
   };
 
   const formatPercent = (value?: number) => {
@@ -265,11 +266,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
   const getEntityLabel = (sub: any) => {
     if (sub.company_id) {
-      const industry = sub.companies?.industry;
-      if (industry === 'Freelancer') return 'Freelancer';
-      return 'Firma';
+      return t('admin_dashboard.entity.company');
     }
-    return 'Uživatel';
+    return t('admin_dashboard.entity.user');
   };
 
   const getEntityName = (sub: any) => {
@@ -318,7 +317,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       await loadSubscriptions();
       await loadNotifications();
     } catch (err: any) {
-      setError(err?.message || 'Uložení selhalo');
+      setError(err?.message || t('admin_dashboard.errors.save_failed'));
     }
   };
 
@@ -344,7 +343,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       await loadSubscriptions();
       await loadNotifications();
     } catch (err: any) {
-      setError(err?.message || 'Akce selhala');
+      setError(err?.message || t('admin_dashboard.errors.action_failed'));
     }
   };
 
@@ -355,7 +354,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
   const handleCreateSubscription = async () => {
     if (!createForm.target_id.trim()) {
-      setError('Zadejte ID cíle (company/user)');
+      setError(t('admin_dashboard.errors.target_required'));
       return;
     }
     try {
@@ -370,7 +369,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       await loadSubscriptions();
       await loadNotifications();
     } catch (err: any) {
-      setError(err?.message || 'Vytvoření selhalo');
+      setError(err?.message || t('admin_dashboard.errors.create_failed'));
     }
   };
 
@@ -398,7 +397,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       setDigestUser(data);
     } catch (err: any) {
       setDigestUser(null);
-      setDigestError(err?.message || 'Načtení digestu selhalo');
+      setDigestError(err?.message || t('admin_dashboard.errors.digest_load_failed'));
     } finally {
       setDigestLoading(false);
     }
@@ -417,7 +416,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       });
       setDigestUser(data);
     } catch (err: any) {
-      setDigestError(err?.message || 'Uložení digestu selhalo');
+      setDigestError(err?.message || t('admin_dashboard.errors.digest_save_failed'));
     } finally {
       setDigestSaving(false);
     }
@@ -471,8 +470,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
         <div className="max-w-2xl mx-auto px-4 py-12">
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 text-center shadow-sm relative overflow-hidden">
             <div className="absolute -right-16 -top-16 w-40 h-40 bg-cyan-500/10 blur-3xl rounded-full" />
-            <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">Admin zóna</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Pro přístup se nejdřív přihlaste.</p>
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">{t('admin_dashboard.auth.admin_zone')}</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400">{t('admin_dashboard.auth.login_required')}</p>
           </div>
         </div>
       </div>
@@ -485,8 +484,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
         <div className="max-w-2xl mx-auto px-4 py-12">
           <div className="bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-900 rounded-3xl p-8 text-center shadow-sm relative overflow-hidden">
             <div className="absolute -right-16 -top-16 w-40 h-40 bg-rose-500/10 blur-3xl rounded-full" />
-            <h2 className="text-2xl font-black text-rose-700 dark:text-rose-300 mb-2">Přístup zamítnut</h2>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Tento účet nemá admin oprávnění.</p>
+            <h2 className="text-2xl font-black text-rose-700 dark:text-rose-300 mb-2">{t('admin_dashboard.auth.access_denied')}</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400">{t('admin_dashboard.auth.no_admin_rights')}</p>
           </div>
         </div>
       </div>
@@ -501,11 +500,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             <div>
               <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400 font-semibold mb-1.5">
                 <span className="w-2 h-2 rounded-full bg-cyan-500" />
-                Admin Control
+                {t('admin_dashboard.header.control')}
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">Admin Dashboard</h1>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">{t('admin_dashboard.header.title')}</h1>
               <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 mt-1">
-                Správa předplatných, trialů, auditů a návštěvnosti
+                {t('admin_dashboard.header.subtitle')}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -520,14 +519,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 className="px-3 py-2 rounded-lg bg-cyan-600 text-white text-sm font-semibold hover:bg-cyan-500 shadow-sm transition-colors flex items-center gap-2"
               >
                 <RefreshCcw size={16} />
-                Obnovit data
+                {t('admin_dashboard.actions.refresh_data')}
               </button>
               <button
                 onClick={handleWakeBackend}
                 className="px-3 py-2 rounded-lg text-sm border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors flex items-center gap-2"
               >
                 <span className={`inline-flex w-2.5 h-2.5 rounded-full ${wakeStatus === 'ok' ? 'bg-emerald-500' : wakeStatus === 'error' ? 'bg-rose-500' : wakeStatus === 'loading' ? 'bg-amber-500' : 'bg-slate-400'}`} />
-                {wakeStatus === 'loading' ? 'Probouzím…' : wakeStatus === 'ok' ? 'Backend OK' : 'Probudit backend'}
+                {wakeStatus === 'loading' ? t('admin_dashboard.actions.waking') : wakeStatus === 'ok' ? t('admin_dashboard.actions.backend_ok') : t('admin_dashboard.actions.wake_backend')}
               </button>
             </div>
           </div>
@@ -540,14 +539,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 <Bell size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Upozornění (trial)</h3>
-                <p className="text-xs text-slate-500">Nejbližší expirace</p>
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('admin_dashboard.notifications.title')}</h3>
+                <p className="text-xs text-slate-500">{t('admin_dashboard.notifications.subtitle')}</p>
               </div>
             </div>
             {loadingNotifications ? (
-              <p className="text-sm text-slate-500">Načítám...</p>
+              <p className="text-sm text-slate-500">{t('admin_dashboard.common.loading')}</p>
             ) : notifications.length === 0 ? (
-              <p className="text-sm text-slate-500">Žádné urgentní položky.</p>
+              <p className="text-sm text-slate-500">{t('admin_dashboard.notifications.empty')}</p>
             ) : (
               <div className="space-y-2 max-h-64 overflow-auto pr-1">
                 {notifications.map((n: any) => (
@@ -555,7 +554,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     <div className="flex items-center justify-between text-xs text-slate-500">
                       <span className="font-medium text-slate-600 dark:text-slate-300">{n.company_name || n.user_email || n.subscription_id}</span>
                       <span className={`px-2 py-0.5 rounded-full font-semibold ${n.severity === 'today' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300' : n.severity === 'expired' ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/10 dark:text-rose-300' : 'bg-amber-100 text-amber-700 dark:bg-amber-500/10 dark:text-amber-300'}`}>
-                        {n.severity === 'today' ? 'Dnes končí' : n.severity === 'expired' ? 'Expirované' : 'Brzy končí'}
+                        {n.severity === 'today' ? t('admin_dashboard.notifications.severity.today') : n.severity === 'expired' ? t('admin_dashboard.notifications.severity.expired') : t('admin_dashboard.notifications.severity.soon')}
                       </span>
                     </div>
                     <div className="text-sm text-slate-700 dark:text-slate-300 mt-2">
@@ -573,8 +572,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 <Sparkles size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Vytvořit předplatné</h3>
-                <p className="text-xs text-slate-500">Rychlé nastavení tieru a trialu</p>
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('admin_dashboard.create_subscription.title')}</h3>
+                <p className="text-xs text-slate-500">{t('admin_dashboard.create_subscription.subtitle')}</p>
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-6 gap-2.5">
@@ -583,13 +582,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 onChange={e => setCreateForm(prev => ({ ...prev, target_type: e.target.value }))}
                 className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
               >
-                <option value="company">Firma</option>
-                <option value="user">Uživatel</option>
+                <option value="company">{t('admin_dashboard.entity.company')}</option>
+                <option value="user">{t('admin_dashboard.entity.user')}</option>
               </select>
               <input
                 value={createForm.target_id}
                 onChange={e => setCreateForm(prev => ({ ...prev, target_id: e.target.value }))}
-                placeholder="UUID cíle"
+                placeholder={t('admin_dashboard.create_subscription.target_uuid')}
                 className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 md:col-span-2 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
               />
               <select
@@ -614,14 +613,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 type="number"
                 value={createForm.set_trial_days}
                 onChange={e => setCreateForm(prev => ({ ...prev, set_trial_days: e.target.value }))}
-                placeholder="Trial dní"
+                placeholder={t('admin_dashboard.create_subscription.trial_days')}
                 className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
               />
               <button
                 onClick={handleCreateSubscription}
                 className="px-4 py-2 rounded-lg bg-cyan-600 text-white text-sm font-semibold hover:bg-cyan-500 md:col-span-2 shadow-sm transition-colors"
               >
-                Vytvořit / upravit
+                {t('admin_dashboard.create_subscription.create_or_update')}
               </button>
             </div>
             <div className="mt-3 border-t border-slate-100 dark:border-slate-800 pt-3">
@@ -631,24 +630,24 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   onChange={e => setSearchKind(e.target.value as 'company' | 'user')}
                   className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
                 >
-                  <option value="company">Hledat firmu</option>
-                  <option value="user">Hledat uživatele</option>
+                  <option value="company">{t('admin_dashboard.search.search_company')}</option>
+                  <option value="user">{t('admin_dashboard.search.search_user')}</option>
                 </select>
                 <input
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Název firmy, jméno nebo email..."
+                  placeholder={t('admin_dashboard.search.placeholder')}
                   className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 flex-1 min-w-[220px] focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
                 />
                 <button
                   onClick={handleSearch}
                   className="px-3 py-2 rounded-lg text-sm border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
                 >
-                  Vyhledat
+                  {t('admin_dashboard.search.search_button')}
                 </button>
               </div>
               {searchLoading && (
-                <div className="text-xs text-slate-500 mt-2">Hledám...</div>
+                <div className="text-xs text-slate-500 mt-2">{t('admin_dashboard.search.searching')}</div>
               )}
               {searchResults.length > 0 && (
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -670,14 +669,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                           }}
                           className="px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
                         >
-                          Použít pro předplatné
+                          {t('admin_dashboard.search.use_for_subscription')}
                         </button>
                         {item.kind === 'user' && (
                           <button
                             onClick={() => loadDigestUser(item.id)}
                             className="px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:text-emerald-600 transition-colors"
                           >
-                            Spravovat digest
+                            {t('admin_dashboard.search.manage_digest')}
                           </button>
                         )}
                       </div>
@@ -689,21 +688,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 <div className="mt-4 border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
                   <div className="flex items-center justify-between gap-3 mb-3">
                     <div>
-                      <div className="text-sm font-semibold text-slate-900 dark:text-white">Denní digest (mailing list)</div>
-                      <div className="text-xs text-slate-500">Správa odebírání pro vybraného uživatele</div>
+                      <div className="text-sm font-semibold text-slate-900 dark:text-white">{t('admin_dashboard.digest.title')}</div>
+                      <div className="text-xs text-slate-500">{t('admin_dashboard.digest.subtitle')}</div>
                     </div>
                     {digestUser && (
                       <button
                         onClick={() => setDigestUser(null)}
                         className="px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
                       >
-                        Zavřít
+                        {t('admin_dashboard.common.close')}
                       </button>
                     )}
                   </div>
 
                   {digestLoading && (
-                    <div className="text-xs text-slate-500">Načítám nastavení…</div>
+                    <div className="text-xs text-slate-500">{t('admin_dashboard.digest.loading_settings')}</div>
                   )}
 
                   {digestError && (
@@ -713,17 +712,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   {digestUser && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                       <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900">
-                        <div className="text-xs text-slate-500">Uživatel</div>
+                        <div className="text-xs text-slate-500">{t('admin_dashboard.entity.user')}</div>
                         <div className="font-semibold text-slate-900 dark:text-white">{digestUser.full_name || '—'}</div>
                         <div className="text-xs text-slate-500">{digestUser.email}</div>
                       </div>
                       <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900">
-                        <div className="text-xs text-slate-500">Locale / Country</div>
+                        <div className="text-xs text-slate-500">{t('admin_dashboard.digest.locale_country')}</div>
                         <div className="text-slate-700 dark:text-slate-300">{digestUser.preferred_locale || '—'}</div>
                         <div className="text-slate-700 dark:text-slate-300">{digestUser.preferred_country_code || '—'}</div>
                       </div>
                       <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900">
-                        <div className="text-xs text-slate-500">Poslední odeslání</div>
+                        <div className="text-xs text-slate-500">{t('admin_dashboard.digest.last_sent')}</div>
                         <div className="text-slate-700 dark:text-slate-300">{digestUser.daily_digest_last_sent_at ? formatDate(digestUser.daily_digest_last_sent_at) : '—'}</div>
                       </div>
                       <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900 md:col-span-3 flex flex-wrap items-center justify-between gap-3">
@@ -733,14 +732,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                             checked={Boolean(digestUser.daily_digest_enabled)}
                             onChange={e => setDigestUser((prev: any) => ({ ...prev, daily_digest_enabled: e.target.checked }))}
                           />
-                          Odebírat denní digest
+                          {t('admin_dashboard.digest.subscribe_daily')}
                         </label>
                         <button
                           onClick={saveDigestUser}
                           disabled={digestSaving}
                           className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:text-emerald-600 transition-colors disabled:opacity-60"
                         >
-                          {digestSaving ? 'Ukládám…' : 'Uložit'}
+                          {digestSaving ? t('admin_dashboard.common.saving') : t('admin_dashboard.common.save')}
                         </button>
                       </div>
                     </div>
@@ -754,14 +753,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm mb-5">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Push subscriptions</h3>
-              <p className="text-xs text-slate-500">Aktivní odběry pro PWA notifikace</p>
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('admin_dashboard.push.title')}</h3>
+              <p className="text-xs text-slate-500">{t('admin_dashboard.push.subtitle')}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <input
                 value={pushSubsQuery}
                 onChange={(e) => setPushSubsQuery(e.target.value)}
-                placeholder="Hledat email nebo jméno..."
+                placeholder={t('admin_dashboard.search.email_or_name')}
                 className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
               />
               <button
@@ -769,29 +768,29 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 className="px-3 py-2 rounded-lg text-sm border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors flex items-center gap-2"
               >
                 <RefreshCcw size={14} />
-                Obnovit
+                {t('admin_dashboard.actions.refresh')}
               </button>
               <button
                 onClick={exportPushCsv}
                 className="px-3 py-2 rounded-lg text-sm border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:text-emerald-600 transition-colors"
               >
-                Export CSV
+                {t('admin_dashboard.actions.export_csv')}
               </button>
             </div>
           </div>
           {pushSubsLoading ? (
-            <p className="text-sm text-slate-500">Načítám...</p>
+            <p className="text-sm text-slate-500">{t('admin_dashboard.common.loading')}</p>
           ) : pushSubs.length === 0 ? (
-            <p className="text-sm text-slate-500">Žádné aktivní push subscriptions.</p>
+            <p className="text-sm text-slate-500">{t('admin_dashboard.push.empty')}</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200 dark:border-slate-800">
-                    <th className="py-2 pr-3">Uživatel</th>
-                    <th className="py-2 pr-3">Email</th>
-                    <th className="py-2 pr-3">Aktualizace</th>
-                    <th className="py-2 pr-3">User Agent</th>
+                    <th className="py-2 pr-3">{t('admin_dashboard.entity.user')}</th>
+                    <th className="py-2 pr-3">{t('admin_dashboard.table.email')}</th>
+                    <th className="py-2 pr-3">{t('admin_dashboard.push.updated')}</th>
+                    <th className="py-2 pr-3">{t('admin_dashboard.push.user_agent')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -820,27 +819,27 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm mb-5">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <div>
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Mailing / Odběry digestu</h3>
-              <p className="text-xs text-slate-500">Správa e‑mail/push odběrů pro kandidáty</p>
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('admin_dashboard.mailing.title')}</h3>
+              <p className="text-xs text-slate-500">{t('admin_dashboard.mailing.subtitle')}</p>
             </div>
             <div className="flex flex-wrap gap-2">
               <input
                 value={mailingQuery}
                 onChange={(e) => setMailingQuery(e.target.value)}
-                placeholder="Hledat email nebo jméno..."
+                placeholder={t('admin_dashboard.search.email_or_name')}
                 className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
               />
               <button
                 onClick={handleMailingSearch}
                 className="px-3 py-2 rounded-lg text-sm border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
               >
-                Vyhledat
+                {t('admin_dashboard.search.search_button')}
               </button>
             </div>
           </div>
 
           {mailingLoading && (
-            <div className="text-xs text-slate-500">Hledám...</div>
+            <div className="text-xs text-slate-500">{t('admin_dashboard.search.searching')}</div>
           )}
 
           {mailingResults.length > 0 && (
@@ -862,21 +861,21 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             <div className="mt-4 border border-slate-200 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">Nastavení digestu</div>
-                  <div className="text-xs text-slate-500">Email + push + čas doručení</div>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">{t('admin_dashboard.mailing.digest_settings_title')}</div>
+                  <div className="text-xs text-slate-500">{t('admin_dashboard.mailing.digest_settings_subtitle')}</div>
                 </div>
                 {digestUser && (
                   <button
                     onClick={() => setDigestUser(null)}
                     className="px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
                   >
-                    Zavřít
+                    {t('admin_dashboard.common.close')}
                   </button>
                 )}
               </div>
 
               {digestLoading && (
-                <div className="text-xs text-slate-500">Načítám nastavení…</div>
+                <div className="text-xs text-slate-500">{t('admin_dashboard.digest.loading_settings')}</div>
               )}
 
               {digestError && (
@@ -886,17 +885,17 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               {digestUser && (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
                   <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900">
-                    <div className="text-xs text-slate-500">Uživatel</div>
+                    <div className="text-xs text-slate-500">{t('admin_dashboard.entity.user')}</div>
                     <div className="font-semibold text-slate-900 dark:text-white">{digestUser.full_name || '—'}</div>
                     <div className="text-xs text-slate-500">{digestUser.email}</div>
                   </div>
                   <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900">
-                    <div className="text-xs text-slate-500">Locale / Country</div>
+                    <div className="text-xs text-slate-500">{t('admin_dashboard.digest.locale_country')}</div>
                     <div className="text-slate-700 dark:text-slate-300">{digestUser.preferred_locale || '—'}</div>
                     <div className="text-slate-700 dark:text-slate-300">{digestUser.preferred_country_code || '—'}</div>
                   </div>
                   <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900">
-                    <div className="text-xs text-slate-500">Poslední odeslání</div>
+                    <div className="text-xs text-slate-500">{t('admin_dashboard.digest.last_sent')}</div>
                     <div className="text-slate-700 dark:text-slate-300">{digestUser.daily_digest_last_sent_at ? formatDate(digestUser.daily_digest_last_sent_at) : '—'}</div>
                   </div>
                   <div className="border border-slate-200 dark:border-slate-800 rounded-lg p-3 bg-white dark:bg-slate-900 md:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -906,7 +905,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         checked={Boolean(digestUser.daily_digest_enabled)}
                         onChange={e => setDigestUser((prev: any) => ({ ...prev, daily_digest_enabled: e.target.checked }))}
                       />
-                      Email digest
+                      {t('admin_dashboard.digest.email_digest')}
                     </label>
                     <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
                       <input
@@ -914,10 +913,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         checked={Boolean(digestUser.daily_digest_push_enabled)}
                         onChange={e => setDigestUser((prev: any) => ({ ...prev, daily_digest_push_enabled: e.target.checked }))}
                       />
-                      Push digest
+                      {t('admin_dashboard.digest.push_digest')}
                     </label>
                     <div>
-                      <label className="block text-xs text-slate-500 mb-1">Čas</label>
+                      <label className="block text-xs text-slate-500 mb-1">{t('admin_dashboard.digest.time')}</label>
                       <input
                         type="time"
                         value={digestUser.daily_digest_time || '07:30'}
@@ -926,7 +925,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-500 mb-1">Timezone</label>
+                      <label className="block text-xs text-slate-500 mb-1">{t('admin_dashboard.digest.timezone')}</label>
                       <input
                         type="text"
                         value={digestUser.daily_digest_timezone || 'Europe/Prague'}
@@ -940,7 +939,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                         disabled={digestSaving}
                         className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:text-emerald-600 transition-colors disabled:opacity-60"
                       >
-                        {digestSaving ? 'Ukládám…' : 'Uložit'}
+                        {digestSaving ? t('admin_dashboard.common.saving') : t('admin_dashboard.common.save')}
                       </button>
                     </div>
                   </div>
@@ -953,49 +952,49 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
           <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm">
             <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500/70 rounded-t-2xl" />
-            <div className="text-[11px] text-slate-500 uppercase tracking-[0.15em] mt-1.5">Uživatelé</div>
+            <div className="text-[11px] text-slate-500 uppercase tracking-[0.15em] mt-1.5">{t('admin_dashboard.stats.users')}</div>
             <div className="text-xl font-bold text-slate-900 dark:text-white">
               {loadingStats ? '…' : stats?.users?.total ?? '—'}
             </div>
-            <div className="text-xs text-slate-500 mt-1">+ {stats?.users?.new_7d ?? '—'} za 7 dní</div>
+            <div className="text-xs text-slate-500 mt-1">+ {stats?.users?.new_7d ?? '—'} {t('admin_dashboard.stats.in_7_days')}</div>
           </div>
           <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm">
             <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500/70 rounded-t-2xl" />
-            <div className="text-[11px] text-slate-500 uppercase tracking-[0.15em] mt-1.5">Uživatelé 30 dní</div>
+            <div className="text-[11px] text-slate-500 uppercase tracking-[0.15em] mt-1.5">{t('admin_dashboard.stats.users_30_days')}</div>
             <div className="text-xl font-bold text-slate-900 dark:text-white">
               {loadingStats ? '…' : stats?.users?.new_30d ?? '—'}
             </div>
-            <div className="text-xs text-slate-500 mt-1">Noví za 30 dní</div>
+            <div className="text-xs text-slate-500 mt-1">{t('admin_dashboard.stats.new_in_30_days')}</div>
           </div>
           <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm">
             <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500/70 rounded-t-2xl" />
-            <div className="text-[11px] text-slate-500 uppercase tracking-[0.15em] mt-1.5">Firmy</div>
+            <div className="text-[11px] text-slate-500 uppercase tracking-[0.15em] mt-1.5">{t('admin_dashboard.stats.companies')}</div>
             <div className="text-xl font-bold text-slate-900 dark:text-white">
               {loadingStats ? '…' : stats?.companies?.total ?? '—'}
             </div>
-            <div className="text-xs text-slate-500 mt-1">+ {stats?.companies?.new_7d ?? '—'} za 7 dní</div>
+            <div className="text-xs text-slate-500 mt-1">+ {stats?.companies?.new_7d ?? '—'} {t('admin_dashboard.stats.in_7_days')}</div>
           </div>
           <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm">
             <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500/70 rounded-t-2xl" />
-            <div className="text-[11px] text-slate-500 uppercase tracking-[0.15em] mt-1.5">Firmy 30 dní</div>
+            <div className="text-[11px] text-slate-500 uppercase tracking-[0.15em] mt-1.5">{t('admin_dashboard.stats.companies_30_days')}</div>
             <div className="text-xl font-bold text-slate-900 dark:text-white">
               {loadingStats ? '…' : stats?.companies?.new_30d ?? '—'}
             </div>
             <div className="text-xs text-slate-500 mt-1">
-              Nové firmy za 30 dní
+              {t('admin_dashboard.stats.new_companies_30_days')}
             </div>
           </div>
           <div className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 shadow-sm col-span-2 lg:col-span-1">
             <div className="absolute inset-x-0 top-0 h-1 bg-cyan-500/70 rounded-t-2xl" />
-            <div className="text-[11px] text-slate-500 uppercase tracking-[0.15em] mt-1.5">Konverze na placené</div>
+            <div className="text-[11px] text-slate-500 uppercase tracking-[0.15em] mt-1.5">{t('admin_dashboard.stats.paid_conversion')}</div>
             <div className="text-xl font-bold text-slate-900 dark:text-white">
               {loadingStats ? '…' : `${stats?.conversion?.company_paid_percent ?? '—'}%`}
             </div>
             <div className="text-xs text-slate-500 mt-1">
-              Firmy {stats?.conversion?.paid_companies ?? '—'} / {stats?.companies?.total ?? '—'}
+              {t('admin_dashboard.stats.companies_ratio')} {stats?.conversion?.paid_companies ?? '—'} / {stats?.companies?.total ?? '—'}
             </div>
             <div className="text-xs text-slate-500 mt-1">
-              Uživatelé {stats?.conversion?.user_paid_percent ?? '—'}%
+              {t('admin_dashboard.stats.users')} {stats?.conversion?.user_paid_percent ?? '—'}%
             </div>
           </div>
         </div>
@@ -1007,68 +1006,68 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 <BarChart3 size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Návštěvnost</h3>
-                <p className="text-xs text-slate-500">Posledních 30 dní</p>
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('admin_dashboard.traffic.title')}</h3>
+                <p className="text-xs text-slate-500">{t('admin_dashboard.traffic.last_30_days')}</p>
               </div>
             </div>
             <button
               onClick={() => setShowTrafficDetails(prev => !prev)}
               className="px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
             >
-              {showTrafficDetails ? 'Skrýt detail' : 'Zobrazit detail'}
+              {showTrafficDetails ? t('admin_dashboard.traffic.hide_details') : t('admin_dashboard.traffic.show_details')}
             </button>
           </div>
 
           {loadingStats ? (
-            <div className="text-sm text-slate-500">Načítám analytiku...</div>
+            <div className="text-sm text-slate-500">{t('admin_dashboard.traffic.loading')}</div>
           ) : !stats?.traffic?.totals_30 ? (
-            <div className="text-sm text-slate-500">Statistiky návštěvnosti nejsou k dispozici.</div>
+            <div className="text-sm text-slate-500">{t('admin_dashboard.traffic.unavailable')}</div>
           ) : (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                 <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                  <div className="text-xs text-slate-500">Pageviews</div>
+                  <div className="text-xs text-slate-500">{t('admin_dashboard.traffic.pageviews')}</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
                     {formatNumber(stats?.traffic?.totals_30?.pageviews)}
                   </div>
                   <div className="text-xs text-slate-500 mt-1">
-                    7 dní: {formatNumber(stats?.traffic?.totals_7?.pageviews)}
+                    {t('admin_dashboard.stats.in_7_days')}: {formatNumber(stats?.traffic?.totals_7?.pageviews)}
                   </div>
                 </div>
                 <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                  <div className="text-xs text-slate-500">Návštěvníci</div>
+                  <div className="text-xs text-slate-500">{t('admin_dashboard.traffic.visitors')}</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
                     {formatNumber(stats?.traffic?.totals_30?.unique_visitors)}
                   </div>
                   <div className="text-xs text-slate-500 mt-1">
-                    7 dní: {formatNumber(stats?.traffic?.totals_7?.unique_visitors)}
+                    {t('admin_dashboard.stats.in_7_days')}: {formatNumber(stats?.traffic?.totals_7?.unique_visitors)}
                   </div>
                 </div>
                 <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                  <div className="text-xs text-slate-500">Sessions</div>
+                  <div className="text-xs text-slate-500">{t('admin_dashboard.traffic.sessions')}</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
                     {formatNumber(stats?.traffic?.totals_30?.sessions)}
                   </div>
                   <div className="text-xs text-slate-500 mt-1">
-                    7 dní: {formatNumber(stats?.traffic?.totals_7?.sessions)}
+                    {t('admin_dashboard.stats.in_7_days')}: {formatNumber(stats?.traffic?.totals_7?.sessions)}
                   </div>
                 </div>
                 <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                  <div className="text-xs text-slate-500">Bounce rate</div>
+                  <div className="text-xs text-slate-500">{t('admin_dashboard.traffic.bounce_rate')}</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
                     {formatPercent(stats?.traffic?.totals_30?.bounce_rate)}
                   </div>
                   <div className="text-xs text-slate-500 mt-1">
-                    7 dní: {formatPercent(stats?.traffic?.totals_7?.bounce_rate)}
+                    {t('admin_dashboard.stats.in_7_days')}: {formatPercent(stats?.traffic?.totals_7?.bounce_rate)}
                   </div>
                 </div>
                 <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40 col-span-2 lg:col-span-1">
-                  <div className="text-xs text-slate-500">Stránky / session</div>
+                  <div className="text-xs text-slate-500">{t('admin_dashboard.traffic.pages_per_session')}</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">
                     {stats?.traffic?.totals_30?.pages_per_session ?? '—'}
                   </div>
                   <div className="text-xs text-slate-500 mt-1">
-                    7 dní: {stats?.traffic?.totals_7?.pages_per_session ?? '—'}
+                    {t('admin_dashboard.stats.in_7_days')}: {stats?.traffic?.totals_7?.pages_per_session ?? '—'}
                   </div>
                 </div>
               </div>
@@ -1076,7 +1075,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               {showTrafficDetails && (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-4">
                   <div className="lg:col-span-2">
-                    <div className="text-xs text-slate-500 mb-2">Denní návštěvnost (14 dní)</div>
+                    <div className="text-xs text-slate-500 mb-2">{t('admin_dashboard.traffic.daily_visits_14_days')}</div>
                     <div className="h-28 flex items-end gap-2">
                       {trafficSeries.map(day => {
                         const height = Math.round((day.pageviews / maxTrafficPageviews) * 100);
@@ -1097,10 +1096,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                   </div>
                   <div className="space-y-3">
                     <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                      <div className="text-xs text-slate-500 mb-2">Top stránky</div>
+                      <div className="text-xs text-slate-500 mb-2">{t('admin_dashboard.traffic.top_pages')}</div>
                       <div className="space-y-2">
                         {(stats?.traffic?.top_pages || []).length === 0 ? (
-                          <div className="text-xs text-slate-400">Žádná data.</div>
+                          <div className="text-xs text-slate-400">{t('admin_dashboard.common.no_data')}</div>
                         ) : (
                           stats?.traffic?.top_pages?.map((item: any) => (
                             <div key={item.path} className="flex items-center justify-between text-sm">
@@ -1116,10 +1115,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       </div>
                     </div>
                     <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                      <div className="text-xs text-slate-500 mb-2">Zdroj návštěv</div>
+                      <div className="text-xs text-slate-500 mb-2">{t('admin_dashboard.traffic.traffic_source')}</div>
                       <div className="space-y-2">
                         {(stats?.traffic?.top_referrers || []).length === 0 ? (
-                          <div className="text-xs text-slate-400">Žádná data.</div>
+                          <div className="text-xs text-slate-400">{t('admin_dashboard.common.no_data')}</div>
                         ) : (
                           stats?.traffic?.top_referrers?.map((item: any) => (
                             <div key={item.referrer} className="flex items-center justify-between text-sm">
@@ -1135,10 +1134,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       </div>
                     </div>
                     <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                      <div className="text-xs text-slate-500 mb-2">Top země (30 dní)</div>
+                      <div className="text-xs text-slate-500 mb-2">{t('admin_dashboard.traffic.top_countries_30_days')}</div>
                       <div className="space-y-2">
                         {(stats?.traffic?.geo?.top_countries || []).length === 0 ? (
-                          <div className="text-xs text-slate-400">Žádná data.</div>
+                          <div className="text-xs text-slate-400">{t('admin_dashboard.common.no_data')}</div>
                         ) : (
                           stats?.traffic?.geo?.top_countries?.map((item: any) => (
                             <div key={item.label} className="flex items-center justify-between text-sm">
@@ -1154,10 +1153,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       </div>
                     </div>
                     <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                      <div className="text-xs text-slate-500 mb-2">Zařízení (30 dní)</div>
+                      <div className="text-xs text-slate-500 mb-2">{t('admin_dashboard.traffic.devices_30_days')}</div>
                       <div className="space-y-2">
                         {(stats?.traffic?.geo?.top_devices || []).length === 0 ? (
-                          <div className="text-xs text-slate-400">Žádná data.</div>
+                          <div className="text-xs text-slate-400">{t('admin_dashboard.common.no_data')}</div>
                         ) : (
                           stats?.traffic?.geo?.top_devices?.map((item: any) => (
                             <div key={item.label} className="flex items-center justify-between text-sm">
@@ -1173,10 +1172,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       </div>
                     </div>
                     <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                      <div className="text-xs text-slate-500 mb-2">OS (30 dní)</div>
+                      <div className="text-xs text-slate-500 mb-2">{t('admin_dashboard.traffic.os_30_days')}</div>
                       <div className="space-y-2">
                         {(stats?.traffic?.geo?.top_os || []).length === 0 ? (
-                          <div className="text-xs text-slate-400">Žádná data.</div>
+                          <div className="text-xs text-slate-400">{t('admin_dashboard.common.no_data')}</div>
                         ) : (
                           stats?.traffic?.geo?.top_os?.map((item: any) => (
                             <div key={item.label} className="flex items-center justify-between text-sm">
@@ -1192,10 +1191,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       </div>
                     </div>
                     <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                      <div className="text-xs text-slate-500 mb-2">Prohlížeče (30 dní)</div>
+                      <div className="text-xs text-slate-500 mb-2">{t('admin_dashboard.traffic.browsers_30_days')}</div>
                       <div className="space-y-2">
                         {(stats?.traffic?.geo?.top_browsers || []).length === 0 ? (
-                          <div className="text-xs text-slate-400">Žádná data.</div>
+                          <div className="text-xs text-slate-400">{t('admin_dashboard.common.no_data')}</div>
                         ) : (
                           stats?.traffic?.geo?.top_browsers?.map((item: any) => (
                             <div key={item.label} className="flex items-center justify-between text-sm">
@@ -1224,43 +1223,43 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 <Sparkles size={18} />
               </div>
               <div>
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">AI Quality</h3>
-                <p className="text-xs text-slate-500">Kvalita výstupů + dopad na aplikace (30 dní)</p>
+                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('admin_dashboard.ai_quality.title')}</h3>
+                <p className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.subtitle')}</p>
               </div>
             </div>
             <button
               onClick={() => setShowAiDetails(prev => !prev)}
               className="px-2.5 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
             >
-              {showAiDetails ? 'Skrýt detail' : 'Zobrazit detail'}
+              {showAiDetails ? t('admin_dashboard.ai_quality.hide_details') : t('admin_dashboard.ai_quality.show_details')}
             </button>
           </div>
 
           {loadingAiQuality ? (
-            <div className="text-sm text-slate-500">Načítám AI quality metriky...</div>
+            <div className="text-sm text-slate-500">{t('admin_dashboard.ai_quality.loading')}</div>
           ) : !aiQuality?.summary ? (
-            <div className="text-sm text-slate-500">AI quality data nejsou k dispozici.</div>
+            <div className="text-sm text-slate-500">{t('admin_dashboard.ai_quality.unavailable')}</div>
           ) : (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                 <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                  <div className="text-xs text-slate-500">Schema pass rate</div>
+                  <div className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.schema_pass_rate')}</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.schema_pass_rate}%</div>
                 </div>
                 <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                  <div className="text-xs text-slate-500">Fallback rate</div>
+                  <div className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.fallback_rate')}</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.fallback_rate}%</div>
                 </div>
                 <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                  <div className="text-xs text-slate-500">Diff volatility</div>
+                  <div className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.diff_volatility')}</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.diff_volatility}%</div>
                 </div>
                 <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                  <div className="text-xs text-slate-500">Apply rate (AI users)</div>
+                  <div className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.apply_rate_ai_users')}</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.ai_apply_rate}%</div>
                 </div>
                 <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40 col-span-2 lg:col-span-1">
-                  <div className="text-xs text-slate-500">Conversion impact</div>
+                  <div className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.conversion_impact')}</div>
                   <div className="text-2xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.conversion_impact_on_applications}%</div>
                 </div>
               </div>
@@ -1268,19 +1267,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               {aiQuality.offline_eval_latest && (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="text-xs text-slate-500">Offline AUC</div>
+                    <div className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.offline_auc')}</div>
                     <div className="text-xl font-bold text-slate-900 dark:text-white">{aiQuality.offline_eval_latest.auc ?? '—'}</div>
                   </div>
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="text-xs text-slate-500">Log loss</div>
+                    <div className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.log_loss')}</div>
                     <div className="text-xl font-bold text-slate-900 dark:text-white">{aiQuality.offline_eval_latest.log_loss ?? '—'}</div>
                   </div>
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="text-xs text-slate-500">P@5</div>
+                    <div className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.precision_at_5')}</div>
                     <div className="text-xl font-bold text-slate-900 dark:text-white">{aiQuality.offline_eval_latest.precision_at_5 ?? '—'}</div>
                   </div>
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="text-xs text-slate-500">Exposures</div>
+                    <div className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.exposures')}</div>
                     <div className="text-xl font-bold text-slate-900 dark:text-white">{aiQuality.summary.recommendation_exposures ?? '—'}</div>
                   </div>
                 </div>
@@ -1289,15 +1288,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               {aiQuality.summary && (
                 <div className="grid grid-cols-3 gap-3 mt-3">
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="text-xs text-slate-500">Exploration share</div>
+                    <div className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.exploration_share')}</div>
                     <div className="text-lg font-bold text-slate-900 dark:text-white">{aiQuality.summary.exploration_share ?? '—'}%</div>
                   </div>
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="text-xs text-slate-500">New job share</div>
+                    <div className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.new_job_share')}</div>
                     <div className="text-lg font-bold text-slate-900 dark:text-white">{aiQuality.summary.new_job_share ?? '—'}%</div>
                   </div>
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="text-xs text-slate-500">Long-tail share</div>
+                    <div className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.long_tail_share')}</div>
                     <div className="text-lg font-bold text-slate-900 dark:text-white">{aiQuality.summary.long_tail_share ?? '—'}%</div>
                   </div>
                 </div>
@@ -1306,19 +1305,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               {aiQuality.summary && (
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="text-xs text-slate-500">AI users</div>
+                    <div className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.ai_users')}</div>
                     <div className="text-lg font-bold text-slate-900 dark:text-white">{formatNumber(aiQuality.summary.ai_unique_users)}</div>
                   </div>
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="text-xs text-slate-500">Total tokens</div>
+                    <div className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.total_tokens')}</div>
                     <div className="text-lg font-bold text-slate-900 dark:text-white">{formatNumber(aiQuality.summary.total_tokens)}</div>
                   </div>
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="text-xs text-slate-500">Estimated AI cost</div>
+                    <div className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.estimated_ai_cost')}</div>
                     <div className="text-lg font-bold text-slate-900 dark:text-white">{formatUsd(aiQuality.summary.total_estimated_cost)}</div>
                   </div>
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="text-xs text-slate-500">Avg cost / generation</div>
+                    <div className="text-xs text-slate-500">{t('admin_dashboard.ai_quality.avg_cost_per_generation')}</div>
                     <div className="text-lg font-bold text-slate-900 dark:text-white">{formatUsd(aiQuality.summary.avg_estimated_cost_per_generation)}</div>
                   </div>
                 </div>
@@ -1327,7 +1326,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               {showAiDetails && (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="text-xs text-slate-500 mb-2">Aktivní modely</div>
+                    <div className="text-xs text-slate-500 mb-2">{t('admin_dashboard.ai_quality.active_models')}</div>
                     <div className="space-y-2 max-h-44 overflow-auto">
                       {(aiQuality.active_models || []).slice(0, 8).map((row: any) => (
                         <div key={`${row.subsystem}-${row.feature}-${row.model_name}`} className="text-sm flex items-center justify-between gap-3">
@@ -1338,10 +1337,10 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     </div>
                   </div>
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="text-xs text-slate-500 mb-2">Top modely dle nákladů</div>
+                    <div className="text-xs text-slate-500 mb-2">{t('admin_dashboard.ai_quality.top_models_by_cost')}</div>
                     <div className="space-y-2 max-h-44 overflow-auto">
                       {(aiQuality.usage_by_model || []).length === 0 ? (
-                        <div className="text-xs text-slate-400">Žádná data.</div>
+                        <div className="text-xs text-slate-400">{t('admin_dashboard.common.no_data')}</div>
                       ) : (
                         (aiQuality.usage_by_model || []).slice(0, 8).map((row: any) => (
                           <div key={row.model} className="text-sm flex items-center justify-between gap-3">
@@ -1353,28 +1352,28 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     </div>
                   </div>
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40 lg:col-span-2">
-                    <div className="text-xs text-slate-500 mb-2">Top uživatelé dle AI usage</div>
+                    <div className="text-xs text-slate-500 mb-2">{t('admin_dashboard.ai_quality.top_users_by_usage')}</div>
                     <div className="space-y-2 max-h-56 overflow-auto">
                       {(aiQuality.usage_by_user || []).length === 0 ? (
-                        <div className="text-xs text-slate-400">Žádná data.</div>
+                        <div className="text-xs text-slate-400">{t('admin_dashboard.common.no_data')}</div>
                       ) : (
                         (aiQuality.usage_by_user || []).slice(0, 10).map((row: any) => (
                           <div key={row.user_id} className="text-sm flex items-center justify-between gap-3">
                             <span className="text-slate-700 dark:text-slate-300 truncate">{row.user_id}</span>
-                            <span className="text-xs text-slate-500">{formatNumber(row.requests)} req • {formatUsd(row.estimated_cost)}</span>
+                            <span className="text-xs text-slate-500">{formatNumber(row.requests)} {t('admin_dashboard.ai_quality.requests')} • {formatUsd(row.estimated_cost)}</span>
                           </div>
                         ))
                       )}
                     </div>
                   </div>
                   <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
-                    <div className="text-xs text-slate-500 mb-2">Release flagy</div>
+                    <div className="text-xs text-slate-500 mb-2">{t('admin_dashboard.ai_quality.release_flags')}</div>
                     <div className="space-y-2 max-h-44 overflow-auto">
                       {(aiQuality.release_flags || []).slice(0, 10).map((flag: any) => (
                         <div key={flag.flag_key} className="text-sm flex items-center justify-between gap-3">
                           <span className="text-slate-700 dark:text-slate-300 truncate">{flag.flag_key}</span>
                           <span className={`text-xs font-semibold ${flag.is_enabled ? 'text-emerald-600' : 'text-slate-500'}`}>
-                            {flag.is_enabled ? `ON ${flag.rollout_percent}%` : 'OFF'}
+                            {flag.is_enabled ? `${t('admin_dashboard.ai_quality.on')} ${flag.rollout_percent}%` : t('admin_dashboard.ai_quality.off')}
                           </span>
                         </div>
                       ))}
@@ -1392,15 +1391,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               <Search size={18} />
             </div>
             <div>
-              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Filtry a vyhledávání</h3>
-              <p className="text-xs text-slate-500">Rychlá navigace v předplatných</p>
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">{t('admin_dashboard.filters.title')}</h3>
+              <p className="text-xs text-slate-500">{t('admin_dashboard.filters.subtitle')}</p>
             </div>
           </div>
           <div className="flex flex-wrap gap-3 items-center">
             <input
               value={searchInput}
               onChange={e => setSearchInput(e.target.value)}
-              placeholder="Hledat firmu, email, ID..."
+              placeholder={t('admin_dashboard.filters.search_placeholder')}
               className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 flex-1 min-w-[220px] focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
             />
             <select
@@ -1408,16 +1407,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               onChange={e => setFilters(prev => ({ ...prev, kind: e.target.value, offset: 0 }))}
               className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
             >
-              <option value="">Vše</option>
-              <option value="company">Firmy</option>
-              <option value="user">Uživatelé</option>
+              <option value="">{t('admin_dashboard.filters.all')}</option>
+              <option value="company">{t('admin_dashboard.filters.companies')}</option>
+              <option value="user">{t('admin_dashboard.filters.users')}</option>
             </select>
             <select
               value={filters.tier}
               onChange={e => setFilters(prev => ({ ...prev, tier: e.target.value, offset: 0 }))}
               className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
             >
-              <option value="">Tier: vše</option>
+              <option value="">{t('admin_dashboard.filters.tier_all')}</option>
               {TIERS.map(t => (
                 <option key={t} value={t}>{t}</option>
               ))}
@@ -1427,7 +1426,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               onChange={e => setFilters(prev => ({ ...prev, status: e.target.value, offset: 0 }))}
               className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
             >
-              <option value="">Status: vše</option>
+              <option value="">{t('admin_dashboard.filters.status_all')}</option>
               {STATUSES.map(s => (
                 <option key={s} value={s}>{s}</option>
               ))}
@@ -1447,22 +1446,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             <table className="min-w-full text-sm">
               <thead className="bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 uppercase font-mono text-xs">
                 <tr>
-                  <th className="text-left px-4 py-2.5 font-semibold">Subjekt</th>
-                  <th className="text-left px-4 py-2.5 font-semibold">Email</th>
-                  <th className="text-left px-4 py-2.5 font-semibold">Tier</th>
-                  <th className="text-left px-4 py-2.5 font-semibold">Status</th>
-                  <th className="text-left px-4 py-2.5 font-semibold">Platnost</th>
-                  <th className="text-left px-4 py-2.5 font-semibold">Akce</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">{t('admin_dashboard.table.subject')}</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">{t('admin_dashboard.table.email')}</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">{t('admin_dashboard.table.tier')}</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">{t('admin_dashboard.table.status')}</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">{t('admin_dashboard.table.validity')}</th>
+                  <th className="text-left px-4 py-2.5 font-semibold">{t('admin_dashboard.table.actions')}</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-slate-500">Načítám...</td>
+                    <td colSpan={6} className="px-4 py-6 text-center text-slate-500">{t('admin_dashboard.common.loading')}</td>
                   </tr>
                 ) : subscriptions.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-4 py-6 text-center text-slate-500">Žádné záznamy.</td>
+                    <td colSpan={6} className="px-4 py-6 text-center text-slate-500">{t('admin_dashboard.table.no_records')}</td>
                   </tr>
                 ) : (
                   subscriptions.map(sub => (
@@ -1507,7 +1506,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                             type="number"
                             value={edits[sub.id]?.set_trial_days || ''}
                             onChange={e => handleEditChange(sub.id, 'set_trial_days', e.target.value)}
-                            placeholder="Trial dní"
+                            placeholder={t('admin_dashboard.table.trial_days_placeholder')}
                             className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-1 text-xs bg-white dark:bg-slate-900 w-20 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
                           />
                           <input
@@ -1524,31 +1523,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                             onClick={() => handleSelect(sub)}
                             className="px-2.5 py-1.5 rounded-lg bg-cyan-600/10 text-cyan-700 dark:text-cyan-300 text-xs font-semibold hover:bg-cyan-600/20"
                           >
-                            Detail
+                            {t('admin_dashboard.table.detail')}
                           </button>
                           <button
                             onClick={() => handleQuickAction(sub, 'trial14')}
                             className="px-2.5 py-1.5 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 text-xs font-semibold hover:bg-amber-500/20"
                           >
-                            Trial 14d
+                            {t('admin_dashboard.table.trial_14d')}
                           </button>
                           <button
                             onClick={() => handleQuickAction(sub, 'activate')}
                             className="px-2.5 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 text-xs font-semibold hover:bg-emerald-500/20"
                           >
-                            Aktivovat
+                            {t('admin_dashboard.table.activate')}
                           </button>
                           <button
                             onClick={() => handleQuickAction(sub, 'cancel')}
                             className="px-2.5 py-1.5 rounded-lg bg-rose-500/10 text-rose-700 dark:text-rose-300 text-xs font-semibold hover:bg-rose-500/20"
                           >
-                            Zrušit
+                            {t('admin_dashboard.table.cancel')}
                           </button>
                           <button
                             onClick={() => handleSave(sub)}
                             className="px-2.5 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800"
                           >
-                            Uložit
+                            {t('admin_dashboard.common.save')}
                           </button>
                         </div>
                       </td>
@@ -1564,7 +1563,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               onClick={() => setFilters(prev => ({ ...prev, offset: Math.max(0, prev.offset - prev.limit) }))}
               className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 disabled:opacity-50"
             >
-              Předchozí
+              {t('admin_dashboard.table.previous')}
             </button>
             <div className="text-xs text-slate-500">{paginationLabel}</div>
             <button
@@ -1572,7 +1571,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               onClick={() => setFilters(prev => ({ ...prev, offset: prev.offset + prev.limit }))}
               className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 disabled:opacity-50"
             >
-              Další
+              {t('admin_dashboard.table.next')}
             </button>
           </div>
         </div>
@@ -1581,62 +1580,62 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
           <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm mt-5">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">Detail předplatného</h3>
+                <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{t('admin_dashboard.detail.title')}</h3>
                 <p className="text-xs text-slate-500">{selectedSub.id}</p>
               </div>
               <button
                 onClick={() => setSelectedSub(null)}
                 className="px-3 py-1.5 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
               >
-                Zavřít
+                {t('admin_dashboard.common.close')}
               </button>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
               <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
-                <div className="text-xs text-slate-500">Subjekt</div>
+                <div className="text-xs text-slate-500">{t('admin_dashboard.detail.subject')}</div>
                 <div className="font-semibold text-slate-900 dark:text-white">{getEntityName(selectedSub)}</div>
                 <div className="text-xs text-slate-500">{getEntityLabel(selectedSub)}</div>
                 <div className="text-xs text-slate-500 mt-2">{getEntityEmail(selectedSub)}</div>
               </div>
               <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
-                <div className="text-xs text-slate-500">Tier / Status</div>
+                <div className="text-xs text-slate-500">{t('admin_dashboard.detail.tier_status')}</div>
                 <div className="font-semibold text-slate-900 dark:text-white">{selectedSub.tier} · {selectedSub.status}</div>
-                <div className="text-xs text-slate-500 mt-2">Platnost do</div>
+                <div className="text-xs text-slate-500 mt-2">{t('admin_dashboard.detail.valid_until')}</div>
                 <div className="text-slate-700 dark:text-slate-300">{formatDate(selectedSub.current_period_end)}</div>
               </div>
               <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
-                <div className="text-xs text-slate-500">Stripe</div>
+                <div className="text-xs text-slate-500">{t('admin_dashboard.detail.stripe')}</div>
                 <div className="text-slate-700 dark:text-slate-300 break-words">
                   {selectedSub.stripe_subscription_id || '—'}
                 </div>
-                <div className="text-xs text-slate-500 mt-2">Customer</div>
+                <div className="text-xs text-slate-500 mt-2">{t('admin_dashboard.detail.customer')}</div>
                 <div className="text-slate-700 dark:text-slate-300 break-words">
                   {selectedSub.stripe_customer_id || '—'}
                 </div>
               </div>
               <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
-                <div className="text-xs text-slate-500">Období</div>
+                <div className="text-xs text-slate-500">{t('admin_dashboard.detail.period')}</div>
                 <div className="text-slate-700 dark:text-slate-300">
                   {formatDate(selectedSub.current_period_start)}
                 </div>
-                <div className="text-xs text-slate-500 mt-2">Zrušení na konci období</div>
+                <div className="text-xs text-slate-500 mt-2">{t('admin_dashboard.detail.cancel_at_period_end')}</div>
                 <div className="text-slate-700 dark:text-slate-300">
-                  {selectedSub.cancel_at_period_end ? 'Ano' : 'Ne'}
+                  {selectedSub.cancel_at_period_end ? t('admin_dashboard.common.yes') : t('admin_dashboard.common.no')}
                 </div>
               </div>
               <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
-                <div className="text-xs text-slate-500">Vytvořeno</div>
+                <div className="text-xs text-slate-500">{t('admin_dashboard.detail.created')}</div>
                 <div className="text-slate-700 dark:text-slate-300">{formatDate(selectedSub.created_at)}</div>
-                <div className="text-xs text-slate-500 mt-2">Aktualizováno</div>
+                <div className="text-xs text-slate-500 mt-2">{t('admin_dashboard.detail.updated')}</div>
                 <div className="text-slate-700 dark:text-slate-300">{formatDate(selectedSub.updated_at)}</div>
               </div>
               <div className="border border-slate-100 dark:border-slate-800 rounded-xl p-4 bg-slate-50 dark:bg-slate-800/40">
-                <div className="text-xs text-slate-500">Price ID</div>
+                <div className="text-xs text-slate-500">{t('admin_dashboard.detail.price_id')}</div>
                 <div className="text-slate-700 dark:text-slate-300 break-words">
                   {selectedSub.stripe_price_id || '—'}
                 </div>
-                <div className="text-xs text-slate-500 mt-2">Cílové ID</div>
+                <div className="text-xs text-slate-500 mt-2">{t('admin_dashboard.detail.target_id')}</div>
                 <div className="text-slate-700 dark:text-slate-300 break-words">
                   {selectedSub.company_id || selectedSub.user_id || '—'}
                 </div>
@@ -1645,18 +1644,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
             <div className="mt-6">
               <div className="flex items-center justify-between mb-3">
-                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">Audit log</h4>
+                <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300">{t('admin_dashboard.audit.title')}</h4>
                 <button
                   onClick={() => loadAudit(selectedSub.id)}
                   className="px-2.5 py-1 rounded-lg text-xs border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
                 >
-                  Obnovit log
+                  {t('admin_dashboard.audit.refresh')}
                 </button>
               </div>
               {loadingAudit ? (
-                <div className="text-sm text-slate-500">Načítám audit log...</div>
+                <div className="text-sm text-slate-500">{t('admin_dashboard.audit.loading')}</div>
               ) : auditLogs.length === 0 ? (
-                <div className="text-sm text-slate-500">Žádné záznamy.</div>
+                <div className="text-sm text-slate-500">{t('admin_dashboard.common.no_data')}</div>
               ) : (
                 <div className="space-y-3">
                   {auditLogs.map(entry => {
@@ -1665,11 +1664,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       <div key={entry.id} className="border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
                         <div className="text-xs text-slate-500">{formatDate(entry.created_at)}</div>
                         <div className="text-sm text-slate-700 dark:text-slate-300">
-                          {entry.action} · {entry.admin_email || 'admin'}
+                          {entry.action} · {entry.admin_email || t('admin_dashboard.audit.admin')}
                         </div>
                         {changed.length > 0 && (
                           <div className="text-xs text-slate-500 mt-1">
-                            Změněno: {changed.join(', ')}
+                            {t('admin_dashboard.audit.changed')}: {changed.join(', ')}
                           </div>
                         )}
                       </div>

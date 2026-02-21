@@ -48,7 +48,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
 }) => {
     const { t } = useTranslation();
     const cur = commuteAnalysis?.financialReality.currency || 'Kč';
-    const locationLabel = userProfile.address || t('financial.current_location_label', { defaultValue: 'aktuální polohy' });
+    const locationLabel = userProfile.address || t('financial.current_location_label');
 
     return (
         <div className="bg-[#1e293b] text-slate-200 rounded-xl overflow-hidden shadow-xl mb-8 border border-slate-700 relative">
@@ -61,7 +61,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                     <p className="text-xs text-slate-400 mt-1">
                         {showCommuteDetails
                             ? t('financial.based_on_location', { location: locationLabel })
-                            : t('financial.reality_desc', 'Kalkulace čistého příjmu a nákladů na dojíždění.')}
+                            : t('financial.reality_desc')}
                     </p>
                 </div>
                 {showCommuteDetails && commuteAnalysis && (
@@ -85,10 +85,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                         {t('financial.unlock_desc')}
                     </p>
                     <p className="text-slate-500 max-w-sm mb-6 text-xs">
-                        {t(
-                            'financial.unlock_commute_address',
-                            'Pro odemčení dojezdové reality je nutné vyplnit adresu ve svém profilu.'
-                        )}
+                        {t('financial.unlock_commute_address')}
                     </p>
                     <button onClick={() => handleAuthAction('login')} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold transition-colors">
                         {t('financial.login_button')}
@@ -105,10 +102,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                         {t('financial.set_address_desc')}
                     </p>
                     <p className="text-slate-500 max-w-sm mb-6 text-xs">
-                        {t(
-                            'financial.unlock_commute_address',
-                            'Pro odemčení dojezdové reality je nutné vyplnit adresu ve svém profilu.'
-                        )}
+                        {t('financial.unlock_commute_address')}
                     </p>
                     <button onClick={() => setViewState(ViewState.PROFILE)} className="px-6 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold transition-colors">
                         {t('financial.set_address_button')}
@@ -123,17 +117,17 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                         {selectedJob.type === 'Remote' ? (
                             <div className="text-center py-2">
                                 <Home size={40} className="text-emerald-400 mx-auto mb-3 opacity-80" />
-                                <h4 className="text-white font-bold text-lg mb-1">Home Office</h4>
+                                <h4 className="text-white font-bold text-lg mb-1">{t('financial.home_office')}</h4>
                                 <div className="text-emerald-400 text-sm font-medium mb-2">
-                                    Úspora za home office
+                                    {t('financial.home_office_savings')}
                                 </div>
                                 <div className="text-xs text-emerald-400 mb-3 text-center">
                                     <div className="flex items-center gap-1 justify-center">
                                         <span className="text-green-400">🏠</span>
                                         <div>
-                                            <div>{commuteAnalysis.financialReality.avoidedCommuteCost.toLocaleString()} {cur}/měsíc</div>
-                                            <div>Ušetřený čas a peníze za dojíždění.</div>
-                                            <div>Ekologicky šetrnější volba.</div>
+                                            <div>{commuteAnalysis.financialReality.avoidedCommuteCost.toLocaleString()} {cur}/{t('financial.per_month')}</div>
+                                            <div>{t('financial.saved_commute_time_money')}</div>
+                                            <div>{t('financial.eco_friendly_choice')}</div>
                                         </div>
                                     </div>
                                 </div>
@@ -222,7 +216,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                                 className="w-full flex items-center gap-2 px-3 py-2 rounded text-slate-300 hover:bg-slate-800/50 transition-colors text-xs font-semibold"
                             >
                                 <Info size={14} className="text-blue-400 flex-shrink-0" />
-                                <span>{t('financial.methodology.title') || 'Jak se počítá JHI a doprava?'}</span>
+                                <span>{t('financial.methodology.title')}</span>
                                 {showFinancialMethodology ? (
                                     <ChevronUp size={12} className="ml-auto text-slate-500" />
                                 ) : (
@@ -235,33 +229,33 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                                     {/* JHI Explanation */}
                                     <div>
                                         <div className="font-bold text-white mb-1 flex items-center gap-1">
-                                            <Zap size={11} className="text-yellow-400" /> {t('financial.methodology.jhi_title') || 'JHI Impact Formula'}
+                                            <Zap size={11} className="text-yellow-400" /> {t('financial.methodology.jhi_title')}
                                         </div>
                                         <p className="text-slate-400">
-                                            {t('financial.methodology.jhi_formula') || 'Procent změny příjmu z dopravy × 1.5 = JHI body'}
+                                            {t('financial.methodology.jhi_formula')}
                                             <br />
-                                            <span className="text-[10px]">{t('financial.methodology.jhi_example') || 'Příklad: Pokud doprava sníží příjem o 1%, JHI klesne o ~1.5 bodů'}</span>
+                                            <span className="text-[10px]">{t('financial.methodology.jhi_example')}</span>
                                         </p>
                                     </div>
 
                                     {/* Transport Costs */}
                                     <div>
                                         <div className="font-bold text-white mb-1 flex items-center gap-1">
-                                            <Bus size={11} className="text-blue-400" /> {t('financial.methodology.transport_title') || 'Výpočet Dopravy'}
+                                            <Bus size={11} className="text-blue-400" /> {t('financial.methodology.transport_title')}
                                         </div>
                                         <div className="space-y-1 text-slate-400 text-[10px]">
-                                            <div>{t('financial.methodology.transport_car') || '🚗 Auto: 5 CZK/km × 2 × 22 dnů'}</div>
-                                            <div>{t('financial.methodology.transport_public') || '🚌 MHD: Město letenka (Praha 1500 Kč) - nejlevnější'}</div>
-                                            <div>{t('financial.methodology.transport_bike') || '🚴 Kolo: 0.05 CZK/km × 2 × 22 dnů'}</div>
-                                            <div>{t('financial.methodology.transport_walk') || '🚶 Pěšky: 0 Kč (zdarma)'}</div>
+                                            <div>{t('financial.methodology.transport_car')}</div>
+                                            <div>{t('financial.methodology.transport_public')}</div>
+                                            <div>{t('financial.methodology.transport_bike')}</div>
+                                            <div>{t('financial.methodology.transport_walk')}</div>
                                         </div>
                                     </div>
 
                                     {/* Final Calculation */}
                                     <div>
-                                        <div className="font-bold text-white mb-1">{t('financial.methodology.final_title') || 'Vzorec Čisté Reality'}</div>
+                                        <div className="font-bold text-white mb-1">{t('financial.methodology.final_title')}</div>
                                         <p className="text-slate-400 text-[10px]">
-                                            {t('financial.methodology.final_formula') || 'Čistý základ + Benefity - Doprava = Reálný Příjem'}
+                                            {t('financial.methodology.final_formula')}
                                         </p>
                                     </div>
                                 </div>

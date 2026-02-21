@@ -2,6 +2,7 @@
 import React from 'react';
 import { AlertTriangle, ThumbsUp, Activity, Ban } from 'lucide-react';
 import { NoiseMetrics } from '../types';
+import { useTranslation } from 'react-i18next';
 
 interface BullshitMeterProps {
   metrics: NoiseMetrics;
@@ -9,6 +10,7 @@ interface BullshitMeterProps {
 }
 
 const BullshitMeter: React.FC<BullshitMeterProps> = ({ metrics, variant = 'light' }) => {
+  const { t } = useTranslation();
   const isDark = variant === 'dark';
   const isHigh = metrics.score > 50;
   const isMedium = metrics.score > 20 && metrics.score <= 50;
@@ -16,14 +18,14 @@ const BullshitMeter: React.FC<BullshitMeterProps> = ({ metrics, variant = 'light
   // Define accent colors
   let accentColor = "bg-emerald-500";
   let iconColor = isHigh ? "text-rose-500" : isMedium ? "text-amber-500" : "text-emerald-500";
-  let statusText = "Čistý signál";
+  let statusText = t('bullshit_meter.status_clean');
   
   if (isHigh) {
     accentColor = "bg-rose-500";
-    statusText = "Vysoký šum";
+    statusText = t('bullshit_meter.status_high');
   } else if (isMedium) {
     accentColor = "bg-amber-500";
-    statusText = "Střední šum";
+    statusText = t('bullshit_meter.status_medium');
   }
 
   // Theme Base Styles
@@ -53,7 +55,7 @@ const BullshitMeter: React.FC<BullshitMeterProps> = ({ metrics, variant = 'light
         <div>
             <div className="flex items-center gap-2 mb-1">
                 <Activity size={16} className={isDark ? "text-rose-400" : "text-slate-400"} />
-                <h4 className={`text-xs font-bold uppercase tracking-widest ${subTextStyle}`}>Detektor Klišé</h4>
+                <h4 className={`text-xs font-bold uppercase tracking-widest ${subTextStyle}`}>{t('bullshit_meter.title')}</h4>
             </div>
             <div className="flex items-center gap-2">
                 <span className={`text-2xl font-mono font-bold ${isHigh ? 'text-rose-500' : (isDark ? 'text-slate-100' : 'text-slate-800')}`}>
@@ -79,7 +81,7 @@ const BullshitMeter: React.FC<BullshitMeterProps> = ({ metrics, variant = 'light
 
       <div className={`space-y-3 pt-3 border-t ${dividerStyle}`}>
         <div className="flex justify-between items-center text-xs">
-            <span className={subTextStyle}>Detekovaný tón</span>
+            <span className={subTextStyle}>{t('bullshit_meter.detected_tone')}</span>
             <span className={`font-semibold ${isDark ? 'text-slate-200' : 'text-slate-700'}`}>{metrics.tone}</span>
         </div>
         
@@ -93,7 +95,7 @@ const BullshitMeter: React.FC<BullshitMeterProps> = ({ metrics, variant = 'light
             ))}
           </div>
         ) : (
-          <p className={`text-xs italic mt-2 ${subTextStyle}`}>Nebyly nalezeny žádné varovné signály.</p>
+          <p className={`text-xs italic mt-2 ${subTextStyle}`}>{t('bullshit_meter.no_warning_signals')}</p>
         )}
       </div>
     </div>

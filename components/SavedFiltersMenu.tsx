@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { SavedFilterSet, getSavedFilterSets, deleteFilterSet, updateFilterSetUsage, saveFilterSet, toggleFavorite } from '../services/savedFiltersService';
+import { useTranslation } from 'react-i18next';
 
 interface SavedFiltersMenuProps {
     onLoadFilter: (filters: SavedFilterSet['filters']) => void;
@@ -8,6 +9,7 @@ interface SavedFiltersMenuProps {
 }
 
 export const SavedFiltersMenu: React.FC<SavedFiltersMenuProps> = ({ onLoadFilter, currentFilters, hasActiveFilters }) => {
+    const { t } = useTranslation();
     const [saved, setSaved] = useState<SavedFilterSet[]>([]);
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [saveName, setSaveName] = useState('');
@@ -28,7 +30,7 @@ export const SavedFiltersMenu: React.FC<SavedFiltersMenuProps> = ({ onLoadFilter
 
     const handleSave = async () => {
         if (!saveName.trim()) {
-            alert('Please enter a name for this filter set');
+            alert(t('saved_filters.errors.enter_name'));
             return;
         }
 
@@ -38,12 +40,12 @@ export const SavedFiltersMenu: React.FC<SavedFiltersMenuProps> = ({ onLoadFilter
             setShowSaveModal(false);
             setSaveName('');
         } else {
-            alert('Failed to save filter set');
+            alert(t('saved_filters.errors.save_failed'));
         }
     };
 
     const handleDelete = async (id: string) => {
-        if (confirm('Delete this saved search?')) {
+        if (confirm(t('saved_filters.confirm_delete'))) {
             const success = await deleteFilterSet(id);
             if (success) {
                 await loadSavedFilters();
@@ -79,9 +81,9 @@ export const SavedFiltersMenu: React.FC<SavedFiltersMenuProps> = ({ onLoadFilter
                     <button
                         className="btn-save-filter"
                         onClick={() => setShowSaveModal(true)}
-                        title="Save current filter combination"
+                        title={t('saved_filters.save_current_title')}
                     >
-                        💾 Save Search
+                        💾 {t('saved_filters.save_search')}
                     </button>
                 )}
 
@@ -89,9 +91,9 @@ export const SavedFiltersMenu: React.FC<SavedFiltersMenuProps> = ({ onLoadFilter
                     <button
                         className="btn-load-filter"
                         onClick={() => setShowMenu(!showMenu)}
-                        title="Load a saved search"
+                        title={t('saved_filters.load_saved_title')}
                     >
-                        📂 Saved ({saved.length})
+                        📂 {t('saved_filters.saved_count', { count: saved.length })}
                     </button>
                 )}
             </div>
@@ -99,7 +101,7 @@ export const SavedFiltersMenu: React.FC<SavedFiltersMenuProps> = ({ onLoadFilter
             {showMenu && (
                 <div className="saved-filters-dropdown">
                     <div className="saved-filters-header">
-                        <h4>Saved Searches</h4>
+                        <h4>{t('saved_filters.saved_searches')}</h4>
                         <button onClick={() => setShowMenu(false)}>×</button>
                     </div>
                     <div className="saved-list">
@@ -108,7 +110,7 @@ export const SavedFiltersMenu: React.FC<SavedFiltersMenuProps> = ({ onLoadFilter
                                 <button
                                     className="saved-item-favorite"
                                     onClick={() => handleToggleFavorite(filterSet.id, filterSet.isFavorite)}
-                                    title={filterSet.isFavorite ? 'Unfavorite' : 'Favorite'}
+                                    title={filterSet.isFavorite ? t('saved_filters.unfavorite') : t('saved_filters.favorite')}
                                 >
                                     {filterSet.isFavorite ? '⭐' : '☆'}
                                 </button>
@@ -118,13 +120,13 @@ export const SavedFiltersMenu: React.FC<SavedFiltersMenuProps> = ({ onLoadFilter
                                     onClick={() => handleLoad(filterSet)}
                                 >
                                     <span className="saved-item-name">{filterSet.name}</span>
-                                    <span className="saved-item-usage">Used {filterSet.usageCount}×</span>
+                                    <span className="saved-item-usage">{t('saved_filters.used_count', { count: filterSet.usageCount })}</span>
                                 </button>
 
                                 <button
                                     className="saved-item-delete"
                                     onClick={() => handleDelete(filterSet.id)}
-                                    title="Delete"
+                                    title={t('saved_filters.delete')}
                                 >
                                     🗑️
                                 </button>
@@ -137,19 +139,19 @@ export const SavedFiltersMenu: React.FC<SavedFiltersMenuProps> = ({ onLoadFilter
             {showSaveModal && (
                 <div className="modal-overlay" onClick={() => setShowSaveModal(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <h3>Save Filter Set</h3>
+                        <h3>{t('saved_filters.modal_title')}</h3>
                         <input
                             type="text"
                             value={saveName}
                             onChange={e => setSaveName(e.target.value)}
-                            placeholder="Enter a name..."
+                            placeholder={t('saved_filters.modal_placeholder')}
                             maxLength={100}
                             autoFocus
                             onKeyDown={e => e.key === 'Enter' && handleSave()}
                         />
                         <div className="modal-actions">
-                            <button onClick={() => setShowSaveModal(false)}>Cancel</button>
-                            <button onClick={handleSave} className="btn-primary">Save</button>
+                            <button onClick={() => setShowSaveModal(false)}>{t('saved_filters.cancel')}</button>
+                            <button onClick={handleSave} className="btn-primary">{t('saved_filters.save')}</button>
                         </div>
                     </div>
                 </div>

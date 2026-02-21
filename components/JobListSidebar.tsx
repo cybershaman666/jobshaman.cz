@@ -208,21 +208,21 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                         <div className={compactFilters ? "mt-2 grid grid-cols-2 gap-2" : "mt-3 grid grid-cols-2 gap-2"}>
                             <div>
                                 <label className="sr-only">
-                                    {t('filters.language') || 'Jazyk nabídky'}
+                                    {t('filters.language')}
                                 </label>
                                 <select
                                     value={filterLanguage}
                                     onChange={(e) => setFilterLanguage(e.target.value)}
-                                    aria-label={t('filters.language') || 'Jazyk nabídky'}
+                                    aria-label={t('filters.language')}
                                     className={`w-full ${compactFilters ? 'px-2.5 py-1.5 text-[13px]' : 'px-2.5 py-1.5 text-[13px]'} bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500`}
                                 >
-                                    <option value="">{t('filters.language_all') || 'Všechny jazyky'}</option>
-                                    <option value="cs">Čeština</option>
-                                    <option value="sk">Slovenština</option>
-                                    <option value="en">English</option>
-                                    <option value="de">Deutsch</option>
-                                    <option value="pl">Polski</option>
-                                    <option value="uk">Українська</option>
+                                    <option value="">{t('filters.language_all')}</option>
+                                    <option value="cs">{t('filters.language_options.cs')}</option>
+                                    <option value="sk">{t('filters.language_options.sk')}</option>
+                                    <option value="en">{t('filters.language_options.en')}</option>
+                                    <option value="de">{t('filters.language_options.de')}</option>
+                                    <option value="pl">{t('filters.language_options.pl')}</option>
+                                    <option value="uk">{t('filters.language_options.uk')}</option>
                                 </select>
                             </div>
 
@@ -233,15 +233,15 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                 <select
                                     value={sortBy}
                                     onChange={(e) => setSortBy(e.target.value)}
-                                    aria-label={t('filters.sort_by') || 'Řazení'}
+                                    aria-label={t('filters.sort_by')}
                                     className={`w-full ${compactFilters ? 'px-2.5 py-1.5 text-[13px]' : 'px-2.5 py-1.5 text-[13px]'} bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500`}
                                 >
-                                    <option value="recommended">{t('filters.sort_options.recommended') || 'AI doporučené'}</option>
+                                    <option value="recommended">{t('filters.sort_options.recommended')}</option>
                                     <option value="default">{t('filters.sort_options.default')}</option>
                                     <option value="newest">{t('filters.sort_options.newest')}</option>
                                     <option value="jhi_desc">{t('filters.sort_options.jhi_desc')}</option>
                                     <option value="jhi_asc">{t('filters.sort_options.jhi_asc')}</option>
-                                    <option value="personalized_jhi_desc">{t('filters.sort_options.personalized_jhi_desc') || 'Personalizované JHI'}</option>
+                                    <option value="personalized_jhi_desc">{t('filters.sort_options.personalized_jhi_desc')}</option>
                                 </select>
                             </div>
                         </div>
@@ -352,7 +352,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                 onClick={(e) => { e.preventDefault(); onUseCurrentLocation(); }}
                                                 className="w-full text-xs font-semibold px-3 py-2 rounded-md border border-cyan-200 dark:border-cyan-700/60 bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-100 dark:hover:bg-cyan-900/30 transition-colors"
                                             >
-                                                {t('filters.use_current_location', { defaultValue: 'Použít moji polohu' })}
+                                                {t('filters.use_current_location')}
                                             </button>
                                         )}
                                         <label className="flex items-center justify-between cursor-pointer p-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md hover:bg-slate-100 dark:hover:bg-slate-900 transition-colors">
@@ -393,10 +393,10 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                 <Globe size={16} className={`transition-colors ${abroadOnly ? 'text-amber-500' : 'text-slate-400'}`} />
                                                 <div className="text-left">
                                                     <span className="text-sm font-medium text-slate-700 dark:text-slate-200 block">
-                                                        {t('filters.abroad_only', { defaultValue: 'Jen zahraničí' })}
+                                                        {t('filters.abroad_only')}
                                                     </span>
                                                     <span className="text-[10px] text-slate-500 dark:text-slate-400 block -mt-0.5">
-                                                        {t('filters.abroad_only_desc', { defaultValue: 'Mimo CZ/SK' })}
+                                                        {t('filters.abroad_only_desc')}
                                                     </span>
                                                 </div>
                                             </div>
@@ -421,7 +421,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                     className="w-full accent-cyan-500 cursor-pointer disabled:cursor-not-allowed bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full appearance-none"
                                                 />
                                                 {!hasLocationAnchor && (
-                                                    <p className="text-[10px] text-slate-500 mt-2 italic">Pro radius zadejte město nebo použijte aktuální polohu.</p>
+                                                    <p className="text-[10px] text-slate-500 mt-2 italic">{t('filters.radius_hint_no_location')}</p>
                                                 )}
                                             </div>
                                         )}
@@ -429,7 +429,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                         {loadingMore && hasMore && (
                                             <div className="py-6 flex flex-col items-center justify-center text-slate-400">
                                                 <Activity className="animate-spin mb-2 text-cyan-500" size={20} />
-                                                <p className="text-sm">Načítám další nabídky...</p>
+                                                <p className="text-sm">{t('app.loading_more_offers')}</p>
                                             </div>
                                         )}
                                     </div>
@@ -446,13 +446,18 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                 </button>
                                 {expandedSections.contract && (
                                     <div className="flex flex-wrap gap-2 animate-in slide-in-from-top-1">
-                                        {['HPP', 'IČO', 'Part-time', 'Brigáda'].map(type => (
+                                        {[
+                                            { value: 'hpp', label: t('job.contract_types.hpp') },
+                                            { value: 'ico', label: t('job.contract_types.ico') },
+                                            { value: 'part-time', label: t('job.contract_types.part_time') },
+                                            { value: 'brigada', label: t('job.contract_types.brigada') }
+                                        ].map(({ value, label }) => (
                                             <button
-                                                key={type}
-                                                onClick={() => toggleContractTypeFilter(type)}
-                                                className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${filterContractType.includes(type) ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}
+                                                key={value}
+                                                onClick={() => toggleContractTypeFilter(value)}
+                                                className={`px-3 py-1.5 rounded text-xs font-medium border transition-colors ${filterContractType.includes(value) ? 'bg-cyan-600 text-white border-cyan-600' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:border-slate-300'}`}
                                             >
-                                                {type}
+                                                {label}
                                             </button>
                                         ))}
                                     </div>
@@ -507,10 +512,10 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                                     type="number"
                                                     value={filterMinSalary || ''}
                                                     onChange={(e) => setFilterMinSalary(parseInt(e.target.value) || 0)}
-                                                    placeholder="0"
+                                                    placeholder={t('filters.min_salary_placeholder')}
                                                     className="w-full pl-3 pr-8 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-sm text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500"
                                                 />
-                                                <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium">Kč</span>
+                                                <span className="absolute right-3 top-2.5 text-xs text-slate-400 font-medium">{t('filters.currency_czk')}</span>
                                             </div>
                                         </div>
                                         <input
@@ -523,8 +528,8 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                             className="w-full accent-cyan-500 cursor-pointer bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full appearance-none"
                                         />
                                         <div className="flex justify-between text-[10px] text-slate-400 font-mono">
-                                            <span>0 Kč</span>
-                                            <span>150k Kč</span>
+                                            <span>{t('filters.salary_scale_min', { currency: t('filters.currency_czk') })}</span>
+                                            <span>{t('filters.salary_scale_max', { currency: t('filters.currency_czk') })}</span>
                                         </div>
                                     </div>
                                 )}
@@ -646,9 +651,9 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                 <Search size={32} className="mb-4 opacity-50" />
                                 {isSearching ? (
                                     <>
-                                        <p className="font-bold mb-2">Žádné výsledky pro "{searchTerm}"</p>
+                                        <p className="font-bold mb-2">{t('app.no_results_for_search', { query: searchTerm })}</p>
                                         <p className="text-xs opacity-75 max-w-[200px] mb-4">
-                                            Zkuste jiná klíčová slova
+                                            {t('app.try_different_keywords')}
                                         </p>
                                     </>
                                 ) : backendPolling ? (
@@ -682,7 +687,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                         {loadingMore && (
                             <div className="py-6 flex flex-col items-center justify-center text-slate-400">
                                 <Activity className="animate-spin mb-2 text-cyan-500" size={20} />
-                                <p className="text-xs">Načítám další nabídky...</p>
+                                <p className="text-xs">{t('app.loading_more_offers')}</p>
                             </div>
                         )}
                     </div>
@@ -690,8 +695,8 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                     <div className="sticky bottom-3 mt-6 flex justify-end">
                         <button
                             onClick={handleScrollToTop}
-                            aria-label={t('app.back_to_top') || 'Nahoru'}
-                            title={t('app.back_to_top') || 'Nahoru'}
+                            aria-label={t('app.back_to_top')}
+                            title={t('app.back_to_top')}
                             className="flex items-center justify-center w-8 h-8 rounded-full border border-cyan-200 text-cyan-700 bg-cyan-50 hover:bg-cyan-100 hover:text-cyan-800 dark:border-cyan-500/40 dark:text-cyan-300 dark:bg-cyan-500/20 dark:hover:bg-cyan-500/30 transition-colors"
                         >
                             <ArrowUp size={14} />

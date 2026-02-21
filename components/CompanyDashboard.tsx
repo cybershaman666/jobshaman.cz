@@ -1120,10 +1120,10 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 onChange={(e) => setContractType(e.target.value)}
                                 className="w-full p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
                             >
-                                <option value="HPP">HPP</option>
-                                <option value="IČO">IČO</option>
-                                <option value="DPP">DPP</option>
-                                <option value="DPČ">DPČ</option>
+                                <option value="HPP">{t('job.contract_types.hpp')}</option>
+                                <option value="IČO">{t('job.contract_types.ico')}</option>
+                                <option value="DPP">{t('job.contract_types.dpp')}</option>
+                                <option value="DPČ">{t('job.contract_types.dpc')}</option>
                                 <option value="Internship">{t('company.ad_editor.internship')}</option>
                             </select>
                         </div>

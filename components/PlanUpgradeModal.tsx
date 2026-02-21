@@ -1,5 +1,6 @@
 import React from 'react';
 import { Briefcase, BrainCircuit, Sparkles, Crown, CheckCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { CompanyProfile } from '../types';
 import { redirectToCheckout } from '../services/stripeService';
 import AnalyticsService from '../services/analyticsService';
@@ -13,6 +14,7 @@ interface PlanUpgradeModalProps {
 }
 
 const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, feature, companyProfile }) => {
+    const { t } = useTranslation();
     if (!isOpen) return null;
 
     return (
@@ -27,15 +29,19 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                     <div className="w-16 h-16 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-2xl flex items-center justify-center mb-6">
                         <Crown size={32} />
                     </div>
-                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">Prémiové Funkce</h2>
+                    <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2 tracking-tight">
+                        {t('plan_upgrade_modal.premium_features')}
+                    </h2>
                     <p className="text-slate-500 dark:text-slate-400 mb-6 leading-relaxed text-sm">
-                        Funkce <span className="font-bold text-cyan-600 dark:text-cyan-400">"{feature}"</span> vyžaduje vyšší tarif nebo kredit.
+                        {t('plan_upgrade_modal.feature_requires_plan_prefix')}{' '}
+                        <span className="font-bold text-cyan-600 dark:text-cyan-400">"{feature}"</span>{' '}
+                        {t('plan_upgrade_modal.feature_requires_plan_suffix')}
                     </p>
                     <div className="space-y-3">
                         {[
-                            { icon: Briefcase, text: 'Neomezený počet inzerátů' },
-                            { icon: BrainCircuit, text: 'AI Assessmenty' },
-                            { icon: Sparkles, text: 'AI Optimalizace inzerátů' },
+                            { icon: Briefcase, text: t('plan_upgrade_modal.highlights.unlimited_job_posts') },
+                            { icon: BrainCircuit, text: t('plan_upgrade_modal.highlights.ai_assessments') },
+                            { icon: Sparkles, text: t('plan_upgrade_modal.highlights.ai_job_optimization') },
                         ].map((f, i) => (
                             <div key={i} className="flex items-center gap-3">
                                 <div className="p-1.5 bg-emerald-500/10 text-emerald-600 rounded-lg">
@@ -49,7 +55,9 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
 
                 {/* Right Side: Options */}
                 <div className="flex-1 p-8 bg-white dark:bg-slate-900 overflow-y-auto max-h-[90vh] md:max-h-full">
-                    <h3 className="font-bold text-lg mb-6 text-slate-900 dark:text-white">Vyberte si řešení</h3>
+                    <h3 className="font-bold text-lg mb-6 text-slate-900 dark:text-white">
+                        {t('plan_upgrade_modal.select_solution')}
+                    </h3>
 
                     <div className="grid grid-cols-1 gap-4">
                         {/* Option 1: Basic Plan (Free) */}
@@ -60,55 +68,55 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                         <Briefcase size={20} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white">Základní Plán</h4>
-                                        <p className="text-xs text-slate-500">Ideální start</p>
+                                        <h4 className="font-bold text-slate-900 dark:text-white">{t('plan_upgrade_modal.basic.title')}</h4>
+                                        <p className="text-xs text-slate-500">{t('plan_upgrade_modal.basic.subtitle')}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="font-black text-green-600 dark:text-green-400 text-xl">ZDARMA</div>
-                                    <div className="text-[10px] text-slate-400">navždy</div>
+                                    <div className="font-black text-green-600 dark:text-green-400 text-xl">{t('plan_upgrade_modal.basic.price')}</div>
+                                    <div className="text-[10px] text-slate-400">{t('plan_upgrade_modal.basic.price_suffix')}</div>
                                 </div>
                             </div>
                             <ul className="grid grid-cols-2 gap-2 mb-4">
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-green-500" /> 3 inzeráty / měsíc</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-green-500" /> Základní dashboard</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-3 inline-block"></span> Bez AI funkcí</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-3 inline-block"></span> Bez assessmentů</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-green-500" /> {t('plan_upgrade_modal.basic.feature_1')}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-green-500" /> {t('plan_upgrade_modal.basic.feature_2')}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-3 inline-block"></span> {t('plan_upgrade_modal.basic.feature_3')}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-500"><span className="w-3 h-3 inline-block"></span> {t('plan_upgrade_modal.basic.feature_4')}</li>
                             </ul>
                             <button
                                 onClick={onClose}
                                 className="w-full py-2 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition-colors shadow-sm"
                             >
-                                Používat Zdarma
+                                {t('plan_upgrade_modal.basic.cta')}
                             </button>
                         </div>
 
                         {/* Option 2: Business Plan */}
                         <div className="p-4 rounded-xl border-2 border-cyan-500 bg-cyan-50/10 relative">
-                            <div className="absolute -top-3 right-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Doporučeno</div>
+                            <div className="absolute -top-3 right-4 bg-gradient-to-r from-cyan-600 to-blue-600 text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest">{t('plan_upgrade_modal.business.recommended_badge')}</div>
                             <div className="flex justify-between items-center mb-2">
                                 <div className="flex items-center gap-2">
                                     <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-lg">
                                         <Crown size={20} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white">Business Plán</h4>
-                                        <p className="text-xs text-slate-500">Pro rostoucí firmy</p>
+                                        <h4 className="font-bold text-slate-900 dark:text-white">{t('plan_upgrade_modal.business.title')}</h4>
+                                        <p className="text-xs text-slate-500">{t('plan_upgrade_modal.business.subtitle')}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
                                     <div className="font-black text-cyan-600 dark:text-cyan-400 text-xl">4 990 Kč</div>
-                                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">/ měsíc (akce)</div>
-                                    <div className="text-[9px] text-slate-400 line-through">běžně 9 990 Kč</div>
+                                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-bold">{t('plan_upgrade_modal.business.price_suffix')}</div>
+                                    <div className="text-[9px] text-slate-400 line-through">{t('plan_upgrade_modal.business.price_regular')}</div>
                                 </div>
                             </div>
                             <ul className="grid grid-cols-2 gap-2 mb-4">
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> Neomezené inzeráty</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> AI Optimalizace</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> 10 Assessmentů / měsíc</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> Pokročilá analytics</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> Team management</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> Prioritní podpora</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.business.feature_1')}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.business.feature_2')}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.business.feature_3')}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.business.feature_4')}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.business.feature_5')}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-cyan-500" /> {t('plan_upgrade_modal.business.feature_6')}</li>
                             </ul>
                             <button
                                 onClick={() => {
@@ -124,12 +132,12 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                         redirectToCheckout('business', companyProfile.id);
                                     } else {
                                         console.error('❌ Company ID missing in profile!');
-                                        alert('Chyba: Nepodařilo se načíst ID společnosti. Zkuste obnovit stránku.');
+                                        alert(t('alerts.company_id_load_failed'));
                                     }
                                 }}
                                 className="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition-colors shadow-lg shadow-cyan-900/20"
                             >
-                                Aktivovat Business
+                                {t('plan_upgrade_modal.business.cta')}
                             </button>
                         </div>
 
@@ -141,8 +149,8 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                         <BrainCircuit size={20} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white">Assessment Center</h4>
-                                        <p className="text-xs text-slate-500">Doplněk k jakémukoli plánu</p>
+                                        <h4 className="font-bold text-slate-900 dark:text-white">{t('plan_upgrade_modal.assessment_center.title')}</h4>
+                                        <p className="text-xs text-slate-500">{t('plan_upgrade_modal.assessment_center.subtitle')}</p>
                                     </div>
                                 </div>
                             </div>
@@ -151,14 +159,14 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                 {/* Single Assessment */}
                                 <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700">
                                     <div>
-                                        <div className="font-bold text-sm text-slate-900 dark:text-white">1 Assessment</div>
-                                        <div className="text-xs text-slate-500">Jednorázový nákup</div>
+                                        <div className="font-bold text-sm text-slate-900 dark:text-white">{t('plan_upgrade_modal.assessment_center.single_title')}</div>
+                                        <div className="text-xs text-slate-500">{t('plan_upgrade_modal.assessment_center.single_subtitle')}</div>
                                     </div>
                                     <button
                                         onClick={async () => {
                                             if (!companyProfile?.id) {
                                                 console.error('❌ Company ID missing!', companyProfile);
-                                                alert('Chyba: Nepodařilo se identifikovat společnost. Zkuste obnovit stránku.');
+                                                alert(t('alerts.company_identify_failed'));
                                                 return;
                                             }
 
@@ -175,7 +183,7 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                                 await redirectToCheckout('single_assessment', companyProfile.id);
                                             } catch (err) {
                                                 console.error('❌ Error during checkout redirect:', err);
-                                                alert('Nepodařilo se zahájit platbu: ' + (err instanceof Error ? err.message : String(err)));
+                                                alert(`${t('alerts.payment_start_failed')}: ${err instanceof Error ? err.message : String(err)}`);
                                             }
                                         }}
                                         className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg text-sm transition-colors"
@@ -187,14 +195,14 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                 {/* Assessment Bundle */}
                                 <div className="flex justify-between items-center p-3 bg-cyan-50 dark:bg-cyan-950/20 rounded-lg border-2 border-cyan-200 dark:border-cyan-800">
                                     <div>
-                                        <div className="font-bold text-sm text-slate-900 dark:text-white">10 Assessmentů</div>
-                                        <div className="text-xs text-slate-500">Platnost 12 měsíců</div>
+                                        <div className="font-bold text-sm text-slate-900 dark:text-white">{t('plan_upgrade_modal.assessment_center.bundle_title')}</div>
+                                        <div className="text-xs text-slate-500">{t('plan_upgrade_modal.assessment_center.bundle_subtitle')}</div>
                                     </div>
                                     <button
                                         onClick={async () => {
                                             if (!companyProfile?.id) {
                                                 console.error('❌ Company ID missing!', companyProfile);
-                                                alert('Chyba: Nepodařilo se identifikovat společnost. Zkuste obnovit stránku.');
+                                                alert(t('alerts.company_identify_failed'));
                                                 return;
                                             }
 
@@ -211,7 +219,7 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                                 await redirectToCheckout('assessment_bundle', companyProfile.id);
                                             } catch (err) {
                                                 console.error('❌ Error during checkout redirect:', err);
-                                                alert('Nepodařilo se zahájit platbu: ' + (err instanceof Error ? err.message : String(err)));
+                                                alert(`${t('alerts.payment_start_failed')}: ${err instanceof Error ? err.message : String(err)}`);
                                             }
                                         }}
                                         className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg text-sm transition-colors shadow-sm"
@@ -230,22 +238,22 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                         <Crown size={20} />
                                     </div>
                                     <div>
-                                        <h4 className="font-bold text-slate-900 dark:text-white">Individuální Plán</h4>
-                                        <p className="text-xs text-slate-500">Pro velké společnosti</p>
+                                        <h4 className="font-bold text-slate-900 dark:text-white">{t('plan_upgrade_modal.enterprise.title')}</h4>
+                                        <p className="text-xs text-slate-500">{t('plan_upgrade_modal.enterprise.subtitle')}</p>
                                     </div>
                                 </div>
                                 <div className="text-right">
-                                    <div className="font-black text-amber-600 dark:text-amber-400 text-xl">Na míru</div>
-                                    <div className="text-[10px] text-slate-400">individuální cenotvorba</div>
+                                    <div className="font-black text-amber-600 dark:text-amber-400 text-xl">{t('plan_upgrade_modal.enterprise.price')}</div>
+                                    <div className="text-[10px] text-slate-400">{t('plan_upgrade_modal.enterprise.price_suffix')}</div>
                                 </div>
                             </div>
                             <ul className="grid grid-cols-2 gap-2 mb-4">
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> Všechny funkce Premium</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> Vlastní integrace</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> Dedicated support</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> API přístup</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> SLA garance</li>
-                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> Trénink na míru</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> {t('plan_upgrade_modal.enterprise.feature_1')}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> {t('plan_upgrade_modal.enterprise.feature_2')}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> {t('plan_upgrade_modal.enterprise.feature_3')}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> {t('plan_upgrade_modal.enterprise.feature_4')}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> {t('plan_upgrade_modal.enterprise.feature_5')}</li>
+                                <li className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300"><CheckCircle size={12} className="text-amber-500" /> {t('plan_upgrade_modal.enterprise.feature_6')}</li>
                             </ul>
                             <button
                                 onClick={() => {
@@ -255,17 +263,17 @@ const PlanUpgradeModal: React.FC<PlanUpgradeModalProps> = ({ isOpen, onClose, fe
                                         currentTier: companyProfile?.subscription?.tier || 'basic',
                                         reason: 'User clicked enterprise plan'
                                     });
-                                    window.open('mailto:obchod@jobshaman.cz?subject=Poptávka individuálního plánu&body=Dobrý den,%0D%0A%0D%0Amám zájem o individuální plán pro naši společnost.%0D%0A%0D%0AS pozdravem,', '_blank');
+                                    window.open('mailto:obchod@jobshaman.cz?subject=' + encodeURIComponent(t('plan_upgrade_modal.enterprise.email_subject')) + '&body=' + encodeURIComponent(t('plan_upgrade_modal.enterprise.email_body')), '_blank');
                                 }}
                                 className="w-full py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg transition-colors shadow-sm"
                             >
-                                Kontaktovat Obchod
+                                {t('plan_upgrade_modal.enterprise.cta')}
                             </button>
                         </div>
                     </div>
 
                     <button onClick={onClose} className="mt-6 text-xs text-slate-400 hover:text-slate-900 dark:hover:text-white underline w-full text-center">
-                        Zavřít a pokračovat v základní verzi
+                        {t('plan_upgrade_modal.close_continue')}
                     </button>
                 </div>
             </div>

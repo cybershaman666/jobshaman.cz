@@ -101,7 +101,7 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
             }
         } catch (e) {
             console.error("Failed to load assessment for preview:", e);
-            alert(t('assessment.results.preview_failed') || 'Nepodařilo se načíst zadání assessmentu.');
+            alert(t('assessment.results.preview_failed'));
         }
     };
 
@@ -141,7 +141,7 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handlePreview(result); }}
                                     className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
-                                    title="Náhled zadání"
+                                    title={t('assessment.results.preview_title')}
                                 >
                                     <Eye size={20} />
                                 </button>
@@ -182,7 +182,7 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
                                                     <Sparkles size={24} />
                                                 </div>
                                                 <div>
-                                                    <h4 className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-1">Doporučení Partnera</h4>
+                                                    <h4 className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-1">{t('assessment.results.partner_recommendation')}</h4>
                                                     <p className="text-slate-900 dark:text-white font-bold text-lg leading-tight">
                                                         {result.ai_evaluation.recommendation}
                                                     </p>
