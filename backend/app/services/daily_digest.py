@@ -111,6 +111,73 @@ def _candidate_location(candidate_profile) -> tuple[Optional[float], Optional[fl
         return None, None
 
 
+def _candidate_has_matching_signal(candidate_profile) -> bool:
+    if isinstance(candidate_profile, list):
+        candidate_profile = candidate_profile[0] if candidate_profile else None
+    if not candidate_profile:
+        return False
+
+    skills = candidate_profile.get("skills") or []
+    cv_text = str(candidate_profile.get("cv_text") or "").strip()
+    cv_ai_text = str(candidate_profile.get("cv_ai_text") or "").strip()
+    return bool((isinstance(skills, list) and len(skills) > 0) or cv_text or cv_ai_text)
+
+
+def _fetch_newest_local_jobs(
+    c_lat: Optional[float],
+    c_lng: Optional[float],
+    preferred_country_code: Optional[str],
+    limit: int = 5,
+) -> List[Dict]:
+    if not supabase:
+        return []
+
+    try:
+        query = (
+            supabase.table("jobs")
+            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code")
+            .eq("legality_status", "legal")
+            .order("scraped_at", desc=True)
+            .limit(250)
+        )
+        if preferred_country_code:
+            query = query.eq("country_code", str(preferred_country_code).upper())
+        resp = query.execute()
+    except Exception as exc:
+        print(f"⚠️ Fallback local jobs query failed: {exc}")
+        return []
+
+    rows = resp.data or []
+    picks: List[Dict] = []
+    for job in rows:
+        remote = _is_remote_job(job)
+        if not remote:
+            j_lat = job.get("lat")
+            j_lng = job.get("lng")
+            if c_lat is None or c_lng is None or j_lat is None or j_lng is None:
+                continue
+            try:
+                distance = _haversine_km(float(c_lat), float(c_lng), float(j_lat), float(j_lng))
+            except Exception:
+                continue
+            if distance > _DIGEST_RADIUS_KM:
+                continue
+
+        picks.append(
+            {
+                "id": job.get("id"),
+                "title": job.get("title") or "",
+                "company": job.get("company") or "",
+                "location": job.get("location") or "",
+                "match_score": None,
+                "detail_url": f"{_APP_URL}/jobs/{job.get('id')}",
+            }
+        )
+        if len(picks) >= limit:
+            break
+    return picks
+
+
 def run_daily_job_digest() -> None:
     if not supabase:
         return
@@ -123,7 +190,7 @@ def run_daily_job_digest() -> None:
             .select(
                 "id,email,full_name,preferred_locale,preferred_country_code,daily_digest_enabled,daily_digest_last_sent_at,"
                 "daily_digest_time,daily_digest_timezone,daily_digest_push_enabled,"
-                "candidate_profiles(lat,lng,address)"
+                "candidate_profiles(lat,lng,address,skills,cv_text,cv_ai_text)"
             )
             .eq("role", "candidate")
             .execute()
@@ -149,43 +216,52 @@ def run_daily_job_digest() -> None:
 
         candidate_profile = row.get("candidate_profiles")
         c_lat, c_lng = _candidate_location(candidate_profile)
-
-        recs = recommend_jobs_for_user(user_id=user_id, limit=30, allow_cache=True)
-        if not recs:
-            continue
+        has_matching_signal = _candidate_has_matching_signal(candidate_profile)
 
         digest_jobs: List[Dict] = []
-        for item in recs:
-            job = item.get("job") or {}
-            job_id = job.get("id")
-            if not job_id:
-                continue
-
-            remote = _is_remote_job(job)
-            if not remote:
-                j_lat = job.get("lat")
-                j_lng = job.get("lng")
-                if c_lat is None or c_lng is None or j_lat is None or j_lng is None:
-                    continue
-                try:
-                    distance = _haversine_km(float(c_lat), float(c_lng), float(j_lat), float(j_lng))
-                except Exception:
-                    continue
-                if distance > _DIGEST_RADIUS_KM:
+        if has_matching_signal:
+            recs = recommend_jobs_for_user(user_id=user_id, limit=30, allow_cache=True)
+            for item in recs:
+                job = item.get("job") or {}
+                job_id = job.get("id")
+                if not job_id:
                     continue
 
-            digest_jobs.append(
-                {
-                    "id": job_id,
-                    "title": job.get("title") or "",
-                    "company": job.get("company") or job.get("company_name") or "",
-                    "location": job.get("location") or "",
-                    "match_score": int(float(item.get("score") or 0)),
-                    "detail_url": f"{_APP_URL}/jobs/{job_id}",
-                }
+                remote = _is_remote_job(job)
+                if not remote:
+                    j_lat = job.get("lat")
+                    j_lng = job.get("lng")
+                    if c_lat is None or c_lng is None or j_lat is None or j_lng is None:
+                        continue
+                    try:
+                        distance = _haversine_km(float(c_lat), float(c_lng), float(j_lat), float(j_lng))
+                    except Exception:
+                        continue
+                    if distance > _DIGEST_RADIUS_KM:
+                        continue
+
+                digest_jobs.append(
+                    {
+                        "id": job_id,
+                        "title": job.get("title") or "",
+                        "company": job.get("company") or job.get("company_name") or "",
+                        "location": job.get("location") or "",
+                        "match_score": int(float(item.get("score") or 0)),
+                        "detail_url": f"{_APP_URL}/jobs/{job_id}",
+                    }
+                )
+                if len(digest_jobs) >= 5:
+                    break
+
+        # Fallback for users with incomplete profiles (or empty personalized result):
+        # deliver newest local jobs without AI match percentages.
+        if not digest_jobs:
+            digest_jobs = _fetch_newest_local_jobs(
+                c_lat=c_lat,
+                c_lng=c_lng,
+                preferred_country_code=row.get("preferred_country_code"),
+                limit=5,
             )
-            if len(digest_jobs) >= 5:
-                break
 
         if not digest_jobs:
             continue
@@ -196,9 +272,9 @@ def run_daily_job_digest() -> None:
             unsubscribe_token = make_unsubscribe_token(user_id, email)
             unsubscribe_url = f"{API_BASE_URL}/email/unsubscribe?uid={user_id}&token={unsubscribe_token}"
 
-        ok = False
+        email_ok = False
         if email_enabled:
-            ok = send_daily_digest_email(
+            email_ok = send_daily_digest_email(
                 to_email=email,
                 full_name=row.get("full_name") or "",
                 locale=locale,
@@ -257,8 +333,17 @@ def run_daily_job_digest() -> None:
             except Exception as exc:
                 print(f"⚠️ Push digest failed for {user_id}: {exc}")
 
-        if ok or push_ok:
+        # Mark digest as sent only when the enabled channel actually succeeded.
+        # This prevents email-enabled users from being marked as "sent" when only push worked.
+        sent_successfully = (email_enabled and email_ok) or (push_enabled and push_ok and not email_enabled)
+
+        if sent_successfully:
             try:
                 supabase.table("profiles").update({"daily_digest_last_sent_at": now_utc_iso}).eq("id", user_id).execute()
             except Exception as exc:
                 print(f"⚠️ Failed to update daily_digest_last_sent_at for {user_id}: {exc}")
+        else:
+            print(
+                f"⚠️ Digest not marked as sent for {user_id}: "
+                f"email_enabled={email_enabled}, email_ok={email_ok}, push_enabled={push_enabled}, push_ok={push_ok}"
+            )

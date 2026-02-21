@@ -68,13 +68,13 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
 
         // Check assessment limits for companies
         if (companyProfile) {
-            const tier = companyProfile.subscription?.tier || 'basic';
+            const tier = companyProfile.subscription?.tier || 'starter';
             const used = companyProfile.subscription?.usage?.aiAssessmentsUsed || 0;
             const limit =
                 tier === 'enterprise' ? 999999 :
-                tier === 'professional' ? 50 :
-                tier === 'basic' ? 5 :
-                tier === 'assessment_bundle' ? 10 :
+                tier === 'professional' ? 150 :
+                tier === 'growth' ? 60 :
+                tier === 'starter' ? 15 :
                 0;
 
             if (used >= limit) {
@@ -96,7 +96,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                 AnalyticsService.trackFeatureUsage({
                     companyId: companyProfile.id,
                     feature: 'ASSESSMENT_GENERATION',
-                    tier: companyProfile.subscription?.tier || 'basic'
+                    tier: companyProfile.subscription?.tier || 'starter'
                 });
             }
         } catch (e) {
@@ -108,7 +108,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
 
     // Calculate remaining assessments
     const remainingAssessments = companyProfile ? getRemainingAssessments(companyProfile) : 0;
-    const tier = companyProfile?.subscription?.tier || 'basic';
+    const tier = companyProfile?.subscription?.tier || 'starter';
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in">
@@ -128,9 +128,9 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                     {t('assessment_creator.plan')}: <span className="font-medium">
                                         {tier === 'enterprise' ? t('assessment_creator.tiers.enterprise') :
                                             tier === 'professional' ? t('assessment_creator.tiers.professional', { defaultValue: 'Professional' }) :
+                                                tier === 'growth' ? t('assessment_creator.tiers.growth', { defaultValue: 'Growth' }) :
                                                 tier === 'trial' ? t('assessment_creator.tiers.trial') :
-                                                    tier === 'assessment_bundle' ? t('assessment_creator.tiers.assessment_bundle') :
-                                                        t('assessment_creator.tiers.basic')}
+                                                    t('assessment_creator.tiers.starter', { defaultValue: 'Starter' })}
                                     </span>
                                 </div>
                             </div>

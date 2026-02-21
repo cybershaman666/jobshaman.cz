@@ -258,7 +258,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             AnalyticsService.trackUpgradeTrigger({
                 companyId: companyProfile?.id,
                 feature: 'JOB_POSTING',
-                currentTier: effectiveCompanyProfile?.subscription?.tier || 'basic',
+                currentTier: effectiveCompanyProfile?.subscription?.tier || 'starter',
                 reason: reason || 'Job posting limit exceeded'
             });
 
@@ -308,7 +308,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             AnalyticsService.trackUpgradeTrigger({
                 companyId: companyProfile?.id,
                 feature: 'COMPANY_AI_AD',
-                currentTier: effectiveCompanyProfile?.subscription?.tier || 'basic',
+                currentTier: effectiveCompanyProfile?.subscription?.tier || 'starter',
                 reason: 'AI ad optimization feature access denied'
             });
 
@@ -343,7 +343,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                 AnalyticsService.trackFeatureUsage({
                     companyId: companyProfile.id,
                     feature: 'AI_AD_OPTIMIZATION',
-                    tier: effectiveCompanyProfile.subscription?.tier || 'basic'
+                    tier: effectiveCompanyProfile.subscription?.tier || 'starter'
                 });
             }
         }
@@ -481,9 +481,10 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         const isFreeLikeTier = subscriptionTier === 'free' || subscriptionTier === 'trial';
         const subscriptionLabel = subscription?.tierName
             || (subscriptionTier === 'professional' ? t('company.subscription.tiers.professional', { defaultValue: 'Professional' })
-                : subscriptionTier === 'basic' ? t('company.subscription.tiers.basic')
+                : subscriptionTier === 'growth' ? t('company.subscription.tiers.growth', { defaultValue: 'Growth' })
+                    : subscriptionTier === 'starter' ? t('company.subscription.tiers.starter', { defaultValue: 'Starter' })
                     : subscriptionTier === 'trial' ? t('company.subscription.tiers.trial', { defaultValue: 'Free (Trial)' })
-                    : t('company.subscription.tiers.free'));
+                        : t('company.subscription.tiers.free'));
 
         return (
             <div className="space-y-6 animate-in fade-in">
@@ -580,7 +581,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 {companyProfile?.members?.length || 1}
                             </div>
                             <div className="text-xs text-slate-500">
-                                {['professional', 'enterprise'].includes(subscriptionTier) ? t('company.subscription.unlimited') : t('company.subscription.no_limit')}
+                                {['growth', 'professional', 'enterprise'].includes(subscriptionTier) ? t('company.subscription.unlimited') : t('company.subscription.no_limit')}
                             </div>
                         </div>
                     </div>

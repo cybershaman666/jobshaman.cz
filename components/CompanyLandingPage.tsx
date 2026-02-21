@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Building, Shield, Target, Star, CheckCircle, Crown, Sparkles, Info, LogIn, SearchX, Lightbulb, BarChart3, ChevronDown } from 'lucide-react';
 import AnalyticsService from '../services/analyticsService';
+import { convertCurrency } from '../services/exchangeRatesService';
 
 interface CompanyLandingPageProps {
   onRegister?: () => void;
@@ -10,6 +11,7 @@ interface CompanyLandingPageProps {
 }
 
 interface PricingPlan {
+  key: 'trial' | 'starter' | 'growth' | 'professional' | 'enterprise';
   name: string;
   price: string;
   originalPrice?: string;
@@ -23,12 +25,20 @@ interface PricingPlan {
 const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onRequestDemo, onLogin }) => {
   const { t, i18n } = useTranslation();
   const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(0);
+  const resolveCalculatorCurrency = (language: string): 'CZK' | 'PLN' | 'EUR' => {
+    const lang = (language || 'cs').split('-')[0].toLowerCase();
+    if (lang === 'pl') return 'PLN';
+    if (lang === 'cs' || lang === 'sk') return 'CZK';
+    return 'EUR';
+  };
+  const selectedCurrency = resolveCalculatorCurrency(i18n.language);
   const [hiresPerYear, setHiresPerYear] = useState(10);
   const [screeningHoursPerHire, setScreeningHoursPerHire] = useState(10);
-  const [hrHourlyCostCzk, setHrHourlyCostCzk] = useState(350);
+  const [hrHourlyCostCzk, setHrHourlyCostCzk] = useState(() => Math.round(convertCurrency(350, 'CZK', selectedCurrency)));
   const [adsPerMonth, setAdsPerMonth] = useState(3);
-  const [portalDailyCostCzk, setPortalDailyCostCzk] = useState(1350);
+  const [portalDailyCostCzk, setPortalDailyCostCzk] = useState(() => Math.round(convertCurrency(1350, 'CZK', selectedCurrency)));
   const hasTrackedView = useRef(false);
+  const previousCurrencyRef = useRef<'CZK' | 'PLN' | 'EUR'>(selectedCurrency);
 
   const trackEvent = (eventName: string, metadata?: Record<string, unknown>) => {
     AnalyticsService.trackEvent(eventName, {
@@ -43,8 +53,17 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
     trackEvent('company_landing_view', { section: 'landing' });
   }, []);
 
+  useEffect(() => {
+    const previousCurrency = previousCurrencyRef.current;
+    if (previousCurrency === selectedCurrency) return;
+    setHrHourlyCostCzk((value) => Math.round(convertCurrency(value, previousCurrency, selectedCurrency)));
+    setPortalDailyCostCzk((value) => Math.round(convertCurrency(value, previousCurrency, selectedCurrency)));
+    previousCurrencyRef.current = selectedCurrency;
+  }, [selectedCurrency]);
+
   const plans: PricingPlan[] = [
     {
+      key: 'trial',
       name: t('company_landing.pricing.plans.trial.name', { defaultValue: 'Free (Trial)' }),
       price: '0 €',
       period: '',
@@ -56,30 +75,46 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
       highlighted: false
     },
     {
-      name: t('company_landing.pricing.plans.basic.name'),
-      price: '399 €',
+      key: 'starter',
+      name: t('company_landing.pricing.plans.basic.name', { defaultValue: 'Starter' }),
+      price: '249 €',
       period: t('company_landing.pricing.period'),
       description: t('company_landing.pricing.plans.basic_v2.desc', { defaultValue: 'For startups and smaller agencies' }),
       features: [
-        t('company_landing.pricing.plans.basic_v2.f1', { defaultValue: '5 active job postings' }),
-        t('company_landing.pricing.plans.basic_v2.f2', { defaultValue: '5 AI assessments' }),
-        t('company_landing.pricing.plans.basic_v2.f3', { defaultValue: 'Basic matching' })
+        t('company_landing.pricing.plans.basic_v2.f1', { defaultValue: '3 active job postings' }),
+        t('company_landing.pricing.plans.basic_v2.f2', { defaultValue: '15 AI screenings / month' }),
+        t('company_landing.pricing.plans.basic_v2.f3', { defaultValue: 'Basic decision overview' })
       ],
       highlighted: false
     },
     {
-      name: t('company_landing.pricing.plans.professional.name', { defaultValue: 'Professional' }),
-      price: '999 €',
+      key: 'growth',
+      name: t('company_landing.pricing.plans.professional.name', { defaultValue: 'Growth' }),
+      price: '599 €',
       period: t('company_landing.pricing.period'),
       description: t('company_landing.pricing.plans.professional.desc', { defaultValue: 'For SMEs and active recruiters' }),
       features: [
-        t('company_landing.pricing.plans.professional.f1', { defaultValue: '20 active job postings' }),
-        t('company_landing.pricing.plans.professional.f2', { defaultValue: '50 AI assessments' }),
-        t('company_landing.pricing.plans.professional.f3', { defaultValue: 'JHI Insights' })
+        t('company_landing.pricing.plans.professional.f1', { defaultValue: '10 active job postings' }),
+        t('company_landing.pricing.plans.professional.f2', { defaultValue: '60 AI screenings / month' }),
+        t('company_landing.pricing.plans.professional.f3', { defaultValue: 'JHI insights' })
       ],
       highlighted: true
     },
     {
+      key: 'professional',
+      name: t('company_landing.pricing.plans.professional_pro.name', { defaultValue: 'Professional' }),
+      price: '899 €',
+      period: t('company_landing.pricing.period'),
+      description: t('company_landing.pricing.plans.professional_pro.desc', { defaultValue: 'For larger hiring teams with analytics needs' }),
+      features: [
+        t('company_landing.pricing.plans.professional_pro.f1', { defaultValue: '20 active job postings' }),
+        t('company_landing.pricing.plans.professional_pro.f2', { defaultValue: '150 AI screenings / month' }),
+        t('company_landing.pricing.plans.professional_pro.f3', { defaultValue: 'Decision analytics dashboard' })
+      ],
+      highlighted: false
+    },
+    {
+      key: 'enterprise',
       name: t('company_landing.pricing.plans.enterprise.name'),
       price: t('company_landing.pricing.price_custom'),
       period: '',
@@ -191,13 +226,12 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
   const savedCzkPerYear = savedHoursPerYear * hrHourlyCostCzk;
   const daysPerMonth = 30;
   const portalMonthlyCostCzk = adsPerMonth * portalDailyCostCzk * daysPerMonth;
-  const eurToCzkApprox = 25;
-  const jobshamanBasicMonthly = 399 * eurToCzkApprox;
-  const jobshamanProfessionalMonthly = 999 * eurToCzkApprox;
-  const jobshamanPromoSavings = Math.max(0, portalMonthlyCostCzk - jobshamanBasicMonthly);
-  const jobshamanStandardSavings = Math.max(0, portalMonthlyCostCzk - jobshamanProfessionalMonthly);
+  const jobshamanStarterMonthly = convertCurrency(249, 'EUR', selectedCurrency);
+  const jobshamanGrowthMonthly = convertCurrency(599, 'EUR', selectedCurrency);
+  const jobshamanPromoSavings = Math.max(0, portalMonthlyCostCzk - jobshamanStarterMonthly);
+  const jobshamanStandardSavings = Math.max(0, portalMonthlyCostCzk - jobshamanGrowthMonthly);
   const numberFormatter = new Intl.NumberFormat(i18n.language, { maximumFractionDigits: 0 });
-  const currencyFormatter = new Intl.NumberFormat(i18n.language, { style: 'currency', currency: 'CZK', maximumFractionDigits: 0 });
+  const currencyFormatter = new Intl.NumberFormat(i18n.language, { style: 'currency', currency: selectedCurrency, maximumFractionDigits: 0 });
 
   return (
     <div className="h-full flex flex-col overflow-y-auto custom-scrollbar relative w-full bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
@@ -400,7 +434,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                     onChange={(event) => setHrHourlyCostCzk(Math.max(0, Number(event.target.value) || 0))}
                     className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400/60"
                   />
-                  <span className="text-xs text-slate-500 dark:text-slate-400">{t('company_landing.calculator.unit_czk')}</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{selectedCurrency}</span>
                 </div>
               </label>
             </div>
@@ -430,7 +464,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                     onChange={(event) => setPortalDailyCostCzk(Math.max(0, Number(event.target.value) || 0))}
                     className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-400/60"
                   />
-                  <span className="text-xs text-slate-500 dark:text-slate-400">{t('company_landing.calculator.unit_czk')}</span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">{selectedCurrency}</span>
                 </div>
               </label>
             </div>
@@ -452,14 +486,18 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                 <div className="text-xs font-semibold text-emerald-700 dark:text-emerald-300 mb-2">{t('company_landing.calculator.output_portal_savings_promo')}</div>
                 <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{currencyFormatter.format(jobshamanPromoSavings)}</div>
                 <p className="text-xs text-emerald-700/80 dark:text-emerald-300/80 mt-1">
-                  {t('company_landing.calculator.output_portal_savings_promo_note')}
+                  {t('company_landing.calculator.output_portal_savings_note', {
+                    price: currencyFormatter.format(jobshamanStarterMonthly)
+                  })}
                 </p>
               </div>
               <div className="bg-slate-50 dark:bg-slate-950 rounded-xl p-5 border border-slate-200 dark:border-slate-800 shadow-sm">
                 <div className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">{t('company_landing.calculator.output_portal_savings_standard')}</div>
                 <div className="text-2xl font-bold text-slate-900 dark:text-white">{currencyFormatter.format(jobshamanStandardSavings)}</div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  {t('company_landing.calculator.output_portal_savings_standard_note')}
+                  {t('company_landing.calculator.output_portal_savings_note', {
+                    price: currencyFormatter.format(jobshamanGrowthMonthly)
+                  })}
                 </p>
               </div>
             </div>
@@ -560,9 +598,9 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                           {t('company_landing.pricing.promo_hint')}
                         </p>
                       )}
-                      {plan.name === t('company_landing.pricing.plans.professional.name', { defaultValue: 'Professional' }) && (
+                      {plan.key === 'professional' && (
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                          {t('company_landing.pricing.extra_assessment')}
+                          {t('company_landing.pricing.extra_assessment', { defaultValue: 'Advanced tier with API access and priority support' })}
                         </p>
                       )}
                     </div>
@@ -588,7 +626,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                         section: 'pricing',
                         plan_name: plan.name
                       });
-                      if (plan.name === t('company_landing.pricing.plans.enterprise.name')) {
+                      if (plan.key === 'enterprise') {
                         onRequestDemo?.();
                       } else {
                         onRegister?.();
@@ -601,7 +639,7 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
                         : 'bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white'
                       }`}
                   >
-                    {plan.name === t('company_landing.pricing.plans.enterprise.name') ? t('company_landing.pricing.cta_contact') : plan.price === '0 €' ? t('company_landing.pricing.cta_start_free') : t('company_landing.pricing.cta_start')}
+                    {plan.key === 'enterprise' ? t('company_landing.pricing.cta_contact') : plan.price === '0 €' ? t('company_landing.pricing.cta_start_free') : t('company_landing.pricing.cta_start')}
                   </button>
                 </div>
               ))}

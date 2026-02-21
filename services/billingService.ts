@@ -44,14 +44,14 @@ export const isSubscriptionExpired = (company: CompanyProfile): boolean => {
  */
 export const canCompanyUseFeature = (company: CompanyProfile, feature: PremiumFeature, _userEmail?: string): boolean => {
     // Basic rules for features
-    const tier = company.subscription?.tier || 'basic';
+    const tier = company.subscription?.tier || 'starter';
 
     // Enterprise has everything
     if (tier === 'enterprise') return true;
 
     switch (feature) {
         case 'COMPANY_RECOMMENDATIONS':
-            return tier === 'professional'; // Enterprise already returned true above
+            return tier === 'growth' || tier === 'professional'; // Enterprise already returned true above
         case 'COMPANY_UNLIMITED_JOBS':
             return false; // Only enterprise (line 50)
         default:
@@ -74,11 +74,19 @@ export const canCompanyPostJob = (company: CompanyProfile, _userEmail?: string):
         };
     }
 
-    // Basic tier limit: 5 active jobs
-    if (tier === 'basic' && activeJobs >= 5) {
+    // Starter tier limit: 3 active jobs
+    if (tier === 'starter' && activeJobs >= 3) {
         return {
             allowed: false,
-            reason: 'Dosáhli jste limitu 5 aktivních inzerátů pro tarif Basic.'
+            reason: 'Dosáhli jste limitu 3 aktivních inzerátů pro tarif Starter.'
+        };
+    }
+
+    // Growth tier limit: 10 active jobs
+    if (tier === 'growth' && activeJobs >= 10) {
+        return {
+            allowed: false,
+            reason: 'Dosáhli jste limitu 10 aktivních inzerátů pro tarif Growth.'
         };
     }
 
@@ -102,13 +110,13 @@ export const getRemainingAssessments = (company: CompanyProfile): number => {
         return 0;
     }
 
-    const tier = company.subscription?.tier || 'basic';
+    const tier = company.subscription?.tier || 'starter';
     const used = company.subscription?.usage?.aiAssessmentsUsed || 0;
 
     if (tier === 'enterprise') return 999999; // Practically unlimited
-    if (tier === 'professional') return Math.max(0, 50 - used);
-    if (tier === 'basic') return Math.max(0, 5 - used);
-    if (tier === 'assessment_bundle') return Math.max(0, 10 - used);
+    if (tier === 'professional') return Math.max(0, 150 - used);
+    if (tier === 'growth') return Math.max(0, 60 - used);
+    if (tier === 'starter') return Math.max(0, 15 - used);
 
     return 0; // No free assessments
 };

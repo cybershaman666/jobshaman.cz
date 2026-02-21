@@ -1215,7 +1215,8 @@
       "unit_hours": "h",
       "unit_czk": "CZK",
       "unit_ads": "ogłoszenia",
-      "note": "Model konserwatywny: liczymy tylko czas screeningu i 26% szybszy hiring jako proxy; koszt portalu liczymy jako 30 dni w miesiącu."
+      "note": "Model konserwatywny: liczymy tylko czas screeningu i 26% szybszy hiring jako proxy; koszt portalu liczymy jako 30 dni w miesiącu.",
+      "output_portal_savings_note": "JobShaman {{price}} / miesiąc, nielimitowane ogłoszenia"
     },
     "benefits": {
       "ai_powered": "AI Optymalizacja ogłoszeń",

@@ -132,6 +132,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [abroadOnly, setAbroadOnly] = useState(false);
     const [sortBy, setSortBy] = useState<string>('default'); // default | recommended | jhi_desc | jhi_asc | personalized_jhi_desc | newest
     const hasAutoSortAppliedRef = useRef(false);
+    const aiMatchScoresByJobIdRef = useRef<Map<string, number>>(new Map());
+    const aiMatchScoresFetchedAtRef = useRef(0);
+    const aiMatchScoresRequestRef = useRef<Promise<void> | null>(null);
+    const AI_MATCH_CACHE_TTL_MS = 5 * 60 * 1000;
 
     // Load saved job IDs from localStorage on mount
     const [savedJobIds, setSavedJobIds] = useState<string[]>(() => {
@@ -172,6 +176,62 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             }
         };
     }, []);
+
+    useEffect(() => {
+        aiMatchScoresByJobIdRef.current = new Map();
+        aiMatchScoresFetchedAtRef.current = 0;
+        aiMatchScoresRequestRef.current = null;
+    }, [userProfile.id]);
+
+    const refreshAiMatchScoresCache = useCallback(async () => {
+        if (!userProfile.isLoggedIn) return;
+        const now = Date.now();
+        const isFresh = (now - aiMatchScoresFetchedAtRef.current) < AI_MATCH_CACHE_TTL_MS;
+        if (isFresh && aiMatchScoresByJobIdRef.current.size > 0) return;
+
+        if (!aiMatchScoresRequestRef.current) {
+            aiMatchScoresRequestRef.current = (async () => {
+                try {
+                    const recs = await fetchRecommendedJobs(200);
+                    const nextMap = new Map<string, number>();
+                    for (const rec of recs) {
+                        const score = (rec as any)?.aiMatchScore;
+                        if (typeof score === 'number') {
+                            nextMap.set(rec.id, score);
+                        }
+                    }
+                    aiMatchScoresByJobIdRef.current = nextMap;
+                    aiMatchScoresFetchedAtRef.current = Date.now();
+                } catch (error) {
+                    console.warn('Failed to refresh AI match score cache:', error);
+                } finally {
+                    aiMatchScoresRequestRef.current = null;
+                }
+            })();
+        }
+
+        await aiMatchScoresRequestRef.current;
+    }, [userProfile.isLoggedIn]);
+
+    const hydrateJobsWithAiMatchScores = useCallback((requestId: number) => {
+        if (!userProfile.isLoggedIn) return;
+
+        void refreshAiMatchScoresCache().then(() => {
+            if (requestId !== latestRequestIdRef.current) return;
+            const scoreMap = aiMatchScoresByJobIdRef.current;
+            if (!scoreMap.size) return;
+
+            setJobs(prev => prev.map(job => {
+                const score = scoreMap.get(job.id);
+                if (typeof score !== 'number') return job;
+                const existing = (job as any)?.aiMatchScore;
+                if (typeof existing === 'number' && Math.round(existing) === Math.round(score)) {
+                    return job;
+                }
+                return { ...(job as any), aiMatchScore: score } as Job;
+            }));
+        });
+    }, [refreshAiMatchScoresCache, userProfile.isLoggedIn]);
 
     // Auto-switch to recommended sorting when we have a parsed CV or skills signal.
     useEffect(() => {
@@ -276,6 +336,15 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 const recs = await fetchRecommendedJobs(initialPageSize);
                 if (isStaleRequest()) return;
                 setJobs(recs);
+                const nextMap = new Map<string, number>();
+                for (const rec of recs) {
+                    const score = (rec as any)?.aiMatchScore;
+                    if (typeof score === 'number') nextMap.set(rec.id, score);
+                }
+                if (nextMap.size > 0) {
+                    aiMatchScoresByJobIdRef.current = nextMap;
+                    aiMatchScoresFetchedAtRef.current = Date.now();
+                }
                 setHasMore(false);
                 setTotalCount(recs.length);
                 return;
@@ -298,6 +367,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 } else {
                     setJobs(basicResult.jobs);
                 }
+                hydrateJobsWithAiMatchScores(requestId);
 
                 setHasMore(basicResult.hasMore);
                 setTotalCount(basicResult.totalCount || 0);
@@ -336,6 +406,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             } else {
                 setJobs(result.jobs);
             }
+            hydrateJobsWithAiMatchScores(requestId);
 
             setHasMore(result.hasMore);
             setTotalCount(result.totalCount || 0);
@@ -376,7 +447,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [
         initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch, filterLanguage, abroadOnly, sortBy, userProfile.isLoggedIn, userProfile.jhiPreferences, userProfile.taxProfile
+        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch, filterLanguage, abroadOnly, sortBy, userProfile.isLoggedIn, userProfile.jhiPreferences, userProfile.taxProfile, hydrateJobsWithAiMatchScores
     ]);
 
 

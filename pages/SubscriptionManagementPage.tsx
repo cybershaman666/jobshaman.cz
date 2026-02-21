@@ -206,9 +206,9 @@ export const SubscriptionManagementPage: React.FC<SubscriptionManagementPageProp
               </summary>
               <div className="mt-3 text-slate-600 dark:text-slate-300 space-y-2">
                 <p>{t('subscription_page.faq.plan_free')}</p>
-                <p>{t('subscription_page.faq.plan_basic_v2', { defaultValue: 'Basic: 5 assessments/month, 5 active job postings' })}</p>
-                <p>{t('subscription_page.faq.plan_professional_v2', { defaultValue: 'Professional: 50 assessments/month, 20 active job postings, JHI insights' })}</p>
-                <p>{t('subscription_page.faq.plan_bundle')}</p>
+                <p>{t('subscription_page.faq.plan_basic_v2', { defaultValue: 'Starter: 15 screenings/month, 3 active job postings' })}</p>
+                <p>{t('subscription_page.faq.plan_growth_v2', { defaultValue: 'Growth: 60 screenings/month, 10 active job postings, JHI insights' })}</p>
+                <p>{t('subscription_page.faq.plan_professional_v2', { defaultValue: 'Professional: 150 screenings/month, 20 active job postings, decision analytics' })}</p>
               </div>
             </details>
 

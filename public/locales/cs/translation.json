@@ -1281,7 +1281,8 @@
       "unit_hours": "h",
       "unit_czk": "Kč",
       "unit_ads": "inzeráty",
-      "note": "Model je konzervativní: počítá jen s časem screeningu a 26% zrychlením náboru; jobportál počítáme jako 30 dní v měsíci."
+      "note": "Model je konzervativní: počítá jen s časem screeningu a 26% zrychlením náboru; jobportál počítáme jako 30 dní v měsíci.",
+      "output_portal_savings_note": "JobShaman {{price}} / měsíc, neomezené inzeráty"
     },
     "benefits": {
       "ai_powered": "AI optimalizace inzerátů",

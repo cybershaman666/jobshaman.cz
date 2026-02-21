@@ -154,7 +154,7 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
         daysUntilRenewal: 30,
         currentPeriodStart: new Date().toISOString(),
         expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-        assessmentsAvailable: 50,
+        assessmentsAvailable: 150,
         assessmentsUsed: 2,
         jobPostingsAvailable: 20
       };

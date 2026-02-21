@@ -460,7 +460,7 @@ async def ai_execute(
 
         # Company assessment tooling: company plans only.
         if action in {"evaluate_assessment_result", "extract_skills_from_job", "optimize_job_description", "match_candidate_to_job"}:
-            allowed = {"basic", "professional", "enterprise", "assessment_bundle"}
+            allowed = {"starter", "growth", "professional", "enterprise"}
             if not _user_has_allowed_subscription(user, allowed):
                 raise HTTPException(status_code=403, detail="Company subscription required")
 

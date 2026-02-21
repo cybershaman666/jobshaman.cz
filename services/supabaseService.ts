@@ -672,7 +672,7 @@ export const getCompanyProfile = async (userId: string): Promise<CompanyProfile 
     return {
         ...data,
         subscription: {
-            tier: data.subscription_tier || 'basic',
+            tier: data.subscription_tier || 'starter',
             expiresAt: undefined, // Not stored in companies table
             usage: data.usage_stats ? {
                 activeJobsCount: data.usage_stats.activeJobsCount || 0,

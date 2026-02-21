@@ -41,12 +41,11 @@ const SubscriptionStatusBadge: React.FC<SubscriptionStatusBadgeProps> = ({ userI
   const tierConfig = {
     free: { color: 'bg-slate-100 text-slate-700', label: t('subscription_badge.free') },
     premium: { color: 'bg-cyan-100 text-cyan-700', label: t('subscription_badge.premium') },
-    basic: { color: 'bg-blue-100 text-blue-700', label: t('subscription_badge.basic') },
+    starter: { color: 'bg-blue-100 text-blue-700', label: t('subscription_badge.starter', { defaultValue: 'Starter' }) },
+    growth: { color: 'bg-indigo-100 text-indigo-700', label: t('subscription_badge.growth', { defaultValue: 'Growth' }) },
     professional: { color: 'bg-purple-100 text-purple-700', label: t('subscription_badge.professional', { defaultValue: 'Professional' }) },
     trial: { color: 'bg-indigo-100 text-indigo-700', label: t('subscription_badge.trial') },
-    enterprise: { color: 'bg-emerald-100 text-emerald-700', label: t('subscription_badge.enterprise') },
-    assessment_bundle: { color: 'bg-amber-100 text-amber-700', label: t('subscription_badge.assessment_bundle') },
-    single_assessment: { color: 'bg-orange-100 text-orange-700', label: t('subscription_badge.single_assessment') }
+    enterprise: { color: 'bg-emerald-100 text-emerald-700', label: t('subscription_badge.enterprise') }
   };
 
   const config = tierConfig[normalizedTier as keyof typeof tierConfig] || tierConfig.free;

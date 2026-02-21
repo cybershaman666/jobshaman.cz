@@ -108,20 +108,20 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
 
   const tierColors = {
     free: 'bg-gray-50 border-gray-200',
-    basic: 'bg-blue-50 border-blue-200',
+    starter: 'bg-blue-50 border-blue-200',
+    growth: 'bg-indigo-50 border-indigo-200',
     professional: 'bg-purple-50 border-purple-200',
     trial: 'bg-indigo-50 border-indigo-200',
     enterprise: 'bg-emerald-50 border-emerald-200',
-    assessment_bundle: 'bg-amber-50 border-amber-200',
   };
 
   const tierBadgeColors = {
     free: 'bg-gray-100 text-gray-800',
-    basic: 'bg-blue-100 text-blue-800',
+    starter: 'bg-blue-100 text-blue-800',
+    growth: 'bg-indigo-100 text-indigo-800',
     professional: 'bg-purple-100 text-purple-800',
     trial: 'bg-indigo-100 text-indigo-800',
     enterprise: 'bg-emerald-100 text-emerald-800',
-    assessment_bundle: 'bg-amber-100 text-amber-800',
   };
 
   const statusColors = {
@@ -280,14 +280,28 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
                     <BarChart3 className="w-5 h-5 text-purple-600" />
                     <span className="font-medium text-gray-900">Job Postings</span>
                   </div>
-                  <span className="text-sm font-semibold text-purple-600">Unlimited</span>
+                  <span className="text-sm font-semibold text-purple-600">
+                    {typeof (subscription as any).jobPostingsUsed !== 'undefined'
+                      ? `${(subscription as any).jobPostingsUsed}/${subscription.jobPostingsAvailable}`
+                      : subscription.jobPostingsAvailable}
+                  </span>
                 </div>
                 <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div className="bg-purple-600 h-2 rounded-full w-full"></div>
+                  <div
+                    className="bg-purple-600 h-2 rounded-full"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        ((subscription as any).jobPostingsUsed ?? 0) / Math.max(subscription.jobPostingsAvailable, 1) * 100
+                      )}%`
+                    }}
+                  ></div>
                 </div>
-                <p className="text-xs text-gray-600 mt-2">Unlimited monthly postings</p>
+                <p className="text-xs text-gray-600 mt-2">Monthly capacity</p>
                 {typeof (subscription as any).jobPostingsUsed !== 'undefined' && (
-                  <p className="text-xs text-gray-500 mt-1">Used: {(subscription as any).jobPostingsUsed}</p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Remaining: {Math.max(0, subscription.jobPostingsAvailable - ((subscription as any).jobPostingsUsed ?? 0))}
+                  </p>
                 )}
               </div>
             )}
@@ -410,17 +424,17 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
             </>
           )}
 
-          {normalizedTier === 'basic' && (
+          {normalizedTier === 'starter' && (
             <>
               {isCompany ? (
                 <>
                   <div className="flex items-center gap-2 text-blue-700">
                     <CheckCircle className="w-4 h-4" />
-                    5 AI assessments/month
+                    15 AI screenings/month
                   </div>
                   <div className="flex items-center gap-2 text-blue-700">
                     <CheckCircle className="w-4 h-4" />
-                    5 active job postings
+                    3 active job postings
                   </div>
                 </>
               ) : (
@@ -441,7 +455,7 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
               )}
               <div className="flex items-center gap-2 text-blue-700">
                 <CheckCircle className="w-4 h-4" />
-                Advanced analytics
+                Basic decision overview
               </div>
               <div className="flex items-center gap-2 text-blue-700">
                 <CheckCircle className="w-4 h-4" />
@@ -450,11 +464,32 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
             </>
           )}
 
+          {normalizedTier === 'growth' && (
+            <>
+              <div className="flex items-center gap-2 text-indigo-700">
+                <CheckCircle className="w-4 h-4" />
+                60 AI screenings/month
+              </div>
+              <div className="flex items-center gap-2 text-indigo-700">
+                <CheckCircle className="w-4 h-4" />
+                10 active job postings
+              </div>
+              <div className="flex items-center gap-2 text-indigo-700">
+                <CheckCircle className="w-4 h-4" />
+                JHI insights & basic reporting
+              </div>
+              <div className="flex items-center gap-2 text-indigo-700">
+                <CheckCircle className="w-4 h-4" />
+                Priority matching in feed
+              </div>
+            </>
+          )}
+
           {normalizedTier === 'professional' && (
             <>
               <div className="flex items-center gap-2 text-purple-700">
                 <CheckCircle className="w-4 h-4" />
-                50 AI assessments/month
+                150 AI screenings/month
               </div>
               <div className="flex items-center gap-2 text-purple-700">
                 <CheckCircle className="w-4 h-4" />
@@ -462,7 +497,7 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
               </div>
               <div className="flex items-center gap-2 text-purple-700">
                 <CheckCircle className="w-4 h-4" />
-                Custom analytics & reports
+                Decision analytics dashboard
               </div>
               <div className="flex items-center gap-2 text-purple-700">
                 <CheckCircle className="w-4 h-4" />
@@ -470,11 +505,11 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
               </div>
               <div className="flex items-center gap-2 text-purple-700">
                 <CheckCircle className="w-4 h-4" />
-                Team management
+                API access
               </div>
               <div className="flex items-center gap-2 text-purple-700">
                 <CheckCircle className="w-4 h-4" />
-                API access
+                Team management
               </div>
             </>
           )}
@@ -483,7 +518,7 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
             <>
               <div className="flex items-center gap-2 text-indigo-700">
                 <CheckCircle className="w-4 h-4" />
-                0 AI assessments (Trial)
+                0 AI screenings (Trial)
               </div>
               <div className="flex items-center gap-2 text-indigo-700">
                 <CheckCircle className="w-4 h-4" />
@@ -495,7 +530,7 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
               </div>
               <div className="flex items-center gap-2 text-indigo-700">
                 <CheckCircle className="w-4 h-4" />
-                Full AI matching & analytics
+                Basic matching
               </div>
             </>
           )}
@@ -521,26 +556,6 @@ export const SubscriptionDashboard: React.FC<SubscriptionDashboardProps> = ({
             </>
           )}
 
-          {subscription.tier === 'assessment_bundle' && (
-            <>
-              <div className="flex items-center gap-2 text-amber-700">
-                <CheckCircle className="w-4 h-4" />
-                50 AI assessments (one-time)
-              </div>
-              <div className="flex items-center gap-2 text-amber-700">
-                <CheckCircle className="w-4 h-4" />
-                Valid for 12 months
-              </div>
-              <div className="flex items-center gap-2 text-amber-700">
-                <CheckCircle className="w-4 h-4" />
-                Advanced assessment insights
-              </div>
-              <div className="flex items-center gap-2 text-amber-700">
-                <CheckCircle className="w-4 h-4" />
-                Email support
-              </div>
-            </>
-          )}
         </div>
       </div>
 
