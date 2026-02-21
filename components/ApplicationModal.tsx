@@ -184,12 +184,12 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
         }, 1500);
       } else {
         console.error('Failed to send application email:', emailResult.error);
-        alert('Nepodařilo se odeslat přihlášku. Zkuste to prosím znovu.');
+        alert(t('alerts.application_send_failed'));
         setStep('form');
       }
     } catch (error) {
       console.error('Application error:', error);
-      alert('Došlo k chybě při odesílání přihlášky. Zkuste to prosím znovu.');
+      alert(t('alerts.application_send_error'));
       setStep('form');
     }
   };
@@ -414,7 +414,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                   if (hasPremiumCoverLetter) {
                     setShowAiInput(!showAiInput);
                   } else {
-                    alert('Tato funkce je dostupná pouze pro Premium uživatele.');
+                    alert(t('alerts.premium_only_feature'));
                   }
                 }}
                 className={`text-xs flex items-center gap-1 font-medium ${hasPremiumCoverLetter ? 'text-purple-600 dark:text-purple-400 hover:text-purple-50' : 'text-slate-400 cursor-not-allowed'}`}

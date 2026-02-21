@@ -4,6 +4,7 @@ import { Job, UserProfile } from '../types';
 import { MapPin, Briefcase, Banknote, Clock, Bookmark, Car, Sparkles, Euro, Home, AlertTriangle } from 'lucide-react';
 import { calculateCommuteReality, calculateDistanceKm, getCoordinates } from '../services/commuteService';
 import { useTranslation } from 'react-i18next';
+import { matchesBrigadaKeywords, matchesFullTimeKeywords, matchesIcoKeywords, matchesPartTimeKeywords } from '../utils/contractType';
 
 interface JobCardProps {
   job: Job;
@@ -16,7 +17,7 @@ interface JobCardProps {
 }
 
 const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, onToggleSave, userProfile }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   // Defensive check for JHI score
   const jhiScore = job.jhi?.score || 0;
@@ -24,6 +25,10 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
 
   const formatJobTypeLabel = (raw: string) => {
     if (!raw) return t('job.contract_types.unknown') || 'Neuvedeno';
+    if (matchesIcoKeywords(raw)) return t('job.contract_types.ico');
+    if (matchesFullTimeKeywords(raw)) return t('job.contract_types.hpp');
+    if (matchesPartTimeKeywords(raw)) return t('job.contract_types.part_time');
+    if (matchesBrigadaKeywords(raw)) return t('job.contract_types.brigada');
     const normalized = raw.trim().toLowerCase();
     const key = normalized
       .replace(/\s+/g, '_')
@@ -42,6 +47,8 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
       dpp: t('job.contract_types.dpp') || 'DPP',
       dpc: t('job.contract_types.dpc') || 'DPČ',
       dpč: t('job.contract_types.dpc') || 'DPČ',
+      brigada: t('job.contract_types.brigada') || 'Temporary job',
+      brigáda: t('job.contract_types.brigada') || 'Temporary job',
       ico: t('job.contract_types.ico') || 'IČO',
       ičo: t('job.contract_types.ico') || 'IČO',
       osvc: t('job.contract_types.osvc') || 'OSVČ',
@@ -58,6 +65,9 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
 
   const formatWorkModelLabel = (raw: string) => {
     if (!raw) return t('job.work_model.unknown') || t('job.contract_types.unknown') || 'Neuvedeno';
+    if (/(home[\s-]?office|remote|na\s+dalku|na\s+dia[ľl]ku)/i.test(raw)) return t('job.work_model.remote');
+    if (/(hybrid|hybridni|hybridný)/i.test(raw)) return t('job.work_model.hybrid');
+    if (/(onsite|on[\s-]?site|office|kancelar|kancelár)/i.test(raw)) return t('job.work_model.on_site');
     const normalized = raw.trim().toLowerCase();
     const key = normalized
       .replace(/\s+/g, '_')
@@ -72,6 +82,23 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
     };
 
     return labelMap[key] || raw;
+  };
+
+  const formatRelativePostedAt = (): string => {
+    const source = job.scrapedAt || job.postedAt;
+    if (!source) return '';
+
+    const parsedDate = new Date(source);
+    if (Number.isNaN(parsedDate.getTime())) return job.postedAt || '';
+
+    const diffSeconds = Math.floor((Date.now() - parsedDate.getTime()) / 1000);
+    const rtf = new Intl.RelativeTimeFormat(i18n.language, { numeric: 'auto' });
+
+    if (diffSeconds < 60) return rtf.format(0, 'second');
+    if (diffSeconds < 3600) return rtf.format(-Math.floor(diffSeconds / 60), 'minute');
+    if (diffSeconds < 86400) return rtf.format(-Math.floor(diffSeconds / 3600), 'hour');
+    if (diffSeconds < 604800) return rtf.format(-Math.floor(diffSeconds / 86400), 'day');
+    return rtf.format(-Math.floor(diffSeconds / 604800), 'week');
   };
 
 
@@ -108,7 +135,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
   if (userProfile && (userProfile.address || userProfile.coordinates)) {
     const commuteProfile = userProfile.address
       ? userProfile
-      : { ...userProfile, address: t('financial.current_location_label', { defaultValue: 'Aktuální poloha' }) as string };
+      : { ...userProfile, address: t('filters.use_current_location') as string };
     const commute = calculateCommuteReality(job, commuteProfile);
     const userCoords = commuteProfile.coordinates || getCoordinates(commuteProfile.address);
     let airDistanceKm: number | null = null;
@@ -124,11 +151,11 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
 
     if (commute && !commute.isRelocation && commute.distanceKm !== -1) {
       const badgeDistance = airDistanceKm ?? commute.distanceKm;
-      const badgeLabel = airDistanceKm !== null ? `${badgeDistance} km · ${t('job.distance_air_label') || 'vzdušně'}` : `${badgeDistance} km`;
+      const badgeLabel = airDistanceKm !== null ? `${badgeDistance} km · ${t('job.distance_air_label')}` : `${badgeDistance} km`;
       distanceBadge = (
         <div
           className="flex items-center gap-1 text-xs font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 ml-2"
-          title={airDistanceKm !== null ? (t('job.distance_air_hint') || 'Filtr vzdálenosti používá vzdušnou čarou. Reálný dojezd může být vyšší.') : undefined}
+          title={airDistanceKm !== null ? t('job.distance_air_hint') : undefined}
         >
           <Car size={12} /> {badgeLabel}
         </div>
@@ -177,7 +204,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
                 <Euro size={10} className="stroke-[2.5px]" />
               </div>
               <span className="hidden sm:inline">{t('job.transparent_eu')}</span>
-              <span className="sm:hidden">EU Trans.</span>
+              <span className="sm:hidden">{t('job.transparent_eu_short')}</span>
             </div>
           )}
         </div>
@@ -189,7 +216,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
               className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold
                 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/50
                 text-emerald-700 dark:text-emerald-300"
-              title={`${t('job.ai_match') || 'AI shoda'}: ${aiMatchScore}%`}
+              title={`${t('job.ai_match')}: ${aiMatchScore}%`}
             >
               <Sparkles size={12} className="text-emerald-600 dark:text-emerald-300" />
               <span>{aiMatchScore}%</span>
@@ -266,7 +293,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
             <span className="truncate">{job.salaryRange}</span>
           </div>
         ) : job.aiEstimatedSalary ? (
-          <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400 min-w-0" title="Odhadováno AI modelem na základě tržních dat">
+          <div className="flex items-center gap-1.5 text-purple-600 dark:text-purple-400 min-w-0" title={t('job.ai_estimated_tooltip')}>
             <Sparkles size={16} className="fill-current flex-shrink-0" />
             <span className="truncate">{job.aiEstimatedSalary.min.toLocaleString()} - {job.aiEstimatedSalary.max.toLocaleString()} {job.aiEstimatedSalary.currency} ({t('job.salary_estimate')})</span>
           </div>
@@ -278,7 +305,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
         )}
 
         <div className="flex items-center gap-1.5 min-w-0">
-          <Clock size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{job.postedAt}</span>
+          <Clock size={16} className="text-slate-400 dark:text-slate-500 flex-shrink-0" /> <span className="truncate">{formatRelativePostedAt()}</span>
         </div>
       </div>
 

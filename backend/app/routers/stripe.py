@@ -1,7 +1,7 @@
 import os
 import stripe
 from fastapi import APIRouter, Request, Depends, HTTPException
-from ..core.config import STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_PREMIUM, STRIPE_PRICE_BUSINESS, STRIPE_PRICE_ASSESSMENT_BUNDLE, STRIPE_PRICE_SINGLE_ASSESSMENT, STRIPE_PRICE_FREELANCE_PREMIUM
+from ..core.config import STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_PREMIUM, STRIPE_PRICE_BUSINESS, STRIPE_PRICE_ASSESSMENT_BUNDLE, STRIPE_PRICE_SINGLE_ASSESSMENT
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_csrf_token_header
 from ..models.requests import CheckoutRequest
@@ -37,7 +37,6 @@ async def create_checkout_session(req: CheckoutRequest, request: Request, user: 
             "business": "business",
             "assessment_bundle": "assessment_bundle",
             "single_assessment": "single_assessment",
-            "freelance_premium": "freelance_premium",
         }
 
         backend_tier = tier_mapping.get(req.tier)
@@ -49,13 +48,12 @@ async def create_checkout_session(req: CheckoutRequest, request: Request, user: 
             "business": STRIPE_PRICE_BUSINESS,
             "assessment_bundle": STRIPE_PRICE_ASSESSMENT_BUNDLE,
             "single_assessment": STRIPE_PRICE_SINGLE_ASSESSMENT,
-            "freelance_premium": STRIPE_PRICE_FREELANCE_PREMIUM,
         }
 
         price_id = prices.get(backend_tier)
         if not price_id:
             raise HTTPException(status_code=500, detail=f"Stripe price not configured for tier: {backend_tier}")
-        mode = "subscription" if backend_tier in ["premium", "business", "freelance_premium"] else "payment"
+        mode = "subscription" if backend_tier in ["premium", "business"] else "payment"
 
         checkout_session = stripe.checkout.Session.create(
             line_items=[{"price": price_id, "quantity": 1}],
@@ -118,16 +116,6 @@ async def stripe_webhook(request: Request):
                 }
                 supabase.table("subscriptions").upsert(data, on_conflict="company_id").execute()
             
-            elif tier == "freelance_premium":
-                data = {
-                    "company_id": user_id, # Freelancers are treated as companies
-                    "tier": "freelance_premium",
-                    "status": "active",
-                    "stripe_subscription_id": session.get("subscription"),
-                    "updated_at": now_iso(),
-                }
-                supabase.table("subscriptions").upsert(data, on_conflict="company_id").execute()
-
             elif tier in ["assessment_bundle", "single_assessment"]:
                 data = {
                     "company_id": user_id,

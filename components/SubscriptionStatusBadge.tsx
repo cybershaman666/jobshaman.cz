@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { CreditCard } from 'lucide-react';
 import { getSubscriptionStatus } from '../services/serverSideBillingService';
+import { useTranslation } from 'react-i18next';
 
 interface SubscriptionStatusBadgeProps {
   userId?: string;
@@ -8,6 +9,7 @@ interface SubscriptionStatusBadgeProps {
 }
 
 const SubscriptionStatusBadge: React.FC<SubscriptionStatusBadgeProps> = ({ userId, className = '' }) => {
+  const { t } = useTranslation();
   const [tier, setTier] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -32,20 +34,20 @@ const SubscriptionStatusBadge: React.FC<SubscriptionStatusBadgeProps> = ({ userI
   }, [userId]);
 
   if (loading || !tier) return null;
+  const normalizedTier = (tier && tier !== 'premium' && tier.endsWith('_premium')) ? 'premium' : tier;
 
   const tierConfig = {
-    free: { color: 'bg-slate-100 text-slate-700', label: 'Free' },
-    premium: { color: 'bg-cyan-100 text-cyan-700', label: 'Premium' },
-    basic: { color: 'bg-blue-100 text-blue-700', label: 'Basic' },
-    business: { color: 'bg-purple-100 text-purple-700', label: 'Business' },
-    freelance_premium: { color: 'bg-cyan-100 text-cyan-700', label: 'Freelance Premium' },
-    trial: { color: 'bg-indigo-100 text-indigo-700', label: 'Business (Trial)' },
-    enterprise: { color: 'bg-emerald-100 text-emerald-700', label: 'Enterprise' },
-    assessment_bundle: { color: 'bg-amber-100 text-amber-700', label: 'Bundle' },
-    single_assessment: { color: 'bg-orange-100 text-orange-700', label: 'Single Assessment' }
+    free: { color: 'bg-slate-100 text-slate-700', label: t('subscription_badge.free') },
+    premium: { color: 'bg-cyan-100 text-cyan-700', label: t('subscription_badge.premium') },
+    basic: { color: 'bg-blue-100 text-blue-700', label: t('subscription_badge.basic') },
+    business: { color: 'bg-purple-100 text-purple-700', label: t('subscription_badge.business') },
+    trial: { color: 'bg-indigo-100 text-indigo-700', label: t('subscription_badge.trial') },
+    enterprise: { color: 'bg-emerald-100 text-emerald-700', label: t('subscription_badge.enterprise') },
+    assessment_bundle: { color: 'bg-amber-100 text-amber-700', label: t('subscription_badge.assessment_bundle') },
+    single_assessment: { color: 'bg-orange-100 text-orange-700', label: t('subscription_badge.single_assessment') }
   };
 
-  const config = tierConfig[tier as keyof typeof tierConfig] || tierConfig.free;
+  const config = tierConfig[normalizedTier as keyof typeof tierConfig] || tierConfig.free;
 
   return (
     <div className={`flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-bold ${config.color} ${className}`}>

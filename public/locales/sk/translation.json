@@ -8,6 +8,9 @@
     "searching": "Hľadám ponuky...",
     "no_jobs_found": "Neboli nájdené žiadne pozície.",
     "try_adjust_filters": "Skúste upraviť filtre alebo hľadaný výraz.",
+    "no_results_for_search": "Žiadne výsledky pre „{{query}}“",
+    "try_different_keywords": "Skúste iné kľúčové slová",
+    "loading_more_offers": "Načítavam ďalšie ponuky...",
     "try_again": "Skúsiť znova",
     "i_am_interested": "Mám záujem",
     "back": "Späť",
@@ -46,9 +49,13 @@
     "cross_border": "Cezhraničné vyhľadávanie 🌍",
     "search_all_desc": "Hľadám aj v zahraničí (ČR, AT, PL, HU)",
     "search_current_desc": "Hľadám iba na Slovensku",
+    "abroad_only": "Iba zahraničie",
+    "abroad_only_desc": "Mimo domovskej krajiny",
+    "use_current_location": "Použiť moju aktuálnu polohu",
     "city_placeholder": "Mesto (napr. Bratislava)",
     "limit_by_commute": "Limitovať dojazdom",
     "max_distance": "Max Vzdialenosť",
+    "radius_hint_no_location": "Pre radius zadajte mesto alebo použite aktuálnu polohu.",
     "search_nearby": "📍 Ponuky v blízkosti",
     "search_everywhere": "🌍 Hľadať všade",
     "contract_type": "Typ úväzku",
@@ -96,7 +103,19 @@
       "jhi_desc": "JHI od najvyššieho",
       "jhi_asc": "JHI od najnižšieho",
       "personalized_jhi_desc": "Personalizované JHI"
-    }
+    },
+    "language_options": {
+      "cs": "Čeština",
+      "sk": "Slovenčina",
+      "en": "Angličtina",
+      "de": "Nemčina",
+      "pl": "Poľština",
+      "uk": "Ukrajinčina"
+    },
+    "min_salary_placeholder": "0",
+    "currency_czk": "Kč",
+    "salary_scale_min": "0 {{currency}}",
+    "salary_scale_max": "150k {{currency}}"
   },
   "financial": {
     "reality_title": "Finančná Realita",
@@ -151,10 +170,18 @@
       "transport_public_title": "Verejná doprava (MHD)",
       "transport_public_example_title": "Mesto-špecifický lístok (preferované):",
       "transport_public_example": "Bratislava 30 €..."
-    }
+    },
+    "current_location_label": "aktuálnej polohy",
+    "reality_desc": "Kalkulácia čistého príjmu a nákladov na dochádzanie.",
+    "home_office": "Home Office",
+    "saved_commute_time_money": "Ušetrený čas a peniaze na dochádzaní.",
+    "eco_friendly_choice": "Ekologickejšia voľba."
   },
   "job_detail": {
     "benefits_title": "Benefity a výhody",
+    "analytics_panel_label": "Analytický panel",
+    "analytics_panel_title": "Kvalita ponuky & signály",
+    "analytics_panel_data_source": "Dáta: JobShaman AI + verejné zdroje",
     "jhi_title": "Index Šťastia (JHI)",
     "jhi_desc": "Kompozitné skóre kvality",
     "jhi_missing_salary_hint": "Nízke JHI je spôsobené chýbajúcou mzdou v inzeráte.",
@@ -168,11 +195,24 @@
     "company_registry": "Zápis v registri",
     "gdpr_consent": "Odoslaním odpovede súhlasíte so spracovaním osobných údajov v súlade s GDPR."
   },
+  "transparency_card": {
+    "title": "Brutálna transparentnosť",
+    "data_source": "Dáta: JobShaman",
+    "badge_why_title": "Prečo vidíte EU Transparent odznak?",
+    "badge_why_desc": "Od júna 2026 bude uvádzanie mzdového rozpätia v EÚ povinné. V JobShaman veríme, že váš čas má hodnotu už dnes. Firmy s týmto označením hrajú fér a otvorene ukazujú odmenu ako prvú."
+  },
+  "bullshit_meter": {
+    "title": "Detektor klišé",
+    "status_clean": "Čistý signál",
+    "status_medium": "Stredný šum",
+    "status_high": "Vysoký šum",
+    "detected_tone": "Detegovaný tón",
+    "no_warning_signals": "Neboli nájdené žiadne varovné signály."
+  },
   "nav": {
     "offers": "Ponuky",
     "saved": "Uložené",
     "profile": "Profil",
-    "marketplace": "Vzdelávanie",
     "services": "Zákazky",
     "for_companies": "Pre Firmy",
     "my_account": "Môj účet",
@@ -199,51 +239,6 @@
     "followup_later": "Pripomenúť neskôr",
     "followup_generic_title": "túto pozíciu",
     "followup_generic_company": "firmu"
-  },
-  "marketplace": {
-    "title": "Vzdelávanie",
-    "subtitle": "Investujte do svojej budúcnosti. Nájdite si dokonalý kurz pre vašu kariéru.",
-    "demo_label": "Demo data:",
-    "demo_data": "Toto sú ukážkové kurzy pre demonštráciu. Reálne kurzy budú dostupné čoskoro.",
-    "offer_course": "Ponúknuť kurz",
-    "all_courses": "Všetky kurzy",
-    "retraining_courses": "Rekvalifikačné kurzy",
-    "commercial_courses": "Komerčné kurzy",
-    "funding_title": "Rekvalifikačné kurzy od Úradu práce",
-    "funding_desc": "Ako nezamestnaný môžete získať až 50 000 Kč na rekvalifikačný kurz!",
-    "search_placeholder": "Hľadať kurzy...",
-    "category": "Kategória",
-    "difficulty": "Obtiažnosť",
-    "price": "Cena",
-    "free_retraining": "Zadarmo (rekvalifikačné)",
-    "no_courses": "Žiadne kurzy neboli nájdené",
-    "reviews": "recenzií",
-    "enroll": "Prihlásiť sa",
-    "detail": "Detail",
-    "beginner": "Začiatočník",
-    "intermediate": "Mierne pokročilý",
-    "advanced": "Pokročilý",
-    "days": "dní",
-    "free": "Zadarmo",
-    "reviews_btn": "Recenzie",
-    "reviews_add": "Napísať recenziu",
-    "enroll_alert": "Registrácia na kurz: {{title}}",
-    "login_to_enroll_alert": "Pre registráciu sa najprv prihláste.",
-    "categories": {
-      "all": "Všetky kategórie",
-      "driving": "Vodičské preukazy",
-      "technical": "Technické kurzy",
-      "it": "IT a programovanie",
-      "business": "Business a management",
-      "marketing": "Marketing a sales",
-      "languages": "Jazyky"
-    },
-    "all_diffs": "Všetky",
-    "sponsored_discount": "Firemná zľava",
-    "verified_graduate": "Overený absolvent",
-    "placement_guarantee": "Záruka umiestnenia",
-    "flexible_payment": "Flexibilná platba",
-    "more_tags": "+{{count}} ďalšie"
   },
   "auth": {
     "login": "Prihlásiť",
@@ -416,6 +411,7 @@
     "benefits": "Benefity a výhody",
     "salary_not_specified": "Mzda neuvedená",
     "salary_estimate": "Odhad",
+    "ai_estimated_tooltip": "Odhad AI modelom na základe trhových dát",
     "relocation": "Sťahovanie",
     "save": "Uložiť pozíciu",
     "saved": "Uložené",
@@ -431,6 +427,7 @@
     "start_over": "Začať znovu",
     "remove_save": "Odstrániť z uložených",
     "transparent_eu": "EÚ Transparentné",
+    "transparent_eu_short": "EÚ Trans.",
     "swipe_tutorial_title": "Ako funguje swipovanie",
     "swipe_tutorial_desc": "Potiahni kartu doľava pre zamietnutie, doprava pre uloženie.",
     "swipe_tutorial_cta": "Rozumiem",
@@ -450,7 +447,8 @@
       "hpp": "TPP",
       "dpp": "DPP",
       "dpc": "DPČ",
-      "ico": "IČO",
+      "ico": "Živnosť",
+      "brigada": "Brigáda",
       "osvc": "SZČO",
       "b2b": "B2B",
       "remote": "Remote",
@@ -462,7 +460,11 @@
       "remote": "Remote",
       "hybrid": "Hybrid",
       "on_site": "Na mieste"
-    }
+    },
+    "swipe_left_title": "Potiahnite doľava alebo stlačte ← pre odmietnutie",
+    "swipe_right_title": "Potiahnite doprava alebo stlačte → pre uloženie",
+    "see_full_details_title": "Zobraziť plný detail ponuky",
+    "switch_to_list_title": "Prepnúť na zoznam"
   },
   "profile": {
     "title": "Profil",
@@ -603,8 +605,6 @@
     "github_placeholder": "github.com/meno",
     "transport_pref": "Preferovaná doprava",
     "transport_desc": "Ako sa radšej dopravujete do práce? Túto informáciu budeme používať vo \"Finančnej a dojazdovej realite\" pri každej pozícii.",
-    "photo_upload_success": "Fotka úspešne nahraná!",
-    "photo_upload_error": "Nepodarilo sa nahrať fotku. Skúste to znovu.",
     "photo_type_error": "Prosím nahrávajte iba obrázky.",
     "photo_size_error": "Obrázok je príliš veľký. Maximálna veľkosť je 5MB.",
     "cv_type_error": "Prosím nahrávajte iba PDF, DOC alebo DOCX súbory.",
@@ -792,8 +792,6 @@
     "seo": {
       "base_title": "JobShaman - Career OS pre lepšiu prácu",
       "home_description": "Career OS, ktorý odhaľuje skryté zručnosti, zvyšuje hodnotu na trhu práce a prináša transparentné ponuky s reálnymi platmi, benefitmi a JHI skóre.",
-      "marketplace_title": "Career OS - JobShaman",
-      "marketplace_description": "AI profil, skryté schopnosti a odporúčania pracovných ponúk na jednom mieste.",
       "profile_title": "Môj Profil | JobShaman",
       "profile_description": "AI profil, skryté schopnosti, silné stránky a personalizované odporúčania pracovných ponúk.",
       "company_dashboard_title": "Pre Firmy - Publikujte ponuky | JobShaman",
@@ -821,8 +819,7 @@
         "dna_culture": "Profil firmy",
         "ai_editor": "Editor ponúk",
         "assessments": "Assessmenty",
-        "candidates": "Kandidáti",
-        "marketplace": "Freelanceri"
+        "candidates": "Kandidáti"
       },
       "all_recruiters": "Všetci Náboroví Pracovníci",
       "create_ad_btn": "Vytvoriť Pracovný Inzerát",
@@ -1011,12 +1008,8 @@
   "seo": {
     "base_title": "JobShaman - Career OS",
     "home_description": "Career OS s AI profilom a odhalením skrytých zručností.",
-    "marketplace_title": "Career OS - JobShaman",
-    "marketplace_description": "AI profil, skryté schopnosti a odporúčania pracovných ponúk.",
     "services_title": "Kariérne služby - JobShaman",
     "services_description": "Nástroje a služby na rast a hodnotu na trhu práce.",
-    "freelancer_dashboard_title": "Profil | JobShaman",
-    "freelancer_dashboard_description": "Správa profilu a kariérnych dát.",
     "saved_title": "Uložené ponuky | JobShaman",
     "saved_description": "Váš zoznam uložených pracovných ponúk a obľúbených pozícií.",
     "assessment_title": "Assessment centrum | JobShaman",
@@ -1071,34 +1064,6 @@
         "title": "Skóre transparentnosti",
         "desc": "Niektoré inzeráty sú férové. Iné len dobre napísané.",
         "hint": "Analyzujeme jazyk, nejasnosti a chýbajúce informácie. Čím menej hmly, tým vyššie skóre."
-      }
-    }
-  },
-  "marketplace_extra": {
-    "funding_categories": {
-      "technical_professions": "Technické profesie",
-      "technical_professions_desc": "Elektrikár, Zvárač, Inštalatér",
-      "technical_courses": "Technické kurzy",
-      "technical_courses_desc": "Zváračstvo, IT certifikácie",
-      "language_courses": "Jazykové kurzy",
-      "language_courses_desc": "Angličtina, Nemčina a ďalšie"
-    },
-    "courses": {
-      "gov_1": {
-        "title": "Elektrikár - Montážna elektrikárska činnosť",
-        "desc": "Kurz pre získanie osvedčenia o odbornej spôbilosti pre montážne elektrikárske činnosti. Vysoký dopyp na trhu práce."
-      },
-      "gov_2": {
-        "title": "Vodičský preukaz skupiny C+E",
-        "desc": "Profesionálny vodičský preukaz pre nákladnú dopravu. Rekvalifikačný kurz s garanciou umiestnenia."
-      },
-      "com_1": {
-        "title": "Java Backend Developer Certificate",
-        "desc": "Kompletný kurz vývoja backend aplikácií v Jave s certifikáciou. Garancia pracovného umiestnenia."
-      },
-      "com_2": {
-        "title": "Python pre dátovú vedu",
-        "desc": "Moderný kurz Pythonu zameraný na analýzu dát, strojové učenie a AI. Ideálne pre kariérny rast."
       }
     }
   },
@@ -1344,12 +1309,17 @@
     "back_button": "Späť",
     "continue_button": "Pokračovat",
     "finish_button": "Dokončiť registráciu",
-    "success_button": "Prosím potvrďte svoj email"
+    "success_button": "Prosím potvrďte svoj email",
+    "confirm_email_instructions": "Poslali sme potvrdzovací odkaz na váš e‑mail. Po potvrdení kliknite na tlačidlo nižšie pre dokončenie registrácie.",
+    "confirm_email_not_found": "Nepodarilo sa overiť potvrdenie e‑mailu. Skúste to znova po potvrdení.",
+    "confirm_email_continue": "Prejsť na Môj Profil"
   },
   "header": {
     "toggle_theme": "Zmeniť režim",
     "logout": "Odhlásiť sa",
-    "switch_to_freelancer": "Prepnúť na freelancera",
+    "menu": "Menu",
+    "language": "Jazyk",
+    "more": "Viac",
     "switch_to_candidate": "Prepnúť na uchádzača",
     "open_profile": "Otvoriť profil"
   },
@@ -1395,8 +1365,39 @@
       "detailed_answers": "Detailné Odpovede",
       "question_label": "Otázka",
       "eval_failed": "Nepodarilo sa vyhodnotiť.",
-      "question_fallback": "Otázka"
+      "question_fallback": "Otázka",
+      "preview_title": "Náhľad zadania",
+      "partner_recommendation": "Odporúčanie partnera",
+      "preview_failed": "Nepodarilo sa načítať zadanie assessmentu."
     }
+  },
+  "saved_filters": {
+    "save_current_title": "Uložiť aktuálnu kombináciu filtrov",
+    "save_search": "Uložiť hľadanie",
+    "load_saved_title": "Načítať uložené hľadanie",
+    "saved_count": "Uložené ({{count}})",
+    "saved_searches": "Uložené hľadania",
+    "unfavorite": "Odobrať z obľúbených",
+    "favorite": "Obľúbené",
+    "used_count": "Použité {{count}}×",
+    "delete": "Zmazať",
+    "modal_title": "Uložiť sadu filtrov",
+    "modal_placeholder": "Zadajte názov...",
+    "cancel": "Zrušiť",
+    "save": "Uložiť",
+    "confirm_delete": "Zmazať toto uložené hľadanie?",
+    "errors": {
+      "enter_name": "Zadajte názov tejto sady filtrov.",
+      "save_failed": "Nepodarilo sa uložiť sadu filtrov."
+    }
+  },
+  "shaman_assistant": {
+    "thinking": "Shaman premýšľa...",
+    "title": "Shaman rada",
+    "match": "Zhoda",
+    "seniority": "Seniorita",
+    "growth_potential": "Potenciál rastu",
+    "missing_skills": "Chýbajúce zručnosti"
   },
   "blog": {
     "title": "Shamanic Insights",
@@ -1421,334 +1422,6 @@
         "title": "AI ako váš kariérny kouč",
         "excerpt": "Ako efektívne využiť Career Pathfinder a AI analýzu k posunu vo vašej profesijnej dráhe."
       }
-    }
-  },
-  "freelancer": {
-    "dashboard": {
-      "title": "Freelancer Dashboard",
-      "loading": "Načítavam profil freelancera…",
-      "logout": "Odhlásiť sa",
-      "stats": {
-        "services": "Aktívne služby",
-        "free_this_month": "Zdarma tento mesiac",
-        "profile_views": "Zobrazenia profilu",
-        "last_30_days": "Za posledných 30 dní",
-        "rating": "Hodnotenie"
-      },
-      "tabs": {
-        "services": "Moje služby",
-        "portfolio": "Portfólio",
-        "inquiries": "Dopyty",
-        "settings": "Nastavenia"
-      },
-      "inquiries": {
-        "title": "Dopyty",
-        "refresh": "Obnoviť",
-        "loading": "Načítavam...",
-        "empty": "Zatiaľ žiadne dopyty.",
-        "unknown_sender": "Neznámy odosielateľ",
-        "sender_company": "Firma",
-        "sender_user": "Užívateľ",
-        "sender_anon": "Anonym",
-        "reply_btn": "Odpovedať"
-      },
-      "services": {
-        "create_title": "Vytvoriť službu",
-        "title_label": "Názov služby",
-        "title_placeholder": "napr. Návrh loga",
-        "desc_label": "Popis",
-        "desc_placeholder": "Popíšte, čo ponúkate...",
-        "price_label": "Cena (CZK)",
-        "price_placeholder": "5000",
-        "location_label": "Lokalita",
-        "location_placeholder": "Vzdialené, Praga...",
-        "category_label": "Kategória",
-        "publish_btn": "Zverejniť službu",
-        "update_btn": "Uložiť zmeny",
-        "delete_confirm": "Ste si istí, že chcete túto službu vymazať?",
-        "limit_alert": "Ako freelancer s bezplatným plánom môžete mať maximálne 3 aktívne služby. Ak chcete viac, prejdite na verziu PRO.",
-        "success_alert": "Služba bola úspešne zverejnená!",
-        "error_alert": "Chyba pri zverejňovaní služby.",
-        "empty_title": "Žiadne služby",
-        "empty_desc": "Zatiaľ neposkytujete žiadne služby. Vytvorte svoju prvú!",
-        "price": "Cena",
-        "list_title": "Zoznam služieb",
-        "add_btn": "Pridať službu",
-        "no_reviews": "Zatiaľ žiadne recenzie",
-        "edit": "Upraviť",
-        "delete": "Vymazať"
-      },
-      "portfolio": {
-        "title": "Moje portfólio",
-        "add_btn": "Pridať položku",
-        "add_item_title": "Pridať položku do portfólia",
-        "title_label": "Názov projektu",
-        "title_placeholder": "napr. Redizajn e-shopu",
-        "desc_label": "Popis",
-        "desc_placeholder": "Povedzte o svojom projekte, čo ste robili, akú technológiu ste použili...",
-        "url_label": "Odkaz na projekt (Nepovinné)",
-        "url_placeholder": "https://example.com/project",
-        "image_label": "Obrázok projektu",
-        "image_placeholder": "Kliknite alebo presuňte obrázok sem (JPG, PNG)",
-        "empty_desc": "Vaše portfólio je prázdne. Začnite svojou najlepšou prácou!",
-        "view_link": "Zobraziť projekt",
-        "delete_btn": "Vymazať",
-        "delete_confirm": "Ste si istí, že chcete túto položku portfólia vymazať?",
-        "success": "Položka portfólia bola úspešne pridaná!",
-        "error": "Chyba pri nahrávaní položky portfólia.",
-        "delete_error": "Chyba pri mazaní položky portfólia.",
-        "uploading": "Nahrávam..."
-      },
-      "profile": {
-        "title": "Prezentácia freelancera",
-        "headline": "Nadpis / hlavná služba",
-        "headline_placeholder": "napr. Webdizajnér & UX konzultant",
-        "bio": "Krátke bio",
-        "bio_placeholder": "Krátke zhrnutie vašich služieb.",
-        "presentation": "Úvodné predstavenie",
-        "presentation_placeholder": "Viac priestoru pre predstavenie, štýl práce, referencie...",
-        "photo": "Profilová fotka",
-        "photo_btn": "Nahrať fotku",
-        "photo_uploading": "Nahrávam...",
-        "photo_saved": "Profilová fotka bola uložená.",
-        "photo_error": "Nepodarilo sa nahrať profilovú fotku.",
-        "photo_hint": "Odporúčané: štvorec, min. 300×300 px",
-        "skills": "Zručnosti (oddelené čiarkou)",
-        "tags": "Tagy / oblasti (oddelené čiarkou)",
-        "hourly_rate": "Sadzba / hod",
-        "currency": "Mena",
-        "work_type": "Typ práce",
-        "work_remote": "Remote",
-        "work_local": "Lokálne",
-        "work_hybrid": "Hybrid",
-        "work_onsite": "On‑site",
-        "availability": "Dostupnosť",
-        "availability_placeholder": "napr. 20 h týždenne, dostupný od 15. 2.",
-        "address": "Lokalita",
-        "address_placeholder": "Bratislava, Košice, remote",
-        "website": "Web / Portfólio",
-        "contact_email": "Kontaktný e‑mail",
-        "contact_phone": "Kontaktný telefón",
-        "save_btn": "Uložiť profil",
-        "saving": "Ukladám...",
-        "saved": "Profil bol uložený.",
-        "save_error": "Nepodarilo sa uložiť profil."
-      },
-      "subscription": {
-        "title": "Vaše predplatné",
-        "status_premium": "Premium Freelancer",
-        "status_free": "Free Plan",
-        "premium_active_title": "Máte aktívne Premium členstvo!",
-        "premium_active_desc": "Užívajte si neobmedzené vkladanie služieb a zvýraznenie profilu.",
-        "manage": "Spravovať predplatné",
-        "manage_alert": "Pre zrušenie predplatného nás prosím kontaktujte na podpora@jobshaman.cz",
-        "upgrade_title": "Prejdite na Freelance Premium",
-        "benefit_1": "Neobmedzený počet aktívnych služieb",
-        "benefit_2": "Odznak \"Overený Freelancer\"",
-        "benefit_3": "Prednostné zobrazenie vo vyhľadávaní",
-        "price": "499 Kč",
-        "per_month": "mesačne",
-        "upgrade_cta": "Aktivovať Premium",
-        "payment_note": "Platba prebieha bezpečne cez Stripe. Kedykoľvek môžete zrušiť."
-      },
-      "settings": {
-        "wip_title": "Osobné údaje (WIP)"
-      },
-      "upgrade_cta": "Activate Premium",
-      "active_plan": "Active Plan",
-      "free_plan": "Free Plan",
-      "premium_plan": "Freelance Premium",
-      "benefits_title": "Premium Benefits",
-      "benefit_1": "Unlimited services",
-      "benefit_2": "Priority listing",
-      "benefit_3": "'Verified Freelancer' badge",
-      "benefit_4": "Traffic statistics",
-      "register_title": "Staňte sa freelancerom",
-      "register_desc": "Na vytvorenie freelancer profilu je potrebná krátka registrácia (IČO a základné údaje).",
-      "register_cta": "Zaregistrovať sa ako freelancer"
-    },
-    "marketplace": {
-      "title": "Zákazky",
-      "subtitle": "Find experts for your project or offer your services.",
-      "search_placeholder": "Search services, freelancers...",
-      "offer_service": "Offer Service",
-      "categories": {
-        "all": "All Services",
-        "crafts": "Crafts",
-        "it": "IT & Development",
-        "design": "Design & Creative",
-        "marketing": "Marketing",
-        "admin": "Administratíva",
-        "real_estate": "Reality",
-        "finance": "Financie",
-        "security": "Bezpečnosť",
-        "legal": "Právo & legislatíva",
-        "writing": "Writing & Translation",
-        "consulting": "Consulting"
-      },
-      "card": {
-        "verified": "Verified",
-        "rating": "rating",
-        "reviews": "reviews",
-        "starting_at": "from",
-        "response_time": "Responds within 24h"
-      },
-      "filters": {
-        "search_title": "Search"
-      },
-      "scroll_left": "Posunúť kategórie doľava",
-      "scroll_right": "Posunúť kategórie doprava",
-      "promo": {
-        "title": "Ste profesionál?",
-        "desc": "Zaregistrujte sa ako freelancer, vybudujte si portfólio a získajte nových klientov.",
-        "highlight": "Prvé 3 inzeráty mesačne zadarmo!",
-        "cta": "Začať ponúkať služby"
-      },
-      "freelancer_marketplace": {
-        "title": "Freelanceri a Remeselníci",
-        "subtitle": "Nájdite a najímajte kvalitných freelancerov a remeselníkov zo spoločnosti JobShaman.",
-        "search_placeholder": "Hľadajte freelancerov, zručnosti...",
-        "categories": {
-          "all": "Všetky",
-          "it": "IT a Vývoj",
-          "design": "Dizajn",
-          "crafts": "Remeslá",
-          "marketing": "Marketing",
-          "admin": "Administratíva",
-          "real_estate": "Reality",
-          "finance": "Financie",
-          "security": "Bezpečnosť",
-          "legal": "Právo & legislatíva"
-        },
-        "results": "Nájdeno {{count}} freelancerov",
-        "no_results": "Nenájdení freelanceri",
-        "no_results_desc": "Skúste zmeniť filtre alebo hľadaný výraz.",
-        "reviews": "recenzií",
-        "hourly_rate": "Sazba:",
-        "contact_btn": "Kontaktovať",
-        "profile_btn": "Zobraziť profil",
-        "profile_error": "Profil sa nepodarilo načítať.",
-        "profile": {
-          "about": "O mne",
-          "skills": "Zručnosti",
-          "portfolio": "Portfólio",
-          "no_portfolio": "Zatiaľ bez položiek.",
-          "portfolio_item": "Ukážka",
-          "view_link": "Otvoriť",
-          "rate": "Sadzba",
-          "rate_on_request": "Dohodou",
-          "availability": "Dostupnosť",
-          "contact": "Kontakt"
-        }
-      }
-    }
-  },
-  "freelancer_registration": {
-    "step_1_title": "Registrácia Freelancera - Krok 1",
-    "step_2_title": "Profil Freelancera - Krok 2",
-    "step_3_title": "Dokončenie Registrácie",
-    "success_title": "Vitajte na palube!",
-    "success_desc": "Váš profil bol úspešne vytvorený. Teraz môžete ponúkať svoje služby.",
-    "intro_desc": "Vytvorte profil a začnite ponúkať svoje služby firmám a jednotlivcom.",
-    "email_label": "E-mail",
-    "password_label": "Heslo",
-    "password_placeholder": "Min. 8 znakov",
-    "fullname_label": "Meno a Priezvisko (alebo Názov Značky)",
-    "fullname_placeholder": "Ján Novák",
-    "ico_label": "IČO (Voliteľné)",
-    "website_label": "Web / Portfólio (Voliteľné)",
-    "terms_agree": "Súhlasím s Podmienkami Poskytovania Služieb",
-    "privacy_agree": "Súhlasím so Spracovaním Osobných Údajov",
-    "go_to_profile": "Prejsť na Môj Profil",
-    "back": "Späť",
-    "finish": "Dokončiť",
-    "continue": "Pokračovať",
-    "info_box": "Dostanete 3 bezplatné inzeráty služieb mesačne. Neskôr môžete prejsť na Premium.",
-    "error_too_many": "Príliš veľa pokusov o registráciu. Prosím čakajte.",
-    "error_exists": "Používateľ s týmto e-mailom už existuje. Prosím prihláste sa.",
-    "error_generic": "Registrácia zlyhala.",
-    "pricing_title": "Plány pre Freelancerov",
-    "plan_basic": "Základný Účet",
-    "plan_basic_desc": "Zadarmo",
-    "plan_basic_offers": "3 aktívne ponuky mesačne",
-    "plan_basic_inquiries": "3 požiadavky mesačne",
-    "plan_premium": "Premium",
-    "plan_premium_desc": "Neobmedzené",
-    "plan_premium_badge": "POPULÁRNE",
-    "plan_premium_offers": "Neobmedzené ponuky",
-    "plan_premium_inquiries": "Neobmedzené požiadavky",
-    "plan_premium_priority": "Vyššia viditeľnosť v hľadaní",
-    "confirm_email_instructions": "Poslali sme potvrdzovací odkaz na váš e‑mail. Po potvrdení kliknite na tlačidlo nižšie pre dokončenie registrácie.",
-    "confirm_email_not_found": "Nepodarilo sa overiť potvrdenie e‑mailu. Skúste to znova po potvrdení.",
-    "error_finalize": "Dokončenie registrácie zlyhalo. Kontaktujte podporu.",
-    "waiting_for_confirmation": "Čakám na potvrdenie e‑mailu a automaticky dokončím…",
-    "check_email_magic": "Poslali sme vám prihlasovací odkaz (magic link). Skontrolujte svoju e‑mailovú schránku.",
-    "resend_confirmation": "Poslať prihlasovací odkaz znova",
-    "error_resend": "Nepodarilo sa odoslať potvrdenie. Skúste to neskôr.",
-    "check_email_help": "Ak e‑mail nepríde, skontrolujte nastavenia SMTP, šablóny e‑mailov a zložku spam."
-  },
-  "freelancer_marketplace_extra": {
-    "empty_state_title": "Zatiaľ tu nie sú žiadne služby",
-    "empty_state_desc": "Buďte prvý, kto ponúka služby v tejto kategórii.",
-    "create_offer_btn": "Vytvoriť Ponuku",
-    "inquire_btn": "Opýtať sa",
-    "wip_alert": "Zobraziť Detail (WIP)"
-  },
-  "freelancer_marketplace": {
-    "title": "Odborníci a zákazky",
-    "subtitle": "Nájdite overených odborníkov a zadávajte zákazky z komunity JobShaman.",
-    "search_placeholder": "Hľadať odborníkov, zručnosti...",
-    "no_bio": "Kvalitný freelancer",
-    "categories": {
-      "all": "Všetci",
-      "it": "IT & Vývoj",
-      "design": "Design",
-      "crafts": "Remesla",
-      "marketing": "Marketing",
-      "admin": "Administratíva",
-      "real_estate": "Reality",
-      "finance": "Financie",
-      "security": "Bezpečnosť",
-      "legal": "Právo & legislatíva"
-    },
-    "results": "Nájdených {{count}} freelancerov",
-    "no_results": "Žiaden freelancer nenájdený",
-    "no_results_desc": "Skúste zmeniť filtre alebo hľadaný výraz.",
-    "reviews": "recenzie",
-    "hourly_rate": "Sadzba:",
-    "contact_btn": "Kontaktovať",
-    "contact_email_placeholder": "Váš e‑mail (povinný)",
-    "contact_phone_placeholder": "Telefón (nepovinný)",
-    "contact_placeholder": "Napíšte správu freelancerovi...",
-    "contact_send": "Odoslať",
-    "contact_cancel": "Zrušiť",
-    "contact_sending": "Odosielam...",
-    "contact_sent": "Správa bola odoslaná. Freelancer bude kontaktovaný.",
-    "contact_failed": "Odoslanie zlyhalo. Skúste to neskôr.",
-    "review_submit_error": "Recenziu sa nepodarilo odoslať.",
-    "profile_btn": "Zobraziť profil",
-    "profile_error": "Profil sa nepodarilo načítať.",
-    "profile": {
-      "about": "O mne",
-      "skills": "Zručnosti",
-      "portfolio": "Portfólio",
-      "no_portfolio": "Zatiaľ bez položiek.",
-      "portfolio_item": "Ukážka",
-      "view_link": "Otvoriť",
-      "rate": "Sadzba",
-      "rate_on_request": "Dohodou",
-      "availability": "Dostupnosť",
-      "reviews": "Recenzie",
-      "no_reviews": "Zatiaľ žiadne recenzie.",
-      "add_review": "Pridať recenziu",
-      "review_placeholder": "Napíšte krátke hodnotenie...",
-      "review_submit": "Odoslať recenziu",
-      "review_sending": "Odosielam...",
-      "review_login": "Pre pridanie recenzie sa prosím prihláste.",
-      "review_anon": "Anonym",
-      "verified_customer": "Overený zákazník",
-      "helpful": "Užitočné",
-      "not_helpful": "Nie užitočné"
     }
   },
   "skillsGap": {
@@ -1976,6 +1649,906 @@
       "cv": "Životopis",
       "done": "Hotovo",
       "missing": "Chýba"
+    }
+  },
+  "alerts": {
+    "profile_save_failed": "Nepodarilo sa uložiť profil. Skúste to znova.",
+    "geolocation_not_supported": "Geolokácia nie je v tomto prehliadači dostupná.",
+    "geolocation_fetch_failed": "Nepodarilo sa získať polohu. Skontrolujte oprávnenia prehliadača.",
+    "subscription_verification_failed": "Nepodarilo sa overiť predplatné. Skúste to znova.",
+    "ai_job_analysis_feature": "AI analýza pracovných inzerátov",
+    "application_send_failed": "Nepodarilo sa odoslať prihlášku. Skúste to znova.",
+    "application_send_error": "Pri odosielaní prihlášky došlo k chybe. Skúste to znova.",
+    "premium_only_feature": "Táto funkcia je dostupná iba pre Premium používateľov.",
+    "registration_rate_limited": "Príliš veľa pokusov o registráciu. Počkajte chvíľu a skúste to znova.",
+    "user_already_exists": "Používateľ s týmto e-mailom už existuje. Prihláste sa.",
+    "registration_failed": "Registrácia zlyhala. Skúste to znova.",
+    "login_required": "Najprv sa prosím prihláste.",
+    "company_id_load_failed": "Chyba: Nepodarilo sa načítať ID spoločnosti. Obnovte stránku.",
+    "company_identify_failed": "Chyba: Nepodarilo sa identifikovať spoločnosť. Obnovte stránku.",
+    "payment_start_failed": "Nepodarilo sa spustiť platbu",
+    "generic_try_later": "Došlo k chybe. Skúste to neskôr alebo nás kontaktujte priamo.",
+    "confirm_delete_all_data": "Naozaj chcete vymazať všetky uložené údaje? Táto akcia je nevratná."
+  },
+  "cookie_preferences": {
+    "no_data_title": "Žiadne údaje na správu",
+    "no_data_desc": "Zatiaľ ste nenastavili žiadne preferencie cookies.",
+    "back_main": "Späť na hlavnú stránku",
+    "back_to_jobshaman": "Späť na JobShaman",
+    "cookie_consent": "Súhlas s cookies",
+    "consent_status_title": "Stav súhlasu",
+    "last_update": "Posledná aktualizácia",
+    "status": "Stav",
+    "status_active": "Aktívny",
+    "status_limited": "Obmedzené",
+    "permissions_overview": "Prehľad oprávnení",
+    "necessary_cookies": "Nevyhnutné cookies",
+    "analytics_cookies": "Analytické cookies",
+    "marketing_cookies": "Marketingové cookies",
+    "functional_cookies": "Funkčné cookies",
+    "data_management": "Správa údajov",
+    "export_data_title": "Export vašich údajov",
+    "export_data_desc": "Stiahnite si všetky uložené údaje vo formáte JSON pre zálohu alebo migráciu.",
+    "download_data": "Stiahnuť údaje",
+    "delete_all_title": "Vymazanie všetkých údajov",
+    "delete_all_desc": "Trvalo vymaže všetky lokálne údaje v prehliadači vrátane cookies, profilu a uložených pozícií. Táto akcia je nevratná.",
+    "delete_all_button": "Vymazať všetky údaje",
+    "privacy_title": "Ochrana súkromia",
+    "privacy_policy_title": "Zásady ochrany osobných údajov",
+    "privacy_policy_desc": "Prečítajte si, ako zhromažďujeme, používame a chránime vaše osobné údaje.",
+    "cookie_policy_title": "Politika cookies",
+    "cookie_policy_desc": "Podrobné informácie o všetkých používaných cookies a ich účele.",
+    "footer_privacy_notice": "JobShaman rešpektuje vaše súkromie v súlade s GDPR a smernicou ePrivacy."
+  },
+  "subscription_badge": {
+    "free": "Free",
+    "premium": "Premium",
+    "basic": "Basic",
+    "business": "Business",
+    "trial": "Business (Trial)",
+    "enterprise": "Enterprise",
+    "assessment_bundle": "Bundle",
+    "single_assessment": "Single Assessment"
+  },
+  "assessment_creator": {
+    "limit_reached": "Dosiahli ste limit {{limit}} assessmentov pre aktuálny plán. Upgradujte pre ďalšie assessmenty.",
+    "remaining_assessments": "Zostávajúce assessmenty",
+    "plan": "Plán",
+    "tiers": {
+      "enterprise": "Enterprise",
+      "business": "Business",
+      "trial": "Business (Trial)",
+      "assessment_bundle": "Assessment Bundle",
+      "basic": "Basic"
+    },
+    "more_credits": "Ďalší kredit",
+    "title": "Generátor kompetencií",
+    "subtitle": "AI vytvorí scenáre na overenie reálnych schopností.",
+    "auto_from_job": "Automaticky z inzerátu",
+    "select_job_placeholder": "-- Vyberte aktívny inzerát --",
+    "auto_fill_hint": "Výberom inzerátu AI automaticky doplní rolu a kľúčové zručnosti.",
+    "role_label": "Rola",
+    "role_placeholder": "napr. Senior Frontend Dev",
+    "skills_label": "Kľúčové zručnosti (oddelené čiarkou)",
+    "skills_placeholder": "napr. React, Performance Optimization, System Design",
+    "extracting_skills": "Analyzujem inzerát a extrahujem zručnosti...",
+    "difficulty_label": "Náročnosť",
+    "difficulty": {
+      "junior": "Junior (Základy)",
+      "medior": "Medior (Prax)",
+      "senior": "Senior (Architektúra a hĺbka)",
+      "expert": "Expert (Edge cases)"
+    },
+    "structure_title": "Štruktúra assessmentu",
+    "structure_heading": "🏗️ Komplexné digitálne AC",
+    "structure_items": {
+      "1": "Odborný \"Quick-fire\" (5-8 úloh) - znalosť postupov, nástrojov a noriem.",
+      "2": "Situačné úlohy (SJT) (2-3 scenáre) - správanie v reálnych situáciách.",
+      "3": "Praktická case study (1 úloha) - reálna ukážka práce na mieru role.",
+      "4": "Logika a analýza (1-2 úlohy) - prioritizácia a interpretácia dát."
+    },
+    "structure_note": "Zloženie sa automaticky prispôsobí charakteru role.",
+    "generating": "Generujem test...",
+    "create_button": "Vytvoriť assessment",
+    "ai_generated": "AI Generated",
+    "copy": "Kopírovať",
+    "question": "Otázka",
+    "preview": "Vyskúšať (Preview)",
+    "send_hint": "Tento test môžete poslať kandidátovi ako \"Pre-screen challenge\".",
+    "empty_state": "Zadajte rolu a zručnosti vľavo pre vygenerovanie overovacích otázok na mieru."
+  },
+  "enterprise_signup": {
+    "title": "JobShaman Enterprise",
+    "subtitle": "Pre firmy s pokročilými náborovými potrebami",
+    "back": "Späť na JobShaman",
+    "hero_title": "Posuňte nábor na novú úroveň",
+    "benefits": {
+      "unlimited_jobs_title": "Neobmedzené množstvo inzerátov",
+      "unlimited_jobs_desc": "Publikujte toľko pozícií, koľko potrebujete, bez limitov.",
+      "ai_assessment_title": "Pokročilé AI assessmenty",
+      "ai_assessment_desc": "Neobmedzené AI testovanie s pokročilou analýzou kandidátov.",
+      "ats_title": "ATS integrácie",
+      "ats_desc": "Prepojte sa s Greenhouse, Lever, Workday a ďalšími systémami.",
+      "support_title": "Prioritná podpora",
+      "support_desc": "Dedikovaný account manager a technická podpora 24/7."
+    },
+    "why_title": "Prečo Enterprise?",
+    "why_items": {
+      "1": "Vlastné ATS integrácie na mieru",
+      "2": "Pokročilé AI funkcie a reporting",
+      "3": "SLA garancie a emergency podpora",
+      "4": "Custom reporting a analytika"
+    },
+    "contact_title": "Kontaktujte nás",
+    "contact_subtitle": "Vyplňte formulár a do 24 hodín pripravíme personalizovanú ponuku.",
+    "form": {
+      "company_name": "Názov firmy",
+      "company_name_placeholder": "Názov vašej firmy",
+      "contact_name": "Kontaktná osoba",
+      "contact_name_placeholder": "Meno a priezvisko",
+      "email": "E-mail",
+      "email_placeholder": "kontakt@firma.sk",
+      "phone": "Telefón",
+      "phone_placeholder": "+420 123 456 789",
+      "company_size": "Veľkosť firmy",
+      "company_size_placeholder": "Vyberte veľkosť",
+      "industry": "Odvetvie",
+      "industry_placeholder": "Vyberte odvetvie",
+      "challenges": "Aktuálne náborové výzvy",
+      "challenges_placeholder": "Popíšte hlavné problémy, ktorým čelíte...",
+      "expected_hires": "Plánovaný počet náborov",
+      "expected_hires_placeholder": "napr. 10-50 pozícií ročne",
+      "timeline": "Časový horizont",
+      "timeline_placeholder": "Vyberte časový horizont",
+      "submitting": "Odosielam...",
+      "submit": "Požiadať o ponuku"
+    },
+    "options": {
+      "company_size": {
+        "1_10": "1-10 zamestnancov",
+        "11_50": "11-50 zamestnancov",
+        "51_200": "51-200 zamestnancov",
+        "201_1000": "201-1000 zamestnancov",
+        "1000_plus": "1000+ zamestnancov"
+      },
+      "industry": {
+        "tech_it": "Technológie a IT",
+        "finance": "Financie a bankovníctvo",
+        "ecommerce": "E-commerce a retail",
+        "manufacturing": "Výroba a priemysel",
+        "healthcare": "Zdravotníctvo a farmácia",
+        "education": "Vzdelávanie",
+        "consulting": "Konzultácie a profesionálne služby",
+        "other": "Ostatné"
+      },
+      "timeline": {
+        "immediately": "Okamžite",
+        "1_month": "Do 1 mesiaca",
+        "3_months": "Do 3 mesiacov",
+        "6_months": "Do 6 mesiacov",
+        "next_year": "Plánujeme na budúci rok"
+      }
+    },
+    "questions_title": "Máte otázky?",
+    "questions_desc_prefix": "Zavolajte nám priamo na",
+    "questions_desc_middle": "alebo píšte na",
+    "questions_hours": "Pracovné dni: Po-Pia, 9:00-17:00",
+    "success": {
+      "title": "Ďakujeme za váš záujem!",
+      "subtitle": "Náš obchodný tím vás bude kontaktovať do 24 hodín, aby prebral vaše potreby a pripravil ponuku na mieru.",
+      "next_title": "Čo sa stane ďalej?",
+      "step1_title": "Kontakt do 24 hodín",
+      "step1_desc": "Náš špecializovaný tím vás bude kontaktovať",
+      "step2_title": "Analýza potrieb",
+      "step2_desc": "Pripravíme personalizovanú ponuku",
+      "step3_title": "Custom nasadenie",
+      "step3_desc": "Technické nastavenie a integrácia"
+    }
+  },
+  "commute_breakdown": {
+    "transport_labels": {
+      "car": "Autom",
+      "public": "MHD",
+      "bike": "Bicykel",
+      "walk": "Pešo"
+    },
+    "distance_unavailable": "Vzdialenosť nie je k dispozícii",
+    "preferred_transport_distance": "Vaša preferovaná doprava na {{distance}} km",
+    "currency_czk": "CZK",
+    "currency_eur": "EUR",
+    "month": "mesiac",
+    "monthly": "mesačne",
+    "daily": "Denne",
+    "time": "Čas",
+    "minutes_value": "{{value}} min",
+    "cost_per_min": "Cena/min",
+    "comparison_title": "Porovnanie s ostatnými možnosťami",
+    "cheaper_by": "↓ O {{amount}} CZK lacnejšie",
+    "more_expensive_by": "↑ O {{amount}} CZK drahšie",
+    "annual_costs": "Ročné náklady:",
+    "czk_per_year": "CZK/rok",
+    "methodology_toggle": "Ako sa počítajú náklady?",
+    "methodology_title": "4 módy dopravy - výpočtová metóda",
+    "methodology": {
+      "car": {
+        "1": "Sadzba: 5 CZK/km (palivo, údržba, poistenie)",
+        "2": "Čas: 1.5 - 2.5 min/km podľa terénu",
+        "3": "Ideálne pre: diaľkové cesty, vidiek",
+        "4": "Vzorec: Vzdialenosť × 5 CZK/km × 2 (tam aj späť)"
+      },
+      "public": {
+        "title": "Verejná doprava (MHD)",
+        "1": "Sadzba: 2.5 CZK/km + mesačný lístok",
+        "2": "Lístok: závisí od mesta",
+        "3": "Praha: ~1,500 CZK/mesiac (60 km/mesiac zdarma)",
+        "4": "Brno: ~1,300 CZK/mesiac",
+        "5": "Plzeň: ~1,000 CZK/mesiac",
+        "6": "Čas: 2.0 - 3.0 min/km (čakanie + jazda)",
+        "7": "Ideálne pre: veľké mestá s dobrou MHD, bez stresu"
+      },
+      "bike": {
+        "1": "Sadzba: 0.05 CZK/km (len údržba)",
+        "2": "Čas: 4.0 - 6.0 min/km podľa terénu",
+        "3": "Ideálne pre: vzdialenosti do 15 km",
+        "4": "Výhody: najlacnejšie, zdravé, bez emisií",
+        "5": "Vzorec: Vzdialenosť × 0.05 CZK/km × 2"
+      },
+      "walk": {
+        "1": "Sadzba: 0 CZK (zadarmo)",
+        "2": "Čas: 12.0 - 15.0 min/km",
+        "3": "Ideálne pre: do 5 km",
+        "4": "Výhody: najlacnejšie, najzdravšie, bez dopadu na životné prostredie"
+      }
+    },
+    "metro_notes_title": "Poznámky pre veľké metropoly:",
+    "metro_notes": {
+      "1": "• Karty/Pasy: MHD vo veľkých mestách (Praha, Brno) ponúka mesačné lístky s neobmedzeným počtom jázd",
+      "2": "• Subvencie: niektoré firmy podporujú dopravu zamestnancov (benefity), čo znižuje náklady",
+      "3": "• Kombinované cestovanie: možnosť kombinovať MHD a bike-sharing",
+      "4": "• E-kolobežky: dostupné v mestách, cena cca 5-10 CZK/km"
+    },
+    "calculation_info": "Ako sa to počíta? Všetky vyššie uvedené náklady sú jednosmerné. Systém automaticky počíta cestu tam aj späť (×2), prepočíta denné/mesačné/ročné náklady a zohľadňuje mesačné lístky MHD."
+  },
+  "admin_dashboard": {
+    "auth": {
+      "admin_zone": "Admin zóna",
+      "login_required": "Pre prístup sa najprv prihláste.",
+      "access_denied": "Prístup zamietnutý",
+      "no_admin_rights": "Tento účet nemá admin oprávnenia."
+    },
+    "header": {
+      "subtitle": "Správa predplatných, trialov, auditov a návštevnosti",
+      "title": "Admin Dashboard",
+      "control": "Admin Control"
+    },
+    "actions": {
+      "refresh_data": "Obnoviť dáta",
+      "refresh": "Obnoviť",
+      "wake_backend": "Prebudiť backend",
+      "waking": "Prebúdzam…",
+      "backend_ok": "Backend OK",
+      "export_csv": "Export CSV"
+    },
+    "common": {
+      "close": "Zavrieť",
+      "loading": "Načítavam...",
+      "save": "Uložiť",
+      "saving": "Ukladám…",
+      "no_data": "Žiadne dáta.",
+      "yes": "Áno",
+      "no": "Nie"
+    },
+    "entity": {
+      "company": "Firma",
+      "user": "Používateľ"
+    },
+    "errors": {
+      "load_failed": "Načítanie zlyhalo",
+      "save_failed": "Uloženie zlyhalo",
+      "action_failed": "Akcia zlyhala",
+      "target_required": "Zadajte ID cieľa (company/user)",
+      "create_failed": "Vytvorenie zlyhalo",
+      "digest_load_failed": "Načítanie digestu zlyhalo",
+      "digest_save_failed": "Uloženie digestu zlyhalo"
+    },
+    "notifications": {
+      "title": "Upozornenia (trial)",
+      "subtitle": "Najbližšie expirácie",
+      "empty": "Žiadne urgentné položky.",
+      "severity": {
+        "today": "Končí dnes",
+        "expired": "Expirované",
+        "soon": "Čoskoro končí"
+      }
+    },
+    "create_subscription": {
+      "title": "Vytvoriť predplatné",
+      "subtitle": "Rýchle nastavenie tieru a trialu",
+      "target_uuid": "UUID cieľa",
+      "trial_days": "Trial dní",
+      "create_or_update": "Vytvoriť / upraviť"
+    },
+    "search": {
+      "search_company": "Hľadať firmu",
+      "search_user": "Hľadať používateľa",
+      "placeholder": "Názov firmy, meno alebo email...",
+      "email_or_name": "Hľadať email alebo meno...",
+      "search_button": "Vyhľadať",
+      "searching": "Hľadám...",
+      "use_for_subscription": "Použiť pre predplatné",
+      "manage_digest": "Spravovať digest"
+    },
+    "digest": {
+      "title": "Denný digest (mailing list)",
+      "subtitle": "Správa odberu pre vybraného používateľa",
+      "loading_settings": "Načítavam nastavenia…",
+      "last_sent": "Posledné odoslanie",
+      "subscribe_daily": "Odoberať denný digest",
+      "time": "Čas",
+      "timezone": "Časové pásmo",
+      "locale_country": "Lokalizácia / Krajina",
+      "email_digest": "Email digest",
+      "push_digest": "Push digest"
+    },
+    "push": {
+      "title": "Push subscriptions",
+      "subtitle": "Aktívne odbery pre PWA notifikácie",
+      "empty": "Žiadne aktívne push subscriptions.",
+      "updated": "Aktualizácia",
+      "user_agent": "User Agent"
+    },
+    "mailing": {
+      "title": "Mailing / Odbery digestu",
+      "subtitle": "Správa e‑mail/push odberov pre kandidátov",
+      "digest_settings_title": "Nastavenie digestu",
+      "digest_settings_subtitle": "Email + push + čas doručenia"
+    },
+    "stats": {
+      "users": "Používatelia",
+      "in_7_days": "za 7 dní",
+      "users_30_days": "Používatelia 30 dní",
+      "new_in_30_days": "Noví za 30 dní",
+      "companies": "Firmy",
+      "companies_30_days": "Firmy 30 dní",
+      "new_companies_30_days": "Nové firmy za 30 dní",
+      "paid_conversion": "Konverzia na platené",
+      "companies_ratio": "Firmy"
+    },
+    "traffic": {
+      "title": "Návštevnosť",
+      "last_30_days": "Posledných 30 dní",
+      "hide_details": "Skryť detail",
+      "show_details": "Zobraziť detail",
+      "loading": "Načítavam analytiku...",
+      "unavailable": "Štatistiky návštevnosti nie sú k dispozícii.",
+      "visitors": "Návštevníci",
+      "pages_per_session": "Stránky / session",
+      "daily_visits_14_days": "Denná návštevnosť (14 dní)",
+      "top_pages": "Top stránky",
+      "traffic_source": "Zdroj návštev",
+      "top_countries_30_days": "Top krajiny (30 dní)",
+      "devices_30_days": "Zariadenia (30 dní)",
+      "os_30_days": "OS (30 dní)",
+      "browsers_30_days": "Prehliadače (30 dní)",
+      "pageviews": "Pageviews",
+      "sessions": "Sessions",
+      "bounce_rate": "Bounce rate"
+    },
+    "ai_quality": {
+      "title": "AI Quality",
+      "subtitle": "Kvalita výstupov + dopad na aplikácie (30 dní)",
+      "hide_details": "Skryť detail",
+      "show_details": "Zobraziť detail",
+      "loading": "Načítavam AI quality metriky...",
+      "unavailable": "AI quality dáta nie sú k dispozícii.",
+      "active_models": "Aktívne modely",
+      "top_models_by_cost": "Top modely podľa nákladov",
+      "top_users_by_usage": "Top používatelia podľa AI usage",
+      "requests": "req",
+      "release_flags": "Release flagy",
+      "on": "ON",
+      "off": "OFF",
+      "schema_pass_rate": "Schema pass rate",
+      "fallback_rate": "Fallback rate",
+      "diff_volatility": "Diff volatility",
+      "apply_rate_ai_users": "Apply rate (AI users)",
+      "conversion_impact": "Conversion impact",
+      "offline_auc": "Offline AUC",
+      "log_loss": "Log loss",
+      "exposures": "Exposures",
+      "exploration_share": "Exploration share",
+      "new_job_share": "New job share",
+      "long_tail_share": "Long-tail share",
+      "ai_users": "AI používatelia",
+      "total_tokens": "Tokeny celkom",
+      "estimated_ai_cost": "Odhadované AI náklady",
+      "avg_cost_per_generation": "Priemerná cena / generovanie",
+      "precision_at_5": "P@5"
+    },
+    "filters": {
+      "title": "Filtre a vyhľadávanie",
+      "subtitle": "Rýchla navigácia v predplatných",
+      "search_placeholder": "Hľadať firmu, email, ID...",
+      "all": "Všetko",
+      "companies": "Firmy",
+      "users": "Používatelia",
+      "tier_all": "Tier: všetko",
+      "status_all": "Status: všetko"
+    },
+    "table": {
+      "subject": "Subjekt",
+      "email": "Email",
+      "tier": "Tier",
+      "status": "Status",
+      "validity": "Platnosť",
+      "actions": "Akcie",
+      "no_records": "Žiadne záznamy.",
+      "trial_days_placeholder": "Trial dní",
+      "detail": "Detail",
+      "activate": "Aktivovať",
+      "cancel": "Zrušiť",
+      "previous": "Predchádzajúca",
+      "next": "Ďalšia",
+      "trial_14d": "Trial 14d"
+    },
+    "detail": {
+      "title": "Detail predplatného",
+      "subject": "Subjekt",
+      "tier_status": "Tier / Status",
+      "valid_until": "Platnosť do",
+      "customer": "Customer",
+      "period": "Obdobie",
+      "cancel_at_period_end": "Zrušenie na konci obdobia",
+      "created": "Vytvorené",
+      "updated": "Aktualizované",
+      "target_id": "Cieľové ID",
+      "stripe": "Stripe",
+      "price_id": "Price ID"
+    },
+    "audit": {
+      "title": "Audit log",
+      "refresh": "Obnoviť log",
+      "loading": "Načítavam audit log...",
+      "changed": "Zmenené",
+      "admin": "admin"
+    }
+  },
+  "saved_jobs_page": {
+    "title": "Uložené pracovné pozície",
+    "count_one": "{{count}} uložená pozícia",
+    "count_few": "{{count}} uložené pozície",
+    "count_other": "{{count}} uložených pozícií",
+    "remove_all": "Odstrániť všetko",
+    "confirm_remove_all": "Naozaj chcete odstrániť všetky uložené pracovné pozície?",
+    "search_placeholder": "Hľadať v uložených pozíciách...",
+    "empty_title": "Zatiaľ nemáte žiadne uložené pozície",
+    "empty_desc": "Kliknite na ikonu záložky pri pracovnej pozícii, ktorú chcete uložiť na neskôr.",
+    "empty_tip": "Tip: Uložené pozície nájdete aj v záložke „Profil“.",
+    "no_results_title": "Nenašli sa žiadne výsledky",
+    "no_results_desc": "Skúste zmeniť hľadaný výraz.",
+    "remove_from_saved": "Odstrániť z uložených"
+  },
+  "invitation_landing": {
+    "invalid_link": "Neplatný odkaz na pozvánku (chýba ID alebo token).",
+    "api_error": "Chyba API: {{status}}",
+    "verify_failed": "Nepodarilo sa overiť pozvánku.",
+    "default_role": "Kandidát",
+    "default_skill": "všeobecné",
+    "generate_failed": "Nepodarilo sa vygenerovať assessment.",
+    "submit_success_alert": "Ďakujeme! Assessment bol odoslaný.",
+    "submit_failed": "Nepodarilo sa odoslať výsledok.",
+    "loading": "Načítavam pozvánku…",
+    "not_found": "Pozvánka nebola nájdená.",
+    "title": "Pozvánka na assessment od {{company}}",
+    "position": "Pozícia",
+    "valid_until": "Platí do",
+    "start_desc": "Kliknite pre spustenie assessmentu. Výsledok bude po dokončení odoslaný spoločnosti.",
+    "start_button": "Spustiť assessment",
+    "assessment_fallback_title": "Assessment",
+    "question_label": "Otázka {{index}}",
+    "submitting": "Odosielam…",
+    "submit_button": "Odoslať výsledky",
+    "completed": "Tento assessment už bol dokončený."
+  },
+  "my_invitations": {
+    "title": "Pozvánky na assessment",
+    "refresh": "Obnoviť",
+    "loading": "Načítavam dáta...",
+    "load_failed": "Nepodarilo sa načítať pozvánky.",
+    "assessment_load_failed": "Nepodarilo sa načítať test. Skúste to neskôr.",
+    "assessment_submit_success": "Test bol úspešne odoslaný. Ďakujeme.",
+    "empty": "Zatiaľ nemáte žiadne aktívne pozvánky.",
+    "unknown_position": "Neznáma pozícia",
+    "expires": "Vyprší",
+    "status_pending": "Čaká na vypracovanie",
+    "status_completed": "Dokončené",
+    "status_expired": "Vypršalo",
+    "start_test": "Spustiť test"
+  },
+  "premium_upsell": {
+    "badge": "NOVÁ FUNKCIA",
+    "title": "Odomknite Premium funkcie",
+    "subtitle": "Získajte prístup k AI nástrojom, ktoré vám pomôžu dostať sa na lepšiu pozíciu.",
+    "per_month": "/mesiac",
+    "cancel_anytime": "Zrušte kedykoľvek bez poplatkov",
+    "upgrade_now": "Upgradovať teraz",
+    "footer": "Bezpečná platba · Okamžitý prístup · Bez dlhodobého záväzku",
+    "compact": {
+      "title": "Vyskúšajte Premium funkcie",
+      "desc": "CV šablóny, AI prepis a generovanie motivačných listov",
+      "cta": "Upgradovať za 99 CZK/mesiac"
+    },
+    "features": {
+      "cv_templates_title": "CV šablóny",
+      "cv_templates_desc": "Profesionálne dizajny optimalizované pre recruiterov",
+      "ai_rewrite_title": "AI prepis CV",
+      "ai_rewrite_desc": "Inteligentná optimalizácia na mieru pozície",
+      "cover_letter_title": "AI motivačný list",
+      "cover_letter_desc": "Automatické vytváranie personalizovaných listov"
+    }
+  },
+  "premium_upgrade_modal": {
+    "title": "Odomknite JobShaman Premium",
+    "desc_prefix": "Funkcia",
+    "desc_suffix": "a ďalšie AI nástroje sú dostupné iba pre prémiových členov.",
+    "upgrade_cta": "Upgradovať na Premium za 99 CZK/mesiac",
+    "maybe_later": "Možno neskôr",
+    "benefits": {
+      "unlimited_ai": "Neobmedzená AI analýza pracovných inzerátov",
+      "cover_letters": "Automatické generovanie motivačných listov",
+      "cv_optimization": "Inteligentná optimalizácia CV na mieru pozície",
+      "priority_visibility": "Prioritné zobrazenie pre recruiterov"
+    }
+  },
+  "plan_upgrade_modal": {
+    "premium_features": "Prémiové funkcie",
+    "feature_requires_plan_prefix": "Funkcia",
+    "feature_requires_plan_suffix": "vyžaduje vyšší plán alebo kredity.",
+    "select_solution": "Vyberte si riešenie",
+    "highlights": {
+      "unlimited_job_posts": "Neobmedzený počet inzerátov",
+      "ai_assessments": "AI assessmenty",
+      "ai_job_optimization": "AI optimalizácia inzerátov"
+    },
+    "basic": {
+      "title": "Základný plán",
+      "subtitle": "Ideálny štart",
+      "price": "ZDARMA",
+      "price_suffix": "navždy",
+      "feature_1": "3 inzeráty / mesiac",
+      "feature_2": "Základný dashboard",
+      "feature_3": "Bez AI funkcií",
+      "feature_4": "Bez assessmentov",
+      "cta": "Používať zadarmo"
+    },
+    "business": {
+      "recommended_badge": "Odporúčané",
+      "title": "Business plán",
+      "subtitle": "Pre rastúce firmy",
+      "price_suffix": "/ mesiac (akcia)",
+      "price_regular": "bežne 9 990 CZK",
+      "feature_1": "Neobmedzené inzeráty",
+      "feature_2": "AI optimalizácia",
+      "feature_3": "10 assessmentov / mesiac",
+      "feature_4": "Pokročilá analytika",
+      "feature_5": "Správa tímu",
+      "feature_6": "Prioritná podpora",
+      "cta": "Aktivovať Business"
+    },
+    "assessment_center": {
+      "title": "Assessment centrum",
+      "subtitle": "Doplnok k akémukoľvek plánu",
+      "single_title": "1 assessment",
+      "single_subtitle": "Jednorazový nákup",
+      "bundle_title": "10 assessmentov",
+      "bundle_subtitle": "Platnosť 12 mesiacov"
+    },
+    "enterprise": {
+      "title": "Individuálny plán",
+      "subtitle": "Pre veľké spoločnosti",
+      "price": "Na mieru",
+      "price_suffix": "individuálna cenotvorba",
+      "feature_1": "Všetky Premium funkcie",
+      "feature_2": "Vlastné integrácie",
+      "feature_3": "Dedikovaná podpora",
+      "feature_4": "API prístup",
+      "feature_5": "SLA garancia",
+      "feature_6": "Tréning na mieru",
+      "cta": "Kontaktovať obchod",
+      "email_subject": "Dopyt na individuálny plán",
+      "email_body": "Dobrý deň,\n\nmám záujem o individuálny plán pre našu spoločnosť.\n\nS pozdravom,"
+    },
+    "close_continue": "Zavrieť a pokračovať v základnej verzii"
+  },
+  "assessment_invitation_modal": {
+    "title": "Pozvať kandidáta na assessment",
+    "fill_required": "Vyplňte ID assessmentu a e-mail kandidáta",
+    "api_error": "Chyba API: {{status}}",
+    "send_failed": "Nepodarilo sa odoslať pozvánku",
+    "assessment_id": "Assessment ID",
+    "assessment_id_placeholder": "napr. tech-backend-1",
+    "candidate_email": "E-mail kandidáta",
+    "job_title_optional": "Názov pozície (voliteľné)",
+    "assessment_name_optional": "Názov assessmentu (voliteľné)",
+    "expires_days": "Platnosť (dni)",
+    "sending": "Odosielam…",
+    "send_button": "Odoslať pozvánku"
+  },
+  "filter_suggestions": {
+    "title_personal": "🔥 Často hľadané pre vás",
+    "title_popular": "🔥 Najčastejšie hľadania"
+  },
+  "subscription_page": {
+    "title": "Predplatné a Fakturácia",
+    "subtitle": "Spravujte svoje predplatné a limity využitia",
+    "login_required": "Pre zobrazenie predplatného sa prosím prihláste.",
+    "user_id_missing": "Chyba: ID používateľa nie je dostupné. Skúste sa prihlásiť znova.",
+    "personal_title": "Vaše osobné predplatné",
+    "tip_title": "Užitočný tip",
+    "tip_desc": "Potrebujete viac assessmentov? Zvážte upgrade na Business plán pre neobmedzený prístup ku všetkým funkciám.",
+    "company_title": "{{company}} - Predplatné spoločnosti",
+    "company_benefits_title": "Výhody spoločnosti",
+    "company_benefits": {
+      "team_management": "✓ Správa tímu a viac používateľských účtov",
+      "shared_credits": "✓ Zdieľané kredity hodnotení v celom tíme",
+      "analytics": "✓ Pokročilá analytika a vlastné reporty",
+      "priority_support": "✓ Prioritná podpora a vyhradený account manažér",
+      "api_access": "✓ API prístup pre integrácie"
+    },
+    "faq_title": "Často kladené otázky",
+    "faq": {
+      "renewal_q": "Čo sa stane, keď sa moje predplatné obnoví?",
+      "renewal_a": "Vaše predplatné sa automaticky obnoví v dátume zobrazenom v paneli. Budeme účtovať uloženú platobnú metódu. Predplatné môžete kedykoľvek pozastaviť alebo zrušiť.",
+      "pause_q": "Môžem predplatné pozastaviť?",
+      "pause_a": "Áno. Predplatné môžete pozastaviť, aby sa zachovali vaše dáta bez účtovania. Kontaktujte podporu pre pozastavenie až na 3 mesiace.",
+      "plan_contents_q": "Čo obsahujú jednotlivé plány?",
+      "plan_free": "Zdarma: Obmedzený prístup k pracovným ponukám, základné funkcie",
+      "plan_basic": "Základný: 20 assessmentov/mesiac, 50 pracovných ponúk/mesiac",
+      "plan_business": "Business: Neobmedzené assessmenty, neobmedzené ponuky, prioritná podpora",
+      "plan_bundle": "Balík assessmentov: 50 jednorazových assessmentov platných 12 mesiacov",
+      "rollover_q": "Prenášajú sa nevyužité kredity?",
+      "rollover_a": "Nie. Mesačné kredity sa resetujú v deň obnovy. Nákupy balíkov sú platné 12 mesiacov od nákupu.",
+      "support_q": "Ako kontaktujem podporu?",
+      "support_a": "Napíšte nám na support@jobshaman.cz alebo použite chat widget v aplikácii. Používatelia Business plánu majú prioritnú podporu 24/7."
+    }
+  },
+  "subscription_card": {
+    "title": "Predplatné",
+    "company_mgmt": "Správa predplatného spoločnosti",
+    "personal_mgmt": "Správa vášho predplatného",
+    "your_subscription": "Vaše predplatné",
+    "company_title": "{{company}} - Predplatné spoločnosti",
+    "company_benefits_title": "Výhody spoločnosti",
+    "company_benefits": {
+      "team_management": "✓ Správa tímu a viac používateľských účtov",
+      "shared_credits": "✓ Zdieľané kredity hodnotení v celom tíme",
+      "analytics": "✓ Pokročilá analytika a vlastné reporty",
+      "priority_support": "✓ Prioritná podpora a vyhradený account manažér",
+      "api_access": "✓ API prístup pre integrácie"
+    },
+    "personal_subscription": "Vaše osobné predplatné",
+    "quick_info_title": "Rýchle informácie",
+    "quick_info": {
+      "renewal": "Čo sa stane pri obnovení? Predplatné sa automaticky obnoví a bude účtovaná vaša platobná metóda.",
+      "pause": "Dá sa pozastaviť? Áno, kontaktujte podporu pre pozastavenie až na 3 mesiace.",
+      "credits": "Nevyužité kredity? Mesačné kredity sa resetujú, balíčky sú platné 12 mesiacov."
+    }
+  },
+  "review_display": {
+    "title": "Recenzie kurzu: {{course}}",
+    "average_rating": "Priemerné hodnotenie",
+    "from_reviews": "z {{count}} recenzií",
+    "total_reviews": "{{count}} recenzií",
+    "empty_title": "Zatiaľ žiadne recenzie",
+    "empty_desc": "Buďte prvý, kto ohodnotí tento kurz. Vaše skúsenosti pomôžu ostatným uchádzačom.",
+    "anonymous_candidate": "Anonymný uchádzač",
+    "verified_graduate": "Overený absolvent",
+    "helpful": "Užitočné ({{count}})",
+    "not_helpful": "Neužitočné ({{count}})"
+  },
+  "career_tracker": {
+    "title": "Vaša kariérna cesta",
+    "subtitle": "Sledujeme váš pokrok a výsledky po dokončení kurzov",
+    "status": {
+      "completed": "Dokončené",
+      "hired": "Zamestnaný",
+      "in_progress": "Prebieha"
+    },
+    "completed_courses": "Dokončené kurzy",
+    "avg_salary_increase": "Priemerné zvýšenie platu",
+    "total_roi": "Celková ROI",
+    "roi_excellent": "Výborná",
+    "roi_evaluating": "Vyhodnocovanie",
+    "detail_overview": "Detailný prehľad",
+    "empty_line1": "Zatiaľ nemáte žiadne záznamy o kariérnom postupe.",
+    "empty_line2": "Po dokončení prvého kurzu sa tu zobrazia vaše štatistiky.",
+    "original_position": "Pôvodná pozícia",
+    "not_specified": "Neuvedené",
+    "progress": "Priebeh",
+    "new_job_obtained": "Získaná nová pracovná pozícia",
+    "salary_increased_by": "Plat zvýšený o {{percent}}%",
+    "course_in_progress": "Kurz stále prebieha..."
+  },
+  "cookie_policy": {
+    "title": "Politika cookies",
+    "last_update": "Posledná aktualizácia: {{date}}",
+    "what_are": {
+      "title": "Čo sú cookies?",
+      "description": "Cookies are small text files stored in your browser when you visit our website. We use them for the following purposes:",
+      "uses": {
+        "keep_login": "Keeping you logged in and maintaining your session state",
+        "remember_preferences": "Remembering your preferences and settings",
+        "analyze_usage": "Analyzing how you use our services",
+        "improve_performance": "Improving website performance and functionality",
+        "personalize_content": "Personalizing content and ads relevant to your interests"
+      }
+    },
+    "types": {
+      "title": "Typy cookies, ktoré používame",
+      "necessary": {
+        "title": "Nevyhnutné cookies",
+        "badge": "Vždy povolené",
+        "session_label": "Session cookies",
+        "session_desc": "Keep you logged in while using the website",
+        "security_label": "Security cookies",
+        "security_desc": "Protect against CSRF attacks and security threats",
+        "functional_label": "Functional cookies",
+        "functional_desc": "Provide core features such as cart and preference storage"
+      },
+      "analytics": {
+        "title": "Analytické cookies",
+        "badge": "Optional",
+        "ga_desc": "Help us understand how visitors use the site",
+        "hotjar_desc": "Records user behavior to improve UI/UX",
+        "performance_label": "Performance metrics",
+        "performance_desc": "Track loading speed and errors",
+        "ab_label": "A/B testing",
+        "ab_desc": "Compares different feature variants"
+      },
+      "marketing": {
+        "title": "Marketingové cookies",
+        "badge": "Optional",
+        "remarketing_label": "Remarketing/Retargeting",
+        "remarketing_desc": "Personalized ads based on your activity",
+        "social_label": "Social media integration",
+        "social_desc": "Enables sharing on social networks",
+        "personalization_label": "Content personalization",
+        "personalization_desc": "Tailors content to your interests",
+        "targeting_label": "Targeted marketing",
+        "targeting_desc": "Measures campaign effectiveness"
+      }
+    },
+    "table": {
+      "title": "Prehľad používaných cookies",
+      "headers": {
+        "name": "Cookie name",
+        "purpose": "Purpose",
+        "duration": "Duration",
+        "type": "Type"
+      },
+      "rows": {
+        "session_id": {
+          "purpose": "Login and session",
+          "duration": "Until session ends",
+          "type": "Necessary"
+        },
+        "user_preferences": {
+          "purpose": "Saving user preferences",
+          "duration": "1 year",
+          "type": "Functional"
+        },
+        "analytics_consent": {
+          "purpose": "Analytics consent",
+          "duration": "1 year",
+          "type": "Analytics"
+        },
+        "jobshaman_search": {
+          "purpose": "Saving search queries",
+          "duration": "30 days",
+          "type": "Functional"
+        },
+        "third_party_cookie": {
+          "purpose": "Integration with external services (LinkedIn, etc.)",
+          "duration": "90 days",
+          "type": "Marketing"
+        }
+      }
+    },
+    "management": {
+      "title": "Správa cookies",
+      "how_to_manage_title": "How to manage cookies:",
+      "browser_settings_label": "Browser settings",
+      "browser_settings_desc": "Most browsers allow cookie management",
+      "banner_label": "Using our banner",
+      "banner_desc": "You can change your settings anytime",
+      "preferences_overview_label": "Preferences overview",
+      "preferences_overview_desc_prefix": "See",
+      "preferences_overview_link": "Data management",
+      "blocking_title": "Blocking cookies:",
+      "blocking_desc": "You can block cookies in your browser at any time. Please note that blocking necessary cookies may affect some parts of the website.",
+      "deleting_title": "Deleting cookies:",
+      "deleting_desc": "Deleting cookies removes all saved data from your browser. You will need to sign in again."
+    },
+    "third_party": {
+      "title": "Cookies tretích strán",
+      "description": "Some parts of our website may use cookies from external partners (e.g. LinkedIn, Google, etc.). These cookies are governed by the privacy policies of those third parties.",
+      "main_partners_title": "Main partners:",
+      "partners": {
+        "google": "Analytics and statistics",
+        "linkedin": "Professional networking and integration",
+        "meta": "Marketing and social integration"
+      }
+    },
+    "contact": {
+      "title": "Kontakt ohľadom cookies",
+      "email_label": "Email",
+      "phone_label": "Phone",
+      "authority_label": "Data Protection Authority",
+      "authority_value": "Data Protection Authority"
+    },
+    "updates": {
+      "title": "Aktualizácie politiky",
+      "description": "This cookie policy was last updated on {{date}}. Any changes will be published on this page and, for major changes, also sent by email to registered users.",
+      "version_line": "Document version: 1.0 | Last revision date: {{date}}"
+    },
+    "footer": {
+      "company_line": "JobShaman s.r.o. | Company ID: 12345678 | Dorožní 1, 110 00 Prague 1",
+      "privacy_part_1": "This policy is part of our",
+      "privacy_link": "Zásad ochrany osobných údajov",
+      "privacy_part_2": "."
+    }
+  },
+  "cookie_banner": {
+    "minimized": {
+      "title": "Cookies",
+      "expand_title": "Zobraziť možnosti cookies"
+    },
+    "header": {
+      "title": "Používame cookies",
+      "gdpr_badge": "GDPR Compliant",
+      "description": "We use cookies and similar technologies to personalize content, analyze traffic and support marketing. Your privacy matters to us."
+    },
+    "actions": {
+      "accept_all": "Prijať všetko",
+      "necessary_only": "Len nevyhnutné",
+      "customize": "Prispôsobiť",
+      "minimize": "Minimalizovať",
+      "save_preferences": "Uložiť nastavenia"
+    },
+    "settings": {
+      "title": "Nastavenia cookies:"
+    },
+    "categories": {
+      "necessary": {
+        "title": "Nevyhnutné cookies",
+        "description": "Základné fungovanie webu",
+        "always_on": "Vždy povolené"
+      },
+      "analytics": {
+        "title": "Analytické cookies",
+        "description": "Štatistiky a analýza návštevnosti"
+      },
+      "marketing": {
+        "title": "Marketingové cookies",
+        "description": "Personalizovaná reklama a marketing"
+      },
+      "functional": {
+        "title": "Funkčné cookies",
+        "description": "Rozšírená funkcionalita a personalizácia"
+      },
+      "preferences": {
+        "title": "Preferenčné cookies",
+        "description": "Uloženie vašich nastavení a preferencií"
+      }
+    },
+    "links": {
+      "privacy_policy": "Zásady ochrany osobných údajov",
+      "cookie_policy": "Politika cookies",
+      "manage_anytime": "Svoje cookie preferencie môžete kedykoľvek zmeniť v nastaveniach."
+    },
+    "footer": {
+      "privacy_notice": "JobShaman rešpektuje vaše súkromie podľa GDPR a ePrivacy smernice",
+      "last_update": "Posledná aktualizácia: {{date}}"
     }
   }
 }

@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { Mail, Phone, Building, Users, CheckCircle, ArrowRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import AnalyticsService from '../services/analyticsService';
 
 const EnterpriseSignup: React.FC = () => {
+    const { t } = useTranslation();
     const [formData, setFormData] = useState({
         companyName: '',
         contactName: '',
@@ -63,37 +65,37 @@ const EnterpriseSignup: React.FC = () => {
             }
         } catch (error) {
             console.error('Enterprise signup error:', error);
-            alert('Došlo k chybě. Zkuste to prosím později nebo kontaktujte nás přímo.');
+            alert(t('alerts.generic_try_later'));
         } finally {
             setIsSubmitting(false);
         }
     };
 
     const companySizeOptions = [
-        '1-10 zaměstnanců',
-        '11-50 zaměstnanců',
-        '51-200 zaměstnanců',
-        '201-1000 zaměstnanců',
-        '1000+ zaměstnanců'
+        t('enterprise_signup.options.company_size.1_10'),
+        t('enterprise_signup.options.company_size.11_50'),
+        t('enterprise_signup.options.company_size.51_200'),
+        t('enterprise_signup.options.company_size.201_1000'),
+        t('enterprise_signup.options.company_size.1000_plus')
     ];
 
     const industryOptions = [
-        'Technologie a IT',
-        'Finance a bankovnictví',
-        'E-commerce a retail',
-        'Výroba a průmysl',
-        'Zdravotnictví a farmacie',
-        'Vzdělávání',
-        'Konzultace a profesionální služby',
-        'Ostatní'
+        t('enterprise_signup.options.industry.tech_it'),
+        t('enterprise_signup.options.industry.finance'),
+        t('enterprise_signup.options.industry.ecommerce'),
+        t('enterprise_signup.options.industry.manufacturing'),
+        t('enterprise_signup.options.industry.healthcare'),
+        t('enterprise_signup.options.industry.education'),
+        t('enterprise_signup.options.industry.consulting'),
+        t('enterprise_signup.options.industry.other')
     ];
 
     const timelineOptions = [
-        'Okamžitě',
-        'Do 1 měsíce',
-        'Do 3 měsíce',
-        'Do 6 měsíců',
-        'Plánujeme na příští rok'
+        t('enterprise_signup.options.timeline.immediately'),
+        t('enterprise_signup.options.timeline.1_month'),
+        t('enterprise_signup.options.timeline.3_months'),
+        t('enterprise_signup.options.timeline.6_months'),
+        t('enterprise_signup.options.timeline.next_year')
     ];
 
     if (isSubmitted) {
@@ -104,21 +106,21 @@ const EnterpriseSignup: React.FC = () => {
                         <CheckCircle size={40} />
                     </div>
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">
-                        Děkujeme za Váš zájem!
+                        {t('enterprise_signup.success.title')}
                     </h1>
                     <p className="text-lg text-slate-600 dark:text-slate-300 mb-8 leading-relaxed">
-                        Náš obchodní tým vás bude kontaktovat do 24 hodin, aby probral vaše potřeby a připravil nabídku na míru.
+                        {t('enterprise_signup.success.subtitle')}
                     </p>
                     <div className="bg-white dark:bg-slate-800 rounded-xl p-8 shadow-lg border border-slate-200 dark:border-slate-700">
-                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Co se stane dál?</h3>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">{t('enterprise_signup.success.next_title')}</h3>
                         <div className="space-y-4 text-left">
                             <div className="flex items-start gap-3">
                                 <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
                                     <span className="text-white text-sm font-bold">1</span>
                                 </div>
                                 <div>
-                                    <h4 className="font-bold text-slate-800 dark:text-slate-200">Kontakt do 24 hodin</h4>
-                                    <p className="text-slate-600 dark:text-slate-400 text-sm">Náš specializovaný tým vás bude kontaktovat</p>
+                                    <h4 className="font-bold text-slate-800 dark:text-slate-200">{t('enterprise_signup.success.step1_title')}</h4>
+                                    <p className="text-slate-600 dark:text-slate-400 text-sm">{t('enterprise_signup.success.step1_desc')}</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
@@ -126,8 +128,8 @@ const EnterpriseSignup: React.FC = () => {
                                     <span className="text-white text-sm font-bold">2</span>
                                 </div>
                                 <div>
-                                    <h4 className="font-bold text-slate-800 dark:text-slate-200">Analýza potřeb</h4>
-                                    <p className="text-slate-600 dark:text-slate-400 text-sm">Připravíme personalizovanou nabídku</p>
+                                    <h4 className="font-bold text-slate-800 dark:text-slate-200">{t('enterprise_signup.success.step2_title')}</h4>
+                                    <p className="text-slate-600 dark:text-slate-400 text-sm">{t('enterprise_signup.success.step2_desc')}</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
@@ -135,8 +137,8 @@ const EnterpriseSignup: React.FC = () => {
                                     <span className="text-white text-sm font-bold">3</span>
                                 </div>
                                 <div>
-                                    <h4 className="font-bold text-slate-800 dark:text-slate-200">Custom nasazení</h4>
-                                    <p className="text-slate-600 dark:text-slate-400 text-sm">Technické nastavení a integrace</p>
+                                    <h4 className="font-bold text-slate-800 dark:text-slate-200">{t('enterprise_signup.success.step3_title')}</h4>
+                                    <p className="text-slate-600 dark:text-slate-400 text-sm">{t('enterprise_signup.success.step3_desc')}</p>
                                 </div>
                             </div>
                         </div>
@@ -157,15 +159,15 @@ const EnterpriseSignup: React.FC = () => {
                                 <Building size={20} className="text-white" />
                             </div>
                             <div>
-                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">JobShaman Enterprise</h1>
-                                <p className="text-sm text-slate-500 dark:text-slate-400">Pro firmy s pokročilými náborovými potřebami</p>
+                                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{t('enterprise_signup.title')}</h1>
+                                <p className="text-sm text-slate-500 dark:text-slate-400">{t('enterprise_signup.subtitle')}</p>
                             </div>
                         </div>
                         <button 
                             onClick={() => window.location.href = '/'}
                             className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
                         >
-                            Zpět na JobShaman
+                            {t('enterprise_signup.back')}
                         </button>
                     </div>
                 </div>
@@ -177,30 +179,30 @@ const EnterpriseSignup: React.FC = () => {
                     {/* Left: Benefits */}
                     <div>
                         <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-6">
-                            Říkejte svůj nábor na novou úroveň
+                            {t('enterprise_signup.hero_title')}
                         </h2>
                         
                         <div className="space-y-6 mb-8">
                             {[
                                 {
                                     icon: Users,
-                                    title: 'Neomezené množství inzerátů',
-                                    description: 'Publikujte tolik pozic, kolik potřebujete, bez jakýchkoliv limitů.'
+                                    title: t('enterprise_signup.benefits.unlimited_jobs_title'),
+                                    description: t('enterprise_signup.benefits.unlimited_jobs_desc')
                                 },
                                 {
                                     icon: CheckCircle,
-                                    title: 'Pokročilé AI Assessmenty',
-                                    description: 'Neomezené používání AI testování s pokročilou analýzou kandidátů.'
+                                    title: t('enterprise_signup.benefits.ai_assessment_title'),
+                                    description: t('enterprise_signup.benefits.ai_assessment_desc')
                                 },
                                 {
                                     icon: ArrowRight,
-                                    title: 'ATS Integrace',
-                                    description: 'Spojte se s Greenhouse, Lever, Workday a dalšími systémy.'
+                                    title: t('enterprise_signup.benefits.ats_title'),
+                                    description: t('enterprise_signup.benefits.ats_desc')
                                 },
                                 {
                                     icon: Building,
-                                    title: 'Prioritní podpora',
-                                    description: 'Vyhrazený account manager a technická podpora 24/7.'
+                                    title: t('enterprise_signup.benefits.support_title'),
+                                    description: t('enterprise_signup.benefits.support_desc')
                                 }
                             ].map((benefit, index) => (
                                 <div key={index} className="flex gap-4">
@@ -216,23 +218,23 @@ const EnterpriseSignup: React.FC = () => {
                         </div>
 
                         <div className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 rounded-xl p-6 border border-emerald-200 dark:border-emerald-700">
-                            <h3 className="font-bold text-emerald-900 dark:text-emerald-100 mb-4">Proč Enterprise?</h3>
+                            <h3 className="font-bold text-emerald-900 dark:text-emerald-100 mb-4">{t('enterprise_signup.why_title')}</h3>
                             <ul className="space-y-3 text-sm text-emerald-800 dark:text-emerald-200">
                                 <li className="flex items-start gap-2">
                                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                                    <span>Vlastní ATS integrace na míru</span>
+                                    <span>{t('enterprise_signup.why_items.1')}</span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                                    <span>Advanced AI funkce a reporting</span>
+                                    <span>{t('enterprise_signup.why_items.2')}</span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                                    <span>SLA garance a emergency podpora</span>
+                                    <span>{t('enterprise_signup.why_items.3')}</span>
                                 </li>
                                 <li className="flex items-start gap-2">
                                     <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                                    <span>Custom reporting a analytics</span>
+                                    <span>{t('enterprise_signup.why_items.4')}</span>
                                 </li>
                             </ul>
                         </div>
@@ -241,15 +243,15 @@ const EnterpriseSignup: React.FC = () => {
                     {/* Right: Form */}
                     <div>
                         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 p-8">
-                            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Kontaktujte nás</h3>
+                            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">{t('enterprise_signup.contact_title')}</h3>
                             <p className="text-slate-600 dark:text-slate-400 mb-8">
-                                Vyplňte formulář a my vám připravíme personalizovanou nabídku do 24 hodin.
+                                {t('enterprise_signup.contact_subtitle')}
                             </p>
 
                             <form onSubmit={handleSubmit} className="space-y-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Název firmy*</label>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('enterprise_signup.form.company_name')}*</label>
                                         <input
                                             type="text"
                                             name="companyName"
@@ -257,11 +259,11 @@ const EnterpriseSignup: React.FC = () => {
                                             onChange={handleInputChange}
                                             required
                                             className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                                            placeholder="Název vaší firmy"
+                                            placeholder={t('enterprise_signup.form.company_name_placeholder')}
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Jméno kontaktu*</label>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('enterprise_signup.form.contact_name')}*</label>
                                         <input
                                             type="text"
                                             name="contactName"
@@ -269,14 +271,14 @@ const EnterpriseSignup: React.FC = () => {
                                             onChange={handleInputChange}
                                             required
                                             className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                                            placeholder="Jméno a příjmení"
+                                            placeholder={t('enterprise_signup.form.contact_name_placeholder')}
                                         />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">E-mail*</label>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('enterprise_signup.form.email')}*</label>
                                         <div className="relative">
                                             <Mail size={18} className="absolute left-3 top-3.5 text-slate-400" />
                                             <input
@@ -286,12 +288,12 @@ const EnterpriseSignup: React.FC = () => {
                                                 onChange={handleInputChange}
                                                 required
                                                 className="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                                                placeholder="kontakt@firma.cz"
+                                                placeholder={t('enterprise_signup.form.email_placeholder')}
                                             />
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Telefon</label>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('enterprise_signup.form.phone')}</label>
                                         <div className="relative">
                                             <Phone size={18} className="absolute left-3 top-3.5 text-slate-400" />
                                             <input
@@ -300,7 +302,7 @@ const EnterpriseSignup: React.FC = () => {
                                                 value={formData.contactPhone}
                                                 onChange={handleInputChange}
                                                 className="w-full pl-10 pr-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                                                placeholder="+420 123 456 789"
+                                                placeholder={t('enterprise_signup.form.phone_placeholder')}
                                             />
                                         </div>
                                     </div>
@@ -308,7 +310,7 @@ const EnterpriseSignup: React.FC = () => {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Velikost firmy*</label>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('enterprise_signup.form.company_size')}*</label>
                                         <select
                                             name="companySize"
                                             value={formData.companySize}
@@ -316,14 +318,14 @@ const EnterpriseSignup: React.FC = () => {
                                             required
                                             className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                                         >
-                                            <option value="">Vyberte velikost</option>
+                                            <option value="">{t('enterprise_signup.form.company_size_placeholder')}</option>
                                             {companySizeOptions.map(size => (
                                                 <option key={size} value={size}>{size}</option>
                                             ))}
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Průmysl*</label>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('enterprise_signup.form.industry')}*</label>
                                         <select
                                             name="industry"
                                             value={formData.industry}
@@ -331,7 +333,7 @@ const EnterpriseSignup: React.FC = () => {
                                             required
                                             className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                                         >
-                                            <option value="">Vyberte průmysl</option>
+                                            <option value="">{t('enterprise_signup.form.industry_placeholder')}</option>
                                             {industryOptions.map(industry => (
                                                 <option key={industry} value={industry}>{industry}</option>
                                             ))}
@@ -340,7 +342,7 @@ const EnterpriseSignup: React.FC = () => {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Aktuální výzvy v náboru*</label>
+                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('enterprise_signup.form.challenges')}*</label>
                                     <textarea
                                         name="currentChallenges"
                                         value={formData.currentChallenges}
@@ -348,13 +350,13 @@ const EnterpriseSignup: React.FC = () => {
                                         required
                                         rows={4}
                                         className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white resize-none"
-                                        placeholder="Popište hlavní problémy, kterým čelíte..."
+                                        placeholder={t('enterprise_signup.form.challenges_placeholder')}
                                     />
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Plánovaný počet náborů*</label>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('enterprise_signup.form.expected_hires')}*</label>
                                         <input
                                             type="text"
                                             name="expectedHires"
@@ -362,11 +364,11 @@ const EnterpriseSignup: React.FC = () => {
                                             onChange={handleInputChange}
                                             required
                                             className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
-                                            placeholder="např. 10-50 pozic za rok"
+                                            placeholder={t('enterprise_signup.form.expected_hires_placeholder')}
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Časový horizont*</label>
+                                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">{t('enterprise_signup.form.timeline')}*</label>
                                         <select
                                             name="timeline"
                                             value={formData.timeline}
@@ -374,7 +376,7 @@ const EnterpriseSignup: React.FC = () => {
                                             required
                                             className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:outline-none bg-white dark:bg-slate-800 text-slate-900 dark:text-white"
                                         >
-                                            <option value="">Vyberte časový horizont</option>
+                                            <option value="">{t('enterprise_signup.form.timeline_placeholder')}</option>
                                             {timelineOptions.map(timeline => (
                                                 <option key={timeline} value={timeline}>{timeline}</option>
                                             ))}
@@ -390,24 +392,24 @@ const EnterpriseSignup: React.FC = () => {
                                     {isSubmitting ? (
                                         <>
                                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                                            Odesílám...
+                                            {t('enterprise_signup.form.submitting')}
                                         </>
                                     ) : (
                                         <>
                                             <ArrowRight size={20} />
-                                            Požádat o nabídku
+                                            {t('enterprise_signup.form.submit')}
                                         </>
                                     )}
                                 </button>
                             </form>
 
                             <div className="mt-8 p-4 bg-slate-50 dark:bg-slate-950 rounded-lg border border-slate-200 dark:border-slate-700">
-                                <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-2">Máte otázky?</h4>
+                                <h4 className="font-bold text-slate-800 dark:text-slate-200 mb-2">{t('enterprise_signup.questions_title')}</h4>
                                 <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                                    Zavolejte nám přímo na <a href="tel:+420123456789" className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline">+420 123 456 789</a> nebo pište na <a href="mailto:enterprise@jobshaman.cz" className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline">enterprise@jobshaman.cz</a>
+                                    {t('enterprise_signup.questions_desc_prefix')} <a href="tel:+420123456789" className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline">+420 123 456 789</a> {t('enterprise_signup.questions_desc_middle')} <a href="mailto:enterprise@jobshaman.cz" className="text-emerald-600 dark:text-emerald-400 font-bold hover:underline">enterprise@jobshaman.cz</a>
                                 </p>
                                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                                    Pracovní dny: Po-Pá, 9:00-17:00
+                                    {t('enterprise_signup.questions_hours')}
                                 </p>
                             </div>
                         </div>

@@ -12,6 +12,7 @@ import {
   Plane
 } from 'lucide-react';
 import { TransportMode, calculateTransportCost } from '../services/transportService';
+import { useTranslation } from 'react-i18next';
 
 interface CommuteCostBreakdownProps {
   distance: number; // in km
@@ -30,6 +31,7 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
   jobCity,
   jobCountry = 'CZ'
 }) => {
+  const { t, i18n } = useTranslation();
   const [showMethodology, setShowMethodology] = useState(false);
   const getIcon = (mode: TransportMode) => {
     const icons = {
@@ -43,10 +45,10 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
 
   const getLabel = (mode: TransportMode) => {
     const labels = {
-      car: 'Autem',
-      public: 'MHD',
-      bike: 'Kolo',
-      walk: 'Pěšky'
+      car: t('commute_breakdown.transport_labels.car'),
+      public: t('commute_breakdown.transport_labels.public'),
+      bike: t('commute_breakdown.transport_labels.bike'),
+      walk: t('commute_breakdown.transport_labels.walk')
     };
     return labels[mode];
   };
@@ -98,7 +100,7 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
   if (distance <= 0) {
     return (
       <div className="text-center text-slate-500 dark:text-slate-400 py-4">
-        <p className="text-sm">Vzdálenost není k dispozici</p>
+        <p className="text-sm">{t('commute_breakdown.distance_unavailable')}</p>
       </div>
     );
   }
@@ -117,16 +119,16 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
               {getLabel(userTransportMode)}
             </h4>
             <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
-              Vaše preferovaná doprava na {distance.toFixed(1)} km
+              {t('commute_breakdown.preferred_transport_distance', { distance: distance.toFixed(1) })}
             </p>
           </div>
 
           <div className="text-right">
             <div className="text-lg font-bold text-slate-900 dark:text-white">
-              {userModeCost.monthlyCost.toLocaleString('cs-CZ')} Kč
+              {userModeCost.monthlyCost.toLocaleString(i18n.language)} {t('commute_breakdown.currency_czk')}
             </div>
             <div className="text-xs text-slate-600 dark:text-slate-400">
-              měsíčně
+              {t('commute_breakdown.monthly')}
             </div>
           </div>
         </div>
@@ -134,24 +136,24 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
         {/* Breakdown */}
         <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-current border-opacity-20">
           <div className="text-center">
-            <div className="text-xs text-slate-600 dark:text-slate-400">Denně</div>
+            <div className="text-xs text-slate-600 dark:text-slate-400">{t('commute_breakdown.daily')}</div>
             <div className="font-bold text-slate-900 dark:text-white">
-              {userModeCost.dailyCost.toFixed(0)} Kč
+              {userModeCost.dailyCost.toFixed(0)} {t('commute_breakdown.currency_czk')}
             </div>
           </div>
           <div className="text-center">
             <div className="text-xs text-slate-600 dark:text-slate-400 flex items-center justify-center gap-1">
               <Clock className="w-3 h-3" />
-              Čas
+              {t('commute_breakdown.time')}
             </div>
             <div className="font-bold text-slate-900 dark:text-white">
-              {userModeCost.dailyTime} min
+              {t('commute_breakdown.minutes_value', { value: userModeCost.dailyTime })}
             </div>
           </div>
           <div className="text-center">
-            <div className="text-xs text-slate-600 dark:text-slate-400">Cena/min</div>
+            <div className="text-xs text-slate-600 dark:text-slate-400">{t('commute_breakdown.cost_per_min')}</div>
             <div className="font-bold text-slate-900 dark:text-white">
-              {userModeCost.costPerMinute.toFixed(2)} Kč
+              {userModeCost.costPerMinute.toFixed(2)} {t('commute_breakdown.currency_czk')}
             </div>
           </div>
         </div>
@@ -162,7 +164,7 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
             <p className="text-xs text-slate-700 dark:text-slate-300">
               <span className="font-semibold">{userModeCost.cityPass.description}</span>
               {userModeCost.cityPass.monthlyPass && (
-                <span> - {userModeCost.cityPass.monthlyPass} {userModeCost.cityPass.country === 'CZ' ? 'Kč' : 'EUR'}/měsíc</span>
+                <span> - {userModeCost.cityPass.monthlyPass} {userModeCost.cityPass.country === 'CZ' ? t('commute_breakdown.currency_czk') : t('commute_breakdown.currency_eur')}/{t('commute_breakdown.month')}</span>
               )}
             </p>
           </div>
@@ -172,7 +174,7 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
       {/* Comparison with other modes */}
       <div>
         <h5 className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2 uppercase">
-          Porovnání s ostatními způsoby
+          {t('commute_breakdown.comparison_title')}
         </h5>
         
         <div className="space-y-2">
@@ -196,10 +198,10 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-slate-900 dark:text-white text-sm">
-                      {mode.monthlyCost.toLocaleString('cs-CZ')} Kč
+                      {mode.monthlyCost.toLocaleString(i18n.language)} {t('commute_breakdown.currency_czk')}
                     </div>
                     <div className="text-xs text-slate-600 dark:text-slate-400">
-                      {mode.dailyTime} min
+                      {t('commute_breakdown.minutes_value', { value: mode.dailyTime })}
                     </div>
                   </div>
                 </div>
@@ -209,11 +211,11 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
                   <div className="mt-2 text-xs text-slate-600 dark:text-slate-400">
                     {mode.monthlyCost < userModeCost.monthlyCost ? (
                       <span className="text-green-600 dark:text-green-400">
-                        ↓ O {(userModeCost.monthlyCost - mode.monthlyCost).toFixed(0)} Kč levnější
+                        {t('commute_breakdown.cheaper_by', { amount: (userModeCost.monthlyCost - mode.monthlyCost).toFixed(0) })}
                       </span>
                     ) : (
                       <span className="text-red-600 dark:text-red-400">
-                        ↑ O {(mode.monthlyCost - userModeCost.monthlyCost).toFixed(0)} Kč dražší
+                        {t('commute_breakdown.more_expensive_by', { amount: (mode.monthlyCost - userModeCost.monthlyCost).toFixed(0) })}
                       </span>
                     )}
                   </div>
@@ -228,10 +230,10 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
         <div className="flex items-center justify-between text-sm">
           <span className="text-slate-600 dark:text-slate-400 flex items-center gap-2">
             <TrendingUp className="w-4 h-4" />
-            Roční náklady:
+            {t('commute_breakdown.annual_costs')}
           </span>
           <span className="font-bold text-slate-900 dark:text-white">
-            {(userModeCost.monthlyCost * 12).toLocaleString('cs-CZ')} Kč/rok
+            {(userModeCost.monthlyCost * 12).toLocaleString(i18n.language)} {t('commute_breakdown.czk_per_year')}
           </span>
         </div>
       </div>
@@ -243,7 +245,7 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
           className="w-full flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-slate-700 dark:text-slate-300 text-sm font-medium"
         >
           <Info className="w-4 h-4 flex-shrink-0" />
-          <span>Jak se počítají náklady?</span>
+          <span>{t('commute_breakdown.methodology_toggle')}</span>
           {showMethodology ? (
             <ChevronUp className="w-4 h-4 ml-auto flex-shrink-0" />
           ) : (
@@ -255,7 +257,7 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
           <div className="mt-3 p-4 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 space-y-4">
             <div>
               <h5 className="font-semibold text-slate-900 dark:text-white text-sm mb-3">
-                4 Módů dopravy - Výpočetní metoda
+                {t('commute_breakdown.methodology_title')}
               </h5>
 
               {/* Car */}
@@ -263,12 +265,12 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
                 <div className="flex items-start gap-3">
                   <Car className="w-4 h-4 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 dark:text-white text-sm">Autem</p>
+                    <p className="font-medium text-slate-900 dark:text-white text-sm">{t('commute_breakdown.transport_labels.car')}</p>
                     <ul className="text-xs text-slate-700 dark:text-slate-400 mt-2 space-y-1">
-                      <li><strong>Sazba:</strong> 5 Kč/km (palivo, údržba, pojištění)</li>
-                      <li><strong>Doba:</strong> 1.5 - 2.5 min/km v závislosti na terénu</li>
-                      <li><strong>Ideální pro:</strong> Dálkové cesty, venkov</li>
-                      <li><strong>Vzorec:</strong> Vzdálenost × 5 Kč/km × 2 (tam i zpět)</li>
+                      <li>{t('commute_breakdown.methodology.car.1')}</li>
+                      <li>{t('commute_breakdown.methodology.car.2')}</li>
+                      <li>{t('commute_breakdown.methodology.car.3')}</li>
+                      <li>{t('commute_breakdown.methodology.car.4')}</li>
                     </ul>
                   </div>
                 </div>
@@ -279,15 +281,15 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
                 <div className="flex items-start gap-3">
                   <Bus className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 dark:text-white text-sm">Veřejná doprava (MHD)</p>
+                    <p className="font-medium text-slate-900 dark:text-white text-sm">{t('commute_breakdown.methodology.public.title')}</p>
                     <ul className="text-xs text-slate-700 dark:text-slate-400 mt-2 space-y-1">
-                      <li><strong>Sazba:</strong> 2.5 Kč/km + měsíční lístek</li>
-                      <li><strong>Lístek:</strong> Doplňuje se dle města</li>
-                      <li><strong>Praha:</strong> ~1,500 Kč/měsíc (60 km/měsíc zdarma)</li>
-                      <li><strong>Brno:</strong> ~1,300 Kč/měsíc</li>
-                      <li><strong>Plzeň:</strong> ~1,000 Kč/měsíc</li>
-                      <li><strong>Doba:</strong> 2.0 - 3.0 min/km (čekání + jízda)</li>
-                      <li><strong>Ideální pro:</strong> Velká města s dobrou MHD, bez stresu</li>
+                      <li>{t('commute_breakdown.methodology.public.1')}</li>
+                      <li>{t('commute_breakdown.methodology.public.2')}</li>
+                      <li>{t('commute_breakdown.methodology.public.3')}</li>
+                      <li>{t('commute_breakdown.methodology.public.4')}</li>
+                      <li>{t('commute_breakdown.methodology.public.5')}</li>
+                      <li>{t('commute_breakdown.methodology.public.6')}</li>
+                      <li>{t('commute_breakdown.methodology.public.7')}</li>
                     </ul>
                   </div>
                 </div>
@@ -298,13 +300,13 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
                 <div className="flex items-start gap-3">
                   <Bike className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 dark:text-white text-sm">Kolo</p>
+                    <p className="font-medium text-slate-900 dark:text-white text-sm">{t('commute_breakdown.transport_labels.bike')}</p>
                     <ul className="text-xs text-slate-700 dark:text-slate-400 mt-2 space-y-1">
-                      <li><strong>Sazba:</strong> 0.05 Kč/km (pouze údržba, pneumatiky)</li>
-                      <li><strong>Doba:</strong> 4.0 - 6.0 min/km v závislosti na terenu</li>
-                      <li><strong>Ideální pro:</strong> Vzdálenosti do 15 km</li>
-                      <li><strong>Výhody:</strong> Nejlevnější, zdraví, bez emisí</li>
-                      <li><strong>Vzorec:</strong> Vzdálenost × 0.05 Kč/km × 2</li>
+                      <li>{t('commute_breakdown.methodology.bike.1')}</li>
+                      <li>{t('commute_breakdown.methodology.bike.2')}</li>
+                      <li>{t('commute_breakdown.methodology.bike.3')}</li>
+                      <li>{t('commute_breakdown.methodology.bike.4')}</li>
+                      <li>{t('commute_breakdown.methodology.bike.5')}</li>
                     </ul>
                   </div>
                 </div>
@@ -315,12 +317,12 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
                 <div className="flex items-start gap-3">
                   <Footprints className="w-4 h-4 text-yellow-600 dark:text-yellow-400 flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-slate-900 dark:text-white text-sm">Pěšky</p>
+                    <p className="font-medium text-slate-900 dark:text-white text-sm">{t('commute_breakdown.transport_labels.walk')}</p>
                     <ul className="text-xs text-slate-700 dark:text-slate-400 mt-2 space-y-1">
-                      <li><strong>Sazba:</strong> 0 Kč (zdarma!)</li>
-                      <li><strong>Doba:</strong> 12.0 - 15.0 min/km</li>
-                      <li><strong>Ideální pro:</strong> Do 5 km</li>
-                      <li><strong>Výhody:</strong> Nejlevnější, nejzdravější, bez dopadu na životní prostředí</li>
+                      <li>{t('commute_breakdown.methodology.walk.1')}</li>
+                      <li>{t('commute_breakdown.methodology.walk.2')}</li>
+                      <li>{t('commute_breakdown.methodology.walk.3')}</li>
+                      <li>{t('commute_breakdown.methodology.walk.4')}</li>
                     </ul>
                   </div>
                 </div>
@@ -330,21 +332,20 @@ const CommuteCostBreakdown: React.FC<CommuteCostBreakdownProps> = ({
               <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
                 <p className="text-xs text-slate-700 dark:text-slate-400 mb-3 font-medium">
                   <Plane className="w-3.5 h-3.5 inline mr-1 text-blue-600 dark:text-blue-400" />
-                  Poznámky pro velké metropole:
+                  {t('commute_breakdown.metro_notes_title')}
                 </p>
                 <ul className="text-xs text-slate-700 dark:text-slate-400 space-y-1 ml-5">
-                  <li>• <strong>Letenky/Karty:</strong> MHD v hlavních městech (Praha, Brno) nabízejí speciální měsíční letenky s neomezeným počtem jízd</li>
-                  <li>• <strong>Subvence:</strong> Některé firmy podporují dopravu zaměstnanců (DPP bonus) - snižuje náklady</li>
-                  <li>• <strong>Kombinované jízdné:</strong> Možnost kombinovat MHD s jízdním kolem (bike-sharing)</li>
-                  <li>• <strong>E-koloběžky:</strong> Ve městech dostupné, cena ~5-10 Kč/km</li>
+                  <li>{t('commute_breakdown.metro_notes.1')}</li>
+                  <li>{t('commute_breakdown.metro_notes.2')}</li>
+                  <li>{t('commute_breakdown.metro_notes.3')}</li>
+                  <li>{t('commute_breakdown.metro_notes.4')}</li>
                 </ul>
               </div>
 
               {/* Calculation Info */}
               <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded text-xs text-blue-900 dark:text-blue-200">
                 <p>
-                  <strong>Jak se počítá?</strong> Všechny náklady výše jsou <strong>jednosměrné</strong>. Systém automaticky počítá s cestou tam i zpět (×2), 
-                  přepočítává na denní/měsíční/roční náklady a zohledňuje měsíční letenky pro MHD.
+                  {t('commute_breakdown.calculation_info')}
                 </p>
               </div>
             </div>

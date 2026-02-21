@@ -8,6 +8,9 @@
     "searching": "Searching for job offers...",
     "no_jobs_found": "No positions found.",
     "try_adjust_filters": "Try adjusting your filters or search term.",
+    "no_results_for_search": "No results for \"{{query}}\"",
+    "try_different_keywords": "Try different keywords",
+    "loading_more_offers": "Loading more offers...",
     "try_again": "Try Again",
     "i_am_interested": "I'm Interested",
     "back": "Back",
@@ -44,9 +47,13 @@
     "cross_border": "Cross-border search 🌍",
     "search_all_desc": "Searching across EU borders",
     "search_current_desc": "Searching local country only",
+    "abroad_only": "Abroad only",
+    "abroad_only_desc": "Outside your home country",
+    "use_current_location": "Use my current location",
     "city_placeholder": "City (e.g. Prague)",
     "limit_by_commute": "Limit by commute",
     "max_distance": "Max Distance",
+    "radius_hint_no_location": "To use radius, enter a city or use your current location.",
     "search_nearby": "📍 Nearby offers",
     "search_everywhere": "🌍 Search everywhere",
     "contract_type": "Contract type",
@@ -94,7 +101,19 @@
       "jhi_desc": "JHI highest",
       "jhi_asc": "JHI lowest",
       "personalized_jhi_desc": "Personalized JHI"
-    }
+    },
+    "language_options": {
+      "cs": "Czech",
+      "sk": "Slovak",
+      "en": "English",
+      "de": "German",
+      "pl": "Polish",
+      "uk": "Ukrainian"
+    },
+    "min_salary_placeholder": "0",
+    "currency_czk": "CZK",
+    "salary_scale_min": "0 {{currency}}",
+    "salary_scale_max": "150k {{currency}}"
   },
   "financial": {
     "reality_title": "Financial Reality",
@@ -149,10 +168,18 @@
       "transport_public_title": "Public transport",
       "transport_public_example_title": "City pass (preferred):",
       "transport_public_example": "Berlin €49..."
-    }
+    },
+    "current_location_label": "your current location",
+    "reality_desc": "Calculation of net income and commuting costs.",
+    "home_office": "Home Office",
+    "saved_commute_time_money": "Saved commute time and money.",
+    "eco_friendly_choice": "A more eco-friendly choice."
   },
   "job_detail": {
     "benefits_title": "Benefits and Advantages",
+    "analytics_panel_label": "Analytics Panel",
+    "analytics_panel_title": "Offer Quality & Signals",
+    "analytics_panel_data_source": "Data: JobShaman AI + public sources",
     "jhi_title": "Job Happiness Index (JHI)",
     "jhi_desc": "Composite quality score",
     "jhi_missing_salary_hint": "Low JHI is caused by missing salary in the listing.",
@@ -166,11 +193,24 @@
     "company_registry": "Registry entry",
     "gdpr_consent": "By submitting, you consent to the processing of personal data in accordance with GDPR."
   },
+  "transparency_card": {
+    "title": "Brutal Transparency",
+    "data_source": "Data: JobShaman",
+    "badge_why_title": "Why do you see the EU Transparent badge?",
+    "badge_why_desc": "From June 2026, salary ranges will be mandatory in the EU. At JobShaman, we believe your time is valuable already today. Companies with this badge play fair and openly show compensation first."
+  },
+  "bullshit_meter": {
+    "title": "Cliche Detector",
+    "status_clean": "Clean signal",
+    "status_medium": "Medium noise",
+    "status_high": "High noise",
+    "detected_tone": "Detected tone",
+    "no_warning_signals": "No warning signals were found."
+  },
   "nav": {
     "offers": "Offers",
     "saved": "Saved",
     "profile": "Profile",
-    "marketplace": "Education",
     "services": "Projects",
     "for_companies": "For Companies",
     "my_account": "My Account",
@@ -208,51 +248,6 @@
     "followup_later": "Ask me later",
     "followup_generic_title": "this position",
     "followup_generic_company": "the company"
-  },
-  "marketplace": {
-    "title": "Education",
-    "subtitle": "Invest in your future. Find the perfect course for your career.",
-    "demo_label": "Demo data:",
-    "demo_data": "These are sample courses for demonstration. Real courses will be available soon.",
-    "offer_course": "Offer a Course",
-    "all_courses": "All Courses",
-    "retraining_courses": "Retraining Courses",
-    "commercial_courses": "Commercial Courses",
-    "funding_title": "Retraining Courses from the Labor Office",
-    "funding_desc": "As an unemployed person, you can receive up to 50,000 CZK for a retraining course!",
-    "search_placeholder": "Search courses...",
-    "category": "Category",
-    "difficulty": "Difficulty",
-    "price": "Price",
-    "free_retraining": "Free (retraining)",
-    "no_courses": "No courses found",
-    "reviews": "reviews",
-    "enroll": "Enroll",
-    "detail": "Detail",
-    "beginner": "Beginner",
-    "intermediate": "Intermediate",
-    "advanced": "Advanced",
-    "days": "days",
-    "free": "Free",
-    "reviews_btn": "Reviews",
-    "reviews_add": "Write a review",
-    "enroll_alert": "Registration for course: {{title}}",
-    "login_to_enroll_alert": "Please log in first to register.",
-    "categories": {
-      "all": "All Categories",
-      "driving": "Driving Licenses",
-      "technical": "Technical Courses",
-      "it": "IT and Programming",
-      "business": "Business and Management",
-      "marketing": "Marketing and Sales",
-      "languages": "Languages"
-    },
-    "all_diffs": "All",
-    "sponsored_discount": "Company Discount",
-    "verified_graduate": "Verified Graduate",
-    "placement_guarantee": "Placement Guarantee",
-    "flexible_payment": "Flexible Payment",
-    "more_tags": "+{{count}} more"
   },
   "auth": {
     "login": "Login",
@@ -425,6 +420,7 @@
     "benefits": "Benefits and Perks",
     "salary_not_specified": "Salary not specified",
     "salary_estimate": "Estimate",
+    "ai_estimated_tooltip": "Estimated by AI model based on market data",
     "relocation": "Relocation",
     "save": "Save Job",
     "saved": "Saved",
@@ -440,6 +436,7 @@
     "start_over": "Start over",
     "remove_save": "Remove from Saved",
     "transparent_eu": "EU Transparent",
+    "transparent_eu_short": "EU Trans.",
     "swipe_tutorial_title": "How swiping works",
     "swipe_tutorial_desc": "Swipe left to reject, right to save.",
     "swipe_tutorial_cta": "Got it",
@@ -459,7 +456,8 @@
       "hpp": "Full-time (HPP)",
       "dpp": "DPP",
       "dpc": "DPČ",
-      "ico": "IČO",
+      "ico": "Contractor (self-employed)",
+      "brigada": "Temporary job",
       "osvc": "Self-employed (OSVČ)",
       "b2b": "B2B",
       "remote": "Remote",
@@ -471,7 +469,11 @@
       "remote": "Remote",
       "hybrid": "Hybrid",
       "on_site": "On-site"
-    }
+    },
+    "swipe_left_title": "Swipe left or press ← to reject",
+    "swipe_right_title": "Swipe right or press → to save",
+    "see_full_details_title": "See full job details",
+    "switch_to_list_title": "Switch to list view"
   },
   "profile": {
     "personal_info": "Personal Information",
@@ -516,6 +518,14 @@
     "add_first_experience": "Add First Experience",
     "no_education": "You have no education yet",
     "add_first_education": "Add First Education",
+    "no_skills": "You have no skills yet",
+    "skills_key_desc": "Skills are essential for matching your profile with job requirements",
+    "add_first_skill": "Add First Skill",
+    "skills_importance_title": "Why are skills important?",
+    "skills_importance_1": "They enable automatic matching with job requirements",
+    "skills_importance_2": "They help recommend relevant courses for your growth",
+    "skills_importance_3": "They increase your visibility to recruiters",
+    "skills_importance_4": "They enable personalized recommendations",
     "add_skill": "Add Skill",
     "company": "Company",
     "role": "Position",
@@ -699,8 +709,6 @@
     "seo": {
       "base_title": "JobShaman - Career OS for smarter work",
       "home_description": "Career OS that reveals hidden skills, raises market value, and delivers transparent job offers with real salaries, benefits and JHI score.",
-      "marketplace_title": "Career OS - JobShaman",
-      "marketplace_description": "AI profile, hidden skills and job recommendations in one place.",
       "profile_title": "My Profile | JobShaman",
       "profile_description": "AI profile, hidden skills, strengths and personalized job recommendations.",
       "company_dashboard_title": "For Companies - Publish ads | JobShaman",
@@ -730,8 +738,7 @@
         "dna_culture": "Company Profile",
         "ai_editor": "Offer Editor",
         "assessments": "Assessments",
-        "candidates": "Candidates",
-        "marketplace": "Freelancers"
+        "candidates": "Candidates"
       },
       "all_recruiters": "All Recruiters",
       "create_ad_btn": "Create Job Ad",
@@ -921,12 +928,8 @@
   "seo": {
     "base_title": "JobShaman - Career OS",
     "home_description": "Career OS with AI profile and hidden-skill discovery.",
-    "marketplace_title": "Career OS - JobShaman",
-    "marketplace_description": "AI profile, hidden skills and job recommendations.",
     "services_title": "Career services - JobShaman",
     "services_description": "Tools and services to grow your market value.",
-    "freelancer_dashboard_title": "Profile | JobShaman",
-    "freelancer_dashboard_description": "Profile and career data management.",
     "saved_title": "Saved Jobs | JobShaman",
     "saved_description": "Your list of saved job offers and favorites.",
     "assessment_title": "Assessment Center | JobShaman",
@@ -981,34 +984,6 @@
         "title": "Transparency Score",
         "desc": "Some ads are fair. Others are just well-written.",
         "hint": "We analyze language, ambiguities, and missing information. The less fog, the higher the score."
-      }
-    }
-  },
-  "marketplace_extra": {
-    "funding_categories": {
-      "technical_professions": "Technical Professions",
-      "technical_professions_desc": "Electrician, Welder, Plumber",
-      "technical_courses": "Technical Courses",
-      "technical_courses_desc": "Welding, IT certifications",
-      "language_courses": "Language Courses",
-      "language_courses_desc": "English, German and others"
-    },
-    "courses": {
-      "gov_1": {
-        "title": "Electrician - Installation Electrical Activity",
-        "desc": "Course for obtaining a certificate of professional competence for installation electrical activities. High demand in the labor market."
-      },
-      "gov_2": {
-        "title": "Driving License Group C+E",
-        "desc": "Professional driving license for freight transport. Retraining course with placement guarantee."
-      },
-      "com_1": {
-        "title": "Java Backend Developer Certificate",
-        "desc": "Complete backend application development course in Java with certification. Job placement guarantee."
-      },
-      "com_2": {
-        "title": "Python for Data Science",
-        "desc": "Modern Python course focused on data analysis, machine learning and AI. Ideal for career growth."
       }
     }
   },
@@ -1294,12 +1269,17 @@
     "back_button": "Back",
     "continue_button": "Continue",
     "finish_button": "Finish registration",
-    "success_button": "Please confirm your email"
+    "success_button": "Please confirm your email",
+    "confirm_email_instructions": "We've sent a confirmation link to your email. After confirming, click the button below to finalize registration.",
+    "confirm_email_not_found": "Could not verify email confirmation. Please try again after confirming your email.",
+    "confirm_email_continue": "Go to My Profile"
   },
   "header": {
     "toggle_theme": "Toggle Theme",
     "logout": "Logout",
-    "switch_to_freelancer": "Switch to freelancer",
+    "menu": "Menu",
+    "language": "Language",
+    "more": "More",
     "switch_to_candidate": "Switch to candidate",
     "open_profile": "Open profile"
   },
@@ -1345,8 +1325,39 @@
       "detailed_answers": "Detailed Answers",
       "question_label": "Question",
       "eval_failed": "Failed to evaluate assessment.",
-      "question_fallback": "Question"
+      "question_fallback": "Question",
+      "preview_title": "Assessment preview",
+      "partner_recommendation": "Partner recommendation",
+      "preview_failed": "Failed to load assessment assignment."
     }
+  },
+  "saved_filters": {
+    "save_current_title": "Save current filter combination",
+    "save_search": "Save Search",
+    "load_saved_title": "Load a saved search",
+    "saved_count": "Saved ({{count}})",
+    "saved_searches": "Saved Searches",
+    "unfavorite": "Unfavorite",
+    "favorite": "Favorite",
+    "used_count": "Used {{count}}×",
+    "delete": "Delete",
+    "modal_title": "Save Filter Set",
+    "modal_placeholder": "Enter a name...",
+    "cancel": "Cancel",
+    "save": "Save",
+    "confirm_delete": "Delete this saved search?",
+    "errors": {
+      "enter_name": "Please enter a name for this filter set.",
+      "save_failed": "Failed to save filter set."
+    }
+  },
+  "shaman_assistant": {
+    "thinking": "Shaman is thinking...",
+    "title": "Shaman Advice",
+    "match": "Match",
+    "seniority": "Seniority",
+    "growth_potential": "Growth potential",
+    "missing_skills": "Missing skills"
   },
   "blog": {
     "title": "Shamanic Insights",
@@ -1372,297 +1383,6 @@
         "excerpt": "How to effectively use Career Pathfinder and AI analysis to move forward in your career path."
       }
     }
-  },
-  "freelancer": {
-    "dashboard": {
-      "title": "Freelancer Dashboard",
-      "loading": "Loading freelancer profile...",
-      "logout": "Log out",
-      "stats": {
-        "services": "Active services",
-        "free_this_month": "Free this month",
-        "profile_views": "Profile views",
-        "last_30_days": "Last 30 days",
-        "rating": "Rating"
-      },
-      "tabs": {
-        "services": "My Services",
-        "portfolio": "Portfolio",
-        "inquiries": "Inquiries",
-        "settings": "Settings"
-      },
-      "inquiries": {
-        "title": "Inquiries",
-        "refresh": "Refresh",
-        "loading": "Loading...",
-        "empty": "No inquiries yet.",
-        "unknown_sender": "Unknown sender",
-        "sender_company": "Company",
-        "sender_user": "User",
-        "sender_anon": "Anonymous",
-        "reply_btn": "Reply"
-      },
-      "services": {
-        "create_title": "Create Service",
-        "title_label": "Service Title",
-        "title_placeholder": "e.g. Logo Design",
-        "desc_label": "Description",
-        "desc_placeholder": "Describe what you offer...",
-        "price_label": "Price (CZK)",
-        "price_placeholder": "5000",
-        "location_label": "Location",
-        "location_placeholder": "Remote, Prague...",
-        "category_label": "Category",
-        "publish_btn": "Publish Service",
-        "update_btn": "Save changes",
-        "delete_confirm": "Are you sure you want to delete this service?",
-        "limit_alert": "As a freelancer with a Free plan, you can have a maximum of 3 active services. Upgrade to PRO for more.",
-        "success_alert": "Service published successfully!",
-        "error_alert": "Error publishing service.",
-        "empty_title": "No services",
-        "empty_desc": "You don't offer any services yet. Create your first one!",
-        "price": "Price",
-        "list_title": "List of Services",
-        "add_btn": "Add Service",
-        "no_reviews": "No reviews yet",
-        "edit": "Edit",
-        "delete": "Delete"
-      },
-      "portfolio": {
-        "title": "My Portfolio",
-        "add_btn": "Add Item",
-        "add_item_title": "Add Portfolio Item",
-        "title_label": "Project Title",
-        "title_placeholder": "e.g. E-commerce Website Redesign",
-        "desc_label": "Description",
-        "desc_placeholder": "Tell about your project, what you did, what technology was used...",
-        "url_label": "Project Link (Optional)",
-        "url_placeholder": "https://example.com/project",
-        "image_label": "Project Image",
-        "image_placeholder": "Click or drag image here (JPG, PNG)",
-        "empty_desc": "Your portfolio is empty. Start by adding your best work!",
-        "view_link": "View Project",
-        "delete_btn": "Delete",
-        "delete_confirm": "Are you sure you want to delete this portfolio item?",
-        "success": "Portfolio item added successfully!",
-        "error": "Error uploading portfolio item.",
-        "delete_error": "Error deleting portfolio item.",
-        "uploading": "Uploading..."
-      },
-      "profile": {
-        "title": "Freelancer Profile",
-        "headline": "Headline / main service",
-        "headline_placeholder": "e.g. Web Designer & UX Consultant",
-        "bio": "Short bio",
-        "bio_placeholder": "A short summary of your services.",
-        "presentation": "Introduction",
-        "presentation_placeholder": "More space for your story, approach, references...",
-        "photo": "Profile photo",
-        "photo_btn": "Upload photo",
-        "photo_uploading": "Uploading...",
-        "photo_saved": "Profile photo saved.",
-        "photo_error": "Failed to upload profile photo.",
-        "photo_hint": "Recommended: square, min. 300×300 px",
-        "skills": "Skills (comma-separated)",
-        "tags": "Tags / domains (comma-separated)",
-        "hourly_rate": "Hourly rate",
-        "currency": "Currency",
-        "work_type": "Work type",
-        "work_remote": "Remote",
-        "work_local": "Local",
-        "work_hybrid": "Hybrid",
-        "work_onsite": "On-site",
-        "availability": "Availability",
-        "availability_placeholder": "e.g. 20 h/week, available from Feb 15",
-        "address": "Location",
-        "address_placeholder": "Prague, Brno, remote",
-        "website": "Website / Portfolio",
-        "contact_email": "Contact email",
-        "contact_phone": "Contact phone",
-        "save_btn": "Save profile",
-        "saving": "Saving...",
-        "saved": "Profile saved.",
-        "save_error": "Failed to save profile."
-      },
-      "subscription": {
-        "title": "Your subscription",
-        "status_premium": "Premium Freelancer",
-        "status_free": "Free Plan",
-        "premium_active_title": "You have an active Premium plan!",
-        "premium_active_desc": "Enjoy unlimited service listings and profile highlights.",
-        "manage": "Manage subscription",
-        "manage_alert": "To cancel your subscription, please contact podpora@jobshaman.cz",
-        "upgrade_title": "Upgrade to Freelance Premium",
-        "benefit_1": "Unlimited active services",
-        "benefit_2": "\"Verified Freelancer\" badge",
-        "benefit_3": "Priority placement in search",
-        "price": "499 CZK",
-        "per_month": "per month",
-        "upgrade_cta": "Activate Premium",
-        "payment_note": "Secure payments via Stripe. Cancel anytime."
-      },
-      "settings": {
-        "wip_title": "Personal details (WIP)"
-      },
-      "upgrade_cta": "Activate Premium",
-      "active_plan": "Active Plan",
-      "free_plan": "Free Plan",
-      "premium_plan": "Freelance Premium",
-      "benefits_title": "Premium Benefits",
-      "benefit_1": "Unlimited services",
-      "benefit_2": "Priority listing",
-      "benefit_3": "'Verified Freelancer' badge",
-      "benefit_4": "Traffic statistics",
-      "register_title": "Become a freelancer",
-      "register_desc": "To create a freelancer profile, a short registration is required (company ID and basic details).",
-      "register_cta": "Register as a freelancer"
-    },
-    "marketplace": {
-      "title": "Projects",
-      "subtitle": "Find experts for your project or offer your services.",
-      "search_placeholder": "Search services, freelancers...",
-      "offer_service": "Offer Service",
-      "categories": {
-        "all": "All Services",
-        "crafts": "Crafts",
-        "it": "IT & Development",
-        "design": "Design & Creative",
-        "marketing": "Marketing",
-        "admin": "Administration",
-        "real_estate": "Real Estate",
-        "finance": "Finance",
-        "security": "Security",
-        "legal": "Legal & Compliance",
-        "writing": "Writing & Translation",
-        "consulting": "Consulting"
-      },
-      "card": {
-        "verified": "Verified",
-        "rating": "rating",
-        "reviews": "reviews",
-        "starting_at": "from",
-        "response_time": "Responds within 24h"
-      },
-      "filters": {
-        "search_title": "Search"
-      },
-      "scroll_left": "Scroll categories left",
-      "scroll_right": "Scroll categories right",
-      "promo": {
-        "title": "Are you a professional?",
-        "desc": "Register as a freelancer, build your portfolio and get new clients.",
-        "highlight": "First 3 ads per month free!",
-        "cta": "Start Offering Services"
-      }
-    }
-  },
-  "freelancer_registration": {
-    "step_1_title": "Freelancer Registration - Step 1",
-    "step_2_title": "Freelancer Profile - Step 2",
-    "step_3_title": "Finish Registration",
-    "success_title": "Welcome aboard!",
-    "success_desc": "Your profile has been created. You can now offer your services.",
-    "intro_desc": "Create a profile and start offering your services to companies and individuals.",
-    "email_label": "Email",
-    "password_label": "Password",
-    "password_placeholder": "Min. 8 characters",
-    "fullname_label": "Full Name (or Brand Name)",
-    "fullname_placeholder": "John Doe",
-    "ico_label": "ID Number (Optional)",
-    "website_label": "Web / Portfolio (Optional)",
-    "terms_agree": "I agree to the Terms & Conditions",
-    "privacy_agree": "I agree to Privacy Policy",
-    "go_to_profile": "Go to My Profile",
-    "back": "Back",
-    "finish": "Finish",
-    "continue": "Continue",
-    "info_box": "You get 3 free service ads per month. You can upgrade to Premium later.",
-    "error_too_many": "Too many registration attempts. Please wait.",
-    "error_exists": "User with this email already exists. Please log in.",
-    "error_generic": "Registration failed.",
-    "pricing_title": "Plans for Freelancers",
-    "plan_basic": "Basic Account",
-    "plan_basic_desc": "Free",
-    "plan_basic_offers": "3 active offers per month",
-    "plan_basic_inquiries": "3 inquiries per month",
-    "plan_premium": "Premium",
-    "plan_premium_desc": "Unlimited",
-    "plan_premium_badge": "POPULAR",
-    "plan_premium_offers": "Unlimited offers",
-    "plan_premium_inquiries": "Unlimited inquiries",
-    "plan_premium_priority": "Higher visibility in search",
-    "confirm_email_instructions": "We've sent a confirmation link to your email. After confirming, click the button below to finalize registration.",
-    "confirm_email_not_found": "Could not verify email confirmation. Please try again after confirming your email.",
-    "error_finalize": "Finalizing registration failed. Please contact support.",
-    "waiting_for_confirmation": "Waiting for email confirmation and will finalize automatically…",
-    "check_email_magic": "We've sent you a sign-in link (magic link). Check your email.",
-    "resend_confirmation": "Resend sign-in link",
-    "error_resend": "Failed to send confirmation. Please try again later.",
-    "check_email_help": "If the email doesn't arrive, check your SMTP settings, email templates, and your spam folder."
-  },
-  "freelancer_marketplace": {
-    "title": "Experts & Projects",
-    "subtitle": "Find vetted experts and post projects from the JobShaman community.",
-    "search_placeholder": "Search freelancers, skills...",
-    "no_bio": "Quality freelancer",
-    "categories": {
-      "all": "All",
-      "it": "IT & Development",
-      "design": "Design",
-      "crafts": "Crafts",
-      "marketing": "Marketing",
-      "admin": "Administration",
-      "real_estate": "Real Estate",
-      "finance": "Finance",
-      "security": "Security",
-      "legal": "Legal & Compliance"
-    },
-    "results": "Found {{count}} freelancers",
-    "no_results": "No freelancers found",
-    "no_results_desc": "Try changing your filters or search term.",
-    "reviews": "reviews",
-    "hourly_rate": "Rate:",
-    "contact_btn": "Contact",
-    "contact_email_placeholder": "Your email (required)",
-    "contact_phone_placeholder": "Phone (optional)",
-    "contact_placeholder": "Write a message to the freelancer...",
-    "contact_send": "Send",
-    "contact_cancel": "Cancel",
-    "contact_sending": "Sending...",
-    "contact_sent": "Message sent. The freelancer will be contacted.",
-    "contact_failed": "Failed to send message. Please try again later.",
-    "review_submit_error": "Failed to submit the review.",
-    "profile_btn": "View profile",
-    "profile_error": "Failed to load profile.",
-    "profile": {
-      "about": "About",
-      "skills": "Skills",
-      "portfolio": "Portfolio",
-      "no_portfolio": "No items yet.",
-      "portfolio_item": "Sample",
-      "view_link": "Open",
-      "rate": "Rate",
-      "rate_on_request": "On request",
-      "availability": "Availability",
-      "reviews": "Reviews",
-      "no_reviews": "No reviews yet.",
-      "add_review": "Add review",
-      "review_placeholder": "Write a short review...",
-      "review_submit": "Submit review",
-      "review_sending": "Submitting...",
-      "review_login": "Please sign in to add a review.",
-      "review_anon": "Anonymous",
-      "verified_customer": "Verified customer",
-      "helpful": "Helpful",
-      "not_helpful": "Not helpful"
-    }
-  },
-  "freelancer_marketplace_extra": {
-    "empty_state_title": "No services yet",
-    "empty_state_desc": "Be the first to offer services in this category.",
-    "create_offer_btn": "Create Offer",
-    "inquire_btn": "Inquire",
-    "wip_alert": "View Detail (WIP)"
   },
   "skillsGap": {
     "hero_title": "Get ahead with targeted education",
@@ -1889,6 +1609,905 @@
       "cv": "CV",
       "done": "Done",
       "missing": "Missing"
+    }
+  },
+  "alerts": {
+    "profile_save_failed": "Failed to save profile. Please try again.",
+    "geolocation_not_supported": "Geolocation is not supported in this browser.",
+    "geolocation_fetch_failed": "Failed to get location. Please check browser permissions.",
+    "subscription_verification_failed": "Could not verify subscription. Please try again.",
+    "ai_job_analysis_feature": "AI job listing analysis",
+    "application_send_failed": "Failed to send application. Please try again.",
+    "application_send_error": "An error occurred while sending your application. Please try again.",
+    "premium_only_feature": "This feature is available for Premium users only.",
+    "registration_rate_limited": "Too many registration attempts. Please wait a moment and try again.",
+    "user_already_exists": "A user with this email already exists. Please sign in.",
+    "registration_failed": "Registration failed. Please try again.",
+    "login_required": "Please sign in first.",
+    "company_id_load_failed": "Error: Failed to load company ID. Please refresh the page.",
+    "company_identify_failed": "Error: Failed to identify company. Please refresh the page.",
+    "payment_start_failed": "Failed to start payment",
+    "generic_try_later": "An error occurred. Please try again later or contact us directly.",
+    "confirm_delete_all_data": "Are you sure you want to delete all saved data? This action cannot be undone."
+  },
+  "cookie_preferences": {
+    "no_data_title": "No data to manage",
+    "no_data_desc": "You have not set any cookie preferences yet.",
+    "back_main": "Back to homepage",
+    "back_to_jobshaman": "Back to JobShaman",
+    "cookie_consent": "Cookie Consent",
+    "consent_status_title": "Consent status",
+    "last_update": "Last update",
+    "status": "Status",
+    "status_active": "Active",
+    "status_limited": "Limited",
+    "permissions_overview": "Permissions overview",
+    "necessary_cookies": "Necessary cookies",
+    "analytics_cookies": "Analytics cookies",
+    "marketing_cookies": "Marketing cookies",
+    "functional_cookies": "Functional cookies",
+    "data_management": "Data management",
+    "export_data_title": "Export your data",
+    "export_data_desc": "Download all your saved data in JSON format for backup or migration.",
+    "download_data": "Download data",
+    "delete_all_title": "Delete all data",
+    "delete_all_desc": "Permanently delete all local browser data including cookies, profile and saved jobs. This action cannot be undone.",
+    "delete_all_button": "Delete all data",
+    "privacy_title": "Privacy",
+    "privacy_policy_title": "Privacy policy",
+    "privacy_policy_desc": "Read how we collect, use and protect your personal data.",
+    "cookie_policy_title": "Cookie policy",
+    "cookie_policy_desc": "Detailed information about all cookies we use and their purpose.",
+    "footer_privacy_notice": "JobShaman respects your privacy in accordance with GDPR and the ePrivacy Directive."
+  },
+  "subscription_badge": {
+    "free": "Free",
+    "premium": "Premium",
+    "basic": "Basic",
+    "business": "Business",
+    "trial": "Business (Trial)",
+    "enterprise": "Enterprise",
+    "assessment_bundle": "Bundle",
+    "single_assessment": "Single Assessment"
+  },
+  "assessment_creator": {
+    "limit_reached": "You have reached the limit of {{limit}} assessments for your current plan. Upgrade for more assessments.",
+    "remaining_assessments": "Remaining assessments",
+    "plan": "Plan",
+    "tiers": {
+      "enterprise": "Enterprise",
+      "business": "Business",
+      "trial": "Business (Trial)",
+      "assessment_bundle": "Assessment Bundle",
+      "basic": "Basic"
+    },
+    "more_credits": "More credits",
+    "title": "Competency Generator",
+    "subtitle": "AI creates scenarios to verify real capabilities.",
+    "auto_from_job": "Auto from job ad",
+    "select_job_placeholder": "-- Select active job ad --",
+    "auto_fill_hint": "Selecting a job ad lets AI auto-fill role and key skills.",
+    "role_label": "Role",
+    "role_placeholder": "e.g. Senior Frontend Dev",
+    "skills_label": "Key skills (comma separated)",
+    "skills_placeholder": "e.g. React, Performance Optimization, System Design",
+    "extracting_skills": "Analyzing job ad and extracting skills...",
+    "difficulty_label": "Difficulty",
+    "difficulty": {
+      "junior": "Junior (Basics)",
+      "medior": "Medior (Practice)",
+      "senior": "Senior (Architecture & Depth)",
+      "expert": "Expert (Edge cases)"
+    },
+    "structure_title": "Assessment Structure",
+    "structure_heading": "🏗️ Complex Digital AC",
+    "structure_items": {
+      "1": "Expert \"Quick-fire\" (5-8 tasks) - knowledge of procedures, tools and standards.",
+      "2": "Situational tasks (SJT) (2-3 scenarios) - behavior in real situations.",
+      "3": "Practical Case Study (1 task) - realistic job sample tailored to the role.",
+      "4": "Logic & Analysis (1-2 tasks) - prioritization and data interpretation."
+    },
+    "structure_note": "The composition adapts automatically to the role profile (from surgeon to production planner).",
+    "generating": "Generating test...",
+    "create_button": "Create Assessment",
+    "ai_generated": "AI Generated",
+    "copy": "Copy",
+    "question": "Question",
+    "preview": "Try it (Preview)",
+    "send_hint": "You can send this test to a candidate as a \"Pre-screen challenge\".",
+    "empty_state": "Enter role and skills on the left to generate tailored verification questions."
+  },
+  "enterprise_signup": {
+    "title": "JobShaman Enterprise",
+    "subtitle": "For companies with advanced hiring needs",
+    "back": "Back to JobShaman",
+    "hero_title": "Take your hiring to the next level",
+    "benefits": {
+      "unlimited_jobs_title": "Unlimited job posts",
+      "unlimited_jobs_desc": "Publish as many roles as you need, with no limits.",
+      "ai_assessment_title": "Advanced AI Assessments",
+      "ai_assessment_desc": "Unlimited AI testing with advanced candidate analysis.",
+      "ats_title": "ATS Integrations",
+      "ats_desc": "Connect with Greenhouse, Lever, Workday and more.",
+      "support_title": "Priority support",
+      "support_desc": "Dedicated account manager and 24/7 technical support."
+    },
+    "why_title": "Why Enterprise?",
+    "why_items": {
+      "1": "Custom ATS integrations",
+      "2": "Advanced AI features and reporting",
+      "3": "SLA guarantees and emergency support",
+      "4": "Custom reporting and analytics"
+    },
+    "contact_title": "Contact us",
+    "contact_subtitle": "Fill in the form and we will prepare a tailored offer within 24 hours.",
+    "form": {
+      "company_name": "Company name",
+      "company_name_placeholder": "Your company name",
+      "contact_name": "Contact name",
+      "contact_name_placeholder": "First and last name",
+      "email": "Email",
+      "email_placeholder": "contact@company.com",
+      "phone": "Phone",
+      "phone_placeholder": "+420 123 456 789",
+      "company_size": "Company size",
+      "company_size_placeholder": "Select size",
+      "industry": "Industry",
+      "industry_placeholder": "Select industry",
+      "challenges": "Current hiring challenges",
+      "challenges_placeholder": "Describe the main problems you are facing...",
+      "expected_hires": "Expected number of hires",
+      "expected_hires_placeholder": "e.g. 10-50 roles per year",
+      "timeline": "Timeline",
+      "timeline_placeholder": "Select timeline",
+      "submitting": "Submitting...",
+      "submit": "Request an offer"
+    },
+    "options": {
+      "company_size": {
+        "1_10": "1-10 employees",
+        "11_50": "11-50 employees",
+        "51_200": "51-200 employees",
+        "201_1000": "201-1000 employees",
+        "1000_plus": "1000+ employees"
+      },
+      "industry": {
+        "tech_it": "Technology and IT",
+        "finance": "Finance and banking",
+        "ecommerce": "E-commerce and retail",
+        "manufacturing": "Manufacturing and industry",
+        "healthcare": "Healthcare and pharma",
+        "education": "Education",
+        "consulting": "Consulting and professional services",
+        "other": "Other"
+      },
+      "timeline": {
+        "immediately": "Immediately",
+        "1_month": "Within 1 month",
+        "3_months": "Within 3 months",
+        "6_months": "Within 6 months",
+        "next_year": "Planning for next year"
+      }
+    },
+    "questions_title": "Have questions?",
+    "questions_desc_prefix": "Call us directly at",
+    "questions_desc_middle": "or email us at",
+    "questions_hours": "Business days: Mon-Fri, 9:00-17:00",
+    "success": {
+      "title": "Thank you for your interest!",
+      "subtitle": "Our sales team will contact you within 24 hours to discuss your needs and prepare a tailored offer.",
+      "next_title": "What happens next?",
+      "step1_title": "Contact within 24 hours",
+      "step1_desc": "Our specialized team will contact you",
+      "step2_title": "Needs analysis",
+      "step2_desc": "We will prepare a personalized offer",
+      "step3_title": "Custom implementation",
+      "step3_desc": "Technical setup and integration"
+    }
+  },
+  "commute_breakdown": {
+    "transport_labels": {
+      "car": "Car",
+      "public": "Public transport",
+      "bike": "Bike",
+      "walk": "Walk"
+    },
+    "distance_unavailable": "Distance is not available",
+    "preferred_transport_distance": "Your preferred transport for {{distance}} km",
+    "currency_czk": "CZK",
+    "currency_eur": "EUR",
+    "month": "month",
+    "monthly": "monthly",
+    "daily": "Daily",
+    "time": "Time",
+    "minutes_value": "{{value}} min",
+    "cost_per_min": "Cost/min",
+    "comparison_title": "Comparison with other options",
+    "cheaper_by": "↓ {{amount}} CZK cheaper",
+    "more_expensive_by": "↑ {{amount}} CZK more expensive",
+    "annual_costs": "Annual costs:",
+    "czk_per_year": "CZK/year",
+    "methodology_toggle": "How are costs calculated?",
+    "methodology_title": "4 transport modes - calculation method",
+    "methodology": {
+      "car": {
+        "1": "Rate: 5 CZK/km (fuel, maintenance, insurance)",
+        "2": "Time: 1.5 - 2.5 min/km depending on terrain",
+        "3": "Best for: long-distance commutes, rural areas",
+        "4": "Formula: Distance × 5 CZK/km × 2 (round trip)"
+      },
+      "public": {
+        "title": "Public transport",
+        "1": "Rate: 2.5 CZK/km + monthly pass",
+        "2": "Pass: depends on city",
+        "3": "Prague: ~1,500 CZK/month (60 km/month free)",
+        "4": "Brno: ~1,300 CZK/month",
+        "5": "Pilsen: ~1,000 CZK/month",
+        "6": "Time: 2.0 - 3.0 min/km (waiting + ride)",
+        "7": "Best for: large cities with good transit, low stress"
+      },
+      "bike": {
+        "1": "Rate: 0.05 CZK/km (maintenance only)",
+        "2": "Time: 4.0 - 6.0 min/km depending on terrain",
+        "3": "Best for: distances up to 15 km",
+        "4": "Benefits: cheapest, healthy, no emissions",
+        "5": "Formula: Distance × 0.05 CZK/km × 2"
+      },
+      "walk": {
+        "1": "Rate: 0 CZK (free)",
+        "2": "Time: 12.0 - 15.0 min/km",
+        "3": "Best for: up to 5 km",
+        "4": "Benefits: cheapest, healthiest, no environmental impact"
+      }
+    },
+    "metro_notes_title": "Notes for large cities:",
+    "metro_notes": {
+      "1": "• Passes/cards: public transport in major cities (Prague, Brno) offers monthly passes with unlimited rides",
+      "2": "• Subsidies: some companies support employee transport (benefits), reducing costs",
+      "3": "• Combined commuting: you can combine public transport with bike-sharing",
+      "4": "• E-scooters: available in cities, cost around 5-10 CZK/km"
+    },
+    "calculation_info": "How is it calculated? All costs above are one-way. The system automatically accounts for round trip (×2), recalculates daily/monthly/annual costs and includes monthly transit passes."
+  },
+  "admin_dashboard": {
+    "auth": {
+      "admin_zone": "Admin zone",
+      "login_required": "Please sign in first to access this section.",
+      "access_denied": "Access denied",
+      "no_admin_rights": "This account does not have admin permissions."
+    },
+    "header": {
+      "subtitle": "Manage subscriptions, trials, audits and traffic analytics",
+      "title": "Admin Dashboard",
+      "control": "Admin Control"
+    },
+    "actions": {
+      "refresh_data": "Refresh data",
+      "refresh": "Refresh",
+      "wake_backend": "Wake backend",
+      "waking": "Waking...",
+      "backend_ok": "Backend OK",
+      "export_csv": "Export CSV"
+    },
+    "common": {
+      "close": "Close",
+      "loading": "Loading...",
+      "save": "Save",
+      "saving": "Saving...",
+      "no_data": "No data.",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "entity": {
+      "company": "Company",
+      "user": "User"
+    },
+    "errors": {
+      "load_failed": "Loading failed",
+      "save_failed": "Saving failed",
+      "action_failed": "Action failed",
+      "target_required": "Enter target ID (company/user)",
+      "create_failed": "Creation failed",
+      "digest_load_failed": "Failed to load digest settings",
+      "digest_save_failed": "Failed to save digest settings"
+    },
+    "notifications": {
+      "title": "Trial notifications",
+      "subtitle": "Nearest expirations",
+      "empty": "No urgent items.",
+      "severity": {
+        "today": "Ends today",
+        "expired": "Expired",
+        "soon": "Ending soon"
+      }
+    },
+    "create_subscription": {
+      "title": "Create subscription",
+      "subtitle": "Quick setup of tier and trial",
+      "target_uuid": "Target UUID",
+      "trial_days": "Trial days",
+      "create_or_update": "Create / update"
+    },
+    "search": {
+      "search_company": "Search company",
+      "search_user": "Search user",
+      "placeholder": "Company name, person name or email...",
+      "email_or_name": "Search email or name...",
+      "search_button": "Search",
+      "searching": "Searching...",
+      "use_for_subscription": "Use for subscription",
+      "manage_digest": "Manage digest"
+    },
+    "digest": {
+      "title": "Daily digest (mailing list)",
+      "subtitle": "Manage subscription for selected user",
+      "loading_settings": "Loading settings...",
+      "last_sent": "Last sent",
+      "subscribe_daily": "Subscribe to daily digest",
+      "time": "Time",
+      "timezone": "Timezone",
+      "locale_country": "Locale / Country",
+      "email_digest": "Email digest",
+      "push_digest": "Push digest"
+    },
+    "push": {
+      "title": "Push subscriptions",
+      "subtitle": "Active subscriptions for PWA notifications",
+      "empty": "No active push subscriptions.",
+      "updated": "Updated",
+      "user_agent": "User Agent"
+    },
+    "mailing": {
+      "title": "Mailing / Digest subscriptions",
+      "subtitle": "Manage email/push subscriptions for candidates",
+      "digest_settings_title": "Digest settings",
+      "digest_settings_subtitle": "Email + push + delivery time"
+    },
+    "stats": {
+      "users": "Users",
+      "in_7_days": "in 7 days",
+      "users_30_days": "Users 30 days",
+      "new_in_30_days": "New in 30 days",
+      "companies": "Companies",
+      "companies_30_days": "Companies 30 days",
+      "new_companies_30_days": "New companies in 30 days",
+      "paid_conversion": "Paid conversion",
+      "companies_ratio": "Companies"
+    },
+    "traffic": {
+      "title": "Traffic",
+      "last_30_days": "Last 30 days",
+      "hide_details": "Hide details",
+      "show_details": "Show details",
+      "loading": "Loading analytics...",
+      "unavailable": "Traffic statistics are not available.",
+      "visitors": "Visitors",
+      "pages_per_session": "Pages / session",
+      "daily_visits_14_days": "Daily traffic (14 days)",
+      "top_pages": "Top pages",
+      "traffic_source": "Traffic source",
+      "top_countries_30_days": "Top countries (30 days)",
+      "devices_30_days": "Devices (30 days)",
+      "os_30_days": "OS (30 days)",
+      "browsers_30_days": "Browsers (30 days)",
+      "pageviews": "Pageviews",
+      "sessions": "Sessions",
+      "bounce_rate": "Bounce rate"
+    },
+    "ai_quality": {
+      "title": "AI Quality",
+      "subtitle": "Output quality + impact on applications (30 days)",
+      "hide_details": "Hide details",
+      "show_details": "Show details",
+      "loading": "Loading AI quality metrics...",
+      "unavailable": "AI quality data is not available.",
+      "active_models": "Active models",
+      "top_models_by_cost": "Top models by cost",
+      "top_users_by_usage": "Top users by AI usage",
+      "requests": "req",
+      "release_flags": "Release flags",
+      "on": "ON",
+      "off": "OFF",
+      "schema_pass_rate": "Schema pass rate",
+      "fallback_rate": "Fallback rate",
+      "diff_volatility": "Diff volatility",
+      "apply_rate_ai_users": "Apply rate (AI users)",
+      "conversion_impact": "Conversion impact",
+      "offline_auc": "Offline AUC",
+      "log_loss": "Log loss",
+      "exposures": "Exposures",
+      "exploration_share": "Exploration share",
+      "new_job_share": "New job share",
+      "long_tail_share": "Long-tail share",
+      "ai_users": "AI users",
+      "total_tokens": "Total tokens",
+      "estimated_ai_cost": "Estimated AI cost",
+      "avg_cost_per_generation": "Avg cost / generation",
+      "precision_at_5": "P@5"
+    },
+    "filters": {
+      "title": "Filters and search",
+      "subtitle": "Quick navigation in subscriptions",
+      "search_placeholder": "Search company, email, ID...",
+      "all": "All",
+      "companies": "Companies",
+      "users": "Users",
+      "tier_all": "Tier: all",
+      "status_all": "Status: all"
+    },
+    "table": {
+      "subject": "Subject",
+      "email": "Email",
+      "tier": "Tier",
+      "status": "Status",
+      "validity": "Validity",
+      "actions": "Actions",
+      "no_records": "No records.",
+      "trial_days_placeholder": "Trial days",
+      "detail": "Detail",
+      "activate": "Activate",
+      "cancel": "Cancel",
+      "previous": "Previous",
+      "next": "Next",
+      "trial_14d": "Trial 14d"
+    },
+    "detail": {
+      "title": "Subscription detail",
+      "subject": "Subject",
+      "tier_status": "Tier / Status",
+      "valid_until": "Valid until",
+      "customer": "Customer",
+      "period": "Period",
+      "cancel_at_period_end": "Cancel at period end",
+      "created": "Created",
+      "updated": "Updated",
+      "target_id": "Target ID",
+      "stripe": "Stripe",
+      "price_id": "Price ID"
+    },
+    "audit": {
+      "title": "Audit log",
+      "refresh": "Refresh log",
+      "loading": "Loading audit log...",
+      "changed": "Changed",
+      "admin": "admin"
+    }
+  },
+  "saved_jobs_page": {
+    "title": "Saved jobs",
+    "count_one": "{{count}} saved job",
+    "count_other": "{{count}} saved jobs",
+    "remove_all": "Remove all",
+    "confirm_remove_all": "Are you sure you want to remove all saved jobs?",
+    "search_placeholder": "Search in saved jobs...",
+    "empty_title": "You don't have any saved jobs yet",
+    "empty_desc": "Click the bookmark icon on a job offer to save it for later.",
+    "empty_tip": "Tip: You can also find saved jobs in the \"Profile\" tab.",
+    "no_results_title": "No results found",
+    "no_results_desc": "Try changing your search term.",
+    "remove_from_saved": "Remove from saved"
+  },
+  "invitation_landing": {
+    "invalid_link": "Invalid invitation link (missing id or token).",
+    "api_error": "API error: {{status}}",
+    "verify_failed": "Failed to verify invitation.",
+    "default_role": "Candidate",
+    "default_skill": "general",
+    "generate_failed": "Failed to generate assessment.",
+    "submit_success_alert": "Thank you! Assessment submitted.",
+    "submit_failed": "Failed to submit result.",
+    "loading": "Loading invitation…",
+    "not_found": "Invitation not found.",
+    "title": "Assessment invitation from {{company}}",
+    "position": "Position",
+    "valid_until": "Valid until",
+    "start_desc": "Click to start the assessment. Prepare your answers; the result will be sent to the company after completion.",
+    "start_button": "Start assessment",
+    "assessment_fallback_title": "Assessment",
+    "question_label": "Question {{index}}",
+    "submitting": "Submitting…",
+    "submit_button": "Submit results",
+    "completed": "This assessment has already been completed."
+  },
+  "my_invitations": {
+    "title": "Assessment invitations",
+    "refresh": "Refresh",
+    "loading": "Loading data...",
+    "load_failed": "Failed to load invitations.",
+    "assessment_load_failed": "Failed to load test. Please try again later.",
+    "assessment_submit_success": "Test submitted successfully. Thank you.",
+    "empty": "You don't have any active invitations yet.",
+    "unknown_position": "Unknown position",
+    "expires": "Expires",
+    "status_pending": "Pending",
+    "status_completed": "Completed",
+    "status_expired": "Expired",
+    "start_test": "Start test"
+  },
+  "premium_upsell": {
+    "badge": "NEW FEATURE",
+    "title": "Unlock Premium features",
+    "subtitle": "Get access to AI tools that help you move to a better role.",
+    "per_month": "/month",
+    "cancel_anytime": "Cancel anytime with no penalties",
+    "upgrade_now": "Upgrade now",
+    "footer": "Secure payment · Instant access · No long-term commitment",
+    "compact": {
+      "title": "Try Premium functionality",
+      "desc": "CV templates, AI rewrites and cover letter generation",
+      "cta": "Upgrade for CZK 99/month"
+    },
+    "features": {
+      "cv_templates_title": "CV Templates",
+      "cv_templates_desc": "Professional designs optimized for recruiters",
+      "ai_rewrite_title": "AI CV Rewrite",
+      "ai_rewrite_desc": "Smart optimization tailored to the role",
+      "cover_letter_title": "AI Cover Letter",
+      "cover_letter_desc": "Automatic generation of personalized letters"
+    }
+  },
+  "premium_upgrade_modal": {
+    "title": "Unlock JobShaman Premium",
+    "desc_prefix": "Feature",
+    "desc_suffix": "and other AI tools are available only for premium members.",
+    "upgrade_cta": "Upgrade to Premium for CZK 99/month",
+    "maybe_later": "Maybe later",
+    "benefits": {
+      "unlimited_ai": "Unlimited AI analysis of job listings",
+      "cover_letters": "Automatic cover letter generation",
+      "cv_optimization": "Smart CV optimization tailored to a role",
+      "priority_visibility": "Priority visibility for recruiters"
+    }
+  },
+  "plan_upgrade_modal": {
+    "premium_features": "Premium features",
+    "feature_requires_plan_prefix": "Feature",
+    "feature_requires_plan_suffix": "requires a higher plan or credits.",
+    "select_solution": "Choose your solution",
+    "highlights": {
+      "unlimited_job_posts": "Unlimited job posts",
+      "ai_assessments": "AI assessments",
+      "ai_job_optimization": "AI job post optimization"
+    },
+    "basic": {
+      "title": "Basic plan",
+      "subtitle": "Ideal start",
+      "price": "FREE",
+      "price_suffix": "forever",
+      "feature_1": "3 job posts / month",
+      "feature_2": "Basic dashboard",
+      "feature_3": "No AI features",
+      "feature_4": "No assessments",
+      "cta": "Use for free"
+    },
+    "business": {
+      "recommended_badge": "Recommended",
+      "title": "Business plan",
+      "subtitle": "For growing companies",
+      "price_suffix": "/ month (promo)",
+      "price_regular": "regularly CZK 9,990",
+      "feature_1": "Unlimited job posts",
+      "feature_2": "AI optimization",
+      "feature_3": "10 assessments / month",
+      "feature_4": "Advanced analytics",
+      "feature_5": "Team management",
+      "feature_6": "Priority support",
+      "cta": "Activate Business"
+    },
+    "assessment_center": {
+      "title": "Assessment center",
+      "subtitle": "Add-on for any plan",
+      "single_title": "1 assessment",
+      "single_subtitle": "One-time purchase",
+      "bundle_title": "10 assessments",
+      "bundle_subtitle": "Valid for 12 months"
+    },
+    "enterprise": {
+      "title": "Custom plan",
+      "subtitle": "For large companies",
+      "price": "Custom",
+      "price_suffix": "individual pricing",
+      "feature_1": "All Premium features",
+      "feature_2": "Custom integrations",
+      "feature_3": "Dedicated support",
+      "feature_4": "API access",
+      "feature_5": "SLA guarantee",
+      "feature_6": "Custom training",
+      "cta": "Contact Sales",
+      "email_subject": "Custom plan inquiry",
+      "email_body": "Hello,\n\nI am interested in a custom plan for our company.\n\nBest regards,"
+    },
+    "close_continue": "Close and continue with the basic version"
+  },
+  "assessment_invitation_modal": {
+    "title": "Invite candidate to assessment",
+    "fill_required": "Fill in assessment ID and candidate email",
+    "api_error": "API error: {{status}}",
+    "send_failed": "Failed to send invitation",
+    "assessment_id": "Assessment ID",
+    "assessment_id_placeholder": "e.g. tech-backend-1",
+    "candidate_email": "Candidate email",
+    "job_title_optional": "Job title (optional)",
+    "assessment_name_optional": "Assessment name (optional)",
+    "expires_days": "Validity (days)",
+    "sending": "Sending…",
+    "send_button": "Send invitation"
+  },
+  "filter_suggestions": {
+    "title_personal": "🔥 Frequently searched for you",
+    "title_popular": "🔥 Most popular searches"
+  },
+  "subscription_page": {
+    "title": "Subscription and Billing",
+    "subtitle": "Manage your subscription and usage limits",
+    "login_required": "Please log in to view your subscription.",
+    "user_id_missing": "Error: User ID not available. Please try logging in again.",
+    "personal_title": "Your personal subscription",
+    "tip_title": "Useful tip",
+    "tip_desc": "Need more assessments? Consider upgrading to the Business plan for unlimited access to all features.",
+    "company_title": "{{company}} - Company subscription",
+    "company_benefits_title": "Company benefits",
+    "company_benefits": {
+      "team_management": "✓ Team management and multi-user accounts",
+      "shared_credits": "✓ Shared assessment credits across the team",
+      "analytics": "✓ Advanced analytics and custom reports",
+      "priority_support": "✓ Priority support and dedicated account manager",
+      "api_access": "✓ API access for integrations"
+    },
+    "faq_title": "Frequently Asked Questions",
+    "faq": {
+      "renewal_q": "What happens when my subscription renews?",
+      "renewal_a": "Your subscription renews automatically on the date shown in your dashboard. Your payment method on file will be charged. You can pause or cancel anytime.",
+      "pause_q": "Can I pause my subscription?",
+      "pause_a": "Yes. You can pause your subscription to keep your data without billing. Contact support to pause for up to 3 months.",
+      "plan_contents_q": "What is included in each plan?",
+      "plan_free": "Free: Limited access to jobs, basic features",
+      "plan_basic": "Basic: 20 assessments/month, 50 job postings/month",
+      "plan_business": "Business: Unlimited assessments, unlimited postings, priority support",
+      "plan_bundle": "Assessment bundle: 50 one-time assessments valid for 12 months",
+      "rollover_q": "Do unused credits roll over?",
+      "rollover_a": "No. Monthly credits reset on renewal day. Assessment bundle purchases remain valid for 12 months from purchase.",
+      "support_q": "How do I contact support?",
+      "support_a": "Email us at support@jobshaman.cz or use the in-app chat widget. Business users get 24/7 priority support."
+    }
+  },
+  "subscription_card": {
+    "title": "Subscription",
+    "company_mgmt": "Company subscription management",
+    "personal_mgmt": "Manage your subscription",
+    "your_subscription": "Your subscription",
+    "company_title": "{{company}} - Company subscription",
+    "company_benefits_title": "Company benefits",
+    "company_benefits": {
+      "team_management": "✓ Team management and multi-user accounts",
+      "shared_credits": "✓ Shared assessment credits across the team",
+      "analytics": "✓ Advanced analytics and custom reports",
+      "priority_support": "✓ Priority support and dedicated account manager",
+      "api_access": "✓ API access for integrations"
+    },
+    "personal_subscription": "Your personal subscription",
+    "quick_info_title": "Quick info",
+    "quick_info": {
+      "renewal": "What happens on renewal? Subscription auto-renews and your payment method is charged.",
+      "pause": "Can it be paused? Yes, contact support to pause for up to 3 months.",
+      "credits": "Unused credits? Monthly credits reset; bundles are valid for 12 months."
+    }
+  },
+  "review_display": {
+    "title": "Course reviews: {{course}}",
+    "average_rating": "Average rating",
+    "from_reviews": "from {{count}} reviews",
+    "total_reviews": "{{count}} reviews",
+    "empty_title": "No reviews yet",
+    "empty_desc": "Be the first to review this course! Your experience helps other candidates.",
+    "anonymous_candidate": "Anonymous candidate",
+    "verified_graduate": "Verified graduate",
+    "helpful": "Helpful ({{count}})",
+    "not_helpful": "Not helpful ({{count}})"
+  },
+  "career_tracker": {
+    "title": "Your career journey",
+    "subtitle": "We track your progress and outcomes after course completion",
+    "status": {
+      "completed": "Completed",
+      "hired": "Hired",
+      "in_progress": "In progress"
+    },
+    "completed_courses": "Completed courses",
+    "avg_salary_increase": "Average salary increase",
+    "total_roi": "Total ROI",
+    "roi_excellent": "Excellent",
+    "roi_evaluating": "Evaluating",
+    "detail_overview": "Detailed overview",
+    "empty_line1": "You have no career progress records yet.",
+    "empty_line2": "Your stats will appear here after your first completed course.",
+    "original_position": "Original position",
+    "not_specified": "Not specified",
+    "progress": "Progress",
+    "new_job_obtained": "New job obtained",
+    "salary_increased_by": "Salary increased by {{percent}}%",
+    "course_in_progress": "Course still in progress..."
+  },
+  "cookie_policy": {
+    "title": "Cookie Policy",
+    "last_update": "Last updated: {{date}}",
+    "what_are": {
+      "title": "What are cookies?",
+      "description": "Cookies are small text files stored in your browser when you visit our website. We use them for the following purposes:",
+      "uses": {
+        "keep_login": "Keeping you logged in and maintaining your session state",
+        "remember_preferences": "Remembering your preferences and settings",
+        "analyze_usage": "Analyzing how you use our services",
+        "improve_performance": "Improving website performance and functionality",
+        "personalize_content": "Personalizing content and ads relevant to your interests"
+      }
+    },
+    "types": {
+      "title": "Types of cookies we use",
+      "necessary": {
+        "title": "Necessary cookies",
+        "badge": "Always enabled",
+        "session_label": "Session cookies",
+        "session_desc": "Keep you logged in while using the website",
+        "security_label": "Security cookies",
+        "security_desc": "Protect against CSRF attacks and security threats",
+        "functional_label": "Functional cookies",
+        "functional_desc": "Provide core features such as cart and preference storage"
+      },
+      "analytics": {
+        "title": "Analytics cookies",
+        "badge": "Optional",
+        "ga_desc": "Help us understand how visitors use the site",
+        "hotjar_desc": "Records user behavior to improve UI/UX",
+        "performance_label": "Performance metrics",
+        "performance_desc": "Track loading speed and errors",
+        "ab_label": "A/B testing",
+        "ab_desc": "Compares different feature variants"
+      },
+      "marketing": {
+        "title": "Marketing cookies",
+        "badge": "Optional",
+        "remarketing_label": "Remarketing/Retargeting",
+        "remarketing_desc": "Personalized ads based on your activity",
+        "social_label": "Social media integration",
+        "social_desc": "Enables sharing on social networks",
+        "personalization_label": "Content personalization",
+        "personalization_desc": "Tailors content to your interests",
+        "targeting_label": "Targeted marketing",
+        "targeting_desc": "Measures campaign effectiveness"
+      }
+    },
+    "table": {
+      "title": "Overview of cookies we use",
+      "headers": {
+        "name": "Cookie name",
+        "purpose": "Purpose",
+        "duration": "Duration",
+        "type": "Type"
+      },
+      "rows": {
+        "session_id": {
+          "purpose": "Login and session",
+          "duration": "Until session ends",
+          "type": "Necessary"
+        },
+        "user_preferences": {
+          "purpose": "Saving user preferences",
+          "duration": "1 year",
+          "type": "Functional"
+        },
+        "analytics_consent": {
+          "purpose": "Analytics consent",
+          "duration": "1 year",
+          "type": "Analytics"
+        },
+        "jobshaman_search": {
+          "purpose": "Saving search queries",
+          "duration": "30 days",
+          "type": "Functional"
+        },
+        "third_party_cookie": {
+          "purpose": "Integration with external services (LinkedIn, etc.)",
+          "duration": "90 days",
+          "type": "Marketing"
+        }
+      }
+    },
+    "management": {
+      "title": "Cookie management",
+      "how_to_manage_title": "How to manage cookies:",
+      "browser_settings_label": "Browser settings",
+      "browser_settings_desc": "Most browsers allow cookie management",
+      "banner_label": "Using our banner",
+      "banner_desc": "You can change your settings anytime",
+      "preferences_overview_label": "Preferences overview",
+      "preferences_overview_desc_prefix": "See",
+      "preferences_overview_link": "Data management",
+      "blocking_title": "Blocking cookies:",
+      "blocking_desc": "You can block cookies in your browser at any time. Please note that blocking necessary cookies may affect some parts of the website.",
+      "deleting_title": "Deleting cookies:",
+      "deleting_desc": "Deleting cookies removes all saved data from your browser. You will need to sign in again."
+    },
+    "third_party": {
+      "title": "Third-party cookies",
+      "description": "Some parts of our website may use cookies from external partners (e.g. LinkedIn, Google, etc.). These cookies are governed by the privacy policies of those third parties.",
+      "main_partners_title": "Main partners:",
+      "partners": {
+        "google": "Analytics and statistics",
+        "linkedin": "Professional networking and integration",
+        "meta": "Marketing and social integration"
+      }
+    },
+    "contact": {
+      "title": "Cookie-related contact",
+      "email_label": "Email",
+      "phone_label": "Phone",
+      "authority_label": "Data Protection Authority",
+      "authority_value": "Data Protection Authority"
+    },
+    "updates": {
+      "title": "Policy updates",
+      "description": "This cookie policy was last updated on {{date}}. Any changes will be published on this page and, for major changes, also sent by email to registered users.",
+      "version_line": "Document version: 1.0 | Last revision date: {{date}}"
+    },
+    "footer": {
+      "company_line": "JobShaman s.r.o. | Company ID: 12345678 | Dorožní 1, 110 00 Prague 1",
+      "privacy_part_1": "This policy is part of our",
+      "privacy_link": "Privacy Policy",
+      "privacy_part_2": "."
+    }
+  },
+  "cookie_banner": {
+    "minimized": {
+      "title": "Cookies",
+      "expand_title": "Show cookie options"
+    },
+    "header": {
+      "title": "We use cookies",
+      "gdpr_badge": "GDPR Compliant",
+      "description": "We use cookies and similar technologies to personalize content, analyze traffic and support marketing. Your privacy matters to us."
+    },
+    "actions": {
+      "accept_all": "Accept all",
+      "necessary_only": "Necessary only",
+      "customize": "Customize",
+      "minimize": "Minimize",
+      "save_preferences": "Save preferred settings"
+    },
+    "settings": {
+      "title": "Cookie settings:"
+    },
+    "categories": {
+      "necessary": {
+        "title": "Necessary cookies",
+        "description": "Core website functionality",
+        "always_on": "Always enabled"
+      },
+      "analytics": {
+        "title": "Analytics cookies",
+        "description": "Traffic stats and analytics"
+      },
+      "marketing": {
+        "title": "Marketing cookies",
+        "description": "Personalized advertising and marketing"
+      },
+      "functional": {
+        "title": "Functional cookies",
+        "description": "Enhanced functionality and personalization"
+      },
+      "preferences": {
+        "title": "Preference cookies",
+        "description": "Saving your preferences and settings"
+      }
+    },
+    "links": {
+      "privacy_policy": "Privacy Policy",
+      "cookie_policy": "Cookie Policy",
+      "manage_anytime": "You can manage your cookie preferences at any time in settings."
+    },
+    "footer": {
+      "privacy_notice": "JobShaman respects your privacy under GDPR and the ePrivacy Directive",
+      "last_update": "Last update: {{date}}"
     }
   }
 }

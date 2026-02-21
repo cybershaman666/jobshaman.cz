@@ -7,6 +7,7 @@ import {
   Star,
   Lock
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { redirectToCheckout } from '../services/stripeService';
 
 interface PremiumUpsellCardProps {
@@ -15,9 +16,10 @@ interface PremiumUpsellCardProps {
 }
 
 const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ userId, isCompact = false }) => {
+  const { t } = useTranslation();
   const handleUpgrade = () => {
     if (!userId) {
-      alert('Prosím přihlaste se nejdříve');
+      alert(t('alerts.login_required'));
       return;
     }
     redirectToCheckout('premium', userId);
@@ -30,10 +32,10 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ userId, isCompact
           <Star className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" fill="currentColor" />
           <div>
             <h3 className="font-semibold text-slate-900 dark:text-white mb-1">
-              Zkuste Premium funkcionalitu
+              {t('premium_upsell.compact.title')}
             </h3>
             <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">
-              CV šablony, AI přepsání a generování dopisů
+              {t('premium_upsell.compact.desc')}
             </p>
           </div>
         </div>
@@ -42,7 +44,7 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ userId, isCompact
           onClick={handleUpgrade}
           className="w-full py-2 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-semibold rounded-lg transition-all hover:shadow-lg text-sm"
         >
-          Upgradovat za 99 Kč/měsíc
+          {t('premium_upsell.compact.cta')}
         </button>
       </div>
     );
@@ -57,16 +59,16 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ userId, isCompact
         <div className="flex items-center gap-2 mb-4">
           <Star className="w-6 h-6 text-amber-500" fill="currentColor" />
           <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/50 px-3 py-1 rounded-full">
-            NOVÉ FUNKCIONALITA
+            {t('premium_upsell.badge')}
           </span>
         </div>
 
         <h2 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white mb-3">
-          Odemkněte Premium funkce
+          {t('premium_upsell.title')}
         </h2>
 
         <p className="text-slate-600 dark:text-slate-300 mb-6 text-lg">
-          Získejte přístup k AI nástrojům, které vám pomohou dostat se na vyšší pozici
+          {t('premium_upsell.subtitle')}
         </p>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
@@ -75,9 +77,9 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ userId, isCompact
               <FileText className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-semibold text-slate-900 dark:text-white mb-1">CV Šablony</p>
+              <p className="font-semibold text-slate-900 dark:text-white mb-1">{t('premium_upsell.features.cv_templates_title')}</p>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Profesionální designy optimalizované pro recruitmenty
+                {t('premium_upsell.features.cv_templates_desc')}
               </p>
             </div>
           </div>
@@ -87,9 +89,9 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ userId, isCompact
               <Wand2 className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-semibold text-slate-900 dark:text-white mb-1">AI Přepsání CV</p>
+              <p className="font-semibold text-slate-900 dark:text-white mb-1">{t('premium_upsell.features.ai_rewrite_title')}</p>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Inteligentní optimalizace na míru pozice
+                {t('premium_upsell.features.ai_rewrite_desc')}
               </p>
             </div>
           </div>
@@ -99,9 +101,9 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ userId, isCompact
               <Mail className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-semibold text-slate-900 dark:text-white mb-1">AI Motivační Dopis</p>
+              <p className="font-semibold text-slate-900 dark:text-white mb-1">{t('premium_upsell.features.cover_letter_title')}</p>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                Automatické vytváření personalizovaných dopisů
+                {t('premium_upsell.features.cover_letter_desc')}
               </p>
             </div>
           </div>
@@ -110,10 +112,10 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ userId, isCompact
         <div className="bg-white dark:bg-slate-800 rounded-lg p-4 mb-6 border border-slate-200 dark:border-slate-700">
           <p className="text-center">
             <span className="text-3xl font-bold text-slate-900 dark:text-white">99 Kč</span>
-            <span className="text-slate-600 dark:text-slate-400 ml-2">/měsíc</span>
+            <span className="text-slate-600 dark:text-slate-400 ml-2">{t('premium_upsell.per_month')}</span>
           </p>
           <p className="text-center text-sm text-slate-500 dark:text-slate-400 mt-2">
-            Zrušit kdykoli bez pokut
+            {t('premium_upsell.cancel_anytime')}
           </p>
         </div>
 
@@ -122,12 +124,12 @@ const PremiumUpsellCard: React.FC<PremiumUpsellCardProps> = ({ userId, isCompact
           className="w-full py-4 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white font-bold rounded-xl transition-all hover:shadow-lg hover:scale-105 active:scale-95 flex items-center justify-center gap-2 mb-3"
         >
           <Lock className="w-5 h-5" />
-          Upgradovat Teď
+          {t('premium_upsell.upgrade_now')}
           <ArrowRight className="w-5 h-5" />
         </button>
 
         <p className="text-center text-sm text-slate-600 dark:text-slate-400">
-          Zabezpečená platba · Okamžitý přístup · Bez dlouhodobého závazku
+          {t('premium_upsell.footer')}
         </p>
       </div>
     </div>

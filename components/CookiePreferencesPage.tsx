@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
 import { Shield, Lock, Eye, Trash2, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface CookiePreferencesPageProps {
   theme?: 'light' | 'dark';
 }
 
 const CookiePreferencesPage: React.FC<CookiePreferencesPageProps> = ({ theme = 'light' }) => {
+  const { t, i18n } = useTranslation();
   const [preferences] = useState<any>(() => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('cookie-consent');
@@ -20,7 +22,7 @@ const CookiePreferencesPage: React.FC<CookiePreferencesPageProps> = ({ theme = '
     : 'bg-white text-slate-900 border-slate-200';
 
   const handleClearAllData = () => {
-    if (confirm('Opravdu si přejete smazat všechny uložené údaje? Tato akce je nevratná.')) {
+    if (confirm(t('alerts.confirm_delete_all_data'))) {
       localStorage.clear();
       sessionStorage.clear();
       
@@ -58,9 +60,9 @@ const CookiePreferencesPage: React.FC<CookiePreferencesPageProps> = ({ theme = '
         <div className={`max-w-md w-full p-8 rounded-lg border shadow-lg ${bannerClass}`}>
           <div className="text-center mb-8">
             <Lock className="w-12 h-12 mx-auto mb-4 text-slate-400" />
-            <h1 className="text-2xl font-bold mb-2">Žádná data k správě</h1>
+            <h1 className="text-2xl font-bold mb-2">{t('cookie_preferences.no_data_title')}</h1>
             <p className={`${isDark ? 'text-slate-400' : 'text-slate-600'} mb-6`}>
-              Ještě jste neudělili žádné nastavení cookies.
+              {t('cookie_preferences.no_data_desc')}
             </p>
             <button
               onClick={() => window.history.back()}
@@ -70,7 +72,7 @@ const CookiePreferencesPage: React.FC<CookiePreferencesPageProps> = ({ theme = '
                   : 'bg-indigo-600 hover:bg-indigo-700 text-white'
               }`}
             >
-              Zpět na hlavní stránku
+              {t('cookie_preferences.back_main')}
             </button>
           </div>
         </div>
@@ -88,7 +90,7 @@ const CookiePreferencesPage: React.FC<CookiePreferencesPageProps> = ({ theme = '
               isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'
             }`}
           >
-            ← Zpět na JobShaman
+            ← {t('cookie_preferences.back_to_jobshaman')}
           </button>
         </div>
 
@@ -97,46 +99,46 @@ const CookiePreferencesPage: React.FC<CookiePreferencesPageProps> = ({ theme = '
           <div className={`p-6 rounded-lg border ${bannerClass}`}>
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <Shield className="w-6 h-6 text-indigo-600" />
-              Souhlas s Cookies
+              {t('cookie_preferences.cookie_consent')}
             </h2>
             
             <div className="space-y-3">
               <div className={`p-4 rounded-lg border ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
-                <h3 className="font-semibold mb-2">Stav souhlasu</h3>
+                <h3 className="font-semibold mb-2">{t('cookie_preferences.consent_status_title')}</h3>
                 <div className="space-y-2">
                   <div className="flex justify-between">
-                    <span>Poslední aktualizace:</span>
+                    <span>{t('cookie_preferences.last_update')}:</span>
                     <span className="font-medium">
-                      {new Date(localStorage.getItem('cookie-consent-date') || '').toLocaleDateString('cs-CZ')}
+                      {new Date(localStorage.getItem('cookie-consent-date') || '').toLocaleDateString(i18n.language)}
                     </span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Stav:</span>
+                    <span>{t('cookie_preferences.status')}:</span>
                     <span className={`font-medium ${preferences.analytics ? 'text-green-600' : 'text-amber-600'}`}>
-                      {preferences.analytics ? 'Aktivní' : 'Omezeno'}
+                      {preferences.analytics ? t('cookie_preferences.status_active') : t('cookie_preferences.status_limited')}
                     </span>
                   </div>
                 </div>
               </div>
 
               <div className={`p-4 rounded-lg border ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
-                <h3 className="font-semibold mb-2">Přehled oprávnění</h3>
+                <h3 className="font-semibold mb-2">{t('cookie_preferences.permissions_overview')}</h3>
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded ${preferences.necessary ? 'bg-green-600' : 'bg-slate-300'}`} />
-                    <span>Nezbytné cookies</span>
+                    <span>{t('cookie_preferences.necessary_cookies')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded ${preferences.analytics ? 'bg-green-600' : 'bg-slate-300'}`} />
-                    <span>Analytické cookies</span>
+                    <span>{t('cookie_preferences.analytics_cookies')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded ${preferences.marketing ? 'bg-green-600' : 'bg-slate-300'}`} />
-                    <span>Marketingové cookies</span>
+                    <span>{t('cookie_preferences.marketing_cookies')}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded ${preferences.functional ? 'bg-green-600' : 'bg-slate-300'}`} />
-                    <span>Funkční cookies</span>
+                    <span>{t('cookie_preferences.functional_cookies')}</span>
                   </div>
                 </div>
               </div>
@@ -147,14 +149,14 @@ const CookiePreferencesPage: React.FC<CookiePreferencesPageProps> = ({ theme = '
           <div className={`p-6 rounded-lg border ${bannerClass}`}>
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
               <Eye className="w-6 h-6 text-indigo-600" />
-              Správa dat
+              {t('cookie_preferences.data_management')}
             </h2>
             
             <div className="space-y-4">
               <div className={`p-4 rounded-lg border ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
-                <h3 className="font-semibold mb-3">Export vašich dat</h3>
+                <h3 className="font-semibold mb-3">{t('cookie_preferences.export_data_title')}</h3>
                 <p className={`text-sm mb-4 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                  Můžete si stáhnout všechny vaše uložené údaje ve formátu JSON pro zálohování nebo migraci.
+                  {t('cookie_preferences.export_data_desc')}
                 </p>
                 <button
                   onClick={handleExportData}
@@ -165,15 +167,14 @@ const CookiePreferencesPage: React.FC<CookiePreferencesPageProps> = ({ theme = '
                   }`}
                 >
                   <RefreshCw className="w-4 h-4" />
-                  Stáhnout data
+                  {t('cookie_preferences.download_data')}
                 </button>
               </div>
 
               <div className={`p-4 rounded-lg border ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
-                <h3 className="font-semibold mb-3">Vymazání všech dat</h3>
+                <h3 className="font-semibold mb-3">{t('cookie_preferences.delete_all_title')}</h3>
                 <p className={`text-sm mb-4 ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                  Trvalé smazání všech lokálních dat v prohlížeči včetně cookies, profilu a uložených pozic.
-                  Tato akce je nevratná.
+                  {t('cookie_preferences.delete_all_desc')}
                 </p>
                 <button
                   onClick={handleClearAllData}
@@ -184,7 +185,7 @@ const CookiePreferencesPage: React.FC<CookiePreferencesPageProps> = ({ theme = '
                   }`}
                 >
                   <Trash2 className="w-4 h-4" />
-                  Smazat všechna data
+                  {t('cookie_preferences.delete_all_button')}
                 </button>
               </div>
             </div>
@@ -192,7 +193,7 @@ const CookiePreferencesPage: React.FC<CookiePreferencesPageProps> = ({ theme = '
 
           {/* Privacy Links */}
           <div className={`p-6 rounded-lg border ${bannerClass}`}>
-            <h2 className="text-xl font-bold mb-4">Ochrana soukromí</h2>
+            <h2 className="text-xl font-bold mb-4">{t('cookie_preferences.privacy_title')}</h2>
             <div className="space-y-3">
               <a 
                 href="/privacy-policy"
@@ -202,9 +203,9 @@ const CookiePreferencesPage: React.FC<CookiePreferencesPageProps> = ({ theme = '
                     : 'border-slate-200 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
-                <h3 className="font-semibold mb-1">Zásady ochrany osobních údajů</h3>
+                <h3 className="font-semibold mb-1">{t('cookie_preferences.privacy_policy_title')}</h3>
                 <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                  Přečtěte si, jak shromažďujeme, používáme a chráníme vaše osobní údaje.
+                  {t('cookie_preferences.privacy_policy_desc')}
                 </p>
               </a>
               
@@ -216,9 +217,9 @@ const CookiePreferencesPage: React.FC<CookiePreferencesPageProps> = ({ theme = '
                     : 'border-slate-200 hover:bg-slate-50 hover:text-slate-900'
                 }`}
               >
-                <h3 className="font-semibold mb-1">Politika cookies</h3>
+                <h3 className="font-semibold mb-1">{t('cookie_preferences.cookie_policy_title')}</h3>
                 <p className={`text-sm ${isDark ? 'text-slate-300' : 'text-slate-600'}`}>
-                  Podrobné informace o všech používaných cookies a jejich účelu.
+                  {t('cookie_preferences.cookie_policy_desc')}
                 </p>
               </a>
             </div>
@@ -229,10 +230,10 @@ const CookiePreferencesPage: React.FC<CookiePreferencesPageProps> = ({ theme = '
         <div className={`mt-8 pt-6 border-t ${isDark ? 'border-slate-700' : 'border-slate-200'}`}>
           <div className="text-center text-sm">
             <p className={`${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              JobShaman respektuje vaše soukromí v souladu s GDPR a ePrivacy Directive.
+              {t('cookie_preferences.footer_privacy_notice')}
             </p>
             <p className={`mt-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Poslední aktualizace: {new Date().toLocaleDateString('cs-CZ')}
+              {t('cookie_preferences.last_update')}: {new Date().toLocaleDateString(i18n.language)}
             </p>
           </div>
         </div>

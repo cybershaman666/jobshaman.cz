@@ -128,11 +128,11 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
 
       // Handle Rate Limiting specifically
       if (error?.status === 429 || error?.message?.includes('rate limit')) {
-        alert("Příliš mnoho pokusů o registraci. Prosím počkejte chvíli a zkuste to znovu (ochrana proti spamu).");
+        alert(t('alerts.registration_rate_limited'));
       } else if (error?.message?.includes('User already registered')) {
-        alert("Uživatel s tímto emailem již existuje. Prosím přihlašte se.");
+        alert(t('alerts.user_already_exists'));
       } else {
-        alert(error.message || "Registrace se nezdařila. Zkuste to prosím znovu.");
+        alert(error.message || t('alerts.registration_failed'));
       }
     } finally {
       setIsSubmitting(false);
@@ -328,7 +328,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                 {needsEmailConfirmation && (
                   <div className="text-center mb-6">
                     <p className="text-slate-700 dark:text-slate-300">
-                      {t('freelancer_registration.confirm_email_instructions', { defaultValue: 'Na váš e‑mail jsme poslali odkaz pro potvrzení. Po potvrzení klikněte na tlačítko níže pro dokončení registrace.' })}
+                      {t('company_registration.confirm_email_instructions', { defaultValue: 'Na váš e‑mail jsme poslali odkaz pro potvrzení. Po potvrzení klikněte na tlačítko níže pro dokončení registrace.' })}
                     </p>
                   </div>
                 )}
@@ -342,7 +342,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                           const { data: { session }, error } = await supabase.auth.getSession();
                           if (error) throw error;
                           if (!session) {
-                            alert(t('freelancer_registration.confirm_email_not_found', { defaultValue: 'Nepodařilo se ověřit potvrzení e‑mailu. Zkuste to po potvrzení znovu.' }));
+                            alert(t('company_registration.confirm_email_not_found', { defaultValue: 'Nepodařilo se ověřit potvrzení e‑mailu. Zkuste to po potvrzení znovu.' }));
                             setIsSubmitting(false);
                             return;
                           }
@@ -351,7 +351,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                           else window.location.reload();
                         } catch (err) {
                           console.error('Email confirmation check failed', err);
-                          alert(t('freelancer_registration.confirm_email_not_found', { defaultValue: 'Nepodařilo se ověřit potvrzení e‑mailu. Zkuste to po potvrzení znovu.' }));
+                          alert(t('company_registration.confirm_email_not_found', { defaultValue: 'Nepodařilo se ověřit potvrzení e‑mailu. Zkuste to po potvrzení znovu.' }));
                         } finally {
                           setIsSubmitting(false);
                         }
@@ -363,7 +363,7 @@ export default function CompanyRegistrationModal({ isOpen, onClose, onSuccess }:
                   }}
                   className="w-full py-4 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-xl hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg"
                 >
-                  {needsEmailConfirmation ? (t('freelancer_registration.go_to_profile', { defaultValue: 'Potvrdit a pokračovat' })) : t('company_registration.success_button')}
+                  {needsEmailConfirmation ? (t('company_registration.confirm_email_continue', { defaultValue: 'Potvrdit a pokračovat' })) : t('company_registration.success_button')}
                   <ArrowRight size={20} />
                 </button>
               </div>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Shield, Cookie, Info, ChevronUp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface CookieBannerProps {
   theme?: 'light' | 'dark';
@@ -20,6 +21,7 @@ const CookieBanner: React.FC<CookieBannerProps> = ({
   onAccept, 
   onCustomize 
 }) => {
+  const { t, i18n } = useTranslation();
   const [isVisible, setIsVisible] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
@@ -126,11 +128,11 @@ const CookieBanner: React.FC<CookieBannerProps> = ({
     return (
       <div className={`fixed bottom-4 right-4 z-50 flex items-center gap-2 p-3 rounded-lg border shadow-lg ${bannerClass} transition-all duration-300`}>
         <Cookie className="w-4 h-4 flex-shrink-0" />
-        <span className="text-sm font-medium">Cookies</span>
+        <span className="text-sm font-medium">{t('cookie_banner.minimized.title')}</span>
         <button
           onClick={handleExpand}
           className="p-1 rounded hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-          title="Zobrazit možnosti cookies"
+          title={t('cookie_banner.minimized.expand_title')}
         >
           <ChevronUp className="w-4 h-4" />
         </button>
@@ -149,14 +151,13 @@ const CookieBanner: React.FC<CookieBannerProps> = ({
             </div>
             <div className="flex-1">
               <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-                🍪 Prijímáme soubory cookies
+                🍪 {t('cookie_banner.header.title')}
                 <span className={`text-xs px-2 py-1 rounded-full ${isDark ? 'bg-amber-900/30 text-amber-300' : 'bg-amber-100 text-amber-700'} font-normal`}>
-                  GDPR Compliant
+                  {t('cookie_banner.header.gdpr_badge')}
                 </span>
               </h3>
               <p className="text-sm leading-relaxed mb-3">
-                Používáme cookies a podobné technologie k personalizaci obsahu, analýze návštěvnosti a marketingovým účelům. 
-                Vaše soukromí je pro nás důležité.
+                {t('cookie_banner.header.description')}
               </p>
               
               {/* Quick Action Buttons */}
@@ -166,20 +167,20 @@ const CookieBanner: React.FC<CookieBannerProps> = ({
                   className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${buttonClass}`}
                 >
                   <Shield className="w-4 h-4 mr-2" />
-                  Přijmout všechny
+                  {t('cookie_banner.actions.accept_all')}
                 </button>
                 <button
                   onClick={handleAcceptNecessary}
                   className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${secondaryButtonClass}`}
                 >
-                  Pouze nezbytné
+                  {t('cookie_banner.actions.necessary_only')}
                 </button>
                 <button
                   onClick={handleCustomize}
                   className={`px-6 py-2.5 rounded-lg font-medium transition-all duration-200 ${secondaryButtonClass}`}
                 >
                   <Info className="w-4 h-4 mr-2" />
-                  Přizpůsobit
+                  {t('cookie_banner.actions.customize')}
                 </button>
               </div>
             </div>
@@ -190,13 +191,13 @@ const CookieBanner: React.FC<CookieBannerProps> = ({
             <button
               onClick={handleMinimize}
               className={`p-2 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors self-start lg:hidden`}
-              title="Minimalizovat"
+              title={t('cookie_banner.actions.minimize')}
             >
               <X className="w-4 h-4" />
             </button>
 
             <div className="space-y-3">
-              <h4 className="font-semibold mb-3">Nastavení cookies:</h4>
+              <h4 className="font-semibold mb-3">{t('cookie_banner.settings.title')}</h4>
               
               {/* Cookie Categories */}
               <div className="space-y-2">
@@ -204,16 +205,16 @@ const CookieBanner: React.FC<CookieBannerProps> = ({
                   <div className="flex items-center gap-3">
                     <Shield className="w-4 h-4 text-green-600" />
                     <div>
-                      <div className="font-medium">Nezbytné cookies</div>
-                      <div className="text-xs opacity-75">Základní fungování webu</div>
+                      <div className="font-medium">{t('cookie_banner.categories.necessary.title')}</div>
+                      <div className="text-xs opacity-75">{t('cookie_banner.categories.necessary.description')}</div>
                     </div>
                   </div>
-                  <div className="text-sm text-green-600 font-medium">Vždy povoleno</div>
+                  <div className="text-sm text-green-600 font-medium">{t('cookie_banner.categories.necessary.always_on')}</div>
                 </div>
 
                 <CookieCategory
-                  title="Analytické cookies"
-                  description="Statistiky a analýza návštěvnosti"
+                  title={t('cookie_banner.categories.analytics.title')}
+                  description={t('cookie_banner.categories.analytics.description')}
                   icon="📊"
                   enabled={preferences.analytics}
                   onChange={(enabled) => setPreferences(prev => ({ ...prev, analytics: enabled }))}
@@ -221,8 +222,8 @@ const CookieBanner: React.FC<CookieBannerProps> = ({
                 />
 
                 <CookieCategory
-                  title="Marketingové cookies"
-                  description="Personalizovaná reklama a marketing"
+                  title={t('cookie_banner.categories.marketing.title')}
+                  description={t('cookie_banner.categories.marketing.description')}
                   icon="🎯"
                   enabled={preferences.marketing}
                   onChange={(enabled) => setPreferences(prev => ({ ...prev, marketing: enabled }))}
@@ -230,8 +231,8 @@ const CookieBanner: React.FC<CookieBannerProps> = ({
                 />
 
                 <CookieCategory
-                  title="Funkční cookies"
-                  description="Vylepšená funkčnost a personalizace"
+                  title={t('cookie_banner.categories.functional.title')}
+                  description={t('cookie_banner.categories.functional.description')}
                   icon="⚙️"
                   enabled={preferences.functional}
                   onChange={(enabled) => setPreferences(prev => ({ ...prev, functional: enabled }))}
@@ -239,8 +240,8 @@ const CookieBanner: React.FC<CookieBannerProps> = ({
                 />
 
                 <CookieCategory
-                  title="Preferenční cookies"
-                  description="Uložení vašich preferencí a nastavení"
+                  title={t('cookie_banner.categories.preferences.title')}
+                  description={t('cookie_banner.categories.preferences.description')}
                   icon="💾"
                   enabled={preferences.preferences}
                   onChange={(enabled) => setPreferences(prev => ({ ...prev, preferences: enabled }))}
@@ -254,7 +255,7 @@ const CookieBanner: React.FC<CookieBannerProps> = ({
                   onClick={handleSavePreferences}
                   className={`w-full px-4 py-2.5 rounded-lg font-medium transition-all duration-200 ${buttonClass}`}
                 >
-                  Uložit preferované nastavení
+                  {t('cookie_banner.actions.save_preferences')}
                 </button>
               </div>
 
@@ -265,17 +266,17 @@ const CookieBanner: React.FC<CookieBannerProps> = ({
                     href="/privacy-policy" 
                     className={`${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'} transition-colors`}
                   >
-                    Zásady ochrany osobních údajů
+                    {t('cookie_banner.links.privacy_policy')}
                   </a>
                   <a 
                     href="/cookie-policy" 
                     className={`${isDark ? 'text-slate-300 hover:text-white' : 'text-slate-600 hover:text-slate-900'} transition-colors`}
                   >
-                    Politika cookies
+                    {t('cookie_banner.links.cookie_policy')}
                   </a>
                 </div>
                 <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} mt-2`}>
-                  Spravujte své cookie preference kdykoli v nastavení.
+                  {t('cookie_banner.links.manage_anytime')}
                 </p>
               </div>
             </div>
@@ -287,10 +288,10 @@ const CookieBanner: React.FC<CookieBannerProps> = ({
           <div className="flex flex-wrap items-center justify-between gap-4 text-xs">
             <div className={`flex items-center gap-2 ${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
               <Info className="w-3 h-3" />
-              <span>JobShaman respektuje vaše soukromí dle GDPR a ePrivacy Directive</span>
+              <span>{t('cookie_banner.footer.privacy_notice')}</span>
             </div>
             <div className={`${isDark ? 'text-slate-400' : 'text-slate-600'}`}>
-              Poslední aktualizace: {new Date().toLocaleDateString('cs-CZ')}
+              {t('cookie_banner.footer.last_update', { date: new Date().toLocaleDateString(i18n.language) })}
             </div>
           </div>
         </div>

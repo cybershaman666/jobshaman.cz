@@ -73,6 +73,23 @@ const dedupeJobs = (newJobs: Job[], existingJobs: Job[] = []): Job[] => {
     return [...existingJobs, ...newJobs.filter(j => !seen.has(j.id))];
 };
 
+const normalizeContractTypeFilter = (value: string): string => {
+    const normalized = String(value || '')
+        .trim()
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+    if (!normalized) return '';
+    if (normalized === 'ico' || normalized === 'osvc' || normalized === 'szco' || normalized === 'zivnost') return 'ico';
+    if (normalized === 'hpp' || normalized === 'full-time' || normalized === 'full_time' || normalized === 'full time') return 'hpp';
+    if (normalized === 'part-time' || normalized === 'part_time' || normalized === 'part time') return 'part-time';
+    if (normalized === 'brigada' || normalized === 'temporary' || normalized === 'temp' || normalized === 'casual') return 'brigada';
+    if (normalized === 'dpp') return 'dpp';
+    if (normalized === 'dpc') return 'dpc';
+    return normalized;
+};
+
 export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePaginatedJobsProps) => {
     const { i18n } = useTranslation();
     const dedicatedSearchRuntime = hasDedicatedSearchRuntime();
@@ -450,7 +467,13 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     };
 
     const toggleContractTypeFilter = (type: string) => {
-        setFilterContractType(prev => prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]);
+        const canonicalType = normalizeContractTypeFilter(type);
+        if (!canonicalType) return;
+        setFilterContractType(prev =>
+            prev.includes(canonicalType)
+                ? prev.filter(t => t !== canonicalType)
+                : [...prev, canonicalType]
+        );
     };
 
     const toggleExperienceFilter = (level: string) => {

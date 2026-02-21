@@ -64,7 +64,6 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
         "free": {"assessments": 0, "job_postings": 3, "name": "Free"},
         "premium": {"assessments": 0, "job_postings": 10, "name": "Premium"},
         "business": {"assessments": 10, "job_postings": 999, "name": "Business"},
-        "freelance_premium": {"assessments": 0, "job_postings": 999, "name": "Freelance Premium"},
         "trial": {"assessments": 10, "job_postings": 999, "name": "Business Plan (Trial)"},
         "enterprise": {"assessments": 999999, "job_postings": 999, "name": "Enterprise"},
         "assessment_bundle": {"assessments": 10, "job_postings": 0, "name": "Assessment Bundle"},
@@ -91,17 +90,10 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
             target_company_id = require_company_access(user, userId)
             resolved_company_id = target_company_id
             resolved_is_company_context = True
-            is_freelancer_company = False
-            try:
-                company_resp = supabase.table("companies").select("industry").eq("id", target_company_id).maybe_single().execute()
-                if company_resp.data and company_resp.data.get("industry") == "Freelancer":
-                    is_freelancer_company = True
-            except Exception as e:
-                print(f"⚠️ Failed to fetch company industry: {e}")
 
             sub_response = supabase.table("subscriptions").select("*").eq("company_id", target_company_id).execute()
-            if not sub_response.data and not is_freelancer_company:
-                # Auto-trial for companies (not freelancers)
+            if not sub_response.data:
+                # Auto-trial for companies
                 trial_end = (datetime.now(timezone.utc) + timedelta(days=14)).isoformat()
                 trial_data = {
                     "company_id": target_company_id,
@@ -167,7 +159,6 @@ async def verify_billing(billing_request: BillingVerificationRequest, request: R
         "trial": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS", "COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS", "COMPANY_UNLIMITED_JOBS"],
         "enterprise": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS", "COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS", "COMPANY_UNLIMITED_JOBS"],
         "assessment_bundle": ["COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS"],
-        "freelance_premium": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS"],
         "single_assessment": [],
         "free": [],
     }

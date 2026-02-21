@@ -37,7 +37,7 @@ const SavedJobsPage: React.FC<SavedJobsPageProps> = ({
   );
 
   const handleRemoveAllSaved = () => {
-    if (window.confirm('Opravdu chcete odebrat všechny uložené pracovní pozice?')) {
+    if (window.confirm(t('saved_jobs_page.confirm_remove_all'))) {
       savedJobIds.forEach(jobId => onToggleSave(jobId));
     }
   };
@@ -53,10 +53,10 @@ const SavedJobsPage: React.FC<SavedJobsPageProps> = ({
             </div>
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                Uložené pracovní pozice
+                {t('saved_jobs_page.title')}
               </h1>
               <p className="text-sm text-slate-600 dark:text-slate-400">
-                {savedJobs.length} {savedJobs.length === 1 ? 'uložená pozice' : savedJobs.length >= 2 && savedJobs.length <= 4 ? 'uložené pozice' : 'uložených pozic'}
+                {t('saved_jobs_page.count', { count: savedJobs.length })}
               </p>
             </div>
           </div>
@@ -66,7 +66,7 @@ const SavedJobsPage: React.FC<SavedJobsPageProps> = ({
               onClick={handleRemoveAllSaved}
               className="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium transition-colors"
             >
-              Odebrat všechny
+              {t('saved_jobs_page.remove_all')}
             </button>
           )}
         </div>
@@ -78,7 +78,7 @@ const SavedJobsPage: React.FC<SavedJobsPageProps> = ({
             type="text"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Hledat v uložených pozicích..."
+            placeholder={t('saved_jobs_page.search_placeholder')}
             className="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:text-white"
           />
         </div>
@@ -93,13 +93,13 @@ const SavedJobsPage: React.FC<SavedJobsPageProps> = ({
                 <Bookmark className="w-8 h-8 text-slate-400" />
               </div>
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                Ještě nemáte uložené žádné pozice
+                {t('saved_jobs_page.empty_title')}
               </h3>
               <p className="text-slate-600 dark:text-slate-400 mb-6">
-                Klikněte na ikonu záložky u pracovní pozice, kterou chcete uložit pro pozdější.
+                {t('saved_jobs_page.empty_desc')}
               </p>
               <div className="text-sm text-slate-500 dark:text-slate-400">
-                Tip: Uložené pozice najdete také v záložce "Profil"
+                {t('saved_jobs_page.empty_tip')}
               </div>
             </div>
           </div>
@@ -110,10 +110,10 @@ const SavedJobsPage: React.FC<SavedJobsPageProps> = ({
                 <Search className="w-8 h-8 text-slate-400" />
               </div>
               <h3 className="text-lg font-semibold text-slate-900 dark:text-white mb-2">
-                Nebyly nalezeny žádné výsledky
+                {t('saved_jobs_page.no_results_title')}
               </h3>
               <p className="text-slate-600 dark:text-slate-400">
-                Zkuste změnit hledaný výraz.
+                {t('saved_jobs_page.no_results_desc')}
               </p>
             </div>
           </div>
@@ -153,7 +153,7 @@ const SavedJobsPage: React.FC<SavedJobsPageProps> = ({
                       onToggleSave(job.id);
                     }}
                     className="absolute top-2 right-2 p-2 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-200 dark:hover:border-red-800"
-                    title="Odebrat z uložených"
+                    title={t('saved_jobs_page.remove_from_saved')}
                   >
                     <X className="w-4 h-4 text-slate-400 hover:text-red-500" />
                   </button>

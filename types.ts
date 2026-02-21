@@ -101,7 +101,7 @@ export interface CompanyProfile {
   };
 }
 
-export type CompanyServiceTier = 'free' | 'trial' | 'basic' | 'business' | 'enterprise' | 'assessment_bundle' | 'freelance_premium';
+export type CompanyServiceTier = 'free' | 'trial' | 'basic' | 'business' | 'enterprise' | 'assessment_bundle';
 
 export interface CompanyUsageStats {
   activeJobsCount: number;
@@ -262,10 +262,6 @@ export enum ViewState {
   PROFILE = 'PROFILE',
   PROFILE_EDITOR = 'PROFILE_EDITOR',
   COMPANY_DASHBOARD = 'COMPANY_DASHBOARD',
-  FREELANCER_DASHBOARD = 'FREELANCER_DASHBOARD',
-  COURSE_PROVIDER_DASHBOARD = 'COURSE_PROVIDER_DASHBOARD',
-  MARKETPLACE = 'MARKETPLACE',
-  SERVICES = 'SERVICES',
   ASSESSMENT = 'ASSESSMENT'
 }
 
@@ -456,7 +452,7 @@ export interface LearningResource {
   rating: number;
   reviews_count: number;
   created_at: string;
-  // New fields for marketplace with government funding
+  // Optional enrichment fields for learning resources
   is_government_funded?: boolean;
   funding_amount_czk?: number;
   affiliate_url?: string;
@@ -465,25 +461,6 @@ export interface LearningResource {
   lng?: number;
   status?: 'active' | 'draft' | 'archived';
   partner_name?: string;
-}
-
-export interface MarketplacePartner {
-  id: string;
-  name: string;
-  contact_email: string;
-  contact_name?: string;
-  contact_phone?: string;
-  website?: string;
-  address?: string;
-  description?: string;
-  offer?: string;
-  course_categories?: string[];
-  lat?: number | null;
-  lng?: number | null;
-  commission_rate: number;
-  partner_type: 'online_platform' | 'driving_school' | 'training_center';
-  owner_id?: string | null;
-  created_at: string;
 }
 
 // Duplicate AssessmentResult removed
@@ -586,15 +563,3 @@ export type WorkMode = 'remote' | 'hybrid' | 'onsite' | 'field';
 export type JobType = 'office' | 'field' | 'service' | 'technical' | 'care' | 'logistics';
 export type LocationType = 'fixed' | 'multi-site' | 'mobile';
 export type ScheduleType = 'fixed' | 'flexible' | 'shift-based';
-
-export interface PortfolioItem {
-  id: string;
-  freelancer_id: string;
-  title: string;
-  description: string;
-  url?: string; // Link to project/website
-  imageUrl?: string; // URL to image in Supabase
-  fileName?: string; // Original file name for reference
-  createdAt: string;
-  updatedAt?: string;
-}

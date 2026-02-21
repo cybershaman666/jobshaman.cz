@@ -50,9 +50,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     const [legalMenuOpen, setLegalMenuOpen] = useState(false);
     const [languageMenuOpen, setLanguageMenuOpen] = useState(false);
     const [avatarFailed, setAvatarFailed] = useState(false);
-    const isMarketplaceAccountContext = companyProfile?.industry === 'Freelancer' || companyProfile?.industry === 'Education';
-    const canShowBusinessMenu = showCompanyLanding || !userProfile.isLoggedIn || userProfile.role === 'recruiter' || isMarketplaceAccountContext;
-    const subscriptionSubjectId = userProfile.role === 'recruiter' && companyProfile?.id && companyProfile?.industry !== 'Freelancer'
+    const canShowBusinessMenu = showCompanyLanding || !userProfile.isLoggedIn || userProfile.role === 'recruiter';
+    const subscriptionSubjectId = userProfile.role === 'recruiter' && companyProfile?.id
         ? companyProfile.id
         : userProfile.id;
 
@@ -113,7 +112,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 <button
                     onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                     className="sm:hidden flex items-center justify-center p-2 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
-                    title="Menu"
+                    title={t('header.menu')}
                 >
                     {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
                 </button>
@@ -155,13 +154,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     setShowCompanyLanding(false);
                                     setViewState(ViewState.LIST);
                                 } else if (userProfile.isLoggedIn) {
-                                    // Check if they are a course provider or freelancer FIRST
-                                    if (companyProfile?.industry === 'Education') {
-                                        setViewState(ViewState.COURSE_PROVIDER_DASHBOARD);
-                                    } else if (companyProfile?.industry === 'Freelancer') {
-                                        // Freelancer dashboard disabled - go to profile
-                                        setViewState(ViewState.PROFILE);
-                                    } else if (userProfile.role === 'recruiter') {
+                                    if (userProfile.role === 'recruiter') {
                                         // Regular recruiter/company
                                         if (companyProfile) {
                                             setViewState(ViewState.COMPANY_DASHBOARD);
@@ -177,10 +170,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     setShowCompanyLanding(true);
                                 }
                             }}
-                            className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD || viewState === ViewState.FREELANCER_DASHBOARD || viewState === ViewState.COURSE_PROVIDER_DASHBOARD ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                            className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                         >
                             <Briefcase size={14} />
-                            <span className="hidden md:inline">{showCompanyLanding ? t('nav.back') : (isMarketplaceAccountContext ? t('nav.my_account') : t('nav.for_companies'))}</span>
+                            <span className="hidden md:inline">{showCompanyLanding ? t('nav.back') : t('nav.for_companies')}</span>
                             <span className="md:hidden">{showCompanyLanding ? '←' : '👤'}</span>
                         </button>
                     )}
@@ -195,8 +188,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 <button
                                     onClick={() => setLanguageMenuOpen(!languageMenuOpen)}
                                     className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors text-xs font-bold"
-                                    aria-label="Jazyk"
-                                    title="Jazyk"
+                                    aria-label={t('header.language')}
+                                    title={t('header.language')}
                                 >
                                     <img
                                         src={`https://flagcdn.com/w20/${languages.find(l => l.code === i18n.language)?.flagCode || 'cz'}.png`}
@@ -258,8 +251,8 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                             <button
                                 onClick={() => setLegalMenuOpen(!legalMenuOpen)}
                                 className="p-2 text-slate-500 hover:text-slate-900 dark:hover:text-slate-100 transition-colors"
-                                aria-label="Více"
-                                title="Více"
+                                aria-label={t('header.more')}
+                                title={t('header.more')}
                             >
                                 <MoreHorizontal size={20} />
                             </button>
@@ -371,11 +364,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                         setShowCompanyLanding(false);
                                         setViewState(ViewState.LIST);
                                     } else if (userProfile.isLoggedIn) {
-                                        if (companyProfile?.industry === 'Education') {
-                                            setViewState(ViewState.COURSE_PROVIDER_DASHBOARD);
-                                        } else if (companyProfile?.industry === 'Freelancer') {
-                                            setViewState(ViewState.PROFILE);
-                                        } else if (userProfile.role === 'recruiter') {
+                                        if (userProfile.role === 'recruiter') {
                                             if (companyProfile) {
                                                 setViewState(ViewState.COMPANY_DASHBOARD);
                                             } else {
@@ -389,14 +378,14 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                     }
                                     setMobileMenuOpen(false);
                                 }}
-                                className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD || viewState === ViewState.FREELANCER_DASHBOARD || viewState === ViewState.COURSE_PROVIDER_DASHBOARD ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
+                                className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                             >
                                 <Briefcase size={14} />
-                                {showCompanyLanding ? t('nav.back') : (isMarketplaceAccountContext ? t('nav.my_account') : t('nav.for_companies'))}
+                                {showCompanyLanding ? t('nav.back') : t('nav.for_companies')}
                             </button>
                         )}
                         <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
-                            <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-2">Více</div>
+                            <div className="text-[10px] uppercase tracking-widest text-slate-400 mb-2">{t('header.more')}</div>
                             <a
                                 href="/podminky-uziti"
                                 target="_blank"

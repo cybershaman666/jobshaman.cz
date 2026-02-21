@@ -8,8 +8,6 @@ import {
     createCompany,
     verifyAuthSession,
     createBaseProfile,
-    getMarketplacePartnerByOwner,
-    createMarketplacePartner,
     isSupabaseNetworkCooldownActive
 } from '../services/supabaseService';
 import { refreshCsrfTokenIfNeeded, clearCsrfToken, authenticatedFetch, isBackendNetworkCooldownActive } from '../services/csrfService';
@@ -166,7 +164,7 @@ export const useUserProfile = () => {
                         try {
                             // Do not trust auth metadata role here.
                             // This fallback path is for missing-profile recovery and must avoid
-                            // resurrecting stale recruiter/freelancer flags from legacy accounts.
+                            // resurrecting stale recruiter flags from legacy accounts.
                             const role: UserProfile['role'] = 'candidate';
                             const name = user.user_metadata?.full_name || user.email.split('@')[0];
 
@@ -236,10 +234,7 @@ export const useUserProfile = () => {
                     // The application can still work without CSRF token for GET requests
                 }
 
-                // --- PREPARE METADATA FLAGS ---
-                // Extract metadata before any logic that depends on it
-                let metaIsFreelancer = false;
-                let metaIsCourseProvider = false;
+                // --- PREPARE METADATA FIELDS ---
                 let metaRole = null;
                 let metaCompany = null;
                 let metaIco = null;
@@ -250,20 +245,15 @@ export const useUserProfile = () => {
                     metaCompany = authUser.user_metadata?.company_name;
                     metaIco = authUser.user_metadata?.ico;
                     metaWebsite = authUser.user_metadata?.website;
-                    metaIsFreelancer = authUser.user_metadata?.is_freelancer === true || authUser.user_metadata?.is_freelancer === 'true';
-                    metaIsCourseProvider = authUser.user_metadata?.is_course_provider === true || authUser.user_metadata?.is_course_provider === 'true';
                     console.log("📋 [Metadata] Extracted:", {
                         metaRole,
                         metaCompany,
-                        metaIsFreelancer,
-                        metaIsCourseProvider,
-                        rawIsFreelancer: authUser.user_metadata?.is_freelancer,
                         allMetadata: authUser.user_metadata
                     });
                 }
 
                 // IMPORTANT: Do not auto-overwrite DB role from auth metadata.
-                // Legacy metadata (e.g. old freelancer/recruiter residue) can be stale and
+                // Legacy metadata (e.g. old recruiter residue) can be stale and
                 // should not force candidate profiles back to recruiter on every login.
                 if (metaRole === 'recruiter' && profile.role !== 'recruiter') {
                     console.log("ℹ️ Metadata role= re recruiter detected, but preserving DB profile role:", profile.role);
@@ -350,31 +340,6 @@ export const useUserProfile = () => {
                     if (company) {
                         setCompanyProfile(company);
                     }
-
-                    // NOTE: Freelancer portal auto-bootstrap removed.
-                    // We no longer auto-create freelancer_profiles during generic session restoration.
-
-                    // Ensure marketplace partner row exists for course providers
-                    const isCourseProvider = company?.industry === 'Education';
-                    if (isCourseProvider) {
-                        try {
-                            const existingPartner = await getMarketplacePartnerByOwner(userId);
-                            if (!existingPartner) {
-                                const { data: { user } } = await supabase.auth.getUser();
-                                await createMarketplacePartner({
-                                    name: metaCompany || company?.name || user?.user_metadata?.company_name || 'Vzdělávání',
-                                    contact_email: user?.email || profile.email,
-                                    website: user?.user_metadata?.website || null,
-                                    partner_type: 'education',
-                                    owner_id: userId,
-                                    course_categories: []
-                                });
-                                console.log('✅ Auto-created marketplace partner profile.');
-                            }
-                        } catch (err) {
-                            console.warn('⚠️ Failed to ensure marketplace partner profile:', err);
-                        }
-                    }
                 }
 
                 // Auto-Upgrade Logic for Admin Tester - REMOVED for Strict Separation conformance
@@ -387,11 +352,10 @@ export const useUserProfile = () => {
                     // Note: This will be handled by the useAppFilters hook
                 }
 
-                // --- SET VIEW STATE FOR RECRUITER/FREELANCER ---
-                // At this point: metaIsFreelancer is set, profile.role is corrected, company is loaded
-                // Now determine the correct viewState based on consolidated logic
+                // --- SET VIEW STATE FOR RECRUITER ---
+                // At this point profile.role is corrected and company is loaded.
                 if (profile.role === 'recruiter') {
-                    // User is a recruiter (or freelancer acting as recruiter)
+                    // User is a recruiter
                     const supported = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
                     const parts = window.location.pathname.split('/').filter(Boolean);
                     if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
@@ -402,37 +366,23 @@ export const useUserProfile = () => {
                         || base === 'ochrana-osobnich-udaju'
                         || base === 'enterprise'
                         || base === 'assessment';
-                    const isNonDashboardRoute = base === 'kurzy-a-rekvalifikace'
-                        || base === 'sluzby'
-                        || base === 'ulozene'
+                    const isNonDashboardRoute = base === 'ulozene'
                         || base === 'assessment-centrum'
                         || base === 'profil'
                         || base === 'pro-firmy'
-                        || base === 'freelancer-dashboard'
                         || base === 'company-dashboard'
                         || base === 'dashboard'
-                        || base === 'course-provider-dashboard'
                         || isBlogDetail;
 
                     // Only set dashboard view if we're on the root route (no explicit page)
                     if (!isJobDetail && !isExternalPage && !isNonDashboardRoute && parts.length === 0) {
                         console.log("🔍 [ViewState Decision] company.industry:", company?.industry);
                         
-                        // Derive context from company data only (legacy auth metadata can be stale).
-                        const isCourseProvider = company?.industry === 'Education';
-                        const isFreelancer = company?.industry === 'Freelancer';
-
                         // Do not auto-navigate on login; stay on current view.
-                        if (isCourseProvider) {
-                            console.log("✅ Course provider logged in, keeping current view (no auto navigation).");
-                        } else if (isFreelancer) {
-                            console.log("✅ Freelancer logged in, keeping current view (dashboard disabled).");
+                        if (company) {
+                            console.log("✅ Recruiter logged in, keeping current view (no auto navigation).");
                         } else {
-                            if (company) {
-                                console.log("✅ Recruiter logged in, keeping current view (no auto navigation).");
-                            } else {
-                                console.log("✅ Recruiter without company, keeping current view (no auto onboarding).");
-                            }
+                            console.log("✅ Recruiter without company, keeping current view (no auto onboarding).");
                         }
                     } else {
                         console.log("🔗 Logged in on explicit route, maintaining current view.");

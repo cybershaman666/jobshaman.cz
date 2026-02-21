@@ -225,13 +225,16 @@ const formatSalaryRange = (
 const getRelativeTime = (dateString?: string): string => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    const now = new Date();
-    const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+    if (Number.isNaN(date.getTime())) return '';
 
-    if (diffInSeconds < 60) return 'před chvílí';
-    if (diffInSeconds < 3600) return `před ${Math.floor(diffInSeconds / 60)} min`;
-    if (diffInSeconds < 86400) return `před ${Math.floor(diffInSeconds / 3600)} hod`;
-    return `před ${Math.floor(diffInSeconds / 86400)} dny`;
+    const diffInSeconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    const rtf = new Intl.RelativeTimeFormat(i18n.language || 'en', { numeric: 'auto' });
+
+    if (diffInSeconds < 60) return rtf.format(0, 'second');
+    if (diffInSeconds < 3600) return rtf.format(-Math.floor(diffInSeconds / 60), 'minute');
+    if (diffInSeconds < 86400) return rtf.format(-Math.floor(diffInSeconds / 3600), 'hour');
+    if (diffInSeconds < 604800) return rtf.format(-Math.floor(diffInSeconds / 86400), 'day');
+    return rtf.format(-Math.floor(diffInSeconds / 604800), 'week');
 };
 
 const parseBenefits = (benefits: any): string[] => {

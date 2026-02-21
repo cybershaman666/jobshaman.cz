@@ -17,7 +17,7 @@ i18n
     .init({
         fallbackLng: {
             at: ['de'],
-            default: ['cs']
+            default: ['en']
         },
         debug: false,
 
