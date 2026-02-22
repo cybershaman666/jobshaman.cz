@@ -2160,8 +2160,20 @@ export const updateCVDocumentParsedData = async (
 ): Promise<boolean> => {
     if (!supabase) return false;
     try {
+        const toJsonSafe = (value: any): any => {
+            try {
+                return JSON.parse(JSON.stringify(value, (_k, v) => {
+                    if (v === undefined) return null;
+                    if (typeof v === 'number' && !Number.isFinite(v)) return null;
+                    return v;
+                }));
+            } catch {
+                return {};
+            }
+        };
+
         const updatePayload: any = {
-            parsed_data: parsedData,
+            parsed_data: toJsonSafe(parsedData || {}),
             parsed_at: new Date().toISOString()
         };
 
@@ -2171,18 +2183,27 @@ export const updateCVDocumentParsedData = async (
             .eq('id', cvId)
             .eq('user_id', userId);
 
-        if (
-            error &&
-            (error as any).code === 'PGRST204' &&
-            String((error as any).message || '').includes("'parsed_at'")
-        ) {
-            delete updatePayload.parsed_at;
+        // Retry updates if PostgREST schema cache reports missing columns.
+        for (let i = 0; error && i < 4; i++) {
+            const missingColumn = extractMissingColumnFromSchemaCacheError(error);
+            if (!missingColumn || !(missingColumn in updatePayload)) break;
+            delete updatePayload[missingColumn];
             const retry = await supabase
                 .from('cv_documents')
                 .update(updatePayload)
                 .eq('id', cvId)
                 .eq('user_id', userId);
             error = retry.error;
+        }
+
+        // Last-resort fallback for environments with inconsistent filter/schema cache behavior:
+        // try updating by primary id only.
+        if (error) {
+            const retryByIdOnly = await supabase
+                .from('cv_documents')
+                .update(updatePayload)
+                .eq('id', cvId);
+            error = retryByIdOnly.error;
         }
 
         if (error) {
