@@ -178,6 +178,13 @@ export const signInWithEmail = async (email: string, pass: string) => {
     return result;
 };
 
+export const requestPasswordResetEmail = async (email: string): Promise<void> => {
+    if (!supabase) throw new Error("Supabase not configured");
+    const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, redirectTo ? { redirectTo } : undefined);
+    if (error) throw error;
+};
+
 export const signUpWithEmail = async (email: string, pass: string, fullName: string, locale?: string, timezone?: string) => {
     if (!supabase) throw new Error("Supabase not configured");
 
