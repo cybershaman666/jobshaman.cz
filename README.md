@@ -27,6 +27,22 @@ JobShaman je **Career OS** pro transparentní nábor a objevování práce. Nejs
 - **Guardrails**: limituje nadměrné opakování jedné firmy, preferuje čerstvé nabídky.
 - **Bezpečné fallbacky**: systém udržuje stabilní výsledky i při degradaci backendu.
 
+## Matching taxonomie (data-first)
+
+- Taxonomie pro AI shodu je externí: `backend/app/matching_engine/role_taxonomy.json`.
+- Engine načítá JSON jako primární zdroj (bez potřeby měnit Python kód).
+- Volitelný fallback je CSV adresář: `backend/app/matching_engine/role_taxonomy_csv/`.
+- Podporované CSV soubory:
+  - `domain_keywords.csv` (`domain,keyword`)
+  - `role_family_keywords.csv` (`family,keyword`)
+  - `role_family_relations.csv` (`source_family,target_family,weight`)
+  - `required_qualification_rules.csv` (`name,job_term,candidate_term`)
+  - `taxonomy_meta.csv` (`key,value`) pro `taxonomy_version`
+- Konverzní skript:
+  - `python backend/scripts/taxonomy_json_csv.py export`
+  - `python backend/scripts/taxonomy_json_csv.py import`
+  - `python backend/scripts/taxonomy_json_csv.py roundtrip-check`
+
 ## Vyhledávání (high‑level)
 
 - **Search v2** běží jako samostatná runtime služba.

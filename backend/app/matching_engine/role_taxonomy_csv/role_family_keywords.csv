@@ -1,0 +1,444 @@
+family,keyword
+accounting_payroll,payroll specialist
+accounting_payroll,mzdova ucetni
+accounting_payroll,payroll accountant
+accounting_payroll,wage processing
+accounting_payroll,hr payroll
+actuarial_risk,actuary
+actuarial_risk,risk modeler
+actuarial_risk,insurance risk analyst
+actuarial_risk,underwriting analyst
+actuarial_risk,solvency ii
+agriculture_farming,agronom
+agriculture_farming,farmer
+agriculture_farming,farm manager
+agriculture_farming,vinar
+agriculture_farming,vinohradnik
+agriculture_farming,zootechnik
+agriculture_farming,tractor driver agriculture
+aviation_ground_ops,ground handling
+aviation_ground_ops,airport operations
+aviation_ground_ops,ramp agent
+aviation_ground_ops,load controller
+aviation_ground_ops,flight dispatcher
+beauty_wellness,hairdresser
+beauty_wellness,kadernik
+beauty_wellness,barber
+beauty_wellness,cosmetician
+beauty_wellness,masseur
+beauty_wellness,nail technician
+beauty_wellness,wellness therapist
+biomedical_engineering,biomedical engineer
+biomedical_engineering,clinical engineer
+biomedical_engineering,medical instrumentation
+biomedical_engineering,hospital technology
+biomedical_engineering,medtech engineer
+care_social,caregiver
+care_social,pecovatel
+care_social,social worker
+care_social,osobni asistent
+care_social,home care
+care_social,domov duchodcu
+care_social,direct support professional
+childcare_education,kindergarten teacher
+childcare_education,childcare worker
+childcare_education,early years educator
+childcare_education,preschool teacher
+childcare_education,nursery teacher
+civil_engineering,civil engineer
+civil_engineering,stavebni inzenyr
+civil_engineering,stavbyvedouci
+civil_engineering,projektant pozemnich staveb
+civil_engineering,bim
+civil_engineering,revit
+civil_engineering,construction manager
+cleaning_facility,cleaner
+cleaning_facility,uklizecka
+cleaning_facility,housekeeping
+cleaning_facility,facility cleaning
+cleaning_facility,janitor
+cleaning_facility,spravce budovy
+construction_site,construction
+construction_site,stavba
+construction_site,zednik
+construction_site,tesar
+construction_site,sadrokarton
+construction_site,murarz
+construction_site,bau
+construction_site,roofing
+construction_site,pokryvac
+customer_success_support,customer success manager
+customer_success_support,customer support
+customer_success_support,helpdesk
+customer_success_support,service desk
+customer_success_support,technical support
+customer_success_support,client support
+cybersecurity,cybersecurity
+cybersecurity,security analyst
+cybersecurity,soc analyst
+cybersecurity,penetration tester
+cybersecurity,pentester
+cybersecurity,siem
+cybersecurity,iso 27001
+cybersecurity,information security
+data_analytics,data analyst
+data_analytics,business analyst
+data_analytics,bi analyst
+data_analytics,analytics
+data_analytics,reporting
+data_analytics,sql
+data_analytics,power bi
+data_analytics,tableau
+dental_clinic,dentist
+dental_clinic,zubar
+dental_clinic,stomatolog
+dental_clinic,dental hygienist
+dental_clinic,dental nurse
+dental_clinic,orthodontist
+devops_cloud,devops
+devops_cloud,site reliability engineer
+devops_cloud,sre
+devops_cloud,kubernetes
+devops_cloud,docker
+devops_cloud,terraform
+devops_cloud,aws
+devops_cloud,azure
+devops_cloud,gcp
+devops_cloud,platform engineer
+driving_transport,ridic
+driving_transport,vodic
+driving_transport,driver
+driving_transport,fahrer
+driving_transport,kierowca
+driving_transport,kamion
+driving_transport,truck
+driving_transport,c+e
+driving_transport,delivery
+driving_transport,kuryr
+driving_transport,kurier
+driving_transport,rozvoz
+driving_transport,taxi
+driving_transport,autobus
+driving_transport,tram
+driving_transport,bus driver
+ecommerce_operations,ecommerce manager
+ecommerce_operations,marketplace specialist
+ecommerce_operations,shopify specialist
+ecommerce_operations,magento specialist
+ecommerce_operations,online merchandising
+ecommerce_operations,webshop manager
+education_training,teacher
+education_training,ucitel
+education_training,lecturer
+education_training,trainer
+education_training,pedagog
+education_training,instructor
+education_training,coach
+electrical_automation,electrical engineer
+electrical_automation,elektroinzenyr
+electrical_automation,plc
+electrical_automation,siemens s7
+electrical_automation,beckhoff
+electrical_automation,automation engineer
+electrical_automation,mechatronics
+electrical_automation,elektrotechnik
+environment_hse,hse specialist
+environment_hse,bozp
+environment_hse,po specialist
+environment_hse,environmental engineer
+environment_hse,sustainability specialist
+environment_hse,safety technician
+field_sales_b2b,field sales
+field_sales_b2b,territory manager
+field_sales_b2b,obchodni zastupce
+field_sales_b2b,regional sales representative
+field_sales_b2b,b2b sales
+field_sales_b2b,key account field
+finance_accounting,accountant
+finance_accounting,ucetni
+finance_accounting,controller
+finance_accounting,auditor
+finance_accounting,tax advisor
+finance_accounting,danovy poradce
+finance_accounting,bookkeeper
+food_service,cook
+food_service,chef
+food_service,kuchar
+food_service,kucharz
+food_service,bartender
+food_service,waiter
+food_service,catering
+food_service,barista
+government_security,defense analyst
+government_security,security clearance
+government_security,critical infrastructure security
+government_security,public safety coordinator
+healthcare_allied,physiotherapist
+healthcare_allied,fyzioterapeut
+healthcare_allied,psycholog
+healthcare_allied,psychologist
+healthcare_allied,radiology
+healthcare_allied,radiolog
+healthcare_allied,paramedic
+healthcare_clinical,doctor
+healthcare_clinical,physician
+healthcare_clinical,lekar
+healthcare_clinical,nurse
+healthcare_clinical,registered nurse
+healthcare_clinical,zdravotni sestra
+healthcare_clinical,klinika
+healthcare_clinical,hospital
+hospitality_hotel,hotel specialist
+hospitality_hotel,hotelovy specialista
+hospitality_hotel,hotel
+hospitality_hotel,hospitality
+hospitality_hotel,front office
+hospitality_hotel,reception
+hospitality_hotel,concierge
+hospitality_hotel,guest relations
+hospitality_hotel,restaurace
+hospitality_hotel,restaurant manager
+hr_recruiting,hr
+hr_recruiting,recruiter
+hr_recruiting,talent acquisition
+hr_recruiting,people partner
+hr_recruiting,hr business partner
+insurance_banking_sales,insurance advisor
+insurance_banking_sales,pojistny poradce
+insurance_banking_sales,bank advisor
+insurance_banking_sales,hypotecni specialista
+insurance_banking_sales,mortgage advisor
+insurance_banking_sales,financial advisor retail
+legal_compliance,lawyer
+legal_compliance,advokat
+legal_compliance,pravnik
+legal_compliance,compliance
+legal_compliance,risk
+legal_compliance,aml
+legal_compliance,gdpr
+legal_compliance,jurist
+legal_contracts,contracts manager
+legal_contracts,contract specialist
+legal_contracts,legal counsel contracts
+legal_contracts,commercial contracts
+legal_contracts,smlouvy specialist
+maintenance_service,maintenance technician
+maintenance_service,udrzbar
+maintenance_service,servisni technik
+maintenance_service,field service technician
+maintenance_service,preventive maintenance
+maintenance_service,repair technician
+manufacturing_trades,cnc
+manufacturing_trades,strojnik
+manufacturing_trades,operator vyroby
+manufacturing_trades,obsluha stroje
+manufacturing_trades,svarec
+manufacturing_trades,welder
+manufacturing_trades,electrician
+manufacturing_trades,elektrikar
+manufacturing_trades,plumber
+manufacturing_trades,instalater
+manufacturing_trades,technik
+manufacturing_trades,maintenance
+maritime_port_ops,port operator
+maritime_port_ops,ship agent
+maritime_port_ops,marine logistics
+maritime_port_ops,deck officer
+maritime_port_ops,marine engineer
+maritime_port_ops,vessel operations
+marketing_content,marketing
+marketing_content,seo
+marketing_content,ppc
+marketing_content,copywriter
+marketing_content,social media
+marketing_content,content
+marketing_content,crm
+marketing_content,campaign
+mechanical_engineering,mechanical engineer
+mechanical_engineering,strojni inzenyr
+mechanical_engineering,konstrukter
+mechanical_engineering,konstruktor
+mechanical_engineering,cad
+mechanical_engineering,solidworks
+mechanical_engineering,catia
+mechanical_engineering,autocad
+mechanical_engineering,design engineer
+medical_devices,medical device specialist
+medical_devices,biomedical equipment
+medical_devices,hospital equipment
+medical_devices,service medical devices
+medical_devices,clinical engineer
+medical_laboratory,lab technician
+medical_laboratory,laborant
+medical_laboratory,biomedical analyst
+medical_laboratory,medical laboratory
+medical_laboratory,hematology
+medical_laboratory,clinical biochemistry
+mining_industry_ops,mine operator
+mining_industry_ops,mining technician
+mining_industry_ops,quarry operator
+mining_industry_ops,steel plant operator
+mining_industry_ops,foundry technician
+network_telecom,network engineer
+network_telecom,network administrator
+network_telecom,telecom technician
+network_telecom,fiber optic
+network_telecom,optical network
+network_telecom,cisco
+network_telecom,mikrotik
+network_telecom,noc
+office_admin,office manager
+office_admin,administrative
+office_admin,asistentka
+office_admin,assistant
+office_admin,back office
+office_admin,receptionist
+operations_management,operations manager
+operations_management,provozni manazer
+operations_management,provozni manager
+operations_management,process manager
+operations_management,shift lead
+operations_management,team lead
+operations_management,supply chain
+operations_management,logistics manager
+operations_management,planner
+operations_management,warehouse manager
+painting_finishing,lakyrnik
+painting_finishing,lakiernik
+painting_finishing,autolakyrnik
+painting_finishing,malir
+painting_finishing,malarz
+painting_finishing,naterac
+painting_finishing,painter
+painting_finishing,sprayer
+painting_finishing,lakierer
+painting_finishing,maler
+painting_finishing,airless
+painting_finishing,natery
+pharma_research,pharma specialist
+pharma_research,clinical research associate
+pharma_research,cra
+pharma_research,regulatory affairs
+pharma_research,drug safety
+pharma_research,gxp
+pharmacy_optics_vet,pharmacist
+pharmacy_optics_vet,lekarnik
+pharmacy_optics_vet,farmaceut
+pharmacy_optics_vet,optometrist
+pharmacy_optics_vet,optometrista
+pharmacy_optics_vet,veterinar
+pharmacy_optics_vet,veterinarian
+procurement_buying,buyer
+procurement_buying,procurement
+procurement_buying,sourcing
+procurement_buying,nakupci
+procurement_buying,commodity manager
+procurement_buying,strategic buyer
+procurement_buying,purchasing specialist
+product_management,product manager
+product_management,produktovy manazer
+product_management,product owner
+product_management,roadmap
+product_management,go to market
+product_management,feature prioritization
+project_management,project manager
+project_management,projektovy manazer
+project_management,program manager
+project_management,delivery manager
+project_management,pm
+project_management,scrum master
+project_management,project coordinator
+public_sector_admin,civil servant
+public_sector_admin,uradnik
+public_sector_admin,municipal officer
+public_sector_admin,state administration
+public_sector_admin,public administration
+public_sector_admin,referent
+qa_testing,qa engineer
+qa_testing,tester
+qa_testing,test automation
+qa_testing,sdet
+qa_testing,manual tester
+qa_testing,quality assurance software
+qa_testing,selenium
+qa_testing,cypress
+quality_manufacturing,quality engineer
+quality_manufacturing,quality manager
+quality_manufacturing,metrolog
+quality_manufacturing,metrology
+quality_manufacturing,spc
+quality_manufacturing,8d
+quality_manufacturing,fmea
+quality_manufacturing,ppap
+quality_manufacturing,apqp
+quality_manufacturing,iso 9001
+quality_manufacturing,iatf
+real_estate_property,property manager
+real_estate_property,facility manager
+real_estate_property,real estate broker
+real_estate_property,realitni makler
+real_estate_property,leasing manager
+real_estate_property,asset manager
+retail_customer,retail
+retail_customer,shop assistant
+retail_customer,pokladni
+retail_customer,prodejce
+retail_customer,sales assistant
+retail_customer,customer service
+retail_customer,call center
+sap_erp_consulting,sap consultant
+sap_erp_consulting,erp consultant
+sap_erp_consulting,sap fi/co
+sap_erp_consulting,sap mm
+sap_erp_consulting,sap sd
+sap_erp_consulting,dynamics 365 consultant
+security_emergency,security guard
+security_emergency,ostraha
+security_emergency,bezpecnost
+security_emergency,firefighter
+security_emergency,hasic
+security_emergency,paramedic
+security_emergency,dispatcher
+software_ai,developer
+software_ai,programator
+software_ai,programmer
+software_ai,software engineer
+software_ai,backend
+software_ai,frontend
+software_ai,fullstack
+software_ai,python
+software_ai,react
+software_ai,typescript
+software_ai,ai
+software_ai,machine learning
+software_ai,llm
+software_ai,data engineer
+translation_localization,translator
+translation_localization,interpreter
+translation_localization,localization specialist
+translation_localization,proofreader
+translation_localization,linguist
+translation_localization,tlumocnik
+translation_localization,prekladatel
+veterinary_care,veterinarian
+veterinary_care,veterinar
+veterinary_care,veterinary nurse
+veterinary_care,animal care
+veterinary_care,veterinary clinic
+veterinary_care,small animal practice
+warehouse_logistics,warehouse worker
+warehouse_logistics,warehouse operator
+warehouse_logistics,picker
+warehouse_logistics,packer
+warehouse_logistics,forklift
+warehouse_logistics,jesterkar
+warehouse_logistics,skladnik
+warehouse_logistics,logistics specialist
+warehouse_logistics,expedient
+warehouse_logistics,disponent
+writing_editorial,editor
+writing_editorial,journalist
+writing_editorial,copy editor
+writing_editorial,technical writer
+writing_editorial,content editor
+writing_editorial,redaktor

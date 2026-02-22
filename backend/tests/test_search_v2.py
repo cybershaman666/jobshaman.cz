@@ -31,3 +31,21 @@ def test_normalize_sort_mode_defaults():
     assert serve._normalize_sort_mode("recommended") == "recommended"
     assert serve._normalize_sort_mode("jhi_desc") == "jhi_desc"
     assert serve._normalize_sort_mode("bad_mode") == "default"
+
+
+def test_internal_listing_detection_prefers_jobshaman_source_or_url():
+    by_source = {"source": "jobshaman.cz", "url": "https://external.example/job"}
+    by_url = {"source": "scraper", "url": "https://jobshaman.cz/jobs/123"}
+    by_owner = {"source": "scraper", "url": "https://example.com/job/1", "company_id": "c1"}
+
+    assert serve._is_internal_job_listing(by_source) is True
+    assert serve._is_internal_job_listing(by_url) is True
+    assert serve._is_internal_job_listing(by_owner) is True
+
+
+def test_internal_listing_detection_rejects_known_external_domains():
+    external_jobs_cz = {"source": "jobs.cz", "url": "https://www.jobs.cz/pozice/123"}
+    external_praca = {"source": "scraper", "url": "https://www.praca.pl/oferta/123"}
+
+    assert serve._is_internal_job_listing(external_jobs_cz) is False
+    assert serve._is_internal_job_listing(external_praca) is False

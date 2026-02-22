@@ -5,44 +5,16 @@ from typing import Dict, List, Tuple
 from .demand import demand_weight_for_skills
 from .embeddings import cosine_similarity
 from .normalization import normalize_salary_index
+from .role_taxonomy import (
+    DOMAIN_KEYWORDS,
+    REQUIRED_QUALIFICATION_RULES,
+    ROLE_FAMILY_KEYWORDS,
+    ROLE_FAMILY_RELATIONS,
+    TAXONOMY_VERSION,
+)
 
 REMOTE_FLAGS = ["remote", "home office", "homeoffice", "hybrid", "remote-first", "work from home"]
 SENIORITY_ORDER = ["intern", "junior", "mid", "senior", "lead", "principal"]
-
-_DOMAIN_KEYWORDS = {
-    "it": [
-        "software", "developer", "programator", "programmer", "backend", "frontend", "fullstack",
-        "python", "javascript", "typescript", "react", "node", "devops", "kubernetes", "cloud",
-        "data engineer", "data scientist", "machine learning", "ai engineer", "qa engineer", "tester",
-    ],
-    "sales": [
-        "obchod", "sales", "account manager", "business development", "bdm", "akvizic", "lead generation",
-    ],
-    "marketing": [
-        "marketing", "seo", "ppc", "social media", "brand manager", "content manager", "copywriter",
-    ],
-    "finance": [
-        "finance", "ucetni", "auditor", "controller", "analyst", "investment", "banker",
-    ],
-    "operations": [
-        "operations", "logistics", "supply chain", "planner", "procesni", "warehouse", "disponent",
-    ],
-    "manufacturing": [
-        "vyroba", "manufacturing", "strojnik", "operator vyroby", "cnc", "obsluha stroje",
-    ],
-    "healthcare": [
-        "healthcare", "medical", "nurse", "doctor", "lekar", "zdravotni sestra", "klinika",
-    ],
-    "hospitality": [
-        "hospitality", "chef", "cook", "kuchar", "waiter", "bartender", "hotel", "restaurace",
-    ],
-    "trades_food": [
-        "reznik", "uzenar", "butcher", "meat", "bourani masa", "haccp", "potravinarstvi", "potraviny",
-    ],
-    "hr_recruiting": [
-        "hr", "recruiter", "talent acquisition", "nabor", "people partner",
-    ],
-}
 
 # Weighted normalized scoring (all components normalized 0..1)
 _WEIGHTS = {
@@ -94,7 +66,7 @@ def _normalize_text(value: str) -> str:
 def _detect_domains(text: str) -> Dict[str, int]:
     normalized = _normalize_text(text)
     scores: Dict[str, int] = {}
-    for domain, keywords in _DOMAIN_KEYWORDS.items():
+    for domain, keywords in DOMAIN_KEYWORDS.items():
         score = 0
         for keyword in keywords:
             if keyword in normalized:
@@ -119,6 +91,68 @@ def _domain_alignment(candidate_text: str, job_text: str) -> tuple[float, bool, 
 
     # Strong mismatch when both sides have at least one confident domain hit and no overlap.
     return 0.1, True, sorted(cand_set), sorted(job_set)
+
+
+def _missing_required_qualifications(candidate_text: str, job_text: str) -> List[str]:
+    missing: List[str] = []
+    candidate_normalized = _normalize_text(candidate_text)
+    job_normalized = _normalize_text(job_text)
+
+    for rule in REQUIRED_QUALIFICATION_RULES:
+        job_terms = rule.get("job_terms") or []
+        candidate_terms = rule.get("candidate_terms") or []
+        has_job_requirement = any(term in job_normalized for term in job_terms)
+        if not has_job_requirement:
+            continue
+        has_candidate_signal = any(term in candidate_normalized for term in candidate_terms)
+        if not has_candidate_signal:
+            missing.append(str(rule.get("name") or "qualification"))
+
+    return missing
+
+
+def _detect_role_families(text: str) -> Dict[str, int]:
+    normalized = _normalize_text(text)
+    matches: Dict[str, int] = {}
+    for family, keywords in ROLE_FAMILY_KEYWORDS.items():
+        score = 0
+        for keyword in keywords:
+            if keyword in normalized:
+                score += 1
+        if score > 0:
+            matches[family] = score
+    return matches
+
+
+def _role_transfer_alignment(candidate_text: str, job_text: str) -> tuple[float, List[str], List[str], float]:
+    candidate_families_map = _detect_role_families(candidate_text)
+    job_families_map = _detect_role_families(job_text)
+    candidate_families = sorted(candidate_families_map.keys())
+    job_families = sorted(job_families_map.keys())
+
+    if not candidate_families or not job_families:
+        return 0.55, candidate_families, job_families, 0.0
+
+    overlap = set(candidate_families).intersection(job_families)
+    if overlap:
+        return 1.0, candidate_families, job_families, 1.0
+
+    best_relation = 0.0
+    for c_family in candidate_families:
+        relations = ROLE_FAMILY_RELATIONS.get(c_family, {})
+        for j_family in job_families:
+            relation = float(relations.get(j_family) or 0.0)
+            if relation > best_relation:
+                best_relation = relation
+            reverse = float((ROLE_FAMILY_RELATIONS.get(j_family, {}) or {}).get(c_family) or 0.0)
+            if reverse > best_relation:
+                best_relation = reverse
+
+    if best_relation > 0:
+        # Related role families get medium-high alignment, but not as high as exact family match.
+        return _clamp01(0.55 + (0.35 * best_relation)), candidate_families, job_families, best_relation
+
+    return 0.2, candidate_families, job_families, 0.0
 
 
 def _infer_seniority(text: str) -> str:
@@ -219,9 +253,11 @@ def score_job(
     )
 
     exact_ratio, exact_hits, missing_skills = _exact_skill_ratio(candidate_skills, job_text)
-    skill_similarity = _clamp01((0.65 * _clamp01(semantic_similarity)) + (0.35 * exact_ratio))
+    role_transfer_alignment, candidate_role_families, job_role_families, role_relation_strength = _role_transfer_alignment(candidate_text, job_text)
+    base_similarity = _clamp01((0.65 * _clamp01(semantic_similarity)) + (0.35 * exact_ratio))
+    skill_similarity = _clamp01((0.8 * base_similarity) + (0.2 * role_transfer_alignment))
     domain_alignment, strong_domain_mismatch, candidate_domains, job_domains = _domain_alignment(candidate_text, job_text)
-    if strong_domain_mismatch:
+    if strong_domain_mismatch and role_transfer_alignment < 0.5:
         # Hard gate: semantic similarity can still be high for generic language, but domain mismatch should dominate.
         skill_similarity *= 0.3
 
@@ -269,10 +305,19 @@ def score_job(
         ),
         2,
     )
+    missing_required_qualifications = _missing_required_qualifications(candidate_text, job_text)
+    hard_cap = 100.0
+    if strong_domain_mismatch and exact_ratio <= 0.1:
+        hard_cap = min(hard_cap, 15.0)
+    if missing_required_qualifications:
+        # Regulated/specialized roles without explicit profile evidence should stay near the floor.
+        hard_cap = min(hard_cap, 10.0)
+    total = min(total, hard_cap)
 
     breakdown = {
         **{k: round(v, 4) for k, v in weighted.items()},
         "missing_core_skills": missing_skills[:8],
+        "missing_required_qualifications": missing_required_qualifications,
         "seniority_gap": round(seniority_gap, 4),
         "component_scores": {
             "alpha_skill": round(_WEIGHTS["alpha_skill"] * weighted["skill_match"], 4),
@@ -285,13 +330,25 @@ def score_job(
         "domain_mismatch": bool(strong_domain_mismatch),
         "candidate_domains": candidate_domains[:5],
         "job_domains": job_domains[:5],
+        "role_transfer_alignment": round(role_transfer_alignment, 4),
+        "role_relation_strength": round(role_relation_strength, 4),
+        "candidate_role_families": candidate_role_families[:4],
+        "job_role_families": job_role_families[:4],
+        "taxonomy_version": TAXONOMY_VERSION,
+        "hard_cap": round(hard_cap, 2),
         "total": max(0.0, min(100.0, total)),
     }
 
     reasons = _compose_reasons(weighted, missing_skills, seniority_gap)
     if strong_domain_mismatch:
         reasons.insert(0, "Silny oborovy nesoulad mezi profilem a pozici")
-        reasons = reasons[:4]
+    if missing_required_qualifications:
+        reasons.insert(0, "Chybi povinna kvalifikace nebo zkusenost pro tuto roli")
+    if role_transfer_alignment >= 0.95:
+        reasons.insert(0, "Profese je ve velmi silne shode")
+    elif role_transfer_alignment >= 0.68:
+        reasons.insert(0, "Profese je pribuzna a dobre prenositelna")
+    reasons = reasons[:4]
     return breakdown["total"], reasons, breakdown
 
 

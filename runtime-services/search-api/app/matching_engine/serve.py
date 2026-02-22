@@ -5,6 +5,7 @@ import re
 import unicodedata
 from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional
+from urllib.parse import urlparse
 
 from ..core.database import supabase
 from ..core.runtime_config import (
@@ -33,6 +34,21 @@ _JOBS_STATUS_COLUMN_AVAILABLE: Optional[bool] = None
 _SEARCH_V2_RPC_AVAILABLE: Optional[bool] = None
 _SEARCH_V2_RPC_WARNING_EMITTED = False
 _JOBS_STATUS_WARNING_EMITTED = False
+_INTERNAL_SOURCE_MARKERS = ("jobshaman",)
+_EXTERNAL_LISTING_DOMAINS = (
+    "jobs.cz",
+    "prace.cz",
+    "praca.pl",
+    "profesia.sk",
+    "karriere.at",
+    "stepstone",
+    "indeed",
+    "linkedin",
+    "jobrapido",
+    "glassdoor",
+    "monster",
+    "jooble",
+)
 
 
 def _date_cutoff_iso(date_filter: Optional[str]) -> Optional[str]:
@@ -187,6 +203,62 @@ def _safe_float(value, default: float = 0.0) -> float:
         return default
 
 
+def _domain_from_url(raw_url: Optional[str]) -> str:
+    if not raw_url:
+        return ""
+    text = str(raw_url).strip()
+    if not text:
+        return ""
+    if "://" not in text:
+        text = f"https://{text}"
+    try:
+        host = (urlparse(text).netloc or "").lower().strip()
+    except Exception:
+        return ""
+    if host.startswith("www."):
+        host = host[4:]
+    return host
+
+
+def _domain_matches_any(host: str, patterns: tuple[str, ...]) -> bool:
+    if not host:
+        return False
+    for pattern in patterns:
+        p = (pattern or "").lower().strip()
+        if not p:
+            continue
+        if host == p or host.endswith(f".{p}") or p in host:
+            return True
+    return False
+
+
+def _is_internal_job_listing(job: Dict) -> bool:
+    if not isinstance(job, dict):
+        return False
+
+    source = str(job.get("source") or "").strip().lower()
+    host = _domain_from_url(job.get("url"))
+
+    if job.get("company_id") or job.get("posted_by") or job.get("recruiter_id"):
+        return True
+
+    if source and any(marker in source for marker in _INTERNAL_SOURCE_MARKERS):
+        return True
+    if host and any(marker in host for marker in _INTERNAL_SOURCE_MARKERS):
+        return True
+
+    if source and _domain_matches_any(source, _EXTERNAL_LISTING_DOMAINS):
+        return False
+    if host and _domain_matches_any(host, _EXTERNAL_LISTING_DOMAINS):
+        return False
+
+    return False
+
+
+def _internal_priority(job: Dict) -> int:
+    return 1 if _is_internal_job_listing(job) else 0
+
+
 def _parse_job_datetime(value: Optional[str]) -> Optional[datetime]:
     if not value:
         return None
@@ -222,7 +294,15 @@ def _apply_diversity_guardrails(ranked: List[Dict], limit: int, user_id: str, cf
     if not ranked or limit <= 0:
         return []
 
-    base = sorted(ranked, key=lambda item: (item.get("action_probability") or 0.0, item.get("score") or 0.0), reverse=True)
+    base = sorted(
+        ranked,
+        key=lambda item: (
+            _internal_priority(item.get("job") or {}),
+            item.get("action_probability") or 0.0,
+            item.get("score") or 0.0,
+        ),
+        reverse=True,
+    )
     company_cap = max(1, min(10, int(cfg.get("max_per_company") or 3)))
     new_window_days = max(1, min(30, int(cfg.get("new_job_window_days") or 7)))
     min_new_share = max(0.0, min(0.5, _safe_float(cfg.get("min_new_job_share"), 0.15)))
@@ -256,6 +336,7 @@ def _apply_diversity_guardrails(ranked: List[Dict], limit: int, user_id: str, cf
         breakdown["selection_strategy"] = strategy
         breakdown["is_new_job"] = _is_new_job(job, new_window_days)
         breakdown["is_long_tail_company"] = company_freq.get(ck, 0) <= long_tail_company_threshold
+        breakdown["is_internal_listing"] = bool(_internal_priority(job))
         item["breakdown"] = breakdown
         selected.append(item)
         selected_job_ids.add(job_id)
@@ -408,7 +489,7 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
             .select(
                 "id,title,company,location,description,benefits,contract_type,salary_from,salary_to,"
                 "work_type,work_model,scraped_at,source,education_level,url,lat,lng,country_code,"
-                "language_code,legality_status,verification_notes,status"
+                "language_code,legality_status,verification_notes,status,company_id,posted_by,recruiter_id"
             )
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
@@ -520,21 +601,22 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
         else:
             score = (0.25 * lexical) + (0.75 * recency)
 
-        ranked.append((score, semantic, lexical, recency, job))
+        ranked.append((score, _internal_priority(job), semantic, lexical, recency, job))
 
-    ranked.sort(key=lambda item: item[0], reverse=True)
+    ranked.sort(key=lambda item: (item[1], item[0]), reverse=True)
     total_count = len(ranked)
     start = page * safe_page_size
     end = start + safe_page_size
     page_rows = ranked[start:end]
 
     out_jobs = []
-    for total, semantic, lexical, recency, job in page_rows:
+    for total, internal_priority, semantic, lexical, recency, job in page_rows:
         enriched = dict(job)
         enriched["hybrid_score"] = round(float(total), 4)
         enriched["semantic_score"] = round(float(semantic), 4)
         enriched["lexical_score"] = round(float(lexical), 4)
         enriched["recency_score"] = round(float(recency), 4)
+        enriched["is_internal_listing"] = bool(internal_priority)
         out_jobs.append(enriched)
 
     return {
@@ -626,10 +708,12 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
 
     ranked_input = []
     for row in rows:
+        internal_priority = _internal_priority(row)
         ranked_input.append(
             {
                 "job": row,
                 "score": _safe_float(row.get("hybrid_score")),
+                "internal_priority": internal_priority,
                 "action_probability": _safe_float(row.get("behavior_prior_score")),
                 "action_features": {"recency_score": _safe_float(row.get("recency_score"))},
                 "breakdown": {
@@ -639,8 +723,19 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
                     "profile_fit_score": _safe_float(row.get("profile_fit_score")),
                     "recency_score": _safe_float(row.get("recency_score")),
                     "behavior_prior_score": _safe_float(row.get("behavior_prior_score")),
+                    "is_internal_listing": bool(internal_priority),
                 },
             }
+        )
+
+    if sort_mode in {"default", "recommended"}:
+        ranked_input.sort(
+            key=lambda item: (
+                int(item.get("internal_priority") or 0),
+                _safe_float(item.get("score")),
+                _safe_float(item.get("action_probability")),
+            ),
+            reverse=True,
         )
 
     # Apply company/new-job guardrails for relevance-based sorts only.
@@ -695,7 +790,13 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
                 selected_ids.add(job_id)
 
         # Keep diversity constraints, then restore score-desc order for predictable UX.
-        selected.sort(key=lambda item: _safe_float(item.get("score")), reverse=True)
+        selected.sort(
+            key=lambda item: (
+                int(item.get("internal_priority") or 0),
+                _safe_float(item.get("score")),
+            ),
+            reverse=True,
+        )
         ranked_input = selected
 
     total_count = int((rows[0] or {}).get("total_count") or len(rows))
@@ -708,6 +809,7 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
         row["profile_fit_score"] = round(_safe_float(row.get("profile_fit_score")), 4)
         row["recency_score"] = round(_safe_float(row.get("recency_score")), 4)
         row["behavior_prior_score"] = round(_safe_float(row.get("behavior_prior_score")), 4)
+        row["is_internal_listing"] = bool(item.get("internal_priority"))
         row["rank_position"] = idx + 1 + (max(0, int(page)) * max(1, int(page_size)))
         out_rows.append(row)
 
@@ -826,10 +928,12 @@ def recommend_jobs_for_user(user_id: str, limit: int = 50, allow_cache: bool = T
         breakdown["action_probability"] = round(action_probability, 6)
         breakdown["action_model_version"] = action_model_version
         breakdown["action_features"] = action_features
+        breakdown["is_internal_listing"] = bool(_internal_priority(job))
         ranked.append(
             {
                 "job": job,
                 "score": total,
+                "internal_priority": _internal_priority(job),
                 "reasons": reasons,
                 "breakdown": breakdown,
                 "action_probability": round(action_probability, 6),
@@ -840,7 +944,14 @@ def recommend_jobs_for_user(user_id: str, limit: int = 50, allow_cache: bool = T
             }
         )
 
-    ranked.sort(key=lambda item: (item.get("action_probability") or 0.0, item["score"]), reverse=True)
+    ranked.sort(
+        key=lambda item: (
+            int(item.get("internal_priority") or 0),
+            item.get("action_probability") or 0.0,
+            item["score"],
+        ),
+        reverse=True,
+    )
     top = _apply_diversity_guardrails(ranked, limit=limit, user_id=user_id, cfg=cfg)
     for idx, item in enumerate(top):
         item["position"] = idx + 1
