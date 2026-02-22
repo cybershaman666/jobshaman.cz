@@ -1105,8 +1105,8 @@ export default function App() {
         }
     };
 
-    const handleProfileSave = async () => {
-        if (!userProfile.id) return;
+    const handleProfileSave = async (): Promise<boolean> => {
+        if (!userProfile.id) return false;
 
         try {
             console.log("💾 Explicitly saving profile to Supabase...");
@@ -1123,10 +1123,12 @@ export default function App() {
 
             // Alert user success
             // Note: We could use a toast here if we had one
+            return true;
 
         } catch (error) {
             console.error("Failed to save profile:", error);
             alert(t('alerts.profile_save_failed'));
+            return false;
         }
     };
 

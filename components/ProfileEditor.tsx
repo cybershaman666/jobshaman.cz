@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { Suspense, lazy, useEffect, useState, useRef } from 'react';
 import { UserProfile, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences } from '../types';
 import {
   User,
@@ -38,7 +38,6 @@ import { getSubscriptionStatus } from '../services/serverSideBillingService';
 import { getCurrentSubscription, getPushPermission, isPushSupported, registerPushSubscription, subscribeToPush, unsubscribeFromPush } from '../services/pushNotificationsService';
 
 import TransportModeSelector from './TransportModeSelector';
-import SavedJobsPage from './SavedJobsPage';
 import { createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from '../services/profileDefaults';
 import { getPremiumPriceDisplay } from '../services/premiumPricingService';
 
@@ -47,7 +46,7 @@ import { useTranslation } from 'react-i18next';
 interface ProfileEditorProps {
   profile: UserProfile;
   onChange: (profile: UserProfile, persist?: boolean) => void | Promise<void>;
-  onSave: () => void;
+  onSave: () => void | Promise<boolean>;
   onRefreshProfile?: () => void | Promise<void>;
   savedJobs?: Job[];
   savedJobIds?: string[];
@@ -57,6 +56,8 @@ interface ProfileEditorProps {
   selectedJobId?: string | null;
   onDeleteAccount?: () => Promise<boolean>;
 }
+
+const SavedJobsPage = lazy(() => import('./SavedJobsPage'));
 
 const ProfileEditor: React.FC<ProfileEditorProps> = ({
   profile,
@@ -86,6 +87,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [pushPermission, setPushPermission] = useState<NotificationPermission>('default');
   const [pushSubscribed, setPushSubscribed] = useState(false);
   const [pushBusy, setPushBusy] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [saveFeedback, setSaveFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Address Verification State
   const [isVerifyingAddress, setIsVerifyingAddress] = useState(false);
@@ -620,6 +623,35 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     onChange({ ...profile, skills: updatedSkills });
   };
 
+  const handleSaveClick = async () => {
+    if (isSavingProfile) return;
+    setIsSavingProfile(true);
+    setSaveFeedback(null);
+    try {
+      const result = await Promise.resolve(onSave());
+      if (result === false) {
+        setSaveFeedback({
+          type: 'error',
+          text: t('profile.save_error', { defaultValue: 'Uložení se nepodařilo.' })
+        });
+        return;
+      }
+      setSaveFeedback({
+        type: 'success',
+        text: t('profile.save_success', { defaultValue: 'Změny byly uloženy.' })
+      });
+      setTimeout(() => setSaveFeedback(null), 3500);
+    } catch (error) {
+      console.error('Profile save failed in editor:', error);
+      setSaveFeedback({
+        type: 'error',
+        text: t('profile.save_error', { defaultValue: 'Uložení se nepodařilo.' })
+      });
+    } finally {
+      setIsSavingProfile(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <div className="max-w-6xl mx-auto py-8 space-y-6">
@@ -673,13 +705,23 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             </div>
 
             <button
-              onClick={onSave}
-              className="w-full sm:w-auto justify-center px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium flex items-center gap-2 shadow-lg"
+              onClick={handleSaveClick}
+              disabled={isSavingProfile}
+              className="w-full sm:w-auto justify-center px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium flex items-center gap-2 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
             >
               <Save size={18} />
-              {t('profile.save_profile')}
+              {isSavingProfile ? t('app.saving') : t('profile.save_profile')}
             </button>
           </div>
+          {saveFeedback && (
+            <div className={`mt-3 text-sm font-medium flex items-center gap-2 ${saveFeedback.type === 'success'
+              ? 'text-emerald-700 dark:text-emerald-300'
+              : 'text-rose-700 dark:text-rose-300'
+              }`}>
+              <CheckCircle size={16} />
+              <span>{saveFeedback.text}</span>
+            </div>
+          )}
         </div>
 
         {/* Tabs */}
@@ -1706,6 +1748,31 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
             </div>
 
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  {t('profile.save_hint_bottom', { defaultValue: 'Po úpravách profilu změny uložte.' })}
+                </p>
+                <button
+                  onClick={handleSaveClick}
+                  disabled={isSavingProfile}
+                  className="w-full sm:w-auto justify-center px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium flex items-center gap-2 shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  <Save size={18} />
+                  {isSavingProfile ? t('app.saving') : t('profile.save_profile')}
+                </button>
+              </div>
+              {saveFeedback && (
+                <div className={`mt-3 text-sm font-medium flex items-center gap-2 ${saveFeedback.type === 'success'
+                  ? 'text-emerald-700 dark:text-emerald-300'
+                  : 'text-rose-700 dark:text-rose-300'
+                  }`}>
+                  <CheckCircle size={16} />
+                  <span>{saveFeedback.text}</span>
+                </div>
+              )}
+            </div>
+
             {/* Danger Zone */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border-2 border-red-200 dark:border-red-900/30 overflow-hidden">
               <div className="border-b border-red-100 dark:border-red-900/20 p-4 bg-red-50/50 dark:bg-red-900/10">
@@ -1739,17 +1806,25 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           </>
         ) : (
           <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
-            <SavedJobsPage
-              savedJobs={savedJobs}
-              savedJobIds={savedJobIds}
-              onToggleSave={onToggleSave || (() => { })}
-              onJobSelect={onJobSelect || (() => { })}
-              onApplyToJob={onApplyToJob || (() => { })}
-              selectedJobId={selectedJobId || null}
-              userProfile={profile}
-              searchTerm=""
-              onSearchChange={() => { }}
-            />
+            <Suspense
+              fallback={
+                <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 text-sm text-slate-600 dark:text-slate-300">
+                  {t('app.loading')}
+                </div>
+              }
+            >
+              <SavedJobsPage
+                savedJobs={savedJobs}
+                savedJobIds={savedJobIds}
+                onToggleSave={onToggleSave || (() => { })}
+                onJobSelect={onJobSelect || (() => { })}
+                onApplyToJob={onApplyToJob || (() => { })}
+                selectedJobId={selectedJobId || null}
+                userProfile={profile}
+                searchTerm=""
+                onSearchChange={() => { }}
+              />
+            </Suspense>
           </div>
         )}
       </div>
