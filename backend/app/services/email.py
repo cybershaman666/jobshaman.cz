@@ -4,6 +4,56 @@ from ..core.config import RESEND_API_KEY
 if RESEND_API_KEY:
     resend.api_key = RESEND_API_KEY
 
+
+_CZ_VOCATIVE_OVERRIDES = {
+    "matěj": "Matěji",
+    "matej": "Matěji",
+    "martin": "Martine",
+    "petr": "Petře",
+    "jan": "Jane",
+    "tomáš": "Tomáši",
+    "tomas": "Tomáši",
+    "lukáš": "Lukáši",
+    "lukas": "Lukáši",
+    "michal": "Michale",
+    "ondřej": "Ondřeji",
+    "ondrej": "Ondřeji",
+    "vladimír": "Vladimíre",
+    "vladimir": "Vladimíre",
+    "jiří": "Jiří",
+    "jiri": "Jiří",
+    "josef": "Josefe",
+    "david": "Davide",
+}
+
+
+def _extract_first_name(full_name: str) -> str:
+    value = str(full_name or "").strip()
+    if not value:
+        return ""
+    # Keep only first token and trim common punctuation around it.
+    token = value.split()[0].strip(",.;:!?()[]{}")
+    return token
+
+
+def _to_czech_vocative(first_name: str) -> str:
+    name = str(first_name or "").strip()
+    if not name:
+        return ""
+    lowered = name.lower()
+    overridden = _CZ_VOCATIVE_OVERRIDES.get(lowered)
+    if overridden:
+        return overridden
+
+    # Safe fallback rules for common masculine patterns.
+    if lowered.endswith("j"):
+        return f"{name}i"
+    if lowered.endswith("k"):
+        return f"{name}u"
+    if lowered.endswith(("n", "r", "m", "l")):
+        return f"{name}e"
+    return name
+
 def send_email(to_email: str, subject: str, html: str):
     if not RESEND_API_KEY:
         print("⚠️ Resend API key missing. Email not sent.")
@@ -77,7 +127,7 @@ def send_welcome_email(to_email: str, full_name: str = "", locale: str = "cs", a
     else:
         lang = "cs"
 
-    first_name = (full_name or "").strip().split(" ")[0] if full_name else ""
+    first_name = _extract_first_name(full_name)
 
     copy = {
         "cs": {
@@ -154,12 +204,13 @@ def send_daily_digest_email(
     else:
         lang = "cs"
 
-    first_name = (full_name or "").strip().split(" ")[0] if full_name else ""
+    first_name = _extract_first_name(full_name)
+    cs_salutation_name = _to_czech_vocative(first_name) if first_name else ""
 
     copy = {
         "cs": {
             "subject": "Váš denní digest nabídek",
-            "title": f"Dobrý den{f' {first_name}' if first_name else ''},",
+            "title": f"Dobrý den{f' {cs_salutation_name}' if cs_salutation_name else ''},",
             "intro": "Zde je Váš denní přehled nabídek, které odpovídají Vašemu profilu.",
             "top_title": "Vaše top shody",
             "browse_cta": "Zobrazit další nabídky",
