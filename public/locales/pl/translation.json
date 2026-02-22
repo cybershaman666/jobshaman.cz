@@ -187,6 +187,7 @@
     "analytics_panel_label": "Panel analityczny",
     "analytics_panel_title": "Jakość oferty i sygnały",
     "analytics_panel_data_source": "Dane: JobShaman AI + źródła publiczne",
+    "ai_match_explanation": "Dopasowanie AI to procentowy szacunek, jak bardzo oferta pasuje do Twojego profilu. Kolejność może się też zmieniać przez świeżość i różnorodność wyników.",
     "jhi_title": "Indeks szczęścia (JHI)",
     "jhi_desc": "Złożony wynik jakości",
     "jhi_missing_salary_hint": "Niskie JHI wynika z braku podanego wynagrodzenia w ogłoszeniu.",
@@ -218,7 +219,7 @@
     "gdpr_consent": "Wysyłając zgłoszenie, wyrażasz zgodę na przetwarzanie danych osobowych zgodnie z RODO."
   },
   "transparency_card": {
-    "title": "Brutalna transparentność",
+    "title": "Transparentność",
     "data_source": "Dane: JobShaman",
     "badge_why_title": "Dlaczego widzisz odznakę EU Transparent?",
     "badge_why_desc": "Od czerwca 2026 podawanie widełek płacowych w UE będzie obowiązkowe. W JobShaman wierzymy, że Twój czas ma wartość już dziś. Firmy z tym oznaczeniem grają fair i otwarcie pokazują wynagrodzenie jako pierwsze."

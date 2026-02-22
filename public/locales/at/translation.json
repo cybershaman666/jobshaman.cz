@@ -187,6 +187,7 @@
     "analytics_panel_label": "Analyse-Panel",
     "analytics_panel_title": "Angebotsqualität & Signale",
     "analytics_panel_data_source": "Daten: JobShaman KI + öffentliche Quellen",
+    "ai_match_explanation": "Der KI-Match ist eine prozentuale Schätzung, wie relevant dieses Angebot für Ihr Profil ist. Die Reihenfolge kann sich zusätzlich durch Aktualität und Ergebnisvielfalt ändern.",
     "jhi_title": "Job Happiness Index (JHI)",
     "jhi_desc": "Zusammengesetzter Qualitätswert",
     "jhi_missing_salary_hint": "Niedriges JHI wegen fehlender Gehaltsangabe in der Anzeige.",
@@ -218,7 +219,7 @@
     "gdpr_consent": "Mit dem Absenden stimmen Sie der Verarbeitung personenbezogener Daten gemäß DSGVO zu."
   },
   "transparency_card": {
-    "title": "Radikale Transparenz",
+    "title": "Transparenz",
     "data_source": "Daten: JobShaman",
     "badge_why_title": "Warum sehen Sie das EU-Transparent-Abzeichen?",
     "badge_why_desc": "Ab Juni 2026 wird die Angabe von Gehaltsspannen in der EU verpflichtend. Wir bei JobShaman glauben, dass Ihre Zeit schon heute wertvoll ist. Unternehmen mit diesem Abzeichen spielen fair und zeigen die Vergütung offen zuerst."
