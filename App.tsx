@@ -143,7 +143,7 @@ export default function App() {
 
     // UI State
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-    const [authModalMode, setAuthModalMode] = useState<'login' | 'register'>('login');
+    const [authModalMode, setAuthModalMode] = useState<'login' | 'register' | 'reset'>('login');
     const [isOnboardingCompany, setIsOnboardingCompany] = useState(false);
     const [showCandidateOnboarding, setShowCandidateOnboarding] = useState(false);
     const [applyFollowup, setApplyFollowup] = useState<PendingApplyFollowup | null>(null);
@@ -607,6 +607,11 @@ export default function App() {
                 console.log(`🔔 [App] Auth state changed: ${event}`);
 
                 if (session) {
+                    if (event === 'PASSWORD_RECOVERY') {
+                        setAuthModalMode('reset');
+                        setIsAuthModalOpen(true);
+                        return;
+                    }
                     // Restore on explicit sign-in and OAuth returns (INITIAL_SESSION)
                     if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
                         // Ensure auth modal doesn't block onboarding/dashboard
@@ -636,6 +641,12 @@ export default function App() {
             const parts = path.split('/').filter(Boolean);
             const supported = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
             if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
+
+            const recoveryHash = window.location.hash || '';
+            if (recoveryHash.includes('type=recovery')) {
+                setAuthModalMode('reset');
+                setIsAuthModalOpen(true);
+            }
 
             if (parts[0] === 'jobs') {
                 const jobId = parts[1];
