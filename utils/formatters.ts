@@ -309,8 +309,12 @@ export const formatJobDescription = (description: string): string => {
     ];
     const inlineHeadingRegex = new RegExp(`\\s*(${INLINE_HEADINGS.map(escapeRegex).join('|')})\\s*:`, 'gi');
     const inlineHeadingLooseRegex = new RegExp(`\\s*(${INLINE_HEADINGS.map(escapeRegex).join('|')})(?=\\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])`, 'gi');
-    const inlineBulletMarkerRegex = /\s[-–—]\s(?=(?:[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9]|[^\w\s]))/g;
-    const inlineBulletMarkerCount = (description.match(inlineBulletMarkerRegex) || []).length;
+    // Start inline bullet lists only at line start or after punctuation.
+    // This avoids false positives like "ALBA - METAL" or "ANO - potom".
+    const inlineBulletStartRegex = /(^|[.!?:;)\]]\s+)[-–—]\s(?=(?:[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9]|[^\w\s]))/gm;
+    // Once we are inside a bullet line, split additional inline markers too.
+    const inlineBulletInnerRegex = /\s[-–—]\s(?=(?:[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9]|[^\w\s]))/g;
+    const inlineBulletMarkerCount = (description.match(inlineBulletStartRegex) || []).length;
     const hasInlineBullets = inlineBulletMarkerCount >= 3;
 
     const rawLines = description
@@ -319,7 +323,7 @@ export const formatJobDescription = (description: string): string => {
         .replace(inlineHeadingLooseRegex, '\n$1:\n')
         .replace(inlineHeadingRegex, '\n$1:\n')
         // Convert inline bullet segments into real bullet lines when markers appear repeatedly.
-        .replace(hasInlineBullets ? inlineBulletMarkerRegex : /$^/, '\n- ')
+        .replace(hasInlineBullets ? inlineBulletStartRegex : /$^/, '$1\n- ')
         // Preserve list-like separators into newlines so we can render bullets naturally.
         .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
         .replace(/\s{2,}/g, ' ')
@@ -1114,13 +1118,15 @@ export const formatJobDescription = (description: string): string => {
     let i = 0;
 
     const splitInlineList = (text: string): string[] => {
-        const markerCount = (text.match(inlineBulletMarkerRegex) || []).length;
+        const markerCount = (text.match(inlineBulletStartRegex) || []).length;
         const hasMarkers = markerCount >= 2;
+        const startsAsBullet = /^[•◦▪▫∙‣⁃]|^[\-\*]\s+/.test(text.trim());
         const normalized = text
             .replace(/([.!?])(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1 ')
             .replace(inlineHeadingLooseRegex, '\n$1:\n')
             .replace(inlineHeadingRegex, '\n$1:\n')
-            .replace(hasMarkers ? inlineBulletMarkerRegex : /$^/, '\n- ')
+            .replace(hasMarkers ? inlineBulletStartRegex : /$^/, '$1\n- ')
+            .replace(startsAsBullet ? inlineBulletInnerRegex : /$^/, '\n- ')
             .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
             .replace(/\s{2,}/g, ' ');
         let pieces = normalized
