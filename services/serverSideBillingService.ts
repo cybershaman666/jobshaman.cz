@@ -165,34 +165,35 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
 
     const maxRetries = 3;
     let lastError: Error | null = null;
-    const statusBackends = Array.from(new Set([BILLING_BACKEND_URL, BACKEND_URL].filter(Boolean)));
+    // subscription-status endpoint is guaranteed on the main backend;
+    // avoid probing billing-only hosts first to prevent noisy 404s in console.
+    const statusBackends = Array.from(new Set([BACKEND_URL, BILLING_BACKEND_URL].filter(Boolean)));
+    const statusPaths = ['/subscription-status', '/billing/subscription-status', '/api/subscription-status'];
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         let response: Response | null = null;
         let lastStatusBackendError: Error | null = null;
 
-        for (const backendBaseUrl of statusBackends) {
-          try {
-            const candidate = await authenticatedFetch(`${backendBaseUrl}/subscription-status?userId=${userId}`, {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json'
-              }
-            });
+        outer: for (const backendBaseUrl of statusBackends) {
+          for (const statusPath of statusPaths) {
+            try {
+              const candidate = await authenticatedFetch(`${backendBaseUrl}${statusPath}?userId=${userId}`, {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json'
+                }
+              });
 
-            // Some deployments expose billing APIs only on BACKEND_URL.
-            // On 404, try the next configured backend.
-            if (candidate.status === 404) {
-              if (import.meta.env.DEV) {
-                console.warn(`⚠️ subscription-status not found on ${backendBaseUrl}, trying fallback backend...`);
+              // Try alternative backend/path combos on Not Found.
+              if (candidate.status === 404) {
+                continue;
               }
-              continue;
+              response = candidate;
+              break outer;
+            } catch (backendErr: any) {
+              lastStatusBackendError = backendErr instanceof Error ? backendErr : new Error(String(backendErr));
             }
-            response = candidate;
-            break;
-          } catch (backendErr: any) {
-            lastStatusBackendError = backendErr instanceof Error ? backendErr : new Error(String(backendErr));
           }
         }
 
