@@ -310,20 +310,57 @@ export const formatJobDescription = (description: string): string => {
     const inlineHeadingRegex = new RegExp(`\\s*(${INLINE_HEADINGS.map(escapeRegex).join('|')})\\s*:`, 'gi');
     const inlineHeadingLooseRegex = new RegExp(`\\s*(${INLINE_HEADINGS.map(escapeRegex).join('|')})(?=\\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])`, 'gi');
     // Start inline bullet lists only at line start or after punctuation.
-    // This avoids false positives like "ALBA - METAL" or "ANO - potom".
     const inlineBulletStartRegex = /(^|[.!?:;)\]]\s+)[-–—]\s(?=(?:[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9]|[^\w\s]))/gm;
-    // Once we are inside a bullet line, split additional inline markers too.
+    // Generic inline bullet separator used for dense one-line descriptions.
     const inlineBulletInnerRegex = /\s[-–—]\s(?=(?:[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9]|[^\w\s]))/g;
-    const inlineBulletMarkerCount = (description.match(inlineBulletStartRegex) || []).length;
+    const inlineBulletMarkerCount = (description.match(inlineBulletInnerRegex) || []).length;
     const hasInlineBullets = inlineBulletMarkerCount >= 3;
+
+    const normalizeDashToken = (token: string): string =>
+        token.replace(/^[^A-Za-zÁČĎÉĚÍŇÓŘŠŤÚŮÝŽa-záčďéěíňóřšťúůýž0-9]+|[^A-Za-zÁČĎÉĚÍŇÓŘŠŤÚŮÝŽa-záčďéěíňóřšťúůýž0-9]+$/g, '');
+
+    const isUpperToken = (token: string): boolean => {
+        if (!token) return false;
+        const hasLetter = /[A-Za-zÁČĎÉĚÍŇÓŘŠŤÚŮÝŽa-záčďéěíňóřšťúůýž]/.test(token);
+        if (!hasLetter) return false;
+        return token === token.toUpperCase();
+    };
+
+    const splitInlineBulletSegments = (value: string, aggressive: boolean): string => {
+        if (!aggressive) {
+            return value.replace(inlineBulletStartRegex, '$1\n- ');
+        }
+
+        return value.replace(inlineBulletInnerRegex, (match, offset, full) => {
+            const leftSlice = full.slice(0, offset as number).trimEnd();
+            const rightSlice = full.slice((offset as number) + match.length).trimStart();
+            const leftTokenRaw = leftSlice.split(/\s+/).pop() || '';
+            const rightTokenRaw = rightSlice.split(/\s+/)[0] || '';
+            const leftToken = normalizeDashToken(leftTokenRaw);
+            const rightToken = normalizeDashToken(rightTokenRaw);
+
+            // Keep company/title patterns like "ALBA - METAL" as plain text.
+            if (
+                leftToken &&
+                rightToken &&
+                leftToken.length <= 16 &&
+                rightToken.length <= 16 &&
+                isUpperToken(leftToken) &&
+                isUpperToken(rightToken)
+            ) {
+                return match;
+            }
+
+            return '\n- ';
+        });
+    };
 
     const rawLines = description
         // Repair common OCR/scrape issue: missing space after sentence punctuation.
         .replace(/([.!?])(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1 ')
         .replace(inlineHeadingLooseRegex, '\n$1:\n')
         .replace(inlineHeadingRegex, '\n$1:\n')
-        // Convert inline bullet segments into real bullet lines when markers appear repeatedly.
-        .replace(hasInlineBullets ? inlineBulletStartRegex : /$^/, '$1\n- ')
+        .replace(/[\s\S]*/, (value) => splitInlineBulletSegments(value, hasInlineBullets))
         // Preserve list-like separators into newlines so we can render bullets naturally.
         .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
         .replace(/\s{2,}/g, ' ')
@@ -1118,14 +1155,14 @@ export const formatJobDescription = (description: string): string => {
     let i = 0;
 
     const splitInlineList = (text: string): string[] => {
-        const markerCount = (text.match(inlineBulletStartRegex) || []).length;
+        const markerCount = (text.match(inlineBulletInnerRegex) || []).length;
         const hasMarkers = markerCount >= 2;
         const startsAsBullet = /^[•◦▪▫∙‣⁃]|^[\-\*]\s+/.test(text.trim());
         const normalized = text
             .replace(/([.!?])(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1 ')
             .replace(inlineHeadingLooseRegex, '\n$1:\n')
             .replace(inlineHeadingRegex, '\n$1:\n')
-            .replace(hasMarkers ? inlineBulletStartRegex : /$^/, '$1\n- ')
+            .replace(/[\s\S]*/, (value) => splitInlineBulletSegments(value, hasMarkers))
             .replace(startsAsBullet ? inlineBulletInnerRegex : /$^/, '\n- ')
             .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
             .replace(/\s{2,}/g, ' ');

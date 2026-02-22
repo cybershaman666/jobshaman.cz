@@ -1699,6 +1699,14 @@ export const fetchJobsWithFilters = async (
             filter_language_codes: filterLanguageCodes && filterLanguageCodes.length > 0 ? filterLanguageCodes : null,
         };
 
+        const toAiMatchPercent = (value: unknown): number | null => {
+            if (typeof value !== 'number' || !Number.isFinite(value)) {
+                return null;
+            }
+            const normalized = value >= 0 && value <= 1 ? value * 100 : value;
+            return Math.max(0, Math.min(100, normalized));
+        };
+
         const mapHybridRowsToJobs = (rows: any[], hybridPayload: any) => {
             return rows.map((row: any) => {
                 const job = transformJob({
@@ -1735,6 +1743,9 @@ export const fetchJobsWithFilters = async (
                 (job as any).behavior_prior_score = row.behavior_prior_score;
                 (job as any).searchScore = row.hybrid_score;
                 (job as any).rankPosition = row.rank_position;
+                (job as any).aiMatchScore = toAiMatchPercent(
+                    row.profile_fit_score ?? row.hybrid_score ?? row.search_score
+                );
                 (job as any).requestId = hybridPayload.request_id;
                 (job as any).aiRecommendationRequestId = hybridPayload.request_id;
                 (job as any).aiRecommendationPosition = row.rank_position;
@@ -1771,6 +1782,9 @@ export const fetchJobsWithFilters = async (
                     verification_notes: row.verification_notes
                 });
                 (job as any).distance_km = row.distance_km;
+                (job as any).aiMatchScore = toAiMatchPercent(
+                    row.profile_fit_score ?? row.hybrid_score ?? row.search_score
+                );
                 return job;
             });
         };
