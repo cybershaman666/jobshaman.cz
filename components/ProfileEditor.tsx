@@ -1606,8 +1606,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   {t('profile.jhi.explainer')}
                 </p>
                 {!isPremium && (
-                  <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4 flex items-center justify-between gap-4">
-                    <div>
+                  <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+                    <div className="min-w-0">
                       <p className="text-sm font-semibold text-slate-900 dark:text-white">
                         {t('alerts.premium_only_feature')}
                       </p>
@@ -1621,7 +1621,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                           redirectToCheckout('premium', profile.id);
                         }
                       }}
-                      className="px-3 py-2 bg-cyan-600 text-white rounded-lg text-sm font-semibold hover:bg-cyan-700 shadow-md shadow-cyan-500/30 whitespace-nowrap"
+                      className="w-full sm:w-auto px-3 py-2 bg-cyan-600 text-white rounded-lg text-sm font-semibold hover:bg-cyan-700 shadow-md shadow-cyan-500/30"
                     >
                       {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurMonthlyLabel}`}
                     </button>
