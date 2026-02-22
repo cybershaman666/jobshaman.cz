@@ -315,9 +315,49 @@ export const formatJobDescription = (description: string): string => {
         .replace(inlineHeadingRegex, '\n$1:\n')
         // Preserve list-like separators into newlines so we can render bullets naturally.
         .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
-        .replace(/([a-záčďéěíňóřšťúůýž])([A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n$2')
-        .replace(/\s{2,}/g, '\n')
+        .replace(/\s{2,}/g, ' ')
         .split(/\r?\n/);
+
+    const isBulletLikeLine = (line: string) => /^[•◦▪▫∙‣⁃]|^[\-\*]\s+/.test(line.trim());
+    const isHeadingCandidate = (line: string) => {
+        const value = line.trim();
+        if (!value) return false;
+        if (/:\s*$/.test(value)) return true;
+        const normalized = value
+            .normalize('NFD')
+            .replace(/\p{M}/gu, '')
+            .toLowerCase();
+        return INLINE_HEADINGS.some((heading) =>
+            normalized === heading
+                .normalize('NFD')
+                .replace(/\p{M}/gu, '')
+                .toLowerCase()
+        );
+    };
+    const shouldMergeWrappedLine = (prev: string, next: string): boolean => {
+        const a = prev.trim();
+        const b = next.trim();
+        if (!a || !b) return false;
+        if (isBulletLikeLine(a) || isBulletLikeLine(b)) return false;
+        if (isHeadingCandidate(a) || isHeadingCandidate(b)) return false;
+        if (/[.!?:]$/.test(a)) return false;
+        if (/^[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ]/.test(b) && b.length > 42) return false;
+        return true;
+    };
+    const mergedRawLines: string[] = [];
+    for (const raw of rawLines) {
+        const trimmed = raw.trim();
+        if (!trimmed) {
+            mergedRawLines.push('');
+            continue;
+        }
+        const lastIndex = mergedRawLines.length - 1;
+        if (lastIndex >= 0 && mergedRawLines[lastIndex] && shouldMergeWrappedLine(mergedRawLines[lastIndex], trimmed)) {
+            mergedRawLines[lastIndex] = `${mergedRawLines[lastIndex]} ${trimmed}`;
+        } else {
+            mergedRawLines.push(trimmed);
+        }
+    }
 
     type Line = {
         text: string;
@@ -340,7 +380,7 @@ export const formatJobDescription = (description: string): string => {
         return hasDigits && isShort && looksLikeThreshold;
     };
 
-    const lines: Line[] = rawLines.map((raw) => {
+    const lines: Line[] = mergedRawLines.map((raw) => {
         const trimmed = raw.trim();
         const isBlank = trimmed.length === 0;
         const bulletMatch = /^[•◦▪▫∙‣⁃]|^[\-\*]\s+/.test(trimmed);
@@ -1071,14 +1111,17 @@ export const formatJobDescription = (description: string): string => {
             .replace(inlineHeadingLooseRegex, '\n$1:\n')
             .replace(inlineHeadingRegex, '\n$1:\n')
             .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
-            .replace(/([a-záčďéěíňóřšťúůýž])([A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n$2')
-            .replace(/\s{2,}/g, '\n');
+            .replace(/\s{2,}/g, ' ');
         let pieces = normalized
             .split(/\r?\n/)
             .map((part) => part.trim())
             .filter(Boolean)
             .map((part) => part.replace(/^[•◦▪▫∙‣⁃\-\*]+\s*/g, ''));
-        if (pieces.length === 1 && pieces[0].split(',').length >= 3) {
+        if (
+            pieces.length === 1 &&
+            pieces[0].split(',').length >= 3 &&
+            !/[.!?]/.test(pieces[0])
+        ) {
             pieces = pieces[0]
                 .split(',')
                 .map((part) => part.trim())

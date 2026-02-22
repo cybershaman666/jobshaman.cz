@@ -1756,7 +1756,7 @@ export const fetchBenefitValuations = async () => {
 const extractMissingColumnFromSchemaCacheError = (error: any): string | null => {
     if (!error || String(error.code || '') !== 'PGRST204') return null;
     const message = String(error.message || '');
-    const match = message.match(/Could not find the '([^']+)' column/i);
+    const match = message.match(/Could not find the ['"]([^'"]+)['"] column/i);
     return match?.[1] || null;
 };
 
@@ -1838,10 +1838,8 @@ export const getUserCVDocuments = async (userId: string): Promise<CVDocument[]> 
                 content_type: contentType,
                 is_active: true,
                 parsed_data: parsedData,
-                parsed_at: new Date().toISOString(),
                 uploaded_at: new Date().toISOString(),
-                last_used: new Date().toISOString(),
-                virus_scan_status: 'pending'
+                last_used: new Date().toISOString()
             };
 
             let { error: insertError } = await supabase
@@ -1935,9 +1933,7 @@ export const uploadCVDocument = async (
             content_type: file.type,
             is_active: false,
             label: meta.label || null,
-            locale: meta.locale || null,
-            virus_scan_status: 'pending', // Add virus scanning
-            upload_ip: null // Could be passed from client for IP tracking
+            locale: meta.locale || null
         };
 
         let { data, error } = await supabase
