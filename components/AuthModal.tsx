@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { signInWithEmail, signInWithOAuthProvider, signUpWithEmail } from '../services/supabaseService';
+import { requestPasswordResetEmail, signInWithEmail, signInWithOAuthProvider, signUpWithEmail } from '../services/supabaseService';
 import { fetchCsrfToken, waitForSession } from '../services/csrfService';
 import { supabase } from '../services/supabaseClient';
 import { X, Mail, Lock, User, Loader2, AlertCircle, Chrome, Linkedin } from 'lucide-react';
@@ -120,6 +120,29 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
         } catch (err: any) {
             setError(err.message || 'Authentication failed');
             setOauthLoading(null);
+        }
+    };
+
+    const handleForgotPassword = async () => {
+        const email = formData.email.trim();
+        if (!email) {
+            setError(t('auth.enter_email_for_reset', { defaultValue: 'Nejprve zadejte svůj e‑mail.' }));
+            return;
+        }
+
+        setLoading(true);
+        setError(null);
+        try {
+            await requestPasswordResetEmail(email);
+            setInfoMessage(
+                t('auth.reset_password_sent', {
+                    defaultValue: 'Odkaz pro obnovu hesla jsme odeslali na váš e‑mail.'
+                })
+            );
+        } catch (err: any) {
+            setError(err.message || t('auth.reset_password_failed', { defaultValue: 'Nepodařilo se odeslat odkaz pro obnovu hesla.' }));
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -252,6 +275,18 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                                 onChange={e => setFormData({ ...formData, password: e.target.value })}
                             />
                         </div>
+                        {isLogin && (
+                            <div className="mt-2 text-right">
+                                <button
+                                    type="button"
+                                    onClick={handleForgotPassword}
+                                    disabled={isBusy}
+                                    className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:underline disabled:opacity-50"
+                                >
+                                    {t('auth.forgot_password')}
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     <button
