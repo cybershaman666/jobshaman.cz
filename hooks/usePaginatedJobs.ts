@@ -6,6 +6,7 @@ import { fetchJobsPaginated, fetchJobsWithFilters, fetchRecommendedJobs } from '
 import { geocodeWithCaching, getStaticCoordinates } from '../services/geocodingService';
 import AnalyticsService from '../services/analyticsService';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
+import { isBackendNetworkCooldownActive } from '../services/csrfService';
 
 // Infer country code from address text (best-effort)
 const getCountryCodeFromAddress = (address: string): string | null => {
@@ -135,7 +136,10 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const aiMatchScoresByJobIdRef = useRef<Map<string, number>>(new Map());
     const aiMatchScoresFetchedAtRef = useRef(0);
     const aiMatchScoresRequestRef = useRef<Promise<void> | null>(null);
+    const aiMatchScoresRetryAfterRef = useRef(0);
+    const aiMatchScoresLastErrorLogAtRef = useRef(0);
     const AI_MATCH_CACHE_TTL_MS = 5 * 60 * 1000;
+    const AI_MATCH_ERROR_RETRY_MS = 90 * 1000;
 
     // Load saved job IDs from localStorage on mount
     const [savedJobIds, setSavedJobIds] = useState<string[]>(() => {
@@ -181,11 +185,15 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         aiMatchScoresByJobIdRef.current = new Map();
         aiMatchScoresFetchedAtRef.current = 0;
         aiMatchScoresRequestRef.current = null;
+        aiMatchScoresRetryAfterRef.current = 0;
+        aiMatchScoresLastErrorLogAtRef.current = 0;
     }, [userProfile.id]);
 
     const refreshAiMatchScoresCache = useCallback(async () => {
         if (!userProfile.isLoggedIn) return;
+        if (isBackendNetworkCooldownActive()) return;
         const now = Date.now();
+        if (now < aiMatchScoresRetryAfterRef.current) return;
         const isFresh = (now - aiMatchScoresFetchedAtRef.current) < AI_MATCH_CACHE_TTL_MS;
         if (isFresh && aiMatchScoresByJobIdRef.current.size > 0) return;
 
@@ -202,8 +210,14 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                     }
                     aiMatchScoresByJobIdRef.current = nextMap;
                     aiMatchScoresFetchedAtRef.current = Date.now();
+                    aiMatchScoresRetryAfterRef.current = 0;
                 } catch (error) {
-                    console.warn('Failed to refresh AI match score cache:', error);
+                    // Avoid hammering recommendations endpoint when backend is waking up / timing out.
+                    aiMatchScoresRetryAfterRef.current = Date.now() + AI_MATCH_ERROR_RETRY_MS;
+                    if (Date.now() - aiMatchScoresLastErrorLogAtRef.current > 15_000) {
+                        console.warn('Failed to refresh AI match score cache:', error);
+                        aiMatchScoresLastErrorLogAtRef.current = Date.now();
+                    }
                 } finally {
                     aiMatchScoresRequestRef.current = null;
                 }
