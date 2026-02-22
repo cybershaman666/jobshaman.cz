@@ -16,6 +16,14 @@ _DEFAULT_TZ = "Europe/Prague"
 _DIGEST_RADIUS_KM = 50.0
 _APP_URL = "https://jobshaman.cz"
 _DIGEST_WINDOW_MINUTES = 20
+_COUNTRY_BOUNDS = {
+    # Approximate bounds for digest fallback country inference.
+    "CZ": (48.3, 51.2, 12.0, 18.9),
+    "SK": (47.7, 49.7, 16.8, 22.7),
+    "AT": (46.3, 49.1, 9.3, 17.3),
+    "DE": (47.2, 55.1, 5.8, 15.1),
+    "PL": (49.0, 54.9, 14.1, 24.2),
+}
 
 
 def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
@@ -120,13 +128,89 @@ def _candidate_has_matching_signal(candidate_profile) -> bool:
     skills = candidate_profile.get("skills") or []
     cv_text = str(candidate_profile.get("cv_text") or "").strip()
     cv_ai_text = str(candidate_profile.get("cv_ai_text") or "").strip()
-    return bool((isinstance(skills, list) and len(skills) > 0) or cv_text or cv_ai_text)
+    job_title = str(candidate_profile.get("job_title") or "").strip()
+    return bool((isinstance(skills, list) and len(skills) > 0) or cv_text or cv_ai_text or job_title)
+
+
+def _country_from_coordinates(lat: Optional[float], lng: Optional[float]) -> Optional[str]:
+    if lat is None or lng is None:
+        return None
+    try:
+        lat_f = float(lat)
+        lng_f = float(lng)
+    except Exception:
+        return None
+
+    for code, (min_lat, max_lat, min_lng, max_lng) in _COUNTRY_BOUNDS.items():
+        if min_lat <= lat_f <= max_lat and min_lng <= lng_f <= max_lng:
+            return code
+    return None
+
+
+def _country_from_address(address: Optional[str]) -> Optional[str]:
+    text = str(address or "").strip().lower()
+    if not text:
+        return None
+
+    mapping = {
+        "CZ": ("czech", "czechia", "čes", "cesk", "praha", "brno", "ostrava"),
+        "SK": ("slovak", "slovensko", "bratislava", "košice", "kosice"),
+        "PL": ("poland", "polska", "warsz", "krakow", "kraków"),
+        "DE": ("germany", "deutschland", "berlin", "münchen", "munich"),
+        "AT": ("austria", "österreich", "osterreich", "wien", "vienna"),
+    }
+    for code, keywords in mapping.items():
+        if any(keyword in text for keyword in keywords):
+            return code
+    return None
+
+
+def _resolve_digest_country_code(
+    preferred_country_code: Optional[str],
+    preferred_locale: Optional[str],
+    candidate_profile,
+    c_lat: Optional[float],
+    c_lng: Optional[float],
+) -> Optional[str]:
+    preferred = str(preferred_country_code or "").strip().upper()
+    if preferred:
+        return preferred
+
+    by_coordinates = _country_from_coordinates(c_lat, c_lng)
+    if by_coordinates:
+        return by_coordinates
+
+    locale = str(preferred_locale or "").strip().lower()
+    if locale.startswith("cs"):
+        return "CZ"
+    if locale.startswith("sk"):
+        return "SK"
+    if locale.startswith("pl"):
+        return "PL"
+    if locale.startswith("de"):
+        # Keep German locale broad, do not force DE/AT split.
+        return None
+
+    profile_obj = candidate_profile[0] if isinstance(candidate_profile, list) and candidate_profile else candidate_profile
+    if isinstance(profile_obj, dict):
+        return _country_from_address(profile_obj.get("address"))
+    return None
+
+
+def _job_in_country(job: Dict, country_code: Optional[str]) -> bool:
+    required = str(country_code or "").strip().upper()
+    if not required:
+        return True
+    job_country = str(job.get("country_code") or "").strip().upper()
+    if not job_country:
+        return False
+    return job_country == required
 
 
 def _fetch_newest_local_jobs(
     c_lat: Optional[float],
     c_lng: Optional[float],
-    preferred_country_code: Optional[str],
+    country_code: Optional[str],
     limit: int = 5,
 ) -> List[Dict]:
     if not supabase:
@@ -140,8 +224,8 @@ def _fetch_newest_local_jobs(
             .order("scraped_at", desc=True)
             .limit(250)
         )
-        if preferred_country_code:
-            query = query.eq("country_code", str(preferred_country_code).upper())
+        if country_code:
+            query = query.eq("country_code", str(country_code).upper())
         resp = query.execute()
     except Exception as exc:
         print(f"⚠️ Fallback local jobs query failed: {exc}")
@@ -150,6 +234,8 @@ def _fetch_newest_local_jobs(
     rows = resp.data or []
     picks: List[Dict] = []
     for job in rows:
+        if not _job_in_country(job, country_code):
+            continue
         remote = _is_remote_job(job)
         if not remote:
             j_lat = job.get("lat")
@@ -190,7 +276,7 @@ def run_daily_job_digest() -> None:
             .select(
                 "id,email,full_name,preferred_locale,preferred_country_code,daily_digest_enabled,daily_digest_last_sent_at,"
                 "daily_digest_time,daily_digest_timezone,daily_digest_push_enabled,"
-                "candidate_profiles(lat,lng,address,skills,cv_text,cv_ai_text)"
+                "candidate_profiles(lat,lng,address,job_title,skills,cv_text,cv_ai_text)"
             )
             .eq("role", "candidate")
             .execute()
@@ -216,6 +302,13 @@ def run_daily_job_digest() -> None:
 
         candidate_profile = row.get("candidate_profiles")
         c_lat, c_lng = _candidate_location(candidate_profile)
+        digest_country_code = _resolve_digest_country_code(
+            preferred_country_code=row.get("preferred_country_code"),
+            preferred_locale=row.get("preferred_locale"),
+            candidate_profile=candidate_profile,
+            c_lat=c_lat,
+            c_lng=c_lng,
+        )
         has_matching_signal = _candidate_has_matching_signal(candidate_profile)
 
         digest_jobs: List[Dict] = []
@@ -225,6 +318,9 @@ def run_daily_job_digest() -> None:
                 job = item.get("job") or {}
                 job_id = job.get("id")
                 if not job_id:
+                    continue
+
+                if not _job_in_country(job, digest_country_code):
                     continue
 
                 remote = _is_remote_job(job)
@@ -259,14 +355,14 @@ def run_daily_job_digest() -> None:
             digest_jobs = _fetch_newest_local_jobs(
                 c_lat=c_lat,
                 c_lng=c_lng,
-                preferred_country_code=row.get("preferred_country_code"),
+                country_code=digest_country_code,
                 limit=5,
             )
 
         if not digest_jobs:
             continue
 
-        locale = _resolve_locale(row.get("preferred_locale"), row.get("preferred_country_code"))
+        locale = _resolve_locale(row.get("preferred_locale"), digest_country_code)
         unsubscribe_url = ""
         if email_enabled:
             unsubscribe_token = make_unsubscribe_token(user_id, email)
