@@ -311,8 +311,12 @@ export const formatJobDescription = (description: string): string => {
     const inlineHeadingLooseRegex = new RegExp(`\\s*(${INLINE_HEADINGS.map(escapeRegex).join('|')})(?=\\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])`, 'gi');
 
     const rawLines = description
+        // Repair common OCR/scrape issue: missing space after sentence punctuation.
+        .replace(/([.!?])(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1 ')
         .replace(inlineHeadingLooseRegex, '\n$1:\n')
         .replace(inlineHeadingRegex, '\n$1:\n')
+        // Convert inline " - item" segments into real bullet lines.
+        .replace(/\s-\s(?=(?:[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9]|[^\w\s]))/g, '\n- ')
         // Preserve list-like separators into newlines so we can render bullets naturally.
         .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
         .replace(/\s{2,}/g, ' ')
@@ -1108,8 +1112,10 @@ export const formatJobDescription = (description: string): string => {
 
     const splitInlineList = (text: string): string[] => {
         const normalized = text
+            .replace(/([.!?])(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1 ')
             .replace(inlineHeadingLooseRegex, '\n$1:\n')
             .replace(inlineHeadingRegex, '\n$1:\n')
+            .replace(/\s-\s(?=(?:[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9]|[^\w\s]))/g, '\n- ')
             .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
             .replace(/\s{2,}/g, ' ');
         let pieces = normalized
