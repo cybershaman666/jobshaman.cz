@@ -161,6 +161,7 @@ export default function App() {
 
     const onboardingDismissedRef = useRef(false);
     const welcomeEmailAttemptedRef = useRef(false);
+    const passwordRecoveryInProgressRef = useRef(false);
 
 
     // Use custom hooks
@@ -608,16 +609,22 @@ export default function App() {
 
                 if (session) {
                     if (event === 'PASSWORD_RECOVERY') {
+                        passwordRecoveryInProgressRef.current = true;
                         setAuthModalMode('reset');
                         setIsAuthModalOpen(true);
+                        if (window.location.hash.includes('type=recovery')) {
+                            window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}`);
+                        }
                         return;
                     }
                     // Restore on explicit sign-in and OAuth returns (INITIAL_SESSION)
                     if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-                        // Ensure auth modal doesn't block onboarding/dashboard
-                        setIsAuthModalOpen(false);
                         if (!userProfile.isLoggedIn) {
                             handleSessionRestoration(session.user.id);
+                        }
+                        // Do not auto-close auth modal while password recovery flow is active.
+                        if (!passwordRecoveryInProgressRef.current) {
+                            setIsAuthModalOpen(false);
                         }
                     }
                 } else if (event === 'SIGNED_OUT') {
@@ -644,8 +651,10 @@ export default function App() {
 
             const recoveryHash = window.location.hash || '';
             if (recoveryHash.includes('type=recovery')) {
+                passwordRecoveryInProgressRef.current = true;
                 setAuthModalMode('reset');
                 setIsAuthModalOpen(true);
+                window.history.replaceState({}, '', `${window.location.pathname}${window.location.search}`);
             }
 
             if (parts[0] === 'jobs') {
@@ -1815,8 +1824,16 @@ export default function App() {
 
             <AuthModal
                 isOpen={isAuthModalOpen}
-                onClose={() => setIsAuthModalOpen(false)}
-                onSuccess={() => setIsAuthModalOpen(false)}
+                onClose={() => {
+                    setIsAuthModalOpen(false);
+                    passwordRecoveryInProgressRef.current = false;
+                    setAuthModalMode('login');
+                }}
+                onSuccess={() => {
+                    setIsAuthModalOpen(false);
+                    passwordRecoveryInProgressRef.current = false;
+                    setAuthModalMode('login');
+                }}
                 defaultMode={authModalMode}
             />
 
