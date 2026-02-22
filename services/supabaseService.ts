@@ -1753,6 +1753,13 @@ export const fetchBenefitValuations = async () => {
 // CV DOCUMENT MANAGEMENT
 // ========================================
 
+const extractMissingColumnFromSchemaCacheError = (error: any): string | null => {
+    if (!error || String(error.code || '') !== 'PGRST204') return null;
+    const message = String(error.message || '');
+    const match = message.match(/Could not find the '([^']+)' column/i);
+    return match?.[1] || null;
+};
+
 export const getUserCVDocuments = async (userId: string): Promise<CVDocument[]> => {
     if (!supabase) return [];
 
@@ -1841,14 +1848,12 @@ export const getUserCVDocuments = async (userId: string): Promise<CVDocument[]> 
                 .from('cv_documents')
                 .insert(insertPayload);
 
-            // Backward compatibility for deployments where cv_documents.parsed_at
-            // has not been added yet.
-            if (
-                insertError &&
-                (insertError as any).code === 'PGRST204' &&
-                String((insertError as any).message || '').includes("'parsed_at'")
-            ) {
-                delete insertPayload.parsed_at;
+            // Backward compatibility across partially migrated DB schemas:
+            // retry insert after removing unknown columns reported by PostgREST.
+            for (let i = 0; insertError && i < 6; i++) {
+                const missingColumn = extractMissingColumnFromSchemaCacheError(insertError);
+                if (!missingColumn || !(missingColumn in insertPayload)) break;
+                delete insertPayload[missingColumn];
                 const retry = await supabase
                     .from('cv_documents')
                     .insert(insertPayload);
@@ -1921,23 +1926,38 @@ export const uploadCVDocument = async (
             .getPublicUrl(safeFileName);
 
         // SECURITY: Insert with additional security checks
-        const { data, error } = await supabase
+        const insertPayload: any = {
+            user_id: userId,
+            file_name: safeFileName,
+            original_name: sanitizeFileName(file.name),
+            file_url: urlData.publicUrl,
+            file_size: file.size,
+            content_type: file.type,
+            is_active: false,
+            label: meta.label || null,
+            locale: meta.locale || null,
+            virus_scan_status: 'pending', // Add virus scanning
+            upload_ip: null // Could be passed from client for IP tracking
+        };
+
+        let { data, error } = await supabase
             .from('cv_documents')
-            .insert({
-                user_id: userId,
-                file_name: safeFileName,
-                original_name: sanitizeFileName(file.name),
-                file_url: urlData.publicUrl,
-                file_size: file.size,
-                content_type: file.type,
-                is_active: false,
-                label: meta.label || null,
-                locale: meta.locale || null,
-                virus_scan_status: 'pending', // Add virus scanning
-                upload_ip: null // Could be passed from client for IP tracking
-            })
+            .insert(insertPayload)
             .select()
             .single();
+
+        for (let i = 0; error && i < 6; i++) {
+            const missingColumn = extractMissingColumnFromSchemaCacheError(error);
+            if (!missingColumn || !(missingColumn in insertPayload)) break;
+            delete insertPayload[missingColumn];
+            const retry = await supabase
+                .from('cv_documents')
+                .insert(insertPayload)
+                .select()
+                .single();
+            data = retry.data;
+            error = retry.error;
+        }
 
         if (error) {
             // SECURITY: Cleanup failed upload
