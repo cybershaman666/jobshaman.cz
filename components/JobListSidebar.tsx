@@ -1,4 +1,4 @@
-import React, { RefObject, useEffect, useRef } from 'react';
+import React, { RefObject, useEffect, useRef, useState } from 'react';
 import { Job, UserProfile } from '../types';
 import JobCard from './JobCard';
 import {
@@ -13,7 +13,8 @@ import {
     RefreshCw,
     Globe,
     ArrowUp,
-    AlertTriangle
+    AlertTriangle,
+    Info
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { FilterSuggestions } from './FilterSuggestions';
@@ -121,6 +122,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     onTrackImpression
 }) => {
     const { t, i18n } = useTranslation();
+    const [showSortExplain, setShowSortExplain] = useState(false);
     const hasNearConstraintMatches = filteredJobs.some((job) => job.constraint_mode === 'near');
     const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const seenImpressionsRef = useRef<Set<string>>(new Set());
@@ -164,6 +166,12 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
 
         return () => observer.disconnect();
     }, [filteredJobs, jobListRef, onTrackImpression]);
+
+    useEffect(() => {
+        if (sortBy !== 'recommended') {
+            setShowSortExplain(false);
+        }
+    }, [sortBy]);
 
     const handleScrollToTop = () => {
         jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -226,23 +234,41 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                 </select>
                             </div>
 
-                            <div>
+                            <div className="relative">
                                 <label className="sr-only">
                                     {t('filters.sort_by')}
                                 </label>
-                                <select
-                                    value={sortBy}
-                                    onChange={(e) => setSortBy(e.target.value)}
-                                    aria-label={t('filters.sort_by')}
-                                    className={`w-full ${compactFilters ? 'px-2.5 py-1.5 text-[13px]' : 'px-2.5 py-1.5 text-[13px]'} bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500`}
-                                >
-                                    <option value="recommended">{t('filters.sort_options.recommended')}</option>
-                                    <option value="default">{t('filters.sort_options.default')}</option>
-                                    <option value="newest">{t('filters.sort_options.newest')}</option>
-                                    <option value="jhi_desc">{t('filters.sort_options.jhi_desc')}</option>
-                                    <option value="jhi_asc">{t('filters.sort_options.jhi_asc')}</option>
-                                    <option value="personalized_jhi_desc">{t('filters.sort_options.personalized_jhi_desc')}</option>
-                                </select>
+                                <div className="flex items-center gap-1">
+                                    <select
+                                        value={sortBy}
+                                        onChange={(e) => setSortBy(e.target.value)}
+                                        aria-label={t('filters.sort_by')}
+                                        className={`w-full ${compactFilters ? 'px-2.5 py-1.5 text-[13px]' : 'px-2.5 py-1.5 text-[13px]'} bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-700 rounded-md text-slate-900 dark:text-slate-200 focus:outline-none focus:border-cyan-500`}
+                                    >
+                                        <option value="recommended">{t('filters.sort_options.recommended')}</option>
+                                        <option value="default">{t('filters.sort_options.default')}</option>
+                                        <option value="newest">{t('filters.sort_options.newest')}</option>
+                                        <option value="jhi_desc">{t('filters.sort_options.jhi_desc')}</option>
+                                        <option value="jhi_asc">{t('filters.sort_options.jhi_asc')}</option>
+                                        <option value="personalized_jhi_desc">{t('filters.sort_options.personalized_jhi_desc')}</option>
+                                    </select>
+                                    {sortBy === 'recommended' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowSortExplain((prev) => !prev)}
+                                            className="inline-flex items-center justify-center w-6 h-6 rounded-full border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 hover:text-cyan-600 dark:hover:text-cyan-400 hover:border-cyan-300 dark:hover:border-cyan-700 transition-colors shrink-0"
+                                            aria-label={t('filters.sort_explain.recommended')}
+                                            aria-expanded={showSortExplain}
+                                        >
+                                            <Info size={14} />
+                                        </button>
+                                    )}
+                                </div>
+                                {sortBy === 'recommended' && showSortExplain && (
+                                    <div className="absolute top-full right-0 mt-1 z-20 w-64 rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-2 text-[11px] leading-snug text-slate-600 dark:text-slate-300 shadow-md">
+                                        {t('filters.sort_explain.recommended')}
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

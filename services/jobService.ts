@@ -1743,9 +1743,10 @@ export const fetchJobsWithFilters = async (
                 (job as any).behavior_prior_score = row.behavior_prior_score;
                 (job as any).searchScore = row.hybrid_score;
                 (job as any).rankPosition = row.rank_position;
-                (job as any).aiMatchScore = toAiMatchPercent(
-                    row.profile_fit_score ?? row.hybrid_score ?? row.search_score
-                );
+                const displayScoreSource = sortMode === 'recommended'
+                    ? (row.hybrid_score ?? row.profile_fit_score ?? row.search_score)
+                    : (row.profile_fit_score ?? row.hybrid_score ?? row.search_score);
+                (job as any).aiMatchScore = toAiMatchPercent(displayScoreSource);
                 (job as any).requestId = hybridPayload.request_id;
                 (job as any).aiRecommendationRequestId = hybridPayload.request_id;
                 (job as any).aiRecommendationPosition = row.rank_position;
@@ -1782,9 +1783,10 @@ export const fetchJobsWithFilters = async (
                     verification_notes: row.verification_notes
                 });
                 (job as any).distance_km = row.distance_km;
-                (job as any).aiMatchScore = toAiMatchPercent(
-                    row.profile_fit_score ?? row.hybrid_score ?? row.search_score
-                );
+                const displayScoreSource = sortMode === 'recommended'
+                    ? (row.hybrid_score ?? row.profile_fit_score ?? row.search_score)
+                    : (row.profile_fit_score ?? row.hybrid_score ?? row.search_score);
+                (job as any).aiMatchScore = toAiMatchPercent(displayScoreSource);
                 return job;
             });
         };
