@@ -1311,16 +1311,30 @@
         },
         "basic_v2": {
           "desc": "For startups and smaller agencies.",
-          "f1": "5 job posts",
-          "f2": "5 AI assessments",
-          "f3": "Basic matching",
-          "name": "Basic"
+          "f1": "3 active job postings",
+          "f2": "15 AI screenings / month",
+          "f3": "Basic decision overview",
+          "name": "Starter"
+        },
+        "growth": {
+          "desc": "For SMEs and active recruiters.",
+          "f1": "10 active job postings",
+          "f2": "60 AI screenings / month",
+          "f3": "JHI insights",
+          "name": "Growth"
         },
         "professional": {
-          "desc": "For SMEs and active recruiters.",
-          "f1": "20 job posts",
-          "f2": "50 AI assessments",
-          "f3": "JHI insights",
+          "desc": "For larger hiring teams.",
+          "f1": "20 active job postings",
+          "f2": "150 AI screenings / month",
+          "f3": "Decision analytics dashboard",
+          "name": "Professional"
+        },
+        "professional_pro": {
+          "desc": "For larger hiring teams with analytics needs.",
+          "f1": "20 active job postings",
+          "f2": "150 AI screenings / month",
+          "f3": "Decision analytics dashboard",
           "name": "Professional"
         },
         "trial": {

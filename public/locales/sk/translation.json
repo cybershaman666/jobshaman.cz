@@ -1331,16 +1331,30 @@
         },
         "basic_v2": {
           "desc": "Pre startupy a menšie agentúry.",
-          "f1": "5 inzerátov",
-          "f2": "5 AI assessmentov",
-          "f3": "Základný matching",
-          "name": "Basic"
+          "f1": "3 aktívne inzeráty",
+          "f2": "15 AI screeningov / mesiac",
+          "f3": "Základný decision overview",
+          "name": "Starter"
+        },
+        "growth": {
+          "desc": "Pre SME a aktívnych recruiterov.",
+          "f1": "10 aktívnych inzerátov",
+          "f2": "60 AI screeningov / mesiac",
+          "f3": "JHI Insights",
+          "name": "Growth"
         },
         "professional": {
-          "desc": "Pre SME a aktívnych recruiterov.",
-          "f1": "20 inzerátov",
-          "f2": "50 AI assessmentov",
-          "f3": "JHI Insights",
+          "desc": "Pre väčšie hiring tímy.",
+          "f1": "20 aktívnych inzerátov",
+          "f2": "150 AI screeningov / mesiac",
+          "f3": "Decision analytics dashboard",
+          "name": "Professional"
+        },
+        "professional_pro": {
+          "desc": "Pre väčšie hiring tímy s potrebou analytiky.",
+          "f1": "20 aktívnych inzerátov",
+          "f2": "150 AI screeningov / mesiac",
+          "f3": "Decision analytics dashboard",
           "name": "Professional"
         },
         "trial": {
