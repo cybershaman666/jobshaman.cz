@@ -177,6 +177,11 @@ export default function App() {
         deleteAccount,
         handleSessionRestoration
     } = useUserProfile();
+    const userProfileRef = useRef<UserProfile>(userProfile);
+
+    useEffect(() => {
+        userProfileRef.current = userProfile;
+    }, [userProfile]);
 
     const onboardingStorageKey = useMemo(() => {
         return userProfile.id ? `jobshaman_candidate_onboarding_seen:${userProfile.id}` : null;
@@ -1106,6 +1111,7 @@ export default function App() {
 
     const handleProfileUpdate = async (updatedProfile: UserProfile, persist: boolean = false) => {
         try {
+            userProfileRef.current = updatedProfile;
             setUserProfile(updatedProfile);
 
             // Auto-enable commute filter if address is added and filter wasn't on (only once)
@@ -1124,6 +1130,7 @@ export default function App() {
                 // Refetch to sync (only on explicit persistence)
                 const fresh = await getUserProfile(updatedProfile.id);
                 if (fresh) {
+                    userProfileRef.current = fresh;
                     setUserProfile(fresh);
                 }
             }
@@ -1133,17 +1140,19 @@ export default function App() {
     };
 
     const handleProfileSave = async (): Promise<boolean> => {
-        if (!userProfile.id) return false;
+        const profileToSave = userProfileRef.current;
+        if (!profileToSave.id) return false;
 
         try {
             console.log("💾 Explicitly saving profile to Supabase...");
-            await updateUserProfile(userProfile.id, userProfile);
+            await updateUserProfile(profileToSave.id, profileToSave);
             console.log("✅ Profile saved successfully");
 
             // 🔄 Refetch profile to get updated coordinates from DB calculated by triggers or service logic
             console.log("🔄 Refetching profile to sync coordinates...");
-            const freshProfile = await getUserProfile(userProfile.id);
+            const freshProfile = await getUserProfile(profileToSave.id);
             if (freshProfile) {
+                userProfileRef.current = freshProfile;
                 setUserProfile(freshProfile);
                 console.log("✅ Profile refetched. New coordinates:", freshProfile.coordinates);
             }
