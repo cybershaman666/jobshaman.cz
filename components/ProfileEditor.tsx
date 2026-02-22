@@ -1028,8 +1028,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         <p className="text-lg font-medium text-slate-900 dark:text-white mb-2">
                           {t('profile.cv_uploaded')}
                         </p>
-                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                          {profile.cvText || t('profile.cv_analyze_ready')}
+                        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 flex items-center justify-center gap-2">
+                          <CheckCircle className="w-4 h-4 text-emerald-500" />
+                          <span>{t('profile.cv_upload_success')}</span>
                         </p>
                         <button
                           onClick={() => cvInputRef.current?.click()}
@@ -1059,15 +1060,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     )}
                   </div>
                 </div>
-
-                {profile.cvUrl && (
-                  <div className="mt-4 p-4 bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg">
-                    <h4 className="font-medium text-cyan-900 dark:text-cyan-100 mb-2">{t('profile.cv_analysis_title')}</h4>
-                    <p className="text-sm text-cyan-700 dark:text-cyan-300">
-                      {t('profile.cv_analysis_desc')}
-                    </p>
-                  </div>
-                )}
 
                 {profile.id && (
                   <div className="mt-6 border-t border-slate-200 dark:border-slate-700 pt-6">
