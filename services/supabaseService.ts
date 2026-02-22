@@ -1822,22 +1822,38 @@ export const getUserCVDocuments = async (userId: string): Promise<CVDocument[]> 
                 .update({ is_active: false })
                 .eq('user_id', userId);
 
-            const { error: insertError } = await supabase
+            const insertPayload: any = {
+                user_id: userId,
+                file_name: filePath,
+                original_name: originalName,
+                file_url: profileCvUrl,
+                file_size: 0,
+                content_type: contentType,
+                is_active: true,
+                parsed_data: parsedData,
+                parsed_at: new Date().toISOString(),
+                uploaded_at: new Date().toISOString(),
+                last_used: new Date().toISOString(),
+                virus_scan_status: 'pending'
+            };
+
+            let { error: insertError } = await supabase
                 .from('cv_documents')
-                .insert({
-                    user_id: userId,
-                    file_name: filePath,
-                    original_name: originalName,
-                    file_url: profileCvUrl,
-                    file_size: 0,
-                    content_type: contentType,
-                    is_active: true,
-                    parsed_data: parsedData,
-                    parsed_at: new Date().toISOString(),
-                    uploaded_at: new Date().toISOString(),
-                    last_used: new Date().toISOString(),
-                    virus_scan_status: 'pending'
-                });
+                .insert(insertPayload);
+
+            // Backward compatibility for deployments where cv_documents.parsed_at
+            // has not been added yet.
+            if (
+                insertError &&
+                (insertError as any).code === 'PGRST204' &&
+                String((insertError as any).message || '').includes("'parsed_at'")
+            ) {
+                delete insertPayload.parsed_at;
+                const retry = await supabase
+                    .from('cv_documents')
+                    .insert(insertPayload);
+                insertError = retry.error;
+            }
 
             if (insertError) {
                 console.warn('Failed to backfill missing active CV document:', insertError);
@@ -2128,14 +2144,31 @@ export const updateCVDocumentParsedData = async (
 ): Promise<boolean> => {
     if (!supabase) return false;
     try {
-        const { error } = await supabase
+        const updatePayload: any = {
+            parsed_data: parsedData,
+            parsed_at: new Date().toISOString()
+        };
+
+        let { error } = await supabase
             .from('cv_documents')
-            .update({
-                parsed_data: parsedData,
-                parsed_at: new Date().toISOString()
-            })
+            .update(updatePayload)
             .eq('id', cvId)
             .eq('user_id', userId);
+
+        if (
+            error &&
+            (error as any).code === 'PGRST204' &&
+            String((error as any).message || '').includes("'parsed_at'")
+        ) {
+            delete updatePayload.parsed_at;
+            const retry = await supabase
+                .from('cv_documents')
+                .update(updatePayload)
+                .eq('id', cvId)
+                .eq('user_id', userId);
+            error = retry.error;
+        }
+
         if (error) {
             console.error('CV parsed data update error:', error);
             return false;
