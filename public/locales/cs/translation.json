@@ -1666,15 +1666,15 @@
       "variants": {
         "problem_first": {
           "line1": "Přestaňte hádat svou tržní hodnotu.",
-          "line2": "Uvidíte realitu tam, kde ostatní jen hádají."
+          "line2": "Uvidíte realitu tam, kde ostatní jen tipují."
         },
         "aspiration_first": {
           "line1": "Přestaňte hádat svou tržní hodnotu.",
-          "line2": "Uvidíte realitu tam, kde ostatní jen hádají."
+          "line2": "Uvidíte realitu tam, kde ostatní jen tipují."
         },
         "efficiency_first": {
           "line1": "Přestaňte hádat svou tržní hodnotu.",
-          "line2": "Uvidíte realitu tam, kde ostatní jen hádají."
+          "line2": "Uvidíte realitu tam, kde ostatní jen tipují."
         }
       },
       "visual": {
