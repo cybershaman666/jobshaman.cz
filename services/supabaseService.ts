@@ -225,6 +225,12 @@ export const signOut = async (): Promise<void> => {
     await supabase.auth.signOut();
 };
 
+export const updateCurrentUserPassword = async (newPassword: string): Promise<void> => {
+    if (!supabase) throw new Error("Supabase not configured");
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw error;
+};
+
 export const signInWithOAuthProvider = async (provider: 'google' | 'linkedin_oidc') => {
     if (!supabase) throw new Error("Supabase not configured");
 
@@ -1750,18 +1756,100 @@ export const fetchBenefitValuations = async () => {
 export const getUserCVDocuments = async (userId: string): Promise<CVDocument[]> => {
     if (!supabase) return [];
 
-    const { data, error } = await supabase
-        .from('cv_documents')
-        .select('*')
-        .eq('user_id', userId)
-        .order('uploaded_at', { ascending: false });
+    const fetchDocuments = async (): Promise<any[]> => {
+        const { data, error } = await supabase
+            .from('cv_documents')
+            .select('*')
+            .eq('user_id', userId)
+            .order('uploaded_at', { ascending: false });
 
-    if (error) {
-        console.error('Error fetching CV documents:', error);
-        return [];
+        if (error) {
+            console.error('Error fetching CV documents:', error);
+            return [];
+        }
+        return data || [];
+    };
+
+    let docs = await fetchDocuments();
+
+    // Backfill: if candidate profile has a CV URL that is not represented in cv_documents,
+    // create a document row so CV Manager can edit/delete/select it.
+    try {
+        const { data: candidate } = await supabase
+            .from('candidate_profiles')
+            .select('cv_url, cv_text, cv_ai_text, skills, work_history, education, job_title')
+            .eq('id', userId)
+            .maybeSingle();
+
+        const profileCvUrl = String((candidate as any)?.cv_url || '').trim();
+        const alreadyListed = profileCvUrl
+            ? docs.some((doc: any) => String(doc?.file_url || '').trim() === profileCvUrl)
+            : true;
+
+        if (profileCvUrl && !alreadyListed) {
+            const derivePathFromUrl = (url: string): string => {
+                try {
+                    const parsed = new URL(url);
+                    const marker = '/object/public/cvs/';
+                    const idx = parsed.pathname.indexOf(marker);
+                    if (idx >= 0) return decodeURIComponent(parsed.pathname.slice(idx + marker.length));
+                    return decodeURIComponent(parsed.pathname.replace(/^\/+/, ''));
+                } catch {
+                    return url;
+                }
+            };
+
+            const filePath = derivePathFromUrl(profileCvUrl);
+            const originalName = sanitizeFileName(filePath.split('/').pop() || 'legacy-cv.pdf');
+            const fileExt = (originalName.split('.').pop() || '').toLowerCase();
+            const contentType = fileExt === 'pdf'
+                ? 'application/pdf'
+                : (fileExt === 'docx'
+                    ? 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+                    : (fileExt === 'doc' ? 'application/msword' : 'application/octet-stream'));
+
+            const parsedData = {
+                cvText: (candidate as any)?.cv_text || '',
+                cvAiText: (candidate as any)?.cv_ai_text || '',
+                skills: (candidate as any)?.skills || [],
+                workHistory: (candidate as any)?.work_history || [],
+                education: (candidate as any)?.education || [],
+                jobTitle: (candidate as any)?.job_title || ''
+            };
+
+            await supabase
+                .from('cv_documents')
+                .update({ is_active: false })
+                .eq('user_id', userId);
+
+            const { error: insertError } = await supabase
+                .from('cv_documents')
+                .insert({
+                    user_id: userId,
+                    file_name: filePath,
+                    original_name: originalName,
+                    file_url: profileCvUrl,
+                    file_size: 0,
+                    content_type: contentType,
+                    is_active: true,
+                    parsed_data: parsedData,
+                    parsed_at: new Date().toISOString(),
+                    uploaded_at: new Date().toISOString(),
+                    last_used: new Date().toISOString(),
+                    virus_scan_status: 'pending'
+                });
+
+            if (insertError) {
+                console.warn('Failed to backfill missing active CV document:', insertError);
+            } else {
+                docs = await fetchDocuments();
+            }
+        }
+    } catch (backfillError) {
+        console.warn('CV documents backfill check failed:', backfillError);
     }
 
-    return (data || []).map((doc: any) => ({
+    return docs.map((doc: any) => ({
         id: doc.id,
         userId: doc.user_id,
         fileName: doc.file_name,

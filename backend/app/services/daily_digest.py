@@ -90,19 +90,23 @@ def _should_send_now(last_sent: Optional[str], digest_time: time, tz_name: str) 
 
     now_local = datetime.now(tz)
     today = now_local.date()
+    window_start = datetime.combine(today, digest_time, tzinfo=tz)
+    window_end = window_start + timedelta(minutes=_DIGEST_WINDOW_MINUTES)
 
     if last_sent:
         try:
             dt = datetime.fromisoformat(str(last_sent).replace("Z", "+00:00"))
             if dt.tzinfo is None:
                 dt = dt.replace(tzinfo=timezone.utc)
-            if dt.astimezone(tz).date() == today:
+            last_local = dt.astimezone(tz)
+            # Default behavior: only one digest per day.
+            # Exception: if user changed digest time to a later slot today and the
+            # previous send happened before today's new window, allow one resend.
+            if last_local.date() == today and last_local >= window_start:
                 return False
         except Exception:
             pass
 
-    window_start = datetime.combine(today, digest_time, tzinfo=tz)
-    window_end = window_start + timedelta(minutes=_DIGEST_WINDOW_MINUTES)
     return window_start <= now_local <= window_end
 
 
@@ -264,6 +268,45 @@ def _fetch_newest_local_jobs(
     return picks
 
 
+def _fetch_newest_jobs_relaxed(limit: int = 5) -> List[Dict]:
+    """Last-resort fallback to avoid silent digest drops when strict filters return no jobs."""
+    if not supabase:
+        return []
+
+    try:
+        resp = (
+            supabase.table("jobs")
+            .select("id,title,company,location,scraped_at")
+            .eq("legality_status", "legal")
+            .order("scraped_at", desc=True)
+            .limit(100)
+            .execute()
+        )
+    except Exception as exc:
+        print(f"⚠️ Relaxed fallback jobs query failed: {exc}")
+        return []
+
+    rows = resp.data or []
+    picks: List[Dict] = []
+    for job in rows:
+        job_id = job.get("id")
+        if not job_id:
+            continue
+        picks.append(
+            {
+                "id": job_id,
+                "title": job.get("title") or "",
+                "company": job.get("company") or "",
+                "location": job.get("location") or "",
+                "match_score": None,
+                "detail_url": f"{_APP_URL}/jobs/{job_id}",
+            }
+        )
+        if len(picks) >= limit:
+            break
+    return picks
+
+
 def run_daily_job_digest() -> None:
     if not supabase:
         return
@@ -286,18 +329,27 @@ def run_daily_job_digest() -> None:
         return
 
     rows = resp.data or []
+    print(f"📬 Daily digest candidates loaded: {len(rows)}")
     for row in rows:
         user_id = row.get("id")
         email = row.get("email")
         email_enabled = bool(row.get("daily_digest_enabled")) and bool(email)
         push_enabled = bool(row.get("daily_digest_push_enabled")) and is_push_configured()
         if not user_id or (not email_enabled and not push_enabled):
+            print(
+                f"⏭️ [Digest] skipped user={user_id}: "
+                f"email_enabled={email_enabled}, push_enabled={push_enabled}, has_email={bool(email)}"
+            )
             continue
 
         digest_time = _parse_digest_time(row.get("daily_digest_time"))
         digest_tz = row.get("daily_digest_timezone") or _DEFAULT_TZ
         last_sent = row.get("daily_digest_last_sent_at")
         if not _should_send_now(last_sent, digest_time, digest_tz):
+            print(
+                f"⏭️ [Digest] outside window user={user_id}: "
+                f"time={digest_time}, tz={digest_tz}, last_sent={last_sent}"
+            )
             continue
 
         candidate_profile = row.get("candidate_profiles")
@@ -358,8 +410,15 @@ def run_daily_job_digest() -> None:
                 country_code=digest_country_code,
                 limit=5,
             )
+            if not digest_jobs:
+                print(
+                    f"⚠️ [Digest] strict/local selection returned 0 jobs for user={user_id}; "
+                    "using relaxed fallback."
+                )
+                digest_jobs = _fetch_newest_jobs_relaxed(limit=5)
 
         if not digest_jobs:
+            print(f"⏭️ [Digest] skipped user={user_id}: no jobs available even after relaxed fallback")
             continue
 
         locale = _resolve_locale(row.get("preferred_locale"), digest_country_code)

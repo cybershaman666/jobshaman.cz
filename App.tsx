@@ -29,6 +29,7 @@ import { verifyServerSideBilling } from './services/serverSideBillingService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
 import { checkPaymentStatus } from './services/stripeService';
 import { clearCsrfToken } from './services/csrfService';
+import { clearPasswordRecoveryPending, isPasswordRecoveryPending } from './services/supabaseClient';
 import { trackPageView } from './services/trafficAnalytics';
 import { trackJobInteraction } from './services/jobInteractionService';
 import { sendWelcomeEmail } from './services/welcomeEmailService';
@@ -603,6 +604,12 @@ export default function App() {
                 }
             };
             initSession();
+
+            if (isPasswordRecoveryPending()) {
+                passwordRecoveryInProgressRef.current = true;
+                setAuthModalMode('reset');
+                setIsAuthModalOpen(true);
+            }
 
             const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
                 console.log(`🔔 [App] Auth state changed: ${event}`);
@@ -1827,11 +1834,13 @@ export default function App() {
                 onClose={() => {
                     setIsAuthModalOpen(false);
                     passwordRecoveryInProgressRef.current = false;
+                    clearPasswordRecoveryPending();
                     setAuthModalMode('login');
                 }}
                 onSuccess={() => {
                     setIsAuthModalOpen(false);
                     passwordRecoveryInProgressRef.current = false;
+                    clearPasswordRecoveryPending();
                     setAuthModalMode('login');
                 }}
                 defaultMode={authModalMode}
