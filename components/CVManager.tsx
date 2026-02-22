@@ -177,20 +177,20 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
 
   if (loading) {
     return (
-      <div className="p-6 bg-gray-50 rounded-lg">
+      <div className="p-6 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg">
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-          <span className="ml-3 text-gray-600">{t('app.loading')}</span>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 dark:border-cyan-400"></div>
+          <span className="ml-3 text-gray-600 dark:text-slate-300">{t('app.loading')}</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 bg-gray-50 rounded-lg">
+    <div className="p-6 bg-gray-50 dark:bg-slate-900 border border-gray-200 dark:border-slate-700 rounded-lg">
       <div className="flex justify-between items-center mb-6">
-        <h3 className="text-lg font-semibold text-gray-900">{t('cv_manager.title')}</h3>
-        <label className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">{t('cv_manager.title')}</h3>
+        <label className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 dark:bg-cyan-600 dark:hover:bg-cyan-500 cursor-pointer transition-colors">
           <Upload size={16} />
           <span>{t('cv_manager.upload_new')}</span>
           <input
@@ -204,18 +204,18 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
       </div>
 
       {uploading && (
-        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="mb-4 p-4 bg-blue-50 dark:bg-cyan-950/30 border border-blue-200 dark:border-cyan-800 rounded-lg">
           <div className="flex items-center">
-            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-3"></div>
-            <span className="text-blue-700">{t('profile.uploading')}</span>
+            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 dark:border-cyan-400 mr-3"></div>
+            <span className="text-blue-700 dark:text-cyan-300">{t('profile.uploading')}</span>
           </div>
         </div>
       )}
 
       <div className="space-y-3">
         {cvs.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <FileText size={48} className="mx-auto mb-4 text-gray-300" />
+          <div className="text-center py-8 text-gray-500 dark:text-slate-400">
+            <FileText size={48} className="mx-auto mb-4 text-gray-300 dark:text-slate-600" />
             <p>{t('cv_manager.no_cvs')}</p>
             <p className="text-sm">{t('cv_manager.first_cv_desc')}</p>
           </div>
@@ -224,36 +224,36 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
             <div
               key={cv.id}
               className={`p-4 border rounded-lg transition-all ${cv.isActive
-                ? 'border-blue-500 bg-blue-50 shadow-sm'
-                : 'border-gray-200 bg-white hover:border-gray-300'
+                ? 'border-blue-500 dark:border-cyan-500 bg-blue-50 dark:bg-cyan-950/25 shadow-sm'
+                : 'border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 hover:border-gray-300 dark:hover:border-slate-600'
                 }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
-                    <FileText size={20} className="text-gray-400" />
+                    <FileText size={20} className="text-gray-400 dark:text-slate-500" />
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h4 className="font-medium text-gray-900">{cv.label || cv.originalName}</h4>
+                        <h4 className="font-medium text-gray-900 dark:text-slate-100">{cv.label || cv.originalName}</h4>
                         {cv.locale && (
-                          <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
+                          <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-200">
                             {cv.locale}
                           </span>
                         )}
                         {!cv.label && (
-                          <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-50 text-slate-400">
+                          <span className="text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-50 dark:bg-slate-700/60 text-slate-400 dark:text-slate-300">
                             {t('cv_manager.no_label')}
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                      <div className="flex items-center gap-4 mt-1 text-sm text-gray-500 dark:text-slate-400">
                         <span className="flex items-center gap-1">
                           <Calendar size={14} />
                           {formatDate(cv.uploadedAt)}
                         </span>
                         <span>{formatFileSize(cv.fileSize)}</span>
                         {cv.isActive && (
-                          <span className="flex items-center gap-1 text-green-600 font-medium">
+                          <span className="flex items-center gap-1 text-green-600 dark:text-emerald-400 font-medium">
                             <Check size={14} />
                             {t('cv_manager.active')}
                           </span>
@@ -263,8 +263,8 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
                   </div>
 
                   {cv.parsedData && (
-                    <div className="mt-3 pt-3 border-t border-gray-200">
-                      <div className="text-sm text-gray-600">
+                    <div className="mt-3 pt-3 border-t border-gray-200 dark:border-slate-700">
+                      <div className="text-sm text-gray-600 dark:text-slate-300">
                         <span className="font-medium">
                           {t('cv_manager.stats', {
                             skills: cv.parsedData.skills?.length || 0,
@@ -280,7 +280,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
                 <div className="flex items-center gap-2 ml-4">
                   <button
                     onClick={() => handleReparseCV(cv.id)}
-                    className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                    className="p-2 text-indigo-600 dark:text-indigo-300 hover:bg-indigo-50 dark:hover:bg-indigo-500/15 rounded-lg transition-colors"
                     title={t('cv_manager.reparse')}
                     disabled={reparsingId === cv.id}
                   >
@@ -288,7 +288,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
                   </button>
                   <button
                     onClick={() => handleEditLabel(cv.id)}
-                    className="p-2 text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                    className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
                     title={t('cv_manager.edit_label')}
                   >
                     <Tag size={16} />
@@ -297,7 +297,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
                     href={cv.fileUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                    className="p-2 text-blue-600 dark:text-cyan-300 hover:bg-blue-50 dark:hover:bg-cyan-500/15 rounded-lg transition-colors"
                     title={t('cv_manager.download')}
                   >
                     <Download size={16} />
@@ -306,7 +306,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
                   {!cv.isActive && (
                     <button
                       onClick={() => handleSelectCV(cv.id)}
-                      className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                      className="p-2 text-green-600 dark:text-emerald-400 hover:bg-green-50 dark:hover:bg-emerald-500/15 rounded-lg transition-colors"
                       title={t('cv_manager.set_active')}
                     >
                       <Check size={16} />
@@ -315,7 +315,7 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
 
                   <button
                     onClick={() => handleDeleteCV(cv.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-red-600 dark:text-rose-400 hover:bg-red-50 dark:hover:bg-rose-500/15 rounded-lg transition-colors"
                     title={t('cv_manager.delete')}
                   >
                     <Trash2 size={16} />
@@ -328,8 +328,8 @@ const CVManager: React.FC<CVManagerProps> = ({ userId, onCVSelected, isPremium =
       </div>
 
       {cvs.length > 0 && (
-        <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <p className="text-sm text-yellow-800">
+        <div className="mt-6 p-4 bg-yellow-50 dark:bg-amber-950/30 border border-yellow-200 dark:border-amber-800 rounded-lg">
+          <p className="text-sm text-yellow-800 dark:text-amber-200">
             <strong>{t('cv_manager.tip_title')}</strong> {t('cv_manager.tip_desc')}
           </p>
         </div>
