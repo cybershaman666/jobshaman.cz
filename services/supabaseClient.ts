@@ -3,6 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 // Singleton instance
 let supabaseInstance: any = null;
+const PASSWORD_RECOVERY_PENDING_KEY = 'jobshaman_password_recovery_pending';
 
 // Configuration
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || '';
@@ -19,6 +20,14 @@ export const getSupabaseClient = () => {
     }
 
     try {
+        if (typeof window !== 'undefined' && window.location.hash.includes('type=recovery')) {
+            try {
+                window.sessionStorage.setItem(PASSWORD_RECOVERY_PENDING_KEY, '1');
+            } catch (error) {
+                console.warn('Failed to persist password recovery flag from URL hash:', error);
+            }
+        }
+
         supabaseInstance = createClient(supabaseUrl, supabaseKey, {
             auth: {
                 persistSession: true,
@@ -31,6 +40,13 @@ export const getSupabaseClient = () => {
 
         // Set up auth state change listener to handle token refresh
         supabaseInstance.auth.onAuthStateChange((event: any, _session: any) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                try {
+                    window.sessionStorage.setItem(PASSWORD_RECOVERY_PENDING_KEY, '1');
+                } catch (error) {
+                    console.warn('Failed to persist password recovery flag from auth event:', error);
+                }
+            }
             if (event === 'TOKEN_REFRESHED') {
                 console.log('Token refreshed successfully');
             }
@@ -105,5 +121,23 @@ export const clearSupabaseAuthStorage = () => {
         keysToRemove.forEach((key) => window.localStorage.removeItem(key));
     } catch (error) {
         console.warn('Failed to clear Supabase auth storage:', error);
+    }
+};
+
+export const isPasswordRecoveryPending = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    try {
+        return window.sessionStorage.getItem(PASSWORD_RECOVERY_PENDING_KEY) === '1';
+    } catch {
+        return false;
+    }
+};
+
+export const clearPasswordRecoveryPending = (): void => {
+    if (typeof window === 'undefined') return;
+    try {
+        window.sessionStorage.removeItem(PASSWORD_RECOVERY_PENDING_KEY);
+    } catch (error) {
+        console.warn('Failed to clear password recovery flag:', error);
     }
 };

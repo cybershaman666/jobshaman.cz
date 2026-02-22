@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { BookOpen, Shield, BarChart3, Search, Plus, Edit2, X, Check, Calendar, Clock, ArrowRight, Copy, Save, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +14,67 @@ interface BlogSectionProps {
     showOverview?: boolean;
 }
 
+const BLOG_MONTHS: Record<string, number> = {
+    ledna: 0,
+    unora: 1,
+    února: 1,
+    brezna: 2,
+    března: 2,
+    dubna: 3,
+    kvetna: 4,
+    května: 4,
+    cervna: 5,
+    června: 5,
+    cervence: 6,
+    července: 6,
+    srpna: 7,
+    zari: 8,
+    září: 8,
+    rijna: 9,
+    října: 9,
+    listopadu: 10,
+    prosince: 11
+};
+
+const normalizeDateToken = (value: string): string =>
+    value
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '');
+
+const parseBlogDateToTimestamp = (dateValue?: string): number => {
+    if (!dateValue) return 0;
+    const trimmed = dateValue.trim();
+    if (!trimmed) return 0;
+
+    const direct = Date.parse(trimmed);
+    if (!Number.isNaN(direct)) return direct;
+
+    const normalized = trimmed.replace(/,/g, '').replace(/\s+/g, ' ');
+    const czMatch = normalized.match(/^(\d{1,2})\.\s*([^\s]+)\s*(\d{4})$/i);
+    if (czMatch) {
+        const day = Number(czMatch[1]);
+        const monthToken = normalizeDateToken(czMatch[2]);
+        const year = Number(czMatch[3]);
+        const monthIndex = BLOG_MONTHS[monthToken];
+        if (!Number.isNaN(day) && !Number.isNaN(year) && monthIndex !== undefined) {
+            return new Date(year, monthIndex, day).getTime();
+        }
+    }
+
+    const dmyMatch = normalized.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+    if (dmyMatch) {
+        const day = Number(dmyMatch[1]);
+        const month = Number(dmyMatch[2]) - 1;
+        const year = Number(dmyMatch[3]);
+        if (!Number.isNaN(day) && !Number.isNaN(month) && !Number.isNaN(year)) {
+            return new Date(year, month, day).getTime();
+        }
+    }
+
+    return 0;
+};
+
 const BlogSection: React.FC<BlogSectionProps> = ({
     selectedBlogPostSlug,
     setSelectedBlogPostSlug,
@@ -22,6 +83,14 @@ const BlogSection: React.FC<BlogSectionProps> = ({
     const { t, i18n } = useTranslation();
     const [posts, setPosts] = useState<BlogPost[]>(blogPosts);
     const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
+    const sortedPosts = useMemo(
+        () => [...posts].sort((a, b) => {
+            const dateDiff = parseBlogDateToTimestamp(b.date) - parseBlogDateToTimestamp(a.date);
+            if (dateDiff !== 0) return dateDiff;
+            return b.id - a.id;
+        }),
+        [posts]
+    );
 
     // Sync selectedPost with prop
     useEffect(() => {
@@ -173,7 +242,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
         "@type": "Blog",
         "name": "JobShaman Shamanic Insights",
         "description": "Insights and analysis from the world of AI-driven job searching in the Czech Republic.",
-        "blogPost": posts.map(post => ({
+        "blogPost": sortedPosts.map(post => ({
             "@type": "BlogPosting",
             "headline": post.title,
             "description": post.excerpt,
@@ -299,7 +368,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                     transition={{ delay: 0.4 }}
                     className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
                 >
-                    {posts.map((post) => (
+                    {sortedPosts.map((post) => (
                         <article
                             key={post.id}
                             onClick={() => handleSelectPost(post)}

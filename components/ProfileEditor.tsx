@@ -5,6 +5,7 @@ import {
   Upload,
   X,
   Camera,
+  Lock,
   Briefcase,
   GraduationCap,
   Award,
@@ -24,7 +25,7 @@ import {
   Calculator,
   SlidersHorizontal
 } from 'lucide-react';
-import { uploadProfilePhoto } from '../services/supabaseService';
+import { updateCurrentUserPassword, uploadProfilePhoto } from '../services/supabaseService';
 import { validateCvFile, uploadAndParseCv, mergeProfileWithParsedCv } from '../services/cvUploadService';
 import { resolveAddressToCoordinates } from '../services/commuteService';
 import { authenticatedFetch } from '../services/csrfService';
@@ -89,6 +90,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [pushBusy, setPushBusy] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [saveFeedback, setSaveFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [passwordForm, setPasswordForm] = useState({ nextPassword: '', confirmPassword: '' });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordFeedback, setPasswordFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [activeExperienceId, setActiveExperienceId] = useState<string | null>(null);
+  const [activeEducationId, setActiveEducationId] = useState<string | null>(null);
 
   // Address Verification State
   const [isVerifyingAddress, setIsVerifyingAddress] = useState(false);
@@ -176,6 +182,26 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     taxProfile: profile.taxProfile || createDefaultTaxProfileByCountry('CZ'),
     jhiPreferences: profile.jhiPreferences || createDefaultJHIPreferences()
   });
+
+  useEffect(() => {
+    if (formData.experience.length === 0) {
+      setActiveExperienceId(null);
+      return;
+    }
+    if (!activeExperienceId || !formData.experience.some(exp => exp.id === activeExperienceId)) {
+      setActiveExperienceId(formData.experience[0].id);
+    }
+  }, [formData.experience, activeExperienceId]);
+
+  useEffect(() => {
+    if (formData.education.length === 0) {
+      setActiveEducationId(null);
+      return;
+    }
+    if (!activeEducationId || !formData.education.some(edu => edu.id === activeEducationId)) {
+      setActiveEducationId(formData.education[0].id);
+    }
+  }, [formData.education, activeEducationId]);
 
   useEffect(() => {
     const checkPushState = async () => {
@@ -553,6 +579,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       experience: [...formData.experience, newExperience]
     };
     setFormData(newFormData);
+    setActiveExperienceId(newExperience.id);
     onChange({ ...profile, workHistory: newFormData.experience });
   };
 
@@ -569,6 +596,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     const updatedExperience = formData.experience.filter(exp => exp.id !== id);
     const newFormData = { ...formData, experience: updatedExperience };
     setFormData(newFormData);
+    if (activeExperienceId === id) {
+      setActiveExperienceId(updatedExperience.length > 0 ? updatedExperience[0].id : null);
+    }
     onChange({ ...profile, workHistory: updatedExperience });
   };
 
@@ -586,6 +616,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       education: [...formData.education, newEducation]
     };
     setFormData(newFormData);
+    setActiveEducationId(newEducation.id);
     onChange({ ...profile, education: newFormData.education });
   };
 
@@ -602,6 +633,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     const updatedEducation = formData.education.filter(edu => edu.id !== id);
     const newFormData = { ...formData, education: updatedEducation };
     setFormData(newFormData);
+    if (activeEducationId === id) {
+      setActiveEducationId(updatedEducation.length > 0 ? updatedEducation[0].id : null);
+    }
     onChange({ ...profile, education: updatedEducation });
   };
 
@@ -649,6 +683,53 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       });
     } finally {
       setIsSavingProfile(false);
+    }
+  };
+
+  const handlePasswordChange = async () => {
+    if (isChangingPassword) return;
+    setPasswordFeedback(null);
+
+    if (!profile.isLoggedIn) {
+      setPasswordFeedback({
+        type: 'error',
+        text: t('auth.login', { defaultValue: 'Přihlaste se prosím.' })
+      });
+      return;
+    }
+
+    if (!passwordForm.nextPassword || passwordForm.nextPassword.length < 6) {
+      setPasswordFeedback({
+        type: 'error',
+        text: t('auth.password_too_short', { defaultValue: 'Heslo musí mít alespoň 6 znaků.' })
+      });
+      return;
+    }
+
+    if (passwordForm.nextPassword !== passwordForm.confirmPassword) {
+      setPasswordFeedback({
+        type: 'error',
+        text: t('auth.passwords_mismatch', { defaultValue: 'Hesla se neshodují.' })
+      });
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await updateCurrentUserPassword(passwordForm.nextPassword);
+      setPasswordForm({ nextPassword: '', confirmPassword: '' });
+      setPasswordFeedback({
+        type: 'success',
+        text: t('auth.password_reset_success', { defaultValue: 'Heslo bylo úspěšně změněno.' })
+      });
+    } catch (error: any) {
+      console.error('Password change failed:', error);
+      setPasswordFeedback({
+        type: 'error',
+        text: error?.message || t('auth.reset_password_failed', { defaultValue: 'Nepodařilo se změnit heslo.' })
+      });
+    } finally {
+      setIsChangingPassword(false);
     }
   };
 
@@ -1035,60 +1116,81 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         <h3 className="font-semibold text-slate-900 dark:text-white">
                           {experience.role || t('profile.new_role')} {experience.company && `@ ${experience.company}`}
                         </h3>
-                        <button
-                          onClick={() => handleRemoveExperience(experience.id)}
-                          className="text-red-500 hover:text-red-600 transition-colors"
-                          title={t('app.delete')}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.company')}</label>
-                          <input
-                            type="text"
-                            value={experience.company}
-                            onChange={(e) => handleUpdateExperience(experience.id, 'company', e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                            placeholder={t('profile.company_placeholder')}
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.role')}</label>
-                          <input
-                            type="text"
-                            value={experience.role}
-                            onChange={(e) => handleUpdateExperience(experience.id, 'role', e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                            placeholder={t('profile.role_placeholder')}
-                          />
+                        <div className="flex items-center gap-2">
+                          {activeExperienceId !== experience.id && (
+                            <button
+                              onClick={() => setActiveExperienceId(experience.id)}
+                              className="px-2.5 py-1.5 text-xs rounded-md border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-900/20"
+                            >
+                              {t('app.edit', { defaultValue: 'Upravit' })}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleRemoveExperience(experience.id)}
+                            className="text-red-500 hover:text-red-600 transition-colors"
+                            title={t('app.delete')}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
 
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.duration')}</label>
-                        <input
-                          type="text"
-                          value={experience.duration}
-                          onChange={(e) => handleUpdateExperience(experience.id, 'duration', e.target.value)}
-                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                          placeholder={t('profile.duration_placeholder')}
-                        />
-                      </div>
+                      {activeExperienceId === experience.id ? (
+                        <>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.company')}</label>
+                              <input
+                                type="text"
+                                value={experience.company}
+                                onChange={(e) => handleUpdateExperience(experience.id, 'company', e.target.value)}
+                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                                placeholder={t('profile.company_placeholder')}
+                              />
+                            </div>
 
-                      <div className="mt-4">
-                        <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.description')}</label>
-                        <textarea
-                          value={experience.description}
-                          onChange={(e) => handleUpdateExperience(experience.id, 'description', e.target.value)}
-                          className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                          rows={3}
-                          placeholder={t('profile.description_placeholder')}
-                        />
-                      </div>
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.role')}</label>
+                              <input
+                                type="text"
+                                value={experience.role}
+                                onChange={(e) => handleUpdateExperience(experience.id, 'role', e.target.value)}
+                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                                placeholder={t('profile.role_placeholder')}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="mt-4">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.duration')}</label>
+                            <input
+                              type="text"
+                              value={experience.duration}
+                              onChange={(e) => handleUpdateExperience(experience.id, 'duration', e.target.value)}
+                              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                              placeholder={t('profile.duration_placeholder')}
+                            />
+                          </div>
+
+                          <div className="mt-4">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.description')}</label>
+                            <textarea
+                              value={experience.description}
+                              onChange={(e) => handleUpdateExperience(experience.id, 'description', e.target.value)}
+                              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                              rows={3}
+                              placeholder={t('profile.description_placeholder')}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-sm text-slate-600 dark:text-slate-400">
+                          <div>{experience.duration || t('profile.duration_placeholder')}</div>
+                          {experience.description && (
+                            <p className="mt-2">{experience.description}</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -1133,62 +1235,81 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         <h3 className="font-semibold text-slate-900 dark:text-white">
                           {edu.degree || t('profile.new_education')} {edu.school && `@ ${edu.school}`}
                         </h3>
-                        <button
-                          onClick={() => handleRemoveEducation(edu.id)}
-                          className="text-red-500 hover:text-red-600 transition-colors"
-                          title={t('app.delete')}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.school')}</label>
-                          <input
-                            type="text"
-                            value={edu.school}
-                            onChange={(e) => handleUpdateEducation(edu.id, 'school', e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                            placeholder={t('profile.school_placeholder')}
-                          />
-                        </div>
-
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.degree')}</label>
-                          <input
-                            type="text"
-                            value={edu.degree}
-                            onChange={(e) => handleUpdateEducation(edu.id, 'degree', e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                            placeholder={t('profile.degree_placeholder')}
-                          />
+                        <div className="flex items-center gap-2">
+                          {activeEducationId !== edu.id && (
+                            <button
+                              onClick={() => setActiveEducationId(edu.id)}
+                              className="px-2.5 py-1.5 text-xs rounded-md border border-cyan-200 dark:border-cyan-800 text-cyan-700 dark:text-cyan-300 hover:bg-cyan-50 dark:hover:bg-cyan-900/20"
+                            >
+                              {t('app.edit', { defaultValue: 'Upravit' })}
+                            </button>
+                          )}
+                          <button
+                            onClick={() => handleRemoveEducation(edu.id)}
+                            className="text-red-500 hover:text-red-600 transition-colors"
+                            title={t('app.delete')}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
                       </div>
 
-                      <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.field')}</label>
-                          <input
-                            type="text"
-                            value={edu.field}
-                            onChange={(e) => handleUpdateEducation(edu.id, 'field', e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                            placeholder={t('profile.field_placeholder')}
-                          />
-                        </div>
+                      {activeEducationId === edu.id ? (
+                        <>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.school')}</label>
+                              <input
+                                type="text"
+                                value={edu.school}
+                                onChange={(e) => handleUpdateEducation(edu.id, 'school', e.target.value)}
+                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                                placeholder={t('profile.school_placeholder')}
+                              />
+                            </div>
 
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.year')}</label>
-                          <input
-                            type="text"
-                            value={edu.year}
-                            onChange={(e) => handleUpdateEducation(edu.id, 'year', e.target.value)}
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                            placeholder={t('profile.year_placeholder')}
-                          />
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.degree')}</label>
+                              <input
+                                type="text"
+                                value={edu.degree}
+                                onChange={(e) => handleUpdateEducation(edu.id, 'degree', e.target.value)}
+                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                                placeholder={t('profile.degree_placeholder')}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.field')}</label>
+                              <input
+                                type="text"
+                                value={edu.field}
+                                onChange={(e) => handleUpdateEducation(edu.id, 'field', e.target.value)}
+                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                                placeholder={t('profile.field_placeholder')}
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">{t('profile.year')}</label>
+                              <input
+                                type="text"
+                                value={edu.year}
+                                onChange={(e) => handleUpdateEducation(edu.id, 'year', e.target.value)}
+                                className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                                placeholder={t('profile.year_placeholder')}
+                              />
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="text-sm text-slate-600 dark:text-slate-400">
+                          <div>{edu.field || t('profile.field_placeholder')}</div>
+                          <div>{edu.year || t('profile.year_placeholder')}</div>
                         </div>
-                      </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -1772,6 +1893,75 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 </div>
               )}
             </div>
+
+            {profile.isLoggedIn && (
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+                      <Lock className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+                    </div>
+                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">
+                      {t('profile.security_title', { defaultValue: 'Změna hesla' })}
+                    </h2>
+                  </div>
+                </div>
+                <div className="p-6">
+                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                    {t('profile.security_desc', { defaultValue: 'Nastavte si nové heslo pro přihlášení do účtu.' })}
+                  </p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        {t('auth.new_password', { defaultValue: 'Nové heslo' })}
+                      </label>
+                      <input
+                        type="password"
+                        minLength={6}
+                        value={passwordForm.nextPassword}
+                        onChange={(e) => setPasswordForm(prev => ({ ...prev, nextPassword: e.target.value }))}
+                        className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        {t('auth.confirm_new_password', { defaultValue: 'Potvrzení hesla' })}
+                      </label>
+                      <input
+                        type="password"
+                        minLength={6}
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) => setPasswordForm(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                        className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handlePasswordChange}
+                      disabled={isChangingPassword}
+                      className="px-5 py-2.5 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium disabled:opacity-60 disabled:cursor-not-allowed"
+                    >
+                      {isChangingPassword
+                        ? t('app.saving')
+                        : t('auth.set_new_password', { defaultValue: 'Nastavit nové heslo' })}
+                    </button>
+                    {passwordFeedback && (
+                      <div className={`text-sm font-medium flex items-center gap-2 ${passwordFeedback.type === 'success'
+                        ? 'text-emerald-700 dark:text-emerald-300'
+                        : 'text-rose-700 dark:text-rose-300'
+                        }`}>
+                        {passwordFeedback.type === 'success' ? <CheckCircle size={16} /> : <AlertCircle size={16} />}
+                        <span>{passwordFeedback.text}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Danger Zone */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border-2 border-red-200 dark:border-red-900/30 overflow-hidden">

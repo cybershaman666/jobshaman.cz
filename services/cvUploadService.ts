@@ -1,5 +1,5 @@
 import { UserProfile } from '../types';
-import { uploadCVFile } from './supabaseService';
+import { updateCVDocumentParsedData, updateUserCVSelection, uploadCVDocument, uploadCVFile } from './supabaseService';
 import { parseProfileFromCVWithFallback } from './cvParserService';
 import { parseProfileFromCV } from './geminiService';
 
@@ -29,6 +29,42 @@ type ParseCvOptions = {
     aiCvParsingEnabled?: boolean;
 };
 
+const normalizeExperienceKey = (entry: any): string => {
+    const company = String(entry?.company || '').trim().toLowerCase();
+    const role = String(entry?.role || '').trim().toLowerCase();
+    const duration = String(entry?.duration || '').trim().toLowerCase();
+    return `${company}|${role}|${duration}`;
+};
+
+const mergeWorkHistory = (aiWorkHistory: any, baselineWorkHistory: any): any[] | undefined => {
+    const ai = Array.isArray(aiWorkHistory) ? aiWorkHistory.filter(Boolean) : [];
+    const baseline = Array.isArray(baselineWorkHistory) ? baselineWorkHistory.filter(Boolean) : [];
+
+    if (ai.length === 0 && baseline.length === 0) return undefined;
+    if (ai.length === 0) return baseline;
+    if (baseline.length === 0) return ai;
+
+    const merged: any[] = [];
+    const seen = new Set<string>();
+
+    for (const item of ai) {
+        const key = normalizeExperienceKey(item);
+        if (!seen.has(key)) {
+            merged.push(item);
+            seen.add(key);
+        }
+    }
+    for (const item of baseline) {
+        const key = normalizeExperienceKey(item);
+        if (!seen.has(key)) {
+            merged.push(item);
+            seen.add(key);
+        }
+    }
+
+    return merged;
+};
+
 export const parseCvFile = async (file: File, options: ParseCvOptions): Promise<Partial<UserProfile>> => {
     const { isPremium, aiCvParsingEnabled = true } = options;
 
@@ -36,12 +72,13 @@ export const parseCvFile = async (file: File, options: ParseCvOptions): Promise<
         try {
             const baseline = await parseProfileFromCVWithFallback(file);
             const aiParsed = await parseProfileFromCV(baseline.cvText || '');
+            const mergedWorkHistory = mergeWorkHistory(aiParsed?.workHistory, baseline?.workHistory);
             if (aiParsed && Object.keys(aiParsed).length > 0) {
                 return {
                     ...baseline,
                     ...aiParsed,
                     skills: (aiParsed.skills && aiParsed.skills.length > 0) ? aiParsed.skills : baseline.skills,
-                    workHistory: (aiParsed.workHistory && aiParsed.workHistory.length > 0) ? aiParsed.workHistory : baseline.workHistory,
+                    workHistory: mergedWorkHistory,
                     education: (aiParsed.education && aiParsed.education.length > 0) ? aiParsed.education : baseline.education,
                     cvText: aiParsed.cvText || baseline.cvText,
                     cvAiText: aiParsed.cvAiText || baseline.cvAiText
@@ -60,8 +97,22 @@ export const uploadAndParseCv = async (
     file: File,
     options: ParseCvOptions
 ): Promise<{ cvUrl: string; parsedData: Partial<UserProfile> }> => {
-    const cvUrl = await uploadCVFile(profile.id || '', file);
     const parsedData = await parseCvFile(file, options);
+
+    if (profile.id) {
+        try {
+            const doc = await uploadCVDocument(profile.id, file);
+            if (doc) {
+                await updateCVDocumentParsedData(profile.id, doc.id, parsedData || {});
+                await updateUserCVSelection(profile.id, doc.id);
+                return { cvUrl: doc.fileUrl, parsedData };
+            }
+        } catch (docError) {
+            console.warn('Failed to persist CV in cv_documents, falling back to direct upload:', docError);
+        }
+    }
+
+    const cvUrl = await uploadCVFile(profile.id || '', file);
     return { cvUrl, parsedData };
 };
 
