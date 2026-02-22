@@ -752,6 +752,15 @@ def recommend_jobs_for_user(user_id: str, limit: int = 50, allow_cache: bool = T
     user_hash = hashlib.sha256((user_id or "").encode("utf-8")).hexdigest()[:16]
     if allow_cache:
         cached = read_cached_recommendations(user_id, limit)
+        # Cache compatibility guard:
+        # after scoring changes, ignore stale cache rows missing new breakdown keys.
+        cached = [
+            item
+            for item in (cached or [])
+            if isinstance(item.get("breakdown"), dict)
+            and "domain_alignment" in (item.get("breakdown") or {})
+            and "domain_mismatch" in (item.get("breakdown") or {})
+        ]
         if cached:
             print(
                 f"📊 [Matching] {json.dumps({'event': 'cache_hit', 'user_hash': user_hash, 'limit': limit, 'results': len(cached), 'model_version': model_version})}"

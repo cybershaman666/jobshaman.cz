@@ -42,3 +42,30 @@ def test_score_job_returns_zero_like_for_empty():
     assert score >= 0
     assert isinstance(reasons, list)
     assert "total" in breakdown
+
+
+def test_score_job_penalizes_strong_domain_mismatch():
+    candidate = {
+        "job_title": "Senior Python Developer",
+        "skills": ["python", "react", "kubernetes", "backend"],
+        "address": "Brno",
+    }
+    job = {
+        "title": "Řezník - uzenář",
+        "description": "Bourání masa, výroba uzenin, HACCP, kontrola kvality surovin.",
+        "location": "Mikulov",
+        "country_code": "cs",
+        "salary_from": 42000,
+        "currency": "czk",
+    }
+
+    score, reasons, breakdown = score_job(
+        extract_candidate_features(candidate),
+        extract_job_features(job),
+        semantic_similarity=0.78,  # even with high semantic prior, mismatch must be penalized
+    )
+
+    assert breakdown["domain_mismatch"] is True
+    assert breakdown["domain_alignment"] <= 0.2
+    assert score < 45
+    assert any("oborovy nesoulad" in reason.lower() for reason in reasons)

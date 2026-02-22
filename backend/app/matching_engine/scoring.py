@@ -1,4 +1,5 @@
 import math
+import unicodedata
 from typing import Dict, List, Tuple
 
 from .demand import demand_weight_for_skills
@@ -7,6 +8,41 @@ from .normalization import normalize_salary_index
 
 REMOTE_FLAGS = ["remote", "home office", "homeoffice", "hybrid", "remote-first", "work from home"]
 SENIORITY_ORDER = ["intern", "junior", "mid", "senior", "lead", "principal"]
+
+_DOMAIN_KEYWORDS = {
+    "it": [
+        "software", "developer", "programator", "programmer", "backend", "frontend", "fullstack",
+        "python", "javascript", "typescript", "react", "node", "devops", "kubernetes", "cloud",
+        "data engineer", "data scientist", "machine learning", "ai engineer", "qa engineer", "tester",
+    ],
+    "sales": [
+        "obchod", "sales", "account manager", "business development", "bdm", "akvizic", "lead generation",
+    ],
+    "marketing": [
+        "marketing", "seo", "ppc", "social media", "brand manager", "content manager", "copywriter",
+    ],
+    "finance": [
+        "finance", "ucetni", "auditor", "controller", "analyst", "investment", "banker",
+    ],
+    "operations": [
+        "operations", "logistics", "supply chain", "planner", "procesni", "warehouse", "disponent",
+    ],
+    "manufacturing": [
+        "vyroba", "manufacturing", "strojnik", "operator vyroby", "cnc", "obsluha stroje",
+    ],
+    "healthcare": [
+        "healthcare", "medical", "nurse", "doctor", "lekar", "zdravotni sestra", "klinika",
+    ],
+    "hospitality": [
+        "hospitality", "chef", "cook", "kuchar", "waiter", "bartender", "hotel", "restaurace",
+    ],
+    "trades_food": [
+        "reznik", "uzenar", "butcher", "meat", "bourani masa", "haccp", "potravinarstvi", "potraviny",
+    ],
+    "hr_recruiting": [
+        "hr", "recruiter", "talent acquisition", "nabor", "people partner",
+    ],
+}
 
 # Weighted normalized scoring (all components normalized 0..1)
 _WEIGHTS = {
@@ -46,6 +82,43 @@ def _contains(text: str, term: str) -> bool:
 
 def _clamp01(value: float) -> float:
     return max(0.0, min(1.0, float(value)))
+
+
+def _normalize_text(value: str) -> str:
+    text = (value or "").lower()
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    return text
+
+
+def _detect_domains(text: str) -> Dict[str, int]:
+    normalized = _normalize_text(text)
+    scores: Dict[str, int] = {}
+    for domain, keywords in _DOMAIN_KEYWORDS.items():
+        score = 0
+        for keyword in keywords:
+            if keyword in normalized:
+                score += 1
+        if score > 0:
+            scores[domain] = score
+    return scores
+
+
+def _domain_alignment(candidate_text: str, job_text: str) -> tuple[float, bool, List[str], List[str]]:
+    candidate_domains = _detect_domains(candidate_text)
+    job_domains = _detect_domains(job_text)
+
+    if not candidate_domains or not job_domains:
+        return 0.6, False, sorted(candidate_domains.keys()), sorted(job_domains.keys())
+
+    cand_set = set(candidate_domains.keys())
+    job_set = set(job_domains.keys())
+    overlap = cand_set.intersection(job_set)
+    if overlap:
+        return 1.0, False, sorted(cand_set), sorted(job_set)
+
+    # Strong mismatch when both sides have at least one confident domain hit and no overlap.
+    return 0.1, True, sorted(cand_set), sorted(job_set)
 
 
 def _infer_seniority(text: str) -> str:
@@ -137,9 +210,20 @@ def score_job(
     )
 
     job_text = job_features.get("text") or ""
+    candidate_text = "\n".join(
+        [
+            candidate_features.get("title") or "",
+            candidate_features.get("text") or "",
+            " ".join(candidate_skills),
+        ]
+    )
 
     exact_ratio, exact_hits, missing_skills = _exact_skill_ratio(candidate_skills, job_text)
     skill_similarity = _clamp01((0.65 * _clamp01(semantic_similarity)) + (0.35 * exact_ratio))
+    domain_alignment, strong_domain_mismatch, candidate_domains, job_domains = _domain_alignment(candidate_text, job_text)
+    if strong_domain_mismatch:
+        # Hard gate: semantic similarity can still be high for generic language, but domain mismatch should dominate.
+        skill_similarity *= 0.3
 
     demand_alignment = _clamp01(
         demand_weight_for_skills(
@@ -197,10 +281,17 @@ def score_job(
             "delta_salary": round(_WEIGHTS["delta_salary"] * weighted["salary_alignment"], 4),
             "epsilon_geo": round(_WEIGHTS["epsilon_geo"] * weighted["geography_weight"], 4),
         },
+        "domain_alignment": round(domain_alignment, 4),
+        "domain_mismatch": bool(strong_domain_mismatch),
+        "candidate_domains": candidate_domains[:5],
+        "job_domains": job_domains[:5],
         "total": max(0.0, min(100.0, total)),
     }
 
     reasons = _compose_reasons(weighted, missing_skills, seniority_gap)
+    if strong_domain_mismatch:
+        reasons.insert(0, "Silny oborovy nesoulad mezi profilem a pozici")
+        reasons = reasons[:4]
     return breakdown["total"], reasons, breakdown
 
 
