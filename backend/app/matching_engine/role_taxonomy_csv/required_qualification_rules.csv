@@ -1,0 +1,557 @@
+name,job_term,candidate_term
+accountant_certified,certified accountant,ucetni
+accountant_certified,hlavni ucetni,hlavni ucetni
+accountant_certified,ifrs specialist,ifrs
+accountant_certified,tax reporting specialist,chartered accountant
+accountant_certified,chartered accountant,accounting degree
+accounting_certified,hlavni ucetni,ucetni
+accounting_certified,danovy poradce,hlavni ucetni
+accounting_certified,tax advisor,danovy poradce
+accounting_certified,steuerberater,tax advisor
+accounting_certified,doradca podatkowy,steuerberater
+accounting_certified,,doradca podatkowy
+actuary_certified,actuary,actuary
+actuary_certified,certified actuary,certified actuary
+actuary_certified,pojistny matematik,pojistny matematik
+actuary_certified,aktuariusz,aktuariusz
+air_traffic_controller,air traffic controller,air traffic controller
+air_traffic_controller,letovy dispecer,letovy dispecer
+air_traffic_controller,fluglotse,atco license
+air_traffic_controller,kontrolor letoveho provozu,fluglotse
+aircraft_mechanic,aircraft mechanic,aircraft mechanic
+aircraft_mechanic,letecky mechanik,letecky mechanik
+aircraft_mechanic,fluggeratmechaniker,part-66
+aircraft_mechanic,part-66,avionics
+aircraft_mechanic,avionics technician,aircraft maintenance
+architect,architekt,architekt
+architect,architect,architect
+architect,licensed architect,authorized architect
+architect,projektant architektury,fa cvut
+architect,architekturburo,architecture degree
+armed_forces_professional,professional soldier,professional soldier
+armed_forces_professional,armed forces specialist,military service
+armed_forces_professional,vojak z povolani,vojak z povolani
+auditor,auditor,auditor
+auditor,internal auditor,audit
+auditor,external auditor,acca
+auditor,statutory auditor,cia
+auditor,audit manager,statutory auditor
+automotive_mechatronics,automechanik,automechanik
+automotive_mechatronics,auto electrician,automotive mechatronics
+automotive_mechatronics,automotive mechatronics,auto electrician
+automotive_mechatronics,kfz mechatroniker,kfz
+avionics_technician,avionics technician,avionics technician
+avionics_technician,avionik,avionik
+avionics_technician,aircraft electronics,aircraft electronics
+avionics_technician,letecka elektronika,
+beautician_license,kosmeticka,kosmeticka
+beautician_license,beautician,beautician
+beautician_license,cosmetologist,cosmetologist
+beautician_license,kosmetolog,kosmetolog
+blaster_mining,blaster,blaster license
+blaster_mining,strelmistr,strelmistr
+blaster_mining,shotfirer mining,shotfirer
+bozp_po,bozp specialista,bozp
+bozp_po,po specialista,po specialista
+bozp_po,safety officer,safety officer
+bozp_po,hse officer,hse
+bozp_po,fire protection specialist,fire protection
+butcher,reznik,reznik
+butcher,uzenar,uzenar
+butcher,butcher,butcher
+butcher,bourani masa,bourani masa
+butcher,vyroba uzenin,potravinarstvi
+butcher,fleischer,haccp
+butcher,metzger,fleischer
+butcher,rzeznik,metzger
+butcher,masiar,rzeznik
+butcher,,masiar
+captain_maritime,ship captain,ship captain
+captain_maritime,master mariner,master mariner
+captain_maritime,kapitan lodi,kapitan lodi
+captain_maritime,captain vessel,stcw
+civil_engineer_authorized,autorizovany inzenyr,autorizovany inzenyr
+civil_engineer_authorized,civil engineer licensed,civil engineer
+civil_engineer_authorized,chartered engineer civil,chartered engineer
+civil_engineer_authorized,ing civil,statik
+civil_engineer_authorized,statik autorizace,ing
+civil_service_exam,civil service officer,civil service exam
+civil_service_exam,state administration specialist,public administration
+civil_service_exam,referent statni spravy,referent statni spravy
+claims_adjuster,claims adjuster,claims adjuster
+claims_adjuster,likvidator pojistnych udalosti,claims specialist
+claims_adjuster,claims specialist insurance,likvidator pojistnych udalosti
+clinical_research,clinical research associate,clinical research
+clinical_research,cra,cra
+clinical_research,gcp,gcp
+clinical_research,clinical trial coordinator,clinical trial
+cloud_architect,cloud architect,cloud architect
+cloud_architect,solutions architect cloud,aws
+cloud_architect,aws architect,azure
+cloud_architect,azure architect,gcp
+cloud_architect,,solutions architecture
+cmm_metrology,cmm operator,metrolog
+cmm_metrology,metrolog,cmm
+cmm_metrology,3d measurement,3d measurement
+cmm_metrology,zeiss calypso,calypso
+cmm_metrology,coordinate measuring machine,quality metrology
+construction_supervisor,stavbyvedouci,stavbyvedouci
+construction_supervisor,construction supervisor,construction supervisor
+construction_supervisor,site manager construction,authorized engineer
+construction_supervisor,bauleiter,bauleiter
+construction_supervisor,kierownik budowy,kierownik budowy
+content_editor,content editor,content editing
+content_editor,copy editor,copywriting
+content_editor,editorial specialist,editorial
+crane_operator,crane operator,crane operator
+crane_operator,jerabnik,jerabnik
+crane_operator,kranfuhrer,kranfuhrer
+crane_operator,operator zurawia,operator zurawia
+crane_operator,,vazacsky prukaz
+customs_declarant,customs declarant,customs declarant
+customs_declarant,celni deklarant,celni deklarant
+customs_declarant,zollsachbearbeiter,zoll
+customs_declarant,agent celny,agent celny
+cybersecurity_certified,security analyst,cybersecurity
+cybersecurity_certified,soc analyst,security analyst
+cybersecurity_certified,cybersecurity engineer,cissp
+cybersecurity_certified,information security specialist,ceh
+cybersecurity_certified,,comptia security+
+deck_officer,deck officer,deck officer
+deck_officer,mate officer,nautical officer
+deck_officer,lodni dustojnik,stcw
+deck_officer,nautical officer,lodni dustojnik
+dentist,zubar,zubar
+dentist,stomatolog,stomatolog
+dentist,dental,dentist
+dentist,dentist,zahnarzt
+dentist,zahnarzt,dentysta
+dentist,dentysta,dental medicine
+dentist,ortodontista,stomatologie
+dentist_hygienist,dental hygienist,dental hygienist
+dentist_hygienist,dental nurse,dental nurse
+dentist_hygienist,dentální hygiena,dental hygiene
+dentist_hygienist,higienistka stomatologiczna,dentální hygiena
+devops_certified,devops engineer,devops
+devops_certified,platform engineer,kubernetes
+devops_certified,sre engineer,docker
+devops_certified,,terraform
+devops_certified,,ci/cd
+doctor,lekar,lekar
+doctor,prakticky lekar,arzt
+doctor,zubar,physician
+doctor,chirurg,medical doctor
+doctor,internista,mudr
+doctor,pediatr,dr med
+doctor,anesteziolog,medicina
+doctor,arzt,lekarska fakulta
+doctor,facharzt,lekarz
+doctor,assistenzarzt,medycyna
+doctor,physician,doktor mediciny
+doctor,medical doctor,
+doctor,lekarz,
+driver_c,ridic sk c,ridic sk c
+driver_c,ridic c,ridic c
+driver_c,skupina c,skupina c
+driver_c,c+e,c+e
+driver_c,kamion,profesni prukaz
+driver_c,tahac,tachograf
+driver_c,nakladni vozidlo,kamion
+driver_c,fahrer klasse c,fahrer klasse c
+driver_c,kierowca c,kierowca c
+driver_c,vodic c,vodic c
+driver_c,truck driver c,truck driver
+driver_c,ce driver,driver c
+driver_c,,ce driver
+driver_d_bus,ridic sk d,ridic sk d
+driver_d_bus,skupina d,skupina d
+driver_d_bus,bus driver,bus driver
+driver_d_bus,autobus,profesni prukaz
+driver_d_bus,fahrer klasse d,fahrer klasse d
+driver_d_bus,kierowca autobusu,kierowca autobusu
+driver_d_bus,vodic autobusu,driver d
+driver_taxi,taxi driver,taxi driver
+driver_taxi,taxikar,taxikar
+driver_taxi,uber driver,ridicsky prukaz b
+driver_taxi,bolt driver,driver card
+driver_taxi,personal transport,professional driver
+drone_pilot,drone pilot,drone pilot
+drone_pilot,uav operator,uav operator
+drone_pilot,pilot dronu,pilot dronu
+drone_pilot,uas operator,uas license
+dynamics_365_consultant,dynamics 365 consultant,dynamics 365
+dynamics_365_consultant,ms dynamics consultant,ms dynamics
+dynamics_365_consultant,d365 functional consultant,d365 functional
+electric_line_worker,line worker high voltage,electrical license
+electric_line_worker,montaz vedeni vn,paragraf 6
+electric_line_worker,elektricke vedeni vn,paragraf 7
+electric_line_worker,power line technician,power line technician
+electrical_certified,paragraf 8,paragraf 6
+electrical_certified,paragraf 10,paragraf 7
+electrical_certified,nv 194/2022,paragraf 8
+electrical_certified,electrical license,nv 194/2022
+electrical_certified,high voltage technician,electrical license
+electrician,elektrikar,elektrikar
+electrician,silnoproud,silnoproud
+electrician,slaboproud,slaboproud
+electrician,vyhlaska 50,vyhlaska 50
+electrician,paragraf 6,paragraf 6
+electrician,paragraf 7,paragraf 7
+electrician,electrical technician,electrical
+electrician,elektryk,electrotechnics
+electrician,elektrofachkraft,elektrotechnik
+electrician,,elektryk
+excavator_operator,bagrista,bagrista
+excavator_operator,excavator operator,excavator operator
+excavator_operator,operator koparki,operator koparki
+excavator_operator,baggerfahrer,baggerfahrer
+firefighter,firefighter,firefighter
+firefighter,hasic,hasic
+firefighter,feuerwehr,feuerwehr
+firefighter,strazak,strazak
+flight_dispatcher,flight dispatcher,flight dispatcher
+flight_dispatcher,letecky dispecer,letecky dispecer
+flight_dispatcher,operations control center airline,aviation operations
+forklift_license,forklift,forklift license
+forklift_license,jesterkar,prukaz vuzv
+forklift_license,wozek widlowy,jesterkar
+forklift_license,forklift driver,forklift driver
+forklift_license,vysokozdvizny vozik,wozek widlowy
+foundry_worker,foundry worker,foundry worker
+foundry_worker,slavarensky delnik,slavarna
+foundry_worker,operator slavarna,metal casting
+foundry_worker,odlevarna,odlevarna
+gas_boiler_service,plynovy kotel servis,gas technician
+gas_boiler_service,gas boiler technician,plynar
+gas_boiler_service,heating technician gas,gas boiler technician
+gas_boiler_service,kotlar plyn,heating technician
+gas_technician,plynar,plynar
+gas_technician,plyn,plyn
+gas_technician,gas technician,gas technician
+gas_technician,gas installer,gas installer
+gas_technician,gasmonteur,gasmonteur
+gas_technician,gazownik,gazownik
+hairdresser_license,kadernik,kadernik
+hairdresser_license,hairdresser,hairdresser
+hairdresser_license,barber,barber
+hairdresser_license,friseur,friseur
+hairdresser_license,fryzjer,fryzjer
+heavy_machine_operator,bagrista,bagrista
+heavy_machine_operator,jerabnik,jerabnik
+heavy_machine_operator,jesterkar,jesterkar
+heavy_machine_operator,strojnik,strojnik
+heavy_machine_operator,crane operator,crane operator
+heavy_machine_operator,forklift,forklift
+heavy_machine_operator,forklift driver,forklift driver
+heavy_machine_operator,kranfuhrer,kranfuhrer
+heavy_machine_operator,wozek widlowy,wozek widlowy
+heavy_machine_operator,operator koparki,operator koparki
+hvac_technician,hvac technician,hvac
+hvac_technician,vzduchotechnika,vzduchotechnika
+hvac_technician,chlazeni a klimatizace,f-gas
+hvac_technician,refrigeration technician,refrigeration technician
+insurance_intermediary,insurance advisor,insurance advisor
+insurance_intermediary,insurance intermediary,insurance intermediary
+insurance_intermediary,pojistny poradce,pojistny poradce
+insurance_intermediary,ubezpieczeniowy doradca,insurance exam
+insurance_underwriter,underwriter,underwriter
+insurance_underwriter,insurance underwriter,insurance underwriter
+insurance_underwriter,risk underwriter,risk underwriting
+insurance_underwriter,pojistny underwriter,
+interpreter_certified,court interpreter,court interpreter
+interpreter_certified,certified interpreter,certified interpreter
+interpreter_certified,soudni tlumocnik,soudni tlumocnik
+kindergarten_teacher,ucitelka materske skoly,predskolni pedagogika
+kindergarten_teacher,kindergarten teacher,kindergarten teacher
+kindergarten_teacher,preschool teacher,preschool teacher
+kindergarten_teacher,erzieherin,erzieherin
+lawyer,advokat,advokat
+lawyer,pravnik,pravnik
+lawyer,koncipient,lawyer
+lawyer,lawyer,attorney
+lawyer,attorney,jurist
+lawyer,jurist,rechtsanwalt
+lawyer,rechtsanwalt,prawnik
+lawyer,prawnik,pravnicka fakulta
+lawyer,radca prawny,law school
+lawyer_bar,advokat,advokat
+lawyer_bar,attorney at law,attorney
+lawyer_bar,bar admission,bar exam
+lawyer_bar,rechtsanwalt,rechtsanwalt
+lawyer_bar,radca prawny,radca prawny
+machine_operator_cnc,cnc,cnc
+machine_operator_cnc,operator cnc,operator cnc
+machine_operator_cnc,seizovac cnc,seizovac cnc
+machine_operator_cnc,cnc machinist,cnc machinist
+machine_operator_cnc,cnc bediener,cnc bediener
+machine_operator_cnc,operator cnc frezarki,
+machine_safety,machine safety specialist,machine safety
+machine_safety,bezpecnost stroju,functional safety
+machine_safety,functional safety,ce conformity
+machine_safety,ce conformity machinery,tuv machinery
+marine_engineer,marine engineer,marine engineer
+marine_engineer,chief engineer vessel,ship engineer
+marine_engineer,ship engineer,stcw
+marine_engineer,lodni inzenyr,lodni inzenyr
+medical_laboratory,laborant ve zdravotnictvi,zdravotni laborant
+medical_laboratory,medical laboratory,medical laboratory
+medical_laboratory,clinical biochemistry lab,laboratory medicine
+medical_laboratory,hematology lab,clinical biochemistry
+medical_laboratory,lab technician healthcare,hematology
+metallurgy_engineer,metallurgy engineer,metallurgy engineer
+metallurgy_engineer,metalurg,metalurg
+metallurgy_engineer,steelmaking engineer,materials engineering
+metallurgy_engineer,inzenyr hutnictvi,hutnictvi
+midwife,porodni asistentka,porodni asistentka
+midwife,midwife,midwife
+midwife,hebamme,hebamme
+midwife,polozna,polozna
+mine_operator,mine operator,mine operator
+mine_operator,operator dolu,quarry operator
+mine_operator,quarry operator,strojnik tezebni
+mine_operator,operator tezebni techniky,operator dolu
+mortgage_advisor,mortgage advisor,mortgage advisor
+mortgage_advisor,hypotecni specialista,hypotecni specialista
+mortgage_advisor,kreditberater hypothek,financial advisory
+mortgage_advisor,doradca kredytowy,credit specialist
+network_engineer_certified,network engineer,network engineer
+network_engineer_certified,network administrator,ccna
+network_engineer_certified,telecom network specialist,ccnp
+network_engineer_certified,,network administration
+notary,notar,notar
+notary,notary,notary
+notary,notariusz,notariusz
+nurse,zdravotni sestra,zdravotni sestra
+nurse,prakticka sestra,prakticka sestra
+nurse,vseobecna sestra,vseobecna sestra
+nurse,nurse,nurse
+nurse,registered nurse,registered nurse
+nurse,krankenschwester,pflege
+nurse,pflegefachkraft,krankenschwester
+nurse,pielegniarka,pielegniarka
+nurse_practical,prakticka sestra,zdravotni sestra
+nurse_practical,general nurse,prakticka sestra
+nurse_practical,registered nurse,registered nurse
+nurse_practical,pflegefachkraft,nurse
+nurse_practical,nurse,pflegefachkraft
+nutrition_specialist,nutrition specialist,dietitian
+nutrition_specialist,dietitian,nutricni terapeut
+nutrition_specialist,nutricni terapeut,nutrition specialist
+nutrition_specialist,dietetyk,dietetyk
+optometrist,optometrista,optometrista
+optometrist,optometrie,optometrie
+optometrist,optometrist,optometrist
+optometrist,optician,optician
+optometrist,augenoptiker,augenoptiker
+optometrist,optometrysta,optometrysta
+paramedic,zachranar,zachranar
+paramedic,zdravotnicky zachranar,zdravotnicky zachranar
+paramedic,paramedic,paramedic
+paramedic,rettungssanitaeter,rettungssanitaeter
+paramedic,ratownik medyczny,ratownik medyczny
+paramedic_license,paramedic,paramedic
+paramedic_license,zdravotnicky zachranar,zdravotnicky zachranar
+paramedic_license,rettungssanitaeter,rettungssanitaeter
+paramedic_license,ratownik medyczny,ratownik medyczny
+penetration_tester,penetration tester,penetration testing
+penetration_tester,pentester,pentester
+penetration_tester,ethical hacker,oscp
+penetration_tester,,ceh
+pharmacist,lekarnik,lekarnik
+pharmacist,farmaceut,farmaceut
+pharmacist,pharmacist,pharmacist
+pharmacist,clinical pharmacist,apotheker
+pharmacist,apotheker,aptekarz
+pharmacist,apotheke,farmaceuta
+pharmacist,aptekarz,farmacie
+pharmacist,farmaceuta,pharmd
+pharmacist,,mgr farmacie
+pharmacist,,farmacja
+pharmacovigilance,pharmacovigilance,pharmacovigilance
+pharmacovigilance,drug safety specialist,drug safety
+pharmacovigilance,pv specialist,gxp
+pharmacovigilance,case processing safety,clinical safety
+pharmacy_assistant,farmaceuticky asistent,farmaceuticky asistent
+pharmacy_assistant,pharmacy technician,pharmacy technician
+pharmacy_assistant,pta,pta
+pharmacy_assistant,aptecny technik,aptecny technik
+pharmacy_assistant,technik farmaceutyczny,technik farmaceutyczny
+physician_specialist,specialista lekar,lekar
+physician_specialist,specialist physician,specialist physician
+physician_specialist,facharzt,facharzt
+physician_specialist,consultant physician,medical doctor
+physician_specialist,attending physician,mudr
+physio_license,physiotherapist,physiotherapist
+physio_license,fyzioterapeut,fyzioterapeut
+physio_license,physio clinic,fizjoterapeuta
+physio_license,fizjoterapeuta,rehabilitace
+physiotherapist,fyzioterapeut,fyzioterapeut
+physiotherapist,rehabilitace,physiotherapist
+physiotherapist,physiotherapist,rehabilitace
+physiotherapist,physio,physio
+physiotherapist,physiotherapie,physiotherapie
+physiotherapist,fizjoterapeuta,fizjoterapeuta
+pilot,pilot,pilot
+pilot,airline pilot,airline pilot
+pilot,commercial pilot,commercial pilot
+pilot,captain,atpl
+pilot,first officer,cpl
+pilot,flugzeugfuhrer,first officer
+pilot_commercial,commercial pilot,atpl
+pilot_commercial,airline pilot,cpl
+pilot_commercial,captain,commercial pilot
+pilot_commercial,first officer,airline pilot
+pilot_commercial,atpl required,first officer
+pilot_commercial,cpl required,
+plumber,instalater,instalater
+plumber,vodoinstalater,vodoinstalater
+plumber,plumber,plumber
+plumber,sanitar,klempner
+plumber,klempner,hydraulik
+plumber,hydraulik,
+police_officer,police officer,police academy
+police_officer,policista,policista
+police_officer,polizei,polizei
+police_officer,policjant,policjant
+product_owner,product owner,product owner
+product_owner,agile product owner,backlog management
+product_owner,po role,agile product
+project_manager_certified,project manager,project manager
+project_manager_certified,program manager,pmp
+project_manager_certified,delivery manager,prince2
+project_manager_certified,,agile project management
+psychologist,psycholog,psycholog
+psychologist,psychoterapeut,psychoterapeut
+psychologist,clinical psychologist,clinical psychologist
+psychologist,klinicky psycholog,psychologe
+psychologist,psychologe,psychologia
+psychologist,psycholog kliniczny,psychology
+psychotherapist,psychoterapeut,psychoterapeut
+psychotherapist,psychotherapist,psychotherapist
+psychotherapist,licensed therapist,psychology
+psychotherapist,psychoterapia,psychoterapia
+radiology,radiolog,radiolog
+radiology,radiology,radiology
+radiology,rtg laborant,rtg
+radiology,radiologicky asistent,radiologicky asistent
+radiology,radiologe,radiologe
+radiology,technik radiologii,technik radiologii
+radiology_technician,rtg laborant,rtg laborant
+radiology_technician,radiologicky asistent,radiologicky asistent
+radiology_technician,radiology technician,radiology technician
+radiology_technician,mrt technician,mrt
+radiology_technician,technik radiologii,technik radiologii
+real_estate_agent,real estate broker,real estate broker
+real_estate_agent,realitni makler,realitni makler
+real_estate_agent,immobilienmakler,immobilienmakler
+real_estate_agent,agent nieruchomosci,agent nieruchomosci
+sap_fico_consultant,sap fi consultant,sap fi
+sap_fico_consultant,sap co consultant,sap co
+sap_fico_consultant,sap fi/co,sap fi/co
+sap_fico_consultant,,erp finance
+sap_mm_consultant,sap mm consultant,sap mm
+sap_mm_consultant,sap materials management,materials management sap
+sap_mm_consultant,,erp procurement
+sap_sd_consultant,sap sd consultant,sap sd
+sap_sd_consultant,sap sales distribution,sales distribution sap
+school_psychologist,school psychologist,school psychologist
+school_psychologist,skolni psycholog,psychology degree
+school_psychologist,psycholog szkolny,skolni psycholog
+scrum_master,scrum master,scrum master
+scrum_master,agile coach,psm
+scrum_master,scrum facilitator,csm
+scrum_master,,agile
+security_guard_license,security guard,security guard
+security_guard_license,ostraha objektu,ostraha
+security_guard_license,physical security,osvedceni strazny
+security_guard_license,guard service,guard license
+shipping_forwarder,freight forwarder,freight forwarder
+shipping_forwarder,spediter,spediter
+shipping_forwarder,spedition kaufmann,spedytor
+shipping_forwarder,spedytor,shipping logistics
+soc_analyst,soc analyst,soc analyst
+soc_analyst,security operations center,siem
+soc_analyst,siem analyst,incident response
+soc_analyst,,security monitoring
+social_pedagogue,social pedagogue,social pedagogy
+social_pedagogue,socialni pedagog,socialni pedagog
+social_pedagogue,pedagog opiekunczy,social pedagogue
+social_worker,social worker,social worker
+social_worker,socialni pracovnik,socialni pracovnik
+social_worker,arbeiter sozial,social work degree
+social_worker,pracownik socjalny,pracownik socjalny
+special_education_teacher,special education teacher,special education teacher
+special_education_teacher,speci pedagog,special pedagogy
+special_education_teacher,special needs teacher,speci pedagog
+special_education_teacher,sonderpadagoge,sonderpadagoge
+tax_advisor,tax advisor,tax advisor
+tax_advisor,danovy poradce,danovy poradce
+tax_advisor,steuerberater,steuerberater
+tax_advisor,doradca podatkowy,doradca podatkowy
+teacher,ucitel,ucitel
+teacher,ucitelka,pedagog
+teacher,pedagog,teacher
+teacher,teacher,lecturer
+teacher,lecturer,lehrer
+teacher,profesor,nauczyciel
+teacher,lehrer,pedagogika
+teacher,nauczyciel,
+teacher_qualified,ucitel zs,pedagogika
+teacher_qualified,ucitel ss,ucitel
+teacher_qualified,qualified teacher,qualified teacher
+teacher_qualified,lehrer,lehrer
+teacher_qualified,nauczyciel,nauczyciel
+teacher_stem_secondary,teacher mathematics,pedagogika
+teacher_stem_secondary,teacher physics,ucitel matematiky
+teacher_stem_secondary,teacher chemistry secondary school,teacher mathematics
+teacher_stem_secondary,ucitel matematiky,qualified teacher
+train_driver,strojvedouci,strojvedouci
+train_driver,train driver,train driver
+train_driver,lokfuhrer,lokfuhrer
+train_driver,maszynista,maszynista
+train_driver,,license train
+translator_certified,sworn translator,sworn translator
+translator_certified,certified translator,certified translator
+translator_certified,soudni prekladatel,soudni prekladatel
+translator_certified,beeidigter ubersetzer,beeidigter ubersetzer
+truck_mechanic,truck mechanic,truck mechanic
+truck_mechanic,mechanik nakladnich vozidel,diesel mechanic
+truck_mechanic,diesel mechanic trucks,auto mechanic
+truck_mechanic,nfz mechaniker,mechanik nakladnich vozidel
+ui_designer,ui designer,ui designer
+ui_designer,visual designer digital,figma
+ui_designer,product designer ui,design system
+ui_designer,,visual design
+ux_designer,ux designer,ux designer
+ux_designer,user experience designer,figma
+ux_designer,service designer ux,user research
+ux_designer,,wireframing
+veterinarian,veterinar,veterinar
+veterinarian,veterinarni lekar,veterinarni lekar
+veterinarian,tierarzt,tierarzt
+veterinarian,vet,vet
+veterinarian,veterinary doctor,weterynarz
+veterinarian,weterynarz,veterinarni medicina
+veterinarian,,dvm
+veterinary_nurse,veterinary nurse,veterinary nurse
+veterinary_nurse,veterinarni sestra,veterinarni sestra
+veterinary_nurse,technik weterynarii,technik weterynarii
+video_editor,video editor,video editing
+video_editor,postproduction specialist,premiere pro
+video_editor,editor video,davinci resolve
+video_editor,,after effects
+welder,svarec,svarec
+welder,svarecka,welder
+welder,welding,welding
+welder,welder,schweisser
+welder,schweisser,spawacz
+welder,spawacz,tig
+welder,tig,mig
+welder,mig,mag
+welder,mag,svarecsky prukaz
+welding_certified,svarec tig,svarecsky prukaz
+welding_certified,svarec mig,welding certificate
+welding_certified,svarec mag,tig
+welding_certified,welding certificate,mig
+welding_certified,welder certified,mag
+welding_certified,schweisser zertifikat,welder

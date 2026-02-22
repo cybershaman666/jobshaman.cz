@@ -1,0 +1,268 @@
+domain,keyword
+agriculture,agriculture
+agriculture,farm
+agriculture,agronomist
+agriculture,agronom
+agriculture,zootechnik
+agriculture,tractor driver
+agriculture,farmer
+agriculture,vinarstvi
+agriculture,vinohrad
+agriculture,chov zvirat
+ai_data,ai
+ai_data,artificial intelligence
+ai_data,machine learning
+ai_data,strojove uceni
+ai_data,llm
+ai_data,nlp
+ai_data,data science
+ai_data,data scientist
+ai_data,data engineer
+ai_data,analytics engineer
+ai_data,prompt engineer
+aviation,aviation
+aviation,airline
+aviation,airport
+aviation,ground handling
+aviation,avionics
+aviation,flight operations
+aviation,letectvi
+aviation,letiste
+construction,construction
+construction,stavba
+construction,stavbyvedouci
+construction,zednik
+construction,tesar
+construction,instalater
+construction,electrician
+construction,plumber
+creative_media,video production
+creative_media,copywriting
+creative_media,editor
+creative_media,journalist
+creative_media,graphic design
+creative_media,ux writing
+creative_media,media production
+customer_support,customer support
+customer_support,customer success
+customer_support,helpdesk
+customer_support,service desk
+customer_support,call center
+customer_support,inside support
+customer_support,zakaznicka podpora
+customer_support,obsluha zakaznika
+ecommerce,ecommerce
+ecommerce,online store
+ecommerce,marketplace
+ecommerce,shopify
+ecommerce,magento
+ecommerce,digital merchandising
+ecommerce,webshop
+education,teacher
+education,ucitel
+education,lektor
+education,lecturer
+education,trainer
+education,pedagog
+education,instructor
+energy_utilities,energy
+energy_utilities,energetika
+energy_utilities,utilities
+energy_utilities,renewable
+energy_utilities,solar
+energy_utilities,photovoltaics
+energy_utilities,wind turbine
+energy_utilities,distribution grid
+energy_utilities,teplarenstvi
+energy_utilities,elektroenergetika
+engineering,engineer
+engineering,strojni inzenyr
+engineering,mechanical engineer
+engineering,electrical engineer
+engineering,projektant
+engineering,design engineer
+engineering,konstrukter
+engineering,konstruktor
+engineering,cad
+finance,finance
+finance,ucetni
+finance,accountant
+finance,auditor
+finance,controller
+finance,investment
+finance,banker
+finance,fp&a
+government_defense,defense
+government_defense,military
+government_defense,public safety
+government_defense,government security
+government_defense,kriticka infrastruktura
+government_defense,obrana
+healthcare,healthcare
+healthcare,medical
+healthcare,nurse
+healthcare,doctor
+healthcare,lekar
+healthcare,klinika
+healthcare,hospital
+healthcare,ambulance
+hospitality,hospitality
+hospitality,hotel
+hospitality,hotel specialist
+hospitality,restaurant
+hospitality,restaurace
+hospitality,reception
+hospitality,front office
+insurance,insurance
+insurance,pojisteni
+insurance,underwriter
+insurance,claims specialist
+insurance,actuary
+insurance,ubezpieczenia
+it,software
+it,developer
+it,programator
+it,programmer
+it,backend
+it,frontend
+it,fullstack
+it,python
+it,javascript
+it,typescript
+it,react
+it,node
+it,devops
+it,kubernetes
+it,cloud
+it,qa engineer
+it,tester
+it,sdet
+logistics,logistics
+logistics,warehouse
+logistics,distribution
+logistics,freight
+logistics,dispatch
+logistics,disponent
+logistics,supply chain
+logistics,fulfillment
+logistics,expedice
+logistics,spedice
+logistics,spedycja
+manufacturing,vyroba
+manufacturing,manufacturing
+manufacturing,strojnik
+manufacturing,operator vyroby
+manufacturing,cnc
+manufacturing,obsluha stroje
+manufacturing,assembly
+maritime,maritime
+maritime,shipping
+maritime,port operations
+maritime,seafarer
+maritime,deck officer
+maritime,marine engineer
+maritime,lodni doprava
+marketing,marketing
+marketing,seo
+marketing,ppc
+marketing,social media
+marketing,brand manager
+marketing,content manager
+marketing,copywriter
+marketing,crm campaign
+media_design,graphic designer
+media_design,ux designer
+media_design,ui designer
+media_design,video editor
+media_design,fotograf
+media_design,photographer
+media_design,content creator
+media_design,motion designer
+mining_heavy_industry,mining
+mining_heavy_industry,quarry
+mining_heavy_industry,heavy industry
+mining_heavy_industry,steel plant
+mining_heavy_industry,foundry
+mining_heavy_industry,hutnictvi
+mining_heavy_industry,slavarna
+operations,operations
+operations,operations manager
+operations,provozni manazer
+operations,provozni manager
+operations,logistics
+operations,supply chain
+operations,planner
+operations,warehouse
+operations,disponent
+pharma_biotech,pharma
+pharma_biotech,biotech
+pharma_biotech,gmp
+pharma_biotech,clinical research
+pharma_biotech,regulatory affairs
+pharma_biotech,laboratory qa
+pharma_biotech,farmaceuticky prumysl
+procurement,buyer
+procurement,procurement
+procurement,sourcing
+procurement,nakupci
+procurement,strategic buyer
+procurement,commodity manager
+procurement,purchasing specialist
+public_services,public sector
+public_services,state administration
+public_services,municipality
+public_services,social worker
+public_services,civil servant
+public_services,urad
+public_services,uradnik
+public_services,verejna sprava
+public_services,neziskovka
+real_estate,real estate
+real_estate,property manager
+real_estate,facility manager
+real_estate,sprava nemovitosti
+real_estate,makler
+real_estate,realitni makler
+real_estate,leasing consultant
+retail,retail
+retail,store manager
+retail,shop assistant
+retail,cashier
+retail,pokladni
+retail,prodejce
+retail,merchandiser
+retail,visual merchandising
+retail,predavac
+retail,sprzedawca
+sales,obchod
+sales,sales
+sales,account manager
+sales,business development
+sales,bdm
+sales,akvizic
+sales,lead generation
+science_lab,laboratory
+science_lab,lab technician
+science_lab,chemist
+science_lab,chemistka
+science_lab,biologist
+science_lab,microbiologist
+science_lab,analytical laboratory
+science_lab,qc laboratory
+security,security
+security,ostraha
+security,guard
+security,bezpecnost
+security,firefighter
+security,hasic
+security,police
+telecom_network,telecom
+telecom_network,telecommunications
+telecom_network,network engineer
+telecom_network,noc
+telecom_network,fiber
+telecom_network,optical network
+telecom_network,5g
+telecom_network,lte
+telecom_network,isp
+telecom_network,sitovy administrator

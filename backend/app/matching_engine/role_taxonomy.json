@@ -1,0 +1,2836 @@
+{
+  "taxonomy_version": "role-taxonomy-v4.1",
+  "domain_keywords": {
+    "agriculture": [
+      "agriculture",
+      "farm",
+      "agronomist",
+      "agronom",
+      "zootechnik",
+      "tractor driver",
+      "farmer",
+      "vinarstvi",
+      "vinohrad",
+      "chov zvirat"
+    ],
+    "ai_data": [
+      "ai",
+      "artificial intelligence",
+      "machine learning",
+      "strojove uceni",
+      "llm",
+      "nlp",
+      "data science",
+      "data scientist",
+      "data engineer",
+      "analytics engineer",
+      "prompt engineer"
+    ],
+    "aviation": [
+      "aviation",
+      "airline",
+      "airport",
+      "ground handling",
+      "avionics",
+      "flight operations",
+      "letectvi",
+      "letiste"
+    ],
+    "construction": [
+      "construction",
+      "stavba",
+      "stavbyvedouci",
+      "zednik",
+      "tesar",
+      "instalater",
+      "electrician",
+      "plumber"
+    ],
+    "creative_media": [
+      "video production",
+      "copywriting",
+      "editor",
+      "journalist",
+      "graphic design",
+      "ux writing",
+      "media production"
+    ],
+    "customer_support": [
+      "customer support",
+      "customer success",
+      "helpdesk",
+      "service desk",
+      "call center",
+      "inside support",
+      "zakaznicka podpora",
+      "obsluha zakaznika"
+    ],
+    "ecommerce": [
+      "ecommerce",
+      "online store",
+      "marketplace",
+      "shopify",
+      "magento",
+      "digital merchandising",
+      "webshop"
+    ],
+    "education": [
+      "teacher",
+      "ucitel",
+      "lektor",
+      "lecturer",
+      "trainer",
+      "pedagog",
+      "instructor"
+    ],
+    "energy_utilities": [
+      "energy",
+      "energetika",
+      "utilities",
+      "renewable",
+      "solar",
+      "photovoltaics",
+      "wind turbine",
+      "distribution grid",
+      "teplarenstvi",
+      "elektroenergetika"
+    ],
+    "engineering": [
+      "engineer",
+      "strojni inzenyr",
+      "mechanical engineer",
+      "electrical engineer",
+      "projektant",
+      "design engineer",
+      "konstrukter",
+      "konstruktor",
+      "cad"
+    ],
+    "finance": [
+      "finance",
+      "ucetni",
+      "accountant",
+      "auditor",
+      "controller",
+      "investment",
+      "banker",
+      "fp&a"
+    ],
+    "government_defense": [
+      "defense",
+      "military",
+      "public safety",
+      "government security",
+      "kriticka infrastruktura",
+      "obrana"
+    ],
+    "healthcare": [
+      "healthcare",
+      "medical",
+      "nurse",
+      "doctor",
+      "lekar",
+      "klinika",
+      "hospital",
+      "ambulance"
+    ],
+    "hospitality": [
+      "hospitality",
+      "hotel",
+      "hotel specialist",
+      "restaurant",
+      "restaurace",
+      "reception",
+      "front office"
+    ],
+    "insurance": [
+      "insurance",
+      "pojisteni",
+      "underwriter",
+      "claims specialist",
+      "actuary",
+      "ubezpieczenia"
+    ],
+    "it": [
+      "software",
+      "developer",
+      "programator",
+      "programmer",
+      "backend",
+      "frontend",
+      "fullstack",
+      "python",
+      "javascript",
+      "typescript",
+      "react",
+      "node",
+      "devops",
+      "kubernetes",
+      "cloud",
+      "qa engineer",
+      "tester",
+      "sdet"
+    ],
+    "logistics": [
+      "logistics",
+      "warehouse",
+      "distribution",
+      "freight",
+      "dispatch",
+      "disponent",
+      "supply chain",
+      "fulfillment",
+      "expedice",
+      "spedice",
+      "spedycja"
+    ],
+    "manufacturing": [
+      "vyroba",
+      "manufacturing",
+      "strojnik",
+      "operator vyroby",
+      "cnc",
+      "obsluha stroje",
+      "assembly"
+    ],
+    "maritime": [
+      "maritime",
+      "shipping",
+      "port operations",
+      "seafarer",
+      "deck officer",
+      "marine engineer",
+      "lodni doprava"
+    ],
+    "marketing": [
+      "marketing",
+      "seo",
+      "ppc",
+      "social media",
+      "brand manager",
+      "content manager",
+      "copywriter",
+      "crm campaign"
+    ],
+    "media_design": [
+      "graphic designer",
+      "ux designer",
+      "ui designer",
+      "video editor",
+      "fotograf",
+      "photographer",
+      "content creator",
+      "motion designer"
+    ],
+    "mining_heavy_industry": [
+      "mining",
+      "quarry",
+      "heavy industry",
+      "steel plant",
+      "foundry",
+      "hutnictvi",
+      "slavarna"
+    ],
+    "operations": [
+      "operations",
+      "operations manager",
+      "provozni manazer",
+      "provozni manager",
+      "logistics",
+      "supply chain",
+      "planner",
+      "warehouse",
+      "disponent"
+    ],
+    "pharma_biotech": [
+      "pharma",
+      "biotech",
+      "gmp",
+      "clinical research",
+      "regulatory affairs",
+      "laboratory qa",
+      "farmaceuticky prumysl"
+    ],
+    "procurement": [
+      "buyer",
+      "procurement",
+      "sourcing",
+      "nakupci",
+      "strategic buyer",
+      "commodity manager",
+      "purchasing specialist"
+    ],
+    "public_services": [
+      "public sector",
+      "state administration",
+      "municipality",
+      "social worker",
+      "civil servant",
+      "urad",
+      "uradnik",
+      "verejna sprava",
+      "neziskovka"
+    ],
+    "real_estate": [
+      "real estate",
+      "property manager",
+      "facility manager",
+      "sprava nemovitosti",
+      "makler",
+      "realitni makler",
+      "leasing consultant"
+    ],
+    "retail": [
+      "retail",
+      "store manager",
+      "shop assistant",
+      "cashier",
+      "pokladni",
+      "prodejce",
+      "merchandiser",
+      "visual merchandising",
+      "predavac",
+      "sprzedawca"
+    ],
+    "sales": [
+      "obchod",
+      "sales",
+      "account manager",
+      "business development",
+      "bdm",
+      "akvizic",
+      "lead generation"
+    ],
+    "science_lab": [
+      "laboratory",
+      "lab technician",
+      "chemist",
+      "chemistka",
+      "biologist",
+      "microbiologist",
+      "analytical laboratory",
+      "qc laboratory"
+    ],
+    "security": [
+      "security",
+      "ostraha",
+      "guard",
+      "bezpecnost",
+      "firefighter",
+      "hasic",
+      "police"
+    ],
+    "telecom_network": [
+      "telecom",
+      "telecommunications",
+      "network engineer",
+      "noc",
+      "fiber",
+      "optical network",
+      "5g",
+      "lte",
+      "isp",
+      "sitovy administrator"
+    ]
+  },
+  "role_family_keywords": {
+    "accounting_payroll": [
+      "payroll specialist",
+      "mzdova ucetni",
+      "payroll accountant",
+      "wage processing",
+      "hr payroll"
+    ],
+    "actuarial_risk": [
+      "actuary",
+      "risk modeler",
+      "insurance risk analyst",
+      "underwriting analyst",
+      "solvency ii"
+    ],
+    "agriculture_farming": [
+      "agronom",
+      "farmer",
+      "farm manager",
+      "vinar",
+      "vinohradnik",
+      "zootechnik",
+      "tractor driver agriculture"
+    ],
+    "aviation_ground_ops": [
+      "ground handling",
+      "airport operations",
+      "ramp agent",
+      "load controller",
+      "flight dispatcher"
+    ],
+    "beauty_wellness": [
+      "hairdresser",
+      "kadernik",
+      "barber",
+      "cosmetician",
+      "masseur",
+      "nail technician",
+      "wellness therapist"
+    ],
+    "biomedical_engineering": [
+      "biomedical engineer",
+      "clinical engineer",
+      "medical instrumentation",
+      "hospital technology",
+      "medtech engineer"
+    ],
+    "care_social": [
+      "caregiver",
+      "pecovatel",
+      "social worker",
+      "osobni asistent",
+      "home care",
+      "domov duchodcu",
+      "direct support professional"
+    ],
+    "childcare_education": [
+      "kindergarten teacher",
+      "childcare worker",
+      "early years educator",
+      "preschool teacher",
+      "nursery teacher"
+    ],
+    "civil_engineering": [
+      "civil engineer",
+      "stavebni inzenyr",
+      "stavbyvedouci",
+      "projektant pozemnich staveb",
+      "bim",
+      "revit",
+      "construction manager"
+    ],
+    "cleaning_facility": [
+      "cleaner",
+      "uklizecka",
+      "housekeeping",
+      "facility cleaning",
+      "janitor",
+      "spravce budovy"
+    ],
+    "construction_site": [
+      "construction",
+      "stavba",
+      "zednik",
+      "tesar",
+      "sadrokarton",
+      "murarz",
+      "bau",
+      "roofing",
+      "pokryvac"
+    ],
+    "customer_success_support": [
+      "customer success manager",
+      "customer support",
+      "helpdesk",
+      "service desk",
+      "technical support",
+      "client support"
+    ],
+    "cybersecurity": [
+      "cybersecurity",
+      "security analyst",
+      "soc analyst",
+      "penetration tester",
+      "pentester",
+      "siem",
+      "iso 27001",
+      "information security"
+    ],
+    "data_analytics": [
+      "data analyst",
+      "business analyst",
+      "bi analyst",
+      "analytics",
+      "reporting",
+      "sql",
+      "power bi",
+      "tableau"
+    ],
+    "dental_clinic": [
+      "dentist",
+      "zubar",
+      "stomatolog",
+      "dental hygienist",
+      "dental nurse",
+      "orthodontist"
+    ],
+    "devops_cloud": [
+      "devops",
+      "site reliability engineer",
+      "sre",
+      "kubernetes",
+      "docker",
+      "terraform",
+      "aws",
+      "azure",
+      "gcp",
+      "platform engineer"
+    ],
+    "driving_transport": [
+      "ridic",
+      "vodic",
+      "driver",
+      "fahrer",
+      "kierowca",
+      "kamion",
+      "truck",
+      "c+e",
+      "delivery",
+      "kuryr",
+      "kurier",
+      "rozvoz",
+      "taxi",
+      "autobus",
+      "tram",
+      "bus driver"
+    ],
+    "ecommerce_operations": [
+      "ecommerce manager",
+      "marketplace specialist",
+      "shopify specialist",
+      "magento specialist",
+      "online merchandising",
+      "webshop manager"
+    ],
+    "education_training": [
+      "teacher",
+      "ucitel",
+      "lecturer",
+      "trainer",
+      "pedagog",
+      "instructor",
+      "coach"
+    ],
+    "electrical_automation": [
+      "electrical engineer",
+      "elektroinzenyr",
+      "plc",
+      "siemens s7",
+      "beckhoff",
+      "automation engineer",
+      "mechatronics",
+      "elektrotechnik"
+    ],
+    "environment_hse": [
+      "hse specialist",
+      "bozp",
+      "po specialist",
+      "environmental engineer",
+      "sustainability specialist",
+      "safety technician"
+    ],
+    "field_sales_b2b": [
+      "field sales",
+      "territory manager",
+      "obchodni zastupce",
+      "regional sales representative",
+      "b2b sales",
+      "key account field"
+    ],
+    "finance_accounting": [
+      "accountant",
+      "ucetni",
+      "controller",
+      "auditor",
+      "tax advisor",
+      "danovy poradce",
+      "bookkeeper"
+    ],
+    "food_service": [
+      "cook",
+      "chef",
+      "kuchar",
+      "kucharz",
+      "bartender",
+      "waiter",
+      "catering",
+      "barista"
+    ],
+    "government_security": [
+      "defense analyst",
+      "security clearance",
+      "critical infrastructure security",
+      "public safety coordinator"
+    ],
+    "healthcare_allied": [
+      "physiotherapist",
+      "fyzioterapeut",
+      "psycholog",
+      "psychologist",
+      "radiology",
+      "radiolog",
+      "paramedic"
+    ],
+    "healthcare_clinical": [
+      "doctor",
+      "physician",
+      "lekar",
+      "nurse",
+      "registered nurse",
+      "zdravotni sestra",
+      "klinika",
+      "hospital"
+    ],
+    "hospitality_hotel": [
+      "hotel specialist",
+      "hotelovy specialista",
+      "hotel",
+      "hospitality",
+      "front office",
+      "reception",
+      "concierge",
+      "guest relations",
+      "restaurace",
+      "restaurant manager"
+    ],
+    "hr_recruiting": [
+      "hr",
+      "recruiter",
+      "talent acquisition",
+      "people partner",
+      "hr business partner"
+    ],
+    "insurance_banking_sales": [
+      "insurance advisor",
+      "pojistny poradce",
+      "bank advisor",
+      "hypotecni specialista",
+      "mortgage advisor",
+      "financial advisor retail"
+    ],
+    "legal_compliance": [
+      "lawyer",
+      "advokat",
+      "pravnik",
+      "compliance",
+      "risk",
+      "aml",
+      "gdpr",
+      "jurist"
+    ],
+    "legal_contracts": [
+      "contracts manager",
+      "contract specialist",
+      "legal counsel contracts",
+      "commercial contracts",
+      "smlouvy specialist"
+    ],
+    "maintenance_service": [
+      "maintenance technician",
+      "udrzbar",
+      "servisni technik",
+      "field service technician",
+      "preventive maintenance",
+      "repair technician"
+    ],
+    "manufacturing_trades": [
+      "cnc",
+      "strojnik",
+      "operator vyroby",
+      "obsluha stroje",
+      "svarec",
+      "welder",
+      "electrician",
+      "elektrikar",
+      "plumber",
+      "instalater",
+      "technik",
+      "maintenance"
+    ],
+    "maritime_port_ops": [
+      "port operator",
+      "ship agent",
+      "marine logistics",
+      "deck officer",
+      "marine engineer",
+      "vessel operations"
+    ],
+    "marketing_content": [
+      "marketing",
+      "seo",
+      "ppc",
+      "copywriter",
+      "social media",
+      "content",
+      "crm",
+      "campaign"
+    ],
+    "mechanical_engineering": [
+      "mechanical engineer",
+      "strojni inzenyr",
+      "konstrukter",
+      "konstruktor",
+      "cad",
+      "solidworks",
+      "catia",
+      "autocad",
+      "design engineer"
+    ],
+    "medical_devices": [
+      "medical device specialist",
+      "biomedical equipment",
+      "hospital equipment",
+      "service medical devices",
+      "clinical engineer"
+    ],
+    "medical_laboratory": [
+      "lab technician",
+      "laborant",
+      "biomedical analyst",
+      "medical laboratory",
+      "hematology",
+      "clinical biochemistry"
+    ],
+    "mining_industry_ops": [
+      "mine operator",
+      "mining technician",
+      "quarry operator",
+      "steel plant operator",
+      "foundry technician"
+    ],
+    "network_telecom": [
+      "network engineer",
+      "network administrator",
+      "telecom technician",
+      "fiber optic",
+      "optical network",
+      "cisco",
+      "mikrotik",
+      "noc"
+    ],
+    "office_admin": [
+      "office manager",
+      "administrative",
+      "asistentka",
+      "assistant",
+      "back office",
+      "receptionist"
+    ],
+    "operations_management": [
+      "operations manager",
+      "provozni manazer",
+      "provozni manager",
+      "process manager",
+      "shift lead",
+      "team lead",
+      "supply chain",
+      "logistics manager",
+      "planner",
+      "warehouse manager"
+    ],
+    "painting_finishing": [
+      "lakyrnik",
+      "lakiernik",
+      "autolakyrnik",
+      "malir",
+      "malarz",
+      "naterac",
+      "painter",
+      "sprayer",
+      "lakierer",
+      "maler",
+      "airless",
+      "natery"
+    ],
+    "pharma_research": [
+      "pharma specialist",
+      "clinical research associate",
+      "cra",
+      "regulatory affairs",
+      "drug safety",
+      "gxp"
+    ],
+    "pharmacy_optics_vet": [
+      "pharmacist",
+      "lekarnik",
+      "farmaceut",
+      "optometrist",
+      "optometrista",
+      "veterinar",
+      "veterinarian"
+    ],
+    "procurement_buying": [
+      "buyer",
+      "procurement",
+      "sourcing",
+      "nakupci",
+      "commodity manager",
+      "strategic buyer",
+      "purchasing specialist"
+    ],
+    "product_management": [
+      "product manager",
+      "produktovy manazer",
+      "product owner",
+      "roadmap",
+      "go to market",
+      "feature prioritization"
+    ],
+    "project_management": [
+      "project manager",
+      "projektovy manazer",
+      "program manager",
+      "delivery manager",
+      "pm",
+      "scrum master",
+      "project coordinator"
+    ],
+    "public_sector_admin": [
+      "civil servant",
+      "uradnik",
+      "municipal officer",
+      "state administration",
+      "public administration",
+      "referent"
+    ],
+    "qa_testing": [
+      "qa engineer",
+      "tester",
+      "test automation",
+      "sdet",
+      "manual tester",
+      "quality assurance software",
+      "selenium",
+      "cypress"
+    ],
+    "quality_manufacturing": [
+      "quality engineer",
+      "quality manager",
+      "metrolog",
+      "metrology",
+      "spc",
+      "8d",
+      "fmea",
+      "ppap",
+      "apqp",
+      "iso 9001",
+      "iatf"
+    ],
+    "real_estate_property": [
+      "property manager",
+      "facility manager",
+      "real estate broker",
+      "realitni makler",
+      "leasing manager",
+      "asset manager"
+    ],
+    "retail_customer": [
+      "retail",
+      "shop assistant",
+      "pokladni",
+      "prodejce",
+      "sales assistant",
+      "customer service",
+      "call center"
+    ],
+    "sap_erp_consulting": [
+      "sap consultant",
+      "erp consultant",
+      "sap fi/co",
+      "sap mm",
+      "sap sd",
+      "dynamics 365 consultant"
+    ],
+    "security_emergency": [
+      "security guard",
+      "ostraha",
+      "bezpecnost",
+      "firefighter",
+      "hasic",
+      "paramedic",
+      "dispatcher"
+    ],
+    "software_ai": [
+      "developer",
+      "programator",
+      "programmer",
+      "software engineer",
+      "backend",
+      "frontend",
+      "fullstack",
+      "python",
+      "react",
+      "typescript",
+      "ai",
+      "machine learning",
+      "llm",
+      "data engineer"
+    ],
+    "translation_localization": [
+      "translator",
+      "interpreter",
+      "localization specialist",
+      "proofreader",
+      "linguist",
+      "tlumocnik",
+      "prekladatel"
+    ],
+    "veterinary_care": [
+      "veterinarian",
+      "veterinar",
+      "veterinary nurse",
+      "animal care",
+      "veterinary clinic",
+      "small animal practice"
+    ],
+    "warehouse_logistics": [
+      "warehouse worker",
+      "warehouse operator",
+      "picker",
+      "packer",
+      "forklift",
+      "jesterkar",
+      "skladnik",
+      "logistics specialist",
+      "expedient",
+      "disponent"
+    ],
+    "writing_editorial": [
+      "editor",
+      "journalist",
+      "copy editor",
+      "technical writer",
+      "content editor",
+      "redaktor"
+    ]
+  },
+  "role_family_relations": {
+    "accounting_payroll": {
+      "finance_accounting": 0.78,
+      "hr_recruiting": 0.44
+    },
+    "actuarial_risk": {
+      "data_analytics": 0.58,
+      "finance_accounting": 0.62,
+      "legal_compliance": 0.45
+    },
+    "agriculture_farming": {
+      "driving_transport": 0.45,
+      "environment_hse": 0.35,
+      "manufacturing_trades": 0.38
+    },
+    "aviation_ground_ops": {
+      "driving_transport": 0.42,
+      "maritime_port_ops": 0.38,
+      "warehouse_logistics": 0.5
+    },
+    "beauty_wellness": {
+      "hospitality_hotel": 0.35,
+      "retail_customer": 0.45
+    },
+    "biomedical_engineering": {
+      "electrical_automation": 0.55,
+      "medical_devices": 0.72,
+      "medical_laboratory": 0.45
+    },
+    "care_social": {
+      "education_training": 0.4,
+      "healthcare_allied": 0.6,
+      "public_sector_admin": 0.45
+    },
+    "childcare_education": {
+      "care_social": 0.48,
+      "education_training": 0.74
+    },
+    "civil_engineering": {
+      "construction_site": 0.78,
+      "environment_hse": 0.42,
+      "operations_management": 0.45
+    },
+    "cleaning_facility": {
+      "hospitality_hotel": 0.52,
+      "operations_management": 0.32
+    },
+    "construction_site": {
+      "manufacturing_trades": 0.5,
+      "painting_finishing": 0.75
+    },
+    "customer_success_support": {
+      "office_admin": 0.45,
+      "retail_customer": 0.55,
+      "software_ai": 0.32
+    },
+    "cybersecurity": {
+      "legal_compliance": 0.45,
+      "network_telecom": 0.65,
+      "software_ai": 0.55
+    },
+    "data_analytics": {
+      "finance_accounting": 0.55,
+      "operations_management": 0.5,
+      "software_ai": 0.8
+    },
+    "dental_clinic": {
+      "healthcare_allied": 0.45,
+      "healthcare_clinical": 0.66
+    },
+    "devops_cloud": {
+      "cybersecurity": 0.62,
+      "network_telecom": 0.6,
+      "software_ai": 0.82
+    },
+    "driving_transport": {
+      "manufacturing_trades": 0.45,
+      "operations_management": 0.55,
+      "retail_customer": 0.35
+    },
+    "ecommerce_operations": {
+      "marketing_content": 0.66,
+      "operations_management": 0.54,
+      "retail_customer": 0.62
+    },
+    "education_training": {
+      "hr_recruiting": 0.35,
+      "operations_management": 0.35
+    },
+    "electrical_automation": {
+      "maintenance_service": 0.52,
+      "manufacturing_trades": 0.68,
+      "network_telecom": 0.4
+    },
+    "environment_hse": {
+      "civil_engineering": 0.42,
+      "public_sector_admin": 0.35,
+      "quality_manufacturing": 0.52
+    },
+    "field_sales_b2b": {
+      "insurance_banking_sales": 0.58,
+      "retail_customer": 0.45
+    },
+    "finance_accounting": {
+      "data_analytics": 0.55,
+      "legal_compliance": 0.5,
+      "operations_management": 0.45
+    },
+    "food_service": {
+      "hospitality_hotel": 0.65,
+      "retail_customer": 0.4
+    },
+    "government_security": {
+      "legal_compliance": 0.42,
+      "public_sector_admin": 0.52,
+      "security_emergency": 0.58
+    },
+    "healthcare_allied": {
+      "healthcare_clinical": 0.45,
+      "pharmacy_optics_vet": 0.4
+    },
+    "healthcare_clinical": {
+      "healthcare_allied": 0.45,
+      "pharmacy_optics_vet": 0.35
+    },
+    "hospitality_hotel": {
+      "food_service": 0.65,
+      "operations_management": 0.6,
+      "retail_customer": 0.55
+    },
+    "hr_recruiting": {
+      "office_admin": 0.45,
+      "operations_management": 0.4,
+      "retail_customer": 0.3
+    },
+    "insurance_banking_sales": {
+      "finance_accounting": 0.7,
+      "real_estate_property": 0.55,
+      "retail_customer": 0.48
+    },
+    "legal_compliance": {
+      "finance_accounting": 0.5,
+      "office_admin": 0.35
+    },
+    "legal_contracts": {
+      "legal_compliance": 0.82,
+      "office_admin": 0.38,
+      "procurement_buying": 0.42
+    },
+    "maintenance_service": {
+      "electrical_automation": 0.52,
+      "manufacturing_trades": 0.66,
+      "warehouse_logistics": 0.4
+    },
+    "manufacturing_trades": {
+      "construction_site": 0.5,
+      "driving_transport": 0.45,
+      "painting_finishing": 0.7
+    },
+    "maritime_port_ops": {
+      "driving_transport": 0.5,
+      "warehouse_logistics": 0.62
+    },
+    "marketing_content": {
+      "operations_management": 0.35,
+      "retail_customer": 0.35,
+      "software_ai": 0.35
+    },
+    "mechanical_engineering": {
+      "civil_engineering": 0.4,
+      "manufacturing_trades": 0.7,
+      "quality_manufacturing": 0.6
+    },
+    "medical_devices": {
+      "biomedical_engineering": 0.72,
+      "healthcare_allied": 0.55,
+      "maintenance_service": 0.5
+    },
+    "medical_laboratory": {
+      "healthcare_allied": 0.62,
+      "pharma_research": 0.55,
+      "pharmacy_optics_vet": 0.4
+    },
+    "mining_industry_ops": {
+      "driving_transport": 0.42,
+      "manufacturing_trades": 0.6
+    },
+    "network_telecom": {
+      "cybersecurity": 0.65,
+      "devops_cloud": 0.6,
+      "electrical_automation": 0.4
+    },
+    "office_admin": {
+      "hr_recruiting": 0.45,
+      "operations_management": 0.5,
+      "retail_customer": 0.4
+    },
+    "operations_management": {
+      "driving_transport": 0.55,
+      "hospitality_hotel": 0.6,
+      "office_admin": 0.5,
+      "software_ai": 0.45
+    },
+    "painting_finishing": {
+      "construction_site": 0.75,
+      "manufacturing_trades": 0.7
+    },
+    "pharma_research": {
+      "legal_compliance": 0.35,
+      "medical_laboratory": 0.55,
+      "pharmacy_optics_vet": 0.45
+    },
+    "pharmacy_optics_vet": {
+      "healthcare_allied": 0.4,
+      "healthcare_clinical": 0.35
+    },
+    "procurement_buying": {
+      "finance_accounting": 0.48,
+      "operations_management": 0.65,
+      "project_management": 0.45
+    },
+    "product_management": {
+      "data_analytics": 0.62,
+      "marketing_content": 0.52,
+      "software_ai": 0.72
+    },
+    "project_management": {
+      "operations_management": 0.75,
+      "product_management": 0.72,
+      "software_ai": 0.5
+    },
+    "public_sector_admin": {
+      "education_training": 0.35,
+      "legal_compliance": 0.45,
+      "office_admin": 0.62
+    },
+    "qa_testing": {
+      "quality_manufacturing": 0.45,
+      "software_ai": 0.75
+    },
+    "quality_manufacturing": {
+      "data_analytics": 0.45,
+      "manufacturing_trades": 0.68,
+      "operations_management": 0.5
+    },
+    "real_estate_property": {
+      "insurance_banking_sales": 0.55,
+      "office_admin": 0.45,
+      "operations_management": 0.58
+    },
+    "retail_customer": {
+      "food_service": 0.4,
+      "hospitality_hotel": 0.55,
+      "office_admin": 0.4
+    },
+    "sap_erp_consulting": {
+      "finance_accounting": 0.46,
+      "operations_management": 0.52,
+      "software_ai": 0.62
+    },
+    "security_emergency": {
+      "driving_transport": 0.3,
+      "healthcare_allied": 0.35
+    },
+    "software_ai": {
+      "data_analytics": 0.8,
+      "marketing_content": 0.35,
+      "operations_management": 0.45
+    },
+    "translation_localization": {
+      "office_admin": 0.34,
+      "writing_editorial": 0.68
+    },
+    "veterinary_care": {
+      "healthcare_allied": 0.42,
+      "pharmacy_optics_vet": 0.68
+    },
+    "warehouse_logistics": {
+      "driving_transport": 0.72,
+      "manufacturing_trades": 0.5,
+      "operations_management": 0.62
+    },
+    "writing_editorial": {
+      "marketing_content": 0.62,
+      "translation_localization": 0.68
+    }
+  },
+  "required_qualification_rules": [
+    {
+      "name": "accountant_certified",
+      "job_terms": [
+        "certified accountant",
+        "hlavni ucetni",
+        "ifrs specialist",
+        "tax reporting specialist",
+        "chartered accountant"
+      ],
+      "candidate_terms": [
+        "ucetni",
+        "hlavni ucetni",
+        "ifrs",
+        "chartered accountant",
+        "accounting degree"
+      ]
+    },
+    {
+      "name": "accounting_certified",
+      "job_terms": [
+        "hlavni ucetni",
+        "danovy poradce",
+        "tax advisor",
+        "steuerberater",
+        "doradca podatkowy"
+      ],
+      "candidate_terms": [
+        "ucetni",
+        "hlavni ucetni",
+        "danovy poradce",
+        "tax advisor",
+        "steuerberater",
+        "doradca podatkowy"
+      ]
+    },
+    {
+      "name": "actuary_certified",
+      "job_terms": [
+        "actuary",
+        "certified actuary",
+        "pojistny matematik",
+        "aktuariusz"
+      ],
+      "candidate_terms": [
+        "actuary",
+        "certified actuary",
+        "pojistny matematik",
+        "aktuariusz"
+      ]
+    },
+    {
+      "name": "air_traffic_controller",
+      "job_terms": [
+        "air traffic controller",
+        "letovy dispecer",
+        "fluglotse",
+        "kontrolor letoveho provozu"
+      ],
+      "candidate_terms": [
+        "air traffic controller",
+        "letovy dispecer",
+        "atco license",
+        "fluglotse"
+      ]
+    },
+    {
+      "name": "aircraft_mechanic",
+      "job_terms": [
+        "aircraft mechanic",
+        "letecky mechanik",
+        "fluggeratmechaniker",
+        "part-66",
+        "avionics technician"
+      ],
+      "candidate_terms": [
+        "aircraft mechanic",
+        "letecky mechanik",
+        "part-66",
+        "avionics",
+        "aircraft maintenance"
+      ]
+    },
+    {
+      "name": "architect",
+      "job_terms": [
+        "architekt",
+        "architect",
+        "licensed architect",
+        "projektant architektury",
+        "architekturburo"
+      ],
+      "candidate_terms": [
+        "architekt",
+        "architect",
+        "authorized architect",
+        "fa cvut",
+        "architecture degree"
+      ]
+    },
+    {
+      "name": "armed_forces_professional",
+      "job_terms": [
+        "professional soldier",
+        "armed forces specialist",
+        "vojak z povolani"
+      ],
+      "candidate_terms": [
+        "professional soldier",
+        "military service",
+        "vojak z povolani"
+      ]
+    },
+    {
+      "name": "auditor",
+      "job_terms": [
+        "auditor",
+        "internal auditor",
+        "external auditor",
+        "statutory auditor",
+        "audit manager"
+      ],
+      "candidate_terms": [
+        "auditor",
+        "audit",
+        "acca",
+        "cia",
+        "statutory auditor"
+      ]
+    },
+    {
+      "name": "automotive_mechatronics",
+      "job_terms": [
+        "automechanik",
+        "auto electrician",
+        "automotive mechatronics",
+        "kfz mechatroniker"
+      ],
+      "candidate_terms": [
+        "automechanik",
+        "automotive mechatronics",
+        "auto electrician",
+        "kfz"
+      ]
+    },
+    {
+      "name": "avionics_technician",
+      "job_terms": [
+        "avionics technician",
+        "avionik",
+        "aircraft electronics",
+        "letecka elektronika"
+      ],
+      "candidate_terms": [
+        "avionics technician",
+        "avionik",
+        "aircraft electronics"
+      ]
+    },
+    {
+      "name": "beautician_license",
+      "job_terms": [
+        "kosmeticka",
+        "beautician",
+        "cosmetologist",
+        "kosmetolog"
+      ],
+      "candidate_terms": [
+        "kosmeticka",
+        "beautician",
+        "cosmetologist",
+        "kosmetolog"
+      ]
+    },
+    {
+      "name": "blaster_mining",
+      "job_terms": [
+        "blaster",
+        "strelmistr",
+        "shotfirer mining"
+      ],
+      "candidate_terms": [
+        "blaster license",
+        "strelmistr",
+        "shotfirer"
+      ]
+    },
+    {
+      "name": "bozp_po",
+      "job_terms": [
+        "bozp specialista",
+        "po specialista",
+        "safety officer",
+        "hse officer",
+        "fire protection specialist"
+      ],
+      "candidate_terms": [
+        "bozp",
+        "po specialista",
+        "safety officer",
+        "hse",
+        "fire protection"
+      ]
+    },
+    {
+      "name": "butcher",
+      "job_terms": [
+        "reznik",
+        "uzenar",
+        "butcher",
+        "bourani masa",
+        "vyroba uzenin",
+        "fleischer",
+        "metzger",
+        "rzeznik",
+        "masiar"
+      ],
+      "candidate_terms": [
+        "reznik",
+        "uzenar",
+        "butcher",
+        "bourani masa",
+        "potravinarstvi",
+        "haccp",
+        "fleischer",
+        "metzger",
+        "rzeznik",
+        "masiar"
+      ]
+    },
+    {
+      "name": "captain_maritime",
+      "job_terms": [
+        "ship captain",
+        "master mariner",
+        "kapitan lodi",
+        "captain vessel"
+      ],
+      "candidate_terms": [
+        "ship captain",
+        "master mariner",
+        "kapitan lodi",
+        "stcw"
+      ]
+    },
+    {
+      "name": "civil_engineer_authorized",
+      "job_terms": [
+        "autorizovany inzenyr",
+        "civil engineer licensed",
+        "chartered engineer civil",
+        "ing civil",
+        "statik autorizace"
+      ],
+      "candidate_terms": [
+        "autorizovany inzenyr",
+        "civil engineer",
+        "chartered engineer",
+        "statik",
+        "ing"
+      ]
+    },
+    {
+      "name": "civil_service_exam",
+      "job_terms": [
+        "civil service officer",
+        "state administration specialist",
+        "referent statni spravy"
+      ],
+      "candidate_terms": [
+        "civil service exam",
+        "public administration",
+        "referent statni spravy"
+      ]
+    },
+    {
+      "name": "claims_adjuster",
+      "job_terms": [
+        "claims adjuster",
+        "likvidator pojistnych udalosti",
+        "claims specialist insurance"
+      ],
+      "candidate_terms": [
+        "claims adjuster",
+        "claims specialist",
+        "likvidator pojistnych udalosti"
+      ]
+    },
+    {
+      "name": "clinical_research",
+      "job_terms": [
+        "clinical research associate",
+        "cra",
+        "gcp",
+        "clinical trial coordinator"
+      ],
+      "candidate_terms": [
+        "clinical research",
+        "cra",
+        "gcp",
+        "clinical trial"
+      ]
+    },
+    {
+      "name": "cmm_metrology",
+      "job_terms": [
+        "cmm operator",
+        "metrolog",
+        "3d measurement",
+        "zeiss calypso",
+        "coordinate measuring machine"
+      ],
+      "candidate_terms": [
+        "metrolog",
+        "cmm",
+        "3d measurement",
+        "calypso",
+        "quality metrology"
+      ]
+    },
+    {
+      "name": "construction_supervisor",
+      "job_terms": [
+        "stavbyvedouci",
+        "construction supervisor",
+        "site manager construction",
+        "bauleiter",
+        "kierownik budowy"
+      ],
+      "candidate_terms": [
+        "stavbyvedouci",
+        "construction supervisor",
+        "authorized engineer",
+        "bauleiter",
+        "kierownik budowy"
+      ]
+    },
+    {
+      "name": "crane_operator",
+      "job_terms": [
+        "crane operator",
+        "jerabnik",
+        "kranfuhrer",
+        "operator zurawia"
+      ],
+      "candidate_terms": [
+        "crane operator",
+        "jerabnik",
+        "kranfuhrer",
+        "operator zurawia",
+        "vazacsky prukaz"
+      ]
+    },
+    {
+      "name": "customs_declarant",
+      "job_terms": [
+        "customs declarant",
+        "celni deklarant",
+        "zollsachbearbeiter",
+        "agent celny"
+      ],
+      "candidate_terms": [
+        "customs declarant",
+        "celni deklarant",
+        "zoll",
+        "agent celny"
+      ]
+    },
+    {
+      "name": "deck_officer",
+      "job_terms": [
+        "deck officer",
+        "mate officer",
+        "lodni dustojnik",
+        "nautical officer"
+      ],
+      "candidate_terms": [
+        "deck officer",
+        "nautical officer",
+        "stcw",
+        "lodni dustojnik"
+      ]
+    },
+    {
+      "name": "dentist",
+      "job_terms": [
+        "zubar",
+        "stomatolog",
+        "dental",
+        "dentist",
+        "zahnarzt",
+        "dentysta",
+        "ortodontista"
+      ],
+      "candidate_terms": [
+        "zubar",
+        "stomatolog",
+        "dentist",
+        "zahnarzt",
+        "dentysta",
+        "dental medicine",
+        "stomatologie"
+      ]
+    },
+    {
+      "name": "dentist_hygienist",
+      "job_terms": [
+        "dental hygienist",
+        "dental nurse",
+        "dent\u00e1ln\u00ed hygiena",
+        "higienistka stomatologiczna"
+      ],
+      "candidate_terms": [
+        "dental hygienist",
+        "dental nurse",
+        "dental hygiene",
+        "dent\u00e1ln\u00ed hygiena"
+      ]
+    },
+    {
+      "name": "doctor",
+      "job_terms": [
+        "lekar",
+        "prakticky lekar",
+        "zubar",
+        "chirurg",
+        "internista",
+        "pediatr",
+        "anesteziolog",
+        "arzt",
+        "facharzt",
+        "assistenzarzt",
+        "physician",
+        "medical doctor",
+        "lekarz"
+      ],
+      "candidate_terms": [
+        "lekar",
+        "arzt",
+        "physician",
+        "medical doctor",
+        "mudr",
+        "dr med",
+        "medicina",
+        "lekarska fakulta",
+        "lekarz",
+        "medycyna",
+        "doktor mediciny"
+      ]
+    },
+    {
+      "name": "driver_c",
+      "job_terms": [
+        "ridic sk c",
+        "ridic c",
+        "skupina c",
+        "c+e",
+        "kamion",
+        "tahac",
+        "nakladni vozidlo",
+        "fahrer klasse c",
+        "kierowca c",
+        "vodic c",
+        "truck driver c",
+        "ce driver"
+      ],
+      "candidate_terms": [
+        "ridic sk c",
+        "ridic c",
+        "skupina c",
+        "c+e",
+        "profesni prukaz",
+        "tachograf",
+        "kamion",
+        "fahrer klasse c",
+        "kierowca c",
+        "vodic c",
+        "truck driver",
+        "driver c",
+        "ce driver"
+      ]
+    },
+    {
+      "name": "driver_d_bus",
+      "job_terms": [
+        "ridic sk d",
+        "skupina d",
+        "bus driver",
+        "autobus",
+        "fahrer klasse d",
+        "kierowca autobusu",
+        "vodic autobusu"
+      ],
+      "candidate_terms": [
+        "ridic sk d",
+        "skupina d",
+        "bus driver",
+        "profesni prukaz",
+        "fahrer klasse d",
+        "kierowca autobusu",
+        "driver d"
+      ]
+    },
+    {
+      "name": "driver_taxi",
+      "job_terms": [
+        "taxi driver",
+        "taxikar",
+        "uber driver",
+        "bolt driver",
+        "personal transport"
+      ],
+      "candidate_terms": [
+        "taxi driver",
+        "taxikar",
+        "ridicsky prukaz b",
+        "driver card",
+        "professional driver"
+      ]
+    },
+    {
+      "name": "drone_pilot",
+      "job_terms": [
+        "drone pilot",
+        "uav operator",
+        "pilot dronu",
+        "uas operator"
+      ],
+      "candidate_terms": [
+        "drone pilot",
+        "uav operator",
+        "pilot dronu",
+        "uas license"
+      ]
+    },
+    {
+      "name": "electric_line_worker",
+      "job_terms": [
+        "line worker high voltage",
+        "montaz vedeni vn",
+        "elektricke vedeni vn",
+        "power line technician"
+      ],
+      "candidate_terms": [
+        "electrical license",
+        "paragraf 6",
+        "paragraf 7",
+        "power line technician"
+      ]
+    },
+    {
+      "name": "electrical_certified",
+      "job_terms": [
+        "paragraf 8",
+        "paragraf 10",
+        "nv 194/2022",
+        "electrical license",
+        "high voltage technician"
+      ],
+      "candidate_terms": [
+        "paragraf 6",
+        "paragraf 7",
+        "paragraf 8",
+        "nv 194/2022",
+        "electrical license"
+      ]
+    },
+    {
+      "name": "electrician",
+      "job_terms": [
+        "elektrikar",
+        "silnoproud",
+        "slaboproud",
+        "vyhlaska 50",
+        "paragraf 6",
+        "paragraf 7",
+        "electrical technician",
+        "elektryk",
+        "elektrofachkraft"
+      ],
+      "candidate_terms": [
+        "elektrikar",
+        "silnoproud",
+        "slaboproud",
+        "vyhlaska 50",
+        "paragraf 6",
+        "paragraf 7",
+        "electrical",
+        "electrotechnics",
+        "elektrotechnik",
+        "elektryk"
+      ]
+    },
+    {
+      "name": "excavator_operator",
+      "job_terms": [
+        "bagrista",
+        "excavator operator",
+        "operator koparki",
+        "baggerfahrer"
+      ],
+      "candidate_terms": [
+        "bagrista",
+        "excavator operator",
+        "operator koparki",
+        "baggerfahrer"
+      ]
+    },
+    {
+      "name": "firefighter",
+      "job_terms": [
+        "firefighter",
+        "hasic",
+        "feuerwehr",
+        "strazak"
+      ],
+      "candidate_terms": [
+        "firefighter",
+        "hasic",
+        "feuerwehr",
+        "strazak"
+      ]
+    },
+    {
+      "name": "flight_dispatcher",
+      "job_terms": [
+        "flight dispatcher",
+        "letecky dispecer",
+        "operations control center airline"
+      ],
+      "candidate_terms": [
+        "flight dispatcher",
+        "letecky dispecer",
+        "aviation operations"
+      ]
+    },
+    {
+      "name": "forklift_license",
+      "job_terms": [
+        "forklift",
+        "jesterkar",
+        "wozek widlowy",
+        "forklift driver",
+        "vysokozdvizny vozik"
+      ],
+      "candidate_terms": [
+        "forklift license",
+        "prukaz vuzv",
+        "jesterkar",
+        "forklift driver",
+        "wozek widlowy"
+      ]
+    },
+    {
+      "name": "foundry_worker",
+      "job_terms": [
+        "foundry worker",
+        "slavarensky delnik",
+        "operator slavarna",
+        "odlevarna"
+      ],
+      "candidate_terms": [
+        "foundry worker",
+        "slavarna",
+        "metal casting",
+        "odlevarna"
+      ]
+    },
+    {
+      "name": "gas_boiler_service",
+      "job_terms": [
+        "plynovy kotel servis",
+        "gas boiler technician",
+        "heating technician gas",
+        "kotlar plyn"
+      ],
+      "candidate_terms": [
+        "gas technician",
+        "plynar",
+        "gas boiler technician",
+        "heating technician"
+      ]
+    },
+    {
+      "name": "gas_technician",
+      "job_terms": [
+        "plynar",
+        "plyn",
+        "gas technician",
+        "gas installer",
+        "gasmonteur",
+        "gazownik"
+      ],
+      "candidate_terms": [
+        "plynar",
+        "plyn",
+        "gas technician",
+        "gas installer",
+        "gasmonteur",
+        "gazownik"
+      ]
+    },
+    {
+      "name": "hairdresser_license",
+      "job_terms": [
+        "kadernik",
+        "hairdresser",
+        "barber",
+        "friseur",
+        "fryzjer"
+      ],
+      "candidate_terms": [
+        "kadernik",
+        "hairdresser",
+        "barber",
+        "friseur",
+        "fryzjer"
+      ]
+    },
+    {
+      "name": "heavy_machine_operator",
+      "job_terms": [
+        "bagrista",
+        "jerabnik",
+        "jesterkar",
+        "strojnik",
+        "crane operator",
+        "forklift",
+        "forklift driver",
+        "kranfuhrer",
+        "wozek widlowy",
+        "operator koparki"
+      ],
+      "candidate_terms": [
+        "bagrista",
+        "jerabnik",
+        "jesterkar",
+        "strojnik",
+        "crane operator",
+        "forklift",
+        "forklift driver",
+        "kranfuhrer",
+        "wozek widlowy",
+        "operator koparki"
+      ]
+    },
+    {
+      "name": "hvac_technician",
+      "job_terms": [
+        "hvac technician",
+        "vzduchotechnika",
+        "chlazeni a klimatizace",
+        "refrigeration technician"
+      ],
+      "candidate_terms": [
+        "hvac",
+        "vzduchotechnika",
+        "f-gas",
+        "refrigeration technician"
+      ]
+    },
+    {
+      "name": "insurance_intermediary",
+      "job_terms": [
+        "insurance advisor",
+        "insurance intermediary",
+        "pojistny poradce",
+        "ubezpieczeniowy doradca"
+      ],
+      "candidate_terms": [
+        "insurance advisor",
+        "insurance intermediary",
+        "pojistny poradce",
+        "insurance exam"
+      ]
+    },
+    {
+      "name": "insurance_underwriter",
+      "job_terms": [
+        "underwriter",
+        "insurance underwriter",
+        "risk underwriter",
+        "pojistny underwriter"
+      ],
+      "candidate_terms": [
+        "underwriter",
+        "insurance underwriter",
+        "risk underwriting"
+      ]
+    },
+    {
+      "name": "interpreter_certified",
+      "job_terms": [
+        "court interpreter",
+        "certified interpreter",
+        "soudni tlumocnik"
+      ],
+      "candidate_terms": [
+        "court interpreter",
+        "certified interpreter",
+        "soudni tlumocnik"
+      ]
+    },
+    {
+      "name": "kindergarten_teacher",
+      "job_terms": [
+        "ucitelka materske skoly",
+        "kindergarten teacher",
+        "preschool teacher",
+        "erzieherin"
+      ],
+      "candidate_terms": [
+        "predskolni pedagogika",
+        "kindergarten teacher",
+        "preschool teacher",
+        "erzieherin"
+      ]
+    },
+    {
+      "name": "lawyer",
+      "job_terms": [
+        "advokat",
+        "pravnik",
+        "koncipient",
+        "lawyer",
+        "attorney",
+        "jurist",
+        "rechtsanwalt",
+        "prawnik",
+        "radca prawny"
+      ],
+      "candidate_terms": [
+        "advokat",
+        "pravnik",
+        "lawyer",
+        "attorney",
+        "jurist",
+        "rechtsanwalt",
+        "prawnik",
+        "pravnicka fakulta",
+        "law school"
+      ]
+    },
+    {
+      "name": "lawyer_bar",
+      "job_terms": [
+        "advokat",
+        "attorney at law",
+        "bar admission",
+        "rechtsanwalt",
+        "radca prawny"
+      ],
+      "candidate_terms": [
+        "advokat",
+        "attorney",
+        "bar exam",
+        "rechtsanwalt",
+        "radca prawny"
+      ]
+    },
+    {
+      "name": "machine_operator_cnc",
+      "job_terms": [
+        "cnc",
+        "operator cnc",
+        "seizovac cnc",
+        "cnc machinist",
+        "cnc bediener",
+        "operator cnc frezarki"
+      ],
+      "candidate_terms": [
+        "cnc",
+        "operator cnc",
+        "seizovac cnc",
+        "cnc machinist",
+        "cnc bediener"
+      ]
+    },
+    {
+      "name": "machine_safety",
+      "job_terms": [
+        "machine safety specialist",
+        "bezpecnost stroju",
+        "functional safety",
+        "ce conformity machinery"
+      ],
+      "candidate_terms": [
+        "machine safety",
+        "functional safety",
+        "ce conformity",
+        "tuv machinery"
+      ]
+    },
+    {
+      "name": "marine_engineer",
+      "job_terms": [
+        "marine engineer",
+        "chief engineer vessel",
+        "ship engineer",
+        "lodni inzenyr"
+      ],
+      "candidate_terms": [
+        "marine engineer",
+        "ship engineer",
+        "stcw",
+        "lodni inzenyr"
+      ]
+    },
+    {
+      "name": "medical_laboratory",
+      "job_terms": [
+        "laborant ve zdravotnictvi",
+        "medical laboratory",
+        "clinical biochemistry lab",
+        "hematology lab",
+        "lab technician healthcare"
+      ],
+      "candidate_terms": [
+        "zdravotni laborant",
+        "medical laboratory",
+        "laboratory medicine",
+        "clinical biochemistry",
+        "hematology"
+      ]
+    },
+    {
+      "name": "metallurgy_engineer",
+      "job_terms": [
+        "metallurgy engineer",
+        "metalurg",
+        "steelmaking engineer",
+        "inzenyr hutnictvi"
+      ],
+      "candidate_terms": [
+        "metallurgy engineer",
+        "metalurg",
+        "materials engineering",
+        "hutnictvi"
+      ]
+    },
+    {
+      "name": "midwife",
+      "job_terms": [
+        "porodni asistentka",
+        "midwife",
+        "hebamme",
+        "polozna"
+      ],
+      "candidate_terms": [
+        "porodni asistentka",
+        "midwife",
+        "hebamme",
+        "polozna"
+      ]
+    },
+    {
+      "name": "mine_operator",
+      "job_terms": [
+        "mine operator",
+        "operator dolu",
+        "quarry operator",
+        "operator tezebni techniky"
+      ],
+      "candidate_terms": [
+        "mine operator",
+        "quarry operator",
+        "strojnik tezebni",
+        "operator dolu"
+      ]
+    },
+    {
+      "name": "mortgage_advisor",
+      "job_terms": [
+        "mortgage advisor",
+        "hypotecni specialista",
+        "kreditberater hypothek",
+        "doradca kredytowy"
+      ],
+      "candidate_terms": [
+        "mortgage advisor",
+        "hypotecni specialista",
+        "financial advisory",
+        "credit specialist"
+      ]
+    },
+    {
+      "name": "notary",
+      "job_terms": [
+        "notar",
+        "notary",
+        "notariusz"
+      ],
+      "candidate_terms": [
+        "notar",
+        "notary",
+        "notariusz"
+      ]
+    },
+    {
+      "name": "nurse",
+      "job_terms": [
+        "zdravotni sestra",
+        "prakticka sestra",
+        "vseobecna sestra",
+        "nurse",
+        "registered nurse",
+        "krankenschwester",
+        "pflegefachkraft",
+        "pielegniarka"
+      ],
+      "candidate_terms": [
+        "zdravotni sestra",
+        "prakticka sestra",
+        "vseobecna sestra",
+        "nurse",
+        "registered nurse",
+        "pflege",
+        "krankenschwester",
+        "pielegniarka"
+      ]
+    },
+    {
+      "name": "nurse_practical",
+      "job_terms": [
+        "prakticka sestra",
+        "general nurse",
+        "registered nurse",
+        "pflegefachkraft",
+        "nurse"
+      ],
+      "candidate_terms": [
+        "zdravotni sestra",
+        "prakticka sestra",
+        "registered nurse",
+        "nurse",
+        "pflegefachkraft"
+      ]
+    },
+    {
+      "name": "nutrition_specialist",
+      "job_terms": [
+        "nutrition specialist",
+        "dietitian",
+        "nutricni terapeut",
+        "dietetyk"
+      ],
+      "candidate_terms": [
+        "dietitian",
+        "nutricni terapeut",
+        "nutrition specialist",
+        "dietetyk"
+      ]
+    },
+    {
+      "name": "optometrist",
+      "job_terms": [
+        "optometrista",
+        "optometrie",
+        "optometrist",
+        "optician",
+        "augenoptiker",
+        "optometrysta"
+      ],
+      "candidate_terms": [
+        "optometrista",
+        "optometrie",
+        "optometrist",
+        "optician",
+        "augenoptiker",
+        "optometrysta"
+      ]
+    },
+    {
+      "name": "paramedic",
+      "job_terms": [
+        "zachranar",
+        "zdravotnicky zachranar",
+        "paramedic",
+        "rettungssanitaeter",
+        "ratownik medyczny"
+      ],
+      "candidate_terms": [
+        "zachranar",
+        "zdravotnicky zachranar",
+        "paramedic",
+        "rettungssanitaeter",
+        "ratownik medyczny"
+      ]
+    },
+    {
+      "name": "paramedic_license",
+      "job_terms": [
+        "paramedic",
+        "zdravotnicky zachranar",
+        "rettungssanitaeter",
+        "ratownik medyczny"
+      ],
+      "candidate_terms": [
+        "paramedic",
+        "zdravotnicky zachranar",
+        "rettungssanitaeter",
+        "ratownik medyczny"
+      ]
+    },
+    {
+      "name": "pharmacist",
+      "job_terms": [
+        "lekarnik",
+        "farmaceut",
+        "pharmacist",
+        "clinical pharmacist",
+        "apotheker",
+        "apotheke",
+        "aptekarz",
+        "farmaceuta"
+      ],
+      "candidate_terms": [
+        "lekarnik",
+        "farmaceut",
+        "pharmacist",
+        "apotheker",
+        "aptekarz",
+        "farmaceuta",
+        "farmacie",
+        "pharmd",
+        "mgr farmacie",
+        "farmacja"
+      ]
+    },
+    {
+      "name": "pharmacovigilance",
+      "job_terms": [
+        "pharmacovigilance",
+        "drug safety specialist",
+        "pv specialist",
+        "case processing safety"
+      ],
+      "candidate_terms": [
+        "pharmacovigilance",
+        "drug safety",
+        "gxp",
+        "clinical safety"
+      ]
+    },
+    {
+      "name": "pharmacy_assistant",
+      "job_terms": [
+        "farmaceuticky asistent",
+        "pharmacy technician",
+        "pta",
+        "aptecny technik",
+        "technik farmaceutyczny"
+      ],
+      "candidate_terms": [
+        "farmaceuticky asistent",
+        "pharmacy technician",
+        "pta",
+        "aptecny technik",
+        "technik farmaceutyczny"
+      ]
+    },
+    {
+      "name": "physician_specialist",
+      "job_terms": [
+        "specialista lekar",
+        "specialist physician",
+        "facharzt",
+        "consultant physician",
+        "attending physician"
+      ],
+      "candidate_terms": [
+        "lekar",
+        "specialist physician",
+        "facharzt",
+        "medical doctor",
+        "mudr"
+      ]
+    },
+    {
+      "name": "physio_license",
+      "job_terms": [
+        "physiotherapist",
+        "fyzioterapeut",
+        "physio clinic",
+        "fizjoterapeuta"
+      ],
+      "candidate_terms": [
+        "physiotherapist",
+        "fyzioterapeut",
+        "fizjoterapeuta",
+        "rehabilitace"
+      ]
+    },
+    {
+      "name": "physiotherapist",
+      "job_terms": [
+        "fyzioterapeut",
+        "rehabilitace",
+        "physiotherapist",
+        "physio",
+        "physiotherapie",
+        "fizjoterapeuta"
+      ],
+      "candidate_terms": [
+        "fyzioterapeut",
+        "physiotherapist",
+        "rehabilitace",
+        "physio",
+        "physiotherapie",
+        "fizjoterapeuta"
+      ]
+    },
+    {
+      "name": "pilot",
+      "job_terms": [
+        "pilot",
+        "airline pilot",
+        "commercial pilot",
+        "captain",
+        "first officer",
+        "flugzeugfuhrer"
+      ],
+      "candidate_terms": [
+        "pilot",
+        "airline pilot",
+        "commercial pilot",
+        "atpl",
+        "cpl",
+        "first officer"
+      ]
+    },
+    {
+      "name": "pilot_commercial",
+      "job_terms": [
+        "commercial pilot",
+        "airline pilot",
+        "captain",
+        "first officer",
+        "atpl required",
+        "cpl required"
+      ],
+      "candidate_terms": [
+        "atpl",
+        "cpl",
+        "commercial pilot",
+        "airline pilot",
+        "first officer"
+      ]
+    },
+    {
+      "name": "plumber",
+      "job_terms": [
+        "instalater",
+        "vodoinstalater",
+        "plumber",
+        "sanitar",
+        "klempner",
+        "hydraulik"
+      ],
+      "candidate_terms": [
+        "instalater",
+        "vodoinstalater",
+        "plumber",
+        "klempner",
+        "hydraulik"
+      ]
+    },
+    {
+      "name": "police_officer",
+      "job_terms": [
+        "police officer",
+        "policista",
+        "polizei",
+        "policjant"
+      ],
+      "candidate_terms": [
+        "police academy",
+        "policista",
+        "polizei",
+        "policjant"
+      ]
+    },
+    {
+      "name": "psychologist",
+      "job_terms": [
+        "psycholog",
+        "psychoterapeut",
+        "clinical psychologist",
+        "klinicky psycholog",
+        "psychologe",
+        "psycholog kliniczny"
+      ],
+      "candidate_terms": [
+        "psycholog",
+        "psychoterapeut",
+        "clinical psychologist",
+        "psychologe",
+        "psychologia",
+        "psychology"
+      ]
+    },
+    {
+      "name": "psychotherapist",
+      "job_terms": [
+        "psychoterapeut",
+        "psychotherapist",
+        "licensed therapist",
+        "psychoterapia"
+      ],
+      "candidate_terms": [
+        "psychoterapeut",
+        "psychotherapist",
+        "psychology",
+        "psychoterapia"
+      ]
+    },
+    {
+      "name": "radiology",
+      "job_terms": [
+        "radiolog",
+        "radiology",
+        "rtg laborant",
+        "radiologicky asistent",
+        "radiologe",
+        "technik radiologii"
+      ],
+      "candidate_terms": [
+        "radiolog",
+        "radiology",
+        "rtg",
+        "radiologicky asistent",
+        "radiologe",
+        "technik radiologii"
+      ]
+    },
+    {
+      "name": "radiology_technician",
+      "job_terms": [
+        "rtg laborant",
+        "radiologicky asistent",
+        "radiology technician",
+        "mrt technician",
+        "technik radiologii"
+      ],
+      "candidate_terms": [
+        "rtg laborant",
+        "radiologicky asistent",
+        "radiology technician",
+        "mrt",
+        "technik radiologii"
+      ]
+    },
+    {
+      "name": "real_estate_agent",
+      "job_terms": [
+        "real estate broker",
+        "realitni makler",
+        "immobilienmakler",
+        "agent nieruchomosci"
+      ],
+      "candidate_terms": [
+        "real estate broker",
+        "realitni makler",
+        "immobilienmakler",
+        "agent nieruchomosci"
+      ]
+    },
+    {
+      "name": "school_psychologist",
+      "job_terms": [
+        "school psychologist",
+        "skolni psycholog",
+        "psycholog szkolny"
+      ],
+      "candidate_terms": [
+        "school psychologist",
+        "psychology degree",
+        "skolni psycholog"
+      ]
+    },
+    {
+      "name": "security_guard_license",
+      "job_terms": [
+        "security guard",
+        "ostraha objektu",
+        "physical security",
+        "guard service"
+      ],
+      "candidate_terms": [
+        "security guard",
+        "ostraha",
+        "osvedceni strazny",
+        "guard license"
+      ]
+    },
+    {
+      "name": "shipping_forwarder",
+      "job_terms": [
+        "freight forwarder",
+        "spediter",
+        "spedition kaufmann",
+        "spedytor"
+      ],
+      "candidate_terms": [
+        "freight forwarder",
+        "spediter",
+        "spedytor",
+        "shipping logistics"
+      ]
+    },
+    {
+      "name": "social_pedagogue",
+      "job_terms": [
+        "social pedagogue",
+        "socialni pedagog",
+        "pedagog opiekunczy"
+      ],
+      "candidate_terms": [
+        "social pedagogy",
+        "socialni pedagog",
+        "social pedagogue"
+      ]
+    },
+    {
+      "name": "social_worker",
+      "job_terms": [
+        "social worker",
+        "socialni pracovnik",
+        "arbeiter sozial",
+        "pracownik socjalny"
+      ],
+      "candidate_terms": [
+        "social worker",
+        "socialni pracovnik",
+        "social work degree",
+        "pracownik socjalny"
+      ]
+    },
+    {
+      "name": "special_education_teacher",
+      "job_terms": [
+        "special education teacher",
+        "speci pedagog",
+        "special needs teacher",
+        "sonderpadagoge"
+      ],
+      "candidate_terms": [
+        "special education teacher",
+        "special pedagogy",
+        "speci pedagog",
+        "sonderpadagoge"
+      ]
+    },
+    {
+      "name": "tax_advisor",
+      "job_terms": [
+        "tax advisor",
+        "danovy poradce",
+        "steuerberater",
+        "doradca podatkowy"
+      ],
+      "candidate_terms": [
+        "tax advisor",
+        "danovy poradce",
+        "steuerberater",
+        "doradca podatkowy"
+      ]
+    },
+    {
+      "name": "teacher",
+      "job_terms": [
+        "ucitel",
+        "ucitelka",
+        "pedagog",
+        "teacher",
+        "lecturer",
+        "profesor",
+        "lehrer",
+        "nauczyciel"
+      ],
+      "candidate_terms": [
+        "ucitel",
+        "pedagog",
+        "teacher",
+        "lecturer",
+        "lehrer",
+        "nauczyciel",
+        "pedagogika"
+      ]
+    },
+    {
+      "name": "teacher_qualified",
+      "job_terms": [
+        "ucitel zs",
+        "ucitel ss",
+        "qualified teacher",
+        "lehrer",
+        "nauczyciel"
+      ],
+      "candidate_terms": [
+        "pedagogika",
+        "ucitel",
+        "qualified teacher",
+        "lehrer",
+        "nauczyciel"
+      ]
+    },
+    {
+      "name": "teacher_stem_secondary",
+      "job_terms": [
+        "teacher mathematics",
+        "teacher physics",
+        "teacher chemistry secondary school",
+        "ucitel matematiky"
+      ],
+      "candidate_terms": [
+        "pedagogika",
+        "ucitel matematiky",
+        "teacher mathematics",
+        "qualified teacher"
+      ]
+    },
+    {
+      "name": "train_driver",
+      "job_terms": [
+        "strojvedouci",
+        "train driver",
+        "lokfuhrer",
+        "maszynista"
+      ],
+      "candidate_terms": [
+        "strojvedouci",
+        "train driver",
+        "lokfuhrer",
+        "maszynista",
+        "license train"
+      ]
+    },
+    {
+      "name": "translator_certified",
+      "job_terms": [
+        "sworn translator",
+        "certified translator",
+        "soudni prekladatel",
+        "beeidigter ubersetzer"
+      ],
+      "candidate_terms": [
+        "sworn translator",
+        "certified translator",
+        "soudni prekladatel",
+        "beeidigter ubersetzer"
+      ]
+    },
+    {
+      "name": "truck_mechanic",
+      "job_terms": [
+        "truck mechanic",
+        "mechanik nakladnich vozidel",
+        "diesel mechanic trucks",
+        "nfz mechaniker"
+      ],
+      "candidate_terms": [
+        "truck mechanic",
+        "diesel mechanic",
+        "auto mechanic",
+        "mechanik nakladnich vozidel"
+      ]
+    },
+    {
+      "name": "veterinarian",
+      "job_terms": [
+        "veterinar",
+        "veterinarni lekar",
+        "tierarzt",
+        "vet",
+        "veterinary doctor",
+        "weterynarz"
+      ],
+      "candidate_terms": [
+        "veterinar",
+        "veterinarni lekar",
+        "tierarzt",
+        "vet",
+        "weterynarz",
+        "veterinarni medicina",
+        "dvm"
+      ]
+    },
+    {
+      "name": "veterinary_nurse",
+      "job_terms": [
+        "veterinary nurse",
+        "veterinarni sestra",
+        "technik weterynarii"
+      ],
+      "candidate_terms": [
+        "veterinary nurse",
+        "veterinarni sestra",
+        "technik weterynarii"
+      ]
+    },
+    {
+      "name": "welder",
+      "job_terms": [
+        "svarec",
+        "svarecka",
+        "welding",
+        "welder",
+        "schweisser",
+        "spawacz",
+        "tig",
+        "mig",
+        "mag"
+      ],
+      "candidate_terms": [
+        "svarec",
+        "welder",
+        "welding",
+        "schweisser",
+        "spawacz",
+        "tig",
+        "mig",
+        "mag",
+        "svarecsky prukaz"
+      ]
+    },
+    {
+      "name": "welding_certified",
+      "job_terms": [
+        "svarec tig",
+        "svarec mig",
+        "svarec mag",
+        "welding certificate",
+        "welder certified",
+        "schweisser zertifikat"
+      ],
+      "candidate_terms": [
+        "svarecsky prukaz",
+        "welding certificate",
+        "tig",
+        "mig",
+        "mag",
+        "welder"
+      ]
+    }
+  ]
+}
