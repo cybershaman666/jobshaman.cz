@@ -25,6 +25,18 @@ except Exception:
     detect_langs = None  # type: ignore
     LangDetectException = Exception  # type: ignore
     _LANGDETECT_AVAILABLE = False
+try:
+    from ftfy import fix_text as ftfy_fix_text
+    _FTFY_AVAILABLE = True
+except Exception:
+    ftfy_fix_text = None  # type: ignore
+    _FTFY_AVAILABLE = False
+try:
+    from unstructured.partition.text import partition_text as unstructured_partition_text
+    _UNSTRUCTURED_AVAILABLE = True
+except Exception:
+    unstructured_partition_text = None  # type: ignore
+    _UNSTRUCTURED_AVAILABLE = False
 
 # Add parent directory to path to import geocoding module
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -320,6 +332,61 @@ def filter_out_junk(text: str) -> str:
     return result if result else "Popis není dostupný"
 
 
+def normalize_description_for_storage(text: str) -> str:
+    """
+    Normalize scraped description text with optional external tools.
+
+    Pipeline:
+    1) `ftfy` repair for mojibake/encoding issues.
+    2) `unstructured` partitioning when available (better block/list recovery).
+    3) Conservative inline-list recovery for one-line " - " bullet payloads.
+    """
+    if not text:
+        return ""
+
+    normalized = str(text).replace("\r\n", "\n").replace("\r", "\n")
+    normalized = normalized.replace("\u00a0", " ").replace("\u200b", "")
+
+    if _FTFY_AVAILABLE and ftfy_fix_text:
+        try:
+            normalized = ftfy_fix_text(normalized, normalization="NFC")
+        except Exception as e:
+            print(f"⚠️ ftfy normalize failed: {e}")
+
+    if _UNSTRUCTURED_AVAILABLE and unstructured_partition_text:
+        try:
+            blocks: List[str] = []
+            for element in unstructured_partition_text(text=normalized):
+                raw = norm_text(str(element))
+                if not raw:
+                    continue
+                category = str(getattr(element, "category", "") or "").lower()
+                if category in ("listitem", "list-item"):
+                    if not raw.startswith("- "):
+                        raw = f"- {raw}"
+                elif category in ("title", "header") and len(raw) <= 120:
+                    raw = f"### {raw.rstrip(':')}"
+                blocks.append(raw)
+            if blocks:
+                normalized = "\n\n".join(blocks)
+        except Exception as e:
+            print(f"⚠️ unstructured normalize failed: {e}")
+
+    # Recover bullet structure from one-line descriptions with many " - " markers.
+    if "\n- " not in normalized:
+        inline_parts = [norm_text(part) for part in re.split(r"\s[-–—]\s", normalized) if norm_text(part)]
+        if len(inline_parts) >= 3:
+            intro = inline_parts[0]
+            rest = inline_parts[1:]
+            if len(intro.split()) >= 8 or intro.endswith((".", "!", "?", ":")):
+                normalized = intro + "\n\n" + "\n".join(f"- {item}" for item in rest)
+            else:
+                normalized = "\n".join(f"- {item}" for item in inline_parts)
+
+    normalized = re.sub(r"\n{3,}", "\n\n", normalized).strip()
+    return normalized
+
+
 def scrape_page(url: str, max_retries: int = 2) -> Optional[BeautifulSoup]:
     """
     Download and parse a web page
@@ -612,6 +679,11 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict) -> bool:
     job_data["source"] = parsed_url.netloc.replace("www.", "")
     job_data.setdefault("scraped_at", now_iso())
     job_data.setdefault("legality_status", "legal")  # Default to legal for scraped jobs
+
+    # Centralized description normalization for all country scrapers.
+    if "description" in job_data:
+        normalized_description = normalize_description_for_storage(job_data.get("description", ""))
+        job_data["description"] = filter_out_junk(normalized_description)
     
     # Sync 'currency' and 'salary_currency' for compatibility
     # The database uses salary_currency, but frontend might use currency

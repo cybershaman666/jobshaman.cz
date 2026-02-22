@@ -313,9 +313,6 @@ export const formatJobDescription = (description: string): string => {
     const inlineBulletStartRegex = /(^|[.!?:;)\]]\s+)[-–—]\s(?=(?:[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9]|[^\w\s]))/gm;
     // Generic inline bullet separator used for dense one-line descriptions.
     const inlineBulletInnerRegex = /\s[-–—]\s(?=(?:[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9]|[^\w\s]))/g;
-    const inlineBulletMarkerCount = (description.match(inlineBulletInnerRegex) || []).length;
-    const hasInlineBullets = inlineBulletMarkerCount >= 3;
-
     const normalizeDashToken = (token: string): string =>
         token.replace(/^[^A-Za-zÁČĎÉĚÍŇÓŘŠŤÚŮÝŽa-záčďéěíňóřšťúůýž0-9]+|[^A-Za-zÁČĎÉĚÍŇÓŘŠŤÚŮÝŽa-záčďéěíňóřšťúůýž0-9]+$/g, '');
 
@@ -326,14 +323,24 @@ export const formatJobDescription = (description: string): string => {
         return token === token.toUpperCase();
     };
 
-    const splitInlineBulletSegments = (value: string, aggressive: boolean): string => {
-        if (!aggressive) {
-            return value.replace(inlineBulletStartRegex, '$1\n- ');
-        }
+    const splitInlineBulletSegments = (value: string): string =>
+        value.replace(inlineBulletStartRegex, '$1\n- ');
 
-        return value.replace(inlineBulletInnerRegex, (match, offset, full) => {
-            const leftSlice = full.slice(0, offset as number).trimEnd();
-            const rightSlice = full.slice((offset as number) + match.length).trimStart();
+    type ParsedInlineList = {
+        intro: string | null;
+        items: string[];
+    };
+
+    const parseInlineList = (value: string): ParsedInlineList | null => {
+        const markerRegex = new RegExp(inlineBulletInnerRegex.source, 'g');
+        const markers: Array<{ start: number; end: number }> = [];
+
+        let match: RegExpExecArray | null;
+        while ((match = markerRegex.exec(value)) !== null) {
+            const markerStart = match.index;
+            const markerEnd = markerRegex.lastIndex;
+            const leftSlice = value.slice(0, markerStart).trimEnd();
+            const rightSlice = value.slice(markerEnd).trimStart();
             const leftTokenRaw = leftSlice.split(/\s+/).pop() || '';
             const rightTokenRaw = rightSlice.split(/\s+/)[0] || '';
             const leftToken = normalizeDashToken(leftTokenRaw);
@@ -348,11 +355,38 @@ export const formatJobDescription = (description: string): string => {
                 isUpperToken(leftToken) &&
                 isUpperToken(rightToken)
             ) {
-                return match;
+                continue;
             }
+            markers.push({ start: markerStart, end: markerEnd });
+        }
 
-            return '\n- ';
-        });
+        if (markers.length < 2) return null;
+
+        const segments: string[] = [];
+        segments.push(value.slice(0, markers[0].start));
+        for (let idx = 0; idx < markers.length - 1; idx += 1) {
+            segments.push(value.slice(markers[idx].end, markers[idx + 1].start));
+        }
+        segments.push(value.slice(markers[markers.length - 1].end));
+
+        const cleaned = segments
+            .map((segment) => segment.trim())
+            .filter(Boolean)
+            .map((segment) => segment.replace(/^[•◦▪▫∙‣⁃\-\*]+\s*/g, ''));
+
+        if (cleaned.length < 3) return null;
+
+        const first = cleaned[0] || '';
+        const firstWordCount = first.split(/\s+/).filter(Boolean).length;
+        const hasLeadIntro = /[.!?]$/.test(first) || firstWordCount >= 8;
+
+        const items = hasLeadIntro ? cleaned.slice(1) : cleaned;
+        if (items.length < 2) return null;
+
+        return {
+            intro: hasLeadIntro ? first : null,
+            items
+        };
     };
 
     const rawLines = description
@@ -360,7 +394,7 @@ export const formatJobDescription = (description: string): string => {
         .replace(/([.!?])(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1 ')
         .replace(inlineHeadingLooseRegex, '\n$1:\n')
         .replace(inlineHeadingRegex, '\n$1:\n')
-        .replace(/[\s\S]*/, (value) => splitInlineBulletSegments(value, hasInlineBullets))
+        .replace(/[\s\S]*/, (value) => splitInlineBulletSegments(value))
         // Preserve list-like separators into newlines so we can render bullets naturally.
         .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
         .replace(/\s{2,}/g, ' ')
@@ -1155,15 +1189,18 @@ export const formatJobDescription = (description: string): string => {
     let i = 0;
 
     const splitInlineList = (text: string): string[] => {
-        const markerCount = (text.match(inlineBulletInnerRegex) || []).length;
-        const hasMarkers = markerCount >= 2;
-        const startsAsBullet = /^[•◦▪▫∙‣⁃]|^[\-\*]\s+/.test(text.trim());
+        const parsedInline = parseInlineList(text);
+        if (parsedInline) {
+            return parsedInline.intro
+                ? [parsedInline.intro, ...parsedInline.items]
+                : parsedInline.items;
+        }
+
         const normalized = text
             .replace(/([.!?])(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1 ')
             .replace(inlineHeadingLooseRegex, '\n$1:\n')
             .replace(inlineHeadingRegex, '\n$1:\n')
-            .replace(/[\s\S]*/, (value) => splitInlineBulletSegments(value, hasMarkers))
-            .replace(startsAsBullet ? inlineBulletInnerRegex : /$^/, '\n- ')
+            .replace(/[\s\S]*/, (value) => splitInlineBulletSegments(value))
             .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
             .replace(/\s{2,}/g, ' ');
         let pieces = normalized
@@ -1274,7 +1311,21 @@ export const formatJobDescription = (description: string): string => {
             paragraph.push(lines[j].text);
             j += 1;
         }
-        pushParagraph(paragraph);
+        const paragraphText = paragraph.join(' ');
+        const inlineParagraph = parseInlineList(paragraphText);
+        if (inlineParagraph) {
+            if (inlineParagraph.intro) {
+                pushParagraph([inlineParagraph.intro]);
+            }
+            if (output.length > 0 && output[output.length - 1] !== '') {
+                output.push('');
+            }
+            for (const item of inlineParagraph.items) {
+                output.push(`- ${item}`);
+            }
+        } else {
+            pushParagraph(paragraph);
+        }
         i = j;
     }
 
