@@ -187,6 +187,7 @@
     "analytics_panel_label": "Analytický panel",
     "analytics_panel_title": "Kvalita ponuky & signály",
     "analytics_panel_data_source": "Dáta: JobShaman AI + verejné zdroje",
+    "ai_match_explanation": "AI zhoda je percentuálny odhad relevantnosti tejto ponuky pre váš profil. Poradie sa môže meniť aj podľa čerstvosti a diverzity výsledkov.",
     "jhi_title": "Index Šťastia (JHI)",
     "jhi_desc": "Kompozitné skóre kvality",
     "jhi_missing_salary_hint": "Nízke JHI je spôsobené chýbajúcou mzdou v inzeráte.",
@@ -218,7 +219,7 @@
     "gdpr_consent": "Odoslaním odpovede súhlasíte so spracovaním osobných údajov v súlade s GDPR."
   },
   "transparency_card": {
-    "title": "Brutálna transparentnosť",
+    "title": "Transparentnosť",
     "data_source": "Dáta: JobShaman",
     "badge_why_title": "Prečo vidíte EU Transparent odznak?",
     "badge_why_desc": "Od júna 2026 bude uvádzanie mzdového rozpätia v EÚ povinné. V JobShaman veríme, že váš čas má hodnotu už dnes. Firmy s týmto označením hrajú fér a otvorene ukazujú odmenu ako prvú."

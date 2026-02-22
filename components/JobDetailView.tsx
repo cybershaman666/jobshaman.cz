@@ -86,6 +86,9 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     const [cvCopied, setCvCopied] = useState(false);
     const [isSavingOptimizedCv, setIsSavingOptimizedCv] = useState(false);
     const [optimizedCvSaved, setOptimizedCvSaved] = useState(false);
+    const aiMatchScore = typeof (selectedJob as any)?.aiMatchScore === 'number'
+        ? Math.round((selectedJob as any).aiMatchScore)
+        : null;
     const highValueKeywords = [
         'remote',
         'home office',
@@ -760,10 +763,26 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                     <div className="text-xs uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">{t('job_detail.analytics_panel_label')}</div>
                                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('job_detail.analytics_panel_title')}</h3>
                                 </div>
-                                <div className="text-xs text-slate-500 dark:text-slate-400">
-                                    {t('job_detail.analytics_panel_data_source')}
+                                <div className="flex flex-col items-start sm:items-end gap-2">
+                                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                                        {t('job_detail.analytics_panel_data_source')}
+                                    </div>
+                                    {aiMatchScore !== null && (
+                                        <div
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700/50 text-emerald-700 dark:text-emerald-300"
+                                            title={`${t('job.ai_match')}: ${aiMatchScore}%`}
+                                        >
+                                            <Sparkles size={12} className="text-emerald-600 dark:text-emerald-300" />
+                                            <span>{t('job.ai_match')}: {aiMatchScore}%</span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
+                            {aiMatchScore !== null && (
+                                <p className="text-xs text-slate-600 dark:text-slate-400 mb-6">
+                                    {t('job_detail.ai_match_explanation')}
+                                </p>
+                            )}
 
                             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
                                 {/* JHI Chart */}

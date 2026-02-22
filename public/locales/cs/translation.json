@@ -187,6 +187,7 @@
     "analytics_panel_label": "Analytický panel",
     "analytics_panel_title": "Kvalita nabídky & signály",
     "analytics_panel_data_source": "Data: JobShaman AI + veřejné zdroje",
+    "ai_match_explanation": "AI shoda je procentuální odhad relevance této nabídky vůči vašemu profilu. Pořadí se může měnit i podle čerstvosti a diverzity výsledků.",
     "jhi_title": "Index Štěstí (JHI)",
     "jhi_desc": "Kompozitní skóre kvality",
     "jhi_missing_salary_hint": "Nízké JHI je způsobené chybějící mzdou v inzerátu.",
@@ -218,7 +219,7 @@
     "gdpr_consent": "Odesláním odpovědi souhlasíte se zpracováním osobních údajů v souladu s GDPR."
   },
   "transparency_card": {
-    "title": "Brutální transparentnost",
+    "title": "Transparentnost",
     "data_source": "Data: JobShaman",
     "badge_why_title": "Proč vidíte EU Transparent odznak?",
     "badge_why_desc": "Od června 2026 bude uvádění platového rozmezí v EU povinné. My v JobShamanu věříme, že váš čas má svou cenu už dnes. Firmy s tímto označením hrají fér a otevřeně ukazují odměnu jako první."

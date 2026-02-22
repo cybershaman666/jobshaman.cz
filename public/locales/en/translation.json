@@ -187,6 +187,7 @@
     "analytics_panel_label": "Analytics Panel",
     "analytics_panel_title": "Offer Quality & Signals",
     "analytics_panel_data_source": "Data: JobShaman AI + public sources",
+    "ai_match_explanation": "AI match is a percentage estimate of how relevant this role is to your profile. Ranking may still vary based on freshness and result diversity.",
     "jhi_title": "Job Happiness Index (JHI)",
     "jhi_desc": "Composite quality score",
     "jhi_missing_salary_hint": "Low JHI is caused by missing salary in the listing.",
@@ -218,7 +219,7 @@
     "gdpr_consent": "By submitting, you consent to the processing of personal data in accordance with GDPR."
   },
   "transparency_card": {
-    "title": "Brutal Transparency",
+    "title": "Transparency",
     "data_source": "Data: JobShaman",
     "badge_why_title": "Why do you see the EU Transparent badge?",
     "badge_why_desc": "From June 2026, salary ranges will be mandatory in the EU. At JobShaman, we believe your time is valuable already today. Companies with this badge play fair and openly show compensation first."
