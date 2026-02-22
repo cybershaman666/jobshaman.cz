@@ -309,14 +309,17 @@ export const formatJobDescription = (description: string): string => {
     ];
     const inlineHeadingRegex = new RegExp(`\\s*(${INLINE_HEADINGS.map(escapeRegex).join('|')})\\s*:`, 'gi');
     const inlineHeadingLooseRegex = new RegExp(`\\s*(${INLINE_HEADINGS.map(escapeRegex).join('|')})(?=\\s+[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])`, 'gi');
+    const inlineBulletMarkerRegex = /\s[-–—]\s(?=(?:[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9]|[^\w\s]))/g;
+    const inlineBulletMarkerCount = (description.match(inlineBulletMarkerRegex) || []).length;
+    const hasInlineBullets = inlineBulletMarkerCount >= 3;
 
     const rawLines = description
         // Repair common OCR/scrape issue: missing space after sentence punctuation.
         .replace(/([.!?])(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1 ')
         .replace(inlineHeadingLooseRegex, '\n$1:\n')
         .replace(inlineHeadingRegex, '\n$1:\n')
-        // Convert inline " - item" segments into real bullet lines.
-        .replace(/\s-\s(?=(?:[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9]|[^\w\s]))/g, '\n- ')
+        // Convert inline bullet segments into real bullet lines when markers appear repeatedly.
+        .replace(hasInlineBullets ? inlineBulletMarkerRegex : /$^/, '\n- ')
         // Preserve list-like separators into newlines so we can render bullets naturally.
         .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
         .replace(/\s{2,}/g, ' ')
@@ -1111,11 +1114,13 @@ export const formatJobDescription = (description: string): string => {
     let i = 0;
 
     const splitInlineList = (text: string): string[] => {
+        const markerCount = (text.match(inlineBulletMarkerRegex) || []).length;
+        const hasMarkers = markerCount >= 2;
         const normalized = text
             .replace(/([.!?])(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1 ')
             .replace(inlineHeadingLooseRegex, '\n$1:\n')
             .replace(inlineHeadingRegex, '\n$1:\n')
-            .replace(/\s-\s(?=(?:[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ0-9]|[^\w\s]))/g, '\n- ')
+            .replace(hasMarkers ? inlineBulletMarkerRegex : /$^/, '\n- ')
             .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
             .replace(/\s{2,}/g, ' ');
         let pieces = normalized
