@@ -1364,23 +1364,38 @@
           "f4": "Dedikovaný account manager"
         },
         "basic_v2": {
-          "desc": "Desc",
-          "f1": "F1",
-          "f2": "F2",
-          "f3": "F3"
+          "desc": "Pro startupy a menší agentury.",
+          "f1": "3 aktivní inzeráty",
+          "f2": "15 AI screeningů / měsíc",
+          "f3": "Základní rozhodovací přehled",
+          "name": "Starter"
+        },
+        "growth": {
+          "desc": "Pro SME a aktivní recruitery.",
+          "f1": "10 aktivních inzerátů",
+          "f2": "60 AI screeningů / měsíc",
+          "f3": "JHI Insights",
+          "name": "Growth"
         },
         "professional": {
-          "desc": "Desc",
-          "f1": "F1",
-          "f2": "F2",
-          "f3": "F3",
-          "name": "Name"
+          "desc": "Pro větší hiring týmy.",
+          "f1": "20 aktivních inzerátů",
+          "f2": "150 AI screeningů / měsíc",
+          "f3": "Decision analytics dashboard",
+          "name": "Professional"
+        },
+        "professional_pro": {
+          "desc": "Pro větší hiring týmy s potřebou analytiky.",
+          "f1": "20 aktivních inzerátů",
+          "f2": "150 AI screeningů / měsíc",
+          "f3": "Decision analytics dashboard",
+          "name": "Professional"
         },
         "trial": {
-          "desc": "Desc",
-          "f1": "F1",
-          "f2": "F2",
-          "name": "Name"
+          "desc": "Pro lokální týmy na vyzkoušení.",
+          "f1": "1 aktivní inzerát",
+          "f2": "Bez AI assessmentů",
+          "name": "Free (Trial)"
         }
       }
     },

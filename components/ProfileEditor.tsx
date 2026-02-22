@@ -624,9 +624,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <div className="max-w-6xl mx-auto py-8 space-y-6">
         {/* Header */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
+        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex w-full items-start gap-4 sm:w-auto sm:items-center">
               <div className="relative">
                 {profile.photo && !profilePhotoFailed ? (
                   <img
@@ -653,11 +653,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 </label>
               </div>
 
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              <div className="min-w-0">
+                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white break-words">
                   {profile.name || t('profile.placeholder_name')}
                 </h1>
-                <p className="text-slate-600 dark:text-slate-400">
+                <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 break-words">
                   {profile.jobTitle || t('profile.placeholder_job')}
                 </p>
                 {isExternalProfilePhotoUrl(profile.photo) && (
@@ -674,7 +674,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
             <button
               onClick={onSave}
-              className="px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium flex items-center gap-2 shadow-lg"
+              className="w-full sm:w-auto justify-center px-6 py-3 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium flex items-center gap-2 shadow-lg"
             >
               <Save size={18} />
               {t('profile.save_profile')}

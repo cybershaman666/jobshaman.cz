@@ -1332,16 +1332,30 @@
         },
         "basic_v2": {
           "desc": "Für Startups und kleinere Agenturen.",
-          "f1": "5 Stellenanzeigen",
-          "f2": "5 KI-Assessments",
-          "f3": "Basis-Matching",
-          "name": "Basic"
+          "f1": "3 aktive Stellenanzeigen",
+          "f2": "15 KI-Screenings / Monat",
+          "f3": "Basis-Entscheidungsübersicht",
+          "name": "Starter"
+        },
+        "growth": {
+          "desc": "Für KMU und aktive Recruiter.",
+          "f1": "10 aktive Stellenanzeigen",
+          "f2": "60 KI-Screenings / Monat",
+          "f3": "JHI-Insights",
+          "name": "Growth"
         },
         "professional": {
-          "desc": "Für KMU und aktive Recruiter.",
-          "f1": "20 Stellenanzeigen",
-          "f2": "50 KI-Assessments",
-          "f3": "JHI-Insights",
+          "desc": "Für größere Hiring-Teams.",
+          "f1": "20 aktive Stellenanzeigen",
+          "f2": "150 KI-Screenings / Monat",
+          "f3": "Decision-Analytics-Dashboard",
+          "name": "Professional"
+        },
+        "professional_pro": {
+          "desc": "Für größere Hiring-Teams mit Analysebedarf.",
+          "f1": "20 aktive Stellenanzeigen",
+          "f2": "150 KI-Screenings / Monat",
+          "f3": "Decision-Analytics-Dashboard",
           "name": "Professional"
         },
         "trial": {
