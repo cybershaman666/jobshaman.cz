@@ -806,11 +806,6 @@ const resolveHybridBackendBases = (): string[] => {
     const searchBase = normalizeBackendBaseUrl(SEARCH_BACKEND_URL);
     const coreBase = normalizeBackendBaseUrl(BACKEND_URL);
 
-    // Dedicated Northflank search runtime should be authoritative for search traffic.
-    if (searchBase && coreBase && searchBase !== coreBase) {
-        return [searchBase];
-    }
-
     const bases = [searchBase, coreBase].filter((base): base is string => !!base);
     return Array.from(new Set(bases));
 };
@@ -1918,9 +1913,6 @@ export const fetchJobsWithFilters = async (
                     throw hybridErr;
                 }
                 warnHybridFallbackThrottled(hybridErr);
-                if (dedicatedSearchRuntime) {
-                    throw hybridErr;
-                }
             }
         }
 
@@ -2057,10 +2049,6 @@ export const fetchJobsWithFilters = async (
 
     } catch (e: any) {
         if (isAbortFetchError(e)) {
-            throw e;
-        }
-        if (dedicatedSearchRuntime) {
-            // Dedicated search runtime mode: do not bypass backend via direct browser RPC fallbacks.
             throw e;
         }
         noteSupabaseNetworkFailure('fetchJobsWithFilters.catch', e);

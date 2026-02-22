@@ -275,93 +275,100 @@ async def admin_search(
     kind: str = Query("company"),
     limit: int = Query(10, ge=1, le=25),
 ):
-    require_admin_user(user)
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Database unavailable")
-    safe_q = _safe_query(query)
-    if not safe_q:
-        return {"items": []}
+    try:
+        require_admin_user(user)
+        if not supabase:
+            raise HTTPException(status_code=500, detail="Database unavailable")
+        safe_q = _safe_query(query)
+        if not safe_q:
+            return {"items": []}
 
-    if kind == "user":
-        # Backward compatibility for partially migrated schemas.
-        # Try richer profile shapes first, then degrade gracefully.
-        user_rows = None
-        user_attempts = [
-            ("id, email, full_name, role", f"email.ilike.%{safe_q}%,full_name.ilike.%{safe_q}%"),
-            ("id, email, full_name", f"email.ilike.%{safe_q}%,full_name.ilike.%{safe_q}%"),
-            ("id, email, name", f"email.ilike.%{safe_q}%,name.ilike.%{safe_q}%"),
+        if kind == "user":
+            # Backward compatibility for partially migrated schemas.
+            # Try richer profile shapes first, then degrade gracefully.
+            user_rows = None
+            user_attempts = [
+                ("id, email, full_name, role", f"email.ilike.%{safe_q}%,full_name.ilike.%{safe_q}%"),
+                ("id, email, full_name", f"email.ilike.%{safe_q}%,full_name.ilike.%{safe_q}%"),
+                ("id, email, name", f"email.ilike.%{safe_q}%,name.ilike.%{safe_q}%"),
+            ]
+            for select_expr, or_filter in user_attempts:
+                try:
+                    resp = (
+                        supabase.table("profiles")
+                        .select(select_expr)
+                        .or_(or_filter)
+                        .limit(limit)
+                        .execute()
+                    )
+                    user_rows = resp.data or []
+                    break
+                except Exception as exc:
+                    print(f"⚠️ Admin user search attempt failed ({select_expr}): {exc}")
+
+            if user_rows is None:
+                try:
+                    resp = (
+                        supabase.table("profiles")
+                        .select("id, email")
+                        .ilike("email", f"%{safe_q}%")
+                        .limit(limit)
+                        .execute()
+                    )
+                    user_rows = resp.data or []
+                except Exception as exc:
+                    print(f"⚠️ Admin user search fallback failed: {exc}")
+                    user_rows = []
+
+            items = [
+                {
+                    "id": r.get("id"),
+                    "label": r.get("full_name") or r.get("name") or r.get("email") or r.get("id"),
+                    "secondary": r.get("email"),
+                    "kind": "user",
+                }
+                for r in user_rows
+            ]
+            return {"items": items}
+
+        company_rows = None
+        company_attempts = [
+            "id, name, industry",
+            "id, name",
         ]
-        for select_expr, or_filter in user_attempts:
+        for select_expr in company_attempts:
             try:
                 resp = (
-                    supabase.table("profiles")
+                    supabase.table("companies")
                     .select(select_expr)
-                    .or_(or_filter)
+                    .ilike("name", f"%{safe_q}%")
                     .limit(limit)
                     .execute()
                 )
-                user_rows = resp.data or []
+                company_rows = resp.data or []
                 break
             except Exception as exc:
-                print(f"⚠️ Admin user search attempt failed ({select_expr}): {exc}")
+                print(f"⚠️ Admin company search attempt failed ({select_expr}): {exc}")
 
-        if user_rows is None:
-            try:
-                resp = (
-                    supabase.table("profiles")
-                    .select("id, email")
-                    .ilike("email", f"%{safe_q}%")
-                    .limit(limit)
-                    .execute()
-                )
-                user_rows = resp.data or []
-            except Exception as exc:
-                print(f"⚠️ Admin user search fallback failed: {exc}")
-                user_rows = []
+        if company_rows is None:
+            company_rows = []
 
         items = [
             {
                 "id": r.get("id"),
-                "label": r.get("full_name") or r.get("name") or r.get("email") or r.get("id"),
-                "secondary": r.get("email"),
-                "kind": "user",
+                "label": r.get("name") or r.get("id"),
+                "secondary": r.get("industry"),
+                "kind": "company",
             }
-            for r in user_rows
+            for r in company_rows
         ]
         return {"items": items}
-
-    company_rows = None
-    company_attempts = [
-        "id, name, industry",
-        "id, name",
-    ]
-    for select_expr in company_attempts:
-        try:
-            resp = (
-                supabase.table("companies")
-                .select(select_expr)
-                .ilike("name", f"%{safe_q}%")
-                .limit(limit)
-                .execute()
-            )
-            company_rows = resp.data or []
-            break
-        except Exception as exc:
-            print(f"⚠️ Admin company search attempt failed ({select_expr}): {exc}")
-
-    if company_rows is None:
-        company_rows = []
-
-    items = [
-        {
-            "id": r.get("id"),
-            "label": r.get("name") or r.get("id"),
-            "secondary": r.get("industry"),
-            "kind": "company",
-        }
-        for r in company_rows
-    ]
-    return {"items": items}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"⚠️ Admin search unexpected failure: {exc}")
+        print(traceback.format_exc())
+        return {"items": []}
 
 
 @router.get("/admin/push-subscriptions")

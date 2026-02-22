@@ -41,11 +41,6 @@ const resolveInteractionBackends = (): string[] => {
     const searchBase = normalizeBackendBaseUrl(SEARCH_BACKEND_URL);
     const coreBase = normalizeBackendBaseUrl(BACKEND_URL);
 
-    // Dedicated Northflank search runtime should be authoritative for search telemetry.
-    if (searchBase && coreBase && searchBase !== coreBase) {
-        return [searchBase];
-    }
-
     const bases = [searchBase, coreBase].filter((base): base is string => !!base);
     return Array.from(new Set(bases));
 };
