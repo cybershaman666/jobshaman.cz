@@ -5,6 +5,7 @@
 
 import { authenticatedFetch, isBackendNetworkCooldownActive } from './csrfService';
 import { BILLING_BACKEND_URL } from '../constants';
+import { BACKEND_URL } from '../constants';
 
 export interface ServerSideBillingCheck {
   userId: string;
@@ -164,15 +165,41 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
 
     const maxRetries = 3;
     let lastError: Error | null = null;
+    const statusBackends = Array.from(new Set([BILLING_BACKEND_URL, BACKEND_URL].filter(Boolean)));
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        const response = await authenticatedFetch(`${BILLING_BACKEND_URL}/subscription-status?userId=${userId}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json'
+        let response: Response | null = null;
+        let lastStatusBackendError: Error | null = null;
+
+        for (const backendBaseUrl of statusBackends) {
+          try {
+            const candidate = await authenticatedFetch(`${backendBaseUrl}/subscription-status?userId=${userId}`, {
+              method: 'GET',
+              headers: {
+                'Content-Type': 'application/json'
+              }
+            });
+
+            // Some deployments expose billing APIs only on BACKEND_URL.
+            // On 404, try the next configured backend.
+            if (candidate.status === 404) {
+              if (import.meta.env.DEV) {
+                console.warn(`⚠️ subscription-status not found on ${backendBaseUrl}, trying fallback backend...`);
+              }
+              continue;
+            }
+            response = candidate;
+            break;
+          } catch (backendErr: any) {
+            lastStatusBackendError = backendErr instanceof Error ? backendErr : new Error(String(backendErr));
           }
-        });
+        }
+
+        if (!response) {
+          if (lastStatusBackendError) throw lastStatusBackendError;
+          throw new Error('Failed to get subscription status: no backend responded');
+        }
 
         if (!response.ok) {
           console.warn(`⚠️ Subscription status returned ${response.status}:`, response.statusText);
