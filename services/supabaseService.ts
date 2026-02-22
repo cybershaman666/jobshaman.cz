@@ -2192,12 +2192,20 @@ export const updateCVDocumentParsedData = async (
         try {
             const { data: cvData } = await supabase
                 .from('cv_documents')
-                .select('file_url, is_active')
+                .select('file_url')
                 .eq('id', cvId)
                 .eq('user_id', userId)
                 .maybeSingle();
-            if (cvData?.is_active) {
-                await applyParsedCvToCandidateProfile(userId, parsedData || {}, cvData.file_url || null);
+            if (cvData?.file_url) {
+                const { data: candidate } = await supabase
+                    .from('candidate_profiles')
+                    .select('cv_url')
+                    .eq('id', userId)
+                    .maybeSingle();
+                const currentCvUrl = String((candidate as any)?.cv_url || '').trim();
+                if (currentCvUrl && currentCvUrl === String(cvData.file_url).trim()) {
+                    await applyParsedCvToCandidateProfile(userId, parsedData || {}, cvData.file_url || null);
+                }
             }
         } catch (syncError) {
             console.warn('Failed to sync re-parsed CV into candidate profile:', syncError);

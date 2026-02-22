@@ -105,6 +105,9 @@
       "jhi_asc": "JHI rosnąco",
       "personalized_jhi_desc": "Spersonalizowane JHI"
     },
+    "sort_explain": {
+      "recommended": "AI polecane sortuje oferty według łącznej trafności. Pokazany % to dopasowanie AI dla danej oferty i nie musi rosnąć idealnie liniowo ze względu na świeżość i różnorodność wyników."
+    },
     "language_options": {
       "cs": "Czeski",
       "sk": "Słowacki",
@@ -1367,6 +1370,10 @@
         "post3": {
           "title": "AI jako Twój trener kariery",
           "excerpt": "Jak skutecznie korzystać z Career Pathfinder i analizy AI, aby ruszyć do przodu na swojej ścieżce zawodowej."
+        },
+        "post6": {
+          "title": "Jak działa dopasowanie AI i dlaczego kolejność w AI polecane może się różnić",
+          "excerpt": "Wyjaśniamy różnicę między dopasowaniem AI na karcie oferty a ogólnym rankingiem AI, aby feed był bardziej zrozumiały."
         }
       }
     },
@@ -2786,6 +2793,12 @@
   "blog": {
     "category_label": "Kategoria",
     "read_more": "Czytaj więcej",
+    "posts": {
+      "post6": {
+        "title": "Jak działa dopasowanie AI i dlaczego kolejność w AI polecane może się różnić",
+        "excerpt": "Wyjaśniamy różnicę między dopasowaniem AI na karcie oferty a ogólnym rankingiem AI, aby feed był bardziej zrozumiały."
+      }
+    },
     "stats": {
       "active_jobs": "Aktywne oferty",
       "avg_jhi": "Śr. JHI",

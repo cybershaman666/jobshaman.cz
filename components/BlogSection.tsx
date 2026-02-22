@@ -6,7 +6,6 @@ import { supabase } from '../services/supabaseService';
 import { fetchJobsWithFilters } from '../services/jobService';
 import { initialBlogPosts as blogPosts, BlogPost } from '../src/data/blogPosts';
 import Markdown from 'markdown-to-jsx';
-import { formatJobDescription } from '../utils/formatters';
 
 interface BlogSectionProps {
     selectedBlogPostSlug?: string | null;
@@ -75,6 +74,12 @@ const parseBlogDateToTimestamp = (dateValue?: string): number => {
     return 0;
 };
 
+const toIsoDate = (dateValue?: string): string | undefined => {
+    const ts = parseBlogDateToTimestamp(dateValue);
+    if (!ts) return undefined;
+    return new Date(ts).toISOString().split('T')[0];
+};
+
 const BlogSection: React.FC<BlogSectionProps> = ({
     selectedBlogPostSlug,
     setSelectedBlogPostSlug,
@@ -83,6 +88,13 @@ const BlogSection: React.FC<BlogSectionProps> = ({
     const { t, i18n } = useTranslation();
     const [posts, setPosts] = useState<BlogPost[]>(blogPosts);
     const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
+    const siteOrigin = useMemo(() => {
+        if (typeof window !== 'undefined' && window.location?.origin) {
+            return window.location.origin;
+        }
+        return 'https://jobshaman.com';
+    }, []);
+    const blogListUrl = `${siteOrigin}/blog`;
     const sortedPosts = useMemo(
         () => [...posts].sort((a, b) => {
             const dateDiff = parseBlogDateToTimestamp(b.date) - parseBlogDateToTimestamp(a.date);
@@ -103,6 +115,44 @@ const BlogSection: React.FC<BlogSectionProps> = ({
             setSelectedPost(null);
         }
     }, [selectedBlogPostSlug, posts]);
+
+    useEffect(() => {
+        const setMeta = (attr: 'name' | 'property', key: string, value: string) => {
+            let el = document.querySelector(`meta[${attr}="${key}"]`) as HTMLMetaElement | null;
+            if (!el) {
+                el = document.createElement('meta');
+                el.setAttribute(attr, key);
+                document.head.appendChild(el);
+            }
+            el.setAttribute('content', value);
+        };
+
+        if (!selectedPost) return;
+
+        const previousTitle = document.title;
+        const previousDescription = document.querySelector('meta[name="description"]')?.getAttribute('content') || '';
+        const title = `${selectedPost.title} | JobShaman`;
+        const description = selectedPost.excerpt || 'JobShaman Blog';
+        const articleUrl = `${siteOrigin}/blog/${selectedPost.slug}`;
+
+        document.title = title;
+        setMeta('name', 'description', description);
+        setMeta('property', 'og:title', title);
+        setMeta('property', 'og:description', description);
+        setMeta('property', 'og:type', 'article');
+        setMeta('property', 'og:url', articleUrl);
+        if (selectedPost.image) {
+            setMeta('property', 'og:image', selectedPost.image);
+        }
+        setMeta('name', 'twitter:card', 'summary_large_image');
+        setMeta('name', 'twitter:title', title);
+        setMeta('name', 'twitter:description', description);
+
+        return () => {
+            document.title = previousTitle;
+            setMeta('name', 'description', previousDescription);
+        };
+    }, [selectedPost, siteOrigin]);
 
     const handleSelectPost = (post: BlogPost | null) => {
         if (setSelectedBlogPostSlug) {
@@ -242,15 +292,35 @@ const BlogSection: React.FC<BlogSectionProps> = ({
         "@type": "Blog",
         "name": "JobShaman Shamanic Insights",
         "description": "Insights and analysis from the world of AI-driven job searching in the Czech Republic.",
+        "url": blogListUrl,
+        "@id": blogListUrl,
+        "inLanguage": (i18n.language || 'cs').split('-')[0],
+        "publisher": {
+            "@type": "Organization",
+            "name": "JobShaman",
+            "url": siteOrigin
+        },
         "blogPost": sortedPosts.map(post => ({
             "@type": "BlogPosting",
             "headline": post.title,
             "description": post.excerpt,
-            "datePublished": "2026-02-02",
+            "datePublished": toIsoDate(post.date),
+            "dateModified": toIsoDate(post.modifiedDate || post.date),
+            "url": `${siteOrigin}/blog/${post.slug}`,
+            "mainEntityOfPage": `${siteOrigin}/blog/${post.slug}`,
+            "inLanguage": (i18n.language || 'cs').split('-')[0],
+            "keywords": post.keywords,
+            "articleSection": post.category,
             "author": {
+                "@type": "Person",
+                "name": post.author || "JobShaman"
+            },
+            "publisher": {
                 "@type": "Organization",
-                "name": "JobShaman"
-            }
+                "name": "JobShaman",
+                "url": siteOrigin
+            },
+            "image": post.image || undefined
         }))
     };
 
@@ -457,17 +527,23 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                                 "@type": "BlogPosting",
                                 "headline": selectedPost.title,
                                 "description": selectedPost.excerpt,
+                                "url": `${siteOrigin}/blog/${selectedPost.slug}`,
+                                "mainEntityOfPage": `${siteOrigin}/blog/${selectedPost.slug}`,
+                                "datePublished": toIsoDate(selectedPost.date),
+                                "dateModified": toIsoDate(selectedPost.modifiedDate || selectedPost.date),
+                                "inLanguage": (i18n.language || 'cs').split('-')[0],
+                                "articleSection": selectedPost.category,
                                 "author": {
                                     "@type": "Person",
                                     "name": selectedPost.author
                                 },
-                                "datePublished": selectedPost.date,
+                                "publisher": {
+                                    "@type": "Organization",
+                                    "name": "JobShaman",
+                                    "url": siteOrigin
+                                },
                                 "image": selectedPost.image,
-                                "keywords": selectedPost.keywords.join(', '),
-                                "mainEntityOfPage": {
-                                    "@type": "WebPage",
-                                    "@id": `https://jobshaman.cz/blog/${selectedPost.slug}`
-                                }
+                                "keywords": selectedPost.keywords
                             })}
                         </script>
 
@@ -494,7 +570,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                             </div>
 
                             <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-300 leading-relaxed text-lg mb-12">
-                                <Markdown options={{ forceBlock: true }}>{formatJobDescription(selectedPost.content)}</Markdown>
+                                <Markdown options={{ forceBlock: true }}>{selectedPost.content}</Markdown>
                             </div>
 
                             {/* AEO: Key Takeaways (FAQ) */}
@@ -522,6 +598,8 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                                         {JSON.stringify({
                                             "@context": "https://schema.org",
                                             "@type": "FAQPage",
+                                            "inLanguage": (i18n.language || 'cs').split('-')[0],
+                                            "url": `${siteOrigin}/blog/${selectedPost.slug}`,
                                             "mainEntity": selectedPost.qa.map(q => ({
                                                 "@type": "Question",
                                                 "name": q.question,

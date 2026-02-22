@@ -105,6 +105,9 @@
       "jhi_asc": "JHI od nejnižšího",
       "personalized_jhi_desc": "Personalizované JHI"
     },
+    "sort_explain": {
+      "recommended": "AI doporučené řadí nabídky podle celkové relevance. Zobrazené % je AI shoda pro danou nabídku a nemusí růst úplně lineárně kvůli čerstvosti a diverzitě výsledků."
+    },
     "language_options": {
       "cs": "Čeština",
       "sk": "Slovenština",
@@ -1624,6 +1627,10 @@
       "post3": {
         "title": "AI jako váš kariérní kouč",
         "excerpt": "Jak efektivně využít Career Pathfinder a AI analýzu k posunu ve vaší profesní dráze."
+      },
+      "post6": {
+        "title": "Jak funguje AI shoda a proč může být pořadí v AI doporučeném feedu jiné",
+        "excerpt": "Vysvětlujeme rozdíl mezi AI shodou na kartě a celkovým AI doporučeným řazením, aby feed dával jasný smysl."
       }
     },
     "category_label": "Category label",

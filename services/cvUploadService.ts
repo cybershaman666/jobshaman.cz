@@ -71,6 +71,14 @@ export const parseCvFile = async (file: File, options: ParseCvOptions): Promise<
     if (isPremium && aiCvParsingEnabled) {
         try {
             const baseline = await parseProfileFromCVWithFallback(file);
+            const baselineText = String(baseline.cvText || '').trim();
+            const baselineLooksValid = baselineText.length >= 120 && !baselineText.startsWith('[Parsing error:');
+
+            if (!baselineLooksValid) {
+                console.warn('Skipping AI CV parsing because baseline text is missing/invalid.');
+                return baseline;
+            }
+
             const aiParsed = await parseProfileFromCV(baseline.cvText || '');
             const mergedWorkHistory = mergeWorkHistory(aiParsed?.workHistory, baseline?.workHistory);
             if (aiParsed && Object.keys(aiParsed).length > 0) {

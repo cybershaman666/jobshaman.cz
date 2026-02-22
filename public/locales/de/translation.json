@@ -105,6 +105,9 @@
       "jhi_asc": "JHI aufsteigend",
       "personalized_jhi_desc": "Personalisiertes JHI"
     },
+    "sort_explain": {
+      "recommended": "AI empfohlen sortiert nach Gesamt‑Relevanz. Der angezeigte %‑Wert ist der AI‑Match pro Stelle und steigt wegen Frische- und Diversitätsausgleich nicht immer streng linear."
+    },
     "language_options": {
       "cs": "Tschechisch",
       "sk": "Slowakisch",
@@ -1388,6 +1391,10 @@
         "post3": {
           "title": "KI als Ihr Karrierecoach",
           "excerpt": "Wie Sie Career Pathfinder und KI-Analyse effektiv nutzen, um in Ihrem Karriereweg voranzukommen."
+        },
+        "post6": {
+          "title": "Wie der AI-Match funktioniert und warum die Reihenfolge bei AI empfohlen abweichen kann",
+          "excerpt": "Wir erklären den Unterschied zwischen dem AI-Match auf der Karte und dem gesamten AI-Empfehlungsranking, damit der Feed nachvollziehbar ist."
         }
       }
     },
@@ -2769,6 +2776,12 @@
   "blog": {
     "category_label": "Kategorie",
     "read_more": "Mehr lesen",
+    "posts": {
+      "post6": {
+        "title": "Wie der AI-Match funktioniert und warum die Reihenfolge bei AI empfohlen abweichen kann",
+        "excerpt": "Wir erklären den Unterschied zwischen dem AI-Match auf der Karte und dem gesamten AI-Empfehlungsranking, damit der Feed nachvollziehbar ist."
+      }
+    },
     "stats": {
       "active_jobs": "Aktive Jobs",
       "avg_jhi": "Ø JHI",

@@ -105,6 +105,9 @@
       "jhi_asc": "JHI lowest",
       "personalized_jhi_desc": "Personalized JHI"
     },
+    "sort_explain": {
+      "recommended": "AI recommended ranks jobs by overall relevance. The shown % is the AI match for each job and may not increase strictly linearly due to freshness and diversity balancing."
+    },
     "language_options": {
       "cs": "Czech",
       "sk": "Slovak",
@@ -1570,6 +1573,10 @@
       "post3": {
         "title": "AI as your career coach",
         "excerpt": "How to effectively use Career Pathfinder and AI analysis to move forward in your career path."
+      },
+      "post6": {
+        "title": "How AI match works and why AI recommended order can differ",
+        "excerpt": "We explain the difference between card-level AI match and overall AI recommended ranking so the feed is easier to understand."
       }
     },
     "category_label": "Category",

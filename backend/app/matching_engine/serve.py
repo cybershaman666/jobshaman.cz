@@ -688,6 +688,8 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
                 selected.append(item)
                 selected_ids.add(job_id)
 
+        # Keep diversity constraints, then restore score-desc order for predictable UX.
+        selected.sort(key=lambda item: _safe_float(item.get("score")), reverse=True)
         ranked_input = selected
 
     total_count = int((rows[0] or {}).get("total_count") or len(rows))

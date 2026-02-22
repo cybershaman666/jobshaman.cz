@@ -288,5 +288,73 @@ Pokud chcete tyto novinky využít naplno, aktualizujte si profil, nastavte JHI 
                 answer: 'Přesnější telemetry ukazuje, které nabídky mají skutečný engagement. Kandidát vidí relevantnější feed a firmy získají lepší podklady pro optimalizaci inzerce.'
             }
         ]
+    },
+    {
+        id: 6,
+        slug: 'jak-funguje-ai-shoda-a-ai-doporucene-razeni',
+        title: 'Jak funguje AI shoda a proč může být pořadí v AI doporučeném feedu jiné',
+        excerpt: 'Vysvětlujeme rozdíl mezi AI shodou na kartě a celkovým AI doporučeným řazením, aby feed dával jasný smysl.',
+        content: `
+# Jak funguje AI shoda v JobShamanu
+
+V JobShamanu teď vidíte u nabídky procento **AI shody**. Často padá otázka: proč může být v režimu *AI doporučené* výše nabídka s nižším procentem než jiná níže?
+
+Krátká odpověď: protože se v doporučeném feedu používá **celková relevance**, ne jen jeden jediný signál.
+
+## 1) Co znamená AI shoda na kartě
+
+AI shoda je rychlý indikátor, jak dobře nabídka sedí vašemu profilu a aktivním filtrům. Hodnota je normalizovaná na 0–100 %.
+
+## 2) Co rozhoduje o pořadí v „AI doporučené“
+
+Řazení v doporučeném feedu kombinuje více signálů:
+
+- textová relevance dotazu a nabídky,
+- profilový fit,
+- čerstvost inzerátu,
+- behaviorální prior (historická pravděpodobnost interakce),
+- guardrails pro diverzitu výsledků.
+
+Právě proto nemusí být pořadí vždy „striktně od nejvyššího procenta po nejnižší“.
+
+## 3) Proč dává diverzita smysl
+
+Kdyby feed řadil jen podle jednoho čísla, často by vracel velmi podobné nabídky od stejných firem. Diverzita zvyšuje šanci, že uvidíte širší výběr skutečně použitelných pozic.
+
+## 4) Jak s tím pracovat prakticky
+
+- Pokud chcete co nejčerstvější nabídky, použijte řazení **Nejnovější**.
+- Pokud chcete co nejvyšší personalizaci, držte **AI doporučené**.
+- AI shodu používejte jako orientační signál kvality konkrétní nabídky.
+
+## Závěr
+
+AI shoda a AI doporučené řazení spolu souvisí, ale nejsou to identické metriky. Cílem není jen „nejvyšší číslo nahoře“, ale **nejlepší celkový shortlist** pro reálné rozhodnutí.
+    `,
+        date: '22. února 2026',
+        modifiedDate: '22. února 2026',
+        readTime: '4 min čtení',
+        category: 'AI Matching',
+        image: 'https://images.unsplash.com/photo-1551434678-e076c223a692?auto=format&fit=crop&q=80&w=1200',
+        author: 'Tým JobShaman',
+        keywords: [
+            'AI shoda',
+            'AI doporučené',
+            'job feed',
+            'ranking',
+            'relevance',
+            'JobShaman'
+        ],
+        shamanSummary: 'AI shoda na kartě ukazuje fit konkrétní nabídky. AI doporučené řazení používá širší model relevance včetně čerstvosti a diverzity, proto nemusí být pořadí striktně podle procent.',
+        qa: [
+            {
+                question: 'Proč není AI doporučené řazení vždy podle nejvyššího % shody?',
+                answer: 'Protože feed optimalizuje celkovou relevanci a diverzitu, ne pouze jeden ukazatel. Do pořadí vstupuje více signálů zároveň.'
+            },
+            {
+                question: 'Je AI shoda na kartě pořád důležitá?',
+                answer: 'Ano. Je to rychlý indikátor fitu konkrétní nabídky. Pro finální pořadí ale model bere i další faktory, například čerstvost.'
+            }
+        ]
     }
 ];

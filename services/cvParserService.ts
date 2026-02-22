@@ -47,8 +47,31 @@ const BULLET_CHARS = ['•', '●', '○', '◦', '▪', '▸', '►', '■', '�
 
 // Extract text from PDF files with position awareness
 const extractPDFText = async (file: File): Promise<string> => {
+  const fallbackTextFromNonPdf = async (arrayBuffer?: ArrayBuffer): Promise<string> => {
+    const buf = arrayBuffer || await file.arrayBuffer();
+    const decoded = new TextDecoder().decode(buf);
+    const trimmed = decoded.trim();
+    if (!trimmed) {
+      throw new Error('File has no readable text content');
+    }
+    if (/<(html|body|div|p|h1|h2|h3|li|ul|ol)[\s>]/i.test(trimmed)) {
+      const structured = convertHtmlToStructuredText(trimmed);
+      if (structured.trim()) return structured;
+    }
+    return trimmed;
+  };
+
   try {
     const arrayBuffer = await file.arrayBuffer();
+    const header = new Uint8Array(arrayBuffer.slice(0, 5));
+    const pdfMagic = String.fromCharCode(...Array.from(header));
+
+    // Some "PDF" files are actually HTML/plain text exports renamed to .pdf.
+    // Avoid noisy pdf.js warnings and gracefully extract what we can.
+    if (pdfMagic !== '%PDF-') {
+      console.warn('File does not have PDF magic header. Falling back to generic text extraction.');
+      return await fallbackTextFromNonPdf(arrayBuffer);
+    }
 
     // Load the PDF document
     const loadingTask = pdfjsLib.getDocument({
@@ -155,7 +178,20 @@ const extractPDFText = async (file: File): Promise<string> => {
 
   } catch (error) {
     console.error('PDF extraction failed:', error);
-    throw new Error(`PDF parsing failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    const message = String(error instanceof Error ? error.message : error || '');
+    const shouldFallback =
+      /invalid pdf|pdf structure|indexing all pdf objects|gethexstring/i.test(message);
+
+    if (shouldFallback) {
+      try {
+        console.warn('PDF parsing failed with structural error. Trying generic text fallback.');
+        return await fallbackTextFromNonPdf();
+      } catch (fallbackError) {
+        console.error('PDF generic fallback failed:', fallbackError);
+      }
+    }
+
+    throw new Error(`PDF parsing failed: ${message || 'Unknown error'}`);
   }
 };
 
