@@ -349,15 +349,15 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
               <label className="block text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
                 {t('landing.analyzer.input_you', { defaultValue: 'Napište 3 věty o sobě (volitelné – pro shodu)' })}
               </label>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                {t('landing.analyzer.privacy_hint', { defaultValue: 'Vaše data nikam neposíláme, shoda se počítá anonymně.' })}
-              </p>
               <textarea
                 value={aboutYouText}
                 onChange={(e) => setAboutYouText(e.target.value)}
                 className="w-full min-h-[220px] rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-sm"
                 placeholder={t('landing.analyzer.input_you_ph', { defaultValue: 'Např. 5 let React, TypeScript, rád/a řeším UX a výkon…' })}
               />
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
+                {t('landing.analyzer.privacy_hint', { defaultValue: 'Vaše data nikam neposíláme, shoda se počítá anonymně.' })}
+              </p>
             </div>
           </div>
 
