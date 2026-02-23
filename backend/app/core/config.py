@@ -3,6 +3,28 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+
+def _resolve_secret_key() -> str:
+    candidates = ("JWT_SECRET", "SECRET_KEY", "jwt_secret", "secret_key")
+    checked: list[str] = []
+    for key in candidates:
+        raw = os.getenv(key)
+        checked.append(f"{key}={'set' if raw is not None else 'missing'}")
+        if raw is None:
+            continue
+        value = raw.strip()
+        if not value:
+            continue
+        # Accept quoted values copied from dashboard UIs.
+        if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+            value = value[1:-1].strip()
+        if value:
+            return value
+    raise RuntimeError(
+        "Missing SECRET_KEY/JWT_SECRET environment variable. "
+        f"Checked: {', '.join(checked)}"
+    )
+
 # API Base URL
 API_BASE_URL = os.getenv("API_BASE_URL", "https://jobshaman-cz.onrender.com")
 # Public site URL (for canonical/sitemap)
@@ -35,9 +57,7 @@ VAPID_SUBJECT = os.getenv("VAPID_SUBJECT", "mailto:floki@jobshaman.cz")
 SCRAPER_TOKEN = os.getenv("SCRAPER_TOKEN")
 
 # Security
-SECRET_KEY = os.getenv("JWT_SECRET", os.getenv("SECRET_KEY"))
-if not SECRET_KEY:
-    raise RuntimeError("Missing SECRET_KEY/JWT_SECRET environment variable")
+SECRET_KEY = _resolve_secret_key()
 
 # CSRF
 CSRF_TOKEN_EXPIRY = 3600  # 1 hour
