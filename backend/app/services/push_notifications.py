@@ -1,12 +1,18 @@
 from typing import Dict, Any
 
-from pywebpush import webpush, WebPushException
+try:
+    from pywebpush import webpush, WebPushException
+except ModuleNotFoundError:  # optional dependency; keep API bootable without push support
+    webpush = None
+
+    class WebPushException(Exception):
+        pass
 
 from ..core.config import VAPID_PRIVATE_KEY, VAPID_PUBLIC_KEY, VAPID_SUBJECT
 
 
 def is_push_configured() -> bool:
-    return bool(VAPID_PRIVATE_KEY and VAPID_PUBLIC_KEY)
+    return bool(webpush and VAPID_PRIVATE_KEY and VAPID_PUBLIC_KEY)
 
 
 def send_push(subscription: Dict[str, Any], payload: str) -> bool:
