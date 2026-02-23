@@ -50,6 +50,13 @@ const resolveInteractionBackends = (): string[] => {
     return Array.from(new Set(bases));
 };
 
+const resolveInteractionStateBackends = (): string[] => {
+    // /jobs/interactions/state is currently provided by core backend.
+    const coreBase = normalizeBackendBaseUrl(BACKEND_URL);
+    if (!coreBase) return [];
+    return [coreBase];
+};
+
 const INTERACTION_BACKEND_COOLDOWN_MS = 20_000;
 const interactionBackendCooldownByHost = new Map<string, number>();
 const interactionBackendFailureCountByHost = new Map<string, number>();
@@ -80,7 +87,7 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
         return;
     }
 
-    const backends = resolveInteractionBackends();
+    const backends = resolveInteractionStateBackends();
     if (!backends.length) return;
     const activeBackends = backends.filter((baseUrl) => !isInteractionBackendCooldownActive(baseUrl));
     if (!activeBackends.length) {

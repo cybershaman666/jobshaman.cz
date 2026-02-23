@@ -2142,7 +2142,8 @@ export const fetchJobsByIds = async (jobIds: string[]): Promise<Job[]> => {
 };
 
 export const fetchRecommendedJobs = async (limit: number = 50): Promise<Job[]> => {
-    const response = await authenticatedFetch(`${BACKEND_URL}/jobs/recommendations?limit=${limit}`, {
+    const clampedLimit = Math.max(10, Math.min(80, Math.floor(limit || 50)));
+    const response = await authenticatedFetch(`${BACKEND_URL}/jobs/recommendations?limit=${clampedLimit}`, {
         method: 'GET'
     });
     if (!response.ok) {
