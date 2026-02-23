@@ -29,6 +29,7 @@ _RECOMMENDATION_SIGNAL_MAP: dict[str, str] = {
     "swipe_right": "save",
     "swipe_left": "unsave",
 }
+_INTERACTION_STATE_EVENTS = ["save", "unsave", "swipe_left", "swipe_right"]
 
 
 def _is_missing_table_error(exc: Exception, table_name: str) -> bool:
@@ -118,6 +119,65 @@ def _user_has_allowed_subscription(user: dict, allowed_tiers: set[str]) -> bool:
 
 def _normalize_job_id(job_id: str):
     return int(job_id) if str(job_id).isdigit() else job_id
+
+
+def _canonical_job_id(job_id) -> str:
+    if job_id is None:
+        return ""
+    value = str(job_id).strip()
+    if not value:
+        return ""
+    return value
+
+
+def _fetch_user_interaction_state(user_id: str, limit: int = 10000) -> tuple[list[str], list[str]]:
+    if not supabase or not user_id:
+        return [], []
+    try:
+        resp = (
+            supabase.table("job_interactions")
+            .select("job_id,event_type,created_at")
+            .eq("user_id", user_id)
+            .in_("event_type", _INTERACTION_STATE_EVENTS)
+            .order("created_at", desc=True)
+            .limit(max(1, min(20000, int(limit))))
+            .execute()
+        )
+        rows = resp.data or []
+    except Exception as exc:
+        print(f"⚠️ Failed to fetch interaction state for user {user_id}: {exc}")
+        return [], []
+
+    latest_by_job: dict[str, str] = {}
+    for row in rows:
+        job_id = _canonical_job_id(row.get("job_id"))
+        if not job_id or job_id in latest_by_job:
+            continue
+        latest_by_job[job_id] = str(row.get("event_type") or "").strip().lower()
+
+    saved_job_ids: list[str] = []
+    dismissed_job_ids: list[str] = []
+    for job_id, event_type in latest_by_job.items():
+        if event_type in {"save", "swipe_right"}:
+            saved_job_ids.append(job_id)
+        elif event_type == "swipe_left":
+            dismissed_job_ids.append(job_id)
+
+    saved_job_ids.sort()
+    dismissed_job_ids.sort()
+    return saved_job_ids, dismissed_job_ids
+
+
+def _filter_out_dismissed_jobs(jobs: list[dict], dismissed_job_ids: set[str]) -> list[dict]:
+    if not jobs or not dismissed_job_ids:
+        return jobs
+    out: list[dict] = []
+    for row in jobs:
+        job_id = _canonical_job_id((row or {}).get("id"))
+        if job_id and job_id in dismissed_job_ids:
+            continue
+        out.append(row)
+    return out
 
 def _coerce_job_analysis_payload(raw: dict) -> dict:
     summary = str(raw.get("summary") or "").strip()
@@ -389,6 +449,24 @@ async def log_job_interaction(payload: JobInteractionRequest, request: Request, 
         raise HTTPException(status_code=500, detail="Failed to log interaction")
 
 
+@router.get("/jobs/interactions/state")
+@limiter.limit("120/minute")
+async def get_job_interaction_state(
+    request: Request,
+    limit: int = Query(5000, ge=1, le=20000),
+    user: dict = Depends(get_current_user),
+):
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    saved_job_ids, dismissed_job_ids = _fetch_user_interaction_state(user_id, limit=limit)
+    return {
+        "saved_job_ids": saved_job_ids,
+        "dismissed_job_ids": dismissed_job_ids,
+    }
+
+
 @router.get("/jobs/recommendations")
 @limiter.limit("30/minute")
 async def get_job_recommendations(
@@ -457,6 +535,12 @@ async def jobs_hybrid_search(
     payload: HybridJobSearchRequest,
     request: Request,
 ):
+    user_id = _try_get_optional_user_id(request)
+    dismissed_job_ids: set[str] = set()
+    if user_id:
+        _, dismissed = _fetch_user_interaction_state(user_id, limit=12000)
+        dismissed_job_ids = set(dismissed)
+
     result = hybrid_search_jobs(
         {
             "search_term": payload.search_term,
@@ -476,6 +560,12 @@ async def jobs_hybrid_search(
         page=payload.page,
         page_size=payload.page_size,
     )
+    if dismissed_job_ids:
+        jobs = result.get("jobs") or []
+        filtered_jobs = _filter_out_dismissed_jobs(jobs, dismissed_job_ids)
+        result["jobs"] = filtered_jobs
+        result["has_more"] = bool(result.get("has_more")) or (len(filtered_jobs) < len(jobs))
+        result["total_count"] = max(len(filtered_jobs), int(result.get("total_count") or 0) - (len(jobs) - len(filtered_jobs)))
     return result
 
 
@@ -486,6 +576,10 @@ async def jobs_hybrid_search_v2(
     request: Request,
 ):
     user_id = _try_get_optional_user_id(request)
+    dismissed_job_ids: set[str] = set()
+    if user_id:
+        _, dismissed = _fetch_user_interaction_state(user_id, limit=12000)
+        dismissed_job_ids = set(dismissed)
     request_id = str(uuid4())
     result = hybrid_search_jobs_v2(
         {
@@ -510,6 +604,12 @@ async def jobs_hybrid_search_v2(
     )
 
     jobs = result.get("jobs") or []
+    if dismissed_job_ids:
+        filtered_jobs = _filter_out_dismissed_jobs(jobs, dismissed_job_ids)
+        removed_count = len(jobs) - len(filtered_jobs)
+        jobs = filtered_jobs
+    else:
+        removed_count = 0
     exposures = []
     for idx, job in enumerate(jobs):
         job_id = job.get("id")
@@ -562,7 +662,7 @@ async def jobs_hybrid_search_v2(
     response = {
         "jobs": jobs,
         "has_more": result.get("has_more", False),
-        "total_count": result.get("total_count", 0),
+        "total_count": max(len(jobs), int(result.get("total_count", 0)) - removed_count),
         "request_id": request_id,
         "meta": {
             "sort_mode": payload.sort_mode,
@@ -574,6 +674,7 @@ async def jobs_hybrid_search_v2(
             "cooldown_active": meta.get("cooldown_active"),
             "cooldown_until": meta.get("cooldown_until"),
             "result_count": len(jobs),
+            "dismissed_filtered_count": removed_count,
         },
     }
     if payload.debug:

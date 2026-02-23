@@ -24,6 +24,11 @@ export interface JobInteractionPayload {
     metadata?: Record<string, any>;
 }
 
+export interface JobInteractionStateResponse {
+    savedJobIds: string[];
+    dismissedJobIds: string[];
+}
+
 const normalizeBackendBaseUrl = (value?: string): string | null => {
     if (!value) return null;
     try {
@@ -169,4 +174,54 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
         throttleMs: 30_000,
         sendAnalytics: false
     });
+};
+
+export const fetchJobInteractionState = async (limit: number = 5000): Promise<JobInteractionStateResponse> => {
+    const authToken = await getCurrentAuthTokenSilently();
+    if (!authToken) {
+        return { savedJobIds: [], dismissedJobIds: [] };
+    }
+
+    const backends = resolveInteractionBackends();
+    if (!backends.length) {
+        return { savedJobIds: [], dismissedJobIds: [] };
+    }
+
+    const clampedLimit = Math.max(1, Math.min(20_000, Math.floor(limit || 5000)));
+
+    for (const baseUrl of backends) {
+        try {
+            const response = await authenticatedFetch(
+                `${baseUrl}/jobs/interactions/state?limit=${clampedLimit}`,
+                { method: 'GET' },
+                authToken
+            );
+            if (!response.ok) continue;
+
+            const payload = await response.json();
+            const savedJobIds = Array.isArray(payload?.saved_job_ids)
+                ? payload.saved_job_ids.map((id: unknown) => String(id))
+                : [];
+            const dismissedJobIds = Array.isArray(payload?.dismissed_job_ids)
+                ? payload.dismissed_job_ids.map((id: unknown) => String(id))
+                : [];
+
+            return {
+                savedJobIds: Array.from(new Set(savedJobIds)),
+                dismissedJobIds: Array.from(new Set(dismissedJobIds))
+            };
+        } catch (error) {
+            const msg = String((error as any)?.message || '').toLowerCase();
+            const isTransient =
+                (error as any)?.name === 'AbortError' ||
+                msg.includes('aborted') ||
+                msg.includes('networkerror') ||
+                msg.includes('failed to fetch') ||
+                msg.includes('cors');
+            if (isTransient) continue;
+            break;
+        }
+    }
+
+    return { savedJobIds: [], dismissedJobIds: [] };
 };

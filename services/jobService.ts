@@ -2101,6 +2101,46 @@ export const fetchJobById = async (jobId: string): Promise<Job | null> => {
     }
 };
 
+export const fetchJobsByIds = async (jobIds: string[]): Promise<Job[]> => {
+    if (!isSupabaseConfigured() || !supabase || !Array.isArray(jobIds) || jobIds.length === 0) {
+        return [];
+    }
+
+    const normalizedIds = Array.from(new Set(jobIds.map((id) => String(id).trim()).filter(Boolean)));
+    if (!normalizedIds.length) return [];
+
+    try {
+        const chunks: string[][] = [];
+        for (let i = 0; i < normalizedIds.length; i += 100) {
+            chunks.push(normalizedIds.slice(i, i + 100));
+        }
+
+        const fetched: Job[] = [];
+        for (const chunk of chunks) {
+            const { data, error } = await supabase
+                .from('jobs')
+                .select('*')
+                .in('id', chunk);
+
+            if (error) {
+                console.warn('Failed to fetch saved jobs batch:', error);
+                continue;
+            }
+
+            const mapped = mapJobs(data || []);
+            fetched.push(...mapped);
+        }
+
+        const byId = new Map(fetched.map((job) => [job.id, job]));
+        return normalizedIds
+            .map((id) => byId.get(id))
+            .filter((job): job is Job => !!job);
+    } catch (error) {
+        console.warn('Failed to fetch jobs by IDs:', error);
+        return [];
+    }
+};
+
 export const fetchRecommendedJobs = async (limit: number = 50): Promise<Job[]> => {
     const response = await authenticatedFetch(`${BACKEND_URL}/jobs/recommendations?limit=${limit}`, {
         method: 'GET'

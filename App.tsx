@@ -22,7 +22,7 @@ import JobListSidebar from './components/JobListSidebar';
 import PremiumUpgradeModal from './components/PremiumUpgradeModal';
 import { analyzeJobDescription } from './services/geminiService';
 import { calculateCommuteReality } from './services/commuteService';
-import { fetchJobById } from './services/jobService';
+import { fetchJobById, fetchJobsByIds } from './services/jobService';
 import { clearJobCache } from './services/jobService';
 import { supabase, getUserProfile, updateUserProfile, verifyAuthSession } from './services/supabaseService';
 import { verifyServerSideBilling } from './services/serverSideBillingService';
@@ -68,6 +68,7 @@ type PendingApplyFollowup = {
 
 const APPLY_FOLLOWUP_STORAGE_KEY = 'jobshaman_apply_followup';
 const EMAIL_CONFIRMATION_STORAGE_KEY = 'jobshaman_email_confirmation_pending';
+const SAVED_JOBS_CACHE_PREFIX = 'jobshaman_saved_jobs_cache';
 
 const CompanyDashboard = lazy(() => import('./components/CompanyDashboard'));
 const CompanyLandingPage = lazy(() => import('./components/CompanyLandingPage'));
@@ -405,7 +406,6 @@ export default function App() {
         setFilterDate,
         setFilterMinSalary,
         setFilterLanguage,
-        setSavedJobIds,
         setShowFilters,
         setExpandedSections,
         toggleBenefitFilter,
@@ -416,7 +416,8 @@ export default function App() {
         setGlobalSearch,
         setAbroadOnly,
         sortBy,
-        setSortBy
+        setSortBy,
+        applyInteractionState
     } = usePaginatedJobs({ userProfile: effectiveUserProfile });
 
     // Prevent layout flash on first render by waiting for client mount
@@ -462,6 +463,106 @@ export default function App() {
         }
         return personalized;
     }, [filteredJobs, sortBy, effectiveUserProfile.jhiPreferences]);
+
+    const savedJobsCacheKey = useMemo(
+        () => `${SAVED_JOBS_CACHE_PREFIX}:${userProfile.id || 'guest'}`,
+        [userProfile.id]
+    );
+    const [savedJobsCache, setSavedJobsCache] = useState<Record<string, Job>>({});
+
+    useEffect(() => {
+        try {
+            const raw = localStorage.getItem(savedJobsCacheKey);
+            if (!raw) {
+                setSavedJobsCache({});
+                return;
+            }
+            const parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object') {
+                setSavedJobsCache({});
+                return;
+            }
+            setSavedJobsCache(parsed as Record<string, Job>);
+        } catch {
+            setSavedJobsCache({});
+        }
+    }, [savedJobsCacheKey]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(savedJobsCacheKey, JSON.stringify(savedJobsCache));
+        } catch (error) {
+            console.warn('Failed to persist saved jobs cache:', error);
+        }
+    }, [savedJobsCache, savedJobsCacheKey]);
+
+    useEffect(() => {
+        setSavedJobsCache((prev) => {
+            const next: Record<string, Job> = {};
+            for (const savedId of savedJobIds) {
+                const fresh = jobsForDisplay.find((job) => job.id === savedId);
+                if (fresh) {
+                    next[savedId] = fresh;
+                    continue;
+                }
+                if (prev[savedId]) {
+                    next[savedId] = prev[savedId];
+                }
+            }
+            const prevKeys = Object.keys(prev);
+            const nextKeys = Object.keys(next);
+            if (prevKeys.length === nextKeys.length && prevKeys.every((key) => next[key])) {
+                return prev;
+            }
+            return next;
+        });
+    }, [jobsForDisplay, savedJobIds]);
+
+    useEffect(() => {
+        let cancelled = false;
+        const jobsById = new Set(jobsForDisplay.map((job) => job.id));
+        const missingIds = savedJobIds.filter((id) => !jobsById.has(id) && !savedJobsCache[id]);
+        if (!missingIds.length) return;
+
+        (async () => {
+            try {
+                const fetched = await fetchJobsByIds(missingIds.slice(0, 120));
+                if (cancelled || !fetched.length) return;
+                setSavedJobsCache((prev) => {
+                    const next = { ...prev };
+                    for (const job of fetched) {
+                        next[job.id] = job;
+                    }
+                    return next;
+                });
+            } catch (error) {
+                if (!cancelled) {
+                    console.warn('Failed to hydrate saved jobs cache from DB:', error);
+                }
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [savedJobIds, jobsForDisplay, savedJobsCache]);
+
+    const resolvedSavedJobs = useMemo(() => {
+        const jobsById = new Map(jobsForDisplay.map((job) => [job.id, job]));
+        const out: Job[] = [];
+        for (const id of savedJobIds) {
+            const live = jobsById.get(id);
+            if (live) {
+                out.push(live);
+                continue;
+            }
+            const cached = savedJobsCache[id];
+            if (cached) {
+                out.push(cached);
+            }
+        }
+        return out;
+    }, [jobsForDisplay, savedJobIds, savedJobsCache]);
 
     const selectedJob = jobsForDisplay.find(j => j.id === selectedJobId) || directlyFetchedJob;
 
@@ -1223,7 +1324,18 @@ export default function App() {
                 position: (job as any)?.rankPosition || (job as any)?.aiRecommendationPosition
             }
         });
-        setSavedJobIds(prev => isAlreadySaved ? prev.filter(id => id !== jobId) : [...prev, jobId]);
+        if (!isAlreadySaved && job) {
+            setSavedJobsCache((prev) => ({ ...prev, [jobId]: job }));
+        }
+        if (isAlreadySaved) {
+            setSavedJobsCache((prev) => {
+                if (!(jobId in prev)) return prev;
+                const next = { ...prev };
+                delete next[jobId];
+                return next;
+            });
+        }
+        applyInteractionState(jobId, isAlreadySaved ? 'unsave' : 'save');
     };
 
     const handleOpenJobDetailsFromSwipe = (jobId: string) => {
@@ -1522,7 +1634,7 @@ export default function App() {
                         onSave={handleProfileSave} // Explicit save button
                         onRefreshProfile={refreshUserProfile}
                         onDeleteAccount={deleteAccount}
-                        savedJobs={jobsForDisplay.filter(job => savedJobIds.includes(job.id))}
+                        savedJobs={resolvedSavedJobs}
                         savedJobIds={savedJobIds}
                         onToggleSave={handleToggleSave}
                         onJobSelect={handleJobSelect}
@@ -1535,11 +1647,10 @@ export default function App() {
 
 
         if (viewState === ViewState.SAVED) {
-            const savedJobs = jobsForDisplay.filter(job => savedJobIds.includes(job.id));
             return (
                 <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
                     <SavedJobsPage
-                        savedJobs={savedJobs}
+                        savedJobs={resolvedSavedJobs}
                         savedJobIds={savedJobIds}
                         onToggleSave={handleToggleSave}
                         onJobSelect={handleJobSelect}
@@ -1612,6 +1723,7 @@ export default function App() {
                             swipeStateStorageKey={userProfile.id || 'anonymous'}
                             savedJobIds={savedJobIds}
                             onToggleSave={handleToggleSave}
+                            onRejectJob={(jobId) => applyInteractionState(jobId, 'swipe_left')}
                             onOpenDetails={handleOpenJobDetailsFromSwipe}
                             onSwitchToList={() => {
                                 setMobileViewOverride('list');

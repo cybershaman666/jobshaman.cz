@@ -11,6 +11,7 @@ interface MobileSwipeJobBrowserProps {
     swipeStateStorageKey: string;
     savedJobIds: string[];
     onToggleSave: (jobId: string) => void;
+    onRejectJob?: (jobId: string) => void;
     onOpenDetails: (jobId: string) => void;
     onSwitchToList: () => void;
     isLoadingMore: boolean;
@@ -31,6 +32,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     swipeStateStorageKey,
     savedJobIds,
     onToggleSave,
+    onRejectJob,
     onOpenDetails,
     onSwitchToList,
     isLoadingMore,
@@ -214,6 +216,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                     ...recMeta,
                 }
             });
+            onRejectJob?.(currentJob.id);
             setExitAnimation('left');
             setTimeout(() => {
                 setProcessedJobIds(prev => {

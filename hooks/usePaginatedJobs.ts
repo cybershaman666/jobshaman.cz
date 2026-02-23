@@ -7,6 +7,7 @@ import { geocodeWithCaching, getStaticCoordinates } from '../services/geocodingS
 import AnalyticsService from '../services/analyticsService';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
 import { isBackendNetworkCooldownActive } from '../services/csrfService';
+import { fetchJobInteractionState } from '../services/jobInteractionService';
 
 // Infer country code from address text (best-effort)
 const getCountryCodeFromAddress = (address: string): string | null => {
@@ -39,6 +40,9 @@ interface UsePaginatedJobsProps {
 
 const JOBS_FEED_CACHE_KEY = 'jobs_feed_cache_v1';
 const JOBS_FEED_CACHE_MAX = 80;
+const LEGACY_SAVED_JOBS_KEY = 'savedJobIds';
+const SAVED_JOB_IDS_PREFIX = 'savedJobIds';
+const DISMISSED_JOB_IDS_PREFIX = 'dismissedJobIds';
 
 const normalizeCountryCodes = (codes: string[]): string[] => {
     if (!codes || codes.length === 0) return [];
@@ -145,25 +149,91 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const AI_MATCH_ERROR_RETRY_MS = 90 * 1000;
     const RECOMMENDATIONS_ERROR_RETRY_MS = 90 * 1000;
 
-    // Load saved job IDs from localStorage on mount
-    const [savedJobIds, setSavedJobIds] = useState<string[]>(() => {
-        try {
-            const saved = localStorage.getItem('savedJobIds');
-            return saved ? JSON.parse(saved) : [];
-        } catch (error) {
-            console.error('Error loading saved jobs from localStorage:', error);
-            return [];
-        }
-    });
+    const savedJobStorageKey = `${SAVED_JOB_IDS_PREFIX}:${userProfile.id || 'guest'}`;
+    const dismissedJobStorageKey = `${DISMISSED_JOB_IDS_PREFIX}:${userProfile.id || 'guest'}`;
 
-    // Save savedJobIds to localStorage whenever they change
+    const [savedJobIds, setSavedJobIds] = useState<string[]>([]);
+    const [dismissedJobIds, setDismissedJobIds] = useState<string[]>([]);
+    const dismissedJobIdsRef = useRef<Set<string>>(new Set());
+
+    useEffect(() => {
+        dismissedJobIdsRef.current = new Set(dismissedJobIds);
+    }, [dismissedJobIds]);
+
+    const filterDismissedJobs = useCallback((list: Job[]) => {
+        const dismissed = dismissedJobIdsRef.current;
+        if (!dismissed.size || !list.length) return list;
+        return list.filter((job) => !dismissed.has(job.id));
+    }, []);
+
+    useEffect(() => {
+        const readIds = (key: string): string[] => {
+            try {
+                const raw = localStorage.getItem(key);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                if (!Array.isArray(parsed)) return [];
+                return parsed.map((id: unknown) => String(id));
+            } catch {
+                return [];
+            }
+        };
+
+        const saved = readIds(savedJobStorageKey);
+        const dismissed = readIds(dismissedJobStorageKey);
+        if (!userProfile.id && saved.length === 0) {
+            const legacy = readIds(LEGACY_SAVED_JOBS_KEY);
+            setSavedJobIds(Array.from(new Set(legacy)));
+        } else {
+            setSavedJobIds(Array.from(new Set(saved)));
+        }
+        setDismissedJobIds(Array.from(new Set(dismissed)));
+    }, [savedJobStorageKey, dismissedJobStorageKey, userProfile.id]);
+
     useEffect(() => {
         try {
-            localStorage.setItem('savedJobIds', JSON.stringify(savedJobIds));
+            localStorage.setItem(savedJobStorageKey, JSON.stringify(savedJobIds));
+            if (!userProfile.id) {
+                localStorage.setItem(LEGACY_SAVED_JOBS_KEY, JSON.stringify(savedJobIds));
+            }
         } catch (error) {
             console.error('Error saving jobs to localStorage:', error);
         }
-    }, [savedJobIds]);
+    }, [savedJobIds, savedJobStorageKey, userProfile.id]);
+
+    useEffect(() => {
+        try {
+            localStorage.setItem(dismissedJobStorageKey, JSON.stringify(dismissedJobIds));
+        } catch (error) {
+            console.error('Error saving dismissed jobs to localStorage:', error);
+        }
+    }, [dismissedJobIds, dismissedJobStorageKey]);
+
+    useEffect(() => {
+        let cancelled = false;
+        if (!userProfile.isLoggedIn || !userProfile.id) return;
+
+        (async () => {
+            try {
+                const state = await fetchJobInteractionState(6000);
+                if (cancelled) return;
+
+                const nextSaved = Array.from(new Set(state.savedJobIds)).filter((id) => !state.dismissedJobIds.includes(id));
+                const nextDismissed = Array.from(new Set(state.dismissedJobIds));
+
+                setSavedJobIds(nextSaved);
+                setDismissedJobIds(nextDismissed);
+            } catch (error) {
+                if (!cancelled) {
+                    console.warn('Failed to hydrate interaction state from backend:', error);
+                }
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [userProfile.isLoggedIn, userProfile.id]);
 
     // Persist a warm cache so first paint is never empty when backend wakes up.
     useEffect(() => {
@@ -174,6 +244,11 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             // Ignore storage failures.
         }
     }, [jobs]);
+
+    useEffect(() => {
+        if (!dismissedJobIds.length) return;
+        setJobs(prev => prev.filter(job => !dismissedJobIds.includes(job.id)));
+    }, [dismissedJobIds]);
 
     useEffect(() => {
         return () => {
@@ -361,7 +436,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                     try {
                         const recs = await fetchRecommendedJobs(initialPageSize);
                         if (isStaleRequest()) return;
-                        setJobs(recs);
+                        const visibleRecs = filterDismissedJobs(recs);
+                        setJobs(visibleRecs);
                         const nextMap = new Map<string, number>();
                         for (const rec of recs) {
                             const score = (rec as any)?.aiMatchScore;
@@ -373,7 +449,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                         }
                         recommendationsRetryAfterRef.current = 0;
                         setHasMore(false);
-                        setTotalCount(recs.length);
+                        setTotalCount(visibleRecs.length);
                         return;
                     } catch (error) {
                         // Graceful degradation: avoid hard failure and continue with standard filtered query below.
@@ -399,14 +475,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 if (isStaleRequest()) return;
 
                 if (isLoadMore) {
-                    setJobs(prev => dedupeJobs(basicResult.jobs, prev));
+                    const visibleJobs = filterDismissedJobs(basicResult.jobs);
+                    setJobs(prev => dedupeJobs(visibleJobs, prev));
                 } else {
-                    setJobs(basicResult.jobs);
+                    const visibleJobs = filterDismissedJobs(basicResult.jobs);
+                    setJobs(visibleJobs);
                 }
                 hydrateJobsWithAiMatchScores(requestId);
 
                 setHasMore(basicResult.hasMore);
-                setTotalCount(basicResult.totalCount || 0);
+                setTotalCount(Math.max(0, Number(basicResult.totalCount || 0) - (basicResult.jobs.length - filterDismissedJobs(basicResult.jobs).length)));
                 return;
             }
 
@@ -438,14 +516,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             if (isStaleRequest()) return;
 
             if (isLoadMore) {
-                setJobs(prev => dedupeJobs(result.jobs, prev));
+                const visibleJobs = filterDismissedJobs(result.jobs);
+                setJobs(prev => dedupeJobs(visibleJobs, prev));
             } else {
-                setJobs(result.jobs);
+                const visibleJobs = filterDismissedJobs(result.jobs);
+                setJobs(visibleJobs);
             }
             hydrateJobsWithAiMatchScores(requestId);
 
             setHasMore(result.hasMore);
-            setTotalCount(result.totalCount || 0);
+            setTotalCount(Math.max(0, Number(result.totalCount || 0) - (result.jobs.length - filterDismissedJobs(result.jobs).length)));
 
             // Track analytics
             if ((filterCity || filterContractType.length > 0 || filterBenefits.length > 0)) {
@@ -483,7 +563,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [
         initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch, filterLanguage, abroadOnly, sortBy, userProfile.isLoggedIn, userProfile.jhiPreferences, userProfile.taxProfile, hydrateJobsWithAiMatchScores
+        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch, filterLanguage, abroadOnly, sortBy, userProfile.isLoggedIn, userProfile.jhiPreferences, userProfile.taxProfile, hydrateJobsWithAiMatchScores, filterDismissedJobs
     ]);
 
 
@@ -590,6 +670,40 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setFilterExperience(prev => prev.includes(level) ? prev.filter(l => l !== level) : [...prev, level]);
     };
 
+    const applyInteractionState = useCallback((
+        jobId: string,
+        eventType: 'swipe_left' | 'swipe_right' | 'save' | 'unsave'
+    ) => {
+        const normalizedId = String(jobId);
+        if (!normalizedId) return;
+
+        if (eventType === 'save' || eventType === 'swipe_right') {
+            setSavedJobIds(prev => (prev.includes(normalizedId) ? prev : [...prev, normalizedId]));
+            setDismissedJobIds(prev => prev.filter(id => id !== normalizedId));
+            return;
+        }
+
+        setSavedJobIds(prev => prev.filter(id => id !== normalizedId));
+        if (eventType === 'swipe_left') {
+            setDismissedJobIds(prev => (prev.includes(normalizedId) ? prev : [...prev, normalizedId]));
+            setJobs(prev => prev.filter(job => job.id !== normalizedId));
+        }
+    }, []);
+
+    const setSavedJobIdsWithDedupe = useCallback((value: string[] | ((prev: string[]) => string[])) => {
+        setSavedJobIds(prev => {
+            const next = typeof value === 'function' ? value(prev) : value;
+            return Array.from(new Set(next.map((id) => String(id))));
+        });
+    }, []);
+
+    const setDismissedJobIdsWithDedupe = useCallback((value: string[] | ((prev: string[]) => string[])) => {
+        setDismissedJobIds(prev => {
+            const next = typeof value === 'function' ? value(prev) : value;
+            return Array.from(new Set(next.map((id) => String(id))));
+        });
+    }, []);
+
     const clearAllFilters = () => {
         setSearchTerm('');
         setFilterCity('');
@@ -625,6 +739,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         filterExperience,
         filterLanguage,
         savedJobIds,
+        dismissedJobIds,
         showFilters,
         expandedSections,
         globalSearch,
@@ -645,13 +760,15 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         setFilterMinSalary,
         setFilterExperience,
         setFilterLanguage,
-        setSavedJobIds,
+        setSavedJobIds: setSavedJobIdsWithDedupe,
+        setDismissedJobIds: setDismissedJobIdsWithDedupe,
         setShowFilters,
         setExpandedSections,
         setGlobalSearch,
         setAbroadOnly,
         setCountryCodes,
         setSortBy,
+        applyInteractionState,
         toggleBenefitFilter,
         toggleContractTypeFilter,
         toggleExperienceFilter,
