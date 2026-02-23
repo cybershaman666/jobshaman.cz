@@ -1,7 +1,7 @@
 import time
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from ..core.database import supabase
 from ..core.limiter import limiter
@@ -32,6 +32,7 @@ _RECOMMENDATION_ALLOWED_SIGNALS: set[str] = {
     "save",
     "unsave",
 }
+_INTERACTION_STATE_EVENTS = ["save", "unsave", "swipe_left", "swipe_right"]
 
 
 def _is_missing_table_error(exc: Exception, table_name: str) -> bool:
@@ -53,6 +54,51 @@ def _try_get_optional_user_id(request: Request) -> str | None:
         return user.get("id") or user.get("auth_id")
     except Exception:
         return None
+
+
+def _canonical_job_id(job_id) -> str:
+    if job_id is None:
+        return ""
+    value = str(job_id).strip()
+    return value
+
+
+def _fetch_user_interaction_state(user_id: str, limit: int = 10000) -> tuple[list[str], list[str]]:
+    if not supabase or not user_id:
+        return [], []
+    try:
+        resp = (
+            supabase.table("job_interactions")
+            .select("job_id,event_type,created_at")
+            .eq("user_id", user_id)
+            .in_("event_type", _INTERACTION_STATE_EVENTS)
+            .order("created_at", desc=True)
+            .limit(max(1, min(20000, int(limit))))
+            .execute()
+        )
+        rows = resp.data or []
+    except Exception as exc:
+        print(f"⚠️ Failed to fetch interaction state for user {user_id}: {exc}")
+        return [], []
+
+    latest_by_job: dict[str, str] = {}
+    for row in rows:
+        job_id = _canonical_job_id(row.get("job_id"))
+        if not job_id or job_id in latest_by_job:
+            continue
+        latest_by_job[job_id] = str(row.get("event_type") or "").strip().lower()
+
+    saved_job_ids: list[str] = []
+    dismissed_job_ids: list[str] = []
+    for job_id, event_type in latest_by_job.items():
+        if event_type in {"save", "swipe_right"}:
+            saved_job_ids.append(job_id)
+        elif event_type == "swipe_left":
+            dismissed_job_ids.append(job_id)
+
+    saved_job_ids.sort()
+    dismissed_job_ids.sort()
+    return saved_job_ids, dismissed_job_ids
 
 
 @router.post("/jobs/hybrid-search")
@@ -301,3 +347,21 @@ async def log_job_interaction(
     except Exception as exc:
         print(f"❌ Error logging job interaction: {exc}")
         raise HTTPException(status_code=500, detail="Failed to log interaction")
+
+
+@router.get("/jobs/interactions/state")
+@limiter.limit("120/minute")
+async def get_job_interaction_state(
+    request: Request,
+    limit: int = Query(5000, ge=1, le=20000),
+    user: dict = Depends(get_current_user),
+):
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    saved_job_ids, dismissed_job_ids = _fetch_user_interaction_state(user_id, limit=limit)
+    return {
+        "saved_job_ids": saved_job_ids,
+        "dismissed_job_ids": dismissed_job_ids,
+    }
