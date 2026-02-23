@@ -1,6 +1,7 @@
 import os
 import asyncio
 import urllib.request
+import urllib.error
 import re
 import traceback
 from urllib.parse import urlsplit
@@ -34,6 +35,9 @@ EXPOSE_DEBUG_ERRORS = os.getenv("EXPOSE_DEBUG_ERRORS", "false").strip().lower() 
 BACKEND_WAKE_URL = os.getenv("BACKEND_WAKE_URL", "https://jobshaman-cz.onrender.com/healthz").strip()
 BACKEND_WAKE_INTERVAL_SECONDS = int(os.getenv("BACKEND_WAKE_INTERVAL_SECONDS", "300"))
 ENABLE_BACKEND_WAKE = os.getenv("ENABLE_BACKEND_WAKE", "true").strip().lower() in {"1", "true", "yes", "on"}
+BACKEND_WAKE_TIMEOUT_SECONDS = int(os.getenv("BACKEND_WAKE_TIMEOUT_SECONDS", "65"))
+BACKEND_WAKE_RETRIES = int(os.getenv("BACKEND_WAKE_RETRIES", "2"))
+BACKEND_WAKE_RETRY_DELAY_SECONDS = int(os.getenv("BACKEND_WAKE_RETRY_DELAY_SECONDS", "8"))
 
 
 def _normalize_origin(origin: str | None) -> str:
@@ -118,25 +122,60 @@ app.include_router(seo.router, tags=["SEO"])
 app.include_router(analytics.router, tags=["Analytics"])
 
 
-def _ping_backend_once(url: str) -> None:
+def _ping_backend_once(url: str, timeout_seconds: int) -> None:
     request = urllib.request.Request(
         url,
         headers={"User-Agent": "jobshaman-search-api/wake"},
         method="GET",
     )
-    with urllib.request.urlopen(request, timeout=10) as response:
+    with urllib.request.urlopen(request, timeout=max(timeout_seconds, 1)) as response:
         response.read(1)
 
 
 async def _backend_wake_loop() -> None:
     if not ENABLE_BACKEND_WAKE or not BACKEND_WAKE_URL:
         return
+    consecutive_failures = 0
+    retries = max(BACKEND_WAKE_RETRIES, 0)
+    retry_delay = max(BACKEND_WAKE_RETRY_DELAY_SECONDS, 1)
+    timeout_seconds = max(BACKEND_WAKE_TIMEOUT_SECONDS, 1)
+    interval_seconds = max(BACKEND_WAKE_INTERVAL_SECONDS, 60)
+
     while True:
+        cycle_succeeded = False
+        attempts = retries + 1
+        last_error: Exception | None = None
         try:
-            await asyncio.to_thread(_ping_backend_once, BACKEND_WAKE_URL)
-        except Exception as exc:
-            print(f"⚠️ Backend wake failed: {exc}")
-        await asyncio.sleep(max(BACKEND_WAKE_INTERVAL_SECONDS, 60))
+            for attempt in range(1, attempts + 1):
+                try:
+                    await asyncio.to_thread(_ping_backend_once, BACKEND_WAKE_URL, timeout_seconds)
+                    cycle_succeeded = True
+                    break
+                except urllib.error.HTTPError as exc:
+                    # Non-2xx still means target responded, so keep-awake goal is met.
+                    if exc.code in {401, 403, 404, 405, 429} or 500 <= exc.code <= 599:
+                        cycle_succeeded = True
+                        break
+                    last_error = exc
+                except Exception as exc:
+                    last_error = exc
+                if attempt < attempts:
+                    await asyncio.sleep(retry_delay)
+        except Exception as loop_exc:
+            last_error = loop_exc
+
+        if cycle_succeeded:
+            if consecutive_failures > 0:
+                print("✅ Backend wake recovered.")
+            consecutive_failures = 0
+        else:
+            consecutive_failures += 1
+            if consecutive_failures == 1:
+                print(f"ℹ️ Backend wake transient failure: {last_error}")
+            else:
+                print(f"⚠️ Backend wake failed ({consecutive_failures} consecutive): {last_error}")
+
+        await asyncio.sleep(interval_seconds)
 
 
 @app.on_event("startup")
