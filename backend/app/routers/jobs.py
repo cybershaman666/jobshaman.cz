@@ -29,6 +29,13 @@ _RECOMMENDATION_SIGNAL_MAP: dict[str, str] = {
     "swipe_right": "save",
     "swipe_left": "unsave",
 }
+_RECOMMENDATION_ALLOWED_SIGNALS: set[str] = {
+    "impression",
+    "open_detail",
+    "apply_click",
+    "save",
+    "unsave",
+}
 _INTERACTION_STATE_EVENTS = ["save", "unsave", "swipe_left", "swipe_right"]
 
 
@@ -411,8 +418,14 @@ async def log_job_interaction(payload: JobInteractionRequest, request: Request, 
                     "metadata": metadata,
                 }
             )
+        recommendation_rows = [
+            row for row in feedback_rows
+            if str(row.get("signal_type") or "").strip().lower() in _RECOMMENDATION_ALLOWED_SIGNALS
+        ]
+
         try:
-            supabase.table("recommendation_feedback_events").insert(feedback_rows).execute()
+            if recommendation_rows:
+                supabase.table("recommendation_feedback_events").insert(recommendation_rows).execute()
         except Exception as feedback_exc:
             print(f"⚠️ Failed to write recommendation feedback events: {feedback_exc}")
 

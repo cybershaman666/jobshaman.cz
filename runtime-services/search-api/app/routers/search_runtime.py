@@ -21,6 +21,17 @@ _SEARCH_FEEDBACK_AVAILABLE: bool = True
 _SEARCH_FEEDBACK_WARNING_EMITTED: bool = False
 _INTERACTIONS_CSRF_WARNING_LAST_AT: float = 0.0
 _INTERACTIONS_CSRF_WARNING_INTERVAL_S: float = 30.0
+_RECOMMENDATION_SIGNAL_MAP: dict[str, str] = {
+    "swipe_right": "save",
+    "swipe_left": "unsave",
+}
+_RECOMMENDATION_ALLOWED_SIGNALS: set[str] = {
+    "impression",
+    "open_detail",
+    "apply_click",
+    "save",
+    "unsave",
+}
 
 
 def _is_missing_table_error(exc: Exception, table_name: str) -> bool:
@@ -204,12 +215,13 @@ async def log_job_interaction(
         if not res.data:
             return {"status": "error", "message": "No data inserted"}
 
+        normalized_signal_type = _RECOMMENDATION_SIGNAL_MAP.get(payload.event_type, payload.event_type)
         feedback_rows = [
             {
                 "request_id": request_id,
                 "user_id": user_id,
                 "job_id": payload.job_id,
-                "signal_type": payload.event_type,
+                "signal_type": normalized_signal_type,
                 "signal_value": payload.signal_value,
                 "scoring_version": scoring_version,
                 "model_version": model_version,
@@ -245,19 +257,28 @@ async def log_job_interaction(
                 }
             )
 
+        recommendation_rows = [
+            row for row in feedback_rows
+            if str(row.get("signal_type") or "").strip().lower() in _RECOMMENDATION_ALLOWED_SIGNALS
+        ]
+
         try:
-            supabase.table("recommendation_feedback_events").insert(feedback_rows).execute()
+            if recommendation_rows:
+                supabase.table("recommendation_feedback_events").insert(recommendation_rows).execute()
         except Exception as feedback_exc:
             print(f"⚠️ Failed to write recommendation feedback events: {feedback_exc}")
 
         search_feedback_rows = []
         for row in feedback_rows:
+            raw_signal_type = row.get("signal_type")
+            if raw_signal_type == normalized_signal_type:
+                raw_signal_type = payload.event_type
             search_feedback_rows.append(
                 {
                     "request_id": row.get("request_id"),
                     "user_id": row.get("user_id"),
                     "job_id": row.get("job_id"),
-                    "signal_type": row.get("signal_type"),
+                    "signal_type": raw_signal_type,
                     "signal_value": row.get("signal_value"),
                     "metadata": row.get("metadata") or {},
                 }
