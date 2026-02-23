@@ -17,9 +17,9 @@ services:
       sh -c '
       if [ -f backend/app/main.py ]; then
         cd backend &&
-        exec gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:${PORT:-10000} --timeout 120;
+        exec python -m gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:${PORT:-10000} --timeout 120;
       elif [ -f app/main.py ]; then
-        exec gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:${PORT:-10000} --timeout 120;
+        exec python -m gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:${PORT:-10000} --timeout 120;
       else
         echo "Cannot find FastAPI entrypoint (app/main.py)." &&
         exit 1;

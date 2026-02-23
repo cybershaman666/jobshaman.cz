@@ -154,7 +154,12 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
     const [savedJobIds, setSavedJobIds] = useState<string[]>([]);
     const [dismissedJobIds, setDismissedJobIds] = useState<string[]>([]);
+    const savedJobIdsRef = useRef<Set<string>>(new Set());
     const dismissedJobIdsRef = useRef<Set<string>>(new Set());
+
+    useEffect(() => {
+        savedJobIdsRef.current = new Set(savedJobIds);
+    }, [savedJobIds]);
 
     useEffect(() => {
         dismissedJobIdsRef.current = new Set(dismissedJobIds);
@@ -215,11 +220,22 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
         (async () => {
             try {
-                const state = await fetchJobInteractionState(6000);
+                const state = await fetchJobInteractionState(20000);
                 if (cancelled) return;
 
-                const nextSaved = Array.from(new Set(state.savedJobIds)).filter((id) => !state.dismissedJobIds.includes(id));
-                const nextDismissed = Array.from(new Set(state.dismissedJobIds));
+                // Merge backend state with local cache so historical saved items
+                // are not dropped when backend interaction history is partial.
+                const mergedSavedSet = new Set<string>([
+                    ...Array.from(savedJobIdsRef.current),
+                    ...state.savedJobIds.map((id) => String(id)),
+                ]);
+                const mergedDismissedSet = new Set<string>([
+                    ...Array.from(dismissedJobIdsRef.current),
+                    ...state.dismissedJobIds.map((id) => String(id)),
+                ]);
+
+                const nextSaved = Array.from(mergedSavedSet);
+                const nextDismissed = Array.from(mergedDismissedSet).filter((id) => !mergedSavedSet.has(id));
 
                 setSavedJobIds(nextSaved);
                 setDismissedJobIds(nextDismissed);
