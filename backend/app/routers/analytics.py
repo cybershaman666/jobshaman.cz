@@ -6,7 +6,10 @@ import time
 import requests
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
-from user_agents import parse as parse_ua
+try:
+    from user_agents import parse as parse_ua
+except ModuleNotFoundError:  # optional dependency; keep API bootable without UA enrichment
+    parse_ua = None
 
 from ..core.database import supabase
 
@@ -76,6 +79,12 @@ def _geo_from_ip(ip: str) -> Dict[str, Any]:
 def _parse_user_agent(ua_raw: str) -> Dict[str, Any]:
     if not ua_raw:
         return {}
+    if parse_ua is None:
+        # Keep minimal UA signal when parser dependency is unavailable.
+        return {
+            "device_type": "unknown",
+            "ua": ua_raw[:256],
+        }
     ua = parse_ua(ua_raw)
     if ua.is_bot:
         device_type = "bot"

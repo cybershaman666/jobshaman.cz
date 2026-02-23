@@ -15,4 +15,5 @@ pywebpush
 stripe
 bleach
 slowapi
+user-agents
 sentry-sdk[fastapi]
