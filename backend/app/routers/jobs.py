@@ -155,19 +155,30 @@ def _fetch_user_interaction_state(user_id: str, limit: int = 10000) -> tuple[lis
         print(f"⚠️ Failed to fetch interaction state for user {user_id}: {exc}")
         return [], []
 
-    latest_by_job: dict[str, str] = {}
+    # Keep "saved" and "dismissed" as separate state tracks.
+    # swipe_left should not implicitly remove a previously saved job.
+    saved_state_by_job: dict[str, bool] = {}
+    dismissed_state_by_job: dict[str, bool] = {}
     for row in rows:
         job_id = _canonical_job_id(row.get("job_id"))
-        if not job_id or job_id in latest_by_job:
+        if not job_id:
             continue
-        latest_by_job[job_id] = str(row.get("event_type") or "").strip().lower()
+        event_type = str(row.get("event_type") or "").strip().lower()
+
+        if job_id not in saved_state_by_job and event_type in {"save", "unsave", "swipe_right"}:
+            saved_state_by_job[job_id] = event_type in {"save", "swipe_right"}
+
+        if job_id not in dismissed_state_by_job and event_type in {"swipe_left", "save", "unsave", "swipe_right"}:
+            dismissed_state_by_job[job_id] = event_type == "swipe_left"
 
     saved_job_ids: list[str] = []
     dismissed_job_ids: list[str] = []
-    for job_id, event_type in latest_by_job.items():
-        if event_type in {"save", "swipe_right"}:
+    for job_id, is_saved in saved_state_by_job.items():
+        if is_saved:
             saved_job_ids.append(job_id)
-        elif event_type == "swipe_left":
+    saved_set = set(saved_job_ids)
+    for job_id, is_dismissed in dismissed_state_by_job.items():
+        if is_dismissed and job_id not in saved_set:
             dismissed_job_ids.append(job_id)
 
     saved_job_ids.sort()
