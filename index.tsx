@@ -61,6 +61,37 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN as string | undefined;
 const SENTRY_ENV = (import.meta.env.VITE_SENTRY_ENV as string | undefined) || import.meta.env.MODE;
 const SENTRY_ENABLED = Boolean(SENTRY_DSN);
+const CHUNK_RELOAD_GUARD_KEY = 'jobshaman:chunk-reload-once';
+
+const extractErrorMessage = (reason: unknown): string => {
+  if (reason instanceof Error) return reason.message;
+  if (typeof reason === 'string') return reason;
+  if (typeof reason === 'object' && reason !== null && 'message' in reason) {
+    const message = (reason as { message: unknown }).message;
+    return typeof message === 'string' ? message : '';
+  }
+  return '';
+};
+
+const isDynamicImportFetchFailure = (reason: unknown): boolean => {
+  const message = extractErrorMessage(reason).toLowerCase();
+  return (
+    message.includes('failed to fetch dynamically imported module') ||
+    message.includes('dynamically imported module') ||
+    message.includes('loading chunk') ||
+    message.includes('importing a module script failed')
+  );
+};
+
+const reloadForUpdatedAssets = () => {
+  if (typeof window === 'undefined' || typeof sessionStorage === 'undefined') return;
+  if (sessionStorage.getItem(CHUNK_RELOAD_GUARD_KEY) === '1') return;
+  sessionStorage.setItem(CHUNK_RELOAD_GUARD_KEY, '1');
+
+  const refreshedUrl = new URL(window.location.href);
+  refreshedUrl.searchParams.set('_chunk_reload', Date.now().toString());
+  window.location.replace(refreshedUrl.toString());
+};
 
 if (SENTRY_ENABLED) {
   Sentry.init({
@@ -71,6 +102,24 @@ if (SENTRY_ENABLED) {
 }
 
 try {
+  if (typeof window !== 'undefined') {
+    window.addEventListener('vite:preloadError', (event: Event) => {
+      event.preventDefault();
+      reloadForUpdatedAssets();
+    });
+
+    window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
+      if (!isDynamicImportFetchFailure(event.reason)) return;
+      event.preventDefault();
+      reloadForUpdatedAssets();
+    });
+
+    window.addEventListener('error', (event: ErrorEvent) => {
+      if (!isDynamicImportFetchFailure(event.error || event.message)) return;
+      reloadForUpdatedAssets();
+    });
+  }
+
   const rootElement = document.getElementById('root');
   if (!rootElement) {
     throw new Error("Could not find root element to mount to");
@@ -89,6 +138,11 @@ try {
     navigator.serviceWorker.register('/sw.js').catch((error) => {
       console.warn('Service worker registration failed:', error);
     });
+  }
+
+  // Clear reload guard after successful boot, so future deployments can recover once.
+  if (typeof sessionStorage !== 'undefined') {
+    window.setTimeout(() => sessionStorage.removeItem(CHUNK_RELOAD_GUARD_KEY), 10000);
   }
 } catch (e) {
   console.error("Mounting error:", e);
