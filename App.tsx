@@ -567,6 +567,12 @@ export default function App() {
                 out.push(cached);
             }
         }
+        if (out.length === 0) {
+            const cachedOnly = Object.values(savedJobsCache || {}).filter(Boolean);
+            if (cachedOnly.length > 0) {
+                return cachedOnly;
+            }
+        }
         return out;
     }, [jobsForDisplay, savedJobIds, savedJobsCache]);
 

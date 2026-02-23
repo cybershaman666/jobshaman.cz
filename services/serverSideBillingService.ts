@@ -165,10 +165,10 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
 
     const maxRetries = 3;
     let lastError: Error | null = null;
-    // subscription-status endpoint is guaranteed on the main backend;
-    // avoid probing billing-only hosts first to prevent noisy 404s in console.
-    const statusBackends = Array.from(new Set([BACKEND_URL, BILLING_BACKEND_URL].filter(Boolean)));
-    const statusPaths = ['/subscription-status', '/billing/subscription-status', '/api/subscription-status'];
+    // subscription-status endpoint is guaranteed only on the main backend.
+    // Keep probing tight to avoid noisy 404s and long fallback chains.
+    const statusBackends = Array.from(new Set([BACKEND_URL].filter(Boolean)));
+    const statusPaths = ['/subscription-status'];
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
