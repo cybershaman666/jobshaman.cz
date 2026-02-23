@@ -119,9 +119,9 @@ const SavedJobsPage: React.FC<SavedJobsPageProps> = ({
           </div>
         ) : (
           <div className="h-full overflow-y-auto custom-scrollbar p-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               {filteredSavedJobs.map((job) => (
-                <div key={job.id} className="relative group">
+                <div key={job.id} className="relative group min-w-0">
                   <JobCard
                     job={job}
                     onClick={() => onJobSelect(job.id)}

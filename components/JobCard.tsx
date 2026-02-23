@@ -185,8 +185,8 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
     >
       {/* Job Title and Company */}
       <div className="mb-4">
-        <h3 className={`font-bold text-lg leading-tight ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-white'}`}>{job.title}</h3>
-        <p className="text-sm mt-1 font-medium text-slate-500 dark:text-slate-300 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors truncate">{job.company}</p>
+        <h3 className={`font-bold text-lg leading-tight break-words ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-white'}`}>{job.title}</h3>
+        <p className="text-sm mt-1 font-medium text-slate-500 dark:text-slate-300 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors break-words">{job.company}</p>
       </div>
 
       {/* Bottom Badges Row */}
