@@ -21,6 +21,14 @@ _SEARCH_EXPOSURES_WARNING_EMITTED: bool = False
 _SEARCH_FEEDBACK_AVAILABLE: bool = True
 _SEARCH_FEEDBACK_WARNING_EMITTED: bool = False
 
+# recommendation_feedback_events historically expects a narrower signal taxonomy
+# than raw UI interaction events. Keep search_feedback_events raw, but normalize
+# recommendation feedback writes to avoid DB constraint violations.
+_RECOMMENDATION_SIGNAL_MAP: dict[str, str] = {
+    "swipe_right": "save",
+    "swipe_left": "unsave",
+}
+
 
 def _is_missing_table_error(exc: Exception, table_name: str) -> bool:
     msg = str(exc).lower()
@@ -290,12 +298,14 @@ async def log_job_interaction(payload: JobInteractionRequest, request: Request, 
         if not res.data:
             return {"status": "error", "message": "No data inserted"}
 
+        normalized_signal_type = _RECOMMENDATION_SIGNAL_MAP.get(payload.event_type, payload.event_type)
+
         feedback_rows = [
             {
                 "request_id": request_id,
                 "user_id": user_id,
                 "job_id": payload.job_id,
-                "signal_type": payload.event_type,
+                "signal_type": normalized_signal_type,
                 "signal_value": payload.signal_value,
                 "scoring_version": scoring_version,
                 "model_version": model_version,
@@ -337,12 +347,15 @@ async def log_job_interaction(payload: JobInteractionRequest, request: Request, 
 
         search_feedback_rows = []
         for row in feedback_rows:
+            raw_signal_type = row.get("signal_type")
+            if raw_signal_type == normalized_signal_type:
+                raw_signal_type = payload.event_type
             search_feedback_rows.append(
                 {
                     "request_id": row.get("request_id"),
                     "user_id": row.get("user_id"),
                     "job_id": row.get("job_id"),
-                    "signal_type": row.get("signal_type"),
+                    "signal_type": raw_signal_type,
                     "signal_value": row.get("signal_value"),
                     "metadata": row.get("metadata") or {},
                 }

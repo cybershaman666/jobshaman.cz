@@ -8,6 +8,7 @@ import { matchesBrigadaKeywords, matchesFullTimeKeywords, matchesIcoKeywords, ma
 
 interface MobileSwipeJobBrowserProps {
     jobs: Job[];
+    swipeStateStorageKey: string;
     savedJobIds: string[];
     onToggleSave: (jobId: string) => void;
     onOpenDetails: (jobId: string) => void;
@@ -27,6 +28,7 @@ interface SwipeState {
 
 const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     jobs,
+    swipeStateStorageKey,
     savedJobIds,
     onToggleSave,
     onOpenDetails,
@@ -39,6 +41,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
 }) => {
     const { t } = useTranslation();
     const [currentIndex, setCurrentIndex] = useState(0);
+    const [processedJobIds, setProcessedJobIds] = useState<string[]>([]);
     const [swipeState, setSwipeState] = useState<SwipeState>({
         startX: 0,
         currentX: 0,
@@ -51,8 +54,31 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     const sessionIdRef = useRef(`swipe_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
     const viewStartRef = useRef<number | null>(null);
     const lastImpressionJobIdRef = useRef<string | null>(null);
+    const processedJobIdsSet = new Set(processedJobIds);
+    const swipeStateKey = `jobshaman_swipe_state:${swipeStateStorageKey}`;
 
-    const currentJob = jobs[currentIndex];
+    const findNextUnprocessedIndex = (
+        sourceJobs: Job[],
+        processedSet: Set<string>,
+        startIndex: number
+    ): number => {
+        const safeStart = Math.max(0, startIndex);
+        for (let i = safeStart; i < sourceJobs.length; i += 1) {
+            if (!processedSet.has(sourceJobs[i].id)) {
+                return i;
+            }
+        }
+        return sourceJobs.length;
+    };
+
+    const reviewedCount = jobs.reduce((count, job) => (
+        processedJobIdsSet.has(job.id) ? count + 1 : count
+    ), 0);
+    const displayPosition = jobs.length > 0 ? Math.min(reviewedCount + 1, jobs.length) : 0;
+
+    const currentJob = currentIndex < jobs.length && !processedJobIdsSet.has(jobs[currentIndex].id)
+        ? jobs[currentIndex]
+        : undefined;
     const isSaved = currentJob && savedJobIds.includes(currentJob.id);
     const jhiScore = currentJob?.jhi?.score;
     const aiMatchScore = typeof (currentJob as any)?.aiMatchScore === 'number'
@@ -88,6 +114,54 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
         }
     }, []);
 
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            const raw = window.localStorage.getItem(swipeStateKey);
+            if (!raw) {
+                setCurrentIndex(0);
+                setProcessedJobIds([]);
+                return;
+            }
+            const parsed = JSON.parse(raw);
+            const storedIndex = Number(parsed?.currentIndex);
+            const storedProcessed = Array.isArray(parsed?.processedJobIds)
+                ? parsed.processedJobIds.filter((id: unknown): id is string => typeof id === 'string')
+                : [];
+            setProcessedJobIds(Array.from(new Set(storedProcessed)));
+            setCurrentIndex(Number.isFinite(storedIndex) && storedIndex >= 0 ? storedIndex : 0);
+        } catch (error) {
+            console.warn('Failed to restore swipe state:', error);
+            setCurrentIndex(0);
+            setProcessedJobIds([]);
+        }
+    }, [swipeStateKey]);
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        try {
+            window.localStorage.setItem(
+                swipeStateKey,
+                JSON.stringify({
+                    currentIndex,
+                    processedJobIds
+                })
+            );
+        } catch (error) {
+            console.warn('Failed to persist swipe state:', error);
+        }
+    }, [swipeStateKey, currentIndex, processedJobIds]);
+
+    useEffect(() => {
+        let nextIndex = findNextUnprocessedIndex(jobs, processedJobIdsSet, currentIndex);
+        if (nextIndex >= jobs.length) {
+            nextIndex = findNextUnprocessedIndex(jobs, processedJobIdsSet, 0);
+        }
+        if (nextIndex !== currentIndex) {
+            setCurrentIndex(nextIndex);
+        }
+    }, [jobs, currentIndex, processedJobIds]);
+
     // Keyboard support
     useEffect(() => {
         const handleKeyPress = (e: KeyboardEvent) => {
@@ -115,36 +189,39 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
             scoringVersion: currentRecommendationMeta().scoring_version,
             modelVersion: currentRecommendationMeta().model_version,
             metadata: {
-                index: currentIndex,
+                index: reviewedCount,
                 source: 'mobile_swipe',
                 ...currentRecommendationMeta(),
             }
         });
-    }, [currentJob?.id, currentIndex]);
+    }, [currentJob?.id, reviewedCount]);
 
     const handleReject = () => {
-        if (currentIndex < jobs.length) {
+        if (currentJob) {
             const dwellTimeMs = viewStartRef.current ? Date.now() - viewStartRef.current : undefined;
-            if (currentJob) {
-                const recMeta = currentRecommendationMeta();
-                trackJobInteraction({
-                    jobId: currentJob.id,
-                    eventType: 'swipe_left',
-                    dwellTimeMs,
-                    sessionId: sessionIdRef.current,
-                    requestId: recMeta.request_id,
-                    scoringVersion: recMeta.scoring_version,
-                    modelVersion: recMeta.model_version,
-                    signalValue: 0,
-                    metadata: {
-                        source: 'mobile_swipe',
-                        ...recMeta,
-                    }
-                });
-            }
+            const recMeta = currentRecommendationMeta();
+            trackJobInteraction({
+                jobId: currentJob.id,
+                eventType: 'swipe_left',
+                dwellTimeMs,
+                sessionId: sessionIdRef.current,
+                requestId: recMeta.request_id,
+                scoringVersion: recMeta.scoring_version,
+                modelVersion: recMeta.model_version,
+                signalValue: 0,
+                metadata: {
+                    source: 'mobile_swipe',
+                    ...recMeta,
+                }
+            });
             setExitAnimation('left');
             setTimeout(() => {
-                setCurrentIndex(prev => prev + 1);
+                setProcessedJobIds(prev => {
+                    const next = prev.includes(currentJob.id) ? prev : [...prev, currentJob.id];
+                    const nextIndex = findNextUnprocessedIndex(jobs, new Set(next), currentIndex + 1);
+                    setCurrentIndex(nextIndex);
+                    return next;
+                });
                 setExitAnimation(null);
             }, 300);
         }
@@ -183,10 +260,15 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                 }
             });
         }
-        if (currentIndex < jobs.length) {
+        if (currentJob) {
             setExitAnimation('right');
             setTimeout(() => {
-                setCurrentIndex(prev => prev + 1);
+                setProcessedJobIds(prev => {
+                    const next = prev.includes(currentJob.id) ? prev : [...prev, currentJob.id];
+                    const nextIndex = findNextUnprocessedIndex(jobs, new Set(next), currentIndex + 1);
+                    setCurrentIndex(nextIndex);
+                    return next;
+                });
                 setExitAnimation(null);
             }, 300);
         }
@@ -298,10 +380,11 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
 
     // Load more when reaching the end
     useEffect(() => {
-        if (currentIndex >= jobs.length - 3 && hasMore && !isLoadingMore) {
+        const remainingJobsCount = Math.max(0, jobs.length - reviewedCount);
+        if (remainingJobsCount <= 3 && hasMore && !isLoadingMore) {
             onLoadMore();
         }
-    }, [currentIndex, jobs.length]);
+    }, [jobs.length, reviewedCount, hasMore, isLoadingMore, onLoadMore]);
 
     // No jobs message
     if (jobs.length === 0) {
@@ -333,7 +416,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
     }
 
     // All jobs swiped
-    if (currentIndex >= jobs.length) {
+    if (!currentJob || reviewedCount >= jobs.length) {
         return (
             <div className={`flex flex-col items-center justify-center h-full p-6 text-center rounded-xl ${
                 theme === 'dark' ? 'bg-slate-900' : 'bg-white'
@@ -341,10 +424,16 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                 <div className="text-5xl mb-4">🎉</div>
                 <h2 className="text-xl font-bold mb-2">{t('job.all_reviewed')}</h2>
                 <p className={`mb-6 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
-                    {t('job.swiped_count', { count: currentIndex })}
+                    {t('job.swiped_count', { count: reviewedCount })}
                 </p>
                 <button
-                    onClick={() => setCurrentIndex(0)}
+                    onClick={() => {
+                        setCurrentIndex(0);
+                        setProcessedJobIds([]);
+                        if (typeof window !== 'undefined') {
+                            window.localStorage.removeItem(swipeStateKey);
+                        }
+                    }}
                     className="px-6 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 transition-colors font-medium"
                 >
                     {t('job.start_over')}
@@ -379,7 +468,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
             }`}>
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-cyan-600">{currentIndex + 1}</span>
+                        <span className="text-sm font-semibold text-cyan-600">{displayPosition}</span>
                         <span className={`text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'}`}>
                             / {jobs.length} {t('job.jobs')}
                         </span>
@@ -394,7 +483,7 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
                 }`}>
                     <div
                         className="h-full bg-gradient-to-r from-cyan-500 to-cyan-600 transition-all"
-                        style={{ width: `${((currentIndex + 1) / jobs.length) * 100}%` }}
+                        style={{ width: `${(displayPosition / jobs.length) * 100}%` }}
                     />
                 </div>
             </div>

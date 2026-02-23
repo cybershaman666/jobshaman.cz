@@ -156,32 +156,37 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     setEditableCvAiText(profile.cvAiText || '');
   }, [profile.cvAiText]);
 
+  const buildFormDataFromProfile = (sourceProfile: UserProfile) => ({
+    personal: {
+      name: sourceProfile.name || '',
+      jobTitle: sourceProfile.jobTitle || '',
+      email: sourceProfile.email || '',
+      phone: sourceProfile.phone || '',
+      address: sourceProfile.address || '',
+      linkedIn: (sourceProfile as any).linkedIn || '',
+      portfolio: (sourceProfile as any).portfolio || '',
+      github: (sourceProfile as any).github || ''
+    },
+    notifications: {
+      dailyDigestEnabled: sourceProfile.dailyDigestEnabled ?? true,
+      dailyDigestPushEnabled: sourceProfile.dailyDigestPushEnabled ?? true,
+      dailyDigestTime: sourceProfile.dailyDigestTime || '07:30',
+      dailyDigestTimezone: sourceProfile.dailyDigestTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Prague'
+    },
+    experience: sourceProfile.workHistory || [],
+    education: sourceProfile.education || [],
+    skills: sourceProfile.skills || [],
+    taxProfile: sourceProfile.taxProfile || createDefaultTaxProfileByCountry('CZ'),
+    jhiPreferences: sourceProfile.jhiPreferences || createDefaultJHIPreferences()
+  });
 
 
   // Form state for different sections
-  const [formData, setFormData] = useState({
-    personal: {
-      name: profile.name || '',
-      jobTitle: profile.jobTitle || '',
-      email: profile.email || '',
-      phone: profile.phone || '',
-      address: profile.address || '',
-      linkedIn: (profile as any).linkedIn || '',
-      portfolio: (profile as any).portfolio || '',
-      github: (profile as any).github || ''
-    },
-    notifications: {
-      dailyDigestEnabled: profile.dailyDigestEnabled ?? true,
-      dailyDigestPushEnabled: profile.dailyDigestPushEnabled ?? true,
-      dailyDigestTime: profile.dailyDigestTime || '07:30',
-      dailyDigestTimezone: profile.dailyDigestTimezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/Prague'
-    },
-    experience: profile.workHistory || [],
-    education: profile.education || [],
-    skills: profile.skills || [],
-    taxProfile: profile.taxProfile || createDefaultTaxProfileByCountry('CZ'),
-    jhiPreferences: profile.jhiPreferences || createDefaultJHIPreferences()
-  });
+  const [formData, setFormData] = useState(() => buildFormDataFromProfile(profile));
+
+  useEffect(() => {
+    setFormData(buildFormDataFromProfile(profile));
+  }, [profile]);
 
   useEffect(() => {
     if (formData.experience.length === 0) {

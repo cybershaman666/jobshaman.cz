@@ -1609,6 +1609,7 @@ export default function App() {
                     <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
                         <MobileSwipeJobBrowser
                             jobs={jobsForDisplay}
+                            swipeStateStorageKey={userProfile.id || 'anonymous'}
                             savedJobIds={savedJobIds}
                             onToggleSave={handleToggleSave}
                             onOpenDetails={handleOpenJobDetailsFromSwipe}
