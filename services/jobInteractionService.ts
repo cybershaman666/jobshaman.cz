@@ -87,7 +87,7 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
         return;
     }
 
-    const backends = resolveInteractionStateBackends();
+    const backends = resolveInteractionBackends();
     if (!backends.length) return;
     const activeBackends = backends.filter((baseUrl) => !isInteractionBackendCooldownActive(baseUrl));
     if (!activeBackends.length) {
@@ -189,7 +189,7 @@ export const fetchJobInteractionState = async (limit: number = 5000): Promise<Jo
         return { savedJobIds: [], dismissedJobIds: [] };
     }
 
-    const backends = resolveInteractionBackends();
+    const backends = resolveInteractionStateBackends();
     if (!backends.length) {
         return { savedJobIds: [], dismissedJobIds: [] };
     }

@@ -41,6 +41,7 @@ interface UsePaginatedJobsProps {
 const JOBS_FEED_CACHE_KEY = 'jobs_feed_cache_v1';
 const JOBS_FEED_CACHE_MAX = 80;
 const LEGACY_SAVED_JOBS_KEY = 'savedJobIds';
+const SAVED_JOBS_CACHE_PREFIX = 'jobshaman_saved_jobs_cache';
 const SAVED_JOB_IDS_PREFIX = 'savedJobIds';
 const DISMISSED_JOB_IDS_PREFIX = 'dismissedJobIds';
 
@@ -183,14 +184,28 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 return [];
             }
         };
+        const readSavedJobIdsFromCache = (key: string): string[] => {
+            try {
+                const raw = localStorage.getItem(key);
+                if (!raw) return [];
+                const parsed = JSON.parse(raw);
+                if (!parsed || typeof parsed !== 'object') return [];
+                return Object.keys(parsed).map((id) => String(id)).filter(Boolean);
+            } catch {
+                return [];
+            }
+        };
 
         const saved = readIds(savedJobStorageKey);
         const dismissed = readIds(dismissedJobStorageKey);
+        const cachedSaved = readSavedJobIdsFromCache(`${SAVED_JOBS_CACHE_PREFIX}:${userProfile.id || 'guest'}`);
+        const mergedSaved = saved.length > 0 ? saved : cachedSaved;
         if (!userProfile.id && saved.length === 0) {
             const legacy = readIds(LEGACY_SAVED_JOBS_KEY);
-            setSavedJobIds(Array.from(new Set(legacy)));
+            const legacyMerged = legacy.length > 0 ? legacy : cachedSaved;
+            setSavedJobIds(Array.from(new Set(legacyMerged)).filter((id) => !dismissed.includes(id)));
         } else {
-            setSavedJobIds(Array.from(new Set(saved)));
+            setSavedJobIds(Array.from(new Set(mergedSaved)).filter((id) => !dismissed.includes(id)));
         }
         setDismissedJobIds(Array.from(new Set(dismissed)));
     }, [savedJobStorageKey, dismissedJobStorageKey, userProfile.id]);

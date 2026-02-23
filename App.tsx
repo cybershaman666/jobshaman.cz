@@ -419,6 +419,12 @@ export default function App() {
         setSortBy,
         applyInteractionState
     } = usePaginatedJobs({ userProfile: effectiveUserProfile });
+    const [savedJobsSearchTerm, setSavedJobsSearchTerm] = useState('');
+    useEffect(() => {
+        if (viewState === ViewState.SAVED) {
+            setSavedJobsSearchTerm('');
+        }
+    }, [viewState]);
 
     // Prevent layout flash on first render by waiting for client mount
     const [mounted, setMounted] = useState(false);
@@ -1656,8 +1662,8 @@ export default function App() {
                         onJobSelect={handleJobSelect}
                         selectedJobId={selectedJobId}
                         userProfile={userProfile}
-                        searchTerm={searchTerm}
-                        onSearchChange={setSearchTerm}
+                        searchTerm={savedJobsSearchTerm}
+                        onSearchChange={setSavedJobsSearchTerm}
                         onApplyToJob={handleApplyToJob}
                     />
                 </div>
