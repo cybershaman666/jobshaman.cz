@@ -33,6 +33,10 @@ MIN_SCORE = 25
 _JOBS_STATUS_COLUMN_AVAILABLE: Optional[bool] = None
 _SEARCH_V2_RPC_AVAILABLE: Optional[bool] = None
 _SEARCH_V2_RPC_WARNING_EMITTED = False
+_SEARCH_V2_TIMEOUT_WARNING_LAST_EMITTED: Optional[datetime] = None
+_SEARCH_V2_TIMEOUT_COOLDOWN_UNTIL: Optional[datetime] = None
+_SEARCH_V2_TIMEOUT_COOLDOWN_SECONDS = 300
+_SEARCH_V2_PAGE_SIZE_MAX = 100
 _JOBS_STATUS_WARNING_EMITTED = False
 _INTERNAL_SOURCE_MARKERS = ("jobshaman",)
 _EXTERNAL_LISTING_DOMAINS = (
@@ -49,6 +53,14 @@ _EXTERNAL_LISTING_DOMAINS = (
     "monster",
     "jooble",
 )
+
+
+def _log_search_v2_event(event: str, **fields: object) -> None:
+    payload = {"event": event, "component": "hybrid_search_v2", **fields}
+    try:
+        print(f"📊 [Hybrid Search V2] {json.dumps(payload, default=str)}")
+    except Exception:
+        print(f"📊 [Hybrid Search V2] {payload}")
 
 
 def _date_cutoff_iso(date_filter: Optional[str]) -> Optional[str]:
@@ -630,10 +642,28 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
     if not supabase:
         return {"jobs": [], "has_more": False, "total_count": 0, "meta": {"fallback": "no_supabase"}}
 
+    safe_page = max(0, int(page or 0))
+    safe_page_size = max(1, min(_SEARCH_V2_PAGE_SIZE_MAX, int(page_size or 50)))
+    requested_page_size = max(1, int(page_size or 50))
     flag = get_release_flag("search_v2_enabled", subject_id=user_id or "public", default=True)
     if not flag.get("effective_enabled", True):
-        fallback = hybrid_search_jobs(filters, page=page, page_size=page_size)
-        fallback["meta"] = {"fallback": "release_flag_disabled", "sort_mode": _normalize_sort_mode(filters.get("sort_mode"))}
+        fallback = hybrid_search_jobs(filters, page=safe_page, page_size=safe_page_size)
+        fallback["meta"] = {
+            "fallback": "release_flag_disabled",
+            "fallback_reason": "release_flag_disabled",
+            "sort_mode": _normalize_sort_mode(filters.get("sort_mode")),
+            "effective_page_size": safe_page_size,
+            "requested_page_size": requested_page_size,
+            "cooldown_active": False,
+            "cooldown_until": None,
+        }
+        _log_search_v2_event(
+            "fallback",
+            reason="release_flag_disabled",
+            page=safe_page,
+            requested_page_size=requested_page_size,
+            effective_page_size=safe_page_size,
+        )
         return fallback
 
     sort_mode = _normalize_sort_mode(filters.get("sort_mode"))
@@ -641,8 +671,8 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
 
     rpc_payload = {
         "p_search_term": (filters.get("search_term") or "").strip(),
-        "p_page": max(0, int(page or 0)),
-        "p_page_size": max(1, min(200, int(page_size or 50))),
+        "p_page": safe_page,
+        "p_page_size": safe_page_size,
         "p_user_id": user_id,
         "p_user_lat": filters.get("user_lat"),
         "p_user_lng": filters.get("user_lng"),
@@ -660,10 +690,55 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
     }
 
     global _SEARCH_V2_RPC_AVAILABLE, _SEARCH_V2_RPC_WARNING_EMITTED
+    global _SEARCH_V2_TIMEOUT_WARNING_LAST_EMITTED, _SEARCH_V2_TIMEOUT_COOLDOWN_UNTIL
     if _SEARCH_V2_RPC_AVAILABLE is False:
-        fallback = hybrid_search_jobs(filters, page=page, page_size=page_size)
-        fallback["meta"] = {"fallback": "rpc_unavailable", "sort_mode": sort_mode}
+        fallback = hybrid_search_jobs(filters, page=safe_page, page_size=safe_page_size)
+        fallback["meta"] = {
+            "fallback": "rpc_unavailable",
+            "fallback_reason": "rpc_unavailable",
+            "sort_mode": sort_mode,
+            "effective_page_size": safe_page_size,
+            "requested_page_size": requested_page_size,
+            "cooldown_active": False,
+            "cooldown_until": None,
+        }
+        _log_search_v2_event(
+            "fallback",
+            reason="rpc_unavailable",
+            sort_mode=sort_mode,
+            page=safe_page,
+            requested_page_size=requested_page_size,
+            effective_page_size=safe_page_size,
+        )
         return fallback
+
+    now = datetime.now(timezone.utc)
+    if _SEARCH_V2_TIMEOUT_COOLDOWN_UNTIL and now < _SEARCH_V2_TIMEOUT_COOLDOWN_UNTIL:
+        cooldown_until = _SEARCH_V2_TIMEOUT_COOLDOWN_UNTIL
+        cooldown_remaining_ms = int((_SEARCH_V2_TIMEOUT_COOLDOWN_UNTIL - now).total_seconds() * 1000)
+        fallback = hybrid_search_jobs(filters, page=safe_page, page_size=safe_page_size)
+        fallback["meta"] = {
+            "fallback": "rpc_timeout_cooldown",
+            "fallback_reason": "rpc_timeout_cooldown",
+            "sort_mode": sort_mode,
+            "effective_page_size": safe_page_size,
+            "requested_page_size": requested_page_size,
+            "cooldown_active": True,
+            "cooldown_until": cooldown_until.isoformat(),
+            "cooldown_remaining_ms": max(0, cooldown_remaining_ms),
+        }
+        _log_search_v2_event(
+            "fallback",
+            reason="rpc_timeout_cooldown",
+            sort_mode=sort_mode,
+            page=safe_page,
+            requested_page_size=requested_page_size,
+            effective_page_size=safe_page_size,
+            cooldown_until=cooldown_until.isoformat(),
+            cooldown_remaining_ms=max(0, cooldown_remaining_ms),
+        )
+        return fallback
+    _SEARCH_V2_TIMEOUT_COOLDOWN_UNTIL = None
 
     try:
         resp = supabase.rpc("search_jobs_v2", rpc_payload).execute()
@@ -672,15 +747,57 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
     except Exception as exc:
         msg = str(exc).lower()
         rpc_missing = "pgrst202" in msg or "could not find the function public.search_jobs_v2" in msg
+        rpc_timeout = "57014" in msg or "statement timeout" in msg
         if rpc_missing:
             _SEARCH_V2_RPC_AVAILABLE = False
             if not _SEARCH_V2_RPC_WARNING_EMITTED:
                 print("⚠️ [Hybrid Search V2] search_jobs_v2 RPC missing in DB schema cache; falling back to v1.")
                 _SEARCH_V2_RPC_WARNING_EMITTED = True
+        elif rpc_timeout:
+            now = datetime.now(timezone.utc)
+            _SEARCH_V2_TIMEOUT_COOLDOWN_UNTIL = now + timedelta(seconds=_SEARCH_V2_TIMEOUT_COOLDOWN_SECONDS)
+            if (
+                _SEARCH_V2_TIMEOUT_WARNING_LAST_EMITTED is None
+                or (now - _SEARCH_V2_TIMEOUT_WARNING_LAST_EMITTED).total_seconds()
+                >= _SEARCH_V2_TIMEOUT_COOLDOWN_SECONDS
+            ):
+                print(
+                    "⚠️ [Hybrid Search V2] RPC timed out (57014); enabling temporary v1 fallback "
+                    f"for {_SEARCH_V2_TIMEOUT_COOLDOWN_SECONDS}s."
+                )
+                _SEARCH_V2_TIMEOUT_WARNING_LAST_EMITTED = now
         else:
             print(f"⚠️ [Hybrid Search V2] RPC failed, falling back to v1: {exc}")
-        fallback = hybrid_search_jobs(filters, page=page, page_size=page_size)
-        fallback["meta"] = {"fallback": "rpc_failed", "sort_mode": sort_mode}
+        fallback = hybrid_search_jobs(filters, page=safe_page, page_size=safe_page_size)
+        fallback_reason = "rpc_timeout" if rpc_timeout else "rpc_failed"
+        fallback["meta"] = {
+            "fallback": fallback_reason,
+            "fallback_reason": fallback_reason,
+            "sort_mode": sort_mode,
+            "effective_page_size": safe_page_size,
+            "requested_page_size": requested_page_size,
+            "cooldown_active": bool(_SEARCH_V2_TIMEOUT_COOLDOWN_UNTIL and rpc_timeout),
+            "cooldown_until": (
+                _SEARCH_V2_TIMEOUT_COOLDOWN_UNTIL.isoformat()
+                if (_SEARCH_V2_TIMEOUT_COOLDOWN_UNTIL and rpc_timeout)
+                else None
+            ),
+        }
+        _log_search_v2_event(
+            "fallback",
+            reason=fallback_reason,
+            sort_mode=sort_mode,
+            page=safe_page,
+            requested_page_size=requested_page_size,
+            effective_page_size=safe_page_size,
+            cooldown_active=bool(_SEARCH_V2_TIMEOUT_COOLDOWN_UNTIL and rpc_timeout),
+            cooldown_until=(
+                _SEARCH_V2_TIMEOUT_COOLDOWN_UNTIL.isoformat()
+                if (_SEARCH_V2_TIMEOUT_COOLDOWN_UNTIL and rpc_timeout)
+                else None
+            ),
+            error_code=("57014" if rpc_timeout else None),
+        )
         return fallback
 
     if not rows:
@@ -692,7 +809,12 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
             "meta": {
                 "sort_mode": sort_mode,
                 "fallback": None,
+                "fallback_reason": None,
                 "latency_ms": latency_ms,
+                "effective_page_size": safe_page_size,
+                "requested_page_size": requested_page_size,
+                "cooldown_active": False,
+                "cooldown_until": None,
             },
         }
 
@@ -806,18 +928,23 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
         row["recency_score"] = round(_safe_float(row.get("recency_score")), 4)
         row["behavior_prior_score"] = round(_safe_float(row.get("behavior_prior_score")), 4)
         row["is_internal_listing"] = bool(item.get("internal_priority"))
-        row["rank_position"] = idx + 1 + (max(0, int(page)) * max(1, int(page_size)))
+        row["rank_position"] = idx + 1 + (safe_page * safe_page_size)
         out_rows.append(row)
 
     latency_ms = int((datetime.now(timezone.utc) - started).total_seconds() * 1000)
     return {
         "jobs": out_rows,
-        "has_more": ((page + 1) * page_size) < total_count,
+        "has_more": ((safe_page + 1) * safe_page_size) < total_count,
         "total_count": total_count,
         "meta": {
             "sort_mode": sort_mode,
             "fallback": None,
+            "fallback_reason": None,
             "latency_ms": latency_ms,
+            "effective_page_size": safe_page_size,
+            "requested_page_size": requested_page_size,
+            "cooldown_active": False,
+            "cooldown_until": None,
         },
     }
 

@@ -1,7 +1,7 @@
 import os
 from fastapi import APIRouter, Request, Depends, HTTPException, Query
 from uuid import uuid4
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access, verify_supabase_token
 from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest
@@ -20,6 +20,7 @@ _SEARCH_EXPOSURES_AVAILABLE: bool = True
 _SEARCH_EXPOSURES_WARNING_EMITTED: bool = False
 _SEARCH_FEEDBACK_AVAILABLE: bool = True
 _SEARCH_FEEDBACK_WARNING_EMITTED: bool = False
+_INTERACTIONS_CSRF_WARNING_LAST_EMITTED: datetime | None = None
 
 # recommendation_feedback_events historically expects a narrower signal taxonomy
 # than raw UI interaction events. Keep search_feedback_events raw, but normalize
@@ -275,7 +276,17 @@ async def delete_job(job_id: str, request: Request, user: dict = Depends(get_cur
 async def log_job_interaction(payload: JobInteractionRequest, request: Request, user: dict = Depends(get_current_user)):
     if not verify_csrf_token_header(request, user):
         # Telemetry endpoint: do not block UX on CSRF token race/cooldown.
-        print("⚠️ /jobs/interactions called without valid CSRF token; accepting authenticated telemetry request.")
+        global _INTERACTIONS_CSRF_WARNING_LAST_EMITTED
+        now = datetime.now(timezone.utc)
+        if (
+            _INTERACTIONS_CSRF_WARNING_LAST_EMITTED is None
+            or now - _INTERACTIONS_CSRF_WARNING_LAST_EMITTED >= timedelta(minutes=10)
+        ):
+            print(
+                "⚠️ /jobs/interactions called without valid CSRF token; "
+                "accepting authenticated telemetry request (throttled, 10m window)."
+            )
+            _INTERACTIONS_CSRF_WARNING_LAST_EMITTED = now
 
     user_id = user.get("id") or user.get("auth_id")
     if not user_id:
@@ -557,6 +568,11 @@ async def jobs_hybrid_search_v2(
             "sort_mode": payload.sort_mode,
             "latency_ms": meta.get("latency_ms"),
             "fallback": meta.get("fallback"),
+            "fallback_reason": meta.get("fallback_reason"),
+            "effective_page_size": meta.get("effective_page_size"),
+            "requested_page_size": meta.get("requested_page_size"),
+            "cooldown_active": meta.get("cooldown_active"),
+            "cooldown_until": meta.get("cooldown_until"),
             "result_count": len(jobs),
         },
     }
