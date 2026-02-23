@@ -2792,6 +2792,51 @@
     "title": "Karriere-Blog",
     "view_all": "Alle anzeigen"
   },
+  "landing": {
+    "manifest": {
+      "tag": "Für Kandidaten geprüft",
+      "headline": "Entscheide nicht nach Marketing. Sieh die Realität, bevor du dein CV schickst.",
+      "subheadline": "Risiken, Nettogehalt und Fit in 60 Sekunden.",
+      "cta_primary": "Angebot prüfen",
+      "cta_browse": "Angebote ansehen",
+      "microcopy": "Wähle links ein Angebot (1 Klick).",
+      "cta_secondary": "Profil erstellen (optional)"
+    },
+    "paradigm": {
+      "title": "Shaman fügt keine weiteren Anzeigen hinzu. Es hilft dir, richtig zu entscheiden.",
+      "desc": "Statt eines weiteren Feeds bekommst du einen Filter, der dir den Rücken freihält.",
+      "p1": "Risiken",
+      "p1_desc": "Red Flags und Bullshit im Text.",
+      "p2": "Netto‑Realität",
+      "p2_desc": "Was dir wirklich bleibt (Gehalt, Steuern, Pendeln).",
+      "p3": "JHI",
+      "p3_desc": "Ein Qualitäts‑Score von 0–100."
+    },
+    "analyzer": {
+      "title": "Angebots‑Check",
+      "subtitle": "Text der Stellenanzeige einfügen. Für Fit: 3 Sätze über dich ergänzen.",
+      "run": "Angebot prüfen",
+      "running": "Prüfe…",
+      "input_job": "Text der Stellenanzeige einfügen (oder Auszug)",
+      "input_job_ph": "Hier den Text einfügen…",
+      "tip": "Tipp: Wenn das Gehalt fehlt, ist das bereits ein Signal.",
+      "input_you": "3 Sätze über dich (optional – für Fit)",
+      "privacy_hint": "Wir senden deinen Text nirgendwo hin. Der Fit wird anonym berechnet.",
+      "input_you_ph": "z.B. 5 Jahre React + TypeScript, Fokus auf UX und Performance…"
+    },
+    "result": {
+      "jhi_title": "JHI‑Score",
+      "jhi_desc": "Geld · Zeit · mentale Belastung · Wachstum · Werte",
+      "finance_title": "Netto‑Realität",
+      "finance_unavailable": "Netto‑Realität konnte aus diesem Text nicht berechnet werden.",
+      "finance_missing_salary": "Ohne Gehalt können wir die Netto‑Realität nicht berechnen. Das ist ein Signal.",
+      "match_title": "Fit",
+      "match_desc": "Schnelle Schätzung anhand von Keyword‑Überschneidung."
+    },
+    "blog": {
+      "title": "Wie man Jobangebote bewertet (kurz)"
+    }
+  },
   "footer": {
     "privacy": "Datenschutz",
     "rights_reserved": "© 2026 JobShaman. Alle Rechte vorbehalten.",

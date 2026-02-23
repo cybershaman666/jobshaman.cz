@@ -62,6 +62,19 @@ def _fetch_latest_subscription_by(column: str, value: str) -> dict | None:
 
 
 def _require_ai_profile_access(user: dict) -> str:
+    def _deny(reason: str, extra: dict | None = None) -> None:
+        payload = {
+            "user_id": user.get("id") or user.get("auth_id"),
+            "reason": reason,
+            "subscription_tier": user.get("subscription_tier"),
+            "is_subscription_active": user.get("is_subscription_active"),
+            "company_id": user.get("company_id"),
+        }
+        if extra:
+            payload.update(extra)
+        print(f"⚠️ [AI_PROFILE_ACCESS_DENIED] {payload}")
+        raise HTTPException(status_code=403, detail="Premium subscription required")
+
     user_id = user.get("id") or user.get("auth_id")
     if not user_id:
         raise HTTPException(status_code=401, detail="User not authenticated")
@@ -78,12 +91,23 @@ def _require_ai_profile_access(user: dict) -> str:
 
     # 3) Company-level fallback for recruiter/company plans
     company_id = user.get("company_id")
+    company_sub = None
     if company_id and company_id in (user.get("authorized_ids") or []):
         company_sub = _fetch_latest_subscription_by("company_id", company_id)
         if _subscription_allows_ai_profile(company_sub or {}):
             return user_id
 
-    raise HTTPException(status_code=403, detail="Premium subscription required")
+    _deny(
+        "no_valid_premium_subscription",
+        {
+            "user_subscription_status": (user_sub or {}).get("status"),
+            "user_subscription_tier": (user_sub or {}).get("tier"),
+            "user_subscription_period_end": (user_sub or {}).get("current_period_end"),
+            "company_subscription_status": (company_sub or {}).get("status") if company_id else None,
+            "company_subscription_tier": (company_sub or {}).get("tier") if company_id else None,
+            "company_subscription_period_end": (company_sub or {}).get("current_period_end") if company_id else None,
+        },
+    )
 
     return user_id
 

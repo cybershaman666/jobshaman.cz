@@ -46,7 +46,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     const [showAIGuide, setShowAIGuide] = useState(false);
 
     const aiCvParsingEnabled = String(import.meta.env.VITE_ENABLE_AI_CV_PARSER || 'true').toLowerCase() !== 'false';
-    const isPremium = (profile.subscription?.tier || 'free').toLowerCase() !== 'free';
+    const isPremium = String(profile.subscription?.tier || 'free').toLowerCase() === 'premium';
 
     useEffect(() => {
         if (!isOpen) return;

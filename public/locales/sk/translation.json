@@ -2784,5 +2784,50 @@
       "title": "Profil firmy"
     },
     "title": "Onboarding firmy"
+  },
+  "landing": {
+    "manifest": {
+      "tag": "Overené pre kandidátov",
+      "headline": "Nerozhodujte sa podľa marketingu. Spoznajte realitu skôr, než pošlete CV.",
+      "subheadline": "Uvidíte riziká, čistú mzdu a zhodu za 60 sekúnd.",
+      "cta_primary": "Overiť ponuku",
+      "cta_browse": "Pozrieť ponuky",
+      "microcopy": "Vyberte ponuku vľavo (1 klik).",
+      "cta_secondary": "Vytvoriť profil (voliteľné)"
+    },
+    "paradigm": {
+      "title": "Shaman nepridáva ďalšie ponuky. Pomáha vám rozhodnúť sa správne.",
+      "desc": "Namiesto ďalšieho feedu dostanete filter, ktorý vám kryje chrbát.",
+      "p1": "Riziká",
+      "p1_desc": "Red flags a bullshit v texte.",
+      "p2": "Čistá realita",
+      "p2_desc": "Čo vám reálne zostane (mzda, dane, dochádzanie).",
+      "p3": "JHI",
+      "p3_desc": "Jedno skóre kvality ponuky 0–100."
+    },
+    "analyzer": {
+      "title": "Overovač ponuky",
+      "subtitle": "Vložte text inzerátu. Pridajte 3 vety o sebe pre zhodu.",
+      "run": "Overiť ponuku",
+      "running": "Overujem…",
+      "input_job": "Vložte text inzerátu (alebo časť)",
+      "input_job_ph": "Sem vložte text inzerátu…",
+      "tip": "Tip: Keď inzerát nemá mzdu, je to samo o sebe signál.",
+      "input_you": "Napíšte 3 vety o sebe (voliteľné – pre zhodu)",
+      "privacy_hint": "Vaše údaje nikam neposielame, zhodu počítame anonymne.",
+      "input_you_ph": "napr. 5 rokov React + TypeScript, riešim UX a výkon…"
+    },
+    "result": {
+      "jhi_title": "JHI skóre",
+      "jhi_desc": "Peniaze · čas · psychika · rast · hodnoty",
+      "finance_title": "Čistá realita",
+      "finance_unavailable": "Nepodarilo sa vypočítať čistú realitu z tohto textu.",
+      "finance_missing_salary": "Bez mzdy nevieme vypočítať čistú realitu. Je to signál.",
+      "match_title": "Zhoda",
+      "match_desc": "Rýchly odhad podľa zhody výrazov."
+    },
+    "blog": {
+      "title": "Ako rýchlo hodnotiť ponuky práce"
+    }
   }
 }

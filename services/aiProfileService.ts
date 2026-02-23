@@ -40,6 +40,9 @@ export const generateProfileFromStory = async (
         } catch {
             detail = await response.text();
         }
+        if (response.status === 403 && /premium subscription required/i.test(detail || '')) {
+            throw new Error('AI průvodce je dostupný pouze pro aktivní Premium předplatné.');
+        }
         throw new Error(detail || `AI profiling failed (${response.status})`);
     }
 

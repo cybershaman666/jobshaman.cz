@@ -2808,5 +2808,50 @@
     "subtitle": "Wnioski z rynku pracy",
     "title": "Blog kariery",
     "view_all": "Zobacz wszystko"
+  },
+  "landing": {
+    "manifest": {
+      "tag": "Dla kandydatów",
+      "headline": "Nie decyduj na podstawie marketingu. Poznaj realia zanim wyślesz CV.",
+      "subheadline": "Zobacz ryzyka, pensję netto i dopasowanie w 60 sekund.",
+      "cta_primary": "Sprawdź ofertę",
+      "cta_browse": "Przeglądaj oferty",
+      "microcopy": "Wybierz ofertę po lewej (1 klik).",
+      "cta_secondary": "Utwórz profil (opcjonalnie)"
+    },
+    "paradigm": {
+      "title": "Shaman nie dodaje kolejnych ogłoszeń. Pomaga podejmować dobre decyzje.",
+      "desc": "Zamiast kolejnego feedu dostajesz filtr, który ma cię chronić.",
+      "p1": "Ryzyka",
+      "p1_desc": "Red flagi i bullshit w treści.",
+      "p2": "Rzeczywistość netto",
+      "p2_desc": "Co realnie zostaje (płaca, podatki, dojazdy).",
+      "p3": "JHI",
+      "p3_desc": "Jedno jakościowe score 0–100."
+    },
+    "analyzer": {
+      "title": "Sprawdzacz oferty",
+      "subtitle": "Wklej tekst ogłoszenia. Dodaj 3 zdania o sobie, aby zobaczyć dopasowanie.",
+      "run": "Sprawdź ofertę",
+      "running": "Sprawdzam…",
+      "input_job": "Wklej tekst ogłoszenia (lub fragment)",
+      "input_job_ph": "Wklej tutaj tekst ogłoszenia…",
+      "tip": "Wskazówka: Brak widełek płacowych to też sygnał.",
+      "input_you": "Napisz 3 zdania o sobie (opcjonalnie – dopasowanie)",
+      "privacy_hint": "Nie wysyłamy Twojego tekstu nigdzie. Dopasowanie liczymy anonimowo.",
+      "input_you_ph": "np. 5 lat React + TypeScript, dbam o UX i performance…"
+    },
+    "result": {
+      "jhi_title": "Wynik JHI",
+      "jhi_desc": "Pieniądze · czas · obciążenie · rozwój · wartości",
+      "finance_title": "Rzeczywistość netto",
+      "finance_unavailable": "Nie udało się policzyć rzeczywistości netto z tego tekstu.",
+      "finance_missing_salary": "Bez informacji o płacy nie policzymy rzeczywistości netto. To też sygnał.",
+      "match_title": "Dopasowanie",
+      "match_desc": "Szybki szacunek na podstawie wspólnych słów."
+    },
+    "blog": {
+      "title": "Jak szybko oceniać oferty pracy"
+    }
   }
 }

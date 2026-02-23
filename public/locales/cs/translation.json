@@ -2800,5 +2800,50 @@
       "privacy_notice": "JobShaman respektuje vaše soukromí dle GDPR a ePrivacy Directive",
       "last_update": "Poslední aktualizace: {{date}}"
     }
+  },
+  "landing": {
+    "manifest": {
+      "tag": "Prověřeno pro kandidáty",
+      "headline": "Nerozhodujte se podle marketingu. Poznejte realitu dřív, než pošlete CV.",
+      "subheadline": "Uvidíte rizika, čistou mzdu a shodu za 60 sekund.",
+      "cta_primary": "Prověřit nabídku",
+      "cta_browse": "Prohlédnout nabídky",
+      "microcopy": "Vyberte nabídku vlevo (1 klik).",
+      "cta_secondary": "Vytvořit profil (volitelné)"
+    },
+    "paradigm": {
+      "title": "Shaman nepřidává další nabídky. Pomáhá vám rozhodnout se správně.",
+      "desc": "Místo dalšího feedu dostanete filtr, který kryje záda kandidátům.",
+      "p1": "Rizika",
+      "p1_desc": "Red flags a bullshit v textu.",
+      "p2": "Čistá realita",
+      "p2_desc": "Co vám reálně zůstane (mzda, daně, dojíždění).",
+      "p3": "JHI",
+      "p3_desc": "Jedno skóre kvality nabídky 0–100."
+    },
+    "analyzer": {
+      "title": "Prověřovač nabídky",
+      "subtitle": "Vložte text inzerátu. Přidejte 3 věty o sobě pro shodu.",
+      "run": "Prověřit nabídku",
+      "running": "Prověřuji…",
+      "input_job": "Vložte text inzerátu (nebo část)",
+      "input_job_ph": "Sem vložte text inzerátu…",
+      "tip": "Tip: Když inzerát nemá mzdu, je to samo o sobě signál.",
+      "input_you": "Napište 3 věty o sobě (volitelné – pro shodu)",
+      "privacy_hint": "Vaše data nikam neposíláme, shoda se počítá anonymně.",
+      "input_you_ph": "Např. 5 let React, TypeScript, rád/a řeším UX a výkon…"
+    },
+    "result": {
+      "jhi_title": "JHI skóre",
+      "jhi_desc": "Finance · čas · psychika · růst · hodnoty",
+      "finance_title": "Čistá realita",
+      "finance_unavailable": "Nepodařilo se spočítat čistou realitu pro tento text.",
+      "finance_missing_salary": "Bez mzdy nejde spočítat čistou realitu. To je samo o sobě signál.",
+      "match_title": "Shoda",
+      "match_desc": "Rychlý odhad podle shody výrazů."
+    },
+    "blog": {
+      "title": "Jak přemýšlet o nabídce práce (krátce)"
+    }
   }
 }

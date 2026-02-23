@@ -2791,5 +2791,50 @@
     "unlock_subtitle": "AI tools for CV, cover letters, and optimization",
     "unlock_title": "Unlock JobShaman Premium",
     "why_upgrade": "Why upgrade?"
+  },
+  "landing": {
+    "manifest": {
+      "tag": "Built for candidates",
+      "headline": "Don’t decide based on marketing. See the reality before you send your CV.",
+      "subheadline": "See risks, net pay, and fit in 60 seconds.",
+      "cta_primary": "Check this offer",
+      "cta_browse": "Browse offers",
+      "microcopy": "Pick an offer on the left (1 click).",
+      "cta_secondary": "Create a profile (optional)"
+    },
+    "paradigm": {
+      "title": "Shaman doesn’t add more job posts. It helps you decide correctly.",
+      "desc": "Instead of another feed, you get a filter that has your back.",
+      "p1": "Risks",
+      "p1_desc": "Red flags and bullshit in the text.",
+      "p2": "Net reality",
+      "p2_desc": "What you actually take home (pay, taxes, commute).",
+      "p3": "JHI",
+      "p3_desc": "One quality score from 0–100."
+    },
+    "analyzer": {
+      "title": "Offer checker",
+      "subtitle": "Paste the job ad text. Add 3 sentences about you for a fit estimate.",
+      "run": "Check offer",
+      "running": "Checking…",
+      "input_job": "Paste the job ad text (or a part)",
+      "input_job_ph": "Paste the job ad text here…",
+      "tip": "Tip: If the ad hides salary, that’s a signal on its own.",
+      "input_you": "Write 3 sentences about you (optional – for fit)",
+      "privacy_hint": "We don’t send your text anywhere. Fit is calculated anonymously.",
+      "input_you_ph": "e.g., 5 years React + TypeScript, I care about UX and performance…"
+    },
+    "result": {
+      "jhi_title": "JHI score",
+      "jhi_desc": "Money · time · mental load · growth · values",
+      "finance_title": "Net reality",
+      "finance_unavailable": "Couldn’t calculate net reality from this text.",
+      "finance_missing_salary": "Without salary we can’t calculate net reality. That’s a signal on its own.",
+      "match_title": "Fit",
+      "match_desc": "Quick estimate based on keyword overlap."
+    },
+    "blog": {
+      "title": "How to think about job offers (quickly)"
+    }
   }
 }

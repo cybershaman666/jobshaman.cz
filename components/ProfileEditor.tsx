@@ -138,8 +138,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     };
   }, [profile.id, profile.isLoggedIn, profile.subscription?.tier]);
 
-  const resolvedTier = (effectiveTier || profile.subscription?.tier || 'free').toLowerCase();
-  const normalizedCandidateTier: 'free' | 'premium' = resolvedTier === 'free' ? 'free' : 'premium';
+  const resolvedTier = String(effectiveTier || profile.subscription?.tier || 'free').toLowerCase();
+  const normalizedCandidateTier: 'free' | 'premium' = resolvedTier === 'premium' ? 'premium' : 'free';
   const isPremium = normalizedCandidateTier === 'premium';
   const premiumPrice = getPremiumPriceDisplay(i18n.language || 'cs');
   const aiCvParsingEnabled = String(import.meta.env.VITE_ENABLE_AI_CV_PARSER || 'true').toLowerCase() !== 'false';
