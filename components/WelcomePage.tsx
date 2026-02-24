@@ -74,6 +74,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
               <p className="text-sm text-slate-200 mb-4 font-semibold">
                 {t('landing.hero.snapshot_label')}
               </p>
+              <p className="text-xs text-slate-400 mb-4">
+                {t('landing.hero.snapshot_example')}
+              </p>
 
               <OfferImpactSnapshot
                 className="bg-slate-900/40 rounded-xl border border-slate-700"
@@ -83,8 +86,17 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                     value: t('landing.hero.snapshot_rows.gross_value')
                   },
                   {
-                    label: t('landing.hero.snapshot_rows.net_label'),
-                    value: t('landing.hero.snapshot_rows.net_value'),
+                    label: t('landing.hero.snapshot_rows.tax_label'),
+                    value: t('landing.hero.snapshot_rows.tax_value'),
+                    tone: 'negative'
+                  },
+                  {
+                    label: t('landing.hero.snapshot_rows.net_base_label'),
+                    value: t('landing.hero.snapshot_rows.net_base_value')
+                  },
+                  {
+                    label: t('landing.hero.snapshot_rows.benefits_label'),
+                    value: t('landing.hero.snapshot_rows.benefits_value'),
                     tone: 'positive'
                   },
                   {
@@ -93,12 +105,28 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                     tone: 'negative'
                   },
                   {
-                    label: t('landing.hero.snapshot_rows.jhi_label'),
-                    value: t('landing.hero.snapshot_rows.jhi_value'),
+                    label: t('landing.hero.snapshot_rows.final_label'),
+                    value: t('landing.hero.snapshot_rows.final_value'),
                     tone: 'emphasis'
+                  },
+                  {
+                    label: t('landing.hero.snapshot_rows.jhi_label'),
+                    value: t('landing.hero.snapshot_rows.jhi_value')
                   }
                 ]}
               />
+
+              <div className="mt-4 rounded-lg border border-rose-900/40 bg-rose-950/20 px-4 py-3">
+                <p className="text-xs font-semibold text-rose-300">
+                  {t('landing.hero.snapshot_commute_time.title')}
+                </p>
+                <p className="text-sm text-rose-200 mt-1">
+                  {t('landing.hero.snapshot_commute_time.value')}
+                </p>
+                <p className="text-sm text-rose-200 mt-1 font-medium">
+                  {t('landing.hero.snapshot_commute_time.note')}
+                </p>
+              </div>
             </div>
           </div>
         </div>

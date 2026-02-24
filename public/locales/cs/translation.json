@@ -2810,15 +2810,27 @@
       "active_jobs_count": "Aktuálně {{count}} aktivních nabídek v databázi.",
       "snapshot_intro": "Běžný inzerát ukazuje: 60 000 Kč",
       "snapshot_label": "JobShaman ukáže:",
+      "snapshot_example": "Příklad reálné nabídky (anonymizováno): back-office role, hybrid, dojezd 52 minut jedním směrem.",
       "snapshot_rows": {
         "gross_label": "Hrubá mzda",
         "gross_value": "60 000 Kč",
-        "net_label": "Reálně vám zůstane",
-        "net_value": "46 200 Kč",
+        "tax_label": "Daně a pojištění",
+        "tax_value": "−17 000 Kč",
+        "net_base_label": "Čistý základ",
+        "net_base_value": "43 000 Kč",
+        "benefits_label": "Odhad hodnoty benefitů",
+        "benefits_value": "+7 000 Kč",
         "commute_label": "Dojíždění",
-        "commute_value": "−8 100 Kč",
+        "commute_value": "−8 000 Kč",
+        "final_label": "Reálně vám zůstane",
+        "final_value": "42 000 Kč",
         "jhi_label": "JHI",
         "jhi_value": "64 / 100"
+      },
+      "snapshot_commute_time": {
+        "title": "Čas na cestě měsíčně",
+        "value": "105 min/den × 22 dní = 2 310 min (38,5 h)",
+        "note": "To je téměř celý pracovní týden měsíčně jen v dopravě."
       }
     },
     "difference": {

@@ -2794,15 +2794,27 @@
       "active_jobs_count": "Aktuálne {{count}} aktívnych ponúk v databáze.",
       "snapshot_intro": "Bežný inzerát ukáže: 2 400 EUR",
       "snapshot_label": "JobShaman ukáže:",
+      "snapshot_example": "Príklad reálnej ponuky (anonymizované): back-office rola, hybrid, 52 minút jedným smerom.",
       "snapshot_rows": {
         "gross_label": "Hrubá mzda",
         "gross_value": "2 400 EUR",
-        "net_label": "Reálne vám zostane",
-        "net_value": "1 848 EUR",
+        "tax_label": "Dane a poistenie",
+        "tax_value": "-680 EUR",
+        "net_base_label": "Čistý základ",
+        "net_base_value": "1 720 EUR",
+        "benefits_label": "Odhad hodnoty benefitov",
+        "benefits_value": "+280 EUR",
         "commute_label": "Dochádzanie",
-        "commute_value": "-324 EUR",
+        "commute_value": "-320 EUR",
+        "final_label": "Reálne vám zostane",
+        "final_value": "1 680 EUR",
         "jhi_label": "JHI",
         "jhi_value": "64 / 100"
+      },
+      "snapshot_commute_time": {
+        "title": "Čas na ceste mesačne",
+        "value": "105 min/deň x 22 dní = 2 310 min (38,5 h)",
+        "note": "To je takmer celý pracovný týždeň mesačne len na dochádzanie."
       }
     },
     "difference": {

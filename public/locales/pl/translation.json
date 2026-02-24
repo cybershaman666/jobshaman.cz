@@ -2818,15 +2818,27 @@
       "active_jobs_count": "Obecnie {{count}} aktywnych ofert w bazie danych.",
       "snapshot_intro": "Typowe ogłoszenie pokazuje: 10 500 PLN",
       "snapshot_label": "JobShaman pokaże:",
+      "snapshot_example": "Przykład realnej oferty (zanonimizowany): rola back-office, hybryda, 52 minuty w jedną stronę.",
       "snapshot_rows": {
         "gross_label": "Wynagrodzenie brutto",
         "gross_value": "10 500 PLN",
-        "net_label": "Realnie zostaje",
-        "net_value": "8 100 PLN",
+        "tax_label": "Podatki i składki",
+        "tax_value": "-3 000 PLN",
+        "net_base_label": "Podstawa netto",
+        "net_base_value": "7 500 PLN",
+        "benefits_label": "Szacowana wartość benefitów",
+        "benefits_value": "+800 PLN",
         "commute_label": "Dojazd",
-        "commute_value": "-1 400 PLN",
+        "commute_value": "-950 PLN",
+        "final_label": "Realnie zostaje",
+        "final_value": "7 350 PLN",
         "jhi_label": "JHI",
         "jhi_value": "64 / 100"
+      },
+      "snapshot_commute_time": {
+        "title": "Miesięczny czas w dojazdach",
+        "value": "105 min/dzień x 22 dni = 2 310 min (38,5 h)",
+        "note": "To prawie cały tydzień pracy miesięcznie spędzony tylko na dojazdach."
       }
     },
     "difference": {
