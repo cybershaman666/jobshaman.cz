@@ -2798,6 +2798,7 @@
       "subheadline": "Nettoeinkommen nach Steuern. Pendelkosten. JHI - Nachhaltigkeits-Score auf lange Sicht.",
       "cta_primary": "Profil erstellen",
       "cta_browse": "Angebote ansehen",
+      "active_jobs_count": "Aktuell {{count}} aktive Angebote in der Datenbank.",
       "snapshot_intro": "Eine normale Anzeige zeigt: 2.400 EUR",
       "snapshot_label": "JobShaman zeigt:",
       "snapshot_rows": {

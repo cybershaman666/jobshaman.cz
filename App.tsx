@@ -1856,6 +1856,7 @@ export default function App() {
                             handleAnalyzeJob={handleAnalyzeJob}
                             selectedBlogPostSlug={selectedBlogPostSlug}
                             handleBlogPostSelect={handleBlogPostSelect}
+                            totalJobsCount={totalCount}
                             onApplyToJob={handleApplyToJob}
                             onOpenPremium={(featureLabel) => setShowPremiumUpgrade({ open: true, feature: featureLabel })}
                             onSaveOptimizedCv={handleSaveOptimizedCvToProfile}

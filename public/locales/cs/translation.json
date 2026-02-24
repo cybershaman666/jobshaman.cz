@@ -2807,6 +2807,7 @@
       "subheadline": "Čistý příjem po daních. Náklady na dojíždění. JHI – skóre dlouhodobé udržitelnosti.",
       "cta_primary": "Vytvořit profil",
       "cta_browse": "Prohlédnout nabídky",
+      "active_jobs_count": "Aktuálně {{count}} aktivních nabídek v databázi.",
       "snapshot_intro": "Běžný inzerát ukazuje: 60 000 Kč",
       "snapshot_label": "JobShaman ukáže:",
       "snapshot_rows": {

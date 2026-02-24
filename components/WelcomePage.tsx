@@ -7,6 +7,7 @@ import OfferImpactSnapshot from './OfferImpactSnapshot';
 interface WelcomePageProps {
   onTryFree?: () => void;
   onBrowseOffers?: () => void;
+  totalJobsCount?: number;
   selectedBlogPostSlug: string | null;
   handleBlogPostSelect: (slug: string | null) => void;
 }
@@ -14,6 +15,7 @@ interface WelcomePageProps {
 const WelcomePage: React.FC<WelcomePageProps> = ({
   onTryFree,
   onBrowseOffers,
+  totalJobsCount = 0,
   selectedBlogPostSlug,
   handleBlogPostSelect
 }) => {
@@ -56,6 +58,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                 {t('landing.hero.cta_browse')}
               </button>
             </div>
+
+            {totalJobsCount > 0 && (
+              <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
+                {t('landing.hero.active_jobs_count', { count: totalJobsCount })}
+              </p>
+            )}
           </div>
 
           <div className="lg:col-span-6">

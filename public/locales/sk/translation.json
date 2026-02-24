@@ -2791,6 +2791,7 @@
       "subheadline": "Čistý príjem po daniach. Náklady na dochádzanie. JHI - skóre dlhodobej udržateľnosti.",
       "cta_primary": "Vytvoriť profil",
       "cta_browse": "Pozrieť ponuky",
+      "active_jobs_count": "Aktuálne {{count}} aktívnych ponúk v databáze.",
       "snapshot_intro": "Bežný inzerát ukáže: 2 400 EUR",
       "snapshot_label": "JobShaman ukáže:",
       "snapshot_rows": {

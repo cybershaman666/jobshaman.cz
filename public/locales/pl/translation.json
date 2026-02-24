@@ -2815,6 +2815,7 @@
       "subheadline": "Dochód netto po podatkach. Koszty dojazdu. JHI - wskaźnik długoterminowej trwałości.",
       "cta_primary": "Utwórz profil",
       "cta_browse": "Przeglądaj oferty",
+      "active_jobs_count": "Obecnie {{count}} aktywnych ofert w bazie danych.",
       "snapshot_intro": "Typowe ogłoszenie pokazuje: 10 500 PLN",
       "snapshot_label": "JobShaman pokaże:",
       "snapshot_rows": {

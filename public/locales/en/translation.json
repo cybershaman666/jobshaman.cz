@@ -2798,6 +2798,7 @@
       "subheadline": "Net income after tax. Commute costs. JHI - long-term sustainability score.",
       "cta_primary": "Create profile",
       "cta_browse": "Browse offers",
+      "active_jobs_count": "Currently {{count}} active offers in the database.",
       "snapshot_intro": "A standard ad shows: 2,400 EUR",
       "snapshot_label": "JobShaman shows:",
       "snapshot_rows": {
