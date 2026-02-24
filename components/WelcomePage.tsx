@@ -8,6 +8,7 @@ interface WelcomePageProps {
   onTryFree?: () => void;
   onBrowseOffers?: () => void;
   totalJobsCount?: number;
+  todayNewJobsCount?: number;
   selectedBlogPostSlug: string | null;
   handleBlogPostSelect: (slug: string | null) => void;
 }
@@ -16,6 +17,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   onTryFree,
   onBrowseOffers,
   totalJobsCount = 0,
+  todayNewJobsCount = 0,
   selectedBlogPostSlug,
   handleBlogPostSelect
 }) => {
@@ -31,8 +33,8 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
 
   return (
     <div className="min-h-screen app-grid-bg app-grid-bg--soft text-slate-900 dark:text-slate-100">
-      <section className="max-w-7xl mx-auto px-4 lg:px-8 pt-10 pb-10 lg:pt-16 lg:pb-14">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
+      <section className="relative max-w-7xl mx-auto px-4 lg:px-8 pt-10 pb-10 lg:pt-16 lg:pb-14 overflow-hidden">
+        <div className="relative z-10 grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
           <div className="lg:col-span-6">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight tracking-tight">
               {t('landing.hero.headline')}
@@ -41,7 +43,6 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
             <p className="text-lg text-slate-600 dark:text-slate-300 mt-5 max-w-xl">
               {t('landing.hero.subheadline')}
             </p>
-
             <div className="mt-7 flex flex-col sm:flex-row gap-3 sm:items-center">
               <button
                 onClick={handlePrimary}
@@ -59,10 +60,21 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
               </button>
             </div>
 
-            {totalJobsCount > 0 && (
-              <p className="mt-4 text-sm text-slate-600 dark:text-slate-300">
-                {t('landing.hero.active_jobs_count', { count: totalJobsCount })}
-              </p>
+            {(totalJobsCount > 0 || todayNewJobsCount > 0) && (
+              <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+                <span className="rounded-full border border-slate-300/80 dark:border-slate-700/80 bg-white/85 dark:bg-slate-900/80 px-3 py-1 text-slate-700 dark:text-slate-200">
+                  {t('landing.hero.active_jobs_count', {
+                    count: totalJobsCount,
+                    defaultValue: 'Aktivní inzeráty: {{count}}',
+                  })}
+                </span>
+                <span className="rounded-full border border-cyan-300/70 dark:border-cyan-700/70 bg-cyan-50/80 dark:bg-cyan-950/40 px-3 py-1 text-cyan-700 dark:text-cyan-300">
+                  {t('landing.hero.jhi_reviewed_today_count', {
+                    count: todayNewJobsCount,
+                    defaultValue: 'Dnes prověřeno na JHI: {{count}}',
+                  })}
+                </span>
+              </div>
             )}
           </div>
 

@@ -1914,7 +1914,241 @@
     "question": "Pytanie",
     "preview": "Wypróbuj (Preview)",
     "send_hint": "Ten test możesz wysłać kandydatowi jako \"Pre-screen challenge\".",
-    "empty_state": "Wpisz rolę i umiejętności po lewej, aby wygenerować dopasowane pytania."
+    "empty_state": "Wpisz rolę i umiejętności po lewej, aby wygenerować dopasowane pytania.",
+    "demo_center": {
+      "title": "Demo Assessment Center",
+      "subtitle": "5 przykładów dla różnych typów ról. Kliknij Podgląd albo użyj szablonu.",
+      "free_tier": "Dostępne także w Free tier (bez zużycia kredytów).",
+      "show_output": "Pokaż wynik",
+      "preview": "Podgląd",
+      "use": "Użyj szablonu",
+      "output_title": "Przykład wyniku dla firmy",
+      "psych_profile": "Profil psychologiczny (podstawowy)",
+      "strengths": "Mocne strony",
+      "risks": "Ryzyka / obszary rozwoju",
+      "onepager_title": "Assessment Center - wynik demo",
+      "final_score": "Wynik końcowy",
+      "recommendation_label": "Rekomendacja",
+      "technical_breakdown": "Rozbicie techniczne",
+      "export_note": "Wynik demo. Część psychologiczna to screening self-report, nie diagnoza kliniczna.",
+      "export_png": "Eksport PNG",
+      "export_pdf": "Eksport PDF",
+      "recommendation": {
+        "recommend": "Rekomenduj",
+        "conditional": "Warunkowo",
+        "not_recommend": "Nie rekomenduj"
+      },
+      "templates": {
+        "backend": {
+          "role": "Senior Backend Engineer",
+          "difficulty": "Senior",
+          "skills": [
+            "Python",
+            "FastAPI",
+            "PostgreSQL",
+            "Projektowanie API",
+            "System design"
+          ],
+          "title": "Demo: Senior Backend Engineer",
+          "description": "Przykład assessmentu dla senior backend roli.",
+          "questions": {
+            "q1": "Zaprojektuj audytowalny endpoint salary benchmark z logiką fallback.",
+            "q2": "Napisz pseudokod confidence score oparty o sample size, wariancję i recency.",
+            "q3": "Jak rozwiązał(a)byś regresję wydajności endpointu przy 10x większym obciążeniu?"
+          }
+        },
+        "cnc": {
+          "role": "Operator CNC",
+          "difficulty": "Medior",
+          "skills": [
+            "CNC",
+            "Dokumentacja techniczna",
+            "Pomiary",
+            "BHP"
+          ],
+          "title": "Demo: Operator CNC",
+          "description": "Przykład assessmentu dla produkcji i inżynierii.",
+          "questions": {
+            "q1": "Jak postępujesz przy uruchamianiu nowego programu CNC?",
+            "q2": "Co zrobisz, gdy pomiar wyjdzie poza tolerancję?",
+            "q3": "Który krok jest najważniejszy przed uruchomieniem serii?",
+            "q3_options": [
+              "Kontrola narzędzia i punktów zerowych",
+              "Zwiększenie posuwu",
+              "Pominięcie sztuki próbnej",
+              "Wyłączenie chłodzenia"
+            ]
+          }
+        },
+        "nurse": {
+          "role": "Pielęgniarka/Pielęgniarz",
+          "difficulty": "Medior",
+          "skills": [
+            "Opieka kliniczna",
+            "Komunikacja z pacjentem",
+            "Triaż",
+            "Dokumentacja"
+          ],
+          "title": "Demo: Pielęgniarka/Pielęgniarz",
+          "description": "Przykład assessmentu dla roli medycznej.",
+          "questions": {
+            "q1": "Jak priorytetyzujesz pacjentów przy nagłym wzroście przyjęć?",
+            "q2": "Opisz, jak przekazujesz krytyczne informacje lekarzowi i zespołowi.",
+            "q3": "Która zasada jest kluczowa dla bezpiecznego podania leków?",
+            "q3_options": [
+              "Zasada 5P",
+              "Maksymalna szybkość za wszelką cenę",
+              "Bez dokumentacji",
+              "Tylko potwierdzenie ustne"
+            ]
+          }
+        },
+        "sales": {
+          "role": "Przedstawiciel handlowy B2B",
+          "difficulty": "Senior",
+          "skills": [
+            "Prospecting",
+            "Negocjacje",
+            "CRM",
+            "Strategia sprzedaży"
+          ],
+          "title": "Demo: Przedstawiciel handlowy B2B",
+          "description": "Przykład assessmentu dla roli sprzedażowej.",
+          "questions": {
+            "q1": "Jak otworzył(a)byś pierwsze spotkanie z nowym klientem enterprise?",
+            "q2": "Klient mocno naciska na cenę i grozi odejściem. Jak reagujesz?",
+            "q3": "Który wskaźnik traktujesz jako leading indicator jakości pipeline?",
+            "q3_options": [
+              "Qualified meeting rate",
+              "Liczba wysłanych e-maili",
+              "Liczba losowych calli",
+              "Liczba otwartych kart"
+            ]
+          }
+        },
+        "support": {
+          "role": "Customer Support Specialist",
+          "difficulty": "Junior",
+          "skills": [
+            "Komunikacja z klientem",
+            "Empatia",
+            "Ticketing",
+            "Obsługa incydentów"
+          ],
+          "title": "Demo: Customer Support Specialist",
+          "description": "Przykład assessmentu dla roli supportowej.",
+          "questions": {
+            "q1": "Jak odpowiesz klientowi sfrustrowanemu po awarii?",
+            "q2": "Jak odróżniasz pilny ticket od standardowego?",
+            "q2_options": [
+              "Wpływ + priorytet + SLA",
+              "Liczba wykrzykników",
+              "Długość tekstu",
+              "Losowo"
+            ],
+            "q3": "Opisz proces przed eskalacją problemu do zespołu technicznego."
+          }
+        }
+      },
+      "outputs": {
+        "backend": {
+          "technical": [
+            "Projektowanie API",
+            "Myślenie systemowe",
+            "Data quality mindset"
+          ],
+          "psych": [
+            "Ownership",
+            "Adaptacyjność",
+            "Współpraca"
+          ],
+          "strengths": [
+            "Mocne strukturyzowanie problemu",
+            "Dobra praca ze scenariuszami fallback",
+            "Wysoki poziom ownership"
+          ],
+          "risks": [
+            "Trochę słabsza komunikacja trade-offów do nietechnicznych stakeholderów"
+          ]
+        },
+        "cnc": {
+          "technical": [
+            "Dyscyplina technologiczna",
+            "Kontrola tolerancji",
+            "Procedury bezpieczeństwa"
+          ],
+          "psych": [
+            "Sumienność",
+            "Odporność na stres",
+            "Adaptacyjność"
+          ],
+          "strengths": [
+            "Stabilne podejście procesowe",
+            "Silny nacisk na bezpieczeństwo"
+          ],
+          "risks": [
+            "Potrzebne wsparcie przy szybkiej zmianie priorytetów"
+          ]
+        },
+        "nurse": {
+          "technical": [
+            "Triaż i priorytetyzacja",
+            "Komunikacja kliniczna",
+            "Jakość dokumentacji"
+          ],
+          "psych": [
+            "Współpraca",
+            "Odporność na stres",
+            "Ownership"
+          ],
+          "strengths": [
+            "Silna praca pod presją",
+            "Bardzo dobra komunikacja zespołowa"
+          ],
+          "risks": [
+            "Warto zweryfikować długoterminową tolerancję obciążenia zmianowego"
+          ]
+        },
+        "sales": {
+          "technical": [
+            "Discovery i kwalifikacja",
+            "Negocjacje",
+            "Zarządzanie pipeline"
+          ],
+          "psych": [
+            "Ownership",
+            "Motywacja do nauki",
+            "Współpraca"
+          ],
+          "strengths": [
+            "Dobra argumentacja wartości",
+            "Aktywne ownership szans sprzedażowych"
+          ],
+          "risks": [
+            "Niestabilna dyscyplina w CRM i follow-up"
+          ]
+        },
+        "support": {
+          "technical": [
+            "Ticket triage",
+            "Empatyczna komunikacja",
+            "Gotowość do eskalacji"
+          ],
+          "psych": [
+            "Współpraca",
+            "Sumienność",
+            "Odporność na stres"
+          ],
+          "strengths": [
+            "Silna empatia w komunikacji",
+            "Dobra orientacja na klienta"
+          ],
+          "risks": [
+            "Potrzeba poprawy spójności kroków eskalacji"
+          ]
+        }
+      }
+    }
   },
   "enterprise_signup": {
     "title": "JobShaman Enterprise",
@@ -2892,5 +3126,30 @@
     "blog": {
       "title": "Jak szybko oceniać oferty pracy"
     }
+  },
+  "assessment_3d": {
+    "preview_on": "Podgląd 3D: ON",
+    "preview_off": "Podgląd 3D: OFF",
+    "galaxy": {
+      "fallback_notice": "Tryb fallback jest aktywny na tym urządzeniu."
+    }
+  },
+  "happiness_audit_3d": {
+    "title": "Personal Happiness Audit (Premium)",
+    "subtitle": "Life-Sustainability Orbit + Career Anchor vs Drift",
+    "live_on": "Live 3D: ON",
+    "live_off": "Live 3D: OFF",
+    "premium_required": "Happiness audit jest dostępny w Premium.",
+    "salary": "Miesięczne wynagrodzenie brutto",
+    "commute_cost": "Miesięczny koszt dojazdu",
+    "commute_minutes": "Minuty dojazdu dziennie",
+    "home_office_days": "Dni home office / tydzień",
+    "energy": "Subiektywna energia",
+    "role_shift": "Wskaźnik driftu roli",
+    "simulating": "Symulacja...",
+    "results": "Wynik audytu"
+  },
+  "ai_advisory": {
+    "default": "AI recommendation only. Ostateczna decyzja należy do człowieka."
   }
 }

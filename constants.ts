@@ -2,7 +2,23 @@
 import { Job, Candidate, BenefitInsight, CompanyProfile, UserProfile } from './types';
 
 // Backend API Configuration
-export const BACKEND_URL = import.meta.env.VITE_BACKEND_URL || 'https://jobshaman-cz.onrender.com';
+const normalizeBackendHost = (raw?: string): string => {
+  const fallback = 'https://jobshaman-cz-8d0p.onrender.com';
+  const value = (raw || '').trim();
+  if (!value) return fallback;
+  try {
+    const parsed = new URL(value);
+    if (parsed.hostname === 'jobshaman-cz.onrender.com') {
+      return fallback;
+    }
+    return parsed.toString().replace(/\/$/, '');
+  } catch {
+    // If env contains malformed value, fall back safely.
+    return fallback;
+  }
+};
+
+export const BACKEND_URL = normalizeBackendHost(import.meta.env.VITE_BACKEND_URL);
 export const BILLING_BACKEND_URL =
   import.meta.env.VITE_BILLING_BACKEND_URL ||
   import.meta.env.VITE_STRIPE_BACKEND_URL ||
@@ -11,6 +27,31 @@ export const SEARCH_BACKEND_URL =
   import.meta.env.VITE_SEARCH_API_URL ||
   import.meta.env.VITE_SEARCH_BACKEND_URL ||
   BACKEND_URL;
+
+export const FEATURE_ASSESSMENT_THREE =
+  String(import.meta.env.VITE_FEATURE_ASSESSMENT_THREE || 'true').toLowerCase() !== 'false';
+
+export const FEATURE_HAPPINESS_AUDIT_THREE =
+  false;
+
+export const FEATURE_ASSESSMENT_THREE_GALAXY_V3 =
+  String(import.meta.env.VITE_FEATURE_ASSESSMENT_THREE_GALAXY_V3 || 'true').toLowerCase() !== 'false';
+
+export const FEATURE_ASSESSMENT_THREE_GALAXY_FALLBACK =
+  String(import.meta.env.VITE_FEATURE_ASSESSMENT_THREE_GALAXY_FALLBACK || 'true').toLowerCase() !== 'false';
+
+export const FEATURE_ASSESSMENT_ROLE_DYNAMIC_WORLDS =
+  String(import.meta.env.VITE_FEATURE_ASSESSMENT_ROLE_DYNAMIC_WORLDS || 'true').toLowerCase() !== 'false';
+
+export const FEATURE_ASSESSMENT_LIVE3D_MOBILE_OPTIN =
+  String(import.meta.env.VITE_FEATURE_ASSESSMENT_LIVE3D_MOBILE_OPTIN || 'true').toLowerCase() !== 'false';
+
+export const FEATURE_ASSESSMENT_JOURNEY_EXPERIENCE_V1 =
+  String(import.meta.env.VITE_FEATURE_ASSESSMENT_JOURNEY_EXPERIENCE_V1 || 'false').toLowerCase() === 'true';
+
+// Backward-compatible flag used by older assessment router imports.
+export const FEATURE_ASSESSMENT_CLASSIC_TOGGLE =
+  String(import.meta.env.VITE_FEATURE_ASSESSMENT_CLASSIC_TOGGLE || 'true').toLowerCase() !== 'false';
 
 // EMPTY - Using Live Supabase Data
 export const MOCK_JOBS: Job[] = [];

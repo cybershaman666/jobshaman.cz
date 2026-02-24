@@ -1926,7 +1926,241 @@
     "question": "Otázka",
     "preview": "Vyskúšať (Preview)",
     "send_hint": "Tento test môžete poslať kandidátovi ako \"Pre-screen challenge\".",
-    "empty_state": "Zadajte rolu a zručnosti vľavo pre vygenerovanie overovacích otázok na mieru."
+    "empty_state": "Zadajte rolu a zručnosti vľavo pre vygenerovanie overovacích otázok na mieru.",
+    "demo_center": {
+      "title": "Demo Assessment Center",
+      "subtitle": "5 ukážok naprieč rôznymi typmi rolí. Kliknite na Preview alebo použite šablónu.",
+      "free_tier": "Dostupné aj pre Free tier (bez čerpania kreditov).",
+      "show_output": "Zobraziť výstup",
+      "preview": "Náhľad",
+      "use": "Použiť šablónu",
+      "output_title": "Ukážka výstupu pre firmu",
+      "psych_profile": "Psychologický profil (základ)",
+      "strengths": "Silné stránky",
+      "risks": "Riziká / rozvoj",
+      "onepager_title": "Assessment Center - demo výstup",
+      "final_score": "Celkové skóre",
+      "recommendation_label": "Odporúčanie",
+      "technical_breakdown": "Technický breakdown",
+      "export_note": "Demo výstup. Psychologická časť je self-report screening, nie klinická diagnostika.",
+      "export_png": "Export PNG",
+      "export_pdf": "Export PDF",
+      "recommendation": {
+        "recommend": "Odporučiť",
+        "conditional": "Podmienene",
+        "not_recommend": "Neodporučiť"
+      },
+      "templates": {
+        "backend": {
+          "role": "Senior Backend Engineer",
+          "difficulty": "Senior",
+          "skills": [
+            "Python",
+            "FastAPI",
+            "PostgreSQL",
+            "Návrh API",
+            "Systémový dizajn"
+          ],
+          "title": "Demo: Senior Backend Engineer",
+          "description": "Ukážka assessmentu pre senior backend rolu.",
+          "questions": {
+            "q1": "Navrhnite auditovateľný salary benchmark API endpoint s fallback logikou.",
+            "q2": "Napíšte pseudokód pre confidence score založené na sample size, variancii a recency.",
+            "q3": "Ako by ste riešili regresiu výkonu endpointu pri 10x vyššej záťaži?"
+          }
+        },
+        "cnc": {
+          "role": "CNC Operátor",
+          "difficulty": "Medior",
+          "skills": [
+            "CNC",
+            "Technická dokumentácia",
+            "Meranie",
+            "Bezpečnosť práce"
+          ],
+          "title": "Demo: CNC Operátor",
+          "description": "Ukážka assessmentu pre výrobu a strojárstvo.",
+          "questions": {
+            "q1": "Ako postupujete pri nastavení nového programu na CNC stroji?",
+            "q2": "Čo urobíte, keď meranie ukáže odchýlku mimo tolerancie?",
+            "q3": "Ktorý krok je najdôležitejší pred spustením série?",
+            "q3_options": [
+              "Kontrola nástroja a nulových bodov",
+              "Zrýchlenie posuvu",
+              "Preskočenie skúšobného kusu",
+              "Vypnutie chladenia"
+            ]
+          }
+        },
+        "nurse": {
+          "role": "Všeobecná sestra",
+          "difficulty": "Medior",
+          "skills": [
+            "Klinická starostlivosť",
+            "Komunikácia s pacientom",
+            "Triáž",
+            "Dokumentácia"
+          ],
+          "title": "Demo: Všeobecná sestra",
+          "description": "Ukážka assessmentu pre zdravotnícku rolu.",
+          "questions": {
+            "q1": "Ako prioritizujete pacientov pri náhlom zvýšení príjmu na oddelení?",
+            "q2": "Popíšte, ako odovzdávate kritickú informáciu lekárovi a tímu.",
+            "q3": "Ktorý princíp je kľúčový pre bezpečné podanie medikácie?",
+            "q3_options": [
+              "5P pravidlo",
+              "Rýchlosť podania za každú cenu",
+              "Bez dokumentácie",
+              "Iba verbálne potvrdenie"
+            ]
+          }
+        },
+        "sales": {
+          "role": "B2B Obchodný zástupca",
+          "difficulty": "Senior",
+          "skills": [
+            "Prospecting",
+            "Vyjednávanie",
+            "CRM",
+            "Obchodná stratégia"
+          ],
+          "title": "Demo: B2B Obchodný zástupca",
+          "description": "Ukážka assessmentu pre obchodnú rolu.",
+          "questions": {
+            "q1": "Ako by ste otvorili prvé stretnutie s novým enterprise klientom?",
+            "q2": "Klient tlačí na cenu a hrozí odchodom. Ako reagujete?",
+            "q3": "Ktorú metriku sledujete ako leading indicator kvality pipeline?",
+            "q3_options": [
+              "Qualified meeting rate",
+              "Počet poslaných e-mailov",
+              "Počet náhodných callov",
+              "Počet otvorených tabov"
+            ]
+          }
+        },
+        "support": {
+          "role": "Customer Support Specialist",
+          "difficulty": "Junior",
+          "skills": [
+            "Zákaznícka komunikácia",
+            "Empatia",
+            "Ticketing",
+            "Riešenie incidentov"
+          ],
+          "title": "Demo: Customer Support Specialist",
+          "description": "Ukážka assessmentu pre support rolu.",
+          "questions": {
+            "q1": "Ako by ste odpovedali zákazníkovi, ktorý je frustrovaný po výpadku?",
+            "q2": "Ako rozlíšite urgentný ticket od bežného?",
+            "q2_options": [
+              "Dopad + priorita + SLA",
+              "Počet výkričníkov",
+              "Dĺžka textu",
+              "Náhodne"
+            ],
+            "q3": "Popíšte postup pred eskaláciou problému na technický tím."
+          }
+        }
+      },
+      "outputs": {
+        "backend": {
+          "technical": [
+            "Návrh API",
+            "Systémové myslenie",
+            "Data quality mindset"
+          ],
+          "psych": [
+            "Ownership",
+            "Adaptabilita",
+            "Spolupráca"
+          ],
+          "strengths": [
+            "Silné štruktúrovanie problému",
+            "Dobrá práca s fallback scenármi",
+            "Vysoká miera ownershipu"
+          ],
+          "risks": [
+            "Mierne slabšia komunikácia trade-offov smerom k netechnickým stakeholderom"
+          ]
+        },
+        "cnc": {
+          "technical": [
+            "Technologická disciplína",
+            "Kontrola tolerancií",
+            "Bezpečnostné postupy"
+          ],
+          "psych": [
+            "Svedomitosť",
+            "Odolnosť voči stresu",
+            "Adaptabilita"
+          ],
+          "strengths": [
+            "Stabilný procesný prístup",
+            "Vysoký dôraz na bezpečnosť"
+          ],
+          "risks": [
+            "Potreba podpory pri rýchlej zmene priorít"
+          ]
+        },
+        "nurse": {
+          "technical": [
+            "Triáž a prioritizácia",
+            "Klinická komunikácia",
+            "Kvalita dokumentácie"
+          ],
+          "psych": [
+            "Spolupráca",
+            "Odolnosť voči stresu",
+            "Ownership"
+          ],
+          "strengths": [
+            "Silná práca pod tlakom",
+            "Výborná tímová komunikácia"
+          ],
+          "risks": [
+            "Odporúčané overiť dlhodobú záťažovú toleranciu na smenách"
+          ]
+        },
+        "sales": {
+          "technical": [
+            "Discovery a kvalifikácia",
+            "Vyjednávanie",
+            "Riadenie pipeline"
+          ],
+          "psych": [
+            "Ownership",
+            "Learning drive",
+            "Spolupráca"
+          ],
+          "strengths": [
+            "Dobrá argumentácia hodnoty",
+            "Aktívny ownership príležitostí"
+          ],
+          "risks": [
+            "Kolísanie disciplíny v CRM a follow-up procesoch"
+          ]
+        },
+        "support": {
+          "technical": [
+            "Ticket triage",
+            "Empatická komunikácia",
+            "Pripravenosť na eskaláciu"
+          ],
+          "psych": [
+            "Spolupráca",
+            "Svedomitosť",
+            "Odolnosť voči stresu"
+          ],
+          "strengths": [
+            "Silná empatia v komunikácii",
+            "Dobrá orientácia na zákazníka"
+          ],
+          "risks": [
+            "Potreba zlepšiť konzistenciu eskalačných krokov"
+          ]
+        }
+      }
+    }
   },
   "enterprise_signup": {
     "title": "JobShaman Enterprise",
@@ -2868,5 +3102,30 @@
     "blog": {
       "title": "Ako rýchlo hodnotiť ponuky práce"
     }
+  },
+  "assessment_3d": {
+    "preview_on": "3D náhľad: zapnutý",
+    "preview_off": "3D náhľad: vypnutý",
+    "galaxy": {
+      "fallback_notice": "Fallback režim je aktívny pre toto zariadenie."
+    }
+  },
+  "happiness_audit_3d": {
+    "title": "Osobný Happiness Audit (Premium)",
+    "subtitle": "Life-Sustainability Orbit + Career Anchor vs Drift",
+    "live_on": "Live 3D: zapnuté",
+    "live_off": "Live 3D: vypnuté",
+    "premium_required": "Happiness audit je dostupný v Premium.",
+    "salary": "Hrubá mesačná mzda",
+    "commute_cost": "Mesačné náklady na dochádzanie",
+    "commute_minutes": "Minúty dochádzania za deň",
+    "home_office_days": "Home office dni / týždeň",
+    "energy": "Subjektívna energia",
+    "role_shift": "Indikátor role drift",
+    "simulating": "Simulujem...",
+    "results": "Výstup auditu"
+  },
+  "ai_advisory": {
+    "default": "AI recommendation only. Finálne rozhodnutie je na človeku."
   }
 }

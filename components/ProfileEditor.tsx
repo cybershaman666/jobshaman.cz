@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState, useRef } from 'react';
-import { UserProfile, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences } from '../types';
+import { UserProfile, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences, HappinessAuditInput, HappinessAuditOutput } from '../types';
 import {
   User,
   Upload,
@@ -30,6 +30,7 @@ import { validateCvFile, uploadAndParseCv, mergeProfileWithParsedCv } from '../s
 import { resolveAddressToCoordinates } from '../services/commuteService';
 import { authenticatedFetch } from '../services/csrfService';
 import { BACKEND_URL } from '../constants';
+import { FEATURE_HAPPINESS_AUDIT_THREE } from '../constants';
 import PremiumFeaturesPreview from './PremiumFeaturesPreview';
 import MyInvitations from './MyInvitations';
 import AIGuidedProfileWizard from './AIGuidedProfileWizard';
@@ -41,6 +42,14 @@ import { getCurrentSubscription, getPushPermission, isPushSupported, registerPus
 import TransportModeSelector from './TransportModeSelector';
 import { createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from '../services/profileDefaults';
 import { getPremiumPriceDisplay } from '../services/premiumPricingService';
+import { simulateHappinessAudit } from '../services/assessmentThreeService';
+import { useSceneCapability } from '../hooks/useSceneCapability';
+import SceneShell from './three/SceneShell';
+import LifeSustainabilityOrbit from './three/LifeSustainabilityOrbit';
+import CareerAnchorDrift from './three/CareerAnchorDrift';
+import NebulaOfPotential from './three/NebulaOfPotential';
+import CulturalNorthstarCompass from './three/CulturalNorthstarCompass';
+import AnalyticsService from '../services/analyticsService';
 
 import { useTranslation } from 'react-i18next';
 
@@ -95,6 +104,63 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [passwordFeedback, setPasswordFeedback] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
   const [activeExperienceId, setActiveExperienceId] = useState<string | null>(null);
   const [activeEducationId, setActiveEducationId] = useState<string | null>(null);
+  const [happinessAuditInput, setHappinessAuditInput] = useState<HappinessAuditInput>({
+    salary: 60000,
+    tax_profile: profile.taxProfile,
+    commute_minutes_daily: 105,
+    commute_cost: 8100,
+    work_mode: 'onsite',
+    subjective_energy: 45,
+    home_office_days: 0,
+    role_shift: 55,
+  });
+  const [happinessAuditOutput, setHappinessAuditOutput] = useState<HappinessAuditOutput | null>(null);
+  const [isSimulatingAudit, setIsSimulatingAudit] = useState(false);
+  const [enableLive3D, setEnableLive3D] = useState(true);
+  const [resourceLeakToggles, setResourceLeakToggles] = useState({
+    commute: true,
+    taxes: true,
+    fixed: true,
+  });
+  const [narrativeStory, setNarrativeStory] = useState('');
+  const [culturalCompass, setCulturalCompass] = useState({
+    individualVsTeam: 52,
+    chaosVsStructure: 58,
+    companyIndividualVsTeam: 36,
+    companyChaosVsStructure: 68,
+  });
+  const sceneCapability = useSceneCapability();
+
+  const extractNarrativeSkills = (text: string): string[] => {
+    const t = (text || '').toLowerCase();
+    const map: Array<[string, string[]]> = [
+      ['Building from Zero', ['from zero', 'od nuly', 'start', 'setup']],
+      ['Crisis Management', ['krize', 'incident', 'urgent', 'stres']],
+      ['Stakeholder Communication', ['stakeholder', 'ceo', 'management', 'vedení']],
+      ['Process Architecture', ['proces', 'framework', 'systém', 'standard']],
+      ['Team Leadership', ['tým', 'lead', 'mentoring', 'koučink']],
+      ['Value Communication', ['hodnota', 'value', 'dopad', 'outcome']],
+    ];
+    return map
+      .filter(([, keys]) => keys.some((key) => t.includes(key)))
+      .map(([skill]) => skill);
+  };
+
+  const disconnectedPipes = Object.values(resourceLeakToggles).filter((v) => !v).length;
+  const monthlyCommuteHours = Number(((happinessAuditInput.commute_minutes_daily * 22) / 60).toFixed(1));
+  const narrativeSkills = extractNarrativeSkills(narrativeStory);
+  const narrativeFrame = {
+    timestamp: new Date().toISOString(),
+    unlocked_skills: narrativeSkills,
+    narrative_integrity: Math.max(15, Math.min(95, 38 + narrativeSkills.length * 12 + Math.round(narrativeStory.length / 40))),
+    confidence: Math.max(25, Math.min(92, 30 + narrativeSkills.length * 10)),
+    evidence: narrativeSkills,
+  };
+  const culturalMismatch = Math.round((
+    Math.abs(culturalCompass.individualVsTeam - culturalCompass.companyIndividualVsTeam) +
+    Math.abs(culturalCompass.chaosVsStructure - culturalCompass.companyChaosVsStructure)
+  ) / 2);
+  const culturalAlignment = Math.max(0, 100 - culturalMismatch);
 
   // Address Verification State
   const [isVerifyingAddress, setIsVerifyingAddress] = useState(false);
@@ -187,6 +253,52 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   useEffect(() => {
     setFormData(buildFormDataFromProfile(profile));
   }, [profile]);
+
+  useEffect(() => {
+    if (!FEATURE_HAPPINESS_AUDIT_THREE || !isPremium) return;
+
+    const timer = window.setTimeout(async () => {
+      setIsSimulatingAudit(true);
+      try {
+        AnalyticsService.trackEvent('happiness_audit_parameter_changed', {
+          commute_minutes_daily: happinessAuditInput.commute_minutes_daily,
+          home_office_days: happinessAuditInput.home_office_days,
+          role_shift: happinessAuditInput.role_shift,
+        });
+        const result = await simulateHappinessAudit({
+          ...happinessAuditInput,
+          commute_cost: resourceLeakToggles.commute ? happinessAuditInput.commute_cost : 0,
+          subjective_energy: Math.min(100, happinessAuditInput.subjective_energy + disconnectedPipes * 8),
+          role_shift: Math.max(0, Math.min(100, happinessAuditInput.role_shift + Math.round(culturalMismatch * 0.2) - narrativeSkills.length * 3)),
+          tax_profile: formData.taxProfile,
+        });
+        AnalyticsService.trackEvent('happiness_audit_simulation_run', {
+          sustainability: result.sustainability_score,
+          drift: result.drift_score,
+        });
+        setHappinessAuditOutput(result);
+      } catch {
+        const timeRing = Math.min(100, Math.round((happinessAuditInput.commute_minutes_daily / 120) * 100));
+        const energyRing = Math.min(100, Math.round((100 - happinessAuditInput.subjective_energy) * 0.7));
+        const sustainability = Math.max(0, 100 - Math.round(timeRing * 0.45 + energyRing * 0.55));
+        setHappinessAuditOutput({
+          time_ring: timeRing,
+          energy_ring: energyRing,
+          sustainability_score: sustainability,
+          drift_score: Math.round((happinessAuditInput.role_shift * 0.6) + (timeRing * 0.2)),
+          recommendations: [
+            'Lokální fallback režim: ověřte čísla po obnovení backendu.',
+            'AI recommendation only. Final decision is yours.',
+          ],
+          advisory_disclaimer: 'AI recommendation only.',
+        });
+      } finally {
+        setIsSimulatingAudit(false);
+      }
+    }, 400);
+
+    return () => window.clearTimeout(timer);
+  }, [happinessAuditInput, isPremium, formData.taxProfile, resourceLeakToggles, disconnectedPipes, culturalMismatch, narrativeSkills.length]);
 
   useEffect(() => {
     if (formData.experience.length === 0) {
@@ -1865,6 +1977,307 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 </fieldset>
               </div>
             </div>
+
+            {FEATURE_HAPPINESS_AUDIT_THREE && (
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                        {t('happiness_audit_3d.title', { defaultValue: 'Personal Happiness Audit (Premium)' })}
+                      </h2>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">
+                        {t('happiness_audit_3d.subtitle', { defaultValue: 'Life-Sustainability Orbit + Career Anchor vs Drift' })}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setEnableLive3D((prev) => !prev)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${
+                        enableLive3D
+                          ? 'bg-cyan-600 text-white border-cyan-500'
+                          : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                      }`}
+                    >
+                      {enableLive3D
+                        ? t('happiness_audit_3d.live_on', { defaultValue: 'Enable live 3D: ON' })
+                        : t('happiness_audit_3d.live_off', { defaultValue: 'Enable live 3D: OFF' })}
+                    </button>
+                  </div>
+                </div>
+                <div className="p-6 space-y-4">
+                  {!isPremium && (
+                    <div className="text-sm text-amber-700 dark:text-amber-300">
+                      {t('happiness_audit_3d.premium_required', { defaultValue: 'Happiness audit is available in Premium.' })}
+                    </div>
+                  )}
+                  <fieldset disabled={!isPremium} className={!isPremium ? 'opacity-60' : ''}>
+                    <div className="space-y-4">
+                      <div className="rounded-xl border border-cyan-200 dark:border-cyan-900/40 bg-cyan-50/60 dark:bg-cyan-950/20 p-4">
+                        <div className="text-xs font-bold uppercase tracking-wider text-cyan-700 dark:text-cyan-300 mb-2">
+                          Quest 1 · The Resource Leak
+                        </div>
+                        <p className="text-sm text-slate-700 dark:text-slate-200">
+                          Když se podíváš na svůj měsíční výpis z účtu a odečteš čas strávený v kolonách (v tvém případě {monthlyCommuteHours} hodiny), kolik energie ti reálně zbývá na věci, které tě definují?
+                        </p>
+                        <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2">
+                          {([
+                            ['commute', 'Dojíždění'],
+                            ['taxes', 'Daně'],
+                            ['fixed', 'Fixní náklady'],
+                          ] as const).map(([key, label]) => (
+                            <button
+                              key={key}
+                              type="button"
+                              onClick={() => setResourceLeakToggles((prev) => ({ ...prev, [key]: !prev[key] }))}
+                              className={`px-3 py-2 rounded-lg text-sm border ${
+                                resourceLeakToggles[key]
+                                  ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300'
+                                  : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300'
+                              }`}
+                            >
+                              {resourceLeakToggles[key] ? `Pipe ON: ${label}` : `Pipe OFF: ${label}`}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                          Odpojeno rour: {disconnectedPipes} / 3
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/40 bg-indigo-50/60 dark:bg-indigo-950/20 p-4">
+                        <div className="text-xs font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-300 mb-2">
+                          Quest 2 · The Narrative Mirror
+                        </div>
+                        <p className="text-sm text-slate-700 dark:text-slate-200">
+                          Kdybys měl vymazat všechna formální "buzzwordy" ze svého životopisu, co je ten jeden moment v tvé kariéře, kdy jsi měl pocit, že jsi nezastavitelný a dělal jsi přesně to, co umíš nejlíp?
+                        </p>
+                        <textarea
+                          value={narrativeStory}
+                          onChange={(e) => setNarrativeStory(e.target.value)}
+                          placeholder="Nadiktuj svůj příběh..."
+                          className="mt-3 w-full h-24 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                        />
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {narrativeSkills.length > 0 ? narrativeSkills.map((skill) => (
+                            <span key={skill} className="px-2 py-1 text-xs rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                              {skill}
+                            </span>
+                          )) : (
+                            <span className="text-xs text-slate-500 dark:text-slate-400">Zatím bez rozsvíceného souhvězdí.</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="rounded-xl border border-emerald-200 dark:border-emerald-900/40 bg-emerald-50/60 dark:bg-emerald-950/20 p-4">
+                        <div className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-300 mb-2">
+                          Quest 3 · The Cultural Northstar
+                        </div>
+                        <p className="text-sm text-slate-700 dark:text-slate-200">
+                          Představ si, že tvůj šéf udělá zásadní chybu. Co je v tvém ideálním světě ta správná reakce firmy – upřímná omluva v tónu „přátelský profesionál“, nebo tiché opravení procesu?
+                        </p>
+                        <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-3">
+                          <label className="text-xs text-slate-600 dark:text-slate-300">
+                            Individualismus ↔ Tým ({culturalCompass.individualVsTeam})
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              step={5}
+                              value={culturalCompass.individualVsTeam}
+                              onChange={(e) => setCulturalCompass((prev) => ({ ...prev, individualVsTeam: Number(e.target.value) || 0 }))}
+                              className="mt-1 w-full"
+                            />
+                          </label>
+                          <label className="text-xs text-slate-600 dark:text-slate-300">
+                            Chaos ↔ Struktura ({culturalCompass.chaosVsStructure})
+                            <input
+                              type="range"
+                              min={0}
+                              max={100}
+                              step={5}
+                              value={culturalCompass.chaosVsStructure}
+                              onChange={(e) => setCulturalCompass((prev) => ({ ...prev, chaosVsStructure: Number(e.target.value) || 0 }))}
+                              className="mt-1 w-full"
+                            />
+                          </label>
+                        </div>
+                        <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                          Aktuální firma je mimo sever o {culturalMismatch}%.
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <label className="text-sm text-slate-700 dark:text-slate-300">
+                          {t('happiness_audit_3d.salary', { defaultValue: 'Monthly gross salary' })}
+                          <input
+                            type="number"
+                            min={0}
+                            value={happinessAuditInput.salary}
+                            onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, salary: Number(e.target.value) || 0 }))}
+                            className="mt-1 w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                          />
+                        </label>
+                        <label className="text-sm text-slate-700 dark:text-slate-300">
+                          {t('happiness_audit_3d.commute_cost', { defaultValue: 'Monthly commute cost' })}
+                          <input
+                            type="number"
+                            min={0}
+                            value={happinessAuditInput.commute_cost}
+                            onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, commute_cost: Number(e.target.value) || 0 }))}
+                            className="mt-1 w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                          />
+                        </label>
+                        <label className="text-sm text-slate-700 dark:text-slate-300">
+                          {t('happiness_audit_3d.home_office_days', { defaultValue: 'Home office days / week' })}
+                          <input
+                            type="range"
+                            min={0}
+                            max={5}
+                            step={1}
+                            value={happinessAuditInput.home_office_days}
+                            onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, home_office_days: Number(e.target.value) || 0 }))}
+                            className="mt-2 w-full"
+                          />
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.home_office_days} / 5</div>
+                        </label>
+                        <label className="text-sm text-slate-700 dark:text-slate-300">
+                          {t('happiness_audit_3d.commute_minutes', { defaultValue: 'Commute minutes per day' })}
+                          <input
+                            type="range"
+                            min={0}
+                            max={180}
+                            step={5}
+                            value={happinessAuditInput.commute_minutes_daily}
+                            onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, commute_minutes_daily: Number(e.target.value) || 0 }))}
+                            className="mt-2 w-full"
+                          />
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.commute_minutes_daily} min/day</div>
+                        </label>
+                        <label className="text-sm text-slate-700 dark:text-slate-300">
+                          {t('happiness_audit_3d.energy', { defaultValue: 'Subjective energy' })}
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            step={5}
+                            value={happinessAuditInput.subjective_energy}
+                            onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, subjective_energy: Number(e.target.value) || 0 }))}
+                            className="mt-2 w-full"
+                          />
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.subjective_energy}/100</div>
+                        </label>
+                        <label className="text-sm text-slate-700 dark:text-slate-300">
+                          {t('happiness_audit_3d.role_shift', { defaultValue: 'Role drift indicator' })}
+                          <input
+                            type="range"
+                            min={0}
+                            max={100}
+                            step={5}
+                            value={happinessAuditInput.role_shift}
+                            onChange={(e) => setHappinessAuditInput((prev) => ({ ...prev, role_shift: Number(e.target.value) || 0 }))}
+                            className="mt-2 w-full"
+                          />
+                          <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{happinessAuditInput.role_shift}/100</div>
+                        </label>
+                      </div>
+                    </div>
+                  </fieldset>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900/40">
+                      <div className="text-xs uppercase tracking-wider text-cyan-600 dark:text-cyan-400 mb-2">Life-Sustainability Orbit</div>
+                      {enableLive3D ? (
+                        <SceneShell
+                          capability={sceneCapability}
+                          enableControls
+                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">3D fallback mode.</div>}
+                        >
+                          <LifeSustainabilityOrbit output={happinessAuditOutput} />
+                        </SceneShell>
+                      ) : (
+                        <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
+                          Live 3D disabled.
+                        </div>
+                      )}
+                    </div>
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900/40">
+                      <div className="text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2">Career Anchor vs Drift</div>
+                      {enableLive3D ? (
+                        <SceneShell
+                          capability={sceneCapability}
+                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">3D fallback mode.</div>}
+                        >
+                          <CareerAnchorDrift output={happinessAuditOutput} />
+                        </SceneShell>
+                      ) : (
+                        <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
+                          Live 3D disabled.
+                        </div>
+                      )}
+                    </div>
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900/40">
+                      <div className="text-xs uppercase tracking-wider text-indigo-600 dark:text-indigo-400 mb-2">The Narrative Mirror</div>
+                      {enableLive3D ? (
+                        <SceneShell
+                          capability={sceneCapability}
+                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">3D fallback mode.</div>}
+                        >
+                          <NebulaOfPotential frame={narrativeFrame} />
+                        </SceneShell>
+                      ) : (
+                        <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
+                          Live 3D disabled.
+                        </div>
+                      )}
+                    </div>
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-700 p-3 bg-slate-50 dark:bg-slate-900/40">
+                      <div className="text-xs uppercase tracking-wider text-amber-600 dark:text-amber-400 mb-2">The Cultural Northstar</div>
+                      {enableLive3D ? (
+                        <SceneShell
+                          capability={sceneCapability}
+                          fallback={<div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">3D fallback mode.</div>}
+                        >
+                          <CulturalNorthstarCompass
+                            alignmentScore={culturalAlignment}
+                            individualVsTeam={culturalCompass.individualVsTeam}
+                            chaosVsStructure={culturalCompass.chaosVsStructure}
+                          />
+                        </SceneShell>
+                      ) : (
+                        <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 p-3 text-xs text-slate-500">
+                          Live 3D disabled.
+                        </div>
+                      )}
+                      <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                        Cultural alignment: {culturalAlignment}% · mismatch: {culturalMismatch}%
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-slate-200 dark:border-slate-700 p-3 bg-white dark:bg-slate-900">
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white mb-2">
+                      {isSimulatingAudit
+                        ? t('happiness_audit_3d.simulating', { defaultValue: 'Simulating...' })
+                        : t('happiness_audit_3d.results', { defaultValue: 'Audit output' })}
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                      <div><span className="text-slate-500">Time ring</span><div className="font-bold">{happinessAuditOutput?.time_ring ?? 0}/100</div></div>
+                      <div><span className="text-slate-500">Energy ring</span><div className="font-bold">{happinessAuditOutput?.energy_ring ?? 0}/100</div></div>
+                      <div><span className="text-slate-500">Sustainability</span><div className="font-bold">{happinessAuditOutput?.sustainability_score ?? 0}/100</div></div>
+                      <div><span className="text-slate-500">Drift</span><div className="font-bold">{happinessAuditOutput?.drift_score ?? 0}/100</div></div>
+                    </div>
+                    <ul className="mt-3 space-y-1 text-sm text-slate-700 dark:text-slate-300">
+                      {(happinessAuditOutput?.recommendations || []).map((item) => (
+                        <li key={item}>• {item}</li>
+                      ))}
+                    </ul>
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
+                      {happinessAuditOutput?.advisory_disclaimer || t('ai_advisory.default', { defaultValue: 'AI recommendation only. Final decision is yours.' })}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

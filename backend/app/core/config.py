@@ -26,7 +26,7 @@ def _resolve_secret_key() -> str:
     )
 
 # API Base URL
-API_BASE_URL = os.getenv("API_BASE_URL", "https://jobshaman-cz.onrender.com")
+API_BASE_URL = os.getenv("API_BASE_URL", "https://jobshaman-cz-8d0p.onrender.com")
 # Public site URL (for canonical/sitemap)
 APP_PUBLIC_URL = os.getenv("APP_PUBLIC_URL", "https://jobshaman.cz")
 

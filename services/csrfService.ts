@@ -81,7 +81,8 @@ const shouldBypassBackendCooldown = (path: string): boolean => {
     return (
         path === '/jobs/hybrid-search' ||
         path === '/jobs/hybrid-search-v2' ||
-        path === '/jobs/interactions'
+        path === '/jobs/interactions' ||
+        path === '/jobs/interactions/state'
     );
 };
 

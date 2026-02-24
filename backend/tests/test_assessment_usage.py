@@ -180,12 +180,51 @@ def test_submit_increments_usage_and_subscription_status(mock_supabase):
         'invitation_id': invitation_id,
         'assessment_id': 'asm_1',
         'role': 'Candidate',
-        'difficulty': 'Senior',
+        'difficulty': 'Journey',
         'questions_total': 3,
-        'questions_correct': 2,
-        'score': 66.6,
         'time_spent_seconds': 120,
-        'answers': { '0': 'a', '1': 'b' },
+        'answers': {
+            'journey_version': 'journey-v1',
+            'technical': { '0': 'a', '1': 'b' },
+            'psychometric': {},
+            'decision_pattern': {
+                'structured_vs_improv': 60,
+                'risk_tolerance': 52,
+                'sequential_vs_parallel': 58,
+                'stakeholder_orientation': 64,
+                'uncertainty_markers': []
+            },
+            'behavioral_consistency': {
+                'recurring_motifs': [],
+                'consistency_pairs': [],
+                'preference_scenario_tensions': []
+            },
+            'energy_balance': {
+                'enthusiasm_markers': [],
+                'exhaustion_markers': [],
+                'must_vs_want_ratio': 1.0,
+                'locus_of_control': 'mixed',
+                'monthly_energy_hours_left': 72
+            },
+            'cultural_orientation': {
+                'transparency': 'high',
+                'conflict_response': 'direct',
+                'hierarchy_vs_autonomy': 'autonomy',
+                'process_vs_outcome': 'process',
+                'stability_vs_dynamics': 'dynamic'
+            },
+            'journey_trace': {'phase_events': [], 'micro_insights': [], 'mode_switches': []},
+            'final_profile': {
+                'transferable_strengths': [],
+                'risk_zones': [],
+                'amplify_environments': [],
+                'drain_environments': []
+            },
+            'ai_disclaimer': {'text': 'AI poskytuje interpretaci vzorců. Rozhodnutí je na vás.', 'shown_at_phase': [1,2,3,4,5]},
+            'assessment_mode_used': 'classic',
+            'mode_switch_count': 0,
+            'mode_switch_timestamps': []
+        },
     })
 
     assert res.status_code == 200

@@ -65,11 +65,50 @@ class AssessmentResultRequest(BaseModel):
     role: str
     difficulty: str
     questions_total: int
-    questions_correct: int
-    score: float
     time_spent_seconds: int
     answers: dict
     feedback: Optional[str] = None
+
+
+class AssessmentJourneyAnalyzeAnswerRequest(BaseModel):
+    phase: int = Field(..., ge=1, le=5)
+    question_text: str = Field(..., min_length=1, max_length=4000)
+    answer: str = Field(default="", max_length=12000)
+    answers_so_far: List[str] = Field(default_factory=list, max_length=50)
+
+
+class AssessmentJourneyFinalizeRequest(BaseModel):
+    answers: List[str] = Field(default_factory=list, max_length=80)
+
+
+class AssessmentRealtimeSignalsRequest(BaseModel):
+    chunks: List[str] = Field(default_factory=list, max_length=30)
+    unlocked_skills: List[str] = Field(default_factory=list, max_length=50)
+    narrative_integrity: float = Field(default=50, ge=0, le=100)
+
+
+class AssessmentCultureResonanceRequest(BaseModel):
+    candidate_answers: List[str] = Field(default_factory=list, max_length=30)
+    company_values: List[str] = Field(default_factory=list, max_length=30)
+
+
+class AssessmentGalaxyEvaluateNodeRequest(BaseModel):
+    question_id: str = Field(..., min_length=1, max_length=128)
+    question_text: str = Field(..., min_length=1, max_length=4000)
+    category: Literal["Technical", "Situational", "Practical", "Logic"] = "Technical"
+    answer: str = Field(default="", max_length=12000)
+    metadata: Optional[dict] = None
+
+
+class HappinessAuditSimulateRequest(BaseModel):
+    salary: float = Field(..., ge=0)
+    tax_profile: Optional[dict] = None
+    commute_minutes_daily: int = Field(..., ge=0, le=600)
+    commute_cost: float = Field(..., ge=0)
+    work_mode: Literal["remote", "hybrid", "onsite"] = "onsite"
+    subjective_energy: int = Field(..., ge=0, le=100)
+    home_office_days: int = Field(default=0, ge=0, le=5)
+    role_shift: int = Field(default=0, ge=0, le=100)
 
 class JobInteractionRequest(BaseModel):
     job_id: int

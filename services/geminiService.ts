@@ -234,10 +234,11 @@ export const evaluateAssessmentResult = async (
   role: string,
   difficulty: string,
   questions: { id: string; text: string }[],
-  answers: { questionId: string; answer: string }[]
+  answers: { questionId: string; answer: string }[],
+  journeyContext?: Record<string, unknown> | null
 ): Promise<AssessmentEvaluation> => {
   try {
-    const payload = await callAiExecute('evaluate_assessment_result', { role, difficulty, questions, answers });
+    const payload = await callAiExecute('evaluate_assessment_result', { role, difficulty, questions, answers, journey_context: journeyContext || null });
     if (payload?.evaluation) return payload.evaluation as AssessmentEvaluation;
     throw new Error('Invalid assessment evaluation payload');
   } catch (e) {

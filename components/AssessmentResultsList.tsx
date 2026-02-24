@@ -4,7 +4,7 @@ import { AssessmentResult } from '../types';
 import { evaluateAssessmentResult } from '../services/geminiService';
 import { Sparkles, ChevronDown, ChevronUp, CheckCircle, AlertCircle, FileText, Eye } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import AssessmentPreviewModal from './AssessmentPreviewModal';
+import { openAssessmentPreviewPage } from '../services/assessmentPreviewNavigation';
 
 interface Props {
     companyId: string;
@@ -16,6 +16,54 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
     const [loading, setLoading] = useState(true);
     const [evaluatingId, setEvaluatingId] = useState<string | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
+    const normalizeAnswers = (raw: any, feedbackRaw?: string): Array<{ questionId: string; answer: string }> => {
+        const feedbackPayload = (() => {
+            if (!feedbackRaw) return null;
+            try {
+                return JSON.parse(feedbackRaw);
+            } catch {
+                return null;
+            }
+        })();
+        const mergedRaw = raw ?? feedbackPayload?.assessment_payload ?? feedbackPayload?.answers ?? null;
+
+        if (Array.isArray(mergedRaw)) {
+            return mergedRaw.map((item, idx) => ({
+                questionId: String(item?.questionId || `q_${idx + 1}`),
+                answer: String(item?.answer || ''),
+            }));
+        }
+        if (mergedRaw && typeof mergedRaw === 'object' && mergedRaw.technical && typeof mergedRaw.technical === 'object') {
+            return Object.entries(mergedRaw.technical).map(([questionId, answer]) => ({
+                questionId,
+                answer: String(answer || ''),
+            }));
+        }
+        return [];
+    };
+
+    const extractJourneyPayload = (raw: any, feedbackRaw?: string): any => {
+        const feedbackPayload = (() => {
+            if (!feedbackRaw) return null;
+            try {
+                return JSON.parse(feedbackRaw);
+            } catch {
+                return null;
+            }
+        })();
+        if (raw && typeof raw === 'object' && raw.decision_pattern) return raw;
+        const embedded = feedbackPayload?.assessment_payload;
+        if (embedded && typeof embedded === 'object' && embedded.decision_pattern) return embedded;
+        return null;
+    };
+
+    const mapQualityFlag = (flag: string): string => {
+        if (flag === 'short_answer') return t('assessment.results.quality_flag_short_answer', { defaultValue: 'Krátké odpovědi' });
+        if (flag === 'low_specificity') return t('assessment.results.quality_flag_low_specificity', { defaultValue: 'Nízká konkrétnost' });
+        if (flag === 'high_uncertainty') return t('assessment.results.quality_flag_high_uncertainty', { defaultValue: 'Vyšší nejistota v odpovědích' });
+        if (flag === 'style_shift') return t('assessment.results.quality_flag_style_shift', { defaultValue: 'Posun stylu mezi checkpointy' });
+        return flag;
+    };
 
     useEffect(() => {
         loadResults();
@@ -49,13 +97,16 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
                 .eq('id', result.assessment_id)
                 .single();
 
-            const questions = assessmentData?.questions || result.answers.map(a => ({ id: a.questionId, text: `${t('assessment.results.question_fallback')} ` + a.questionId })); // Fallback
+            const normalizedAnswers = normalizeAnswers(result.answers, result.feedback);
+            const journeyPayload = extractJourneyPayload(result.answers, result.feedback);
+            const questions = assessmentData?.questions || normalizedAnswers.map(a => ({ id: a.questionId, text: `${t('assessment.results.question_fallback')} ` + a.questionId })); // Fallback
 
             const evaluation = await evaluateAssessmentResult(
                 result.role,
                 result.difficulty,
                 questions,
-                result.answers
+                normalizedAnswers,
+                journeyPayload
             );
 
             // 3. Save to Supabase using RPC
@@ -84,8 +135,6 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
         }
     };
 
-    const [previewAssessment, setPreviewAssessment] = useState<any | null>(null);
-
     const handlePreview = async (result: AssessmentResult) => {
         try {
             if (!supabase) return;
@@ -97,7 +146,7 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
 
             if (error) throw error;
             if (assessmentData) {
-                setPreviewAssessment(assessmentData);
+                openAssessmentPreviewPage(assessmentData);
             }
         } catch (e) {
             console.error("Failed to load assessment for preview:", e);
@@ -124,7 +173,7 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
 
             <div className="grid gap-4">
                 {results.map(result => (
-                    <div key={result.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm transition-all">
+                    <div key={result.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm transition-all journey-panel-enter">
                         <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <div>
                                 <div className="flex items-center gap-2 mb-1">
@@ -132,7 +181,7 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
                                     <span className="px-2 py-0.5 rounded-full text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">{result.difficulty}</span>
                                 </div>
                                 <div className="text-sm text-slate-500 dark:text-slate-400">
-                                    {t('assessment.results.score')} <span className="font-mono font-bold text-slate-900 dark:text-white">{result.score}%</span> •
+                                    Journey v1 profil •
                                     {new Date(result.completed_at).toLocaleDateString()}
                                 </div>
                             </div>
@@ -140,10 +189,11 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={(e) => { e.stopPropagation(); handlePreview(result); }}
-                                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+                                    className="px-3 py-2 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded-lg text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors text-xs font-semibold inline-flex items-center gap-2 border border-slate-200 dark:border-slate-700"
                                     title={t('assessment.results.preview_title')}
                                 >
                                     <Eye size={20} />
+                                    <span className="hidden md:inline">{t('assessment.results.preview_title')}</span>
                                 </button>
 
                                 {!result.ai_evaluation ? (
@@ -175,6 +225,54 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
                             <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-6 animate-in slide-in-from-top-2">
                                 {result.ai_evaluation ? (
                                     <div className="grid md:grid-cols-2 gap-6">
+                                        {(() => {
+                                            const journey = extractJourneyPayload(result.answers, result.feedback);
+                                            if (!journey) return null;
+                                            const finalProfile = journey.final_profile || {};
+                                            const qualitySummary = journey.journey_trace?.response_quality?.summary || null;
+                                            return (
+                                                <div className="md:col-span-2 rounded-xl border border-cyan-200 dark:border-cyan-800 bg-cyan-50/70 dark:bg-slate-900/55 p-4">
+                                                    <h4 className="text-xs font-bold text-cyan-700 dark:text-cyan-300 uppercase tracking-widest mb-2">{t('assessment.results.journey_highlights')}</h4>
+                                                    <div className="grid md:grid-cols-2 gap-3 text-sm text-slate-700 dark:text-slate-200">
+                                                        <div>
+                                                            <div className="font-semibold text-cyan-800 dark:text-cyan-100">{t('assessment.results.journey_decision_pattern')}</div>
+                                                            <div>Struktura {journey.decision_pattern?.structured_vs_improv ?? '-'} / Stakeholder {journey.decision_pattern?.stakeholder_orientation ?? '-'}</div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-semibold text-cyan-800 dark:text-cyan-100">{t('assessment.results.journey_energy_balance')}</div>
+                                                            <div>{journey.energy_balance?.monthly_energy_hours_left ?? '-'} hodin energie/měsíc</div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-semibold text-cyan-800 dark:text-cyan-100">{t('assessment.results.journey_transferable_strengths')}</div>
+                                                            <div>{(finalProfile.transferable_strengths || []).slice(0, 2).join(' • ') || '—'}</div>
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-semibold text-cyan-800 dark:text-cyan-100">{t('assessment.results.journey_risk_zones')}</div>
+                                                            <div>{(finalProfile.risk_zones || []).slice(0, 2).join(' • ') || '—'}</div>
+                                                        </div>
+                                                    </div>
+                                                            {qualitySummary && (
+                                                        <div className="mt-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/70 p-3">
+                                                            <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300">
+                                                                {t('assessment.results.quality_title', { defaultValue: 'Kvalita podkladů pro nábor' })}
+                                                            </div>
+                                                            <div className="mt-1 text-sm text-slate-700 dark:text-slate-200">
+                                                                {t('assessment.results.quality_signal', { defaultValue: 'Signál' })} {qualitySummary.signal_quality}/100 • {t('assessment.results.quality_consistency', { defaultValue: 'Konzistence' })} {qualitySummary.consistency_index}/100 • {t('assessment.results.quality_depth', { defaultValue: 'Hloubka' })} {qualitySummary.response_depth_avg}/100
+                                                            </div>
+                                                            {Array.isArray(qualitySummary.follow_up_flags) && qualitySummary.follow_up_flags.length > 0 && (
+                                                                <div className="mt-2 flex flex-wrap gap-1.5">
+                                                                    {qualitySummary.follow_up_flags.map((flag: string) => (
+                                                                        <span key={flag} className="rounded-full border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 text-[11px] text-amber-700 dark:text-amber-300">
+                                                                            {mapQualityFlag(flag)}
+                                                                        </span>
+                                                                    ))}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
                                         {/* Recommendation Box */}
                                         {result.ai_evaluation.recommendation && (
                                             <div className="md:col-span-2 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-4">
@@ -259,7 +357,7 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
                                 <div className="mt-6 pt-4 border-t border-slate-200 dark:border-slate-800">
                                     <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">{t('assessment.results.detailed_answers')}</h4>
                                     <div className="space-y-3">
-                                        {result.answers.map((ans, idx) => (
+                                        {normalizeAnswers(result.answers, result.feedback).map((ans, idx) => (
                                             <div key={idx} className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
                                                 <div className="text-xs font-bold text-slate-400 mb-1">{t('assessment.results.question_label')} {idx + 1}</div>
                                                 <div className="text-sm font-mono text-slate-700 dark:text-slate-300 mb-2">{ans.answer}</div>
@@ -279,13 +377,6 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
                     </div>
                 ))}
             </div>
-
-            {previewAssessment && (
-                <AssessmentPreviewModal
-                    assessment={previewAssessment}
-                    onClose={() => setPreviewAssessment(null)}
-                />
-            )}
         </div>
     );
 };

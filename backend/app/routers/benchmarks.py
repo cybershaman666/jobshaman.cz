@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ..core.database import supabase
 from ..core.security import require_company_access, verify_subscription
+from ..models.requests import HappinessAuditSimulateRequest
 
 router = APIRouter()
 
@@ -19,6 +20,42 @@ MIN_VARIANCE_SAMPLE = 8
 CONFIDENCE_LOW_THRESHOLD = 45
 CONFIDENCE_MEDIUM_THRESHOLD = 70
 MIN_PEER_COMPANIES = 8
+
+
+@router.post("/audit/happiness/simulate")
+async def simulate_happiness_audit(payload: HappinessAuditSimulateRequest):
+    # Time ring penalizes long commute and low home-office flexibility.
+    effective_commute = max(0, payload.commute_minutes_daily - (payload.home_office_days * 12))
+    time_ring = min(100, round((effective_commute / 120) * 100))
+
+    # Energy ring mixes subjective energy with financial friction.
+    net_pressure = 0.0
+    if payload.salary > 0:
+        net_pressure = min(1.0, payload.commute_cost / payload.salary)
+    energy_load = (100 - payload.subjective_energy) * 0.65 + (net_pressure * 100) * 0.35
+    energy_ring = min(100, round(energy_load))
+
+    sustainability_score = max(0, min(100, round(100 - (time_ring * 0.45 + energy_ring * 0.55))))
+    drift_score = max(0, min(100, round((payload.role_shift * 0.6) + (time_ring * 0.25) + (energy_ring * 0.15))))
+
+    recommendations: list[str] = []
+    if time_ring >= 70:
+        recommendations.append("Dojíždění výrazně zatěžuje časovou udržitelnost. Zvažte více home-office dní.")
+    if energy_ring >= 70:
+        recommendations.append("Energetická zátěž je vysoká. Ověřte rozsah povinností a tempo práce.")
+    if drift_score >= 65:
+        recommendations.append("Role drift je výrazný. Zaměřte se na roli bližší vašemu reálnému potenciálu.")
+    if not recommendations:
+        recommendations.append("Profil je stabilní. Sledujte trend v čase při změně podmínek práce.")
+
+    return {
+        "time_ring": time_ring,
+        "energy_ring": energy_ring,
+        "sustainability_score": sustainability_score,
+        "drift_score": drift_score,
+        "recommendations": recommendations,
+        "advisory_disclaimer": "AI recommendation only. This is a decision support output, not an approval/rejection.",
+    }
 
 
 def _utc_now() -> datetime:
@@ -537,7 +574,138 @@ def _parse_status(value: Any) -> str:
     return str(value or "").strip().lower()
 
 
+def _clamp(value: float, lo: float, hi: float) -> float:
+    return max(lo, min(hi, value))
+
+
+def _months_between(start: datetime, end: datetime) -> float:
+    if end < start:
+        return 0.0
+    return max(0.0, (end - start).total_seconds() / (86400.0 * 30.4375))
+
+
+def _extract_interval_months(item: Dict[str, Any], now: datetime) -> Optional[float]:
+    start_candidates = ["start_date", "start", "from", "date_from", "since"]
+    end_candidates = ["end_date", "end", "to", "date_to", "until"]
+
+    start_dt = None
+    end_dt = None
+
+    for key in start_candidates:
+        start_dt = _parse_dt(item.get(key))
+        if start_dt:
+            break
+    for key in end_candidates:
+        end_dt = _parse_dt(item.get(key))
+        if end_dt:
+            break
+
+    if not start_dt:
+        return None
+
+    if not end_dt:
+        end_dt = now
+
+    return _months_between(start_dt, end_dt)
+
+
+def _flight_risk_from_features(
+    candidate_profile: Dict[str, Any],
+    apps_90d: int,
+    hired_365d: int,
+    assessments_365d: int,
+    now: datetime,
+) -> Dict[str, Any]:
+    score = 50.0
+    factors: List[Dict[str, Any]] = []
+
+    def apply(delta: float, reason: str) -> None:
+        nonlocal score
+        score += delta
+        factors.append({
+            "reason": reason,
+            "impact_points": round(delta, 2),
+        })
+
+    cv_text = str(candidate_profile.get("cv_text") or "").strip()
+    cv_url = str(candidate_profile.get("cv_url") or "").strip()
+    has_cv = bool(cv_text or cv_url)
+    apply(-10.0 if has_cv else 10.0, "CV dostupné (text nebo soubor)" if has_cv else "Chybí CV")
+
+    skills = candidate_profile.get("skills")
+    skills_count = len(skills) if isinstance(skills, list) else 0
+    if skills_count >= 8:
+        apply(-8.0, f"Silný profil dovedností ({skills_count})")
+    elif skills_count >= 4:
+        apply(-4.0, f"Střední profil dovedností ({skills_count})")
+    elif skills_count <= 1:
+        apply(6.0, f"Nízký počet dovedností ({skills_count})")
+
+    work_history = candidate_profile.get("work_history")
+    history_items = work_history if isinstance(work_history, list) else []
+    if not history_items:
+        apply(10.0, "Chybí pracovní historie")
+    else:
+        tenures: List[float] = []
+        for item in history_items:
+            if isinstance(item, dict):
+                months = _extract_interval_months(item, now)
+                if months is not None:
+                    tenures.append(months)
+        if len(history_items) >= 3:
+            apply(-4.0, f"Dostatečná pracovní historie ({len(history_items)} rolí)")
+        if tenures:
+            avg_tenure = mean(tenures)
+            if avg_tenure < 12:
+                apply(18.0, f"Krátká průměrná délka angažmá ({avg_tenure:.1f} měs.)")
+            elif avg_tenure < 24:
+                apply(8.0, f"Spíše kratší délka angažmá ({avg_tenure:.1f} měs.)")
+            elif avg_tenure >= 36:
+                apply(-8.0, f"Dlouhodobější stabilita ({avg_tenure:.1f} měs.)")
+
+    job_title = str(candidate_profile.get("job_title") or "").strip()
+    apply(-4.0 if job_title else 3.0, "Vyplněný profesní titul" if job_title else "Chybí profesní titul")
+
+    phone = str(candidate_profile.get("phone") or "").strip()
+    if phone:
+        apply(-2.0, "Vyplněný kontaktní telefon")
+
+    if apps_90d >= 30:
+        apply(18.0, f"Velmi vysoká aktivita přihlášek za 90 dní ({apps_90d})")
+    elif apps_90d >= 15:
+        apply(10.0, f"Vysoká aktivita přihlášek za 90 dní ({apps_90d})")
+    elif apps_90d >= 8:
+        apply(5.0, f"Zvýšená aktivita přihlášek za 90 dní ({apps_90d})")
+    elif apps_90d <= 2:
+        apply(-4.0, f"Nízká aktivita přihlášek za 90 dní ({apps_90d})")
+
+    if hired_365d > 0:
+        apply(-6.0, f"Historie dokončeného náboru za 365 dní ({hired_365d})")
+
+    if assessments_365d > 0:
+        apply(-3.0, f"Dokončené assessmenty za 365 dní ({assessments_365d})")
+
+    clamped = _clamp(score, 0.0, 100.0)
+    if clamped <= 33:
+        tier = "Low"
+    elif clamped <= 66:
+        tier = "Medium"
+    else:
+        tier = "High"
+
+    # Keep strongest contributors for compact UI.
+    top_factors = sorted(factors, key=lambda f: abs(float(f["impact_points"])), reverse=True)[:5]
+
+    return {
+        "score": round(clamped, 1),
+        "tier": tier,
+        "breakdown": top_factors,
+        "method_version": "flight-risk-v1",
+    }
+
+
 @router.get("/company/benchmarks/candidate")
+@router.get("/benchmarks/company/candidate")
 async def get_company_candidate_benchmarks(
     company_id: str = Query(...),
     job_id: Optional[str] = Query(None),
@@ -566,7 +734,7 @@ async def get_company_candidate_benchmarks(
     ass_query = (
         supabase
         .table("assessment_results")
-        .select("candidate_id,score_percent,score,completed_at,job_id,company_id")
+        .select("candidate_id,journey_quality_index,journey_payload,decision_pattern,energy_balance,cultural_orientation,completed_at,job_id,company_id")
         .eq("company_id", company_id)
         .gte("completed_at", since_iso)
     )
@@ -583,9 +751,21 @@ async def get_company_candidate_benchmarks(
     assessment_scores: List[float] = []
     assessment_recency: List[float] = []
     for row in assessments:
-        score = _safe_float(row.get("score_percent"))
+        score = _safe_float(row.get("journey_quality_index"))
         if score is None:
-            score = _safe_float(row.get("score"))
+            payload = row.get("journey_payload") if isinstance(row.get("journey_payload"), dict) else {}
+            decision = payload.get("decision_pattern") if isinstance(payload.get("decision_pattern"), dict) else (row.get("decision_pattern") if isinstance(row.get("decision_pattern"), dict) else {})
+            energy = payload.get("energy_balance") if isinstance(payload.get("energy_balance"), dict) else (row.get("energy_balance") if isinstance(row.get("energy_balance"), dict) else {})
+            culture = payload.get("cultural_orientation") if isinstance(payload.get("cultural_orientation"), dict) else (row.get("cultural_orientation") if isinstance(row.get("cultural_orientation"), dict) else {})
+            decision_avg = mean([
+                _safe_float(decision.get("structured_vs_improv"), 50.0),
+                _safe_float(decision.get("risk_tolerance"), 50.0),
+                _safe_float(decision.get("sequential_vs_parallel"), 50.0),
+                _safe_float(decision.get("stakeholder_orientation"), 50.0),
+            ])
+            energy_component = min(100.0, _safe_float(energy.get("monthly_energy_hours_left"), 80.0))
+            culture_component = float(sum(1 for key in ["transparency", "conflict_response", "hierarchy_vs_autonomy", "process_vs_outcome", "stability_vs_dynamics"] if str(culture.get(key) or "").strip()) * 20)
+            score = round((decision_avg * 0.5) + (energy_component * 0.3) + (culture_component * 0.2), 2)
         if score is None:
             continue
         assessment_scores.append(score)
@@ -656,7 +836,7 @@ async def get_company_candidate_benchmarks(
     all_assess_resp = (
         supabase
         .table("assessment_results")
-        .select("company_id,score_percent,score,completed_at")
+        .select("company_id,journey_quality_index,journey_payload,decision_pattern,energy_balance,cultural_orientation,completed_at")
         .gte("completed_at", since_iso)
         .limit(10000)
         .execute()
@@ -668,9 +848,21 @@ async def get_company_candidate_benchmarks(
         cid = str(row.get("company_id") or "")
         if not cid:
             continue
-        score = _safe_float(row.get("score_percent"))
+        score = _safe_float(row.get("journey_quality_index"))
         if score is None:
-            score = _safe_float(row.get("score"))
+            payload = row.get("journey_payload") if isinstance(row.get("journey_payload"), dict) else {}
+            decision = payload.get("decision_pattern") if isinstance(payload.get("decision_pattern"), dict) else (row.get("decision_pattern") if isinstance(row.get("decision_pattern"), dict) else {})
+            energy = payload.get("energy_balance") if isinstance(payload.get("energy_balance"), dict) else (row.get("energy_balance") if isinstance(row.get("energy_balance"), dict) else {})
+            culture = payload.get("cultural_orientation") if isinstance(payload.get("cultural_orientation"), dict) else (row.get("cultural_orientation") if isinstance(row.get("cultural_orientation"), dict) else {})
+            decision_avg = mean([
+                _safe_float(decision.get("structured_vs_improv"), 50.0),
+                _safe_float(decision.get("risk_tolerance"), 50.0),
+                _safe_float(decision.get("sequential_vs_parallel"), 50.0),
+                _safe_float(decision.get("stakeholder_orientation"), 50.0),
+            ])
+            energy_component = min(100.0, _safe_float(energy.get("monthly_energy_hours_left"), 80.0))
+            culture_component = float(sum(1 for key in ["transparency", "conflict_response", "hierarchy_vs_autonomy", "process_vs_outcome", "stability_vs_dynamics"] if str(culture.get(key) or "").strip()) * 20)
+            score = round((decision_avg * 0.5) + (energy_component * 0.3) + (culture_component * 0.2), 2)
         if score is None:
             continue
         scores_by_company.setdefault(cid, []).append(score)
@@ -817,6 +1009,7 @@ async def get_company_candidate_benchmarks(
 
 
 @router.get("/company/candidates")
+@router.get("/benchmarks/company/candidates")
 async def get_company_candidates(
     company_id: str = Query(...),
     limit: int = Query(500, ge=1, le=2000),
@@ -830,13 +1023,67 @@ async def get_company_candidates(
     resp = (
         supabase
         .table("profiles")
-        .select("id,full_name,email,role,created_at,candidate_profiles(job_title,skills,work_history,values)")
+        .select("id,full_name,email,role,created_at,candidate_profiles(job_title,skills,work_history,values,cv_text,cv_url,phone)")
         .eq("role", "candidate")
         .order("created_at", desc=True)
         .limit(limit)
         .execute()
     )
     rows = resp.data or []
+    candidate_ids = [str(r.get("id")) for r in rows if r.get("id")]
+
+    now = _utc_now()
+    since_90_dt = now - timedelta(days=90)
+    since_90 = _to_iso(since_90_dt)
+    since_365 = _to_iso(now - timedelta(days=365))
+
+    apps_by_candidate: Dict[str, Dict[str, int]] = {}
+    assessments_by_candidate: Dict[str, int] = {}
+
+    def _chunk(values: List[str], size: int) -> List[List[str]]:
+        return [values[i:i + size] for i in range(0, len(values), size)]
+
+    for chunk_ids in _chunk(candidate_ids, 100):
+        apps_resp = (
+            supabase
+            .table("job_applications")
+            .select("candidate_id,created_at,status")
+            .in_("candidate_id", chunk_ids)
+            .gte("created_at", since_365)
+            .limit(10000)
+            .execute()
+        )
+        for app in (apps_resp.data or []):
+            cid = str(app.get("candidate_id") or "")
+            if not cid:
+                continue
+            stat = apps_by_candidate.setdefault(cid, {
+                "apps_90d": 0,
+                "apps_365d": 0,
+                "hired_365d": 0,
+            })
+            stat["apps_365d"] += 1
+            status = _parse_status(app.get("status"))
+            if status == "hired":
+                stat["hired_365d"] += 1
+            created = _parse_dt(app.get("created_at"))
+            if created and created >= since_90_dt:
+                stat["apps_90d"] += 1
+
+        ass_resp = (
+            supabase
+            .table("assessment_results")
+            .select("candidate_id,completed_at")
+            .in_("candidate_id", chunk_ids)
+            .gte("completed_at", since_365)
+            .limit(10000)
+            .execute()
+        )
+        for ass in (ass_resp.data or []):
+            cid = str(ass.get("candidate_id") or "")
+            if not cid:
+                continue
+            assessments_by_candidate[cid] = assessments_by_candidate.get(cid, 0) + 1
 
     def _name_from_row(row: Dict[str, Any]) -> str:
         full = str(row.get("full_name") or "").strip()
@@ -867,6 +1114,19 @@ async def get_company_candidates(
             "values": values if isinstance(values, list) else [],
             "createdAt": str(row.get("created_at") or ""),
         }
+        cid = mapped["id"]
+        app_stats = apps_by_candidate.get(cid, {"apps_90d": 0, "hired_365d": 0})
+        risk = _flight_risk_from_features(
+            candidate_profile=candidate_profile,
+            apps_90d=int(app_stats.get("apps_90d", 0)),
+            hired_365d=int(app_stats.get("hired_365d", 0)),
+            assessments_365d=int(assessments_by_candidate.get(cid, 0)),
+            now=now,
+        )
+        mapped["flightRisk"] = risk["tier"]
+        mapped["flightRiskScore"] = risk["score"]
+        mapped["flightRiskBreakdown"] = risk["breakdown"]
+        mapped["flightRiskMethodVersion"] = risk["method_version"]
         if mapped["id"]:
             candidates.append(mapped)
 
@@ -895,5 +1155,6 @@ async def get_benchmark_methodology():
             "coverage": "Assessment coverage shown as assessed/total",
             "peer_benchmark": "Peer groups by hiring volume band",
             "confidence_inputs": ["sample_size", "variance", "recency"],
+            "internal_index_note": "Assessment benchmark uses internal journey_quality_index derived from Journey payload. It is not shown as candidate personality score.",
         },
     }

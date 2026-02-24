@@ -352,6 +352,12 @@ export interface Candidate {
   bio: string;
   matchScore?: number; // AI calculated
   flightRisk: 'Low' | 'Medium' | 'High'; // Transparency metric
+  flightRiskScore?: number;
+  flightRiskBreakdown?: Array<{
+    reason: string;
+    impact_points: number;
+  }>;
+  flightRiskMethodVersion?: string;
   values: string[];
 }
 
@@ -511,7 +517,7 @@ export interface AssessmentResult {
   questions_correct: number;
   score: number;
   time_spent_seconds: number;
-  answers: { questionId: string; answer: string; isCorrect?: boolean }[];
+  answers?: { questionId: string; answer: string; isCorrect?: boolean }[] | Record<string, unknown>;
   feedback?: string;
   completed_at: string;
   ai_evaluation?: AssessmentEvaluation; // AI Feedback for Recruiter
@@ -527,6 +533,200 @@ export interface AssessmentEvaluation {
     feedback: string;
   }[];
   recommendation?: string; // Qualitative recommendation for the founder
+}
+
+export interface AssessmentSignalFrame {
+  timestamp: string;
+  unlocked_skills: string[];
+  narrative_integrity: number;
+  confidence: number;
+  evidence: string[];
+}
+
+export interface AssessmentJourneyDecisionPattern {
+  structured_vs_improv: number;
+  risk_tolerance: number;
+  sequential_vs_parallel: number;
+  stakeholder_orientation: number;
+  uncertainty_markers: string[];
+}
+
+export interface AssessmentJourneyBehavioralConsistency {
+  recurring_motifs: string[];
+  consistency_pairs: string[];
+  preference_scenario_tensions: string[];
+}
+
+export interface AssessmentJourneyEnergyBalance {
+  enthusiasm_markers: string[];
+  exhaustion_markers: string[];
+  must_vs_want_ratio: number;
+  locus_of_control: 'internal' | 'external' | 'mixed';
+  monthly_energy_hours_left: number;
+}
+
+export interface AssessmentJourneyCulturalOrientation {
+  transparency: string;
+  conflict_response: string;
+  hierarchy_vs_autonomy: string;
+  process_vs_outcome: string;
+  stability_vs_dynamics: string;
+}
+
+export interface AssessmentJourneyFinalProfile {
+  transferable_strengths: string[];
+  risk_zones: string[];
+  amplify_environments: string[];
+  drain_environments: string[];
+}
+
+export interface AssessmentJourneyTrace {
+  phase_events: Array<{
+    phase: 1 | 2 | 3 | 4 | 5;
+    event: string;
+    at: string;
+  }>;
+  micro_insights: Array<{
+    phase: 1 | 2 | 3 | 4 | 5;
+    text: string;
+    insight_type: string;
+    at: string;
+  }>;
+  mode_switches: Array<{
+    from: AssessmentMode;
+    to: AssessmentMode;
+    at: string;
+    step_index: number;
+  }>;
+  experience_meta?: {
+    experience_style: 'adventure_v1';
+    pace_mode: 'gentle';
+    personalization_mode: 'strong';
+  };
+  response_quality?: {
+    checkpoints: Array<{
+      checkpoint_index: number;
+      answer_depth: number;
+      specificity: number;
+      decisiveness: number;
+      consistency_hint: number;
+      dominant_zone: 'focus' | 'collab' | 'speed' | 'quality';
+      notes: string[];
+      at: string;
+    }>;
+    summary: {
+      signal_quality: number;
+      consistency_index: number;
+      response_depth_avg: number;
+      follow_up_flags: string[];
+    };
+  };
+}
+
+export type AssessmentNodeState =
+  | 'locked'
+  | 'available'
+  | 'active'
+  | 'completed_good'
+  | 'completed_weak'
+  | 'skipped';
+
+export interface AssessmentGalaxyNode {
+  id: string;
+  questionId: string;
+  category: 'Technical' | 'Situational' | 'Practical' | 'Logic';
+  state: AssessmentNodeState;
+  points: number;
+  maxPoints: number;
+  penaltyApplied: number;
+  position3d: [number, number, number];
+  position2d: { x: number; y: number };
+}
+
+export interface AssessmentGalaxyProgress {
+  totalPoints: number;
+  coverageByCategory: Record<'Technical' | 'Situational' | 'Practical' | 'Logic', number>;
+  centerUnlocked: boolean;
+  unlockReasons: string[];
+  lockReasons: string[];
+}
+
+export interface AssessmentJourneyPayloadV1 {
+  journey_version: 'journey-v1';
+  technical: Record<string, string>;
+  psychometric: Record<string, number>;
+  decision_pattern: AssessmentJourneyDecisionPattern;
+  behavioral_consistency: AssessmentJourneyBehavioralConsistency;
+  energy_balance: AssessmentJourneyEnergyBalance;
+  cultural_orientation: AssessmentJourneyCulturalOrientation;
+  journey_trace: AssessmentJourneyTrace;
+  final_profile: AssessmentJourneyFinalProfile;
+  ai_disclaimer: {
+    text: string;
+    shown_at_phase: Array<1 | 2 | 3 | 4 | 5>;
+  };
+  assessment_mode_used: AssessmentMode;
+  mode_switch_count: number;
+  mode_switch_timestamps: string[];
+}
+
+export type AssessmentMode = 'game' | 'classic';
+
+export interface AssessmentSessionPreference {
+  mode: AssessmentMode;
+  source: 'default' | 'user_toggle';
+  updated_at: string;
+}
+
+export interface CultureResonanceFrame {
+  candidate_vector: number[];
+  company_vector: number[];
+  match: number;
+  tension_points: string[];
+}
+
+export interface ThreeSceneCapability {
+  webgl: boolean;
+  reducedMotion: boolean;
+  qualityTier: 'low' | 'medium' | 'high';
+}
+
+export interface RealtimeSignalsResponse {
+  frames: AssessmentSignalFrame[];
+  merged_frame: AssessmentSignalFrame;
+}
+
+export interface GalaxyEvaluateNodeResponse {
+  quality_tier: 'strong' | 'acceptable' | 'weak';
+  points: number;
+  penalty: number;
+  evidence: string[];
+}
+
+export interface CultureResonanceResponse {
+  frame: CultureResonanceFrame;
+  recommendation: string;
+  disclaimer: string;
+}
+
+export interface HappinessAuditInput {
+  salary: number;
+  tax_profile?: TaxProfile;
+  commute_minutes_daily: number;
+  commute_cost: number;
+  work_mode: 'remote' | 'hybrid' | 'onsite';
+  subjective_energy: number;
+  home_office_days: number;
+  role_shift: number;
+}
+
+export interface HappinessAuditOutput {
+  time_ring: number;
+  energy_ring: number;
+  sustainability_score: number;
+  drift_score: number;
+  recommendations: string[];
+  advisory_disclaimer: string;
 }
 
 export type CandidateSubscriptionTier = 'free' | 'premium';

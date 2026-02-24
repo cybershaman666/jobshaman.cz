@@ -22,7 +22,7 @@ import JobListSidebar from './components/JobListSidebar';
 import PremiumUpgradeModal from './components/PremiumUpgradeModal';
 import { analyzeJobDescription } from './services/geminiService';
 import { calculateCommuteReality } from './services/commuteService';
-import { fetchJobById, fetchJobsByIds } from './services/jobService';
+import { fetchJobById, fetchJobsByIds, getJobCount, getTodayAnalyzedCount } from './services/jobService';
 import { clearJobCache } from './services/jobService';
 import { supabase, getUserProfile, updateUserProfile, verifyAuthSession } from './services/supabaseService';
 import { verifyServerSideBilling } from './services/serverSideBillingService';
@@ -77,6 +77,7 @@ const SavedJobsPage = lazy(() => import('./components/SavedJobsPage'));
 const JobDetailView = lazy(() => import('./components/JobDetailView'));
 const MobileSwipeJobBrowser = lazy(() => import('./components/MobileSwipeJobBrowser'));
 const InvitationLanding = lazy(() => import('./pages/InvitationLanding'));
+const AssessmentPreviewPage = lazy(() => import('./pages/AssessmentPreviewPage'));
 
 // JHI and formatting utilities now imported from utils/
 
@@ -117,6 +118,8 @@ export default function App() {
     const [aiAnalysis, setAiAnalysis] = useState<AIAnalysisResult | null>(null);
     const [analyzing, setAnalyzing] = useState(false);
     const [directlyFetchedJob, setDirectlyFetchedJob] = useState<Job | null>(null);
+    const [welcomeActiveJobsCount, setWelcomeActiveJobsCount] = useState<number | null>(null);
+    const [welcomeTodayReviewedCount, setWelcomeTodayReviewedCount] = useState<number | null>(null);
 
     // Cookie Consent State
     const [showCookieBanner, setShowCookieBanner] = useState(false);
@@ -178,6 +181,15 @@ export default function App() {
         deleteAccount,
         handleSessionRestoration
     } = useUserProfile();
+    const isImmersiveAssessmentRoute = (() => {
+        const supportedLocales = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
+        const parts = window.location.pathname.split('/').filter(Boolean);
+        if (parts.length > 0 && supportedLocales.includes(parts[0])) {
+            parts.shift();
+        }
+        const normalizedPath = `/${parts.join('/')}`;
+        return normalizedPath === '/assessment-preview' || normalizedPath.startsWith('/assessment/');
+    })();
     const userProfileRef = useRef<UserProfile>(userProfile);
 
     useEffect(() => {
@@ -469,6 +481,42 @@ export default function App() {
         }
         return personalized;
     }, [filteredJobs, sortBy, effectiveUserProfile.jhiPreferences]);
+
+    const todayNewJobsCount = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return jobsForDisplay.filter((job) => {
+            const posted = new Date(job.postedAt);
+            if (Number.isNaN(posted.getTime())) return false;
+            posted.setHours(0, 0, 0, 0);
+            return posted.getTime() === today.getTime();
+        }).length;
+    }, [jobsForDisplay]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const loadWelcomeStats = async () => {
+            try {
+                const [activeJobs, todayReviewed] = await Promise.all([
+                    getJobCount(),
+                    getTodayAnalyzedCount()
+                ]);
+                if (cancelled) return;
+                setWelcomeActiveJobsCount(Number.isFinite(activeJobs) ? activeJobs : 0);
+                setWelcomeTodayReviewedCount(Number.isFinite(todayReviewed) ? todayReviewed : 0);
+            } catch (error) {
+                if (!cancelled) {
+                    console.warn('Failed to load welcome stats:', error);
+                }
+            }
+        };
+
+        loadWelcomeStats();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     const savedJobsCacheKey = useMemo(
         () => `${SAVED_JOBS_CACHE_PREFIX}:${userProfile.id || 'guest'}`,
@@ -876,6 +924,7 @@ export default function App() {
                 || base === 'ochrana-osobnich-udaju'
                 || base === 'enterprise'
                 || base === 'assessment'
+                || base === 'assessment-preview'
                 || base === 'admin'
                 || base === 'digest';
             if (isExternalPage) return;
@@ -1576,9 +1625,16 @@ export default function App() {
                 <AdminDashboard userProfile={userProfile} />
             );
         }
-        if (pathname.startsWith('/assessment/')) {
+        if (normalizedPath === '/assessment-preview') {
             return (
-                <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+                <div className="h-full overflow-hidden">
+                    <AssessmentPreviewPage />
+                </div>
+            );
+        }
+        if (normalizedPath.startsWith('/assessment/')) {
+            return (
+                <div className="h-full overflow-hidden">
                     <InvitationLanding />
                 </div>
             );
@@ -1856,7 +1912,8 @@ export default function App() {
                             handleAnalyzeJob={handleAnalyzeJob}
                             selectedBlogPostSlug={selectedBlogPostSlug}
                             handleBlogPostSelect={handleBlogPostSelect}
-                            totalJobsCount={totalCount}
+                            totalJobsCount={welcomeActiveJobsCount ?? totalCount}
+                            todayNewJobsCount={welcomeTodayReviewedCount ?? todayNewJobsCount}
                             onApplyToJob={handleApplyToJob}
                             onOpenPremium={(featureLabel) => setShowPremiumUpgrade({ open: true, feature: featureLabel })}
                             onSaveOptimizedCv={handleSaveOptimizedCvToProfile}
@@ -1868,23 +1925,25 @@ export default function App() {
     };
 
     return (
-        <div className={`flex flex-col min-h-screen app-grid-bg text-slate-900 dark:text-white font-sans transition-colors duration-300 selection:bg-cyan-500/30 selection:text-cyan-900 dark:selection:text-cyan-100`}>
-            <AppHeader
-                viewState={viewState}
-                setViewState={setViewState}
-                setSelectedJobId={handleJobSelect}
-                showCompanyLanding={showCompanyLanding}
-                setShowCompanyLanding={setShowCompanyLanding}
-                userProfile={userProfile}
-                companyProfile={companyProfile}
-                handleAuthAction={handleAuthAction}
-                toggleTheme={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
-                theme={theme}
-                setIsOnboardingCompany={setIsOnboardingCompany}
-                onIntentionalListClick={() => { userIntentionallyClickedListRef.current = true; }}
-            />
+        <div className={`flex flex-col min-h-screen ${isImmersiveAssessmentRoute ? 'bg-slate-950 text-slate-100' : 'app-grid-bg text-slate-900 dark:text-white'} font-sans transition-colors duration-300 selection:bg-cyan-500/30 selection:text-cyan-900 dark:selection:text-cyan-100`}>
+            {!isImmersiveAssessmentRoute && (
+                <AppHeader
+                    viewState={viewState}
+                    setViewState={setViewState}
+                    setSelectedJobId={handleJobSelect}
+                    showCompanyLanding={showCompanyLanding}
+                    setShowCompanyLanding={setShowCompanyLanding}
+                    userProfile={userProfile}
+                    companyProfile={companyProfile}
+                    handleAuthAction={handleAuthAction}
+                    toggleTheme={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+                    theme={theme}
+                    setIsOnboardingCompany={setIsOnboardingCompany}
+                    onIntentionalListClick={() => { userIntentionallyClickedListRef.current = true; }}
+                />
+            )}
 
-            {!userProfile.isLoggedIn && pendingEmailConfirmation && (
+            {!isImmersiveAssessmentRoute && !userProfile.isLoggedIn && pendingEmailConfirmation && (
                 <div className="max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8">
                     <div className="mt-4 mb-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                         <div className="flex items-start gap-3">
@@ -1913,8 +1972,12 @@ export default function App() {
                 </div>
             )}
 
-            <main className="flex-1 min-h-0 max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 overflow-hidden">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100dvh-120px)]">
+            <main className={
+                isImmersiveAssessmentRoute
+                    ? "flex-1 min-h-0 w-full overflow-hidden"
+                    : "flex-1 min-h-0 max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 overflow-hidden"
+            }>
+                <div className={isImmersiveAssessmentRoute ? "h-full" : "grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100dvh-120px)]"}>
                     <Suspense
                         fallback={
                             <div className="col-span-1 lg:col-span-12 flex items-center justify-center py-16">

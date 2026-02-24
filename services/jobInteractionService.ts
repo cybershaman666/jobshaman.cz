@@ -1,5 +1,5 @@
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
-import { authenticatedFetch, getCurrentAuthTokenSilently } from './csrfService';
+import { authenticatedFetch, getCurrentAuthTokenSilently, isBackendNetworkCooldownActive } from './csrfService';
 import { recordRuntimeSignal } from './runtimeSignals';
 
 export type JobInteractionEventType =
@@ -43,10 +43,12 @@ const normalizeBackendBaseUrl = (value?: string): string | null => {
 };
 
 const resolveInteractionBackends = (): string[] => {
-    const searchBase = normalizeBackendBaseUrl(SEARCH_BACKEND_URL);
     const coreBase = normalizeBackendBaseUrl(BACKEND_URL);
+    const searchBase = normalizeBackendBaseUrl(SEARCH_BACKEND_URL);
 
-    const bases = [searchBase, coreBase].filter((base): base is string => !!base);
+    // Prefer core backend first. Search runtime frequently does not expose
+    // /jobs/interactions and can introduce avoidable timeouts.
+    const bases = [coreBase, searchBase].filter((base): base is string => !!base);
     return Array.from(new Set(bases));
 };
 
@@ -184,6 +186,9 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
 };
 
 export const fetchJobInteractionState = async (limit: number = 5000): Promise<JobInteractionStateResponse> => {
+    if (isBackendNetworkCooldownActive()) {
+        return { savedJobIds: [], dismissedJobIds: [] };
+    }
     const authToken = await getCurrentAuthTokenSilently();
     if (!authToken) {
         return { savedJobIds: [], dismissedJobIds: [] };

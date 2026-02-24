@@ -25,11 +25,52 @@
   100% { transform: translateX(0); opacity: 0.6; }
 }
 
+@keyframes welcomeParticleFlowA {
+  0% { transform: translate3d(-2%, 0, 0); opacity: 0.18; }
+  50% { transform: translate3d(2%, -1.5%, 0); opacity: 0.3; }
+  100% { transform: translate3d(6%, -3%, 0); opacity: 0.12; }
+}
+
+@keyframes welcomeParticleFlowB {
+  0% { transform: translate3d(4%, 2%, 0); opacity: 0.14; }
+  50% { transform: translate3d(0%, 0%, 0); opacity: 0.24; }
+  100% { transform: translate3d(-5%, -2%, 0); opacity: 0.1; }
+}
+
+@keyframes welcomeParticleFlowC {
+  0% { transform: translate3d(-3%, 1%, 0); opacity: 0.12; }
+  50% { transform: translate3d(3%, -1%, 0); opacity: 0.2; }
+  100% { transform: translate3d(7%, -2.5%, 0); opacity: 0.08; }
+}
+
 @keyframes guideDotTravel {
   0% { opacity: 0; top: 0; }
   10% { opacity: 0.7; }
   90% { opacity: 0.7; }
   100% { opacity: 0; top: calc(100% - 12px); }
+}
+
+@keyframes journeyPanelEnter {
+  0% { opacity: 0; transform: translateY(10px) scale(0.995); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes journeySoftFloat {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes moodDriftA {
+  0% { transform: translate3d(-3%, 0%, 0) scale(1); opacity: 0.38; }
+  50% { transform: translate3d(2%, -2%, 0) scale(1.04); opacity: 0.52; }
+  100% { transform: translate3d(6%, -3%, 0) scale(1.08); opacity: 0.3; }
+}
+
+@keyframes moodDriftB {
+  0% { transform: translate3d(2%, 2%, 0) scale(1); opacity: 0.3; }
+  50% { transform: translate3d(-1%, -1%, 0) scale(1.06); opacity: 0.44; }
+  100% { transform: translate3d(-5%, -3%, 0) scale(1.1); opacity: 0.24; }
 }
 
 .swipe-coach-card {
@@ -49,6 +90,84 @@
   pointer-events: none;
   left: 50%;
   transform: translateX(-50%);
+}
+
+.journey-panel-enter {
+  animation: journeyPanelEnter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.journey-soft-float {
+  animation: journeySoftFloat 4s ease-in-out infinite;
+}
+
+.journey-mood-halo {
+  position: absolute;
+  inset: -20% -12%;
+  pointer-events: none;
+  filter: blur(2px);
+}
+
+.journey-mood-halo--a {
+  background: radial-gradient(circle at 24% 32%, rgba(148, 163, 184, 0.16), transparent 46%),
+    radial-gradient(circle at 65% 18%, rgba(100, 116, 139, 0.12), transparent 42%);
+  animation: moodDriftA 26s ease-in-out infinite alternate;
+}
+
+.journey-mood-halo--b {
+  background: radial-gradient(circle at 78% 62%, rgba(148, 163, 184, 0.14), transparent 44%),
+    radial-gradient(circle at 38% 80%, rgba(100, 116, 139, 0.1), transparent 46%);
+  animation: moodDriftB 30s ease-in-out infinite alternate;
+}
+
+.dark .journey-mood-halo--a {
+  background: radial-gradient(circle at 24% 32%, rgba(148, 163, 184, 0.14), transparent 46%),
+    radial-gradient(circle at 65% 18%, rgba(100, 116, 139, 0.12), transparent 42%);
+}
+
+.dark .journey-mood-halo--b {
+  background: radial-gradient(circle at 78% 62%, rgba(148, 163, 184, 0.12), transparent 44%),
+    radial-gradient(circle at 38% 80%, rgba(100, 116, 139, 0.1), transparent 46%);
+}
+
+.welcome-particle-stream {
+  position: absolute;
+  inset: -12% -10%;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
+.welcome-particle-stream--a {
+  background-image:
+    radial-gradient(circle at 8% 30%, rgba(148, 163, 184, 0.16) 0 1.2px, transparent 2px),
+    radial-gradient(circle at 22% 64%, rgba(148, 163, 184, 0.12) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 46% 42%, rgba(100, 116, 139, 0.14) 0 1.1px, transparent 2px),
+    radial-gradient(circle at 72% 58%, rgba(100, 116, 139, 0.1) 0 1px, transparent 2px),
+    radial-gradient(circle at 88% 35%, rgba(148, 163, 184, 0.12) 0 1.1px, transparent 1.9px);
+  background-size: 210px 210px, 260px 260px, 220px 220px, 280px 280px, 240px 240px;
+  animation: welcomeParticleFlowA 16s linear infinite;
+}
+
+.welcome-particle-stream--b {
+  background-image:
+    radial-gradient(circle at 16% 48%, rgba(148, 163, 184, 0.12) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 34% 22%, rgba(100, 116, 139, 0.1) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 58% 52%, rgba(100, 116, 139, 0.1) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 76% 24%, rgba(148, 163, 184, 0.1) 0 1px, transparent 1.7px);
+  background-size: 250px 250px, 200px 200px, 260px 260px, 220px 220px;
+  animation: welcomeParticleFlowB 19s linear infinite;
+}
+
+.welcome-particle-stream--c {
+  background-image:
+    linear-gradient(105deg, rgba(148, 163, 184, 0.06), transparent 46%),
+    linear-gradient(120deg, rgba(100, 116, 139, 0.05), transparent 52%);
+  filter: blur(1px);
+  animation: welcomeParticleFlowC 22s ease-in-out infinite;
+}
+
+.dark .welcome-particle-stream--a,
+.dark .welcome-particle-stream--b {
+  opacity: 0.68;
 }
 
 html, body {
@@ -90,9 +209,13 @@ html, body {
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
   background-color: var(--app-bg-color);
-  color: #f8fafc; /* Slate 50 */
+  color: #0f172a; /* Slate 900 */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.dark body {
+  color: #f8fafc; /* Slate 50 */
 }
 
 #root {
@@ -240,4 +363,233 @@ body {
   background: #06b6d4;
   border: 2px solid #ffffff;
   box-shadow: 0 1px 4px rgba(15, 23, 42, 0.25);
+}
+
+@keyframes calmDrift {
+  0% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.55; }
+  50% { transform: translate3d(0, -8px, 0) scale(1.02); opacity: 0.7; }
+  100% { transform: translate3d(0, 0, 0) scale(1); opacity: 0.55; }
+}
+
+@keyframes grassSway {
+  0% { transform: translateX(0) skewX(-2deg); }
+  50% { transform: translateX(10px) skewX(2deg); }
+  100% { transform: translateX(0) skewX(-2deg); }
+}
+
+@keyframes steamRise {
+  0% { transform: translateY(0) scale(0.9); opacity: 0.14; }
+  50% { transform: translateY(-12px) scale(1); opacity: 0.2; }
+  100% { transform: translateY(-24px) scale(1.08); opacity: 0; }
+}
+
+@keyframes ambientGlow {
+  0% { opacity: 0.28; }
+  50% { opacity: 0.4; }
+  100% { opacity: 0.28; }
+}
+
+@keyframes flowerFloat {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes lampPulse {
+  0% { opacity: 0.35; }
+  50% { opacity: 0.5; }
+  100% { opacity: 0.35; }
+}
+
+.calm-env {
+  pointer-events: none;
+}
+
+.calm-env::before,
+.calm-env::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.calm-env--nebula::before {
+  background: radial-gradient(circle at 52% 22%, rgba(191, 219, 254, 0.18), transparent 40%);
+  animation: calmDrift 18s ease-in-out infinite;
+}
+
+.calm-env--meadow::before {
+  background: linear-gradient(180deg, rgba(216, 243, 226, 0.26), rgba(14, 37, 28, 0.12));
+  animation: calmDrift 22s ease-in-out infinite;
+}
+
+.calm-env--cafe::before {
+  background: linear-gradient(180deg, rgba(252, 211, 153, 0.2), rgba(36, 26, 22, 0.16));
+  animation: calmDrift 24s ease-in-out infinite;
+}
+
+.calm-env--cowork::before {
+  background: linear-gradient(180deg, rgba(191, 219, 254, 0.16), rgba(15, 23, 42, 0.16));
+  animation: calmDrift 20s ease-in-out infinite;
+}
+
+.calm-env::after {
+  background-image: radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.12) 0.9px, transparent 1px),
+                    radial-gradient(circle at 70% 38%, rgba(255, 255, 255, 0.08) 0.9px, transparent 1px);
+  background-size: 180px 180px, 240px 240px;
+  opacity: 0.28;
+}
+
+.calm-env-meadow-grass {
+  background:
+    linear-gradient(180deg, rgba(34, 197, 94, 0.1), rgba(22, 101, 52, 0.3)),
+    repeating-linear-gradient(90deg, rgba(134, 239, 172, 0.22) 0 2px, transparent 2px 10px);
+  animation: grassSway 14s ease-in-out infinite;
+  filter: blur(0.1px);
+}
+
+.calm-env-meadow-sky {
+  background: radial-gradient(circle at 50% 16%, rgba(255, 245, 203, 0.38), transparent 42%);
+}
+
+.calm-env-meadow-hill-back {
+  border-radius: 50% 50% 0 0;
+  background: linear-gradient(180deg, rgba(110, 231, 183, 0.16), rgba(21, 94, 60, 0.36));
+}
+
+.calm-env-meadow-hill-front {
+  border-radius: 56% 56% 0 0;
+  background: linear-gradient(180deg, rgba(74, 222, 128, 0.22), rgba(20, 83, 45, 0.44));
+}
+
+.calm-env-meadow-flowers {
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at 16% 62%, rgba(253, 224, 71, 0.7) 0 3px, transparent 4px),
+    radial-gradient(circle at 36% 52%, rgba(251, 146, 60, 0.64) 0 3px, transparent 4px),
+    radial-gradient(circle at 58% 64%, rgba(244, 114, 182, 0.58) 0 3px, transparent 4px),
+    radial-gradient(circle at 82% 56%, rgba(125, 211, 252, 0.62) 0 3px, transparent 4px);
+  animation: flowerFloat 7s ease-in-out infinite;
+}
+
+.calm-env-meadow-path {
+  border-radius: 60% 60% 0 0;
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.12), rgba(120, 53, 15, 0.18));
+}
+
+.calm-env-cafe-wall {
+  background: linear-gradient(180deg, rgba(180, 116, 67, 0.18), rgba(64, 44, 35, 0.2));
+}
+
+.calm-env-cafe-window {
+  border: 1px solid rgba(255, 255, 255, 0.32);
+  border-radius: 18px;
+  background:
+    linear-gradient(180deg, rgba(254, 249, 195, 0.26), rgba(125, 211, 252, 0.08)),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.12) 0 1px, transparent 1px 22px);
+  box-shadow: inset 0 0 18px rgba(255, 255, 255, 0.12);
+}
+
+.calm-env-cafe-lamp {
+  border-radius: 0 0 12px 12px;
+  background: linear-gradient(180deg, rgba(251, 191, 36, 0.3), rgba(120, 53, 15, 0.16));
+  animation: lampPulse 6s ease-in-out infinite;
+}
+
+.calm-env-cafe-table {
+  background:
+    linear-gradient(180deg, rgba(120, 53, 15, 0), rgba(120, 53, 15, 0.34)),
+    linear-gradient(90deg, rgba(251, 191, 36, 0.08), rgba(120, 53, 15, 0.18));
+}
+
+.calm-env-cafe-chair {
+  border-radius: 10px 10px 4px 4px;
+  background: linear-gradient(180deg, rgba(120, 53, 15, 0.3), rgba(68, 44, 28, 0.34));
+  opacity: 0.8;
+}
+
+.calm-env-cafe-plant {
+  border-radius: 10px 10px 2px 2px;
+  background:
+    radial-gradient(circle at 50% 18%, rgba(134, 239, 172, 0.48), transparent 48%),
+    linear-gradient(180deg, rgba(22, 163, 74, 0.2), rgba(39, 39, 42, 0.26));
+}
+
+.calm-env-cafe-steam {
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.22), transparent 70%);
+  animation: steamRise 8s ease-out infinite;
+}
+
+.calm-env-cowork-line {
+  background: linear-gradient(90deg, transparent, rgba(186, 230, 253, 0.4), transparent);
+  animation: ambientGlow 8s ease-in-out infinite;
+}
+
+.calm-env-cowork-line-soft {
+  background: linear-gradient(90deg, transparent, rgba(125, 211, 252, 0.25), transparent);
+  animation: ambientGlow 11s ease-in-out infinite;
+}
+
+.calm-env-cowork-wall {
+  background:
+    linear-gradient(180deg, rgba(191, 219, 254, 0.12), rgba(15, 23, 42, 0.2)),
+    repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.07) 0 1px, transparent 1px 36px);
+}
+
+.calm-env-cowork-desk {
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(51, 65, 85, 0.28), rgba(30, 41, 59, 0.45));
+}
+
+.calm-env-cowork-monitor {
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(186, 230, 253, 0.24), rgba(30, 41, 59, 0.35));
+  border: 1px solid rgba(186, 230, 253, 0.2);
+}
+
+.calm-env-cowork-panel {
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(148, 163, 184, 0.18), rgba(30, 41, 59, 0.28));
+}
+
+.dark .calm-env--meadow::before {
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.1), rgba(2, 44, 34, 0.34));
+}
+
+.dark .calm-env-meadow-sky {
+  background: radial-gradient(circle at 50% 16%, rgba(94, 234, 212, 0.18), transparent 46%);
+}
+
+.dark .calm-env-meadow-hill-back {
+  background: linear-gradient(180deg, rgba(16, 185, 129, 0.12), rgba(5, 46, 36, 0.46));
+}
+
+.dark .calm-env-meadow-hill-front {
+  background: linear-gradient(180deg, rgba(34, 197, 94, 0.14), rgba(3, 36, 27, 0.56));
+}
+
+.dark .calm-env--cafe::before {
+  background: linear-gradient(180deg, rgba(120, 53, 15, 0.16), rgba(28, 25, 23, 0.4));
+}
+
+.dark .calm-env-cafe-wall {
+  background: linear-gradient(180deg, rgba(113, 63, 18, 0.2), rgba(41, 37, 36, 0.46));
+}
+
+.dark .calm-env-cafe-window {
+  border-color: rgba(148, 163, 184, 0.35);
+  background:
+    linear-gradient(180deg, rgba(180, 83, 9, 0.16), rgba(30, 41, 59, 0.16)),
+    repeating-linear-gradient(90deg, rgba(148, 163, 184, 0.1) 0 1px, transparent 1px 22px);
+}
+
+.dark .calm-env--cowork::before {
+  background: linear-gradient(180deg, rgba(30, 64, 175, 0.12), rgba(2, 6, 23, 0.36));
+}
+
+.dark .calm-env-cowork-wall {
+  background:
+    linear-gradient(180deg, rgba(59, 130, 246, 0.08), rgba(2, 6, 23, 0.34)),
+    repeating-linear-gradient(90deg, rgba(51, 65, 85, 0.16) 0 1px, transparent 1px 36px);
 }

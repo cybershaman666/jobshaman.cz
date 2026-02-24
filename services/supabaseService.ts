@@ -2,6 +2,7 @@
 import { clearSupabaseAuthStorage, refreshSession, supabase } from './supabaseClient';
 import { geocodeWithCaching, normalizeAddress } from './geocodingService';
 import { createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from './profileDefaults';
+import { BACKEND_URL } from '../constants';
 export { supabase };
 import { UserProfile, CompanyProfile, CVDocument } from '../types';
 
@@ -9,6 +10,9 @@ const SUPABASE_NETWORK_COOLDOWN_MS = 60_000;
 let supabaseNetworkCooldownUntil = 0;
 let lastSupabaseNetworkLogAt = 0;
 let lastProfileMissingWarnAt = 0;
+const ANALYTICS_NETWORK_COOLDOWN_MS = 120_000;
+let analyticsNetworkCooldownUntil = 0;
+let lastAnalyticsNetworkLogAt = 0;
 
 const isLikelySupabaseNetworkError = (error: any): boolean => {
     const msg = String(error?.message || error || '').toLowerCase();
@@ -968,29 +972,50 @@ export const trackAnalyticsEvent = async (event: {
     tier?: string;
     metadata?: any;
 }): Promise<void> => {
-    try {
-        const backendUrl =
-            import.meta.env.VITE_SEARCH_API_URL ||
-            import.meta.env.VITE_SEARCH_BACKEND_URL ||
-            import.meta.env.VITE_BACKEND_URL ||
-            import.meta.env.VITE_API_URL ||
-            '';
-        if (backendUrl) {
+    const payload = {
+        event_type: event.event_type,
+        company_id: event.company_id || null,
+        feature: event.feature || null,
+        tier: event.tier || null,
+        metadata: event.metadata || {}
+    };
+
+    const backendUrl =
+        import.meta.env.VITE_SEARCH_API_URL ||
+        import.meta.env.VITE_SEARCH_BACKEND_URL ||
+        import.meta.env.VITE_BACKEND_URL ||
+        import.meta.env.VITE_API_URL ||
+        BACKEND_URL ||
+        '';
+
+    const now = Date.now();
+    const canTryBackend = backendUrl && now >= analyticsNetworkCooldownUntil;
+
+    if (canTryBackend) {
+        try {
             const response = await fetch(`${backendUrl.replace(/\/$/, '')}/analytics/track`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    event_type: event.event_type,
-                    company_id: event.company_id || null,
-                    feature: event.feature || null,
-                    tier: event.tier || null,
-                    metadata: event.metadata || {}
-                })
+                keepalive: true,
+                body: JSON.stringify(payload)
             });
             if (response.ok) return;
+        } catch (error) {
+            if (isLikelySupabaseNetworkError(error)) {
+                analyticsNetworkCooldownUntil = Date.now() + ANALYTICS_NETWORK_COOLDOWN_MS;
+                if (Date.now() - lastAnalyticsNetworkLogAt > 30_000) {
+                    console.warn('Analytics endpoint unavailable. Using fallback temporarily.');
+                    lastAnalyticsNetworkLogAt = Date.now();
+                }
+            } else {
+                console.warn('Analytics backend track skipped:', error);
+            }
         }
+    }
 
-        if (!supabase) return;
+    if (!supabase || isSupabaseNetworkCooldownActive()) return;
+
+    try {
         const { data: { user } } = await supabase.auth.getUser();
         const safeUserId = user?.id || null;
         const { error } = await supabase
@@ -1006,10 +1031,18 @@ export const trackAnalyticsEvent = async (event: {
             });
 
         if (error) {
+            if (isLikelySupabaseNetworkError(error)) {
+                noteSupabaseNetworkFailure('trackAnalyticsEvent:insert', error);
+                return;
+            }
             console.error('Failed to track analytics event:', error);
         }
     } catch (error) {
-        console.error('Analytics tracking error:', error);
+        if (isLikelySupabaseNetworkError(error)) {
+            noteSupabaseNetworkFailure('trackAnalyticsEvent:catch', error);
+            return;
+        }
+        console.warn('Analytics fallback track skipped:', error);
     }
 };
 

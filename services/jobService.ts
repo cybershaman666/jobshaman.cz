@@ -2143,28 +2143,31 @@ export const fetchJobsByIds = async (jobIds: string[]): Promise<Job[]> => {
 
 export const fetchRecommendedJobs = async (limit: number = 50): Promise<Job[]> => {
     const clampedLimit = Math.max(10, Math.min(80, Math.floor(limit || 50)));
-    const response = await authenticatedFetch(`${BACKEND_URL}/jobs/recommendations?limit=${clampedLimit}`, {
-        method: 'GET'
-    });
-    if (!response.ok) {
-        throw new Error('Failed to fetch recommended jobs');
+    try {
+        const response = await authenticatedFetch(`${BACKEND_URL}/jobs/recommendations?limit=${clampedLimit}`, {
+            method: 'GET'
+        });
+        if (!response.ok) {
+            return [];
+        }
+        const data = await response.json();
+        const items = Array.isArray(data.jobs) ? data.jobs : [];
+        const requestId = data.request_id || undefined;
+        return items.map((item: any) => {
+            const job = transformJob(item.job || item);
+            (job as any).aiMatchScore = item.score;
+            (job as any).aiMatchReasons = item.reasons || [];
+            (job as any).aiMatchBreakdown = item.breakdown || undefined;
+            (job as any).aiMatchModelVersion = item.model_version || undefined;
+            (job as any).aiMatchScoringVersion = item.scoring_version || undefined;
+            (job as any).aiMatchActionProbability = item.action_probability ?? item.breakdown?.action_probability;
+            (job as any).aiRecommendationPosition = item.position || undefined;
+            (job as any).aiRecommendationRequestId = item.request_id || requestId;
+            return job;
+        });
+    } catch {
+        return [];
     }
-    const data = await response.json();
-    const items = Array.isArray(data.jobs) ? data.jobs : [];
-    const requestId = data.request_id || undefined;
-    const mapped = items.map((item: any) => {
-        const job = transformJob(item.job || item);
-        (job as any).aiMatchScore = item.score;
-        (job as any).aiMatchReasons = item.reasons || [];
-        (job as any).aiMatchBreakdown = item.breakdown || undefined;
-        (job as any).aiMatchModelVersion = item.model_version || undefined;
-        (job as any).aiMatchScoringVersion = item.scoring_version || undefined;
-        (job as any).aiMatchActionProbability = item.action_probability ?? item.breakdown?.action_probability;
-        (job as any).aiRecommendationPosition = item.position || undefined;
-        (job as any).aiRecommendationRequestId = item.request_id || requestId;
-        return job;
-    });
-    return mapped;
 };
 
 

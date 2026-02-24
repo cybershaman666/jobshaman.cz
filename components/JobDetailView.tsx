@@ -43,6 +43,7 @@ interface JobDetailViewProps {
     selectedBlogPostSlug: string | null;
     handleBlogPostSelect: (slug: string | null) => void;
     totalJobsCount: number;
+    todayNewJobsCount?: number;
     onApplyToJob?: (job: Job) => void;
     onOpenPremium?: (featureLabel: string) => void;
     onSaveOptimizedCv?: (optimizedCvText: string) => Promise<boolean>;
@@ -76,6 +77,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     selectedBlogPostSlug,
     handleBlogPostSelect,
     totalJobsCount,
+    todayNewJobsCount = 0,
     onApplyToJob,
     onOpenPremium,
     onSaveOptimizedCv
@@ -870,6 +872,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                             setSelectedJobId(null);
                         }}
                         totalJobsCount={totalJobsCount}
+                        todayNewJobsCount={todayNewJobsCount}
                         selectedBlogPostSlug={selectedBlogPostSlug}
                         handleBlogPostSelect={handleBlogPostSelect}
                     />

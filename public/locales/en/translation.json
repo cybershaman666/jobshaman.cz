@@ -1051,10 +1051,10 @@
       "profile_label": "Profile:"
     },
     "assessments_tab": {
-      "desc": "Create and manage AI assessments for candidates.",
-      "manage_invites": "Manage invitations",
-      "close_invites": "Close invitations",
-      "invite_btn": "Invite candidate"
+      "desc": "Manage candidate journeys and their journey insights.",
+      "manage_invites": "Manage journey invitations",
+      "close_invites": "Hide invitations",
+      "invite_btn": "Invite to journey"
     },
     "candidates": {
       "no_candidates_title": "No candidates",
@@ -1502,12 +1502,12 @@
     },
     "results": {
       "loading": "Loading results...",
-      "no_results_title": "No assessments submitted yet",
-      "no_results_desc": "Results will appear here once candidates complete the assessment.",
-      "title": "Submitted Assessments",
+      "no_results_title": "No completed journeys yet",
+      "no_results_desc": "Journey results appear here once candidates complete their path.",
+      "title": "Completed candidate journeys",
       "score": "Score:",
       "evaluating": "Evaluating...",
-      "ai_evaluate_btn": "AI Evaluation",
+      "ai_evaluate_btn": "Evaluate journey insights",
       "evaluated": "Evaluated",
       "summary_title": "Performance Summary",
       "match_score_title": "AI Match Score",
@@ -1519,9 +1519,14 @@
       "question_label": "Question",
       "eval_failed": "Failed to evaluate assessment.",
       "question_fallback": "Question",
-      "preview_title": "Assessment preview",
+      "preview_title": "Open journey",
       "partner_recommendation": "Partner recommendation",
-      "preview_failed": "Failed to load assessment assignment."
+      "preview_failed": "Failed to load assessment assignment.",
+      "journey_highlights": "Journey highlights",
+      "journey_decision_pattern": "Decision pattern",
+      "journey_energy_balance": "Energy balance",
+      "journey_transferable_strengths": "Transferable strengths",
+      "journey_risk_zones": "Risk zones"
     }
   },
   "saved_filters": {
@@ -1916,7 +1921,241 @@
     "question": "Question",
     "preview": "Try it (Preview)",
     "send_hint": "You can send this test to a candidate as a \"Pre-screen challenge\".",
-    "empty_state": "Enter role and skills on the left to generate tailored verification questions."
+    "empty_state": "Enter role and skills on the left to generate tailored verification questions.",
+    "demo_center": {
+      "title": "Demo Assessment Center",
+      "subtitle": "5 examples across different role types. Click Preview or use a template.",
+      "free_tier": "Available for Free tier too (no credit consumption).",
+      "show_output": "Show output",
+      "preview": "Preview",
+      "use": "Use template",
+      "output_title": "Example company output",
+      "psych_profile": "Psychological profile (basic)",
+      "strengths": "Strengths",
+      "risks": "Risks / development areas",
+      "onepager_title": "Assessment Center - Demo Output",
+      "final_score": "Final score",
+      "recommendation_label": "Recommendation",
+      "technical_breakdown": "Technical breakdown",
+      "export_note": "Demo output. Psychological part is self-report screening, not clinical diagnosis.",
+      "export_png": "Export PNG",
+      "export_pdf": "Export PDF",
+      "recommendation": {
+        "recommend": "Recommend",
+        "conditional": "Conditional",
+        "not_recommend": "Do not recommend"
+      },
+      "templates": {
+        "backend": {
+          "role": "Senior Backend Engineer",
+          "difficulty": "Senior",
+          "skills": [
+            "Python",
+            "FastAPI",
+            "PostgreSQL",
+            "API design",
+            "System design"
+          ],
+          "title": "Demo: Senior Backend Engineer",
+          "description": "Assessment example for a senior backend role.",
+          "questions": {
+            "q1": "Design an auditable salary benchmark API with fallback logic.",
+            "q2": "Write pseudocode for a confidence score based on sample size, variance, and recency.",
+            "q3": "How would you solve endpoint performance regression under 10x load?"
+          }
+        },
+        "cnc": {
+          "role": "CNC Operator",
+          "difficulty": "Medior",
+          "skills": [
+            "CNC",
+            "Technical documentation",
+            "Measurement",
+            "Work safety"
+          ],
+          "title": "Demo: CNC Operator",
+          "description": "Assessment example for manufacturing and engineering.",
+          "questions": {
+            "q1": "How do you proceed when setting up a new CNC program?",
+            "q2": "What do you do if a measurement is out of tolerance?",
+            "q3": "Which step is most important before launching a production batch?",
+            "q3_options": [
+              "Check tool setup and zero points",
+              "Increase feed speed",
+              "Skip first-piece verification",
+              "Turn off coolant"
+            ]
+          }
+        },
+        "nurse": {
+          "role": "Registered Nurse",
+          "difficulty": "Medior",
+          "skills": [
+            "Clinical care",
+            "Patient communication",
+            "Triage",
+            "Documentation"
+          ],
+          "title": "Demo: Registered Nurse",
+          "description": "Assessment example for healthcare role.",
+          "questions": {
+            "q1": "How do you prioritize patients during a sudden intake surge?",
+            "q2": "Describe how you hand over critical information to physician and team.",
+            "q3": "Which principle is key for safe medication administration?",
+            "q3_options": [
+              "The 5 rights rule",
+              "Maximum speed at all costs",
+              "No documentation needed",
+              "Verbal confirmation only"
+            ]
+          }
+        },
+        "sales": {
+          "role": "B2B Sales Representative",
+          "difficulty": "Senior",
+          "skills": [
+            "Prospecting",
+            "Negotiation",
+            "CRM",
+            "Sales strategy"
+          ],
+          "title": "Demo: B2B Sales Representative",
+          "description": "Assessment example for a sales role.",
+          "questions": {
+            "q1": "How would you open a first meeting with a new enterprise client?",
+            "q2": "Client pushes hard on price and threatens to leave. How do you respond?",
+            "q3": "Which metric do you use as a leading indicator of pipeline quality?",
+            "q3_options": [
+              "Qualified meeting rate",
+              "Number of sent emails",
+              "Number of random calls",
+              "Number of open browser tabs"
+            ]
+          }
+        },
+        "support": {
+          "role": "Customer Support Specialist",
+          "difficulty": "Junior",
+          "skills": [
+            "Customer communication",
+            "Empathy",
+            "Ticketing",
+            "Incident handling"
+          ],
+          "title": "Demo: Customer Support Specialist",
+          "description": "Assessment example for support role.",
+          "questions": {
+            "q1": "How would you respond to a frustrated customer after an outage?",
+            "q2": "How do you distinguish an urgent ticket from a standard one?",
+            "q2_options": [
+              "Impact + priority + SLA",
+              "Number of exclamation marks",
+              "Length of text",
+              "Random choice"
+            ],
+            "q3": "Describe your process before escalating an issue to technical team."
+          }
+        }
+      },
+      "outputs": {
+        "backend": {
+          "technical": [
+            "API design",
+            "System thinking",
+            "Data quality mindset"
+          ],
+          "psych": [
+            "Ownership",
+            "Adaptability",
+            "Collaboration"
+          ],
+          "strengths": [
+            "Strong problem structuring",
+            "Solid fallback scenario work",
+            "High level of ownership"
+          ],
+          "risks": [
+            "Slightly weaker communication of trade-offs to non-technical stakeholders"
+          ]
+        },
+        "cnc": {
+          "technical": [
+            "Technological discipline",
+            "Tolerance control",
+            "Safety procedures"
+          ],
+          "psych": [
+            "Conscientiousness",
+            "Stress tolerance",
+            "Adaptability"
+          ],
+          "strengths": [
+            "Stable process approach",
+            "Strong safety focus"
+          ],
+          "risks": [
+            "Needs support during rapid priority changes"
+          ]
+        },
+        "nurse": {
+          "technical": [
+            "Triage and prioritization",
+            "Clinical communication",
+            "Documentation quality"
+          ],
+          "psych": [
+            "Collaboration",
+            "Stress tolerance",
+            "Ownership"
+          ],
+          "strengths": [
+            "Strong performance under pressure",
+            "Excellent team communication"
+          ],
+          "risks": [
+            "Recommended to verify long-term shift-load tolerance"
+          ]
+        },
+        "sales": {
+          "technical": [
+            "Discovery and qualification",
+            "Negotiation",
+            "Pipeline management"
+          ],
+          "psych": [
+            "Ownership",
+            "Learning drive",
+            "Collaboration"
+          ],
+          "strengths": [
+            "Good value-based argumentation",
+            "Active ownership of opportunities"
+          ],
+          "risks": [
+            "Inconsistent CRM and follow-up discipline"
+          ]
+        },
+        "support": {
+          "technical": [
+            "Ticket triage",
+            "Empathetic communication",
+            "Escalation readiness"
+          ],
+          "psych": [
+            "Collaboration",
+            "Conscientiousness",
+            "Stress tolerance"
+          ],
+          "strengths": [
+            "Strong empathy in communication",
+            "Good customer orientation"
+          ],
+          "risks": [
+            "Needs to improve consistency of escalation steps"
+          ]
+        }
+      }
+    }
   },
   "enterprise_signup": {
     "title": "JobShaman Enterprise",
@@ -2305,6 +2544,18 @@
     "valid_until": "Valid until",
     "start_desc": "Click to start the assessment. Prepare your answers; the result will be sent to the company after completion.",
     "start_button": "Start assessment",
+    "start_button_journey": "Unlock first checkpoint",
+    "mission_brief_title": "Mission Brief",
+    "role_target": "Journey to role: {{role}}",
+    "mission_impact_default": "This journey shows how you think and decide in the {{role}} role.",
+    "pace_hint": "Recommended pace: {{minutes}}-{{max}} min",
+    "return_safety": "Answers are saved as you go",
+    "what_awaits": "What awaits you",
+    "checkpoint_1": "Calm start and first decision signals",
+    "checkpoint_2": "Short practical missions at key checkpoints",
+    "checkpoint_3": "Insights into your work style and energy",
+    "checkpoint_4": "Summary highlighting your fit for the role",
+    "safety_copy": "This is not a school test. It captures your natural decision style.",
     "assessment_fallback_title": "Assessment",
     "question_label": "Question {{index}}",
     "submitting": "Submitting…",
@@ -2875,5 +3126,82 @@
     "blog": {
       "title": "How to think about job offers (quickly)"
     }
+  },
+  "assessment_3d": {
+    "preview_on": "3D Preview: ON",
+    "preview_off": "3D Preview: OFF",
+    "galaxy": {
+      "fallback_notice": "Fallback mode is active for this device."
+    }
+  },
+  "assessment_journey": {
+    "title": "Adventure Self-Discovery Journey",
+    "badge": "Adventure Journey Mode",
+    "phase_1": "Calm Start",
+    "phase_2": "Pattern Mirroring",
+    "phase_3": "Energy Compass",
+    "phase_4": "Cultural Northstar",
+    "phase_5": "Summary Profile",
+    "disclaimer": "AI helps interpret patterns. Your decisions and pace remain fully yours.",
+    "checkpoint_1": "Calm Start",
+    "checkpoint_2": "Pattern Mirroring",
+    "checkpoint_3": "Energy Compass",
+    "checkpoint_4": "Cultural Northstar",
+    "checkpoint_5": "Summary Profile",
+    "checkpoint_badge": "Checkpoint {{index}}",
+    "step_progress": "Step {{current}} / {{total}}",
+    "question_step_label": "Question {{index}} / {{total}}",
+    "task_step_label": "Practical mission {{index}} / {{total}}",
+    "role_context_inline": "Each checkpoint reveals how you think in the {{role}} role.",
+    "role_context_question": "This step simulates situations you may handle in the {{role}} role.",
+    "mission_tagline": "Navigation to role fit, not a school form",
+    "mission_safety_tag": "No hard time pressure",
+    "pace_hint_badge": "Recommended pace: steady and low-pressure",
+    "safety_no_right_answer": "There is no single right answer. Your natural thinking style matters most.",
+    "micro_reward_generic": "Great step. Your journey is gaining clearer direction.",
+    "streak_badge": "{{count}} checkpoints in a row",
+    "recruiter_preview_badge": "Recruiter Preview: candidate journey simulation",
+    "preview_note_title": "Recruiter Preview",
+    "preview_note_body": "Answers are prefilled for a quick walkthrough of the candidate flow.",
+    "demo_seed_answer": "Insert demo answer",
+    "demo_insight": "Demo insight: your decision style is starting to emerge.",
+    "decision_sliders": "Decision compass",
+    "slider_confidence": "Confidence",
+    "slider_business_impact": "Business impact",
+    "slider_stakeholder_alignment": "Stakeholder alignment",
+    "cta_to_task": "Continue to mission",
+    "task_title": "Practical mission: ordering and placement",
+    "task_desc": "Sort the steps by priority and choose the zone that best matches your decision.",
+    "task_zone_label": "Place the decision into a zone:",
+    "cta_finish_checkpoint": "Complete checkpoint",
+    "cta_next_question": "Continue to next question",
+    "default_pattern_hint": "Your decision style is starting to emerge.",
+    "cta_to_phase3": "Continue to Energy Compass",
+    "energy_copy_prefix": "With your current work model, you have approximately",
+    "energy_copy_hours": "hours of monthly energy left",
+    "cta_to_phase4": "Continue to Cultural Northstar",
+    "northstar_explainer": "Northstar is your preferred work context: where you perform best and where your energy tends to drop quickly.",
+    "northstar_explainer_short": "Northstar = what kind of company environment naturally strengthens you.",
+    "cta_finalize": "Create summary profile",
+    "cta_complete": "Finish journey",
+    "map_title": "Journey map"
+  },
+  "happiness_audit_3d": {
+    "title": "Personal Happiness Audit (Premium)",
+    "subtitle": "Life-Sustainability Orbit + Career Anchor vs Drift",
+    "live_on": "Enable live 3D: ON",
+    "live_off": "Enable live 3D: OFF",
+    "premium_required": "Happiness audit is available in Premium.",
+    "salary": "Monthly gross salary",
+    "commute_cost": "Monthly commute cost",
+    "commute_minutes": "Commute minutes per day",
+    "home_office_days": "Home office days / week",
+    "energy": "Subjective energy",
+    "role_shift": "Role drift indicator",
+    "simulating": "Simulating...",
+    "results": "Audit output"
+  },
+  "ai_advisory": {
+    "default": "AI recommendation only. Final decision remains with a human."
   }
 }

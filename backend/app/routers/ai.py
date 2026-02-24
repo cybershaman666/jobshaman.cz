@@ -231,10 +231,12 @@ Pravidla:
         difficulty = str(p.get("difficulty") or "Senior")
         questions = p.get("questions") or []
         answers = p.get("answers") or []
+        journey_context = p.get("journey_context") or {}
         prompt = f"""
 Vyhodnoť assessment odpovědi kandidáta pro roli "{role}" ({difficulty}).
 Otázky: {questions}
 Odpovědi: {answers}
+Journey context (Decision Pattern / Energy Balance / Cultural Orientation): {journey_context}
 Vrať STRICT JSON:
 {{
   "pros": ["..."],

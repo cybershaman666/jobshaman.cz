@@ -36,14 +36,32 @@ export const fetchCandidateBenchmarkMetrics = async (
     });
     if (jobId) params.set('job_id', jobId);
 
-    const response = await authenticatedFetch(
-        `${BACKEND_URL}/company/benchmarks/candidate?${params.toString()}`,
-        {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+    const candidateBenchmarkPaths = [
+        '/company/benchmarks/candidate',
+        '/benchmarks/company/candidate',
+    ];
+
+    let lastError: Error | null = null;
+    for (const path of candidateBenchmarkPaths) {
+        try {
+            const response = await authenticatedFetch(
+                `${BACKEND_URL}${path}?${params.toString()}`,
+                {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                }
+            );
+            if (response.status === 404) {
+                lastError = new Error(`Not Found: ${path}`);
+                continue;
+            }
+            return await toJsonOrThrow<CandidateBenchmarkMetrics>(response);
+        } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
         }
-    );
-    return toJsonOrThrow<CandidateBenchmarkMetrics>(response);
+    }
+
+    throw lastError || new Error('Candidate benchmark endpoint unavailable');
 };
 
 export const fetchCompanyCandidates = async (
@@ -54,13 +72,31 @@ export const fetchCompanyCandidates = async (
         company_id: companyId,
         limit: String(limit)
     });
-    const response = await authenticatedFetch(
-        `${BACKEND_URL}/company/candidates?${params.toString()}`,
-        {
-            method: 'GET',
-            headers: { 'Content-Type': 'application/json' }
+    const candidatePaths = [
+        '/company/candidates',
+        '/benchmarks/company/candidates',
+    ];
+
+    let lastError: Error | null = null;
+    for (const path of candidatePaths) {
+        try {
+            const response = await authenticatedFetch(
+                `${BACKEND_URL}${path}?${params.toString()}`,
+                {
+                    method: 'GET',
+                    headers: { 'Content-Type': 'application/json' }
+                }
+            );
+            if (response.status === 404) {
+                lastError = new Error(`Not Found: ${path}`);
+                continue;
+            }
+            const payload = await toJsonOrThrow<{ candidates: Candidate[] }>(response);
+            return Array.isArray(payload.candidates) ? payload.candidates : [];
+        } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
         }
-    );
-    const payload = await toJsonOrThrow<{ candidates: Candidate[] }>(response);
-    return Array.isArray(payload.candidates) ? payload.candidates : [];
+    }
+
+    throw lastError || new Error('Company candidates endpoint unavailable');
 };

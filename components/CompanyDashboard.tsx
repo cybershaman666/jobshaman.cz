@@ -81,6 +81,18 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     const [showInvitationsList, setShowInvitationsList] = useState(false);
     const [activeDropdownJobId, setActiveDropdownJobId] = useState<string | null>(null);
 
+    useEffect(() => {
+        try {
+            const params = new URLSearchParams(window.location.search);
+            const tab = params.get('tab');
+            if (tab === 'assessments') {
+                setActiveTab('assessments');
+            }
+        } catch {
+            // no-op
+        }
+    }, []);
+
     // Data State (Empty for initial load, fetched from Supabase)
 
     // Data State (Empty for Real, Mocks for Demo)
@@ -393,6 +405,44 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
     useEffect(() => {
         let active = true;
+        const parseDateSafe = (value: unknown): Date | null => {
+            if (!value) return null;
+            const dt = new Date(String(value));
+            return Number.isNaN(dt.getTime()) ? null : dt;
+        };
+        const estimateExperienceYears = (workHistory: unknown): number => {
+            if (!Array.isArray(workHistory) || workHistory.length === 0) return 0;
+            let months = 0;
+            const now = new Date();
+            for (const entry of workHistory as any[]) {
+                const fromRaw = entry?.from || entry?.start || entry?.start_date;
+                const toRaw = entry?.to || entry?.end || entry?.end_date;
+                const start = parseDateSafe(fromRaw);
+                const end = parseDateSafe(toRaw) || now;
+                if (start && end >= start) {
+                    const diffMonths = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+                    months += Math.max(0, diffMonths);
+                }
+            }
+            if (months <= 0) return Math.max(1, workHistory.length);
+            return Math.max(1, Math.round(months / 12));
+        };
+        const normalizeSkills = (skills: unknown, workHistory: unknown, jobTitle: unknown): string[] => {
+            if (Array.isArray(skills)) return skills.filter(Boolean).map((s) => String(s).trim()).filter(Boolean).slice(0, 12);
+            if (typeof skills === 'string' && skills.trim()) {
+                return skills.split(',').map((s) => s.trim()).filter(Boolean).slice(0, 12);
+            }
+            const fromHistory = Array.isArray(workHistory)
+                ? (workHistory as any[])
+                    .flatMap((w) => Array.isArray(w?.skills) ? w.skills : [])
+                    .filter(Boolean)
+                    .map((s) => String(s).trim())
+                : [];
+            if (fromHistory.length > 0) return Array.from(new Set(fromHistory)).slice(0, 12);
+            const title = String(jobTitle || '').trim();
+            return title ? [title] : [];
+        };
+
         const loadCandidates = async () => {
             if (!companyProfile?.id || activeTab !== 'candidates') return;
             try {
@@ -430,12 +480,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         return;
                     }
 
-                    const mapped: Candidate[] = (data || []).map((row: any) => {
+                    let mapped: Candidate[] = (data || []).map((row: any) => {
                         const candidateProfile = Array.isArray(row.candidate_profiles)
                             ? row.candidate_profiles[0]
                             : row.candidate_profiles;
                         const workHistory = Array.isArray(candidateProfile?.work_history) ? candidateProfile.work_history : [];
-                        const skills = Array.isArray(candidateProfile?.skills) ? candidateProfile.skills : [];
+                        const skills = normalizeSkills(candidateProfile?.skills, workHistory, candidateProfile?.job_title);
                         const values = Array.isArray(candidateProfile?.values) ? candidateProfile.values : [];
                         const fullName = String(row.full_name || '').trim();
                         const email = String(row.email || '').trim();
@@ -446,7 +496,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             id: String(row.id),
                             name: derivedName,
                             role: jobTitle || t('company.candidates.role_unknown', { defaultValue: 'Uchazeč' }),
-                            experienceYears: workHistory.length,
+                            experienceYears: estimateExperienceYears(workHistory),
                             salaryExpectation: 0,
                             skills,
                             bio: t('company.candidates.registered_user_bio', {
@@ -457,6 +507,45 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             values
                         };
                     });
+
+                    const lowDataCoverage = mapped.length > 0 && mapped.filter((c) => c.skills.length === 0 || c.experienceYears === 0).length / mapped.length > 0.6;
+                    if (lowDataCoverage) {
+                        const { data: cpRows, error: cpError } = await supabase
+                            .from('candidate_profiles')
+                            .select('id,job_title,skills,work_history,values')
+                            .limit(500);
+                        if (!cpError && Array.isArray(cpRows) && cpRows.length > 0) {
+                            const ids = cpRows.map((row: any) => row.id).filter(Boolean);
+                            const { data: profileRows } = await supabase
+                                .from('profiles')
+                                .select('id,full_name,email,created_at')
+                                .in('id', ids)
+                                .limit(500);
+                            const profileMap = new Map((profileRows || []).map((row: any) => [String(row.id), row]));
+                            mapped = cpRows.map((cp: any) => {
+                                const p = profileMap.get(String(cp.id)) || {};
+                                const workHistory = Array.isArray(cp?.work_history) ? cp.work_history : [];
+                                const jobTitle = String(cp?.job_title || '').trim();
+                                const fullName = String((p as any).full_name || '').trim();
+                                const email = String((p as any).email || '').trim();
+                                const derivedName = fullName || email.split('@')[0] || 'Candidate';
+                                return {
+                                    id: String(cp.id),
+                                    name: derivedName,
+                                    role: jobTitle || t('company.candidates.role_unknown', { defaultValue: 'Uchazeč' }),
+                                    experienceYears: estimateExperienceYears(workHistory),
+                                    salaryExpectation: 0,
+                                    skills: normalizeSkills(cp?.skills, workHistory, jobTitle),
+                                    bio: t('company.candidates.registered_user_bio', {
+                                        defaultValue: 'Registrovaný uchazeč na JobShaman.',
+                                        name: derivedName
+                                    }),
+                                    flightRisk: 'Medium',
+                                    values: Array.isArray(cp?.values) ? cp.values : []
+                                } as Candidate;
+                            });
+                        }
+                    }
 
                     if (active) setCandidates(mapped);
                 } catch (fallbackError) {
@@ -1552,10 +1641,33 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                             <div className="w-full bg-slate-200 dark:bg-slate-800 h-1.5 rounded-full">
                                                 <div
                                                     className={`h-1.5 rounded-full ${candidate.flightRisk === 'High' ? 'bg-rose-500' : candidate.flightRisk === 'Medium' ? 'bg-amber-500' : 'bg-emerald-500'}`}
-                                                    style={{ width: candidate.flightRisk === 'High' ? '80%' : candidate.flightRisk === 'Medium' ? '50%' : '20%' }}
+                                                    style={{ width: `${Math.max(8, Math.min(100, typeof candidate.flightRiskScore === 'number' ? candidate.flightRiskScore : (candidate.flightRisk === 'High' ? 80 : candidate.flightRisk === 'Medium' ? 50 : 20)))}%` }}
                                                 ></div>
                                             </div>
+                                            {typeof candidate.flightRiskScore === 'number' && (
+                                                <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
+                                                    Score: {candidate.flightRiskScore}/100
+                                                </div>
+                                            )}
                                         </div>
+
+                                        {Array.isArray(candidate.flightRiskBreakdown) && candidate.flightRiskBreakdown.length > 0 && (
+                                            <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-800 space-y-1.5">
+                                                {candidate.flightRiskBreakdown.slice(0, 4).map((factor, idx) => (
+                                                    <div key={`${candidate.id}-risk-${idx}`} className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed flex justify-between gap-2">
+                                                        <span>{factor.reason}</span>
+                                                        <span className={factor.impact_points > 0 ? 'text-rose-500 font-semibold' : 'text-emerald-500 font-semibold'}>
+                                                            {factor.impact_points > 0 ? '+' : ''}{factor.impact_points}
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                                {candidate.flightRiskMethodVersion && (
+                                                    <div className="text-[10px] text-slate-400 pt-1">
+                                                        method: {candidate.flightRiskMethodVersion}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
 
                                     </div>
                                 </div>

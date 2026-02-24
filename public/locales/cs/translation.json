@@ -1105,10 +1105,10 @@
       "post_limit_exceeded": "Více než 5 pracovních inzerátů"
     },
     "assessments_tab": {
-      "desc": "Vytvářejte a spravujte AI posudky pro kandidáty.",
-      "manage_invites": "Spravovat pozvánky",
-      "close_invites": "Zavřít pozvánky",
-      "invite_btn": "Pozvat kandidáta"
+      "desc": "Spravujte cesty kandidátů a jejich journey insights.",
+      "manage_invites": "Spravovat pozvánky na cestu",
+      "close_invites": "Skrýt pozvánky",
+      "invite_btn": "Pozvat kandidáta na cestu"
     },
     "candidates": {
       "no_candidates_title": "Žádní kandidáti",
@@ -1556,12 +1556,12 @@
     },
     "results": {
       "loading": "Načítám výsledky...",
-      "no_results_title": "Zatím žádná odeslaná hodnocení",
-      "no_results_desc": "Výsledky se zde objeví, jakmile kandidáti dokončí hodnocení.",
-      "title": "Odeslaná Hodnocení",
+      "no_results_title": "Zatím žádné dokončené cesty",
+      "no_results_desc": "Journey výsledky se zde objeví, jakmile kandidáti dokončí svou cestu.",
+      "title": "Dokončené cesty kandidátů",
       "score": "Skóre:",
       "evaluating": "Vyhodnocuji...",
-      "ai_evaluate_btn": "AI Hodnocení",
+      "ai_evaluate_btn": "Vyhodnotit journey insights",
       "evaluated": "Vyhodnoceno",
       "summary_title": "Souhrn Výkonu",
       "match_score_title": "AI Skóre Shody",
@@ -1573,9 +1573,14 @@
       "question_label": "Otázka",
       "eval_failed": "Nepodařilo se vyhodnotit.",
       "question_fallback": "Otázka",
-      "preview_title": "Náhled zadání",
+      "preview_title": "Otevřít cestu",
       "partner_recommendation": "Doporučení partnera",
-      "preview_failed": "Nepodařilo se načíst zadání assessmentu."
+      "preview_failed": "Nepodařilo se načíst zadání assessmentu.",
+      "journey_highlights": "Klíčové momenty cesty",
+      "journey_decision_pattern": "Rozhodovací vzorec",
+      "journey_energy_balance": "Energetická bilance",
+      "journey_transferable_strengths": "Přenositelné silné stránky",
+      "journey_risk_zones": "Rizikové zóny"
     }
   },
   "saved_filters": {
@@ -1970,7 +1975,241 @@
     "question": "Otázka",
     "preview": "Vyzkoušet (Preview)",
     "send_hint": "Tento test můžete odeslat kandidátovi jako \"Pre-screen challenge\".",
-    "empty_state": "Zadejte roli a dovednosti vlevo pro vygenerování ověřovacích otázek na míru."
+    "empty_state": "Zadejte roli a dovednosti vlevo pro vygenerování ověřovacích otázek na míru.",
+    "demo_center": {
+      "title": "Demo Assessment Center",
+      "subtitle": "5 ukázek napříč různými typy rolí. Klikněte na Preview nebo použijte šablonu.",
+      "free_tier": "Dostupné i pro Free tier (bez čerpání kreditů).",
+      "show_output": "Zobrazit výstup",
+      "preview": "Náhled",
+      "use": "Použít šablonu",
+      "output_title": "Ukázka výstupu pro firmu",
+      "psych_profile": "Psychologický profil (základ)",
+      "strengths": "Silné stránky",
+      "risks": "Rizika / rozvoj",
+      "onepager_title": "Assessment Center - demo výstup",
+      "final_score": "Celkové skóre",
+      "recommendation_label": "Doporučení",
+      "technical_breakdown": "Technický breakdown",
+      "export_note": "Demo výstup. Psychologická část je self-report screening, ne klinická diagnostika.",
+      "export_png": "Export PNG",
+      "export_pdf": "Export PDF",
+      "recommendation": {
+        "recommend": "Doporučit",
+        "conditional": "Podmíněně",
+        "not_recommend": "Nedoporučit"
+      },
+      "templates": {
+        "backend": {
+          "role": "Senior Backend Engineer",
+          "difficulty": "Senior",
+          "skills": [
+            "Python",
+            "FastAPI",
+            "PostgreSQL",
+            "Návrh API",
+            "Systémový design"
+          ],
+          "title": "Demo: Senior Backend Engineer",
+          "description": "Ukázka assessmentu pro seniorní backend roli.",
+          "questions": {
+            "q1": "Navrhněte auditovatelný salary benchmark API endpoint s fallback logikou.",
+            "q2": "Napište pseudokód pro confidence score založené na sample size, varianci a recency.",
+            "q3": "Jak byste řešil/a regresi výkonu endpointu při 10x vyšší zátěži?"
+          }
+        },
+        "cnc": {
+          "role": "CNC Operátor",
+          "difficulty": "Medior",
+          "skills": [
+            "CNC",
+            "Technická dokumentace",
+            "Měření",
+            "Bezpečnost práce"
+          ],
+          "title": "Demo: CNC Operátor",
+          "description": "Ukázka assessmentu pro výrobu a strojírenství.",
+          "questions": {
+            "q1": "Jak postupujete při nastavení nového programu na CNC stroji?",
+            "q2": "Co uděláte, když měření ukáže odchylku mimo toleranci?",
+            "q3": "Který krok je nejdůležitější před spuštěním série?",
+            "q3_options": [
+              "Kontrola nástroje a nulových bodů",
+              "Zrychlení posuvu",
+              "Přeskočení zkušebního kusu",
+              "Vypnutí chlazení"
+            ]
+          }
+        },
+        "nurse": {
+          "role": "Všeobecná sestra",
+          "difficulty": "Medior",
+          "skills": [
+            "Klinická péče",
+            "Komunikace s pacientem",
+            "Triáž",
+            "Dokumentace"
+          ],
+          "title": "Demo: Všeobecná sestra",
+          "description": "Ukázka assessmentu pro zdravotnickou roli.",
+          "questions": {
+            "q1": "Jak prioritizujete pacienty při náhlém zvýšení příjmu na oddělení?",
+            "q2": "Popište, jak předáváte kritickou informaci lékaři a týmu.",
+            "q3": "Který princip je klíčový pro bezpečné podání medikace?",
+            "q3_options": [
+              "5P pravidlo",
+              "Rychlost podání za každou cenu",
+              "Bez dokumentace",
+              "Pouze verbální potvrzení"
+            ]
+          }
+        },
+        "sales": {
+          "role": "B2B Obchodní zástupce",
+          "difficulty": "Senior",
+          "skills": [
+            "Prospecting",
+            "Vyjednávání",
+            "CRM",
+            "Obchodní strategie"
+          ],
+          "title": "Demo: B2B Obchodní zástupce",
+          "description": "Ukázka assessmentu pro obchodní roli.",
+          "questions": {
+            "q1": "Jak byste otevřel/a první schůzku s novým enterprise klientem?",
+            "q2": "Klient tlačí na cenu a hrozí odchodem. Jak reagujete?",
+            "q3": "Kterou metriku sledujete jako leading indicator kvality pipeline?",
+            "q3_options": [
+              "Qualified meeting rate",
+              "Počet poslaných e-mailů",
+              "Počet náhodných callů",
+              "Počet otevřených tabů"
+            ]
+          }
+        },
+        "support": {
+          "role": "Customer Support Specialist",
+          "difficulty": "Junior",
+          "skills": [
+            "Zákaznická komunikace",
+            "Empatie",
+            "Ticketing",
+            "Řešení incidentů"
+          ],
+          "title": "Demo: Customer Support Specialist",
+          "description": "Ukázka assessmentu pro support roli.",
+          "questions": {
+            "q1": "Jak byste odpověděl/a zákazníkovi, který je frustrovaný po výpadku?",
+            "q2": "Jak rozlišíte urgentní ticket od běžného?",
+            "q2_options": [
+              "Dopad + priorita + SLA",
+              "Počet vykřičníků",
+              "Délka textu",
+              "Náhodně"
+            ],
+            "q3": "Popište postup před eskalací problému na technický tým."
+          }
+        }
+      },
+      "outputs": {
+        "backend": {
+          "technical": [
+            "Návrh API",
+            "Systémové myšlení",
+            "Data quality mindset"
+          ],
+          "psych": [
+            "Ownership",
+            "Adaptabilita",
+            "Spolupráce"
+          ],
+          "strengths": [
+            "Silné strukturování problému",
+            "Dobrá práce s fallback scénáři",
+            "Vysoká míra ownershipu"
+          ],
+          "risks": [
+            "Mírně slabší komunikace trade-offů směrem k ne-technickým stakeholderům"
+          ]
+        },
+        "cnc": {
+          "technical": [
+            "Technologická disciplína",
+            "Kontrola tolerancí",
+            "Bezpečnostní postupy"
+          ],
+          "psych": [
+            "Svědomitost",
+            "Odolnost vůči stresu",
+            "Adaptabilita"
+          ],
+          "strengths": [
+            "Stabilní procesní přístup",
+            "Vysoký důraz na bezpečnost"
+          ],
+          "risks": [
+            "Potřeba podpory při rychlé změně priorit"
+          ]
+        },
+        "nurse": {
+          "technical": [
+            "Triáž a prioritizace",
+            "Klinická komunikace",
+            "Kvalita dokumentace"
+          ],
+          "psych": [
+            "Spolupráce",
+            "Odolnost vůči stresu",
+            "Ownership"
+          ],
+          "strengths": [
+            "Silná práce pod tlakem",
+            "Výborná týmová komunikace"
+          ],
+          "risks": [
+            "Doporučeno ověřit dlouhodobou zátěžovou toleranci na směnách"
+          ]
+        },
+        "sales": {
+          "technical": [
+            "Discovery a kvalifikace",
+            "Vyjednávání",
+            "Řízení pipeline"
+          ],
+          "psych": [
+            "Ownership",
+            "Learning drive",
+            "Spolupráce"
+          ],
+          "strengths": [
+            "Dobrá argumentace hodnoty",
+            "Aktivní ownership příležitostí"
+          ],
+          "risks": [
+            "Kolísání disciplíny v CRM a follow-up procesech"
+          ]
+        },
+        "support": {
+          "technical": [
+            "Ticket triage",
+            "Empatická komunikace",
+            "Připravenost na eskalaci"
+          ],
+          "psych": [
+            "Spolupráce",
+            "Svědomitost",
+            "Odolnost vůči stresu"
+          ],
+          "strengths": [
+            "Silná empatie v komunikaci",
+            "Dobrá orientace na zákazníka"
+          ],
+          "risks": [
+            "Potřeba zlepšit konzistenci eskalačních kroků"
+          ]
+        }
+      }
+    }
   },
   "enterprise_signup": {
     "title": "JobShaman Enterprise",
@@ -2360,6 +2599,18 @@
     "valid_until": "Platí do",
     "start_desc": "Klikněte pro spuštění assessmentu. Připravte si odpovědi — po dokončení bude výsledek odeslán společnosti.",
     "start_button": "Spustit assessment",
+    "start_button_journey": "Odemknout první checkpoint",
+    "mission_brief_title": "Mission Brief",
+    "role_target": "Cesta k roli: {{role}}",
+    "mission_impact_default": "Tato cesta ukáže, jak přemýšlíte a rozhodujete v roli {{role}}.",
+    "pace_hint": "Doporučené tempo: {{minutes}}-{{max}} min",
+    "return_safety": "Odpovědi se průběžně ukládají",
+    "what_awaits": "Co vás čeká",
+    "checkpoint_1": "Bezpečný start a první rozhodovací signály",
+    "checkpoint_2": "Krátké praktické mise v klíčových bodech cesty",
+    "checkpoint_3": "Insighty o vašem stylu práce a energii",
+    "checkpoint_4": "Souhrn, který ukáže váš potenciál pro roli",
+    "safety_copy": "Nejde o školní test. Jde o zachycení vašeho přirozeného stylu rozhodování.",
     "assessment_fallback_title": "Assessment",
     "question_label": "Otázka {{index}}",
     "submitting": "Odesílám…",
@@ -2884,5 +3135,82 @@
     "blog": {
       "title": "Jak přemýšlet o nabídce práce (krátce)"
     }
+  },
+  "assessment_3d": {
+    "preview_on": "3D náhled: zapnuto",
+    "preview_off": "3D náhled: vypnuto",
+    "galaxy": {
+      "fallback_notice": "Fallback režim je aktivní pro toto zařízení."
+    }
+  },
+  "assessment_journey": {
+    "title": "Dobrodružná cesta sebepoznání",
+    "badge": "Adventure Journey Mode",
+    "phase_1": "Bezpečný start",
+    "phase_2": "Zrcadlení vzorců",
+    "phase_3": "Energetický kompas",
+    "phase_4": "Cultural Northstar",
+    "phase_5": "Souhrnný profil",
+    "disclaimer": "AI pomáhá číst vzorce. Vaše rozhodnutí a tempo zůstává plně ve vašich rukou.",
+    "checkpoint_1": "Bezpečný start",
+    "checkpoint_2": "Zrcadlení vzorců",
+    "checkpoint_3": "Energetický kompas",
+    "checkpoint_4": "Kulturní Northstar",
+    "checkpoint_5": "Souhrnný profil",
+    "checkpoint_badge": "Checkpoint {{index}}",
+    "step_progress": "Krok {{current}} / {{total}}",
+    "question_step_label": "Otázka {{index}} / {{total}}",
+    "task_step_label": "Praktická mise {{index}} / {{total}}",
+    "role_context_inline": "Každý checkpoint ukazuje, jak přemýšlíte v roli {{role}}.",
+    "role_context_question": "Tento krok simuluje situace, které můžete řešit v roli {{role}}.",
+    "mission_tagline": "Navigace k roli, ne školní test",
+    "mission_safety_tag": "Bez tlaku na čas",
+    "pace_hint_badge": "Doporučené tempo: plynule, bez stresu",
+    "safety_no_right_answer": "Neexistuje jedna správná odpověď. Důležitý je váš přirozený způsob uvažování.",
+    "micro_reward_generic": "Skvělý krok. Vaše cesta získává jasnější směr.",
+    "streak_badge": "{{count}} checkpointy za sebou",
+    "recruiter_preview_badge": "Recruiter Preview: simulace kandidátské cesty",
+    "preview_note_title": "Recruiter Preview",
+    "preview_note_body": "Odpovědi jsou předvyplněné pro rychlé proklikání kandidátského flow.",
+    "demo_seed_answer": "Vložit demo odpověď",
+    "demo_insight": "Demo insight: začíná se rýsovat váš rozhodovací styl.",
+    "decision_sliders": "Kompas rozhodnutí",
+    "slider_confidence": "Jistota",
+    "slider_business_impact": "Business dopad",
+    "slider_stakeholder_alignment": "Stakeholder alignment",
+    "cta_to_task": "Pokračovat na misi",
+    "task_title": "Praktická mise: pořadí a umístění",
+    "task_desc": "Seřaďte kroky podle priority a vyberte zónu, která nejlépe odpovídá vašemu rozhodnutí.",
+    "task_zone_label": "Umístěte rozhodnutí do zóny:",
+    "cta_finish_checkpoint": "Dokončit checkpoint",
+    "cta_next_question": "Pokračovat na další otázku",
+    "default_pattern_hint": "Začíná se rýsovat váš rozhodovací styl.",
+    "cta_to_phase3": "Pokračovat na energetický kompas",
+    "energy_copy_prefix": "Při současném modelu práce vám zbývá přibližně",
+    "energy_copy_hours": "hodin energie měsíčně",
+    "cta_to_phase4": "Pokračovat na Cultural Northstar",
+    "northstar_explainer": "Northstar je váš preferovaný pracovní kontext: v jakém prostředí podáváte nejlepší výkon a kde naopak energie rychle klesá.",
+    "northstar_explainer_short": "Northstar = jaké firemní prostředí vás přirozeně posiluje.",
+    "cta_finalize": "Vytvořit souhrnný profil",
+    "cta_complete": "Dokončit cestu",
+    "map_title": "Mapa cesty"
+  },
+  "happiness_audit_3d": {
+    "title": "Osobní Happiness Audit (Premium)",
+    "subtitle": "Life-Sustainability Orbit + Career Anchor vs Drift",
+    "live_on": "Live 3D: zapnuto",
+    "live_off": "Live 3D: vypnuto",
+    "premium_required": "Happiness audit je dostupný v Premium.",
+    "salary": "Hrubá měsíční mzda",
+    "commute_cost": "Měsíční náklady na dojíždění",
+    "commute_minutes": "Minuty dojíždění za den",
+    "home_office_days": "Home office dny / týden",
+    "energy": "Subjektivní energie",
+    "role_shift": "Indikátor role drift",
+    "simulating": "Simuluji...",
+    "results": "Výstup auditu"
+  },
+  "ai_advisory": {
+    "default": "AI recommendation only. Finální rozhodnutí je na člověku."
   }
 }

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { authenticatedFetch, isBackendNetworkCooldownActive } from '../services/csrfService';
 import { BACKEND_URL } from '../constants';
 import { supabase } from '../services/supabaseService';
-import AssessmentTaker from './AssessmentTaker';
+import AssessmentExperienceRouter from './AssessmentExperienceRouter';
 
 interface Invitation {
   id: string;
@@ -91,7 +91,7 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
 
   if (activeAssessment && activeInvitationId) {
     return (
-      <AssessmentTaker
+      <AssessmentExperienceRouter
         assessment={activeAssessment}
         invitationId={activeInvitationId}
         onComplete={handleAssessmentComplete}
