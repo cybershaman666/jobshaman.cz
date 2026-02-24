@@ -816,6 +816,67 @@ async def get_company_candidate_benchmarks(
     }
 
 
+@router.get("/company/candidates")
+async def get_company_candidates(
+    company_id: str = Query(...),
+    limit: int = Query(500, ge=1, le=2000),
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    require_company_access(user, company_id)
+
+    resp = (
+        supabase
+        .table("profiles")
+        .select("id,full_name,email,role,created_at,candidate_profiles(job_title,skills,work_history,values)")
+        .eq("role", "candidate")
+        .order("created_at", desc=True)
+        .limit(limit)
+        .execute()
+    )
+    rows = resp.data or []
+
+    def _name_from_row(row: Dict[str, Any]) -> str:
+        full = str(row.get("full_name") or "").strip()
+        if full:
+            return full
+        email = str(row.get("email") or "").strip()
+        if "@" in email:
+            return email.split("@")[0]
+        return "Candidate"
+
+    candidates: List[Dict[str, Any]] = []
+    for row in rows:
+        cp = row.get("candidate_profiles")
+        candidate_profile = cp[0] if isinstance(cp, list) and cp else (cp or {})
+        work_history = candidate_profile.get("work_history")
+        skills = candidate_profile.get("skills")
+        values = candidate_profile.get("values")
+
+        mapped = {
+            "id": str(row.get("id") or ""),
+            "name": _name_from_row(row),
+            "role": str(candidate_profile.get("job_title") or "Uchazeč"),
+            "experienceYears": len(work_history) if isinstance(work_history, list) else 0,
+            "salaryExpectation": 0,
+            "skills": skills if isinstance(skills, list) else [],
+            "bio": "Registrovaný uchazeč na JobShaman.",
+            "flightRisk": "Medium",
+            "values": values if isinstance(values, list) else [],
+            "createdAt": str(row.get("created_at") or ""),
+        }
+        if mapped["id"]:
+            candidates.append(mapped)
+
+    return {
+        "company_id": company_id,
+        "total": len(candidates),
+        "candidates": candidates,
+    }
+
+
 @router.get("/benchmarks/methodology")
 async def get_benchmark_methodology():
     return {

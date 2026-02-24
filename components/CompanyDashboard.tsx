@@ -18,7 +18,7 @@ import PlanUpgradeModal from './PlanUpgradeModal';
 import AssessmentInvitationModal from './AssessmentInvitationModal';
 import MyInvitations from './MyInvitations';
 import AssessmentResultsList from './AssessmentResultsList';
-import { fetchCandidateBenchmarkMetrics } from '../services/benchmarkService';
+import { fetchCandidateBenchmarkMetrics, fetchCompanyCandidates } from '../services/benchmarkService';
 import {
     Briefcase,
     Users,
@@ -87,7 +87,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     // Data State (Empty for initial load, fetched from Supabase)
     const [jobs, setJobs] = useState<Job[]>([]);
     const [jobStats, setJobStats] = useState<Record<string, { views: number, applicants: number }>>({});
-    const [candidates] = useState<Candidate[]>([]);
+    const [candidates, setCandidates] = useState<Candidate[]>([]);
 
     // Subscription state
     const [subscription, setSubscription] = useState<any>(null);
@@ -390,6 +390,84 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         loadCandidateBenchmarks();
         return () => { active = false; };
     }, [companyProfile?.id, activeTab, selectedJobId]);
+
+    useEffect(() => {
+        let active = true;
+        const loadCandidates = async () => {
+            if (!companyProfile?.id || activeTab !== 'candidates') return;
+            try {
+                const backendCandidates = await fetchCompanyCandidates(companyProfile.id, 500);
+                if (active) setCandidates(backendCandidates);
+            } catch (e) {
+                console.warn('Candidate API loading failed, trying direct Supabase fallback:', e);
+                if (!supabase) {
+                    if (active) setCandidates([]);
+                    return;
+                }
+                try {
+                    const { data, error } = await supabase
+                        .from('profiles')
+                        .select(`
+                            id,
+                            full_name,
+                            email,
+                            role,
+                            created_at,
+                            candidate_profiles (
+                                job_title,
+                                skills,
+                                work_history,
+                                values
+                            )
+                        `)
+                        .eq('role', 'candidate')
+                        .order('created_at', { ascending: false })
+                        .limit(500);
+
+                    if (error) {
+                        console.error('Failed to load candidates from Supabase fallback:', error);
+                        if (active) setCandidates([]);
+                        return;
+                    }
+
+                    const mapped: Candidate[] = (data || []).map((row: any) => {
+                        const candidateProfile = Array.isArray(row.candidate_profiles)
+                            ? row.candidate_profiles[0]
+                            : row.candidate_profiles;
+                        const workHistory = Array.isArray(candidateProfile?.work_history) ? candidateProfile.work_history : [];
+                        const skills = Array.isArray(candidateProfile?.skills) ? candidateProfile.skills : [];
+                        const values = Array.isArray(candidateProfile?.values) ? candidateProfile.values : [];
+                        const fullName = String(row.full_name || '').trim();
+                        const email = String(row.email || '').trim();
+                        const derivedName = fullName || email.split('@')[0] || 'Candidate';
+                        const jobTitle = String(candidateProfile?.job_title || '').trim();
+
+                        return {
+                            id: String(row.id),
+                            name: derivedName,
+                            role: jobTitle || t('company.candidates.role_unknown', { defaultValue: 'Uchazeč' }),
+                            experienceYears: workHistory.length,
+                            salaryExpectation: 0,
+                            skills,
+                            bio: t('company.candidates.registered_user_bio', {
+                                defaultValue: 'Registrovaný uchazeč na JobShaman.',
+                                name: derivedName
+                            }),
+                            flightRisk: 'Medium',
+                            values
+                        };
+                    });
+
+                    if (active) setCandidates(mapped);
+                } catch (fallbackError) {
+                    console.error('Candidate fallback loading failed:', fallbackError);
+                    if (active) setCandidates([]);
+                }
+            }
+        };
+        loadCandidates();
+        return () => { active = false; };
+    }, [activeTab, t, companyProfile?.id]);
 
     const formatPct = (value: number | null | undefined): string => {
         if (typeof value !== 'number' || Number.isNaN(value)) return '—';

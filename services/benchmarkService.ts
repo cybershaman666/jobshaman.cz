@@ -1,5 +1,5 @@
 import { BACKEND_URL } from '../constants';
-import { CandidateBenchmarkMetrics, SalaryBenchmarkResolved } from '../types';
+import { Candidate, CandidateBenchmarkMetrics, SalaryBenchmarkResolved } from '../types';
 import { authenticatedFetch } from './csrfService';
 
 const toJsonOrThrow = async <T>(response: Response): Promise<T> => {
@@ -44,4 +44,23 @@ export const fetchCandidateBenchmarkMetrics = async (
         }
     );
     return toJsonOrThrow<CandidateBenchmarkMetrics>(response);
+};
+
+export const fetchCompanyCandidates = async (
+    companyId: string,
+    limit: number = 500
+): Promise<Candidate[]> => {
+    const params = new URLSearchParams({
+        company_id: companyId,
+        limit: String(limit)
+    });
+    const response = await authenticatedFetch(
+        `${BACKEND_URL}/company/candidates?${params.toString()}`,
+        {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' }
+        }
+    );
+    const payload = await toJsonOrThrow<{ candidates: Candidate[] }>(response);
+    return Array.isArray(payload.candidates) ? payload.candidates : [];
 };
