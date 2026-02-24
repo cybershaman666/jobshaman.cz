@@ -1,5 +1,5 @@
 import React, { RefObject, useEffect, useState } from 'react';
-import { Job, UserProfile, CommuteAnalysis, ViewState, AIAnalysisResult } from '../types';
+import { Job, UserProfile, CommuteAnalysis, ViewState, AIAnalysisResult, SalaryBenchmarkResolved } from '../types';
 import FinancialCard from './FinancialCard';
 import WelcomePage from './WelcomePage';
 import JHIChart from './JHIChart';
@@ -13,6 +13,7 @@ import { getCompanyLogoUrl, getCompanyPublicInfo, trackAnalyticsEvent } from '..
 import { removeAccents } from '../utils/benefits';
 import { matchesBrigadaKeywords, matchesFullTimeKeywords, matchesIcoKeywords, matchesPartTimeKeywords } from '../utils/contractType';
 import { optimizeCvForAts } from '../services/geminiService';
+import { fetchSalaryBenchmark } from '../services/benchmarkService';
 
 interface JobDetailViewProps {
     mounted: boolean;
@@ -88,6 +89,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     const [cvCopied, setCvCopied] = useState(false);
     const [isSavingOptimizedCv, setIsSavingOptimizedCv] = useState(false);
     const [optimizedCvSaved, setOptimizedCvSaved] = useState(false);
+    const [salaryBenchmark, setSalaryBenchmark] = useState<SalaryBenchmarkResolved | null>(null);
     const aiMatchScore = typeof (selectedJob as any)?.aiMatchScore === 'number'
         ? Math.round((selectedJob as any).aiMatchScore)
         : null;
@@ -505,6 +507,25 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
         return () => { isMounted = false; };
     }, [selectedJob?.company_id]);
 
+    useEffect(() => {
+        let active = true;
+        const loadSalaryBenchmark = async () => {
+            if (!selectedJob?.id) {
+                if (active) setSalaryBenchmark(null);
+                return;
+            }
+            try {
+                const benchmark = await fetchSalaryBenchmark(selectedJob.id);
+                if (active) setSalaryBenchmark(benchmark);
+            } catch (error) {
+                console.warn('Salary benchmark fetch failed:', error);
+                if (active) setSalaryBenchmark(null);
+            }
+        };
+        loadSalaryBenchmark();
+        return () => { active = false; };
+    }, [selectedJob?.id]);
+
     return (
         <section className={`lg:col-span-8 xl:col-span-9 flex flex-col min-h-0 h-full ${!mounted ? 'flex' : (!selectedJobId ? 'hidden lg:flex' : 'flex')}`}>
             {selectedJob && dynamicJHI ? (
@@ -595,6 +616,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                 selectedJob={selectedJob}
                                 userProfile={userProfile}
                                 commuteAnalysis={commuteAnalysis}
+                                salaryBenchmark={salaryBenchmark}
                                 showCommuteDetails={showCommuteDetails}
                                 showLoginPrompt={showLoginPrompt}
                                 showAddressPrompt={showAddressPrompt}

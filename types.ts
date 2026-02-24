@@ -74,6 +74,106 @@ export interface MarketContext {
   marketAvgSalary: number; // Monthly CZK
   percentile: number; // Where this offer sits (0-100)
   inDemandSkills: string[]; // Skills that would boost salary
+  p25?: number;
+  p50?: number;
+  p75?: number;
+  iqr?: number;
+  sampleSize?: number;
+  dataWindowDays?: number;
+  confidenceTier?: 'low' | 'medium' | 'high';
+  sourceMode?: 'internal_only' | 'blended_internal_public' | 'public_fallback';
+  fallbackReason?: string | null;
+}
+
+export interface BenchmarkTransparency {
+  source_name: string;
+  source_mode: 'internal_only' | 'blended_internal_public' | 'public_fallback';
+  method_version?: string;
+  updated_at: string;
+  sample_size: number;
+  data_window_days: number;
+  iqr?: number;
+  confidence_score: number;
+  confidence_tier: 'low' | 'medium' | 'high';
+  fallback_reason?: string | null;
+  confidence_components?: {
+    sample_size_component: number;
+    variance_component: number;
+    recency_component: number;
+  };
+  fallback_details?: {
+    strict_region_sample?: number;
+    country_sample?: number;
+    external_sample?: number;
+  };
+}
+
+export interface SalaryBenchmarkResolved {
+  job_id: number;
+  insufficient_data: boolean;
+  message?: string;
+  role_family?: string;
+  region_key?: string;
+  seniority_band?: string;
+  employment_type?: string;
+  currency?: string;
+  offer_salary_monthly?: number | null;
+  p25?: number;
+  p50?: number;
+  p75?: number;
+  iqr?: number;
+  delta_vs_p50?: number;
+  delta_vs_p50_pct?: number;
+  percentile_in_segment?: number | null;
+  transparency: BenchmarkTransparency;
+}
+
+export interface CandidateBenchmarkMetric {
+  metric: 'assessment_avg' | 'shortlist_rate' | 'hire_rate';
+  value: number | null;
+  peer_value: number | null;
+  delta_vs_peer: number | null;
+  sample_size: number;
+  source_name: string;
+  source_mode: 'internal_only';
+  data_window_days: number;
+  updated_at: string;
+  confidence_score: number;
+  confidence_tier: 'low' | 'medium' | 'high';
+  confidence_components: {
+    sample_size_component: number;
+    variance_component: number;
+    recency_component: number;
+  };
+  insufficient_data: boolean;
+  fallback_reason?: string | null;
+  numerator?: number;
+  denominator?: number;
+  median?: number | null;
+  coverage?: {
+    assessed_candidates: number;
+    total_candidates: number;
+    coverage_ratio: number | null;
+  };
+}
+
+export interface CandidateBenchmarkMetrics {
+  company_id: string;
+  job_id?: number | null;
+  peer_group: {
+    hiring_volume_band: 'small' | 'medium' | 'large';
+    peer_company_count: number;
+  };
+  assessment: CandidateBenchmarkMetric;
+  shortlist_rate: CandidateBenchmarkMetric;
+  hire_rate: CandidateBenchmarkMetric;
+  transparency: {
+    source_name: string;
+    source_mode: 'internal_only';
+    data_window_days: number;
+    updated_at: string;
+    note: string;
+  };
 }
 
 export interface CompanyProfile {

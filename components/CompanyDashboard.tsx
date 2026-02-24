@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Markdown from 'markdown-to-jsx';
-import { Job, Candidate, AIAdOptimizationResult, CompanyProfile } from '../types';
+import { Job, Candidate, AIAdOptimizationResult, CompanyProfile, CandidateBenchmarkMetric, CandidateBenchmarkMetrics } from '../types';
 import { optimizeJobDescription } from '../services/geminiService';
 import { publishJob } from '../services/jobPublishService';
 import { canCompanyUseFeature, canCompanyPostJob } from '../services/billingService';
@@ -18,6 +18,7 @@ import PlanUpgradeModal from './PlanUpgradeModal';
 import AssessmentInvitationModal from './AssessmentInvitationModal';
 import MyInvitations from './MyInvitations';
 import AssessmentResultsList from './AssessmentResultsList';
+import { fetchCandidateBenchmarkMetrics } from '../services/benchmarkService';
 import {
     Briefcase,
     Users,
@@ -114,8 +115,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
     // Candidate State
     const [selectedJobId, setSelectedJobId] = useState<string>(jobs.length > 0 ? jobs[0].id : '');
-    const [candidateMatches, setCandidateMatches] = useState<Record<string, { score: number, reason: string }>>({});
-    const [isMatching, setIsMatching] = useState(false);
+    const [candidateBenchmarks, setCandidateBenchmarks] = useState<CandidateBenchmarkMetrics | null>(null);
+    const [isLoadingCandidateBenchmarks, setIsLoadingCandidateBenchmarks] = useState(false);
 
     // Simplified Profile management
     const companyProfile = propProfile;
@@ -371,22 +372,55 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         setShowEmojiPicker(false);
     };
 
-    const runCandidateMatch = () => {
-        setIsMatching(true);
-        // Simulate or run actual matching logic
-        setTimeout(() => {
-            const matches: Record<string, { score: number, reason: string }> = {};
-            candidates.forEach(c => {
-                const score = 60 + Math.floor(Math.random() * 35);
-                matches[c.id] = {
-                    score,
-                    reason: "Shoda v dovednostech: React, TypeScript"
-                };
-            });
-            setCandidateMatches(matches);
-            setIsMatching(false);
-        }, 1500);
+    useEffect(() => {
+        let active = true;
+        const loadCandidateBenchmarks = async () => {
+            if (!companyProfile?.id || activeTab !== 'candidates') return;
+            setIsLoadingCandidateBenchmarks(true);
+            try {
+                const data = await fetchCandidateBenchmarkMetrics(companyProfile.id, selectedJobId || undefined);
+                if (active) setCandidateBenchmarks(data);
+            } catch (error) {
+                console.warn('Candidate benchmark fetch failed:', error);
+                if (active) setCandidateBenchmarks(null);
+            } finally {
+                if (active) setIsLoadingCandidateBenchmarks(false);
+            }
+        };
+        loadCandidateBenchmarks();
+        return () => { active = false; };
+    }, [companyProfile?.id, activeTab, selectedJobId]);
+
+    const formatPct = (value: number | null | undefined): string => {
+        if (typeof value !== 'number' || Number.isNaN(value)) return '—';
+        return `${(value * 100).toFixed(1)}%`;
     };
+
+    const renderMetricCard = (
+        title: string,
+        metric: CandidateBenchmarkMetric | null,
+        display: string,
+        peerDisplay?: string
+    ) => (
+        <div className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4">
+            <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">{title}</div>
+            {!metric || metric.insufficient_data ? (
+                <div className="text-sm text-slate-500 dark:text-slate-400">Insufficient data</div>
+            ) : (
+                <div className="space-y-2">
+                    <div className="text-2xl font-bold text-slate-900 dark:text-white">{display}</div>
+                    {peerDisplay ? (
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                            {t('company.candidates.benchmark.vs_peer', { defaultValue: 'Vs trh/peer: {{value}}', value: peerDisplay })}
+                        </div>
+                    ) : null}
+                    <div className="text-[11px] text-slate-500 dark:text-slate-400 leading-relaxed border-t border-slate-100 dark:border-slate-800 pt-2">
+                        source: {metric.source_name} • N={metric.sample_size} • window={metric.data_window_days}d • confidence={metric.confidence_tier}
+                    </div>
+                </div>
+            )}
+        </div>
+    );
 
     const handleEditJob = (jobId: string) => {
         const job = jobs.find(j => j.id === jobId);
@@ -1277,16 +1311,76 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     );
 
     const renderCandidates = () => {
+        const assessmentMetric = candidateBenchmarks?.assessment || null;
+        const shortlistMetric = candidateBenchmarks?.shortlist_rate || null;
+        const hireMetric = candidateBenchmarks?.hire_rate || null;
+
         if (isRealUser && candidates.length === 0) {
             return (
-                <div className="flex flex-col items-center justify-center py-20 animate-in fade-in text-center">
-                    <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
-                        <Users size={32} className="text-slate-400" />
+                <div className="space-y-6 animate-in fade-in">
+                    <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col md:flex-row gap-4 items-center justify-between">
+                        <div className="flex items-center gap-3 w-full md:w-auto">
+                            <div className="p-2 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-lg">
+                                <Briefcase size={20} />
+                            </div>
+                            <select
+                                value={selectedJobId}
+                                onChange={(e) => setSelectedJobId(e.target.value)}
+                                className="bg-transparent font-semibold text-slate-900 dark:text-slate-200 focus:outline-none cursor-pointer border-none ring-0"
+                            >
+                                {jobs.map(job => (
+                                    <option key={job.id} value={job.id} className="bg-white dark:bg-slate-900">{job.title}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                            {isLoadingCandidateBenchmarks
+                                ? t('common.loading')
+                                : (candidateBenchmarks?.transparency?.note || t('company.candidates.benchmark.note', { defaultValue: 'Oddělené metriky bez agregovaného quality indexu.' }))}
+                        </div>
                     </div>
-                    <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('company.candidates.no_candidates_title')}</h2>
-                    <p className="text-slate-500 dark:text-slate-400 max-w-sm">
-                        {t('company.candidates.no_candidates_desc')}
-                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {renderMetricCard(
+                            t('company.candidates.benchmark.assessment_avg', { defaultValue: 'Assessment avg' }),
+                            assessmentMetric,
+                            assessmentMetric?.value != null ? `${assessmentMetric.value.toFixed(1)} / 100` : '—',
+                            assessmentMetric?.peer_value != null ? `${assessmentMetric.peer_value.toFixed(1)} / 100` : undefined
+                        )}
+                        {renderMetricCard(
+                            t('company.candidates.benchmark.shortlist_rate', { defaultValue: 'Shortlist rate' }),
+                            shortlistMetric,
+                            formatPct(shortlistMetric?.value),
+                            formatPct(shortlistMetric?.peer_value)
+                        )}
+                        {renderMetricCard(
+                            t('company.candidates.benchmark.hire_rate', { defaultValue: 'Hire rate' }),
+                            hireMetric,
+                            formatPct(hireMetric?.value),
+                            formatPct(hireMetric?.peer_value)
+                        )}
+                    </div>
+
+                    <div className="bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 rounded-xl p-5">
+                        <div className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-2">
+                            {t('company.candidates.benchmark.assessment_coverage', { defaultValue: 'Assessment coverage' })}
+                        </div>
+                        <div className="text-sm text-slate-600 dark:text-slate-300">
+                            {assessmentMetric?.coverage
+                                ? `${assessmentMetric.coverage.assessed_candidates}/${assessmentMetric.coverage.total_candidates} (${formatPct(assessmentMetric.coverage.coverage_ratio)})`
+                                : 'Insufficient data'}
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="w-20 h-20 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mb-6">
+                            <Users size={32} className="text-slate-400" />
+                        </div>
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t('company.candidates.no_candidates_title')}</h2>
+                        <p className="text-slate-500 dark:text-slate-400 max-w-sm">
+                            {t('company.candidates.no_candidates_desc')}
+                        </p>
+                    </div>
                 </div>
             );
         }
@@ -1309,33 +1403,36 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         </select>
                     </div>
 
-                    <div className="w-full md:w-auto flex flex-col items-end gap-1">
-                        <button
-                            onClick={runCandidateMatch}
-                            disabled={isMatching}
-                            className="w-full md:w-auto px-6 py-2 bg-cyan-600 text-white rounded-lg font-medium hover:bg-cyan-500 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-sm"
-                        >
-                            {isMatching ? <Sparkles className="animate-spin" size={16} /> : <Search size={16} />}
-                            {isMatching ? t('company.candidates.matching_analysing') : t('company.candidates.match_btn')}
-                        </button>
-                        <span className="text-xs text-slate-500 dark:text-slate-400 font-medium italic pr-1">
-                            {t('company.candidates.ai_disclaimer')}
-                        </span>
+                    <div className="w-full md:w-auto text-xs text-slate-500 dark:text-slate-400">
+                        {candidateBenchmarks?.transparency?.note || t('company.candidates.benchmark.note', { defaultValue: 'Oddělené metriky bez agregovaného quality indexu.' })}
                     </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {renderMetricCard(
+                        t('company.candidates.benchmark.assessment_avg', { defaultValue: 'Assessment avg' }),
+                        assessmentMetric,
+                        assessmentMetric?.value != null ? `${assessmentMetric.value.toFixed(1)} / 100` : '—',
+                        assessmentMetric?.peer_value != null ? `${assessmentMetric.peer_value.toFixed(1)} / 100` : undefined
+                    )}
+                    {renderMetricCard(
+                        t('company.candidates.benchmark.shortlist_rate', { defaultValue: 'Shortlist rate' }),
+                        shortlistMetric,
+                        formatPct(shortlistMetric?.value),
+                        formatPct(shortlistMetric?.peer_value)
+                    )}
+                    {renderMetricCard(
+                        t('company.candidates.benchmark.hire_rate', { defaultValue: 'Hire rate' }),
+                        hireMetric,
+                        formatPct(hireMetric?.value),
+                        formatPct(hireMetric?.peer_value)
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 gap-4">
                     {candidates.map(candidate => {
-                        const match = candidateMatches[candidate.id];
                         return (
                             <div key={candidate.id} className="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all relative overflow-hidden group">
-                                {match && (
-                                    <div className="absolute top-0 right-0 p-4 text-right">
-                                        <div className="text-3xl font-bold text-cyan-600 dark:text-cyan-400 font-mono">{match.score}%</div>
-                                        <div className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">{t('company.candidates.match_label')}</div>
-                                    </div>
-                                )}
-
                                 <div className="flex flex-col md:flex-row gap-6">
                                     <div className="flex-1">
                                         <div className="flex items-center gap-3 mb-2">
@@ -1382,11 +1479,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                             </div>
                                         </div>
 
-                                        {match && (
-                                            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-                                                <p className="text-xs text-slate-500 dark:text-slate-400 italic">"{match.reason}"</p>
-                                            </div>
-                                        )}
                                     </div>
                                 </div>
                             </div>

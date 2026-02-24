@@ -1,5 +1,5 @@
 import React from 'react';
-import { Job, UserProfile, CommuteAnalysis, ViewState } from '../types';
+import { Job, UserProfile, CommuteAnalysis, SalaryBenchmarkResolved, ViewState } from '../types';
 import {
     Wallet,
     Lock,
@@ -24,6 +24,7 @@ interface FinancialCardProps {
     selectedJob: Job;
     userProfile: UserProfile;
     commuteAnalysis: CommuteAnalysis | null;
+    salaryBenchmark: SalaryBenchmarkResolved | null;
     showCommuteDetails: boolean;
     showLoginPrompt: boolean;
     showAddressPrompt: boolean;
@@ -38,6 +39,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
     selectedJob,
     userProfile,
     commuteAnalysis,
+    salaryBenchmark,
     showCommuteDetails,
     showLoginPrompt,
     showAddressPrompt,
@@ -50,6 +52,18 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
     const { t } = useTranslation();
     const cur = commuteAnalysis?.financialReality.currency || 'Kč';
     const locationLabel = userProfile.address || t('financial.current_location_label');
+    const salaryBenchmarkReady = !!salaryBenchmark && !salaryBenchmark.insufficient_data;
+    const salaryCurrency = salaryBenchmark?.currency || cur;
+    const salaryTierLabel = salaryBenchmarkReady && salaryBenchmark?.delta_vs_p50 !== undefined
+        ? (salaryBenchmark.delta_vs_p50 > 0
+            ? t('financial.market.above', { defaultValue: 'Nad trhem' })
+            : salaryBenchmark.delta_vs_p50 < 0
+                ? t('financial.market.below', { defaultValue: 'Pod trhem' })
+                : t('financial.market.at', { defaultValue: 'Na úrovni trhu' }))
+        : null;
+    const salaryTierColor = salaryBenchmarkReady && salaryBenchmark?.delta_vs_p50 !== undefined
+        ? (salaryBenchmark.delta_vs_p50 > 0 ? 'text-emerald-400' : salaryBenchmark.delta_vs_p50 < 0 ? 'text-rose-400' : 'text-amber-300')
+        : 'text-slate-300';
 
     return (
         <div className="bg-[#1e293b] text-slate-200 rounded-xl overflow-hidden shadow-xl mb-8 border border-slate-700 relative">
@@ -222,6 +236,46 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                                     </div>
                                 </div>
                             )}
+
+                            <div className="mt-4 rounded-lg border border-slate-700 bg-slate-900/50 p-3">
+                                <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-2">
+                                    {t('financial.market.title', { defaultValue: 'Mzda vs trh' })}
+                                </div>
+                                {salaryBenchmarkReady ? (
+                                    <div className="space-y-2 text-xs">
+                                        <div className={`font-semibold ${salaryTierColor}`}>
+                                            {salaryTierLabel}
+                                            {typeof salaryBenchmark?.delta_vs_p50_pct === 'number' && (
+                                                <span className="ml-1">
+                                                    ({salaryBenchmark.delta_vs_p50_pct > 0 ? '+' : ''}{salaryBenchmark.delta_vs_p50_pct.toFixed(1)}%)
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
+                                            <div>{t('financial.market.p50', { defaultValue: 'Medián (p50)' })}</div>
+                                            <div className="text-right font-mono">{(salaryBenchmark?.p50 || 0).toLocaleString()} {salaryCurrency}</div>
+                                            <div>{t('financial.market.iqr', { defaultValue: 'IQR (p75 - p25)' })}</div>
+                                            <div className="text-right font-mono">{(salaryBenchmark?.iqr || 0).toLocaleString()} {salaryCurrency}</div>
+                                            <div>N</div>
+                                            <div className="text-right font-mono">{salaryBenchmark?.transparency.sample_size || 0}</div>
+                                            <div>{t('financial.market.window', { defaultValue: 'Datové okno' })}</div>
+                                            <div className="text-right font-mono">{salaryBenchmark?.transparency.data_window_days || 0}d</div>
+                                            <div>{t('financial.market.confidence', { defaultValue: 'Confidence' })}</div>
+                                            <div className="text-right font-semibold uppercase">{salaryBenchmark?.transparency.confidence_tier || 'low'}</div>
+                                        </div>
+                                        {salaryBenchmark?.transparency.fallback_reason && (
+                                            <div className="text-amber-300 text-[11px] leading-relaxed border-t border-slate-700 pt-2">
+                                                {salaryBenchmark.transparency.fallback_reason}
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="text-xs text-slate-400">
+                                        {salaryBenchmark?.transparency?.fallback_reason
+                                            || t('financial.market.insufficient', { defaultValue: 'Insufficient data pro robustní benchmark.' })}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         {/* Information Box - How JHI and Transport are Calculated */}
