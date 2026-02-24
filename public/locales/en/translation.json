@@ -2793,45 +2793,71 @@
     "why_upgrade": "Why upgrade?"
   },
   "landing": {
-    "manifest": {
-      "tag": "Built for candidates",
-      "headline": "Don’t decide based on marketing. See the reality before you send your CV.",
-      "subheadline": "See risks, net pay, and fit in 60 seconds.",
-      "cta_primary": "Check this offer",
+    "hero": {
+      "headline": "For every job, you see its real impact.",
+      "subheadline": "Net income after tax. Commute costs. JHI - long-term sustainability score.",
+      "cta_primary": "Create profile",
       "cta_browse": "Browse offers",
-      "microcopy": "Pick an offer on the left (1 click).",
-      "cta_secondary": "Create a profile (optional)"
+      "snapshot_intro": "A standard ad shows: 2,400 EUR",
+      "snapshot_label": "JobShaman shows:",
+      "snapshot_rows": {
+        "gross_label": "Gross salary",
+        "gross_value": "2,400 EUR",
+        "net_label": "What remains",
+        "net_value": "1,848 EUR",
+        "commute_label": "Commuting",
+        "commute_value": "-324 EUR",
+        "jhi_label": "JHI",
+        "jhi_value": "64 / 100"
+      }
     },
-    "paradigm": {
-      "title": "Shaman doesn’t add more job posts. It helps you decide correctly.",
-      "desc": "Instead of another feed, you get a filter that has your back.",
-      "p1": "Risks",
-      "p1_desc": "Red flags and bullshit in the text.",
-      "p2": "Net reality",
-      "p2_desc": "What you actually take home (pay, taxes, commute).",
-      "p3": "JHI",
-      "p3_desc": "One quality score from 0–100."
+    "difference": {
+      "title": "What is different",
+      "lead": "Most job portals focus on search. JobShaman focuses on decision-making.",
+      "standard_title": "Standard job portal",
+      "jobshaman_title": "JobShaman",
+      "standard_items": {
+        "role": "Role title",
+        "company": "Company",
+        "gross": "Gross salary"
+      },
+      "jobshaman_items": {
+        "net": "Net income after tax",
+        "commute": "Transport costs based on your context",
+        "contract": "Contract type and transparency",
+        "jhi": "JHI (impact on work sustainability)"
+      }
     },
-    "analyzer": {
-      "title": "Offer checker",
-      "subtitle": "Paste the job ad text. Add 3 sentences about you for a fit estimate.",
-      "run": "Check offer",
-      "running": "Checking…",
-      "input_job": "Paste the job ad text (or a part)",
-      "input_job_ph": "Paste the job ad text here…",
-      "tip": "Tip: If the ad hides salary, that’s a signal on its own.",
-      "input_you": "Write 3 sentences about you (optional – for fit)",
-      "privacy_hint": "We don’t send your text anywhere. Fit is calculated anonymously.",
-      "input_you_ph": "e.g., 5 years React + TypeScript, I care about UX and performance…"
+    "how": {
+      "title": "How it works",
+      "step1_title": "1. Fill in a basic profile",
+      "step1_desc": "Location, transport mode, preferences.",
+      "step2_title": "2. See impact immediately",
+      "step2_desc": "Offers with calculated net income and costs.",
+      "step3_title": "3. Decide with facts",
+      "step3_desc": "By real impact, not by marketing.",
+      "no_cv_note": "You do not need to upload a CV before you know the offer makes sense."
     },
-    "result": {
-      "jhi_title": "JHI score",
-      "jhi_desc": "Money · time · mental load · growth · values",
-      "finance_title": "Net reality",
-      "finance_unavailable": "Couldn’t calculate net reality from this text.",
-      "finance_missing_salary": "Without salary we can’t calculate net reality. That’s a signal on its own.",
-      "match_title": "Fit",
-      "match_desc": "Quick estimate based on keyword overlap."
+    "audience": {
+      "title": "Who this is for",
+      "person1_title": "When changing jobs",
+      "person1_desc": "A person changing jobs who does not want to make a bad move.",
+      "person2_title": "When commuting",
+      "person2_desc": "A person commuting who wants to know the real cost.",
+      "person3_title": "Near borders",
+      "person3_desc": "A person considering work in another country.",
+      "crossborder_note": "Including cross-border decisions such as Rybnik / Ostrava / Katowice."
+    },
+    "unique": {
+      "title": "What others usually do not combine",
+      "lead": "In one view, we combine:",
+      "items": {
+        "crossborder": "Cross-border search with real cost context",
+        "tax": "Integrated tax calculator for multiple countries",
+        "net": "Net income calculation based on your profile",
+        "transparency": "Offer transparency scoring"
+      },
+      "decision_platform": "JobShaman is a decision platform for job choices, not just a list of offers."
     },
     "blog": {
       "title": "How to think about job offers (quickly)"

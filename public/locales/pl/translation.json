@@ -2810,45 +2810,71 @@
     "view_all": "Zobacz wszystko"
   },
   "landing": {
-    "manifest": {
-      "tag": "Dla kandydatów",
-      "headline": "Nie decyduj na podstawie marketingu. Poznaj realia zanim wyślesz CV.",
-      "subheadline": "Zobacz ryzyka, pensję netto i dopasowanie w 60 sekund.",
-      "cta_primary": "Sprawdź ofertę",
+    "hero": {
+      "headline": "Przy każdej pracy zobaczysz jej realny wpływ.",
+      "subheadline": "Dochód netto po podatkach. Koszty dojazdu. JHI - wskaźnik długoterminowej trwałości.",
+      "cta_primary": "Utwórz profil",
       "cta_browse": "Przeglądaj oferty",
-      "microcopy": "Wybierz ofertę po lewej (1 klik).",
-      "cta_secondary": "Utwórz profil (opcjonalnie)"
+      "snapshot_intro": "Typowe ogłoszenie pokazuje: 10 500 PLN",
+      "snapshot_label": "JobShaman pokaże:",
+      "snapshot_rows": {
+        "gross_label": "Wynagrodzenie brutto",
+        "gross_value": "10 500 PLN",
+        "net_label": "Realnie zostaje",
+        "net_value": "8 100 PLN",
+        "commute_label": "Dojazd",
+        "commute_value": "-1 400 PLN",
+        "jhi_label": "JHI",
+        "jhi_value": "64 / 100"
+      }
     },
-    "paradigm": {
-      "title": "Shaman nie dodaje kolejnych ogłoszeń. Pomaga podejmować dobre decyzje.",
-      "desc": "Zamiast kolejnego feedu dostajesz filtr, który ma cię chronić.",
-      "p1": "Ryzyka",
-      "p1_desc": "Red flagi i bullshit w treści.",
-      "p2": "Rzeczywistość netto",
-      "p2_desc": "Co realnie zostaje (płaca, podatki, dojazdy).",
-      "p3": "JHI",
-      "p3_desc": "Jedno jakościowe score 0–100."
+    "difference": {
+      "title": "Na czym polega różnica",
+      "lead": "Większość portali pracy skupia się na wyszukiwaniu. JobShaman skupia się na decyzji.",
+      "standard_title": "Standardowy portal pracy",
+      "jobshaman_title": "JobShaman",
+      "standard_items": {
+        "role": "Nazwa stanowiska",
+        "company": "Firma",
+        "gross": "Pensja brutto"
+      },
+      "jobshaman_items": {
+        "net": "Dochód netto po podatkach",
+        "commute": "Koszty transportu według Twojej sytuacji",
+        "contract": "Typ umowy i transparentność",
+        "jhi": "JHI (wpływ na trwałość pracy)"
+      }
     },
-    "analyzer": {
-      "title": "Sprawdzacz oferty",
-      "subtitle": "Wklej tekst ogłoszenia. Dodaj 3 zdania o sobie, aby zobaczyć dopasowanie.",
-      "run": "Sprawdź ofertę",
-      "running": "Sprawdzam…",
-      "input_job": "Wklej tekst ogłoszenia (lub fragment)",
-      "input_job_ph": "Wklej tutaj tekst ogłoszenia…",
-      "tip": "Wskazówka: Brak widełek płacowych to też sygnał.",
-      "input_you": "Napisz 3 zdania o sobie (opcjonalnie – dopasowanie)",
-      "privacy_hint": "Nie wysyłamy Twojego tekstu nigdzie. Dopasowanie liczymy anonimowo.",
-      "input_you_ph": "np. 5 lat React + TypeScript, dbam o UX i performance…"
+    "how": {
+      "title": "Jak to działa",
+      "step1_title": "1. Uzupełniasz podstawowy profil",
+      "step1_desc": "Lokalizacja, sposób transportu, preferencje.",
+      "step2_title": "2. Od razu widzisz wpływ",
+      "step2_desc": "Oferty z wyliczonym dochodem netto i kosztami.",
+      "step3_title": "3. Decydujesz rzeczowo",
+      "step3_desc": "Na podstawie wpływu, a nie marketingu.",
+      "no_cv_note": "Nie musisz wysyłać CV, zanim sprawdzisz, że oferta ma sens."
     },
-    "result": {
-      "jhi_title": "Wynik JHI",
-      "jhi_desc": "Pieniądze · czas · obciążenie · rozwój · wartości",
-      "finance_title": "Rzeczywistość netto",
-      "finance_unavailable": "Nie udało się policzyć rzeczywistości netto z tego tekstu.",
-      "finance_missing_salary": "Bez informacji o płacy nie policzymy rzeczywistości netto. To też sygnał.",
-      "match_title": "Dopasowanie",
-      "match_desc": "Szybki szacunek na podstawie wspólnych słów."
+    "audience": {
+      "title": "Dla kogo to jest",
+      "person1_title": "Przy zmianie pracy",
+      "person1_desc": "Osoba zmieniająca pracę, która nie chce popełnić błędu.",
+      "person2_title": "Przy dojazdach",
+      "person2_desc": "Osoba dojeżdżająca, która chce znać realne koszty.",
+      "person3_title": "Przy granicy",
+      "person3_desc": "Osoba rozważająca pracę w innym kraju.",
+      "crossborder_note": "Również dla decyzji transgranicznych: Rybnik / Ostrava / Katowice."
+    },
+    "unique": {
+      "title": "Co łączymy w jednym widoku",
+      "lead": "W jednym podglądzie łączymy:",
+      "items": {
+        "crossborder": "Wyszukiwanie transgraniczne z realnymi kosztami",
+        "tax": "Zintegrowany kalkulator podatkowy dla wielu krajów",
+        "net": "Wyliczenie dochodu netto na podstawie Twojego profilu",
+        "transparency": "Ocenę transparentności oferty"
+      },
+      "decision_platform": "JobShaman to decision platform do decyzji zawodowych, a nie tylko lista ofert."
     },
     "blog": {
       "title": "Jak szybko oceniać oferty pracy"

@@ -2802,45 +2802,71 @@
     }
   },
   "landing": {
-    "manifest": {
-      "tag": "Prověřeno pro kandidáty",
-      "headline": "Nerozhodujte se podle marketingu. Poznejte realitu dřív, než pošlete CV.",
-      "subheadline": "Uvidíte rizika, čistou mzdu a shodu za 60 sekund.",
-      "cta_primary": "Prověřit nabídku",
+    "hero": {
+      "headline": "U každé práce uvidíte její skutečný dopad.",
+      "subheadline": "Čistý příjem po daních. Náklady na dojíždění. JHI – skóre dlouhodobé udržitelnosti.",
+      "cta_primary": "Vytvořit profil",
       "cta_browse": "Prohlédnout nabídky",
-      "microcopy": "Vyberte nabídku vlevo (1 klik).",
-      "cta_secondary": "Vytvořit profil (volitelné)"
+      "snapshot_intro": "Běžný inzerát ukazuje: 60 000 Kč",
+      "snapshot_label": "JobShaman ukáže:",
+      "snapshot_rows": {
+        "gross_label": "Hrubá mzda",
+        "gross_value": "60 000 Kč",
+        "net_label": "Reálně vám zůstane",
+        "net_value": "46 200 Kč",
+        "commute_label": "Dojíždění",
+        "commute_value": "−8 100 Kč",
+        "jhi_label": "JHI",
+        "jhi_value": "64 / 100"
+      }
     },
-    "paradigm": {
-      "title": "Shaman nepřidává další nabídky. Pomáhá vám rozhodnout se správně.",
-      "desc": "Místo dalšího feedu dostanete filtr, který kryje záda kandidátům.",
-      "p1": "Rizika",
-      "p1_desc": "Red flags a bullshit v textu.",
-      "p2": "Čistá realita",
-      "p2_desc": "Co vám reálně zůstane (mzda, daně, dojíždění).",
-      "p3": "JHI",
-      "p3_desc": "Jedno skóre kvality nabídky 0–100."
+    "difference": {
+      "title": "V čem je rozdíl",
+      "lead": "Většina pracovních portálů se soustředí na vyhledávání. JobShaman se soustředí na rozhodování.",
+      "standard_title": "Běžný pracovní portál",
+      "jobshaman_title": "JobShaman",
+      "standard_items": {
+        "role": "Název pozice",
+        "company": "Firma",
+        "gross": "Hrubá mzda"
+      },
+      "jobshaman_items": {
+        "net": "Čistý příjem po daních",
+        "commute": "Náklady na dopravu podle vaší situace",
+        "contract": "Typ úvazku a transparentnost",
+        "jhi": "JHI (dopad na pracovní udržitelnost)"
+      }
     },
-    "analyzer": {
-      "title": "Prověřovač nabídky",
-      "subtitle": "Vložte text inzerátu. Přidejte 3 věty o sobě pro shodu.",
-      "run": "Prověřit nabídku",
-      "running": "Prověřuji…",
-      "input_job": "Vložte text inzerátu (nebo část)",
-      "input_job_ph": "Sem vložte text inzerátu…",
-      "tip": "Tip: Když inzerát nemá mzdu, je to samo o sobě signál.",
-      "input_you": "Napište 3 věty o sobě (volitelné – pro shodu)",
-      "privacy_hint": "Vaše data nikam neposíláme, shoda se počítá anonymně.",
-      "input_you_ph": "Např. 5 let React, TypeScript, rád/a řeším UX a výkon…"
+    "how": {
+      "title": "Jak to funguje",
+      "step1_title": "1. Vyplníte základní profil",
+      "step1_desc": "Lokace, typ dopravy, preference.",
+      "step2_title": "2. Okamžitě vidíte dopad",
+      "step2_desc": "Nabídky se spočítaným čistým příjmem a náklady.",
+      "step3_title": "3. Rozhodujete se věcně",
+      "step3_desc": "Podle reality nabídky, ne podle marketingu.",
+      "no_cv_note": "Nepotřebujete nahrávat životopis, než víte, že nabídka dává smysl."
     },
-    "result": {
-      "jhi_title": "JHI skóre",
-      "jhi_desc": "Finance · čas · psychika · růst · hodnoty",
-      "finance_title": "Čistá realita",
-      "finance_unavailable": "Nepodařilo se spočítat čistou realitu pro tento text.",
-      "finance_missing_salary": "Bez mzdy nejde spočítat čistou realitu. To je samo o sobě signál.",
-      "match_title": "Shoda",
-      "match_desc": "Rychlý odhad podle shody výrazů."
+    "audience": {
+      "title": "Pro koho to je",
+      "person1_title": "Při změně práce",
+      "person1_desc": "Člověk, který mění práci a nechce udělat chybu.",
+      "person2_title": "Při dojíždění",
+      "person2_desc": "Člověk, který dojíždí a chce znát skutečné náklady.",
+      "person3_title": "U hranic",
+      "person3_desc": "Člověk, který zvažuje práci v jiné zemi.",
+      "crossborder_note": "Konkrétně i pro přeshraniční rozhodování: Rybnik / Ostrava / Katowice."
+    },
+    "unique": {
+      "title": "Co dnes nikdo jiný nedělá",
+      "lead": "V jednom přehledu kombinujeme:",
+      "items": {
+        "crossborder": "Přeshraniční vyhledávání s realitou nákladů",
+        "tax": "Integrovanou daňovou kalkulačku pro více zemí",
+        "net": "Výpočet čistého příjmu podle vašeho profilu",
+        "transparency": "Hodnocení transparentnosti nabídky"
+      },
+      "decision_platform": "JobShaman je decision platform pro pracovní rozhodnutí, ne jen seznam nabídek."
     },
     "blog": {
       "title": "Jak přemýšlet o nabídce práce (krátce)"

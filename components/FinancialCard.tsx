@@ -18,6 +18,7 @@ import {
     Zap
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import OfferImpactSnapshot from './OfferImpactSnapshot';
 
 interface FinancialCardProps {
     selectedJob: Job;
@@ -159,54 +160,68 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                             </>
                         )}
                     </div>
-                    <div className="p-6 bg-slate-900/30 flex flex-col">
+                    <div className="flex flex-col">
                         <div className="flex-1">
-                            <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2"><Calculator size={12} /> {t('financial.reality_vs_income')}</h4>
-                            <div className="space-y-1 text-sm font-mono">
-                                {/* AI Estimation Hint */}
-                                {selectedJob.aiEstimatedSalary && (
-                                    <div className="text-xs text-purple-400 mb-2 flex items-center gap-1">
-                                        <Sparkles size={10} />
-                                        {t('financial.ai_estimation_hint')}
-                                    </div>
-                                )}
-
-                                <div className="flex justify-between text-slate-300">
-                                    <span>{t('financial.gross_monthly')}</span>
-                                    <span>{commuteAnalysis.financialReality.grossMonthlySalary > 0 ? `${commuteAnalysis.financialReality.grossMonthlySalary.toLocaleString()} ${cur}` : (selectedJob.aiEstimatedSalary ? `${selectedJob.aiEstimatedSalary.min.toLocaleString()} - ${selectedJob.aiEstimatedSalary.max.toLocaleString()} ${selectedJob.aiEstimatedSalary.currency}` : "???")}</span>
-                                </div>
-                                <div className="flex justify-between text-rose-300 text-xs">
-                                    <span>- {t('financial.tax_insurance')}</span>
-                                    <span>{commuteAnalysis.financialReality.estimatedTaxAndInsurance.toLocaleString()} {cur}</span>
-                                </div>
-                                <div className="flex justify-between text-white font-bold pt-2 mt-1 border-t border-slate-700">
-                                    <span>{t('financial.net_base')}</span>
-                                    <span>{commuteAnalysis.financialReality.netBaseSalary.toLocaleString()} {cur}</span>
-                                </div>
-                                <div className="flex justify-between text-emerald-400">
-                                    <span>+ {t('financial.benefit_value_label')}</span>
-                                    <span>{commuteAnalysis.financialReality.benefitsValue.toLocaleString()} {cur}</span>
-                                </div>
-                                {commuteAnalysis.financialReality.benefitsValue > 0 && (
-                                    <div className="text-xs text-slate-400 mt-2 italic">
-                                        <div className="flex items-start gap-1">
-                                            <span className="text-blue-400">ℹ️</span>
-                                            <div>
-                                                <div>{t('financial.benefit_value_label')}: {commuteAnalysis.financialReality.benefitsValue.toLocaleString()} {cur}/{t('financial.per_month')}</div>
-                                                <div>{t('financial.benefit_info_desc')}</div>
-                                            </div>
+                            <OfferImpactSnapshot
+                                title={
+                                    <span className="inline-flex items-center gap-2">
+                                        <Calculator size={12} /> {t('financial.reality_vs_income')}
+                                    </span>
+                                }
+                                leadingNote={
+                                    selectedJob.aiEstimatedSalary ? (
+                                        <span className="inline-flex items-center gap-1">
+                                            <Sparkles size={10} />
+                                            {t('financial.ai_estimation_hint')}
+                                        </span>
+                                    ) : null
+                                }
+                                rows={[
+                                    {
+                                        label: t('financial.gross_monthly'),
+                                        value: commuteAnalysis.financialReality.grossMonthlySalary > 0
+                                            ? `${commuteAnalysis.financialReality.grossMonthlySalary.toLocaleString()} ${cur}`
+                                            : (selectedJob.aiEstimatedSalary
+                                                ? `${selectedJob.aiEstimatedSalary.min.toLocaleString()} - ${selectedJob.aiEstimatedSalary.max.toLocaleString()} ${selectedJob.aiEstimatedSalary.currency}`
+                                                : '???')
+                                    },
+                                    {
+                                        label: `- ${t('financial.tax_insurance')}`,
+                                        value: `${commuteAnalysis.financialReality.estimatedTaxAndInsurance.toLocaleString()} ${cur}`,
+                                        tone: 'negative'
+                                    },
+                                    {
+                                        label: t('financial.net_base'),
+                                        value: `${commuteAnalysis.financialReality.netBaseSalary.toLocaleString()} ${cur}`
+                                    },
+                                    {
+                                        label: `+ ${t('financial.benefit_value_label')}`,
+                                        value: `${commuteAnalysis.financialReality.benefitsValue.toLocaleString()} ${cur}`,
+                                        tone: 'positive'
+                                    },
+                                    {
+                                        label: `- ${t('financial.commute_costs')}`,
+                                        value: commuteAnalysis.isRelocation ? '???' : `${commuteAnalysis.financialReality.commuteCost.toLocaleString()} ${cur}`,
+                                        tone: 'negative'
+                                    },
+                                    {
+                                        label: t('financial.reality_summary'),
+                                        value: `${commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString()} ${cur}`,
+                                        tone: 'emphasis'
+                                    }
+                                ]}
+                            />
+                            {commuteAnalysis.financialReality.benefitsValue > 0 && (
+                                <div className="text-xs text-slate-400 mt-2 italic">
+                                    <div className="flex items-start gap-1">
+                                        <span className="text-blue-400">ℹ️</span>
+                                        <div>
+                                            <div>{t('financial.benefit_value_label')}: {commuteAnalysis.financialReality.benefitsValue.toLocaleString()} {cur}/{t('financial.per_month')}</div>
+                                            <div>{t('financial.benefit_info_desc')}</div>
                                         </div>
                                     </div>
-                                )}
-                                <div className="flex justify-between text-rose-400">
-                                    <span>- {t('financial.commute_costs')}</span>
-                                    <span>{commuteAnalysis.isRelocation ? '???' : `${commuteAnalysis.financialReality.commuteCost.toLocaleString()} ${cur}`}</span>
                                 </div>
-                                <div className="flex justify-between text-xl font-bold text-white pt-3 mt-3 border-t border-slate-700">
-                                    <span>{t('financial.reality_summary')}</span>
-                                    <span>{commuteAnalysis.financialReality.finalRealMonthlyValue.toLocaleString()} {cur}</span>
-                                </div>
-                            </div>
+                            )}
                         </div>
 
                         {/* Information Box - How JHI and Transport are Calculated */}

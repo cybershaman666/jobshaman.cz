@@ -2793,45 +2793,71 @@
     "view_all": "Alle anzeigen"
   },
   "landing": {
-    "manifest": {
-      "tag": "Für Kandidaten geprüft",
-      "headline": "Entscheide nicht nach Marketing. Sieh die Realität, bevor du dein CV schickst.",
-      "subheadline": "Risiken, Nettogehalt und Fit in 60 Sekunden.",
-      "cta_primary": "Angebot prüfen",
+    "hero": {
+      "headline": "Bei jedem Job siehst du seine reale Auswirkung.",
+      "subheadline": "Nettoeinkommen nach Steuern. Pendelkosten. JHI - Nachhaltigkeits-Score auf lange Sicht.",
+      "cta_primary": "Profil erstellen",
       "cta_browse": "Angebote ansehen",
-      "microcopy": "Wähle links ein Angebot (1 Klick).",
-      "cta_secondary": "Profil erstellen (optional)"
+      "snapshot_intro": "Eine normale Anzeige zeigt: 2.400 EUR",
+      "snapshot_label": "JobShaman zeigt:",
+      "snapshot_rows": {
+        "gross_label": "Bruttolohn",
+        "gross_value": "2.400 EUR",
+        "net_label": "Real bleibt",
+        "net_value": "1.848 EUR",
+        "commute_label": "Pendeln",
+        "commute_value": "-324 EUR",
+        "jhi_label": "JHI",
+        "jhi_value": "64 / 100"
+      }
     },
-    "paradigm": {
-      "title": "Shaman fügt keine weiteren Anzeigen hinzu. Es hilft dir, richtig zu entscheiden.",
-      "desc": "Statt eines weiteren Feeds bekommst du einen Filter, der dir den Rücken freihält.",
-      "p1": "Risiken",
-      "p1_desc": "Red Flags und Bullshit im Text.",
-      "p2": "Netto‑Realität",
-      "p2_desc": "Was dir wirklich bleibt (Gehalt, Steuern, Pendeln).",
-      "p3": "JHI",
-      "p3_desc": "Ein Qualitäts‑Score von 0–100."
+    "difference": {
+      "title": "Was ist der Unterschied",
+      "lead": "Die meisten Jobportale fokussieren auf Suche. JobShaman fokussiert auf Entscheidungen.",
+      "standard_title": "Klassisches Jobportal",
+      "jobshaman_title": "JobShaman",
+      "standard_items": {
+        "role": "Positionsname",
+        "company": "Firma",
+        "gross": "Bruttolohn"
+      },
+      "jobshaman_items": {
+        "net": "Nettoeinkommen nach Steuern",
+        "commute": "Pendelkosten nach deiner Situation",
+        "contract": "Vertragsart und Transparenz",
+        "jhi": "JHI (Auswirkung auf langfristige Arbeitsstabilität)"
+      }
     },
-    "analyzer": {
-      "title": "Angebots‑Check",
-      "subtitle": "Text der Stellenanzeige einfügen. Für Fit: 3 Sätze über dich ergänzen.",
-      "run": "Angebot prüfen",
-      "running": "Prüfe…",
-      "input_job": "Text der Stellenanzeige einfügen (oder Auszug)",
-      "input_job_ph": "Hier den Text einfügen…",
-      "tip": "Tipp: Wenn das Gehalt fehlt, ist das bereits ein Signal.",
-      "input_you": "3 Sätze über dich (optional – für Fit)",
-      "privacy_hint": "Wir senden deinen Text nirgendwo hin. Der Fit wird anonym berechnet.",
-      "input_you_ph": "z.B. 5 Jahre React + TypeScript, Fokus auf UX und Performance…"
+    "how": {
+      "title": "So funktioniert es",
+      "step1_title": "1. Grundprofil ausfüllen",
+      "step1_desc": "Standort, Verkehrsmittel, Präferenzen.",
+      "step2_title": "2. Wirkung sofort sehen",
+      "step2_desc": "Angebote mit berechnetem Nettoeinkommen und Kosten.",
+      "step3_title": "3. Sachlich entscheiden",
+      "step3_desc": "Nach realer Auswirkung, nicht nach Marketing.",
+      "no_cv_note": "Du musst keinen Lebenslauf hochladen, bevor du weißt, dass das Angebot sinnvoll ist."
     },
-    "result": {
-      "jhi_title": "JHI‑Score",
-      "jhi_desc": "Geld · Zeit · mentale Belastung · Wachstum · Werte",
-      "finance_title": "Netto‑Realität",
-      "finance_unavailable": "Netto‑Realität konnte aus diesem Text nicht berechnet werden.",
-      "finance_missing_salary": "Ohne Gehalt können wir die Netto‑Realität nicht berechnen. Das ist ein Signal.",
-      "match_title": "Fit",
-      "match_desc": "Schnelle Schätzung anhand von Keyword‑Überschneidung."
+    "audience": {
+      "title": "Für wen das ist",
+      "person1_title": "Beim Jobwechsel",
+      "person1_desc": "Menschen, die wechseln und keine Fehlentscheidung wollen.",
+      "person2_title": "Beim Pendeln",
+      "person2_desc": "Menschen, die pendeln und die echten Kosten kennen wollen.",
+      "person3_title": "Grenznahe Regionen",
+      "person3_desc": "Menschen, die Arbeit im Nachbarland erwägen.",
+      "crossborder_note": "Auch für grenzüberschreitende Entscheidungen: Rybnik / Ostrava / Katowice."
+    },
+    "unique": {
+      "title": "Was wir in einer Ansicht kombinieren",
+      "lead": "In einer Übersicht kombinieren wir:",
+      "items": {
+        "crossborder": "Grenzüberschreitende Suche mit realem Kostenkontext",
+        "tax": "Integrierter Steuerrechner für mehrere Länder",
+        "net": "Nettoeinkommensberechnung nach deinem Profil",
+        "transparency": "Transparenzbewertung von Stellenanzeigen"
+      },
+      "decision_platform": "JobShaman ist eine Decision Platform für Jobentscheidungen, nicht nur eine Liste von Angeboten."
     },
     "blog": {
       "title": "Wie man Jobangebote bewertet (kurz)"
