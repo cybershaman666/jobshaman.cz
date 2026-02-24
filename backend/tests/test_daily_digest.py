@@ -2,6 +2,8 @@ from backend.app.services.daily_digest import (
     _candidate_has_matching_signal,
     _country_from_address,
     _country_from_coordinates,
+    _digest_job_sort_key,
+    _is_remote_job,
     _resolve_digest_country_code,
     _should_send_now,
 )
@@ -84,3 +86,23 @@ def test_should_send_now_blocks_when_already_sent_in_current_window(monkeypatch)
     # Last digest already sent after today's 12:30 window started.
     last_sent_utc = "2026-02-22T11:31:00+00:00"
     assert _should_send_now(last_sent_utc, datetime.strptime("12:30", "%H:%M").time(), "Europe/Prague") is False
+
+
+def test_is_remote_job_does_not_treat_hybrid_as_fully_remote():
+    hybrid_job = {
+        "work_model": "hybrid",
+        "work_type": "",
+        "title": "Backend Developer",
+        "description": "Hybrid mode",
+        "location": "Brno",
+    }
+    assert _is_remote_job(hybrid_job) is False
+
+
+def test_digest_sort_prefers_nearby_then_relevance():
+    near_lower_score = {"distance_km": 8.0, "match_score": 77}
+    far_higher_score = {"distance_km": 42.0, "match_score": 99}
+    remote_higher_score = {"distance_km": None, "match_score": 100}
+
+    ordered = sorted([far_higher_score, remote_higher_score, near_lower_score], key=_digest_job_sort_key)
+    assert ordered == [near_lower_score, far_higher_score, remote_higher_score]

@@ -209,7 +209,7 @@ def send_daily_digest_email(
 
     copy = {
         "cs": {
-            "subject": "Váš denní digest nabídek",
+            "subject": "Váš denní přehled nabídek",
             "title": f"Dobrý den{f' {cs_salutation_name}' if cs_salutation_name else ''},",
             "intro": "Zde je Váš denní přehled nabídek, které odpovídají Vašemu profilu.",
             "top_title": "Vaše top shody",

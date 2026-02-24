@@ -7,7 +7,6 @@ import json
 from ..core.config import API_BASE_URL
 from ..core.database import supabase
 from ..matching_engine import recommend_jobs_for_user
-from ..matching_engine.scoring import REMOTE_FLAGS
 from ..services.email import send_daily_digest_email
 from ..services.push_notifications import send_push, is_push_configured
 from ..services.unsubscribe import make_unsubscribe_token
@@ -16,6 +15,7 @@ _DEFAULT_TZ = "Europe/Prague"
 _DIGEST_RADIUS_KM = 50.0
 _APP_URL = "https://jobshaman.cz"
 _DIGEST_WINDOW_MINUTES = 20
+_REMOTE_ONLY_FLAGS = ["remote", "remote-first", "work from home", "home office", "homeoffice", "fully remote"]
 _COUNTRY_BOUNDS = {
     # Approximate bounds for digest fallback country inference.
     "CZ": (48.3, 51.2, 12.0, 18.9),
@@ -40,9 +40,9 @@ def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
 def _is_remote_job(job: Dict) -> bool:
     work_model = str(job.get("work_model") or "").lower()
     work_type = str(job.get("work_type") or "").lower()
-    if "remote" in work_model or "hybrid" in work_model:
+    if "remote" in work_model:
         return True
-    if "remote" in work_type or "hybrid" in work_type:
+    if "remote" in work_type:
         return True
 
     text = " ".join(
@@ -52,7 +52,30 @@ def _is_remote_job(job: Dict) -> bool:
             str(job.get("location") or ""),
         ]
     ).lower()
-    return any(flag in text for flag in REMOTE_FLAGS)
+    return any(flag in text for flag in _REMOTE_ONLY_FLAGS)
+
+
+def _job_distance_km(job: Dict, c_lat: Optional[float], c_lng: Optional[float]) -> Optional[float]:
+    if c_lat is None or c_lng is None:
+        return None
+    j_lat = job.get("lat")
+    j_lng = job.get("lng")
+    if j_lat is None or j_lng is None:
+        return None
+    try:
+        return _haversine_km(float(c_lat), float(c_lng), float(j_lat), float(j_lng))
+    except Exception:
+        return None
+
+
+def _digest_job_sort_key(job: Dict) -> tuple:
+    distance = job.get("distance_km")
+    has_distance = distance is not None
+    return (
+        0 if has_distance else 1,
+        float(distance) if has_distance else 99999.0,
+        -int(job.get("match_score") or 0),
+    )
 
 
 def _resolve_locale(preferred_locale: Optional[str], preferred_country_code: Optional[str]) -> str:
@@ -365,7 +388,8 @@ def run_daily_job_digest() -> None:
 
         digest_jobs: List[Dict] = []
         if has_matching_signal:
-            recs = recommend_jobs_for_user(user_id=user_id, limit=30, allow_cache=True)
+            # Fetch broader set, then prioritize local+relevant entries for digest.
+            recs = recommend_jobs_for_user(user_id=user_id, limit=120, allow_cache=True)
             for item in recs:
                 job = item.get("job") or {}
                 job_id = job.get("id")
@@ -376,14 +400,9 @@ def run_daily_job_digest() -> None:
                     continue
 
                 remote = _is_remote_job(job)
+                distance = _job_distance_km(job, c_lat, c_lng)
                 if not remote:
-                    j_lat = job.get("lat")
-                    j_lng = job.get("lng")
-                    if c_lat is None or c_lng is None or j_lat is None or j_lng is None:
-                        continue
-                    try:
-                        distance = _haversine_km(float(c_lat), float(c_lng), float(j_lat), float(j_lng))
-                    except Exception:
+                    if distance is None:
                         continue
                     if distance > _DIGEST_RADIUS_KM:
                         continue
@@ -395,11 +414,11 @@ def run_daily_job_digest() -> None:
                         "company": job.get("company") or job.get("company_name") or "",
                         "location": job.get("location") or "",
                         "match_score": int(float(item.get("score") or 0)),
+                        "distance_km": round(float(distance), 2) if distance is not None else None,
                         "detail_url": f"{_APP_URL}/jobs/{job_id}",
                     }
                 )
-                if len(digest_jobs) >= 5:
-                    break
+            digest_jobs = sorted(digest_jobs, key=_digest_job_sort_key)[:5]
 
         # Fallback for users with incomplete profiles (or empty personalized result):
         # deliver newest local jobs without AI match percentages.
