@@ -4,6 +4,7 @@ from backend.app.services.daily_digest import (
     _country_from_coordinates,
     _digest_job_sort_key,
     _is_remote_job,
+    _pick_personalized_digest_jobs,
     _resolve_digest_country_code,
     _should_send_now,
 )
@@ -106,3 +107,50 @@ def test_digest_sort_prefers_nearby_then_relevance():
 
     ordered = sorted([far_higher_score, remote_higher_score, near_lower_score], key=_digest_job_sort_key)
     assert ordered == [near_lower_score, far_higher_score, remote_higher_score]
+
+
+def test_pick_personalized_digest_jobs_falls_back_to_nonlocal_ai_matches():
+    recs = [
+        {
+            "score": 96,
+            "job": {
+                "id": "job-remote-1",
+                "title": "Senior Python Developer",
+                "company": "Acme",
+                "company_name": "Acme",
+                "location": "Remote EU",
+                "country_code": "CZ",
+                "work_model": "remote",
+                "lat": None,
+                "lng": None,
+            },
+        },
+        {
+            "score": 88,
+            "job": {
+                "id": "job-far-1",
+                "title": "Data Engineer",
+                "company": "DataCorp",
+                "company_name": "DataCorp",
+                "location": "Ostrava",
+                "country_code": "CZ",
+                "work_model": "onsite",
+                "lat": 49.8209,
+                "lng": 18.2625,
+            },
+        },
+    ]
+
+    picks = _pick_personalized_digest_jobs(
+        recs=recs,
+        c_lat=48.1486,  # Bratislava area; far from Ostrava (>50km)
+        c_lng=17.1077,
+        country_code="CZ",
+        limit=5,
+    )
+
+    assert len(picks) == 2
+    assert picks[0]["id"] == "job-remote-1"
+    assert picks[0]["match_score"] == 96
+    assert picks[1]["id"] == "job-far-1"
+    assert picks[1]["match_score"] == 88

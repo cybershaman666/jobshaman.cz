@@ -13,6 +13,7 @@ from ..services.unsubscribe import make_unsubscribe_token
 
 _DEFAULT_TZ = "Europe/Prague"
 _DIGEST_RADIUS_KM = 50.0
+_DIGEST_MAX_JOBS = 10
 _APP_URL = "https://jobshaman.cz"
 _DIGEST_WINDOW_MINUTES = 20
 _REMOTE_ONLY_FLAGS = ["remote", "remote-first", "work from home", "home office", "homeoffice", "fully remote"]
@@ -76,6 +77,50 @@ def _digest_job_sort_key(job: Dict) -> tuple:
         float(distance) if has_distance else 99999.0,
         -int(job.get("match_score") or 0),
     )
+
+
+def _pick_personalized_digest_jobs(
+    recs: List[Dict],
+    c_lat: Optional[float],
+    c_lng: Optional[float],
+    country_code: Optional[str],
+    limit: int = _DIGEST_MAX_JOBS,
+) -> List[Dict]:
+    strict_local: List[Dict] = []
+    relaxed_personalized: List[Dict] = []
+
+    for item in recs:
+        job = item.get("job") or {}
+        job_id = job.get("id")
+        if not job_id:
+            continue
+        if not _job_in_country(job, country_code):
+            continue
+
+        remote = _is_remote_job(job)
+        distance = _job_distance_km(job, c_lat, c_lng)
+        packed = {
+            "id": job_id,
+            "title": job.get("title") or "",
+            "company": job.get("company") or job.get("company_name") or "",
+            "location": job.get("location") or "",
+            "match_score": int(float(item.get("score") or 0)),
+            "distance_km": round(float(distance), 2) if distance is not None else None,
+            "detail_url": f"{_APP_URL}/jobs/{job_id}",
+        }
+
+        if remote or (distance is not None and distance <= _DIGEST_RADIUS_KM):
+            strict_local.append(packed)
+        else:
+            # Keep personalized items for secondary fallback so email still shows AI match.
+            relaxed_personalized.append(packed)
+
+    strict_local = sorted(strict_local, key=_digest_job_sort_key)
+    if strict_local:
+        return strict_local[:limit]
+
+    relaxed_personalized = sorted(relaxed_personalized, key=_digest_job_sort_key)
+    return relaxed_personalized[:limit]
 
 
 def _resolve_locale(preferred_locale: Optional[str], preferred_country_code: Optional[str]) -> str:
@@ -238,7 +283,7 @@ def _fetch_newest_local_jobs(
     c_lat: Optional[float],
     c_lng: Optional[float],
     country_code: Optional[str],
-    limit: int = 5,
+    limit: int = _DIGEST_MAX_JOBS,
 ) -> List[Dict]:
     if not supabase:
         return []
@@ -291,7 +336,7 @@ def _fetch_newest_local_jobs(
     return picks
 
 
-def _fetch_newest_jobs_relaxed(limit: int = 5) -> List[Dict]:
+def _fetch_newest_jobs_relaxed(limit: int = _DIGEST_MAX_JOBS) -> List[Dict]:
     """Last-resort fallback to avoid silent digest drops when strict filters return no jobs."""
     if not supabase:
         return []
@@ -390,35 +435,13 @@ def run_daily_job_digest() -> None:
         if has_matching_signal:
             # Fetch broader set, then prioritize local+relevant entries for digest.
             recs = recommend_jobs_for_user(user_id=user_id, limit=120, allow_cache=True)
-            for item in recs:
-                job = item.get("job") or {}
-                job_id = job.get("id")
-                if not job_id:
-                    continue
-
-                if not _job_in_country(job, digest_country_code):
-                    continue
-
-                remote = _is_remote_job(job)
-                distance = _job_distance_km(job, c_lat, c_lng)
-                if not remote:
-                    if distance is None:
-                        continue
-                    if distance > _DIGEST_RADIUS_KM:
-                        continue
-
-                digest_jobs.append(
-                    {
-                        "id": job_id,
-                        "title": job.get("title") or "",
-                        "company": job.get("company") or job.get("company_name") or "",
-                        "location": job.get("location") or "",
-                        "match_score": int(float(item.get("score") or 0)),
-                        "distance_km": round(float(distance), 2) if distance is not None else None,
-                        "detail_url": f"{_APP_URL}/jobs/{job_id}",
-                    }
-                )
-            digest_jobs = sorted(digest_jobs, key=_digest_job_sort_key)[:5]
+            digest_jobs = _pick_personalized_digest_jobs(
+                recs=recs,
+                c_lat=c_lat,
+                c_lng=c_lng,
+                country_code=digest_country_code,
+                limit=_DIGEST_MAX_JOBS,
+            )
 
         # Fallback for users with incomplete profiles (or empty personalized result):
         # deliver newest local jobs without AI match percentages.
@@ -427,14 +450,14 @@ def run_daily_job_digest() -> None:
                 c_lat=c_lat,
                 c_lng=c_lng,
                 country_code=digest_country_code,
-                limit=5,
+                limit=_DIGEST_MAX_JOBS,
             )
             if not digest_jobs:
                 print(
                     f"⚠️ [Digest] strict/local selection returned 0 jobs for user={user_id}; "
                     "using relaxed fallback."
                 )
-                digest_jobs = _fetch_newest_jobs_relaxed(limit=5)
+                digest_jobs = _fetch_newest_jobs_relaxed(limit=_DIGEST_MAX_JOBS)
 
         if not digest_jobs:
             print(f"⏭️ [Digest] skipped user={user_id}: no jobs available even after relaxed fallback")

@@ -134,6 +134,29 @@ _DOMAIN_LAST_REQUEST: Dict[str, float] = {}
 _DOMAIN_COOLDOWN_UNTIL: Dict[str, float] = {}
 
 
+def _is_transient_db_error(exc: Exception) -> bool:
+    if isinstance(exc, BrokenPipeError):
+        return True
+    if isinstance(exc, OSError) and getattr(exc, "errno", None) == 32:
+        return True
+    text = str(exc).lower()
+    transient_markers = (
+        "broken pipe",
+        "connection reset",
+        "server disconnected",
+        "eof",
+        "temporarily unavailable",
+        "timeout",
+        "timed out",
+    )
+    return any(marker in text for marker in transient_markers)
+
+
+def _refresh_supabase_client() -> Optional[Client]:
+    print("🔄 Obnovuji Supabase klienta po dočasné chybě připojení...")
+    return get_supabase_client()
+
+
 def _get_domain(url: str) -> str:
     try:
         return urlparse(url).netloc.lower()
@@ -639,40 +662,52 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict) -> bool:
         print("Chyba: Supabase klient není inicializován, data nebudou uložena.")
         return False
     
-    # Check for duplicates
-    try:
-        response = (
-            supabase.table("jobs")
-            .select("id,language_code")
-            .eq("url", job_data["url"])
-            .execute()
-        )
-        if response.data:
-            print(f"    --> Nabídka s URL {job_data['url']} již existuje, přeskočeno.")
-            # If language_code is missing, try to backfill it
-            row = response.data[0]
-            if row.get("language_code") is None:
-                lang_text = f"{job_data.get('title', '')} {job_data.get('description', '')}"
-                detected_lang = detect_language_code(lang_text)
-                if not detected_lang:
-                    cc = (job_data.get("country_code") or "").lower()
-                    if cc in ("cz", "cs"):
-                        detected_lang = "cs"
-                    elif cc == "sk":
-                        detected_lang = "sk"
-                    elif cc == "pl":
-                        detected_lang = "pl"
-                    elif cc in ("de", "at"):
-                        detected_lang = "de"
-                if detected_lang:
-                    try:
-                        supabase.table("jobs").update({"language_code": detected_lang}).eq("id", row["id"]).execute()
-                        print(f"    🈯 Language backfilled for existing job: {detected_lang}")
-                    except Exception as e:
-                        print(f"    ⚠️ Language backfill failed: {e}")
-            return False
-    except Exception as e:
-        print(f"Chyba při kontrole duplicity: {e}")
+    # Check for duplicates (with transient DB retry)
+    response = None
+    for attempt in range(2):
+        try:
+            response = (
+                supabase.table("jobs")
+                .select("id,language_code")
+                .eq("url", job_data["url"])
+                .execute()
+            )
+            break
+        except Exception as e:
+            if attempt == 0 and _is_transient_db_error(e):
+                print(f"⚠️ Chyba při kontrole duplicity (pokus 1/2): {e}")
+                refreshed = _refresh_supabase_client()
+                if refreshed:
+                    supabase = refreshed
+                time.sleep(0.4)
+                continue
+            print(f"Chyba při kontrole duplicity: {e}")
+            break
+
+    if response and response.data:
+        print(f"    --> Nabídka s URL {job_data['url']} již existuje, přeskočeno.")
+        # If language_code is missing, try to backfill it
+        row = response.data[0]
+        if row.get("language_code") is None:
+            lang_text = f"{job_data.get('title', '')} {job_data.get('description', '')}"
+            detected_lang = detect_language_code(lang_text)
+            if not detected_lang:
+                cc = (job_data.get("country_code") or "").lower()
+                if cc in ("cz", "cs"):
+                    detected_lang = "cs"
+                elif cc == "sk":
+                    detected_lang = "sk"
+                elif cc == "pl":
+                    detected_lang = "pl"
+                elif cc in ("de", "at"):
+                    detected_lang = "de"
+            if detected_lang:
+                try:
+                    supabase.table("jobs").update({"language_code": detected_lang}).eq("id", row["id"]).execute()
+                    print(f"    🈯 Language backfilled for existing job: {detected_lang}")
+                except Exception as e:
+                    print(f"    ⚠️ Language backfill failed: {e}")
+        return False
     
     # Extract source from URL
     parsed_url = urlparse(job_data["url"])
@@ -766,17 +801,25 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict) -> bool:
         job_data["description"] = job_data["description"][:9500] + "\n\n... (Popis byl zkrácen)"
 
     # Save to database
-    try:
-        response = supabase.table("jobs").insert(job_data).execute()
-        if response.data:
-            print(f"    --> Data pro '{job_data.get('title')}' úspěšně uložena.")
-            return True
-        else:
+    for attempt in range(2):
+        try:
+            response = supabase.table("jobs").insert(job_data).execute()
+            if response.data:
+                print(f"    --> Data pro '{job_data.get('title')}' úspěšně uložena.")
+                return True
             print(f"    ❌ Chyba při ukládání dat: {job_data.get('title')}")
             return False
-    except Exception as e:
-        print(f"    ❌ Došlo k neočekávané chybě při ukládání: {e}")
-        return False
+        except Exception as e:
+            if attempt == 0 and _is_transient_db_error(e):
+                print(f"    ⚠️ Dočasná DB chyba při ukládání (pokus 1/2): {e}")
+                refreshed = _refresh_supabase_client()
+                if refreshed:
+                    supabase = refreshed
+                time.sleep(0.6)
+                continue
+            print(f"    ❌ Došlo k neočekávané chybě při ukládání: {e}")
+            return False
+    return False
 
 
 # --- Base Scraper Class ---
@@ -808,23 +851,32 @@ class BaseScraper:
         if not self.supabase:
             return False
             
-        try:
-            # Check for duplicates using the same logic as save_job_to_supabase
-            response = str(self.supabase.table("jobs").select("url", count="exact").eq("url", url).execute())
-            # If count > 0 or data returned
-            if "url" in response and url in response:
-                 # Logic depends on supabase-py specific return structure, simplified check:
-                 pass
-            
-            # The most reliable way with supabase-py:
-            res = self.supabase.table("jobs").select("id").eq("url", url).execute()
-            if res.data and len(res.data) > 0:
-                print(f"    --> (Cache) Nabídka již existuje: {url}")
-                return True
-            return False
-        except Exception as e:
-            print(f"⚠️ Chyba při kontrole duplicity: {e}")
-            return False
+        for attempt in range(2):
+            try:
+                # Check for duplicates using the same logic as save_job_to_supabase
+                response = str(self.supabase.table("jobs").select("url", count="exact").eq("url", url).execute())
+                # If count > 0 or data returned
+                if "url" in response and url in response:
+                    # Logic depends on supabase-py specific return structure, simplified check:
+                    pass
+
+                # The most reliable way with supabase-py:
+                res = self.supabase.table("jobs").select("id").eq("url", url).execute()
+                if res.data and len(res.data) > 0:
+                    print(f"    --> (Cache) Nabídka již existuje: {url}")
+                    return True
+                return False
+            except Exception as e:
+                if attempt == 0 and _is_transient_db_error(e):
+                    print(f"⚠️ Chyba při kontrole duplicity (pokus 1/2): {e}")
+                    refreshed = _refresh_supabase_client()
+                    if refreshed:
+                        self.supabase = refreshed
+                    time.sleep(0.4)
+                    continue
+                print(f"⚠️ Chyba při kontrole duplicity: {e}")
+                return False
+        return False
 
     def scrape_page_jobs(self, soup: BeautifulSoup, site_name: str) -> int:
         """

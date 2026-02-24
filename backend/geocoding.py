@@ -124,6 +124,8 @@ MAJOR_CITIES_CACHE: Dict[str, Tuple[float, float]] = {
 # Rate limiting for Nominatim API (1 request per second)
 _last_api_call_time = 0
 _call_count_per_minute = 0
+_FAILED_LOOKUP_TTL_SECONDS = 60 * 60
+_FAILED_LOOKUPS: Dict[str, float] = {}
 
 _ADMIN_AREA_TOKENS = {
     'okres', 'kraj', 'region', 'district', 'venkov', 'county'
@@ -182,6 +184,12 @@ def geocode_location(location: str) -> Optional[Dict]:
 
     normalized = normalize_address(location)
     primary_segment = normalize_address(location.split(',')[0].strip())
+    now_ts = time.time()
+
+    # Negative cache: repeated failing API lookups should not block the whole scrape run.
+    failed_at = _FAILED_LOOKUPS.get(normalized)
+    if failed_at and now_ts - failed_at < _FAILED_LOOKUP_TTL_SECONDS:
+        return None
 
     # 1. Check static cache for exact match (districts/neighborhoods first)
     if normalized in normalized_cache:
@@ -236,7 +244,10 @@ def geocode_location(location: str) -> Optional[Dict]:
             }
     
     # 3. Try Nominatim API for unknown locations
-    return _geocode_with_nominatim(location)
+    result = _geocode_with_nominatim(location)
+    if not result:
+        _FAILED_LOOKUPS[normalized] = now_ts
+    return result
 
 
 def _geocode_with_nominatim(address: str) -> Optional[Dict]:
@@ -274,7 +285,7 @@ def _geocode_with_nominatim(address: str) -> Optional[Dict]:
             'https://nominatim.openstreetmap.org/search',
             params=params,
             headers=headers,
-            timeout=10
+            timeout=6
         )
         
         if response.status_code != 200:
