@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured, isSupabaseNetworkCooldownActive, noteSupabaseNetworkFailure } from './supabaseService';
-import { Job, JHIPreferences, TaxProfile } from '../types';
+import { Job, JHI, JHIPreferences, TaxProfile } from '../types';
 import { contextualRelevanceScorer, ContextualRelevanceScorer } from './contextualRelevanceService';
 import { calculateJHI } from '../utils/jhiCalculator';
 import { matchesIcoKeywords, matchesFullTimeKeywords, matchesPartTimeKeywords, matchesBrigadaKeywords } from '../utils/contractType';
@@ -10,6 +10,18 @@ import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
 import { authenticatedFetch } from './csrfService';
 import { recordRuntimeSignal } from './runtimeSignals';
 import { estimateNoise } from '../utils/noise';
+
+const EMPTY_JHI: JHI = {
+    score: 0,
+    baseScore: 0,
+    personalizedScore: 0,
+    financial: 0,
+    timeCost: 0,
+    mentalLoad: 0,
+    growth: 0,
+    values: 0,
+    explanations: []
+};
 
 // Loose interface to accept whatever Supabase returns
 interface ScrapedJob {
@@ -244,7 +256,7 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
             description: fullDesc,
             location: locationString
         })
-        : undefined;
+        : EMPTY_JHI;
 
     return {
         id: String(scrapedJob.id),
@@ -2508,7 +2520,7 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: bo
                     description: fullDesc,
                     location: locationString,
                     distanceKm: distanceKm
-                }) : undefined,
+                }) : EMPTY_JHI,
                 noiseMetrics: estimateNoise(fullDesc),
                 transparency: {
                     turnoverRate: 15,
