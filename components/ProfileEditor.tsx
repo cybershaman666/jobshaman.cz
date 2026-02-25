@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState, useRef } from 'react';
-import { UserProfile, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences, HappinessAuditInput, HappinessAuditOutput } from '../types';
+import { UserProfile, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences, HappinessAuditInput, HappinessAuditOutput, IkigaiSnapshotV1 } from '../types';
 import {
   User,
   Upload,
@@ -30,7 +30,7 @@ import { validateCvFile, uploadAndParseCv, mergeProfileWithParsedCv } from '../s
 import { resolveAddressToCoordinates } from '../services/commuteService';
 import { authenticatedFetch } from '../services/csrfService';
 import { BACKEND_URL } from '../constants';
-import { FEATURE_HAPPINESS_AUDIT_THREE } from '../constants';
+import { FEATURE_HAPPINESS_AUDIT_THREE, FEATURE_PREMIUM_IKIGAI_GUIDE_V1 } from '../constants';
 import PremiumFeaturesPreview from './PremiumFeaturesPreview';
 import MyInvitations from './MyInvitations';
 import AIGuidedProfileWizard from './AIGuidedProfileWizard';
@@ -50,6 +50,10 @@ import CareerAnchorDrift from './three/CareerAnchorDrift';
 import NebulaOfPotential from './three/NebulaOfPotential';
 import CulturalNorthstarCompass from './three/CulturalNorthstarCompass';
 import AnalyticsService from '../services/analyticsService';
+import IkigaiGuideEntryCard from './ikigai/IkigaiGuideEntryCard';
+import IkigaiGuideFlow from './ikigai/IkigaiGuideFlow';
+import { resolveIkigaiGuideVariant } from './ikigai/ikigaiAccess';
+import { readIkigaiDraft } from '../services/ikigaiSessionState';
 
 import { useTranslation } from 'react-i18next';
 
@@ -123,6 +127,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     fixed: true,
   });
   const [narrativeStory, setNarrativeStory] = useState('');
+  const [ikigaiStarted, setIkigaiStarted] = useState(false);
+  const [ikigaiSnapshot, setIkigaiSnapshot] = useState<IkigaiSnapshotV1 | null>(
+    profile.preferences?.ikigai_v1 || null
+  );
+  const [hasIkigaiDraft, setHasIkigaiDraft] = useState<boolean>(() => Boolean(readIkigaiDraft()));
   const [culturalCompass, setCulturalCompass] = useState({
     individualVsTeam: 52,
     chaosVsStructure: 58,
@@ -207,6 +216,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const resolvedTier = String(effectiveTier || profile.subscription?.tier || 'free').toLowerCase();
   const normalizedCandidateTier: 'free' | 'premium' = resolvedTier === 'premium' ? 'premium' : 'free';
   const isPremium = normalizedCandidateTier === 'premium';
+  const ikigaiVariant = resolveIkigaiGuideVariant(FEATURE_PREMIUM_IKIGAI_GUIDE_V1, isPremium);
   const premiumPrice = getPremiumPriceDisplay(i18n.language || 'cs');
   const aiCvParsingEnabled = String(import.meta.env.VITE_ENABLE_AI_CV_PARSER || 'true').toLowerCase() !== 'false';
 
@@ -221,6 +231,20 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   useEffect(() => {
     setEditableCvAiText(profile.cvAiText || '');
   }, [profile.cvAiText]);
+
+  useEffect(() => {
+    setIkigaiSnapshot(profile.preferences?.ikigai_v1 || null);
+    setHasIkigaiDraft(Boolean(readIkigaiDraft()));
+  }, [profile.preferences]);
+
+  useEffect(() => {
+    if (!ikigaiStarted || typeof document === 'undefined') return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [ikigaiStarted]);
 
   const buildFormDataFromProfile = (sourceProfile: UserProfile) => ({
     personal: {
@@ -803,6 +827,23 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     }
   };
 
+  const handleIkigaiPersist = async (snapshot: IkigaiSnapshotV1) => {
+    setIkigaiSnapshot(snapshot);
+    setHasIkigaiDraft(false);
+    const updatedProfile: UserProfile = {
+      ...profile,
+      preferences: {
+        ...profile.preferences,
+        ikigai_v1: snapshot,
+      },
+    };
+    await Promise.resolve(onChange(updatedProfile, true));
+    AnalyticsService.trackEvent('ikigai_profile_saved', {
+      core_score: snapshot.scores.ikigai_core_score,
+      archetype: snapshot.psych_profile.archetype_code,
+    });
+  };
+
   const handlePasswordChange = async () => {
     if (isChangingPassword) return;
     setPasswordFeedback(null);
@@ -1219,8 +1260,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     </button>
                   </div>
                 ) : (
-                  formData.experience.map((experience) => (
-                    <div key={experience.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                  formData.experience.map((experience, index) => (
+                    <div key={`${experience.id || 'exp'}-${index}`} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
                         <h3 className="font-semibold text-slate-900 dark:text-white">
                           {experience.role || t('profile.new_role')} {experience.company && `@ ${experience.company}`}
@@ -1338,8 +1379,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     </button>
                   </div>
                 ) : (
-                  formData.education.map((edu) => (
-                    <div key={edu.id} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
+                  formData.education.map((edu, index) => (
+                    <div key={`${edu.id || 'edu'}-${index}`} className="border border-slate-200 dark:border-slate-700 rounded-lg p-4">
                       <div className="flex items-center justify-between mb-3">
                         <h3 className="font-semibold text-slate-900 dark:text-white">
                           {edu.degree || t('profile.new_education')} {edu.school && `@ ${edu.school}`}
@@ -2058,8 +2099,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                           className="mt-3 w-full h-24 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
                         />
                         <div className="mt-2 flex flex-wrap gap-2">
-                          {narrativeSkills.length > 0 ? narrativeSkills.map((skill) => (
-                            <span key={skill} className="px-2 py-1 text-xs rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
+                          {narrativeSkills.length > 0 ? narrativeSkills.map((skill, index) => (
+                            <span key={`${skill}-${index}`} className="px-2 py-1 text-xs rounded bg-indigo-100 dark:bg-indigo-900/40 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800">
                               {skill}
                             </span>
                           )) : (
@@ -2267,14 +2308,41 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       <div><span className="text-slate-500">Drift</span><div className="font-bold">{happinessAuditOutput?.drift_score ?? 0}/100</div></div>
                     </div>
                     <ul className="mt-3 space-y-1 text-sm text-slate-700 dark:text-slate-300">
-                      {(happinessAuditOutput?.recommendations || []).map((item) => (
-                        <li key={item}>• {item}</li>
+                      {(happinessAuditOutput?.recommendations || []).map((item, index) => (
+                        <li key={`${item}-${index}`}>• {item}</li>
                       ))}
                     </ul>
                     <div className="text-[11px] text-slate-500 dark:text-slate-400 mt-2">
                       {happinessAuditOutput?.advisory_disclaimer || t('ai_advisory.default', { defaultValue: 'AI recommendation only. Final decision is yours.' })}
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {ikigaiVariant !== 'disabled' && (
+              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+                <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                    IKIGAI Navigator 3D
+                  </h2>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Premium biophilic guide with 4-axis personality mini-profile.
+                  </p>
+                </div>
+                <div className="p-6 space-y-4" style={{ background: 'var(--ikigai-bg-surface)' }}>
+                  <IkigaiGuideEntryCard
+                    isPremium={ikigaiVariant === 'full'}
+                    hasDraft={hasIkigaiDraft}
+                    hasSnapshot={Boolean(ikigaiSnapshot)}
+                    lastUpdatedAt={ikigaiSnapshot?.updated_at}
+                    onStart={() => setIkigaiStarted(true)}
+                    onUpgrade={() => {
+                      if (profile.id) {
+                        redirectToCheckout('premium', profile.id);
+                      }
+                    }}
+                  />
                 </div>
               </div>
             )}
@@ -2428,6 +2496,25 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           </div>
         )}
       </div>
+
+      {ikigaiStarted && ikigaiVariant === 'full' && (
+        <div className="fixed inset-0 z-[95] bg-slate-950/85 backdrop-blur-sm">
+          <div className="h-full w-full overflow-y-auto p-2 sm:p-4">
+            <div className="mx-auto min-h-full w-full max-w-[1400px] rounded-3xl border border-cyan-300/30 bg-slate-950/70 shadow-2xl shadow-cyan-500/10">
+              <IkigaiGuideFlow
+                initialSnapshot={ikigaiSnapshot}
+                capability={sceneCapability}
+                performanceMode={sceneCapability.qualityTier}
+                onPersist={handleIkigaiPersist}
+                onClose={() => {
+                  setIkigaiStarted(false);
+                  setHasIkigaiDraft(Boolean(readIkigaiDraft()));
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Account Deletion Confirmation Modal */}
       {showDeleteConfirm && (

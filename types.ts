@@ -487,6 +487,7 @@ export interface UserProfile {
     financialGoals: number; // 1-100
     commuteTolerance: number; // Minutes
     priorities: string[]; // e.g. "Dog Friendly", "Wheelchair Access"
+    ikigai_v1?: IkigaiSnapshotV1;
   };
   taxProfile?: TaxProfile;
   jhiPreferences?: JHIPreferences;
@@ -504,6 +505,41 @@ export interface UserProfile {
   dailyDigestTime?: string;
   dailyDigestTimezone?: string;
   dailyDigestPushEnabled?: boolean;
+}
+
+export interface IkigaiPsychProfileV1 {
+  axis_scores: {
+    extroversion_vs_introversion: number;
+    intuition_vs_sensing: number;
+    thinking_vs_feeling: number;
+    judging_vs_perceiving: number;
+  };
+  archetype_code: string;
+  blended_archetype?: string | null;
+  consistency_index: number;
+  confidence_score: number;
+  answered_items: number;
+  total_items: number;
+  disclaimer: string;
+}
+
+export interface IkigaiQuadrantScoresV1 {
+  love_score: number;
+  strength_score: number;
+  need_score: number;
+  reward_score: number;
+  ikigai_core_score: number;
+  tension_vectors: string[];
+}
+
+export interface IkigaiSnapshotV1 {
+  schema_version: 'ikigai-v1';
+  updated_at: string;
+  progress_step: 'love' | 'strength' | 'need' | 'reward' | 'psych' | 'synthesis';
+  raw_answers: Record<string, unknown>;
+  psych_profile: IkigaiPsychProfileV1;
+  scores: IkigaiQuadrantScoresV1;
+  recommended_paths: string[];
 }
 
 export interface AssessmentResult {

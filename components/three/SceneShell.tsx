@@ -11,6 +11,7 @@ interface SceneShellProps {
   enableControls?: boolean;
   glide?: boolean;
   glideIntensity?: number;
+  performanceMode?: 'low' | 'medium' | 'high';
 }
 
 const CameraGlide: React.FC<{ intensity: number }> = ({ intensity }) => {
@@ -33,6 +34,7 @@ const SceneShell: React.FC<SceneShellProps> = ({
   enableControls = false,
   glide = false,
   glideIntensity = 0.24,
+  performanceMode,
 }) => {
   const [contextLost, setContextLost] = useState(false);
   const [hasSize, setHasSize] = useState(true);
@@ -54,6 +56,8 @@ const SceneShell: React.FC<SceneShellProps> = ({
   }, []);
 
   const canRenderScene = capability.webgl && !capability.reducedMotion && !contextLost && hasSize;
+  const scenePerf = performanceMode || capability.qualityTier;
+  const dprByPerf: [number, number] = scenePerf === 'high' ? [1.5, 2] : scenePerf === 'medium' ? [1.25, 1.75] : [1, 1.25];
 
   return (
     <div ref={shellRef} className={className || 'h-52 w-full rounded-xl overflow-hidden border border-slate-200 dark:border-slate-800'}>
@@ -62,7 +66,7 @@ const SceneShell: React.FC<SceneShellProps> = ({
       ) : (
         <Canvas
           camera={{ position: [0, 0, 12], fov: 58 }}
-          dpr={capability.qualityTier === 'high' ? [1.5, 2] : [1.25, 1.75]}
+          dpr={dprByPerf}
           gl={{ antialias: true, powerPreference: 'high-performance' }}
           style={{ width: '100%', height: '100%' }}
           onCreated={({ gl }) => {

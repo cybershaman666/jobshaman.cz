@@ -9,15 +9,18 @@ import {
   AssessmentJourneyFinalProfile,
   AssessmentJourneyPayloadV1,
   AssessmentMode,
+  AssessmentSignalFrame,
 } from '../types';
 import { BACKEND_URL, FEATURE_ASSESSMENT_THREE } from '../constants';
 import { supabase, trackAnalyticsEvent } from '../services/supabaseService';
 import { readAssessmentDraft, writeAssessmentDraft } from '../services/assessmentSessionState';
 import { fetchJourneyAnalyzeAnswer, fetchJourneyFinalize } from '../services/assessmentJourneyService';
+import { buildLocalSignalFrame, fetchRealtimeSignals } from '../services/assessmentThreeService';
 import { useSceneCapability } from '../hooks/useSceneCapability';
 import SceneShell from './three/SceneShell';
 import JourneyBackdropScene from './three/JourneyBackdropScene';
 import JourneyPathMapScene from './three/JourneyPathMapScene';
+import AssessmentCockpitLayout from './assessment-cockpit/AssessmentCockpitLayout';
 
 interface Props {
   assessment: Assessment;
@@ -108,7 +111,27 @@ type ResponseQualityCheckpoint = {
   at: string;
 };
 
+type PersonalityAxis = 'EI' | 'SN' | 'TF' | 'JP';
+type PersonalityPulseChoice = -1 | 1;
+type PersonalityPulseItem = {
+  id: string;
+  axis: PersonalityAxis;
+  prompt: string;
+  leftLabel: string;
+  rightLabel: string;
+  leftTrait: string;
+  rightTrait: string;
+};
+
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
+const defaultSignalFrame = (): AssessmentSignalFrame => buildLocalSignalFrame([], [], 48);
+const ensureSignalFrame = (frame: Partial<AssessmentSignalFrame> | null | undefined): AssessmentSignalFrame => ({
+  timestamp: frame?.timestamp || new Date().toISOString(),
+  unlocked_skills: Array.isArray(frame?.unlocked_skills) ? frame.unlocked_skills : [],
+  narrative_integrity: typeof frame?.narrative_integrity === 'number' ? frame.narrative_integrity : 48,
+  confidence: typeof frame?.confidence === 'number' ? frame.confidence : 48,
+  evidence: Array.isArray(frame?.evidence) ? frame.evidence : [],
+});
 
 const summarizeQualityCheckpoints = (qualityCheckpoints: ResponseQualityCheckpoint[]) => {
   if (qualityCheckpoints.length === 0) {
@@ -131,6 +154,17 @@ const summarizeQualityCheckpoints = (qualityCheckpoints: ResponseQualityCheckpoi
     follow_up_flags: flags,
   };
 };
+
+const personalityPulseItems: PersonalityPulseItem[] = [
+  { id: 'ei_1', axis: 'EI', prompt: 'Po náročném dni dobíjím energii spíš…', leftLabel: 'V klidu o samotě', rightLabel: 'S lidmi / v akci', leftTrait: 'I', rightTrait: 'E' },
+  { id: 'ei_2', axis: 'EI', prompt: 'Při důležitém rozhodnutí nejdřív…', leftLabel: 'Promyslím interně', rightLabel: 'Mluvím nahlas s týmem', leftTrait: 'I', rightTrait: 'E' },
+  { id: 'sn_1', axis: 'SN', prompt: 'V zadání mě první zajímá…', leftLabel: 'Konkrétní fakta a detaily', rightLabel: 'Směr, možnosti a vize', leftTrait: 'S', rightTrait: 'N' },
+  { id: 'sn_2', axis: 'SN', prompt: 'Při změně preferuji…', leftLabel: 'Ověřený postup', rightLabel: 'Experiment a nové cesty', leftTrait: 'S', rightTrait: 'N' },
+  { id: 'tf_1', axis: 'TF', prompt: 'V konfliktu dávám prioritu…', leftLabel: 'Logice a konzistenci', rightLabel: 'Dopadu na lidi', leftTrait: 'T', rightTrait: 'F' },
+  { id: 'tf_2', axis: 'TF', prompt: 'Při zpětné vazbě jsem spíš…', leftLabel: 'Přímočarý a věcný', rightLabel: 'Empatický a citlivý', leftTrait: 'T', rightTrait: 'F' },
+  { id: 'jp_1', axis: 'JP', prompt: 'V práci mě uklidní víc…', leftLabel: 'Jasný plán a deadline', rightLabel: 'Flexibilita a prostor', leftTrait: 'J', rightTrait: 'P' },
+  { id: 'jp_2', axis: 'JP', prompt: 'Tempo realizace volím…', leftLabel: 'Postupně a strukturovaně', rightLabel: 'Adaptivně podle situace', leftTrait: 'J', rightTrait: 'P' },
+];
 
 const AssessmentJourneyFlow: React.FC<Props> = ({
   assessment,
@@ -245,6 +279,7 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
   });
   const [firstMove, setFirstMove] = useState<string>('');
   const [secondMove, setSecondMove] = useState<string>('');
+  const [personalityPulseAnswers, setPersonalityPulseAnswers] = useState<Record<string, PersonalityPulseChoice>>({});
 
   const questions = assessment.questions;
   const checkpointLabels = [
@@ -256,6 +291,39 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
   ];
   const cockpitThreeEnabled = FEATURE_ASSESSMENT_THREE;
   const [showCockpitScene, setShowCockpitScene] = useState(() => cockpitThreeEnabled);
+  const [liveSignalFrame, setLiveSignalFrame] = useState<AssessmentSignalFrame>(() => defaultSignalFrame());
+
+  const northstarAxisScores = useMemo(() => {
+    const byAxis: Record<PersonalityAxis, number[]> = { EI: [], SN: [], TF: [], JP: [] };
+    personalityPulseItems.forEach((item) => {
+      const value = personalityPulseAnswers[item.id];
+      if (typeof value === 'number') {
+        byAxis[item.axis].push(value);
+      }
+    });
+    const toRightPercent = (values: number[]) => {
+      if (values.length === 0) return 50;
+      const avg = values.reduce((sum, x) => sum + x, 0) / values.length;
+      return clamp(Math.round((avg + 1) * 50), 0, 100);
+    };
+    return {
+      EI: toRightPercent(byAxis.EI),
+      SN: toRightPercent(byAxis.SN),
+      TF: toRightPercent(byAxis.TF),
+      JP: toRightPercent(byAxis.JP),
+    };
+  }, [personalityPulseAnswers]);
+
+  const northstarCompleted = useMemo(
+    () => personalityPulseItems.every((item) => typeof personalityPulseAnswers[item.id] === 'number'),
+    [personalityPulseAnswers]
+  );
+
+  const basicPersonalityCode = useMemo(() => {
+    const letter = (axis: PersonalityAxis, left: string, right: string) =>
+      northstarAxisScores[axis] >= 50 ? right : left;
+    return `${letter('EI', 'I', 'E')}${letter('SN', 'S', 'N')}${letter('TF', 'T', 'F')}${letter('JP', 'J', 'P')}`;
+  }, [northstarAxisScores]);
 
   const theme = {
     root: `relative text-slate-900 dark:text-slate-100 ${roleMood.root}`,
@@ -275,6 +343,14 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
         seeded[q.id] = demoAnswerForQuestion(q, idx);
       });
       setAnswers(seeded);
+      setPersonalityPulseAnswers((prev) => {
+        if (Object.keys(prev).length > 0) return prev;
+        const seededPulse: Record<string, PersonalityPulseChoice> = {};
+        personalityPulseItems.forEach((item, idx) => {
+          seededPulse[item.id] = (idx % 2 === 0 ? 1 : -1);
+        });
+        return seededPulse;
+      });
       return;
     }
 
@@ -287,6 +363,17 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
       setPsychometric(draft.psychometric);
     }
   }, [mode, invitationId, assessment.id, assessment.questions]);
+
+  useEffect(() => {
+    setPsychometric((prev) => ({
+      ...prev,
+      personality_e_percent: northstarAxisScores.EI,
+      personality_n_percent: northstarAxisScores.SN,
+      personality_f_percent: northstarAxisScores.TF,
+      personality_p_percent: northstarAxisScores.JP,
+      personality_profile_ready: northstarCompleted ? 1 : 0,
+    }));
+  }, [northstarAxisScores, northstarCompleted]);
 
   useEffect(() => {
     if (mode === 'preview') return;
@@ -380,6 +467,45 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
     [questions, answers]
   );
   const qualitySummary = useMemo(() => summarizeQualityCheckpoints(qualityCheckpoints), [qualityCheckpoints]);
+  const safeEvidence = liveSignalFrame?.evidence || [];
+  const liveCultureMatch = useMemo(() => {
+    const evidenceBoost = Math.min(16, safeEvidence.length * 3);
+    return clamp(Math.round((stakeholderAlignmentLevel + qualitySummary.consistency_index) / 2 + evidenceBoost), 20, 99);
+  }, [safeEvidence.length, qualitySummary.consistency_index, stakeholderAlignmentLevel]);
+
+  useEffect(() => {
+    if (assessmentMode !== 'game') return;
+    const chunks = submittedAnswers.length > 0 ? submittedAnswers : Object.values(answers).filter((x) => x.trim().length > 0);
+    const unlockedSkills = Array.from(new Set([
+      ...qualityCheckpoints.map((cp) => cp.dominant_zone),
+      ...microInsights.slice(-3).map((insight) => insight.insight_type),
+    ]));
+    const narrativeIntegrity = clamp(Math.round((qualitySummary.signal_quality + qualitySummary.consistency_index) / 2), 30, 96);
+
+    let cancelled = false;
+    const fallback = buildLocalSignalFrame(chunks, unlockedSkills, narrativeIntegrity);
+    setLiveSignalFrame(ensureSignalFrame(fallback));
+
+    if (chunks.length === 0) return;
+
+    const timer = window.setTimeout(async () => {
+      try {
+        const remote = await fetchRealtimeSignals(chunks, unlockedSkills, narrativeIntegrity);
+        if (!cancelled) {
+          setLiveSignalFrame(ensureSignalFrame(remote?.merged_frame || remote?.frames?.[0]));
+        }
+      } catch {
+        if (!cancelled) {
+          setLiveSignalFrame(ensureSignalFrame(fallback));
+        }
+      }
+    }, 220);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [assessmentMode, submittedAnswers, answers, qualityCheckpoints, microInsights, qualitySummary.signal_quality, qualitySummary.consistency_index]);
 
   const emitCheckpointStarted = (checkpointType: 'question' | 'task') => {
     void trackAnalyticsEvent({
@@ -849,8 +975,424 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
     };
   };
 
+  const renderNorthstarPulse = (variant: 'cockpit' | 'classic') => (
+    <div className={`mt-4 rounded-xl border p-3 ${variant === 'cockpit' ? 'border-white/20 bg-black/20' : 'border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50'}`}>
+      <div className={`text-xs uppercase tracking-[0.12em] ${variant === 'cockpit' ? 'text-cyan-100/80' : 'text-slate-500 dark:text-slate-300'}`}>
+        Basic Personality Pulse (8 quick choices)
+      </div>
+      <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+        {personalityPulseItems.map((item) => {
+          const current = personalityPulseAnswers[item.id];
+          return (
+            <div key={item.id} className={`rounded-lg border p-2 ${variant === 'cockpit' ? 'border-white/15 bg-black/20' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900'}`}>
+              <div className={`text-xs mb-2 ${variant === 'cockpit' ? 'text-cyan-50/90' : 'text-slate-700 dark:text-slate-200'}`}>{item.prompt}</div>
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  onClick={() => setPersonalityPulseAnswers((prev) => ({ ...prev, [item.id]: -1 }))}
+                  className={`rounded-md border px-2 py-1 text-xs text-left transition-colors ${
+                    current === -1
+                      ? (variant === 'cockpit' ? 'border-cyan-300/60 bg-cyan-500/20 text-cyan-50' : 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100')
+                      : (variant === 'cockpit' ? 'border-white/20 bg-black/25 text-cyan-100/90' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200')
+                  }`}
+                >
+                  {item.leftLabel}
+                </button>
+                <button
+                  onClick={() => setPersonalityPulseAnswers((prev) => ({ ...prev, [item.id]: 1 }))}
+                  className={`rounded-md border px-2 py-1 text-xs text-left transition-colors ${
+                    current === 1
+                      ? (variant === 'cockpit' ? 'border-emerald-300/60 bg-emerald-500/20 text-emerald-50' : 'border-slate-300 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-slate-100')
+                      : (variant === 'cockpit' ? 'border-white/20 bg-black/25 text-cyan-100/90' : 'border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200')
+                  }`}
+                >
+                  {item.rightLabel}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className={`mt-3 text-xs ${variant === 'cockpit' ? 'text-cyan-100/85' : 'text-slate-600 dark:text-slate-300'}`}>
+        Profil (basic): <span className="font-semibold">{basicPersonalityCode}</span> · E {northstarAxisScores.EI}% · N {northstarAxisScores.SN}% · F {northstarAxisScores.TF}% · P {northstarAxisScores.JP}%
+      </div>
+      {!northstarCompleted && (
+        <div className={`mt-1 text-xs ${variant === 'cockpit' ? 'text-amber-200' : 'text-amber-700 dark:text-amber-300'}`}>
+          Vyplňte prosím všech 8 voleb pro dokončení Northstar profilu.
+        </div>
+      )}
+    </div>
+  );
+
   if (submitting) {
     return <div className="min-h-[440px] flex items-center justify-center text-slate-700">{t('common.loading', { defaultValue: 'Loading...' })}</div>;
+  }
+
+  if (assessmentMode === 'game') {
+    const progressLabel = t('assessment_journey.step_progress', {
+      defaultValue: 'Krok {{current}} / {{total}}',
+      current: currentJourneyStep,
+      total: totalJourneySteps,
+    });
+    const liveEnergy = clamp(energyBalance.monthly_energy_hours_left, 0, 100);
+
+    const leftPanel = (
+      <>
+        <div className="text-[11px] uppercase tracking-[0.14em] text-cyan-100/75">
+          {t('assessment_journey.map_title', { defaultValue: 'Mapa cesty' })}
+        </div>
+        <div className="mt-3 h-40 rounded-xl border border-white/20 overflow-hidden bg-black/25">
+          <SceneShell
+            capability={sceneCapability}
+            className="h-full w-full"
+            glide
+            glideIntensity={0.08}
+            performanceMode={sceneCapability.qualityTier}
+            fallback={<div className="h-full w-full cockpit-scene-fallback" />}
+          >
+            <JourneyPathMapScene
+              total={checkpointLabels.length}
+              activeIndex={phase - 1}
+              trailColor={roleMood.trail}
+              nodeColor={roleMood.node}
+              activeColor={roleMood.activeNode}
+            />
+          </SceneShell>
+        </div>
+        <div className="mt-3 space-y-2">
+          {checkpointLabels.map((label, idx) => (
+            <div
+              key={label}
+              className={`rounded-lg px-3 py-2 text-sm border transition-colors ${
+                phase >= idx + 1
+                  ? 'border-cyan-300/50 bg-cyan-400/12 text-cyan-50'
+                  : 'border-white/20 bg-black/20 text-slate-200/80'
+              }`}
+            >
+              {idx + 1}. {label}
+            </div>
+          ))}
+        </div>
+      </>
+    );
+
+    const centerPanel = (
+      <>
+        <div className="cockpit-panel cockpit-panel-enter px-4 py-3 text-sm text-cyan-50/90">
+          {t('assessment_journey.authenticity_hint', { defaultValue: 'Autenticita je cennější než „dokonalá“ odpověď.' })}
+        </div>
+
+        {phase === 1 && currentQuestion && phaseTwoStep === 'question' && (
+          <div className="mt-3 cockpit-panel cockpit-panel-enter px-4 md:px-5 py-4 md:py-5">
+            <div className="text-sm text-cyan-100/90 mb-2">
+              {t('assessment_journey.question_step_label', {
+                defaultValue: 'Otázka {{index}} / {{total}}',
+                index: index + 1,
+                total: questions.length,
+              })}
+            </div>
+            <h2 className="text-xl md:text-2xl font-medium text-white">{currentQuestion.text}</h2>
+            <p className="mt-2 text-sm text-cyan-50/90">
+              {t('assessment_journey.role_context_question', {
+                defaultValue: 'Tento krok simuluje situace, které můžete řešit v roli {{role}}.',
+                role: roleLabel,
+              })}
+            </p>
+
+            {currentQuestion.type === 'MultipleChoice' && currentQuestion.options?.length ? (
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+                {currentQuestion.options.map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => setAnswers((prev) => ({ ...prev, [currentQuestion.id]: opt }))}
+                    className={`rounded-lg border px-3 py-2 text-left transition-colors ${
+                      currentAnswer === opt
+                        ? 'border-cyan-300/60 bg-cyan-400/20 text-white'
+                        : 'border-white/20 bg-black/20 hover:border-cyan-300/50 text-cyan-50/90'
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <textarea
+                value={currentAnswer}
+                onChange={(e) => setAnswers((prev) => ({ ...prev, [currentQuestion.id]: e.target.value }))}
+                className="w-full h-36 mt-4 rounded-xl border border-white/25 bg-black/30 p-3 text-white placeholder:text-slate-300/70"
+                placeholder={t('assessment.taker.placeholder_text', { defaultValue: 'Type your answer...' })}
+              />
+            )}
+
+            <div className="mt-5 flex items-center justify-between">
+              {mode === 'preview' ? (
+                <button
+                  onClick={seedCurrentDemo}
+                  className="px-3 py-1.5 rounded-lg border border-white/30 bg-white/10 text-cyan-50 text-sm"
+                >
+                  {t('assessment_journey.demo_seed_answer', { defaultValue: 'Vložit demo odpověď' })}
+                </button>
+              ) : <span />}
+              <button
+                onClick={handleNext}
+                disabled={!currentAnswer.trim()}
+                className="px-4 py-2 rounded-lg font-semibold disabled:opacity-40 bg-emerald-400/85 hover:bg-emerald-300 text-slate-950"
+              >
+                {shouldShowTaskStep
+                  ? t('assessment_journey.cta_to_task', { defaultValue: 'Pokračovat na misi' })
+                  : t('assessment_journey.cta_next_question', { defaultValue: 'Pokračovat na další otázku' })}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {phase === 1 && shouldShowTaskStep && currentQuestion && phaseTwoStep === 'task' && (
+          <div className="mt-3 cockpit-panel cockpit-panel-enter px-4 md:px-5 py-4 md:py-5">
+            <div className="text-sm text-cyan-100/90">
+              {t('assessment_journey.task_step_label', {
+                defaultValue: 'Praktická mise {{index}} / {{total}}',
+                index: Math.floor(index / 2) + 1,
+                total: practicalMissionCount,
+              })}
+            </div>
+            <h3 className="mt-1 text-xl font-semibold text-white">{taskTitle}</h3>
+            <p className="mt-2 text-sm text-cyan-50/90">{taskDescription}</p>
+
+            {taskVariant === 0 && (
+              <div className="mt-4 space-y-2">
+                {practicalOrder.map((item, itemIndex) => (
+                  <div key={item} className="flex items-center justify-between rounded-lg border border-white/20 bg-black/20 px-2 py-1.5 text-sm text-white">
+                    <span>{item}</span>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => movePracticalItem(itemIndex, -1)} className="w-7 h-7 rounded border border-white/30 bg-white/10">↑</button>
+                      <button onClick={() => movePracticalItem(itemIndex, 1)} className="w-7 h-7 rounded border border-white/30 bg-white/10">↓</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {taskVariant === 1 && (
+              <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                {['Nejdřív uklidnit situaci', 'Postavit jasný plán', 'Zapojit klíčové lidi', 'Rychle ověřit první krok'].map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => setStrategyChoice(opt)}
+                    className={`rounded-lg border px-3 py-2 text-left ${
+                      strategyChoice === opt ? 'border-cyan-300/60 bg-cyan-500/20 text-white' : 'border-white/20 bg-black/20 text-cyan-50/90'
+                    }`}
+                  >
+                    {opt}
+                  </button>
+                ))}
+              </div>
+            )}
+            {taskVariant === 2 && (
+              <div className="mt-2 flex flex-wrap gap-2 text-sm">
+                {['Jasné priority', 'Klidná komunikace', 'Rychlá reakce', 'Kvalita výstupu', 'Důvěra v týmu'].map((opt) => {
+                  const active = signalChoices.includes(opt);
+                  return (
+                    <button
+                      key={opt}
+                      onClick={() => setSignalChoices((prev) => active ? prev.filter((x) => x !== opt) : [...prev, opt].slice(-2))}
+                      className={`rounded-full border px-3 py-1.5 ${
+                        active ? 'border-cyan-300/60 bg-cyan-500/20 text-white' : 'border-white/20 bg-black/20 text-cyan-50/90'
+                      }`}
+                    >
+                      {opt}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            {taskVariant === 3 && (
+              <div className="mt-3 space-y-2">
+                {[
+                  ['stability', 'Stabilita'],
+                  ['speed', 'Rychlost'],
+                  ['quality', 'Kvalita'],
+                ].map(([key, label]) => {
+                  const value = resourceSplit[key as 'stability' | 'speed' | 'quality'];
+                  return (
+                    <div key={key} className="rounded-lg border border-white/20 bg-black/20 px-3 py-2">
+                      <div className="flex items-center justify-between text-sm text-white">
+                        <span>{label}</span>
+                        <div className="flex items-center gap-2">
+                          <button onClick={() => adjustResource(key as 'stability' | 'speed' | 'quality', -1)} className="w-7 h-7 rounded border border-white/30 bg-white/10">-</button>
+                          <span className="w-6 text-center font-semibold">{value}</span>
+                          <button onClick={() => adjustResource(key as 'stability' | 'speed' | 'quality', 1)} className="w-7 h-7 rounded border border-white/30 bg-white/10">+</button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            {taskVariant === 4 && (
+              <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                {['Vyjasnit očekávání', 'Zapojit stakeholdery', 'Rychle ověřit hypotézu', 'Sepsat krátký plán'].map((opt) => (
+                  <button
+                    key={opt}
+                    onClick={() => {
+                      if (!firstMove || firstMove === opt) {
+                        setFirstMove(opt);
+                        if (secondMove === opt) setSecondMove('');
+                        return;
+                      }
+                      setSecondMove(opt);
+                    }}
+                    className={`rounded-lg border px-3 py-2 text-left ${
+                      firstMove === opt || secondMove === opt
+                        ? 'border-cyan-300/60 bg-cyan-500/20 text-white'
+                        : 'border-white/20 bg-black/20 text-cyan-50/90'
+                    }`}
+                  >
+                    <div className="font-medium">{opt}</div>
+                    <div className="text-xs text-cyan-100/80">
+                      {firstMove === opt ? t('assessment_journey.first_move', { defaultValue: '1. krok' }) : secondMove === opt ? t('assessment_journey.second_move', { defaultValue: '2. krok' }) : '\u00A0'}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )}
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={handleNext}
+                disabled={!taskReady}
+                className="px-4 py-2 rounded-lg font-semibold disabled:opacity-40 bg-emerald-400/85 hover:bg-emerald-300 text-slate-950"
+              >
+                {t('assessment_journey.cta_finish_checkpoint', { defaultValue: 'Dokončit checkpoint' })}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {phase === 2 && index >= questions.length - 1 && (
+          <div className="mt-3 cockpit-panel cockpit-panel-enter p-4">
+            <h3 className="text-lg font-semibold text-white">{t('assessment_journey.phase_2', { defaultValue: 'Zrcadlení vzorců' })}</h3>
+            <div className="mt-3 space-y-2 text-sm text-cyan-50/90">
+              {behavioralConsistency.recurring_motifs.slice(0, 3).map((x) => <div key={x}>• {x}</div>)}
+              {behavioralConsistency.recurring_motifs.length === 0 && <div>• {t('assessment_journey.default_pattern_hint', { defaultValue: 'Začíná se rýsovat váš rozhodovací styl.' })}</div>}
+            </div>
+            <button onClick={() => proceedTo(3, 'mirroring_shown')} className="mt-4 px-4 py-2 rounded-lg font-semibold bg-emerald-400/85 hover:bg-emerald-300 text-slate-950">
+              {t('assessment_journey.cta_to_phase3', { defaultValue: 'Pokračovat na energetický kompas' })}
+            </button>
+          </div>
+        )}
+        {phase === 3 && (
+          <div className="mt-3 cockpit-panel cockpit-panel-enter p-4">
+            <h3 className="text-lg font-semibold text-white">{t('assessment_journey.phase_3', { defaultValue: 'Energetický kompas' })}</h3>
+            <p className="mt-2 text-sm text-cyan-50/90">{energySnapshotLabel}</p>
+            <button onClick={() => proceedTo(4, 'resource_leak_shown')} className="mt-4 px-4 py-2 rounded-lg font-semibold bg-emerald-400/85 hover:bg-emerald-300 text-slate-950">
+              {t('assessment_journey.cta_to_phase4', { defaultValue: 'Pokračovat na Cultural Northstar' })}
+            </button>
+          </div>
+        )}
+        {phase === 4 && (
+          <div className="mt-3 cockpit-panel cockpit-panel-enter p-4">
+            <h3 className="text-lg font-semibold text-white">{t('assessment_journey.phase_4', { defaultValue: 'Cultural Northstar' })}</h3>
+            <p className="mt-2 text-sm text-cyan-50/90">{t('assessment_journey.northstar_explainer', { defaultValue: 'Northstar je váš preferovaný pracovní kontext: v jakém prostředí podáváte nejlepší výkon a kde naopak energie rychle klesá.' })}</p>
+            <div className="mt-3 space-y-2 text-sm text-cyan-50/90">
+              <div>{culturalOrientation.transparency}</div>
+              <div>{culturalOrientation.conflict_response}</div>
+              <div>{culturalOrientation.hierarchy_vs_autonomy}</div>
+              <div>{culturalOrientation.process_vs_outcome}</div>
+              <div>{culturalOrientation.stability_vs_dynamics}</div>
+            </div>
+            {renderNorthstarPulse('cockpit')}
+            <button
+              onClick={handleFinalize}
+              disabled={!northstarCompleted}
+              className="mt-4 px-4 py-2 rounded-lg font-semibold bg-emerald-400/85 hover:bg-emerald-300 text-slate-950 disabled:opacity-45"
+            >
+              {t('assessment_journey.cta_finalize', { defaultValue: 'Vytvořit souhrnný profil' })}
+            </button>
+          </div>
+        )}
+        {phase === 5 && (
+          <div className="mt-3 cockpit-panel cockpit-panel-enter p-4 space-y-4">
+            <h3 className="text-lg font-semibold text-white">{t('assessment_journey.phase_5', { defaultValue: 'Souhrnný profil' })}</h3>
+            <div className="text-xs text-cyan-100/85">Basic personality profile: <span className="font-semibold">{basicPersonalityCode}</span></div>
+            <div className="text-sm text-cyan-50/90">{finalProfile.transferable_strengths.join(' • ')}</div>
+            <button
+              onClick={() => {
+                void trackAnalyticsEvent({
+                  event_type: 'assessment_apply_clicked_after_journey',
+                  feature: 'assessment_journey',
+                  metadata: { mode: assessmentMode, ...EXPERIENCE_META },
+                });
+                onComplete('journey-completed');
+              }}
+              className="px-4 py-2 rounded-lg font-semibold bg-emerald-400/85 hover:bg-emerald-300 text-slate-950"
+            >
+              {t('assessment_journey.cta_complete', { defaultValue: 'Dokončit cestu' })}
+            </button>
+          </div>
+        )}
+      </>
+    );
+
+    const rightPanel = (
+      <div className="space-y-3 text-sm text-cyan-50/90">
+        <div className="text-[11px] uppercase tracking-[0.14em] text-cyan-100/75">Live Resonance</div>
+        {[
+          ['Signal', qualitySummary.signal_quality],
+          ['Confidence', liveSignalFrame.confidence],
+          ['Energy', liveEnergy],
+          ['Culture Match', liveCultureMatch],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-lg border border-white/20 bg-black/20 p-3">
+            <div className="flex items-center justify-between text-xs text-cyan-100/85">
+              <span>{label}</span>
+              <span>{value}%</span>
+            </div>
+            <div className="mt-2 h-1.5 rounded-full bg-white/10 overflow-hidden">
+              <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-emerald-300 cockpit-metric-sweep" style={{ width: `${clamp(Number(value), 0, 100)}%` }} />
+            </div>
+          </div>
+        ))}
+        {safeEvidence.length > 0 && (
+          <div className="rounded-lg border border-white/20 bg-black/20 p-3 text-xs">
+            <div className="text-cyan-100/80 mb-1">Evidence</div>
+            <div>{safeEvidence.slice(0, 4).join(' • ')}</div>
+          </div>
+        )}
+        {microInsights.length > 0 && (
+          <div className="rounded-lg border border-emerald-300/35 bg-emerald-300/10 px-3 py-2 text-sm">
+            {microInsights[microInsights.length - 1].text}
+          </div>
+        )}
+        {microReward && (
+          <div className="rounded-lg border border-cyan-200/30 bg-cyan-100/10 px-3 py-2 text-sm">
+            {microReward}
+          </div>
+        )}
+        <div className="rounded-lg border border-white/20 bg-black/20 px-3 py-2 text-xs text-cyan-100/75">
+          {aiDisclaimer}
+        </div>
+      </div>
+    );
+
+    return (
+      <AssessmentCockpitLayout
+        embedded={embedded}
+        title={assessment.title}
+        roleLabel={roleLabel}
+        progressLabel={progressLabel}
+        topRight={mode === 'preview' ? <span className="cockpit-pill">Recruiter Preview</span> : null}
+        leftPanel={leftPanel}
+        centerPanel={centerPanel}
+        rightPanel={rightPanel}
+        sceneCapability={sceneCapability}
+        showScene={showCockpitScene}
+        sceneEnabled={cockpitThreeEnabled}
+        onToggleScene={() => setShowCockpitScene((v) => !v)}
+        phase={phase}
+        progress={currentJourneyStep / Math.max(1, totalJourneySteps)}
+        streakCount={streakCount}
+        confidence={liveSignalFrame.confidence}
+        energy={liveEnergy}
+        culture={liveCultureMatch}
+      />
+    );
   }
 
   return (
@@ -1220,7 +1762,12 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
                     <div>{culturalOrientation.process_vs_outcome}</div>
                     <div>{culturalOrientation.stability_vs_dynamics}</div>
                   </div>
-                  <button onClick={handleFinalize} className={`mt-4 px-4 py-2 rounded-lg font-semibold ${theme.cta}`}>
+                  {renderNorthstarPulse('classic')}
+                  <button
+                    onClick={handleFinalize}
+                    disabled={!northstarCompleted}
+                    className={`mt-4 px-4 py-2 rounded-lg font-semibold disabled:opacity-45 ${theme.cta}`}
+                  >
                     {t('assessment_journey.cta_finalize', { defaultValue: 'Vytvořit souhrnný profil' })}
                   </button>
                 </div>
@@ -1229,6 +1776,10 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
               {phase === 5 && (
                 <div className="mt-6 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 space-y-4">
                   <h3 className="text-lg font-semibold">{t('assessment_journey.phase_5', { defaultValue: 'Souhrnný profil' })}</h3>
+                  <div>
+                    <h4 className={`font-semibold ${theme.accent}`}>Basic Personality Profile</h4>
+                    <p className="text-sm text-slate-700 dark:text-slate-200">{basicPersonalityCode} (E {northstarAxisScores.EI}% / N {northstarAxisScores.SN}% / F {northstarAxisScores.TF}% / P {northstarAxisScores.JP}%)</p>
+                  </div>
                   <div>
                     <h4 className={`font-semibold ${theme.accent}`}>Decision Pattern</h4>
                     <p className="text-sm text-slate-700 dark:text-slate-200">{t('assessment_journey.final_pattern_summary', { defaultValue: 'Máte čitelný rozhodovací styl, který je možné dobře převést do role.' })}</p>

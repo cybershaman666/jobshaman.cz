@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 from typing import Dict, List, Optional
 import math
 import json
+import unicodedata
 
 from ..core.config import API_BASE_URL
 from ..core.database import supabase
@@ -17,6 +18,61 @@ _DIGEST_MAX_JOBS = 10
 _APP_URL = "https://jobshaman.cz"
 _DIGEST_WINDOW_MINUTES = 20
 _REMOTE_ONLY_FLAGS = ["remote", "remote-first", "work from home", "home office", "homeoffice", "fully remote"]
+_TIMEZONE_TO_COUNTRY = {
+    "Europe/Prague": "CZ",
+    "Europe/Bratislava": "SK",
+    "Europe/Warsaw": "PL",
+    "Europe/Berlin": "DE",
+    "Europe/Vienna": "AT",
+}
+_LANGUAGE_FALLBACK_BY_COUNTRY = {
+    "CZ": {"cs", "sk"},
+    "SK": {"sk", "cs"},
+    "PL": {"pl"},
+    "DE": {"de"},
+    "AT": {"de"},
+}
+_LANGUAGE_FALLBACK_BY_LOCALE = {
+    "cs": {"cs", "sk"},
+    "sk": {"sk", "cs"},
+    "pl": {"pl"},
+    "de": {"de"},
+    "en": {"en"},
+}
+_ROLE_FOCUS_KEYWORDS = {
+    "driving_transport": (
+        "ridic",
+        "ridicsk",
+        "kamion",
+        "autobus",
+        "taxi",
+        "driver",
+        "truck driver",
+        "bus driver",
+        "kierowca",
+        "fahrer",
+    ),
+    "painting_finishing": (
+        "lakyrnik",
+        "autolakyrnik",
+        "natirac",
+        "malir",
+        "lakiernik",
+        "lackierer",
+        "painter",
+        "paint shop",
+    ),
+}
+_IT_ROLE_KEYWORDS = (
+    "developer",
+    "software engineer",
+    "full stack",
+    "backend",
+    "frontend",
+    "devops",
+    "programator",
+    "programmierer",
+)
 _COUNTRY_BOUNDS = {
     # Approximate bounds for digest fallback country inference.
     "CZ": (48.3, 51.2, 12.0, 18.9),
@@ -36,6 +92,82 @@ def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     a = math.sin(d_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2) ** 2
     c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
     return r * c
+
+
+def _normalize_text(value: Optional[str]) -> str:
+    text = str(value or "").lower()
+    text = unicodedata.normalize("NFKD", text)
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    return text
+
+
+def _profile_obj(candidate_profile):
+    if isinstance(candidate_profile, list):
+        return candidate_profile[0] if candidate_profile else None
+    return candidate_profile if isinstance(candidate_profile, dict) else None
+
+
+def _normalize_locale_code(locale: Optional[str]) -> str:
+    value = str(locale or "").strip().lower()
+    if not value:
+        return ""
+    return value.replace("_", "-").split("-", 1)[0]
+
+
+def _allowed_language_codes(locale: Optional[str], country_code: Optional[str]) -> set[str]:
+    cc = str(country_code or "").strip().upper()
+    if cc in _LANGUAGE_FALLBACK_BY_COUNTRY:
+        return set(_LANGUAGE_FALLBACK_BY_COUNTRY[cc])
+    lc = _normalize_locale_code(locale)
+    if lc in _LANGUAGE_FALLBACK_BY_LOCALE:
+        return set(_LANGUAGE_FALLBACK_BY_LOCALE[lc])
+    return {"cs"}
+
+
+def _job_language_allowed(job: Dict, allowed_language_codes: Optional[set[str]]) -> bool:
+    if not allowed_language_codes:
+        return True
+    language = str(job.get("language_code") or "").strip().lower()
+    if not language:
+        # Unknown language should not be dropped aggressively.
+        return True
+    return language in allowed_language_codes
+
+
+def _infer_role_focus_families(candidate_profile) -> set[str]:
+    profile = _profile_obj(candidate_profile)
+    if not profile:
+        return set()
+    chunks = [
+        profile.get("job_title"),
+        profile.get("cv_text"),
+        profile.get("cv_ai_text"),
+        " ".join(profile.get("skills") or []),
+    ]
+    text = _normalize_text("\n".join(str(chunk or "") for chunk in chunks))
+    if not text:
+        return set()
+    families: set[str] = set()
+    for family, keywords in _ROLE_FOCUS_KEYWORDS.items():
+        if any(keyword in text for keyword in keywords):
+            families.add(family)
+    return families
+
+
+def _job_role_families(job: Dict) -> set[str]:
+    text = _normalize_text(f"{job.get('title') or ''} {job.get('description') or ''}")
+    if not text:
+        return set()
+    families: set[str] = set()
+    for family, keywords in _ROLE_FOCUS_KEYWORDS.items():
+        if any(keyword in text for keyword in keywords):
+            families.add(family)
+    return families
+
+
+def _is_it_role(job: Dict) -> bool:
+    text = _normalize_text(f"{job.get('title') or ''} {job.get('description') or ''}")
+    return any(keyword in text for keyword in _IT_ROLE_KEYWORDS)
 
 
 def _is_remote_job(job: Dict) -> bool:
@@ -72,7 +204,9 @@ def _job_distance_km(job: Dict, c_lat: Optional[float], c_lng: Optional[float]) 
 def _digest_job_sort_key(job: Dict) -> tuple:
     distance = job.get("distance_km")
     has_distance = distance is not None
+    role_focus_match = bool(job.get("role_focus_match", True))
     return (
+        0 if role_focus_match else 1,
         0 if has_distance else 1,
         float(distance) if has_distance else 99999.0,
         -int(job.get("match_score") or 0),
@@ -84,10 +218,13 @@ def _pick_personalized_digest_jobs(
     c_lat: Optional[float],
     c_lng: Optional[float],
     country_code: Optional[str],
+    allowed_language_codes: Optional[set[str]] = None,
+    candidate_profile=None,
     limit: int = _DIGEST_MAX_JOBS,
 ) -> List[Dict]:
     strict_local: List[Dict] = []
     relaxed_personalized: List[Dict] = []
+    role_focus_families = _infer_role_focus_families(candidate_profile)
 
     for item in recs:
         job = item.get("job") or {}
@@ -96,17 +233,31 @@ def _pick_personalized_digest_jobs(
             continue
         if not _job_in_country(job, country_code):
             continue
+        if not _job_language_allowed(job, allowed_language_codes):
+            continue
+
+        job_families = _job_role_families(job)
+        role_focus_match = bool(role_focus_families.intersection(job_families)) if role_focus_families else True
+        if role_focus_families and not role_focus_match and _is_it_role(job):
+            continue
 
         remote = _is_remote_job(job)
         distance = _job_distance_km(job, c_lat, c_lng)
+        match_score = int(float(item.get("score") or 0))
+        if role_focus_families and not role_focus_match:
+            match_score = max(0, int(round(match_score * 0.75)))
+        elif role_focus_families and role_focus_match:
+            match_score = min(100, int(round(match_score * 1.1)))
+
         packed = {
             "id": job_id,
             "title": job.get("title") or "",
             "company": job.get("company") or job.get("company_name") or "",
             "location": job.get("location") or "",
-            "match_score": int(float(item.get("score") or 0)),
+            "match_score": match_score,
             "distance_km": round(float(distance), 2) if distance is not None else None,
             "detail_url": f"{_APP_URL}/jobs/{job_id}",
+            "role_focus_match": role_focus_match,
         }
 
         if remote or (distance is not None and distance <= _DIGEST_RADIUS_KM):
@@ -124,8 +275,9 @@ def _pick_personalized_digest_jobs(
 
 
 def _resolve_locale(preferred_locale: Optional[str], preferred_country_code: Optional[str]) -> str:
-    if preferred_locale:
-        return preferred_locale
+    normalized_locale = _normalize_locale_code(preferred_locale)
+    if normalized_locale:
+        return normalized_locale
     cc = (preferred_country_code or "").upper()
     if cc == "CZ":
         return "cs"
@@ -179,8 +331,7 @@ def _should_send_now(last_sent: Optional[str], digest_time: time, tz_name: str) 
 
 
 def _candidate_location(candidate_profile) -> tuple[Optional[float], Optional[float]]:
-    if isinstance(candidate_profile, list):
-        candidate_profile = candidate_profile[0] if candidate_profile else None
+    candidate_profile = _profile_obj(candidate_profile)
     if not candidate_profile:
         return None, None
     lat = candidate_profile.get("lat")
@@ -192,8 +343,7 @@ def _candidate_location(candidate_profile) -> tuple[Optional[float], Optional[fl
 
 
 def _candidate_has_matching_signal(candidate_profile) -> bool:
-    if isinstance(candidate_profile, list):
-        candidate_profile = candidate_profile[0] if candidate_profile else None
+    candidate_profile = _profile_obj(candidate_profile)
     if not candidate_profile:
         return False
 
@@ -243,6 +393,7 @@ def _resolve_digest_country_code(
     candidate_profile,
     c_lat: Optional[float],
     c_lng: Optional[float],
+    digest_timezone: Optional[str] = None,
 ) -> Optional[str]:
     preferred = str(preferred_country_code or "").strip().upper()
     if preferred:
@@ -251,6 +402,10 @@ def _resolve_digest_country_code(
     by_coordinates = _country_from_coordinates(c_lat, c_lng)
     if by_coordinates:
         return by_coordinates
+
+    tz_country = _TIMEZONE_TO_COUNTRY.get(str(digest_timezone or "").strip())
+    if tz_country:
+        return tz_country
 
     locale = str(preferred_locale or "").strip().lower()
     if locale.startswith("cs"):
@@ -263,7 +418,7 @@ def _resolve_digest_country_code(
         # Keep German locale broad, do not force DE/AT split.
         return None
 
-    profile_obj = candidate_profile[0] if isinstance(candidate_profile, list) and candidate_profile else candidate_profile
+    profile_obj = _profile_obj(candidate_profile)
     if isinstance(profile_obj, dict):
         return _country_from_address(profile_obj.get("address"))
     return None
@@ -283,6 +438,7 @@ def _fetch_newest_local_jobs(
     c_lat: Optional[float],
     c_lng: Optional[float],
     country_code: Optional[str],
+    allowed_language_codes: Optional[set[str]] = None,
     limit: int = _DIGEST_MAX_JOBS,
 ) -> List[Dict]:
     if not supabase:
@@ -291,7 +447,7 @@ def _fetch_newest_local_jobs(
     try:
         query = (
             supabase.table("jobs")
-            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code")
+            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
             .limit(250)
@@ -307,6 +463,8 @@ def _fetch_newest_local_jobs(
     picks: List[Dict] = []
     for job in rows:
         if not _job_in_country(job, country_code):
+            continue
+        if not _job_language_allowed(job, allowed_language_codes):
             continue
         remote = _is_remote_job(job)
         if not remote:
@@ -336,7 +494,11 @@ def _fetch_newest_local_jobs(
     return picks
 
 
-def _fetch_newest_jobs_relaxed(limit: int = _DIGEST_MAX_JOBS) -> List[Dict]:
+def _fetch_newest_jobs_relaxed(
+    country_code: Optional[str],
+    allowed_language_codes: Optional[set[str]] = None,
+    limit: int = _DIGEST_MAX_JOBS,
+) -> List[Dict]:
     """Last-resort fallback to avoid silent digest drops when strict filters return no jobs."""
     if not supabase:
         return []
@@ -344,7 +506,7 @@ def _fetch_newest_jobs_relaxed(limit: int = _DIGEST_MAX_JOBS) -> List[Dict]:
     try:
         resp = (
             supabase.table("jobs")
-            .select("id,title,company,location,scraped_at")
+            .select("id,title,company,location,scraped_at,country_code,language_code")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
             .limit(100)
@@ -359,6 +521,10 @@ def _fetch_newest_jobs_relaxed(limit: int = _DIGEST_MAX_JOBS) -> List[Dict]:
     for job in rows:
         job_id = job.get("id")
         if not job_id:
+            continue
+        if not _job_in_country(job, country_code):
+            continue
+        if not _job_language_allowed(job, allowed_language_codes):
             continue
         picks.append(
             {
@@ -428,7 +594,10 @@ def run_daily_job_digest() -> None:
             candidate_profile=candidate_profile,
             c_lat=c_lat,
             c_lng=c_lng,
+            digest_timezone=digest_tz,
         )
+        locale = _resolve_locale(row.get("preferred_locale"), digest_country_code)
+        allowed_languages = _allowed_language_codes(locale, digest_country_code)
         has_matching_signal = _candidate_has_matching_signal(candidate_profile)
 
         digest_jobs: List[Dict] = []
@@ -440,6 +609,8 @@ def run_daily_job_digest() -> None:
                 c_lat=c_lat,
                 c_lng=c_lng,
                 country_code=digest_country_code,
+                allowed_language_codes=allowed_languages,
+                candidate_profile=candidate_profile,
                 limit=_DIGEST_MAX_JOBS,
             )
 
@@ -450,6 +621,7 @@ def run_daily_job_digest() -> None:
                 c_lat=c_lat,
                 c_lng=c_lng,
                 country_code=digest_country_code,
+                allowed_language_codes=allowed_languages,
                 limit=_DIGEST_MAX_JOBS,
             )
             if not digest_jobs:
@@ -457,13 +629,16 @@ def run_daily_job_digest() -> None:
                     f"⚠️ [Digest] strict/local selection returned 0 jobs for user={user_id}; "
                     "using relaxed fallback."
                 )
-                digest_jobs = _fetch_newest_jobs_relaxed(limit=_DIGEST_MAX_JOBS)
+                digest_jobs = _fetch_newest_jobs_relaxed(
+                    country_code=digest_country_code,
+                    allowed_language_codes=allowed_languages,
+                    limit=_DIGEST_MAX_JOBS,
+                )
 
         if not digest_jobs:
             print(f"⏭️ [Digest] skipped user={user_id}: no jobs available even after relaxed fallback")
             continue
 
-        locale = _resolve_locale(row.get("preferred_locale"), digest_country_code)
         unsubscribe_url = ""
         if email_enabled:
             unsubscribe_token = make_unsubscribe_token(user_id, email)

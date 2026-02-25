@@ -2,6 +2,7 @@ import { Assessment } from '../types';
 
 const PREVIEW_STORAGE_KEY = 'jobshaman_assessment_preview_payload';
 const PREVIEW_RETURN_TO_KEY = 'jobshaman_assessment_preview_return_to';
+const PREVIEW_MODE_KEY = 'jobshaman_assessment_preview_mode';
 const SUPPORTED_LOCALES = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
 
 const resolveLocalePrefix = (): string => {
@@ -17,7 +18,10 @@ const resolveLocalePrefix = (): string => {
   return '';
 };
 
-export const openAssessmentPreviewPage = (assessment: Assessment) => {
+export const openAssessmentPreviewPage = (
+  assessment: Assessment,
+  options?: { forceMode?: 'game' | 'classic' }
+) => {
   try {
     sessionStorage.setItem(PREVIEW_STORAGE_KEY, JSON.stringify(assessment));
     const current = window.location.pathname + window.location.search + window.location.hash;
@@ -26,6 +30,11 @@ export const openAssessmentPreviewPage = (assessment: Assessment) => {
       ? `${localePrefix}/company-dashboard?tab=assessments`
       : current;
     sessionStorage.setItem(PREVIEW_RETURN_TO_KEY, returnTo);
+    if (options?.forceMode) {
+      sessionStorage.setItem(PREVIEW_MODE_KEY, options.forceMode);
+    } else {
+      sessionStorage.removeItem(PREVIEW_MODE_KEY);
+    }
   } catch (error) {
     console.warn('Failed to persist assessment preview payload:', error);
   }
@@ -45,6 +54,15 @@ export const readAssessmentPreviewPayload = (): Assessment | null => {
 export const readAssessmentPreviewReturnTo = (): string | null => {
   try {
     return sessionStorage.getItem(PREVIEW_RETURN_TO_KEY);
+  } catch {
+    return null;
+  }
+};
+
+export const readAssessmentPreviewMode = (): 'game' | 'classic' | null => {
+  try {
+    const raw = sessionStorage.getItem(PREVIEW_MODE_KEY);
+    return raw === 'game' || raw === 'classic' ? raw : null;
   } catch {
     return null;
   }

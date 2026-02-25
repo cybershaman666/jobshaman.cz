@@ -311,10 +311,27 @@ export const getJobCount = async (): Promise<number> => {
     if (isSupabaseNetworkCooldownActive()) return 0;
 
     try {
-        const { count, error } = await supabase
+        let count: number | null = null;
+        let error: any = null;
+
+        // Preferred definition for landing stat: truly active job offers.
+        // Some environments have `status`, some only `is_active`; handle both.
+        const primary = await supabase
             .from('jobs')
             .select('*', { count: 'exact', head: true })
-            .eq('legality_status', 'legal');
+            .eq('is_active', true)
+            .eq('status', 'active');
+        count = primary.count;
+        error = primary.error;
+
+        if (error && String(error.message || '').toLowerCase().includes("column jobs.status does not exist")) {
+            const fallback = await supabase
+                .from('jobs')
+                .select('*', { count: 'exact', head: true })
+                .eq('is_active', true);
+            count = fallback.count;
+            error = fallback.error;
+        }
 
         if (error) {
             noteSupabaseNetworkFailure('getJobCount', error);
@@ -343,17 +360,51 @@ export const getTodayAnalyzedCount = async (): Promise<number> => {
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
 
-        const { count, error } = await supabase
+        // "Reviewed on JHI today" = jobs updated today that already passed legality/JHI screening.
+        // Prefer updated_at; if status column is unavailable, fallback gracefully.
+        let count: number | null = null;
+        let error: any = null;
+
+        const withStatus = await supabase
             .from('jobs')
             .select('*', { count: 'exact', head: true })
-            .eq('legality_status', 'legal')
-            .gte('created_at', startOfDay.toISOString());
+            .eq('is_active', true)
+            .eq('status', 'active')
+            .in('legality_status', ['legal', 'review', 'illegal'])
+            .gte('updated_at', startOfDay.toISOString());
+        count = withStatus.count;
+        error = withStatus.error;
+
+        if (error && String(error.message || '').toLowerCase().includes("column jobs.status does not exist")) {
+            const withoutStatus = await supabase
+                .from('jobs')
+                .select('*', { count: 'exact', head: true })
+                .eq('is_active', true)
+                .in('legality_status', ['legal', 'review', 'illegal'])
+                .gte('updated_at', startOfDay.toISOString());
+            count = withoutStatus.count;
+            error = withoutStatus.error;
+        }
 
         if (error) {
             noteSupabaseNetworkFailure('getTodayAnalyzedCount', error);
             if (isTransientSupabaseError(error) || isSupabaseNetworkCooldownActive()) return 0;
             console.error("Error fetching today's analyzed count:", error);
             return 0;
+        }
+
+        // Some pipelines only fill created_at meaningfully for daily batches.
+        // If updated_at is not maintained and result is zero, use created_at fallback.
+        if (!count || count <= 0) {
+            const createdFallback = await supabase
+                .from('jobs')
+                .select('*', { count: 'exact', head: true })
+                .eq('is_active', true)
+                .in('legality_status', ['legal', 'review', 'illegal'])
+                .gte('created_at', startOfDay.toISOString());
+            if (!createdFallback.error && Number.isFinite(createdFallback.count)) {
+                return createdFallback.count || 0;
+            }
         }
 
         return count || 0;

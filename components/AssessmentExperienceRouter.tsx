@@ -1,5 +1,6 @@
 import React from 'react';
-import { Assessment } from '../types';
+import { Assessment, AssessmentMode } from '../types';
+import { FEATURE_ASSESSMENT_COCKPIT_V2 } from '../constants';
 import AssessmentTaker from './AssessmentTaker';
 
 interface Props {
@@ -10,7 +11,11 @@ interface Props {
   invitationToken?: string;
   submitViaBackend?: boolean;
   embedded?: boolean;
+  forceAssessmentMode?: AssessmentMode;
 }
+
+export const resolveAssessmentMode = (cockpitEnabled: boolean): 'game' | 'classic' =>
+  cockpitEnabled ? 'game' : 'classic';
 
 const AssessmentExperienceRouter: React.FC<Props> = ({
   assessment,
@@ -20,7 +25,9 @@ const AssessmentExperienceRouter: React.FC<Props> = ({
   invitationToken,
   submitViaBackend = false,
   embedded = false,
+  forceAssessmentMode,
 }) => {
+  const derivedMode = forceAssessmentMode || resolveAssessmentMode(FEATURE_ASSESSMENT_COCKPIT_V2);
   return (
     <div className="relative h-full">
       <AssessmentTaker
@@ -31,7 +38,7 @@ const AssessmentExperienceRouter: React.FC<Props> = ({
         invitationToken={invitationToken}
         submitViaBackend={submitViaBackend}
         embedded={embedded}
-        assessmentMode="classic"
+        assessmentMode={derivedMode}
         modeSwitchCount={0}
         modeSwitchTimestamps={[]}
       />

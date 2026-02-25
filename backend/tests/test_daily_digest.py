@@ -56,6 +56,18 @@ def test_resolve_digest_country_uses_locale_when_country_missing():
     assert code == "CZ"
 
 
+def test_resolve_digest_country_uses_timezone_when_locale_missing():
+    code = _resolve_digest_country_code(
+        preferred_country_code=None,
+        preferred_locale=None,
+        candidate_profile={"address": ""},
+        c_lat=None,
+        c_lng=None,
+        digest_timezone="Europe/Prague",
+    )
+    assert code == "CZ"
+
+
 def test_should_send_now_allows_second_send_same_day_after_time_shift(monkeypatch):
     tz = ZoneInfo("Europe/Prague")
     fixed_now = datetime(2026, 2, 22, 12, 35, tzinfo=tz)
@@ -118,9 +130,9 @@ def test_pick_personalized_digest_jobs_falls_back_to_nonlocal_ai_matches():
                 "title": "Senior Python Developer",
                 "company": "Acme",
                 "company_name": "Acme",
-                "location": "Remote EU",
+                "location": "Unknown",
                 "country_code": "CZ",
-                "work_model": "remote",
+                "work_model": "onsite",
                 "lat": None,
                 "lng": None,
             },
@@ -150,7 +162,103 @@ def test_pick_personalized_digest_jobs_falls_back_to_nonlocal_ai_matches():
     )
 
     assert len(picks) == 2
-    assert picks[0]["id"] == "job-remote-1"
-    assert picks[0]["match_score"] == 96
-    assert picks[1]["id"] == "job-far-1"
-    assert picks[1]["match_score"] == 88
+    assert picks[0]["id"] == "job-far-1"
+    assert picks[0]["match_score"] == 88
+    assert picks[1]["id"] == "job-remote-1"
+    assert picks[1]["match_score"] == 96
+
+
+def test_pick_personalized_digest_jobs_filters_incompatible_language():
+    recs = [
+        {
+            "score": 90,
+            "job": {
+                "id": "job-cs-1",
+                "title": "Ridic C+E",
+                "company": "LogiCZ",
+                "company_name": "LogiCZ",
+                "location": "Brno",
+                "country_code": "CZ",
+                "language_code": "cs",
+                "work_model": "onsite",
+                "lat": 49.1951,
+                "lng": 16.6068,
+            },
+        },
+        {
+            "score": 92,
+            "job": {
+                "id": "job-en-1",
+                "title": "Truck Driver",
+                "company": "GlobalTrans",
+                "company_name": "GlobalTrans",
+                "location": "Brno",
+                "country_code": "CZ",
+                "language_code": "en",
+                "work_model": "onsite",
+                "lat": 49.1951,
+                "lng": 16.6068,
+            },
+        },
+    ]
+
+    picks = _pick_personalized_digest_jobs(
+        recs=recs,
+        c_lat=49.1951,
+        c_lng=16.6068,
+        country_code="CZ",
+        allowed_language_codes={"cs", "sk"},
+        candidate_profile={"job_title": "Ridic", "skills": ["ridic"], "cv_text": "", "cv_ai_text": ""},
+        limit=5,
+    )
+
+    assert len(picks) == 1
+    assert picks[0]["id"] == "job-cs-1"
+
+
+def test_pick_personalized_digest_jobs_skips_it_roles_when_profile_is_driver():
+    recs = [
+        {
+            "score": 95,
+            "job": {
+                "id": "job-dev-1",
+                "title": "Full Stack Developer",
+                "company": "TechCo",
+                "company_name": "TechCo",
+                "location": "Brno",
+                "country_code": "CZ",
+                "language_code": "cs",
+                "work_model": "remote",
+                "lat": None,
+                "lng": None,
+            },
+        },
+        {
+            "score": 80,
+            "job": {
+                "id": "job-driver-1",
+                "title": "Ridic kamionu C+E",
+                "company": "Doprava Plus",
+                "company_name": "Doprava Plus",
+                "location": "Brno",
+                "country_code": "CZ",
+                "language_code": "cs",
+                "work_model": "onsite",
+                "lat": 49.1951,
+                "lng": 16.6068,
+            },
+        },
+    ]
+
+    picks = _pick_personalized_digest_jobs(
+        recs=recs,
+        c_lat=49.1951,
+        c_lng=16.6068,
+        country_code="CZ",
+        allowed_language_codes={"cs"},
+        candidate_profile={"job_title": "Ridic", "skills": ["ridic"], "cv_text": "", "cv_ai_text": ""},
+        limit=5,
+    )
+
+    assert len(picks) == 1
+    assert picks[0]["id"] == "job-driver-1"

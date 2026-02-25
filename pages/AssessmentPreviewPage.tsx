@@ -1,11 +1,12 @@
 import React from 'react';
 import { ArrowLeft } from 'lucide-react';
 import AssessmentExperienceRouter from '../components/AssessmentExperienceRouter';
-import { readAssessmentPreviewPayload, readAssessmentPreviewReturnTo } from '../services/assessmentPreviewNavigation';
+import { readAssessmentPreviewMode, readAssessmentPreviewPayload, readAssessmentPreviewReturnTo } from '../services/assessmentPreviewNavigation';
 
 const AssessmentPreviewPage: React.FC = () => {
   const assessment = readAssessmentPreviewPayload();
   const returnTo = readAssessmentPreviewReturnTo();
+  const forcedMode = readAssessmentPreviewMode();
   const goBack = () => {
     if (returnTo) {
       window.location.assign(returnTo);
@@ -55,6 +56,7 @@ const AssessmentPreviewPage: React.FC = () => {
         invitationId="preview"
         mode="preview"
         embedded
+        forceAssessmentMode={forcedMode || undefined}
         onComplete={goBack}
       />
     </div>

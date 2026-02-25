@@ -5,8 +5,7 @@ import { generateAssessment, extractSkillsFromJob } from '../services/geminiServ
 import { FEATURE_ASSESSMENT_THREE } from '../constants';
 import { useSceneCapability } from '../hooks/useSceneCapability';
 import SceneShell from './three/SceneShell';
-import NebulaOfPotential from './three/NebulaOfPotential';
-import ValueResonance from './three/ValueResonance';
+import BiophilicCockpitScene from './three/BiophilicCockpitScene';
 
 import { incrementAssessmentUsage } from '../services/supabaseService';
 import { getRemainingAssessments } from '../services/billingService';
@@ -43,6 +42,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
     const [selectedDemoOutputId, setSelectedDemoOutputId] = useState<string>('demo-backend-senior');
     const [showDemoCenter, setShowDemoCenter] = useState(false);
     const [showThreePreview, setShowThreePreview] = useState<boolean>(FEATURE_ASSESSMENT_THREE);
+    const demoUsesCockpit = true;
     const demoOutputRef = useRef<HTMLDivElement>(null);
     const sceneCapability = useSceneCapability();
 
@@ -347,11 +347,12 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
     };
     const previewDemoTemplate = (template: DemoAssessmentTemplate) => {
         setAssessment(template.assessment);
-        openAssessmentPreviewPage(template.assessment);
+        openAssessmentPreviewPage(template.assessment, { forceMode: 'game' });
     };
     const demoOutputMap: Record<string, {
         finalScore: number;
         recommendation: 'recommend' | 'conditional' | 'not_recommend';
+        personalityPulse: { E: number; N: number; F: number; P: number };
         technical: { label: string; value: number }[];
         psychProfile: { label: string; value: number }[];
         dimensionEvidence: {
@@ -374,6 +375,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
         'demo-backend-senior': {
             finalScore: 78,
             recommendation: 'recommend',
+            personalityPulse: { E: 58, N: 71, F: 42, P: 36 },
             technical: [
                 { label: t('assessment_creator.demo_center.outputs.backend.technical.0', { defaultValue: 'API design' }), value: 82 },
                 { label: t('assessment_creator.demo_center.outputs.backend.technical.1', { defaultValue: 'System thinking' }), value: 76 },
@@ -430,6 +432,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
         'demo-cnc-operator': {
             finalScore: 74,
             recommendation: 'recommend',
+            personalityPulse: { E: 44, N: 38, F: 47, P: 33 },
             technical: [
                 { label: t('assessment_creator.demo_center.outputs.cnc.technical.0', { defaultValue: 'Technological discipline' }), value: 80 },
                 { label: t('assessment_creator.demo_center.outputs.cnc.technical.1', { defaultValue: 'Tolerance control' }), value: 77 },
@@ -486,6 +489,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
         'demo-nurse': {
             finalScore: 81,
             recommendation: 'recommend',
+            personalityPulse: { E: 62, N: 52, F: 78, P: 41 },
             technical: [
                 { label: t('assessment_creator.demo_center.outputs.nurse.technical.0', { defaultValue: 'Triage and prioritization' }), value: 84 },
                 { label: t('assessment_creator.demo_center.outputs.nurse.technical.1', { defaultValue: 'Clinical communication' }), value: 79 },
@@ -542,6 +546,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
         'demo-b2b-sales': {
             finalScore: 69,
             recommendation: 'conditional',
+            personalityPulse: { E: 76, N: 64, F: 55, P: 58 },
             technical: [
                 { label: t('assessment_creator.demo_center.outputs.sales.technical.0', { defaultValue: 'Discovery and qualification' }), value: 72 },
                 { label: t('assessment_creator.demo_center.outputs.sales.technical.1', { defaultValue: 'Negotiation' }), value: 74 },
@@ -598,6 +603,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
         'demo-cs-support': {
             finalScore: 72,
             recommendation: 'conditional',
+            personalityPulse: { E: 61, N: 49, F: 73, P: 52 },
             technical: [
                 { label: t('assessment_creator.demo_center.outputs.support.technical.0', { defaultValue: 'Ticket triage' }), value: 75 },
                 { label: t('assessment_creator.demo_center.outputs.support.technical.1', { defaultValue: 'Empathetic communication' }), value: 81 },
@@ -654,18 +660,14 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
     };
     const selectedDemoOutput = demoOutputMap[selectedDemoOutputId] || demoOutputMap['demo-backend-senior'];
     const selectedDemoTemplate = demoAssessments.find((item) => item.id === selectedDemoOutputId) || demoAssessments[0];
-    const demoSignalFrame = {
-        timestamp: new Date().toISOString(),
-        unlocked_skills: selectedDemoOutput.strengths.slice(0, 5),
-        narrative_integrity: Math.round((selectedDemoOutput.finalScore + selectedDemoOutput.cultureFitMatch) / 2),
+    const demoPersonalityCode = `${selectedDemoOutput.personalityPulse.E >= 50 ? 'E' : 'I'}${selectedDemoOutput.personalityPulse.N >= 50 ? 'N' : 'S'}${selectedDemoOutput.personalityPulse.F >= 50 ? 'F' : 'T'}${selectedDemoOutput.personalityPulse.P >= 50 ? 'P' : 'J'}`;
+    const demoScenePhase = (selectedDemoOutput.finalScore > 82 ? 5 : selectedDemoOutput.finalScore > 72 ? 4 : selectedDemoOutput.finalScore > 62 ? 3 : 2) as 1 | 2 | 3 | 4 | 5;
+    const demoSceneMetrics = {
+        phase: demoScenePhase,
+        progress: Math.max(0.2, Math.min(0.98, selectedDemoOutput.finalScore / 100)),
         confidence: selectedDemoOutput.confidence === 'high' ? 86 : selectedDemoOutput.confidence === 'medium' ? 67 : 45,
-        evidence: selectedDemoOutput.methodology.slice(0, 4),
-    };
-    const demoResonanceFrame = {
-        candidate_vector: [selectedDemoOutput.cultureFitMatch / 100, selectedDemoOutput.finalScore / 100, 0.72, 0.64],
-        company_vector: [1, 1, 1, 1],
-        match: selectedDemoOutput.cultureFitMatch,
-        tension_points: selectedDemoOutput.risks.slice(0, 3),
+        energy: Math.max(32, Math.min(96, Math.round((selectedDemoOutput.psychProfile[0]?.value || 65) * 0.85))),
+        culture: selectedDemoOutput.cultureFitMatch,
     };
 
     const getRecommendationLabel = (value: 'recommend' | 'conditional' | 'not_recommend') => {
@@ -730,6 +732,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
         ctx.fillText(t('assessment_creator.demo_center.psych_profile', { defaultValue: 'Psychological profile (basic)' }), padX, y);
         y += 40;
         selectedDemoOutput.psychProfile.forEach((item) => writeRow(item.label, `${item.value}/100`));
+        writeRow('Basic personality profile', `${demoPersonalityCode} (E ${selectedDemoOutput.personalityPulse.E}% / N ${selectedDemoOutput.personalityPulse.N}% / F ${selectedDemoOutput.personalityPulse.F}% / P ${selectedDemoOutput.personalityPulse.P}%)`, '#0f766e');
         y += 8;
 
         const writeList = (title: string, items: string[], color: string) => {
@@ -825,13 +828,13 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
             )}
 
             <div className="lg:col-span-2">
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5">
+                <div className={`${demoUsesCockpit ? 'cockpit-panel text-slate-50' : 'bg-white dark:bg-slate-900'} rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5`}>
                     <div className="flex items-center justify-between gap-3 mb-4">
                         <div>
-                            <h3 className="text-lg font-bold text-slate-900 dark:text-white">
+                            <h3 className={`text-lg font-bold ${demoUsesCockpit ? 'text-cyan-50' : 'text-slate-900 dark:text-white'}`}>
                                 {t('assessment_creator.demo_center.title', { defaultValue: 'Demo Assessment Center' })}
                             </h3>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
+                            <p className={`text-sm ${demoUsesCockpit ? 'text-cyan-100/85' : 'text-slate-500 dark:text-slate-400'}`}>
                                 {t('assessment_creator.demo_center.subtitle', { defaultValue: '5 ukázek napříč různými typy rolí. Klikněte na Preview nebo použijte šablonu.' })}
                             </p>
                             <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mt-1">
@@ -841,7 +844,11 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => setShowDemoCenter((prev) => !prev)}
-                                className="px-3 py-1.5 rounded-lg text-xs font-bold border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                                className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
+                                    demoUsesCockpit
+                                        ? 'border-white/30 bg-black/25 text-cyan-50 hover:bg-black/35'
+                                        : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                }`}
                             >
                                 {showDemoCenter
                                     ? t('assessment_creator.demo_center.hide', { defaultValue: 'Hide demo assessments' })
@@ -852,8 +859,8 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                     onClick={() => setShowThreePreview((prev) => !prev)}
                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-colors ${
                                         showThreePreview
-                                            ? 'bg-cyan-600 text-white border-cyan-500'
-                                            : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                                            ? (demoUsesCockpit ? 'bg-emerald-400/85 text-slate-950 border-emerald-300' : 'bg-cyan-600 text-white border-cyan-500')
+                                            : (demoUsesCockpit ? 'bg-black/25 text-cyan-50 border-white/30' : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700')
                                     }`}
                                 >
                                     {showThreePreview
@@ -867,25 +874,29 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                         <>
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-3">
                                 {demoAssessments.map((template) => (
-                                    <div key={template.id} className="rounded-lg border border-slate-200 dark:border-slate-800 p-3 bg-slate-50 dark:bg-slate-950/30">
-                                        <div className="text-xs font-bold uppercase tracking-wider text-cyan-600 dark:text-cyan-400 mb-1">
+                                    <div key={template.id} className={`rounded-lg border p-3 ${demoUsesCockpit ? 'border-white/20 bg-black/25 backdrop-blur-sm' : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30'}`}>
+                                        <div className={`text-xs font-bold uppercase tracking-wider mb-1 ${demoUsesCockpit ? 'text-cyan-200' : 'text-cyan-600 dark:text-cyan-400'}`}>
                                             {template.difficulty}
                                         </div>
-                                        <div className="text-sm font-semibold text-slate-900 dark:text-white mb-2 min-h-[40px]">
+                                        <div className={`text-sm font-semibold mb-2 min-h-[40px] ${demoUsesCockpit ? 'text-cyan-50' : 'text-slate-900 dark:text-white'}`}>
                                             {template.role}
                                         </div>
-                                        <div className="text-[11px] text-slate-500 dark:text-slate-400 mb-3 min-h-[48px]">
+                                        <div className={`text-[11px] mb-3 min-h-[48px] ${demoUsesCockpit ? 'text-cyan-100/75' : 'text-slate-500 dark:text-slate-400'}`}>
                                             {template.skills.slice(0, 3).join(' · ')}
                                         </div>
-                                        <div className="text-[11px] text-slate-600 dark:text-slate-300 font-semibold mb-2">
+                                        <div className={`text-[11px] font-semibold mb-2 ${demoUsesCockpit ? 'text-cyan-100/85' : 'text-slate-600 dark:text-slate-300'}`}>
                                             {template.assessment.questions.length} {t('assessment_creator.demo_center.questions_label', { defaultValue: 'otázek / úkolů' })}
                                         </div>
                                         <button
                                             onClick={() => setSelectedDemoOutputId(template.id)}
                                             className={`w-full mb-2 px-2 py-1.5 text-xs font-bold rounded transition-colors border ${
                                                 selectedDemoOutputId === template.id
-                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800'
-                                                    : 'bg-white text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700'
+                                                    ? (demoUsesCockpit
+                                                        ? 'bg-emerald-300/20 text-emerald-100 border-emerald-300/50'
+                                                        : 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-300 dark:border-emerald-800')
+                                                    : (demoUsesCockpit
+                                                        ? 'bg-black/25 text-cyan-100 border-white/25'
+                                                        : 'bg-white text-slate-700 border-slate-200 dark:bg-slate-900 dark:text-slate-300 dark:border-slate-700')
                                             }`}
                                         >
                                             {t('assessment_creator.demo_center.show_output', { defaultValue: 'Show output' })}
@@ -893,13 +904,21 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                         <div className="flex gap-2">
                                             <button
                                                 onClick={() => previewDemoTemplate(template)}
-                                                className="flex-1 px-2 py-1.5 text-xs font-bold rounded bg-slate-900 text-white hover:bg-slate-800 transition-colors"
+                                                className={`flex-1 px-2 py-1.5 text-xs font-bold rounded transition-colors ${
+                                                    demoUsesCockpit
+                                                        ? 'bg-cyan-300/85 text-slate-950 hover:bg-cyan-200'
+                                                        : 'bg-slate-900 text-white hover:bg-slate-800'
+                                                }`}
                                             >
                                                 {t('assessment_creator.demo_center.preview', { defaultValue: 'Preview' })}
                                             </button>
                                             <button
                                                 onClick={() => loadDemoTemplate(template)}
-                                                className="flex-1 px-2 py-1.5 text-xs font-bold rounded bg-cyan-600 text-white hover:bg-cyan-500 transition-colors"
+                                                className={`flex-1 px-2 py-1.5 text-xs font-bold rounded transition-colors ${
+                                                    demoUsesCockpit
+                                                        ? 'bg-emerald-400/85 text-slate-950 hover:bg-emerald-300'
+                                                        : 'bg-cyan-600 text-white hover:bg-cyan-500'
+                                                }`}
                                             >
                                                 {t('assessment_creator.demo_center.use', { defaultValue: 'Use template' })}
                                             </button>
@@ -909,40 +928,51 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                             </div>
 
                             {FEATURE_ASSESSMENT_THREE && showThreePreview && (
-                                <div className="mt-5 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
-                                        <div className="text-xs uppercase tracking-wider text-cyan-600 dark:text-cyan-400 mb-2">
-                                            The Nebula of Potential
+                                <div className="mt-5 rounded-xl border border-white/20 bg-black/25 backdrop-blur-sm p-3">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="text-xs uppercase tracking-wider text-cyan-100">Biophilic Cockpit Preview</div>
+                                        <div className="text-xs text-cyan-200/85">
+                                            Signal {selectedDemoOutput.finalScore}% · Culture {selectedDemoOutput.cultureFitMatch}%
                                         </div>
-                                        <SceneShell
-                                            capability={sceneCapability}
-                                            enableControls
-                                            fallback={
-                                                <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 p-3 text-xs text-slate-600 dark:text-slate-300">
-                                                    Non-WebGL fallback. Signal timeline preview active.
-                                                </div>
-                                            }
-                                        >
-                                            <NebulaOfPotential frame={demoSignalFrame} />
-                                        </SceneShell>
                                     </div>
-                                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
-                                        <div className="text-xs uppercase tracking-wider text-emerald-600 dark:text-emerald-400 mb-2">
-                                            Value Resonance
-                                        </div>
-                                        <SceneShell
-                                            capability={sceneCapability}
-                                            fallback={
-                                                <div className="h-44 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950/60 p-3 text-xs text-slate-600 dark:text-slate-300">
-                                                    Fit pulse: {demoResonanceFrame.match}%
-                                                </div>
-                                            }
-                                        >
-                                            <ValueResonance frame={demoResonanceFrame} />
-                                        </SceneShell>
-                                        <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400">
-                                            {t('ai_advisory.default', { defaultValue: 'AI recommendation only. Final decision remains with recruiter.' })}
-                                        </div>
+                                    <SceneShell
+                                        capability={sceneCapability}
+                                        enableControls
+                                        performanceMode={sceneCapability.qualityTier}
+                                        fallback={
+                                            <div className="h-52 rounded-lg cockpit-scene-fallback p-3 text-xs text-cyan-100/90 border border-white/20">
+                                                Biophilic fallback aktivní. Live metriky běží bez WebGL.
+                                            </div>
+                                        }
+                                    >
+                                        <BiophilicCockpitScene
+                                            phase={demoSceneMetrics.phase}
+                                            progress={demoSceneMetrics.progress}
+                                            streakCount={2}
+                                            confidence={demoSceneMetrics.confidence}
+                                            energy={demoSceneMetrics.energy}
+                                            culture={demoSceneMetrics.culture}
+                                            qualityTier={sceneCapability.qualityTier}
+                                        />
+                                    </SceneShell>
+                                    <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2">
+                                        {[
+                                            ['Signal', selectedDemoOutput.finalScore],
+                                            ['Confidence', demoSceneMetrics.confidence],
+                                            ['Energy', demoSceneMetrics.energy],
+                                            ['Culture', demoSceneMetrics.culture],
+                                        ].map(([label, value]) => (
+                                            <div key={String(label)} className="rounded-lg border border-white/20 bg-black/25 px-2 py-1.5">
+                                                <div className="text-[10px] uppercase tracking-wide text-cyan-100/75">{label}</div>
+                                                <div className="text-sm font-semibold text-cyan-50">{value}%</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="mt-2 text-xs text-cyan-100/85">
+                                        Basic personality profile: <span className="font-semibold">{demoPersonalityCode}</span>
+                                    </div>
+                                    <div className="mt-2 text-[11px] text-cyan-100/75">
+                                        {t('ai_advisory.default', { defaultValue: 'AI recommendation only. Final decision remains with recruiter.' })}
                                     </div>
                                 </div>
                             )}
@@ -994,6 +1024,20 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                             <div className="font-bold text-slate-900 dark:text-white">{item.value}/100</div>
                                         </div>
                                     ))}
+                                </div>
+                                <div className="mt-3 rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 p-2">
+                                    <div className="text-[11px] uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                                        Basic Personality Pulse
+                                    </div>
+                                    <div className="mt-1 text-sm font-semibold text-emerald-800 dark:text-emerald-200">
+                                        {demoPersonalityCode}
+                                    </div>
+                                    <div className="mt-1 grid grid-cols-2 md:grid-cols-4 gap-2 text-[11px] text-emerald-800 dark:text-emerald-200">
+                                        <div>E {selectedDemoOutput.personalityPulse.E}%</div>
+                                        <div>N {selectedDemoOutput.personalityPulse.N}%</div>
+                                        <div>F {selectedDemoOutput.personalityPulse.F}%</div>
+                                        <div>P {selectedDemoOutput.personalityPulse.P}%</div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

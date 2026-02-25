@@ -31,6 +31,9 @@ export const SEARCH_BACKEND_URL =
 export const FEATURE_ASSESSMENT_THREE =
   String(import.meta.env.VITE_FEATURE_ASSESSMENT_THREE || 'true').toLowerCase() !== 'false';
 
+export const FEATURE_ASSESSMENT_COCKPIT_V2 =
+  String(import.meta.env.VITE_FEATURE_ASSESSMENT_COCKPIT_V2 || 'false').toLowerCase() === 'true';
+
 export const FEATURE_HAPPINESS_AUDIT_THREE =
   false;
 
@@ -48,6 +51,9 @@ export const FEATURE_ASSESSMENT_LIVE3D_MOBILE_OPTIN =
 
 export const FEATURE_ASSESSMENT_JOURNEY_EXPERIENCE_V1 =
   String(import.meta.env.VITE_FEATURE_ASSESSMENT_JOURNEY_EXPERIENCE_V1 || 'false').toLowerCase() === 'true';
+
+export const FEATURE_PREMIUM_IKIGAI_GUIDE_V1 =
+  String(import.meta.env.VITE_FEATURE_PREMIUM_IKIGAI_GUIDE_V1 || 'false').toLowerCase() === 'true';
 
 // Backward-compatible flag used by older assessment router imports.
 export const FEATURE_ASSESSMENT_CLASSIC_TOGGLE =

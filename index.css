@@ -181,11 +181,244 @@ html, body {
   --app-bg-color: #f8fafc; /* Slate 50 */
   --app-grid-color: rgba(15, 23, 42, 0.06); /* Slate 900 */
   --app-grid-size: 36px;
+  --cockpit-bg-0: #02130f;
+  --cockpit-bg-1: #04261d;
+  --cockpit-bg-2: #0b3a31;
+  --cockpit-glass-bg: rgba(6, 32, 28, 0.5);
+  --cockpit-glass-bg-strong: rgba(6, 42, 36, 0.72);
+  --cockpit-glass-border: rgba(125, 211, 252, 0.28);
+  --cockpit-accent-1: #67e8f9;
+  --cockpit-accent-2: #bbf7d0;
+  --cockpit-glow-1: rgba(45, 212, 191, 0.38);
+  --cockpit-glow-2: rgba(103, 232, 249, 0.26);
+  --ikigai-bg-deep: #1a1f1c;
+  --ikigai-bg-surface: linear-gradient(150deg, #24302a, #2e3d34 48%, #374b3d);
+  --ikigai-glass-bg: rgba(36, 47, 41, 0.62);
+  --ikigai-glass-border: rgba(244, 232, 178, 0.36);
+  --ikigai-accent-1: #f4d35e;
+  --ikigai-accent-2: #9bcc6b;
+  --ikigai-glow-1: rgba(242, 222, 95, 0.28);
+  --ikigai-glow-2: rgba(240, 139, 141, 0.24);
 }
 
 .dark {
   --app-bg-color: #020617; /* Slate 950 */
   --app-grid-color: rgba(148, 163, 184, 0.08); /* Slate 400 */
+  --cockpit-bg-0: #010d0a;
+  --cockpit-bg-1: #03221a;
+  --cockpit-bg-2: #0a332b;
+  --cockpit-glass-bg: rgba(3, 25, 21, 0.58);
+  --cockpit-glass-bg-strong: rgba(5, 35, 29, 0.78);
+  --cockpit-glass-border: rgba(110, 231, 183, 0.26);
+  --cockpit-accent-1: #67e8f9;
+  --cockpit-accent-2: #a7f3d0;
+  --cockpit-glow-1: rgba(16, 185, 129, 0.34);
+  --cockpit-glow-2: rgba(34, 211, 238, 0.22);
+  --ikigai-bg-deep: #121815;
+  --ikigai-bg-surface: linear-gradient(150deg, #1a241f, #223029 48%, #2c3b32);
+  --ikigai-glass-bg: rgba(26, 36, 31, 0.72);
+  --ikigai-glass-border: rgba(220, 205, 150, 0.3);
+  --ikigai-accent-1: #e9cc6b;
+  --ikigai-accent-2: #8ebf63;
+  --ikigai-glow-1: rgba(233, 204, 107, 0.26);
+  --ikigai-glow-2: rgba(220, 141, 142, 0.2);
+}
+
+@keyframes cockpitPanelEnter {
+  0% { opacity: 0; transform: translateY(10px) scale(0.99); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes cockpitPulse {
+  0% { box-shadow: 0 0 0 rgba(0, 0, 0, 0); }
+  50% { box-shadow: 0 0 24px var(--cockpit-glow-2); }
+  100% { box-shadow: 0 0 0 rgba(0, 0, 0, 0); }
+}
+
+@keyframes cockpitFlowDrift {
+  0% { transform: translate3d(-2%, -1%, 0) scale(1); opacity: 0.34; }
+  50% { transform: translate3d(3%, 2%, 0) scale(1.04); opacity: 0.5; }
+  100% { transform: translate3d(8%, -2%, 0) scale(1.08); opacity: 0.3; }
+}
+
+@keyframes cockpitMetricSweep {
+  0% { filter: saturate(0.9); }
+  50% { filter: saturate(1.25); }
+  100% { filter: saturate(0.9); }
+}
+
+@keyframes ikigaiCorePulse {
+  0% { transform: scale(0.995); filter: saturate(0.95); }
+  50% { transform: scale(1.01); filter: saturate(1.15); }
+  100% { transform: scale(0.995); filter: saturate(0.95); }
+}
+
+@keyframes ikigaiNodeBloom {
+  0% { box-shadow: 0 0 0 rgba(0, 0, 0, 0); }
+  50% { box-shadow: 0 0 22px var(--ikigai-glow-1); }
+  100% { box-shadow: 0 0 0 rgba(0, 0, 0, 0); }
+}
+
+@keyframes ikigaiFlowDrift {
+  0% { transform: translate3d(-2%, 0, 0) scale(1); opacity: 0.28; }
+  50% { transform: translate3d(4%, -1%, 0) scale(1.04); opacity: 0.42; }
+  100% { transform: translate3d(9%, 2%, 0) scale(1.08); opacity: 0.24; }
+}
+
+@keyframes ikigaiResultReveal {
+  0% { opacity: 0; transform: translateY(8px) scale(0.99); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.cockpit-root {
+  background:
+    radial-gradient(circle at 20% 18%, rgba(34, 211, 238, 0.14), transparent 36%),
+    radial-gradient(circle at 82% 22%, rgba(52, 211, 153, 0.12), transparent 34%),
+    linear-gradient(140deg, var(--cockpit-bg-0), var(--cockpit-bg-1) 48%, var(--cockpit-bg-2));
+}
+
+.cockpit-panel {
+  border: 1px solid var(--cockpit-glass-border);
+  background: linear-gradient(170deg, var(--cockpit-glass-bg), rgba(3, 20, 16, 0.35));
+  backdrop-filter: blur(14px);
+  border-radius: 18px;
+}
+
+.cockpit-topbar {
+  animation: cockpitPulse 7s ease-in-out infinite;
+}
+
+.cockpit-panel-enter {
+  animation: cockpitPanelEnter 380ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.cockpit-pill {
+  border: 1px solid var(--cockpit-glass-border);
+  background: var(--cockpit-glass-bg);
+  color: var(--cockpit-accent-2);
+  border-radius: 999px;
+  padding: 0.25rem 0.7rem;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.cockpit-mist {
+  position: absolute;
+  inset: -18% -10%;
+  pointer-events: none;
+}
+
+.cockpit-mist--a {
+  background: radial-gradient(circle at 22% 28%, var(--cockpit-glow-1), transparent 44%);
+  animation: cockpitFlowDrift 24s ease-in-out infinite alternate;
+}
+
+.cockpit-mist--b {
+  background: radial-gradient(circle at 76% 70%, var(--cockpit-glow-2), transparent 48%);
+  animation: cockpitFlowDrift 29s ease-in-out infinite alternate-reverse;
+}
+
+.cockpit-grid-glow {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(167, 243, 208, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(103, 232, 249, 0.08) 1px, transparent 1px);
+  background-size: 44px 44px;
+  opacity: 0.22;
+}
+
+.cockpit-vignette {
+  background: radial-gradient(circle at 50% 44%, transparent 38%, rgba(1, 12, 9, 0.72) 100%);
+}
+
+.cockpit-scene-fallback {
+  background:
+    radial-gradient(circle at 25% 26%, rgba(45, 212, 191, 0.28), transparent 45%),
+    radial-gradient(circle at 75% 64%, rgba(103, 232, 249, 0.2), transparent 50%),
+    linear-gradient(150deg, #02110d, #063228 52%, #0a4035);
+}
+
+.cockpit-metric-sweep {
+  animation: cockpitMetricSweep 2.4s ease-in-out infinite;
+}
+
+.ikigai-entry-card {
+  background:
+    radial-gradient(circle at 15% 16%, var(--ikigai-glow-1), transparent 32%),
+    radial-gradient(circle at 87% 78%, var(--ikigai-glow-2), transparent 34%),
+    var(--ikigai-glass-bg);
+  border-color: var(--ikigai-glass-border);
+}
+
+.ikigai-panel-enter {
+  animation: ikigaiResultReveal 280ms cubic-bezier(0.2, 1, 0.32, 1) both;
+}
+
+.ikigai-hud {
+  border-color: var(--ikigai-glass-border);
+  background: linear-gradient(165deg, rgba(26, 36, 31, 0.9), rgba(19, 27, 23, 0.92));
+  animation: ikigaiNodeBloom 6.5s ease-in-out infinite;
+}
+
+.ikigai-bg-orb {
+  position: absolute;
+  inset: -18% -14%;
+  background:
+    radial-gradient(circle at 22% 22%, var(--ikigai-glow-1), transparent 35%),
+    radial-gradient(circle at 74% 66%, var(--ikigai-glow-2), transparent 37%);
+  pointer-events: none;
+  animation: ikigaiFlowDrift 26s ease-in-out infinite alternate;
+}
+
+.ikigai-glass-chip {
+  border: 1px solid var(--ikigai-glass-border);
+  background: rgba(34, 46, 39, 0.75);
+  border-radius: 0.75rem;
+  padding: 0.4rem 0.55rem;
+}
+
+.ikigai-metric-sweep {
+  animation: ikigaiCorePulse 2.5s ease-in-out infinite;
+}
+
+.ikigai-choice-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.15rem;
+  border-radius: 0.75rem;
+  border: 1px solid rgba(228, 216, 170, 0.35);
+  background: rgba(28, 38, 33, 0.82);
+  color: rgba(226, 232, 240, 0.95);
+  transition: all 160ms ease;
+}
+
+.ikigai-choice-btn:hover {
+  border-color: rgba(244, 211, 94, 0.7);
+  background: rgba(39, 53, 45, 0.95);
+}
+
+.ikigai-choice-btn--active {
+  border-color: rgba(244, 211, 94, 0.9);
+  background: linear-gradient(160deg, rgba(74, 65, 33, 0.95), rgba(51, 72, 52, 0.95));
+  color: #fffbeb;
+  box-shadow: 0 0 16px rgba(244, 211, 94, 0.22);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cockpit-topbar,
+  .cockpit-panel-enter,
+  .cockpit-mist--a,
+  .cockpit-mist--b,
+  .cockpit-metric-sweep,
+  .ikigai-panel-enter,
+  .ikigai-hud,
+  .ikigai-bg-orb,
+  .ikigai-metric-sweep {
+    animation: none !important;
+  }
 }
 
 .app-grid-bg {
