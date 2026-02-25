@@ -1,6 +1,6 @@
 from datetime import datetime, timezone, time, timedelta
 from zoneinfo import ZoneInfo
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence, cast
 import math
 import json
 import unicodedata
@@ -99,6 +99,10 @@ def _normalize_text(value: Optional[str]) -> str:
     text = unicodedata.normalize("NFKD", text)
     text = "".join(ch for ch in text if not unicodedata.combining(ch))
     return text
+
+
+def _as_job_dict(raw: Any) -> Optional[Dict[str, Any]]:
+    return raw if isinstance(raw, dict) else None
 
 
 def _profile_obj(candidate_profile):
@@ -342,6 +346,46 @@ def _candidate_location(candidate_profile) -> tuple[Optional[float], Optional[fl
         return None, None
 
 
+def _candidate_address(candidate_profile) -> Optional[str]:
+    candidate_profile = _profile_obj(candidate_profile)
+    if not candidate_profile:
+        return None
+    return str(candidate_profile.get("address") or "").strip() or None
+
+
+def _extract_city_from_address(address: Optional[str]) -> Optional[str]:
+    text = str(address or "").strip()
+    if not text:
+        return None
+    parts = [p.strip() for p in text.split(",") if p.strip()]
+    if not parts:
+        return None
+    # Prefer last segment; fallback to first token of last segment.
+    candidate = parts[-1]
+    token = candidate.split(" ")[0].strip()
+    return token if token else candidate
+
+
+def _role_keywords(value: Optional[str]) -> List[str]:
+    text = _normalize_text(value)
+    if not text:
+        return []
+    raw_tokens = [t for t in text.replace("/", " ").replace("-", " ").split() if t]
+    stop = {"and", "the", "with", "for", "of", "a", "an", "senior", "junior", "lead", "manager", "specialist"}
+    tokens = [t for t in raw_tokens if len(t) >= 3 and t not in stop]
+    # Keep only a few keywords to avoid broad OR queries.
+    seen: set[str] = set()
+    compact: List[str] = []
+    for t in tokens:
+        if t in seen:
+            continue
+        seen.add(t)
+        compact.append(t)
+        if len(compact) >= 4:
+            break
+    return compact
+
+
 def _candidate_has_matching_signal(candidate_profile) -> bool:
     candidate_profile = _profile_obj(candidate_profile)
     if not candidate_profile:
@@ -437,6 +481,7 @@ def _job_in_country(job: Dict, country_code: Optional[str]) -> bool:
 def _fetch_newest_local_jobs(
     c_lat: Optional[float],
     c_lng: Optional[float],
+    address: Optional[str],
     country_code: Optional[str],
     allowed_language_codes: Optional[set[str]] = None,
     limit: int = _DIGEST_MAX_JOBS,
@@ -454,23 +499,30 @@ def _fetch_newest_local_jobs(
         )
         if country_code:
             query = query.eq("country_code", str(country_code).upper())
+        if c_lat is None or c_lng is None:
+            city = _extract_city_from_address(address)
+            if city:
+                query = query.ilike("location", f"%{city}%")
         resp = query.execute()
     except Exception as exc:
         print(f"⚠️ Fallback local jobs query failed: {exc}")
         return []
 
-    rows = resp.data or []
+    rows = cast(Sequence[Dict[str, Any]], resp.data or [])
     picks: List[Dict] = []
-    for job in rows:
+    for raw in rows:
+        job = _as_job_dict(raw)
+        if not job:
+            continue
         if not _job_in_country(job, country_code):
             continue
         if not _job_language_allowed(job, allowed_language_codes):
             continue
         remote = _is_remote_job(job)
-        if not remote:
+        if not remote and c_lat is not None and c_lng is not None:
             j_lat = job.get("lat")
             j_lng = job.get("lng")
-            if c_lat is None or c_lng is None or j_lat is None or j_lng is None:
+            if j_lat is None or j_lng is None:
                 continue
             try:
                 distance = _haversine_km(float(c_lat), float(c_lng), float(j_lat), float(j_lng))
@@ -492,6 +544,107 @@ def _fetch_newest_local_jobs(
         if len(picks) >= limit:
             break
     return picks
+
+
+def _fetch_role_focused_jobs(
+    role_title: str,
+    c_lat: Optional[float],
+    c_lng: Optional[float],
+    address: Optional[str],
+    country_code: Optional[str],
+    allowed_language_codes: Optional[set[str]] = None,
+    limit: int = _DIGEST_MAX_JOBS,
+) -> List[Dict]:
+    if not supabase:
+        return []
+
+    keywords = _role_keywords(role_title)
+    if not keywords:
+        return []
+
+    try:
+        query = (
+            supabase.table("jobs")
+            .select("id,title,company,location,lat,lng,work_model,work_type,description,scraped_at,country_code,language_code")
+            .eq("legality_status", "legal")
+            .order("scraped_at", desc=True)
+            .limit(300)
+        )
+        if country_code:
+            query = query.eq("country_code", str(country_code).upper())
+        if c_lat is None or c_lng is None:
+            city = _extract_city_from_address(address)
+            if city:
+                query = query.ilike("location", f"%{city}%")
+
+        or_clauses: List[str] = []
+        for kw in keywords:
+            or_clauses.append(f"title.ilike.%{kw}%")
+            or_clauses.append(f"description.ilike.%{kw}%")
+        if or_clauses:
+            query = query.or_(",".join(or_clauses))
+
+        resp = query.execute()
+    except Exception as exc:
+        print(f"⚠️ Role-focused digest query failed: {exc}")
+        return []
+
+    rows = cast(Sequence[Dict[str, Any]], resp.data or [])
+    picks: List[Dict] = []
+    for raw in rows:
+        job = _as_job_dict(raw)
+        if not job:
+            continue
+        job_id = job.get("id")
+        if not job_id:
+            continue
+        if not _job_in_country(job, country_code):
+            continue
+        if not _job_language_allowed(job, allowed_language_codes):
+            continue
+        remote = _is_remote_job(job)
+        if not remote and c_lat is not None and c_lng is not None:
+            j_lat = job.get("lat")
+            j_lng = job.get("lng")
+            if j_lat is None or j_lng is None:
+                continue
+            try:
+                distance = _haversine_km(float(c_lat), float(c_lng), float(j_lat), float(j_lng))
+            except Exception:
+                continue
+            if distance > _DIGEST_RADIUS_KM:
+                continue
+
+        picks.append(
+            {
+                "id": job_id,
+                "title": job.get("title") or "",
+                "company": job.get("company") or "",
+                "location": job.get("location") or "",
+                "match_score": None,
+                "detail_url": f"{_APP_URL}/jobs/{job_id}",
+            }
+        )
+        if len(picks) >= limit:
+            break
+    return picks
+
+
+def _merge_digest_jobs(primary: List[Dict], secondary: List[Dict], limit: int) -> List[Dict]:
+    seen: set[str] = set()
+    merged: List[Dict] = []
+    for entry in primary + secondary:
+        job_id = entry.get("id")
+        if not job_id:
+            continue
+        key = str(job_id)
+        if key in seen:
+            continue
+        seen.add(key)
+        merged.append(entry)
+        if len(merged) >= limit:
+            break
+    return merged
 
 
 def _fetch_newest_jobs_relaxed(
@@ -516,9 +669,12 @@ def _fetch_newest_jobs_relaxed(
         print(f"⚠️ Relaxed fallback jobs query failed: {exc}")
         return []
 
-    rows = resp.data or []
+    rows = cast(Sequence[Dict[str, Any]], resp.data or [])
     picks: List[Dict] = []
-    for job in rows:
+    for raw in rows:
+        job = _as_job_dict(raw)
+        if not job:
+            continue
         job_id = job.get("id")
         if not job_id:
             continue
@@ -562,11 +718,11 @@ def run_daily_job_digest() -> None:
         print(f"⚠️ Daily digest profile fetch failed: {exc}")
         return
 
-    rows = resp.data or []
+    rows = cast(Sequence[Dict[str, Any]], resp.data or [])
     print(f"📬 Daily digest candidates loaded: {len(rows)}")
     for row in rows:
-        user_id = row.get("id")
-        email = row.get("email")
+        user_id = str(row.get("id") or "")
+        email = str(row.get("email") or "")
         email_enabled = bool(row.get("daily_digest_enabled")) and bool(email)
         push_enabled = bool(row.get("daily_digest_push_enabled")) and is_push_configured()
         if not user_id or (not email_enabled and not push_enabled):
@@ -576,9 +732,9 @@ def run_daily_job_digest() -> None:
             )
             continue
 
-        digest_time = _parse_digest_time(row.get("daily_digest_time"))
-        digest_tz = row.get("daily_digest_timezone") or _DEFAULT_TZ
-        last_sent = row.get("daily_digest_last_sent_at")
+        digest_time = _parse_digest_time(str(row.get("daily_digest_time") or "") or None)
+        digest_tz = str(row.get("daily_digest_timezone") or _DEFAULT_TZ)
+        last_sent = str(row.get("daily_digest_last_sent_at") or "") or None
         if not _should_send_now(last_sent, digest_time, digest_tz):
             print(
                 f"⏭️ [Digest] outside window user={user_id}: "
@@ -588,19 +744,34 @@ def run_daily_job_digest() -> None:
 
         candidate_profile = row.get("candidate_profiles")
         c_lat, c_lng = _candidate_location(candidate_profile)
+        c_address = _candidate_address(candidate_profile)
         digest_country_code = _resolve_digest_country_code(
-            preferred_country_code=row.get("preferred_country_code"),
-            preferred_locale=row.get("preferred_locale"),
+            preferred_country_code=str(row.get("preferred_country_code") or "") or None,
+            preferred_locale=str(row.get("preferred_locale") or "") or None,
             candidate_profile=candidate_profile,
             c_lat=c_lat,
             c_lng=c_lng,
             digest_timezone=digest_tz,
         )
-        locale = _resolve_locale(row.get("preferred_locale"), digest_country_code)
+        locale = _resolve_locale(str(row.get("preferred_locale") or "") or None, digest_country_code)
         allowed_languages = _allowed_language_codes(locale, digest_country_code)
         has_matching_signal = _candidate_has_matching_signal(candidate_profile)
+        profile_obj = _profile_obj(candidate_profile)
+        role_title = str(profile_obj.get("job_title") or "").strip() if isinstance(profile_obj, dict) else ""
 
         digest_jobs: List[Dict] = []
+        role_jobs: List[Dict] = []
+        if role_title:
+            role_jobs = _fetch_role_focused_jobs(
+                role_title=role_title,
+                c_lat=c_lat,
+                c_lng=c_lng,
+                address=c_address,
+                country_code=digest_country_code,
+                allowed_language_codes=allowed_languages,
+                limit=_DIGEST_MAX_JOBS,
+            )
+            digest_jobs = role_jobs
         if has_matching_signal:
             # Fetch broader set, then prioritize local+relevant entries for digest.
             recs = recommend_jobs_for_user(user_id=user_id, limit=120, allow_cache=True)
@@ -613,6 +784,8 @@ def run_daily_job_digest() -> None:
                 candidate_profile=candidate_profile,
                 limit=_DIGEST_MAX_JOBS,
             )
+            if role_jobs:
+                digest_jobs = _merge_digest_jobs(role_jobs, digest_jobs, _DIGEST_MAX_JOBS)
 
         # Fallback for users with incomplete profiles (or empty personalized result):
         # deliver newest local jobs without AI match percentages.
@@ -620,6 +793,7 @@ def run_daily_job_digest() -> None:
             digest_jobs = _fetch_newest_local_jobs(
                 c_lat=c_lat,
                 c_lng=c_lng,
+                address=c_address,
                 country_code=digest_country_code,
                 allowed_language_codes=allowed_languages,
                 limit=_DIGEST_MAX_JOBS,
@@ -641,14 +815,14 @@ def run_daily_job_digest() -> None:
 
         unsubscribe_url = ""
         if email_enabled:
-            unsubscribe_token = make_unsubscribe_token(user_id, email)
+            unsubscribe_token = make_unsubscribe_token(str(user_id), str(email))
             unsubscribe_url = f"{API_BASE_URL}/email/unsubscribe?uid={user_id}&token={unsubscribe_token}"
 
         email_ok = False
         if email_enabled:
             email_ok = send_daily_digest_email(
-                to_email=email,
-                full_name=row.get("full_name") or "",
+                to_email=str(email),
+                full_name=str(row.get("full_name") or ""),
                 locale=locale,
                 jobs=digest_jobs,
                 app_url=_APP_URL,
@@ -665,9 +839,9 @@ def run_daily_job_digest() -> None:
                     .eq("is_active", True)
                     .execute()
                 )
-                subs = subs_resp.data or []
+                subs = cast(Sequence[Dict[str, Any]], subs_resp.data or [])
                 if subs:
-                    titles = [j.get("title") for j in digest_jobs if j.get("title")]
+                    titles = [str(j.get("title")) for j in digest_jobs if j.get("title")]
                     body = "\n".join(titles[:5])
                     push_copy = {
                         "cs": {
