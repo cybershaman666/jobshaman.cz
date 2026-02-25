@@ -1,0 +1,11 @@
+country_code,isco_major,region_key,seniority_band,employment_type,currency,p25,p50,p75,sample_size,data_window_days,source_name,source_url,period_label,measure_type,gross_net,employment_scope,updated_at,method_version
+CZ,0,cz_national,mid,employee,CZK,,47502,,0,365,CZSO Structure of Earnings,https://csu.gov.cz/statistika/structure-of-earnings,2024,median,gross,full_time,2025-05-23T00:00:00Z,salary-benchmark-v2
+CZ,1,cz_national,mid,employee,CZK,,83140,,0,365,CZSO Structure of Earnings,https://csu.gov.cz/statistika/structure-of-earnings,2024,median,gross,full_time,2025-05-23T00:00:00Z,salary-benchmark-v2
+CZ,2,cz_national,mid,employee,CZK,,57976,,0,365,CZSO Structure of Earnings,https://csu.gov.cz/statistika/structure-of-earnings,2024,median,gross,full_time,2025-05-23T00:00:00Z,salary-benchmark-v2
+CZ,3,cz_national,mid,employee,CZK,,47638,,0,365,CZSO Structure of Earnings,https://csu.gov.cz/statistika/structure-of-earnings,2024,median,gross,full_time,2025-05-23T00:00:00Z,salary-benchmark-v2
+CZ,4,cz_national,mid,employee,CZK,,36332,,0,365,CZSO Structure of Earnings,https://csu.gov.cz/statistika/structure-of-earnings,2024,median,gross,full_time,2025-05-23T00:00:00Z,salary-benchmark-v2
+CZ,5,cz_national,mid,employee,CZK,,31679,,0,365,CZSO Structure of Earnings,https://csu.gov.cz/statistika/structure-of-earnings,2024,median,gross,full_time,2025-05-23T00:00:00Z,salary-benchmark-v2
+CZ,6,cz_national,mid,employee,CZK,,34991,,0,365,CZSO Structure of Earnings,https://csu.gov.cz/statistika/structure-of-earnings,2024,median,gross,full_time,2025-05-23T00:00:00Z,salary-benchmark-v2
+CZ,7,cz_national,mid,employee,CZK,,39606,,0,365,CZSO Structure of Earnings,https://csu.gov.cz/statistika/structure-of-earnings,2024,median,gross,full_time,2025-05-23T00:00:00Z,salary-benchmark-v2
+CZ,8,cz_national,mid,employee,CZK,,37775,,0,365,CZSO Structure of Earnings,https://csu.gov.cz/statistika/structure-of-earnings,2024,median,gross,full_time,2025-05-23T00:00:00Z,salary-benchmark-v2
+CZ,9,cz_national,mid,employee,CZK,,25619,,0,365,CZSO Structure of Earnings,https://csu.gov.cz/statistika/structure-of-earnings,2024,median,gross,full_time,2025-05-23T00:00:00Z,salary-benchmark-v2

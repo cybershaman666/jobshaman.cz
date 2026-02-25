@@ -55,6 +55,9 @@ export const FEATURE_ASSESSMENT_JOURNEY_EXPERIENCE_V1 =
 export const FEATURE_PREMIUM_IKIGAI_GUIDE_V1 =
   String(import.meta.env.VITE_FEATURE_PREMIUM_IKIGAI_GUIDE_V1 || 'false').toLowerCase() === 'true';
 
+export const FEATURE_SALARY_BENCHMARKS =
+  String(import.meta.env.VITE_FEATURE_SALARY_BENCHMARKS || 'false').toLowerCase() === 'true';
+
 // Backward-compatible flag used by older assessment router imports.
 export const FEATURE_ASSESSMENT_CLASSIC_TOGGLE =
   String(import.meta.env.VITE_FEATURE_ASSESSMENT_CLASSIC_TOGGLE || 'true').toLowerCase() !== 'false';

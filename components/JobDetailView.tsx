@@ -650,6 +650,48 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                 getTransportIcon={getTransportIcon}
                             />
 
+                            {/* Benefits Section */}
+                            {selectedJob.benefits && selectedJob.benefits.length > 0 && (
+                                <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-6 border border-cyan-200 dark:border-cyan-900/40">
+                                    <div className="flex items-center gap-2 mb-4">
+                                        <Gift className="text-cyan-600 dark:text-cyan-400" size={20} />
+                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('job.benefits')}</h3>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedJob.benefits.map((benefit, idx) => {
+                                            const highlight = isHighValueBenefit(benefit);
+                                            return (
+                                                <span
+                                                    key={idx}
+                                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border ${
+                                                        highlight
+                                                            ? 'bg-cyan-600 text-white border-cyan-600 shadow-sm'
+                                                            : 'bg-white dark:bg-slate-900 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800'
+                                                    }`}
+                                                >
+                                                    {highlight && <Sparkles size={14} className="text-white" />}
+                                                    {benefit}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Contextual Relevance Section */}
+                            {selectedJob.contextualRelevance && (
+                                <div className="mb-8">
+                                    <ContextualRelevance contextualRelevance={selectedJob.contextualRelevance} compact={false} />
+                                </div>
+                            )}
+
+                            {/* Job Description */}
+                            {selectedJob.description && (
+                                <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-200 break-words whitespace-pre-wrap">
+                                    <Markdown options={{ forceBlock: true }}>{formatJobDescription(selectedJob.description)}</Markdown>
+                                </div>
+                            )}
+
                             <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-6 border border-slate-200 dark:border-slate-800">
                                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                                     <div>
@@ -731,48 +773,6 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                     </div>
                                 )}
                             </div>
-
-                            {/* Benefits Section */}
-                            {selectedJob.benefits && selectedJob.benefits.length > 0 && (
-                                <div className="bg-slate-50 dark:bg-slate-900/40 rounded-xl p-6 border border-cyan-200 dark:border-cyan-900/40">
-                                    <div className="flex items-center gap-2 mb-4">
-                                        <Gift className="text-cyan-600 dark:text-cyan-400" size={20} />
-                                        <h3 className="text-lg font-bold text-slate-900 dark:text-white">{t('job.benefits')}</h3>
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {selectedJob.benefits.map((benefit, idx) => {
-                                            const highlight = isHighValueBenefit(benefit);
-                                            return (
-                                                <span
-                                                    key={idx}
-                                                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border ${
-                                                        highlight
-                                                            ? 'bg-cyan-600 text-white border-cyan-600 shadow-sm'
-                                                            : 'bg-white dark:bg-slate-900 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800'
-                                                    }`}
-                                                >
-                                                    {highlight && <Sparkles size={14} className="text-white" />}
-                                                    {benefit}
-                                                </span>
-                                            );
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Contextual Relevance Section */}
-                            {selectedJob.contextualRelevance && (
-                                <div className="mb-8">
-                                    <ContextualRelevance contextualRelevance={selectedJob.contextualRelevance} compact={false} />
-                                </div>
-                            )}
-
-                            {/* Job Description */}
-                            {selectedJob.description && (
-                                <div className="prose dark:prose-invert max-w-none text-slate-700 dark:text-slate-200 break-words whitespace-pre-wrap">
-                                    <Markdown options={{ forceBlock: true }}>{formatJobDescription(selectedJob.description)}</Markdown>
-                                </div>
-                            )}
 
                             {/* Company Legal Info */}
                             {(companyPublicInfo?.legal_address || companyPublicInfo?.registry_info || companyPublicInfo?.ico || companyPublicInfo?.dic) && (

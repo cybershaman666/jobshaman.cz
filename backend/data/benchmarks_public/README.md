@@ -12,6 +12,7 @@ country_code,role_family,region_key,seniority_band,employment_type,currency,p25,
 - `measure_type` should be `median` or `average`.
 - `region_key` can be `cz_national`, `sk_national`, etc. for national datasets.
 - `employment_scope` should be `full_time` unless specified otherwise by the source.
+- Role-specific external data can be stored as `role_family=isco_major_{n}` where `n` is ISCO major group 1–9.
 
 ## Usage
 - Seed: `python backend/scripts/seed_salary_public_reference.py --csv-dir backend/data/benchmarks_public`

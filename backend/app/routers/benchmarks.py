@@ -8,6 +8,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from ..matching_engine.role_taxonomy import ROLE_FAMILY_KEYWORDS
+
 from ..core.database import supabase
 from ..core.security import require_company_access, verify_subscription
 from ..models.requests import HappinessAuditSimulateRequest
@@ -137,7 +139,7 @@ def _monthly_salary_from_row(row: Dict[str, Any]) -> Optional[float]:
     return monthly
 
 
-def _infer_role_family(title: str) -> str:
+def _infer_role_family_heuristic(title: str) -> str:
     t = (title or "").lower()
     if any(k in t for k in ["developer", "engineer", "program", "software", "frontend", "backend", "devops", "qa", "data"]):
         return "engineering"
@@ -154,6 +156,126 @@ def _infer_role_family(title: str) -> str:
     if any(k in t for k in ["project", "product manager", "product owner", "analyst"]):
         return "product_project"
     return "general"
+
+
+def _infer_role_family(title: str, description: str = "") -> str:
+    text = f"{title or ''} {description or ''}".lower()
+    best_family = None
+    best_hits = 0
+    for family, keywords in ROLE_FAMILY_KEYWORDS.items():
+        hits = 0
+        for kw in keywords:
+            if kw and kw in text:
+                hits += 1
+        if hits > best_hits:
+            best_hits = hits
+            best_family = family
+    if best_family:
+        return str(best_family)
+    return _infer_role_family_heuristic(title)
+
+
+def _infer_role_group(role_family: str) -> str:
+    rf = (role_family or "").lower()
+    if any(k in rf for k in ["data", "devops", "cyber", "cloud", "software", "ai", "it"]):
+        return "it"
+    if any(k in rf for k in ["manufacturing", "production", "assembly", "electrical", "mechanical", "automation", "maintenance", "construction"]):
+        return "manufacturing"
+    if any(k in rf for k in ["food_service", "hospitality", "hotel", "catering", "restaurant", "kitchen"]):
+        return "gastro_hospitality"
+    if "sales" in rf or "account" in rf or "business" in rf:
+        return "sales"
+    if any(k in rf for k in ["healthcare", "medical", "dental", "clinical", "laboratory", "pharmacy", "care_social"]):
+        return "healthcare"
+    if any(k in rf for k in ["logistics", "warehouse", "driving_transport", "supply_chain", "maritime"]):
+        return "logistics"
+    if any(k in rf for k in ["education", "childcare", "training", "teacher"]):
+        return "education"
+    return "general"
+
+
+ROLE_PROFESSION_KEYWORDS = {
+    # IT
+    "fullstack_developer": ["fullstack", "full-stack", "full stack"],
+    "frontend_developer": ["frontend", "front-end", "front end", "react", "vue", "angular", "ui developer"],
+    "backend_developer": ["backend", "back-end", "back end", "api developer", "server-side"],
+    "devops_engineer": ["devops", "site reliability", "sre", "platform engineer", "kubernetes", "docker"],
+    "data_engineer": ["data engineer", "etl", "data pipeline", "bigquery", "snowflake"],
+    "qa_engineer": ["qa", "quality assurance", "tester", "test engineer"],
+    # Manufacturing / trades
+    "cnc_operator": ["cnc", "cnc operator", "cnc program", "cnc programmer"],
+    "welder": ["welder", "welding", "svářeč", "svarec"],
+    "machinist": ["machinist", "soustružník", "soustruznik", "frézař", "frezer", "obrabec"],
+    "electrician": ["electrician", "elektrikář", "elektrikar"],
+    # Gastro / hospitality
+    "cook": ["cook", "kuchař", "kuchar", "chef", "sous chef"],
+    "waiter": ["waiter", "waitress", "číšník", "cisnik", "servírka", "servirka"],
+    "hotel_receptionist": ["receptionist", "recepční", "recepcni", "front desk"],
+    # Sales
+    "account_manager": ["account manager", "key account", "kam", "key account manager"],
+    "sales_representative": ["sales representative", "sales rep", "obchodní zástupce", "obchodni zastupce"],
+    "bdr_sdr": ["bdr", "sdr", "sales development", "business development representative"],
+    # Healthcare
+    "nurse": ["nurse", "zdravotní sestra", "zdravotni sestra", "sestra"],
+    "doctor": ["doctor", "physician", "lékař", "lekar", "praktický lékař", "prakticky lekar"],
+    "caregiver": ["caregiver", "pečovatel", "pecovatel", "social care", "ošetřovatel", "osetrovatel"],
+    # Logistics
+    "warehouse_worker": ["warehouse", "skladník", "skladnik", "picker", "packer"],
+    "driver": ["driver", "řidič", "ridic", "truck driver", "delivery driver", "kurýr", "kuryr"],
+    "logistics_coordinator": ["logistics coordinator", "logistics specialist", "disponent", "speditér", "speditor"],
+    # Education
+    "teacher": ["teacher", "učitel", "ucitel", "lecturer", "lektor", "vyučující", "vyucujici"],
+}
+
+
+def _infer_profession_key(title: str, description: str = "") -> Optional[str]:
+    text = f"{title or ''} {description or ''}".lower()
+    for key, keywords in ROLE_PROFESSION_KEYWORDS.items():
+        for kw in keywords:
+            if kw and kw in text:
+                return key
+    return None
+
+
+def _infer_isco_major_key(role_profession: Optional[str], role_group: str) -> Optional[str]:
+    if role_profession:
+        profession_map = {
+            "fullstack_developer": "isco_major_2",
+            "frontend_developer": "isco_major_2",
+            "backend_developer": "isco_major_2",
+            "devops_engineer": "isco_major_2",
+            "data_engineer": "isco_major_2",
+            "qa_engineer": "isco_major_3",
+            "cnc_operator": "isco_major_8",
+            "welder": "isco_major_7",
+            "machinist": "isco_major_7",
+            "electrician": "isco_major_7",
+            "cook": "isco_major_5",
+            "waiter": "isco_major_5",
+            "hotel_receptionist": "isco_major_5",
+            "account_manager": "isco_major_5",
+            "sales_representative": "isco_major_5",
+            "bdr_sdr": "isco_major_5",
+            "nurse": "isco_major_2",
+            "doctor": "isco_major_2",
+            "caregiver": "isco_major_5",
+            "warehouse_worker": "isco_major_9",
+            "driver": "isco_major_8",
+            "logistics_coordinator": "isco_major_4",
+            "teacher": "isco_major_2",
+        }
+        if role_profession in profession_map:
+            return profession_map[role_profession]
+    group_map = {
+        "it": "isco_major_2",
+        "manufacturing": "isco_major_7",
+        "gastro_hospitality": "isco_major_5",
+        "sales": "isco_major_5",
+        "healthcare": "isco_major_2",
+        "logistics": "isco_major_8",
+        "education": "isco_major_2",
+    }
+    return group_map.get(role_group)
 
 
 def _infer_seniority(title: str, description: str = "") -> str:
@@ -187,6 +309,23 @@ def _infer_region_key(location: str, country_code: str) -> str:
     if not region:
         return f"{country_code.lower()}_national"
     return region
+
+
+def _normalize_country_code(value: str) -> str:
+    raw = (value or "").strip().lower()
+    if not raw:
+        return "cz"
+    if raw in {"cz", "cs", "cze", "czk", "czech", "czechia", "czech republic"}:
+        return "cz"
+    if raw in {"sk", "svk", "slovakia", "slovensko"}:
+        return "sk"
+    if raw in {"pl", "pol", "poland", "polska"}:
+        return "pl"
+    if raw in {"de", "deu", "ger", "germany", "deutschland"}:
+        return "de"
+    if raw in {"at", "aut", "austria", "osterreich", "österreich"}:
+        return "at"
+    return raw
 
 
 def _quantile(sorted_values: List[float], q: float) -> float:
@@ -297,6 +436,7 @@ def _get_external_reference(
     seniority_band: str,
     employment_type: str,
     region_key: Optional[str],
+    isco_major_key: Optional[str],
 ) -> Optional[Dict[str, Any]]:
     if not supabase:
         return None
@@ -308,12 +448,17 @@ def _get_external_reference(
     queries.append(("national", f"{normalized_country}_national"))
 
     preferred_measures = ["median", "average"]
-    fallback_candidates = [
-        (role_family, seniority_band, employment_type),
-        (role_family, "mid", employment_type),
+    role_family_candidates = [r for r in [isco_major_key, role_family, "general"] if r]
+    fallback_candidates = []
+    for rf in role_family_candidates:
+        fallback_candidates.extend([
+            (rf, seniority_band, employment_type),
+            (rf, "mid", employment_type),
+        ])
+    fallback_candidates.extend([
         ("general", seniority_band, employment_type),
         ("general", "mid", "employee"),
-    ]
+    ])
     for _, target_region in queries:
         for measure in preferred_measures:
             for rf, sb, et in fallback_candidates:
@@ -331,9 +476,9 @@ def _get_external_reference(
                     .limit(1)
                     .execute()
                 )
-                rows = resp.data or []
-                if rows:
-                    return rows[0]
+            rows = resp.data or []
+            if rows:
+                return rows[0]
             # Final fallback: ignore role/seniority/employment but keep country/region.
             resp = (
                 supabase
@@ -341,6 +486,21 @@ def _get_external_reference(
                 .select("role_family,country_code,region_key,seniority_band,employment_type,currency,p25,p50,p75,sample_size,data_window_days,source_name,source_url,period_label,measure_type,gross_net,employment_scope,updated_at,method_version")
                 .in_("country_code", country_codes)
                 .eq("region_key", target_region)
+                .eq("gross_net", "gross")
+                .eq("measure_type", measure)
+                .limit(1)
+                .execute()
+            )
+            rows = resp.data or []
+            if rows:
+                return rows[0]
+        # Ultimate fallback: ignore region as well.
+        for measure in preferred_measures:
+            resp = (
+                supabase
+                .table("salary_public_reference")
+                .select("role_family,country_code,region_key,seniority_band,employment_type,currency,p25,p50,p75,sample_size,data_window_days,source_name,source_url,period_label,measure_type,gross_net,employment_scope,updated_at,method_version")
+                .in_("country_code", country_codes)
                 .eq("gross_net", "gross")
                 .eq("measure_type", measure)
                 .limit(1)
@@ -361,9 +521,12 @@ async def get_salary_benchmark(job_id: str = Query(...), window_days: int = Quer
     job = _fetch_job(parsed_job_id)
 
     country_code_raw = str(job.get("country_code") or "cz")
-    country_code = country_code_raw.lower()
-    country_codes = sorted({country_code, country_code_raw.upper()})
-    role_family = _infer_role_family(str(job.get("title") or ""))
+    country_code = _normalize_country_code(country_code_raw)
+    country_codes = sorted({country_code, country_code.upper()})
+    role_family = _infer_role_family(str(job.get("title") or ""), str(job.get("description") or ""))
+    role_group = _infer_role_group(role_family)
+    role_profession = _infer_profession_key(str(job.get("title") or ""), str(job.get("description") or ""))
+    isco_major_key = _infer_isco_major_key(role_profession, role_group)
     seniority_band = _infer_seniority(str(job.get("title") or ""), str(job.get("description") or ""))
     employment_type = _infer_employment_type(str(job.get("contract_type") or ""))
     region_key = _infer_region_key(str(job.get("location") or ""), country_code)
@@ -374,8 +537,12 @@ async def get_salary_benchmark(job_id: str = Query(...), window_days: int = Quer
 
     strict_values: List[float] = []
     strict_recency_days: List[float] = []
-    regional_values: List[float] = []
-    regional_recency_days: List[float] = []
+    profession_values: List[float] = []
+    profession_recency_days: List[float] = []
+    family_values: List[float] = []
+    family_recency_days: List[float] = []
+    group_values: List[float] = []
+    group_recency_days: List[float] = []
 
     now = _utc_now()
     for row in population:
@@ -383,19 +550,30 @@ async def get_salary_benchmark(job_id: str = Query(...), window_days: int = Quer
         if monthly is None:
             continue
 
-        row_role = _infer_role_family(str(row.get("title") or ""))
+        row_role = _infer_role_family(str(row.get("title") or ""), str(row.get("description") or ""))
+        row_group = _infer_role_group(row_role)
+        row_profession = _infer_profession_key(str(row.get("title") or ""), str(row.get("description") or ""))
         row_seniority = _infer_seniority(str(row.get("title") or ""), str(row.get("description") or ""))
         row_emp = _infer_employment_type(str(row.get("contract_type") or ""))
         row_region = _infer_region_key(str(row.get("location") or ""), country_code)
         scraped = _parse_dt(row.get("scraped_at")) or now
         recency_days = max(0.0, (now - scraped).total_seconds() / 86400.0)
 
-        if row_role == role_family and row_seniority == seniority_band and row_emp == employment_type:
-            regional_values.append(monthly)
-            regional_recency_days.append(recency_days)
+        if row_profession and role_profession and row_profession == role_profession and row_seniority == seniority_band and row_emp == employment_type:
+            profession_values.append(monthly)
+            profession_recency_days.append(recency_days)
             if row_region == region_key:
                 strict_values.append(monthly)
                 strict_recency_days.append(recency_days)
+        if row_role == role_family and row_seniority == seniority_band and row_emp == employment_type:
+            family_values.append(monthly)
+            family_recency_days.append(recency_days)
+            if row_region == region_key:
+                strict_values.append(monthly)
+                strict_recency_days.append(recency_days)
+        if row_group == role_group and row_seniority == seniority_band and row_emp == employment_type:
+            group_values.append(monthly)
+            group_recency_days.append(recency_days)
 
     used_values = strict_values
     used_recency = strict_recency_days
@@ -403,16 +581,32 @@ async def get_salary_benchmark(job_id: str = Query(...), window_days: int = Quer
     fallback_reason = None
     fallback_details = {
         "strict_region_sample": len(strict_values),
-        "country_sample": len(regional_values),
+        "profession_sample": len(profession_values),
+        "family_sample": len(family_values),
+        "group_sample": len(group_values),
         "external_sample": 0,
     }
 
-    if len(used_values) < MIN_INTERNAL_SAMPLE and len(regional_values) >= MIN_INTERNAL_SAMPLE:
-        used_values = regional_values
-        used_recency = regional_recency_days
+    if len(used_values) < MIN_INTERNAL_SAMPLE and len(profession_values) >= MIN_INTERNAL_SAMPLE:
+        used_values = profession_values
+        used_recency = profession_recency_days
         fallback_reason = (
             f"Regionální vzorek nedostatečný (N={len(strict_values)}). "
-            f"Použit národní interní benchmark (N={len(regional_values)})."
+            f"Použit profesní benchmark (N={len(profession_values)})."
+        )
+    if len(used_values) < MIN_INTERNAL_SAMPLE and len(family_values) >= MIN_INTERNAL_SAMPLE:
+        used_values = family_values
+        used_recency = family_recency_days
+        fallback_reason = (
+            f"Profesní vzorek nedostatečný (N={len(profession_values)}). "
+            f"Použit role benchmark (N={len(family_values)})."
+        )
+    if len(used_values) < MIN_INTERNAL_SAMPLE and len(group_values) >= MIN_INTERNAL_SAMPLE:
+        used_values = group_values
+        used_recency = group_recency_days
+        fallback_reason = (
+            f"Role vzorek nedostatečný (N={len(family_values)}). "
+            f"Použit skupinový benchmark (N={len(group_values)})."
         )
 
     confidence_score, confidence_tier, components = _compute_confidence(used_values, used_recency, window_days)
@@ -424,6 +618,7 @@ async def get_salary_benchmark(job_id: str = Query(...), window_days: int = Quer
         seniority_band=seniority_band,
         employment_type=employment_type,
         region_key=region_key,
+        isco_major_key=isco_major_key,
     )
 
     if not internal_valid:
@@ -472,27 +667,39 @@ async def get_salary_benchmark(job_id: str = Query(...), window_days: int = Quer
                 confidence_score = min(95.0, confidence_score + 10.0)
                 confidence_tier = _confidence_tier(confidence_score)
         else:
-            source_mode = "internal_only"
-            return {
-                "job_id": parsed_job_id,
-                "insufficient_data": True,
-                "message": "Insufficient data for salary benchmark.",
-                "transparency": {
-                    "source_name": "jobshaman_jobs",
-                    "source_mode": "internal_only",
-                    "sample_size": len(used_values),
-                    "data_window_days": window_days,
-                    "updated_at": _to_iso(_utc_now()),
-                    "confidence_score": round(confidence_score, 2),
-                    "confidence_tier": confidence_tier,
-                    "fallback_reason": (
-                        f"Interní vzorek nedostatečný (N={len(used_values)}) a veřejný fallback není dostupný."
-                    ),
-                    "confidence_components": components,
-                    "fallback_details": fallback_details,
-                    "method_version": "salary-benchmark-v2",
-                },
-            }
+            if len(used_values) == 0 and offer_monthly:
+                used_values = [offer_monthly, offer_monthly, offer_monthly]
+                source_mode = "offer_only"
+                fallback_reason = "Použit plat z nabídky (externí benchmark nedostupný)."
+                confidence_score = 35.0
+                confidence_tier = "low"
+                components = {
+                    "sample_size_component": 0.1,
+                    "variance_component": 0.5,
+                    "recency_component": 0.5,
+                }
+            else:
+                source_mode = "internal_only"
+                return {
+                    "job_id": parsed_job_id,
+                    "insufficient_data": True,
+                    "message": "Insufficient data for salary benchmark.",
+                    "transparency": {
+                        "source_name": "jobshaman_jobs",
+                        "source_mode": "internal_only",
+                        "sample_size": len(used_values),
+                        "data_window_days": window_days,
+                        "updated_at": _to_iso(_utc_now()),
+                        "confidence_score": round(confidence_score, 2),
+                        "confidence_tier": confidence_tier,
+                        "fallback_reason": (
+                            f"Interní vzorek nedostatečný (N={len(used_values)}) a veřejný fallback není dostupný."
+                        ),
+                        "confidence_components": components,
+                        "fallback_details": fallback_details,
+                        "method_version": "salary-benchmark-v2",
+                    },
+                }
 
     if not used_values:
         return {
@@ -530,6 +737,8 @@ async def get_salary_benchmark(job_id: str = Query(...), window_days: int = Quer
         source_name = str(external_source_name)
     elif source_mode == "blended_internal_public" and external_source_name:
         source_name = f"jobshaman_jobs + {external_source_name}"
+    elif source_mode == "offer_only":
+        source_name = "job_offer"
 
     return {
         "job_id": parsed_job_id,
@@ -555,7 +764,14 @@ async def get_salary_benchmark(job_id: str = Query(...), window_days: int = Quer
                 if source_mode == "internal_only"
                 else fallback_details["external_sample"]
                 if source_mode == "public_fallback"
-                else (fallback_details["country_sample"] + fallback_details["external_sample"])
+                else 1
+                if source_mode == "offer_only"
+                else (
+                    fallback_details.get("profession_sample", 0)
+                    or fallback_details.get("family_sample", 0)
+                    or fallback_details.get("group_sample", 0)
+                    or 0
+                ) + fallback_details.get("external_sample", 0)
             ),
             "data_window_days": int(external_ref.get("data_window_days") or window_days) if source_mode == "public_fallback" and external_ref else window_days,
             "updated_at": str(external_ref.get("updated_at")) if source_mode == "public_fallback" and external_ref else updated_at,
