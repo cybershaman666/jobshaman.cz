@@ -57,10 +57,16 @@ else:
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+SCRAPER_HTTP_PROXY = os.getenv("SCRAPER_HTTP_PROXY") or os.getenv("SCRAPER_PROXY")
+SCRAPER_HTTPS_PROXY = os.getenv("SCRAPER_HTTPS_PROXY") or os.getenv("SCRAPER_PROXY")
 
 # Debug output
 print(f"   SUPABASE_URL: {'✅ NAČTENO' if SUPABASE_URL else '❌ CHYBÍ'}")
 print(f"   SUPABASE_SERVICE_KEY: {'✅ NAČTENO' if SUPABASE_SERVICE_KEY else '❌ CHYBÍ'}")
+if SCRAPER_HTTP_PROXY or SCRAPER_HTTPS_PROXY:
+    print("   SCRAPER_PROXY: ✅ NAČTENO")
+else:
+    print("   SCRAPER_PROXY: ❌ NENASTAVENO")
 
 def _get_page_cap(default: int = 10) -> Optional[int]:
     """
@@ -116,6 +122,11 @@ _SESSION.headers.update({
     "Accept-Language": "pl-PL,pl;q=0.9,en-US;q=0.8,cs;q=0.6,de;q=0.6",
     "Connection": "keep-alive",
 })
+if SCRAPER_HTTP_PROXY or SCRAPER_HTTPS_PROXY:
+    _SESSION.proxies.update({
+        "http": SCRAPER_HTTP_PROXY or "",
+        "https": SCRAPER_HTTPS_PROXY or SCRAPER_HTTP_PROXY or "",
+    })
 
 _USER_AGENTS = [
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",

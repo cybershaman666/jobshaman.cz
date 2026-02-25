@@ -508,7 +508,7 @@ def _fetch_newest_local_jobs(
         print(f"⚠️ Fallback local jobs query failed: {exc}")
         return []
 
-    rows = cast(Sequence[Dict[str, Any]], resp.data or [])
+    rows = [r for r in (resp.data or []) if isinstance(r, dict)]
     picks: List[Dict] = []
     for raw in rows:
         job = _as_job_dict(raw)
@@ -589,7 +589,7 @@ def _fetch_role_focused_jobs(
         print(f"⚠️ Role-focused digest query failed: {exc}")
         return []
 
-    rows = cast(Sequence[Dict[str, Any]], resp.data or [])
+    rows = [r for r in (resp.data or []) if isinstance(r, dict)]
     picks: List[Dict] = []
     for raw in rows:
         job = _as_job_dict(raw)
@@ -669,7 +669,7 @@ def _fetch_newest_jobs_relaxed(
         print(f"⚠️ Relaxed fallback jobs query failed: {exc}")
         return []
 
-    rows = cast(Sequence[Dict[str, Any]], resp.data or [])
+    rows = [r for r in (resp.data or []) if isinstance(r, dict)]
     picks: List[Dict] = []
     for raw in rows:
         job = _as_job_dict(raw)
@@ -718,7 +718,7 @@ def run_daily_job_digest() -> None:
         print(f"⚠️ Daily digest profile fetch failed: {exc}")
         return
 
-    rows = cast(Sequence[Dict[str, Any]], resp.data or [])
+    rows = [r for r in (resp.data or []) if isinstance(r, dict)]
     print(f"📬 Daily digest candidates loaded: {len(rows)}")
     for row in rows:
         user_id = str(row.get("id") or "")
@@ -839,7 +839,7 @@ def run_daily_job_digest() -> None:
                     .eq("is_active", True)
                     .execute()
                 )
-                subs = cast(Sequence[Dict[str, Any]], subs_resp.data or [])
+                subs = [r for r in (subs_resp.data or []) if isinstance(r, dict)]
                 if subs:
                     titles = [str(j.get("title")) for j in digest_jobs if j.get("title")]
                     body = "\n".join(titles[:5])
