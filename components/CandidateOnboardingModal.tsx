@@ -15,10 +15,15 @@ interface CandidateOnboardingModalProps {
     onUpdateProfile: (p: UserProfile, persist?: boolean) => void | Promise<void>;
     onOpenPremium: (featureLabel: string) => void;
     onRefreshProfile?: () => Promise<void>;
+    initialStep?: 'location' | 'preferences' | 'cv' | 'done';
+    onStepViewed?: (step: string) => void;
+    onStepCompleted?: (step: string) => void;
 }
 
-type Step = 1 | 2 | 3;
+type Step = 1 | 2 | 3 | 4;
 type Status = 'idle' | 'verifying' | 'success' | 'error';
+type EmploymentChoice = 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary';
+type VisibilityChoice = 'private' | 'recruiter' | 'public';
 
 const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     isOpen,
@@ -28,7 +33,10 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     onGoToProfile,
     onUpdateProfile,
     onOpenPremium,
-    onRefreshProfile
+    onRefreshProfile,
+    initialStep = 'location',
+    onStepViewed,
+    onStepCompleted
 }) => {
     const { t } = useTranslation();
     const cvInputRef = useRef<HTMLInputElement>(null);
@@ -44,24 +52,54 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     const [localCvUrl, setLocalCvUrl] = useState(profile.cvUrl);
     const [localCvText, setLocalCvText] = useState(profile.cvText);
     const [showAIGuide, setShowAIGuide] = useState(false);
+    const [desiredRole, setDesiredRole] = useState(profile.preferences?.desired_role || profile.jobTitle || '');
+    const [desiredSalaryMin, setDesiredSalaryMin] = useState(
+        profile.preferences?.desired_salary_min != null ? String(profile.preferences.desired_salary_min) : ''
+    );
+    const [desiredSalaryMax, setDesiredSalaryMax] = useState(
+        profile.preferences?.desired_salary_max != null ? String(profile.preferences.desired_salary_max) : ''
+    );
+    const [desiredEmploymentType, setDesiredEmploymentType] = useState<EmploymentChoice>(
+        profile.preferences?.desired_employment_type || 'full_time'
+    );
+    const [profileVisibility, setProfileVisibility] = useState<VisibilityChoice>(
+        profile.preferences?.profile_visibility || 'recruiter'
+    );
+    const [skillsInput, setSkillsInput] = useState((profile.skills || []).join(', '));
+    const [isSavingPreferences, setIsSavingPreferences] = useState(false);
 
     const aiCvParsingEnabled = String(import.meta.env.VITE_ENABLE_AI_CV_PARSER || 'true').toLowerCase() !== 'false';
     const isPremium = String(profile.subscription?.tier || 'free').toLowerCase() === 'premium';
 
     useEffect(() => {
         if (!isOpen) return;
-        const missingLocation = !profile.address && !profile.coordinates;
-        const missingCv = !profile.cvUrl && !profile.cvText;
-        const initialStep: Step = missingLocation ? 1 : (missingCv ? 2 : 3);
+        const stepFromKey: Record<'location' | 'preferences' | 'cv' | 'done', Step> = {
+            location: 1,
+            preferences: 2,
+            cv: 3,
+            done: 4,
+        };
+        const nextStep = stepFromKey[initialStep] || 1;
 
-        setStep(initialStep);
+        setStep(nextStep);
         setAddress(profile.address || '');
         setCoordinates(profile.coordinates);
         setAddressStatus(profile.coordinates ? 'success' : 'idle');
         setLocalCvUrl(profile.cvUrl);
         setLocalCvText(profile.cvText);
         setCvStatus('idle');
-    }, [isOpen, profile.address, profile.coordinates, profile.cvUrl, profile.cvText]);
+        setDesiredRole(profile.preferences?.desired_role || profile.jobTitle || '');
+        setDesiredSalaryMin(profile.preferences?.desired_salary_min != null ? String(profile.preferences.desired_salary_min) : '');
+        setDesiredSalaryMax(profile.preferences?.desired_salary_max != null ? String(profile.preferences.desired_salary_max) : '');
+        setDesiredEmploymentType((profile.preferences?.desired_employment_type || 'full_time') as EmploymentChoice);
+        setProfileVisibility((profile.preferences?.profile_visibility || 'recruiter') as VisibilityChoice);
+        setSkillsInput((profile.skills || []).join(', '));
+    }, [isOpen, initialStep, profile.address, profile.coordinates, profile.cvUrl, profile.cvText, profile.preferences, profile.jobTitle, profile.skills]);
+
+    useEffect(() => {
+        if (!isOpen) return;
+        onStepViewed?.(step === 1 ? 'location' : step === 2 ? 'preferences' : step === 3 ? 'cv' : 'done');
+    }, [isOpen, onStepViewed, step]);
 
     const hasLocation = useMemo(() => {
         return Boolean(address) || Boolean(coordinates);
@@ -70,6 +108,15 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     const hasCv = useMemo(() => {
         return Boolean(localCvUrl) || Boolean(localCvText);
     }, [localCvUrl, localCvText]);
+    const confirmedSkillsCount = useMemo(
+        () => skillsInput.split(',').map((x) => x.trim()).filter(Boolean).length,
+        [skillsInput]
+    );
+    const hasPreferencePack = useMemo(() => {
+        const roleReady = (desiredRole || '').trim().length > 0;
+        const salaryReady = (desiredSalaryMin || '').trim().length > 0 || (desiredSalaryMax || '').trim().length > 0;
+        return roleReady && salaryReady;
+    }, [desiredRole, desiredSalaryMin, desiredSalaryMax]);
 
     if (!isOpen) return null;
 
@@ -80,11 +127,8 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
     };
 
     const moveToNextAfterLocation = () => {
-        if (hasCv) {
-            setStep(3);
-        } else {
-            setStep(2);
-        }
+        onStepCompleted?.('location');
+        setStep(2);
     };
 
     const handleVerifyAddress = async () => {
@@ -187,8 +231,9 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
             setLocalCvUrl(cvUrl);
             setLocalCvText(updatedProfile.cvText);
             setCvStatus('success');
+            onStepCompleted?.('cv');
             alert(t('onboarding.cv.upload_success'));
-            setStep(3);
+            setStep(4);
         } catch (error) {
             console.error('CV upload failed:', error);
             setCvStatus('error');
@@ -201,6 +246,51 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
         }
     };
 
+    const handleSavePreferences = async () => {
+        const parsedSkills = skillsInput
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean)
+            .slice(0, 12);
+        if (parsedSkills.length < 3) {
+            alert(t('onboarding.skills_minimum', { defaultValue: 'Vyberte alespoň 3 klíčové dovednosti.' }));
+            return;
+        }
+        const salaryMin = desiredSalaryMin ? Number(desiredSalaryMin) : null;
+        const salaryMax = desiredSalaryMax ? Number(desiredSalaryMax) : null;
+        if ((salaryMin != null && Number.isNaN(salaryMin)) || (salaryMax != null && Number.isNaN(salaryMax))) {
+            alert(t('onboarding.salary_invalid', { defaultValue: 'Zadejte plat jako číslo.' }));
+            return;
+        }
+
+        setIsSavingPreferences(true);
+        try {
+            await Promise.resolve(onUpdateProfile({
+                ...baseProfile,
+                jobTitle: desiredRole || baseProfile.jobTitle,
+                skills: parsedSkills,
+                preferences: {
+                    ...baseProfile.preferences,
+                    desired_role: desiredRole || '',
+                    desired_salary_min: salaryMin,
+                    desired_salary_max: salaryMax,
+                    desired_employment_type: desiredEmploymentType,
+                    profile_visibility: profileVisibility,
+                }
+            }, true));
+            if (onRefreshProfile) {
+                await onRefreshProfile();
+            }
+            onStepCompleted?.('preferences');
+            setStep(3);
+        } catch (error) {
+            console.error('Failed to save candidate preferences:', error);
+            alert(t('onboarding.save_error', { defaultValue: 'Nepodařilo se uložit preference.' }));
+        } finally {
+            setIsSavingPreferences(false);
+        }
+    };
+
     const renderStepIndicator = () => (
         <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-slate-400">
             <span className={step >= 1 ? 'text-cyan-500' : ''}>1</span>
@@ -208,6 +298,8 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
             <span className={step >= 2 ? 'text-cyan-500' : ''}>2</span>
             <span>•</span>
             <span className={step >= 3 ? 'text-cyan-500' : ''}>3</span>
+            <span>•</span>
+            <span className={step >= 4 ? 'text-cyan-500' : ''}>4</span>
         </div>
     );
 
@@ -282,6 +374,103 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
         </div>
     );
 
+    const renderPreferencesStep = () => (
+        <div className="space-y-5">
+            <div>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">
+                    {t('onboarding.step_preferences.title', { defaultValue: 'Co hledáte teď' })}
+                </h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400 mt-2">
+                    {t('onboarding.step_preferences.desc', { defaultValue: 'Nastavte roli, mzdové očekávání a top dovednosti pro přesnější matching.' })}
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500 sm:col-span-2">
+                    {t('onboarding.pref_role', { defaultValue: 'Preferovaná role' })}
+                    <input
+                        value={desiredRole}
+                        onChange={(e) => setDesiredRole(e.target.value)}
+                        placeholder={t('onboarding.pref_role_placeholder', { defaultValue: 'Např. Product Manager / Backend Engineer' })}
+                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                </label>
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                    {t('onboarding.pref_salary_min', { defaultValue: 'Mzda od (CZK)' })}
+                    <input
+                        value={desiredSalaryMin}
+                        onChange={(e) => setDesiredSalaryMin(e.target.value)}
+                        inputMode="numeric"
+                        placeholder="45000"
+                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                </label>
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                    {t('onboarding.pref_salary_max', { defaultValue: 'Mzda do (CZK)' })}
+                    <input
+                        value={desiredSalaryMax}
+                        onChange={(e) => setDesiredSalaryMax(e.target.value)}
+                        inputMode="numeric"
+                        placeholder="90000"
+                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                    />
+                </label>
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                    {t('onboarding.pref_type', { defaultValue: 'Typ úvazku' })}
+                    <select
+                        value={desiredEmploymentType}
+                        onChange={(e) => setDesiredEmploymentType(e.target.value as EmploymentChoice)}
+                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                    >
+                        <option value="full_time">{t('onboarding.pref_type_full', { defaultValue: 'Full-time' })}</option>
+                        <option value="part_time">{t('onboarding.pref_type_part', { defaultValue: 'Part-time' })}</option>
+                        <option value="contract">{t('onboarding.pref_type_contract', { defaultValue: 'Contract' })}</option>
+                        <option value="internship">{t('onboarding.pref_type_intern', { defaultValue: 'Internship' })}</option>
+                        <option value="temporary">{t('onboarding.pref_type_temp', { defaultValue: 'Temporary' })}</option>
+                    </select>
+                </label>
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                    {t('onboarding.pref_visibility', { defaultValue: 'Viditelnost profilu' })}
+                    <select
+                        value={profileVisibility}
+                        onChange={(e) => setProfileVisibility(e.target.value as VisibilityChoice)}
+                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white"
+                    >
+                        <option value="private">{t('onboarding.visibility_private', { defaultValue: 'Private' })}</option>
+                        <option value="recruiter">{t('onboarding.visibility_recruiter', { defaultValue: 'Only recruiters' })}</option>
+                        <option value="public">{t('onboarding.visibility_public', { defaultValue: 'Public' })}</option>
+                    </select>
+                </label>
+                <label className="text-xs font-bold uppercase tracking-wide text-slate-500 sm:col-span-2">
+                    {t('onboarding.pref_skills', { defaultValue: 'Top skills (min. 3)' })}
+                    <textarea
+                        value={skillsInput}
+                        onChange={(e) => setSkillsInput(e.target.value)}
+                        placeholder={t('onboarding.pref_skills_placeholder', { defaultValue: 'Např. SQL, komunikace se zákazníkem, Python, triáž' })}
+                        className="mt-1 w-full p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white min-h-[90px]"
+                    />
+                </label>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <button
+                    onClick={() => setStep(1)}
+                    className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                >
+                    {t('onboarding.cta_back')}
+                </button>
+                <button
+                    onClick={handleSavePreferences}
+                    disabled={isSavingPreferences}
+                    className="flex-1 px-4 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-sm font-semibold hover:opacity-90 disabled:opacity-60"
+                >
+                    {isSavingPreferences ? <Loader2 className="inline-block animate-spin mr-2" size={16} /> : null}
+                    {t('onboarding.cta_continue', { defaultValue: 'Pokračovat' })}
+                </button>
+            </div>
+        </div>
+    );
+
     const renderCvStep = () => (
         <div className="space-y-6">
             <div>
@@ -340,7 +529,7 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
 
             <div className="flex flex-col sm:flex-row gap-3 pt-4">
                 <button
-                    onClick={() => setStep(1)}
+                    onClick={() => setStep(2)}
                     className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                     {t('onboarding.cta_back')}
@@ -352,7 +541,10 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                     {t('onboarding.cta_skip')}
                 </button>
                 <button
-                    onClick={() => setStep(3)}
+                    onClick={() => {
+                        onStepCompleted?.('cv');
+                        setStep(4);
+                    }}
                     className="flex-1 px-4 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-sm font-semibold hover:opacity-90"
                 >
                     {t('onboarding.cta_next')}
@@ -387,11 +579,33 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                         {hasCv ? t('onboarding.summary.done') : t('onboarding.summary.missing')}
                     </span>
                 </div>
+                <div className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-800 rounded-xl">
+                    <div className="flex items-center gap-2">
+                        <Sparkles size={16} className="text-slate-400" />
+                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            {t('onboarding.summary.skills', { defaultValue: 'Top skills (3+)' })}
+                        </span>
+                    </div>
+                    <span className={`text-xs font-bold ${confirmedSkillsCount >= 3 ? 'text-emerald-600' : 'text-amber-500'}`}>
+                        {confirmedSkillsCount >= 3 ? t('onboarding.summary.done') : t('onboarding.summary.missing')}
+                    </span>
+                </div>
+                <div className="flex items-center justify-between p-4 border border-slate-200 dark:border-slate-800 rounded-xl">
+                    <div className="flex items-center gap-2">
+                        <MapPin size={16} className="text-slate-400" />
+                        <span className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            {t('onboarding.summary.preferences', { defaultValue: 'Role + salary preference' })}
+                        </span>
+                    </div>
+                    <span className={`text-xs font-bold ${hasPreferencePack ? 'text-emerald-600' : 'text-amber-500'}`}>
+                        {hasPreferencePack ? t('onboarding.summary.done') : t('onboarding.summary.missing')}
+                    </span>
+                </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3 pt-2">
                 <button
-                    onClick={() => setStep(hasLocation ? 2 : 1)}
+                    onClick={() => setStep(hasCv ? 2 : 3)}
                     className="flex-1 px-4 py-2.5 border border-slate-200 dark:border-slate-800 rounded-xl text-sm font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                     {t('onboarding.cta_back')}
@@ -409,7 +623,10 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                     {t('onboarding.cta_profile')}
                 </button>
                 <button
-                    onClick={onComplete}
+                    onClick={() => {
+                        onStepCompleted?.('done');
+                        onComplete();
+                    }}
                     className="flex-1 px-4 py-2.5 bg-cyan-600 text-white rounded-xl text-sm font-semibold hover:bg-cyan-700"
                 >
                     {t('onboarding.cta_finish')}
@@ -444,8 +661,9 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                     </div>
 
                     {step === 1 && renderLocationStep()}
-                    {step === 2 && renderCvStep()}
-                    {step === 3 && renderDoneStep()}
+                    {step === 2 && renderPreferencesStep()}
+                    {step === 3 && renderCvStep()}
+                    {step === 4 && renderDoneStep()}
                 </div>
             </div>
 
@@ -461,7 +679,8 @@ const CandidateOnboardingModal: React.FC<CandidateOnboardingModalProps> = ({
                         }
                         setLocalCvText(updated.cvText);
                         setShowAIGuide(false);
-                        setStep(3);
+                        onStepCompleted?.('cv');
+                        setStep(4);
                     }}
                 />
             )}

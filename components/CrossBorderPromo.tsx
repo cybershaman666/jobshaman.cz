@@ -98,9 +98,9 @@ const CrossBorderPromo: React.FC = () => {
                         </div>
 
                         {/* Connection Line & Animation */}
-                        <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
+                        <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
                             <path
-                                d="M 25% 33% Q 50% 50% 75% 66%"
+                                d="M 25 33 Q 50 50 75 66"
                                 fill="none"
                                 stroke={activePath === 0 ? "#06b6d4" : "#475569"}
                                 strokeWidth="3"
@@ -113,7 +113,7 @@ const CrossBorderPromo: React.FC = () => {
                                 <animateMotion
                                     dur="3s"
                                     repeatCount="indefinite"
-                                    path="M 25% 33% Q 50% 50% 75% 66%"
+                                    path="M 25 33 Q 50 50 75 66"
                                 />
                             </circle>
                         </svg>

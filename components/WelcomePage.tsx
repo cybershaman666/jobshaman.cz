@@ -3,6 +3,7 @@ import { ArrowRight, CheckCircle2, Compass, MapPin, Scale, Users } from 'lucide-
 import { useTranslation } from 'react-i18next';
 import BlogSection from './BlogSection';
 import OfferImpactSnapshot from './OfferImpactSnapshot';
+import CrossBorderPromo from './CrossBorderPromo';
 
 interface WelcomePageProps {
   onTryFree?: () => void;
@@ -206,6 +207,10 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
             {t('landing.how.no_cv_note')}
           </p>
         </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-10">
+        <CrossBorderPromo />
       </section>
 
       <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-10">

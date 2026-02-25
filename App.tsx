@@ -20,15 +20,16 @@ import PodminkyUziti from './pages/PodminkyUziti';
 import OchranaSoukromi from './pages/OchranaSoukromi';
 import JobListSidebar from './components/JobListSidebar';
 import PremiumUpgradeModal from './components/PremiumUpgradeModal';
+import CandidateActivationRail from './components/CandidateActivationRail';
 import { analyzeJobDescription } from './services/geminiService';
 import { calculateCommuteReality } from './services/commuteService';
 import { fetchJobById, fetchJobsByIds, getJobCount, getTodayAnalyzedCount } from './services/jobService';
 import { clearJobCache } from './services/jobService';
-import { supabase, getUserProfile, updateUserProfile, verifyAuthSession } from './services/supabaseService';
+import { supabase, getUserProfile, updateUserProfile, verifyAuthSession, trackAnalyticsEvent } from './services/supabaseService';
 import { verifyServerSideBilling } from './services/serverSideBillingService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
 import { checkPaymentStatus } from './services/stripeService';
-import { clearCsrfToken } from './services/csrfService';
+import { clearCsrfToken, authenticatedFetch } from './services/csrfService';
 import { clearPasswordRecoveryPending, isPasswordRecoveryPending } from './services/supabaseClient';
 import { trackPageView } from './services/trafficAnalytics';
 import { trackJobInteraction } from './services/jobInteractionService';
@@ -36,6 +37,13 @@ import { sendWelcomeEmail } from './services/welcomeEmailService';
 import { useUserProfile } from './hooks/useUserProfile';
 import { usePaginatedJobs } from './hooks/usePaginatedJobs';
 import { BACKEND_URL, DEFAULT_USER_PROFILE, SEARCH_BACKEND_URL } from './constants';
+import {
+    deriveActivationState,
+    getNextActivationStep,
+    isActivationComplete,
+    markFirstQualityAction,
+    withActivationState
+} from './services/candidateActivationService';
 import {
     clamp,
     applyTimeCostImpact,
@@ -165,6 +173,8 @@ export default function App() {
     const [openedFromSwipe, setOpenedFromSwipe] = useState(false);
 
     const onboardingDismissedRef = useRef(false);
+    const activationNudgeShownRef = useRef(false);
+    const timeToValueTrackedRef = useRef(false);
     const welcomeEmailAttemptedRef = useRef(false);
     const passwordRecoveryInProgressRef = useRef(false);
 
@@ -190,15 +200,12 @@ export default function App() {
         const normalizedPath = `/${parts.join('/')}`;
         return normalizedPath === '/assessment-preview' || normalizedPath.startsWith('/assessment/');
     })();
+    const usePageScrollLayout = !isImmersiveAssessmentRoute && viewState === ViewState.PROFILE;
     const userProfileRef = useRef<UserProfile>(userProfile);
 
     useEffect(() => {
         userProfileRef.current = userProfile;
     }, [userProfile]);
-
-    const onboardingStorageKey = useMemo(() => {
-        return userProfile.id ? `jobshaman_candidate_onboarding_seen:${userProfile.id}` : null;
-    }, [userProfile.id]);
 
     const loadPendingEmailConfirmation = useCallback((): { email?: string } | null => {
         try {
@@ -221,26 +228,6 @@ export default function App() {
         }
         setPendingEmailConfirmation(null);
     }, []);
-
-    const markCandidateOnboardingSeen = useCallback(() => {
-        onboardingDismissedRef.current = true;
-        if (!onboardingStorageKey) return;
-        try {
-            localStorage.setItem(onboardingStorageKey, 'true');
-        } catch (error) {
-            console.warn('Failed to persist onboarding flag:', error);
-        }
-    }, [onboardingStorageKey]);
-
-    const hasSeenCandidateOnboarding = useCallback(() => {
-        if (!onboardingStorageKey) return false;
-        try {
-            return localStorage.getItem(onboardingStorageKey) === 'true';
-        } catch (error) {
-            console.warn('Failed to read onboarding flag:', error);
-            return false;
-        }
-    }, [onboardingStorageKey]);
 
     useEffect(() => {
         // Only keep onboarding modal open when explicitly requested and still applicable
@@ -315,23 +302,23 @@ export default function App() {
             return;
         }
 
-        const missingLocation = !userProfile.address && !userProfile.coordinates;
-        const missingCv = !userProfile.cvUrl && !userProfile.cvText;
-        const alreadySeen = hasSeenCandidateOnboarding();
-        const shouldShow = (missingLocation || missingCv) && !onboardingDismissedRef.current && !alreadySeen;
+        const activationState = deriveActivationState(userProfile);
+        const needsCoreOnboarding =
+            !activationState.location_verified ||
+            !activationState.cv_ready ||
+            activationState.skills_confirmed_count < 3 ||
+            !activationState.preferences_ready;
+        const shouldShow = needsCoreOnboarding && !onboardingDismissedRef.current;
 
         if (shouldShow) {
             setShowCandidateOnboarding(true);
-        } else if (!missingLocation && !missingCv) {
+        } else if (isActivationComplete(activationState)) {
             setShowCandidateOnboarding(false);
         }
     }, [
         userProfile.isLoggedIn,
         userProfile.role,
-        userProfile.address,
-        userProfile.coordinates,
-        userProfile.cvUrl,
-        userProfile.cvText,
+        userProfile,
         showCandidateOnboarding,
         loadPendingEmailConfirmation
     ]);
@@ -387,6 +374,98 @@ export default function App() {
         }
         return userProfile;
     }, [userProfile, isCompanyProfile, viewState, companyProfile?.address, companyCoordinates?.lat, companyCoordinates?.lon]);
+    const candidateActivationState = useMemo(
+        () => deriveActivationState(userProfile),
+        [userProfile]
+    );
+    const activationNextStep = useMemo(
+        () => getNextActivationStep(candidateActivationState) || 'location',
+        [candidateActivationState]
+    );
+    const activationMilestonesRef = useRef<Set<string>>(new Set());
+
+    useEffect(() => {
+        if (!userProfile.isLoggedIn || userProfile.role === 'recruiter' || !userProfile.id) return;
+        const current = userProfile.preferences?.activation_v1 || null;
+        const sameState = current
+            && current.location_verified === candidateActivationState.location_verified
+            && current.cv_ready === candidateActivationState.cv_ready
+            && current.skills_confirmed_count === candidateActivationState.skills_confirmed_count
+            && current.preferences_ready === candidateActivationState.preferences_ready
+            && current.first_quality_action_at === candidateActivationState.first_quality_action_at
+            && current.completion_percent === candidateActivationState.completion_percent
+            && current.last_prompted_step === candidateActivationState.last_prompted_step;
+        if (sameState) return;
+
+        const nextProfile = withActivationState(userProfile);
+        userProfileRef.current = nextProfile;
+        setUserProfile(nextProfile);
+        void updateUserProfile(userProfile.id, { preferences: nextProfile.preferences }).catch((error) => {
+            console.warn('Failed to persist activation state:', error);
+        });
+    }, [candidateActivationState, userProfile, setUserProfile]);
+
+    useEffect(() => {
+        if (!userProfile.isLoggedIn || userProfile.role === 'recruiter') return;
+        const reached = [
+            ['A1', candidateActivationState.location_verified],
+            ['A2', candidateActivationState.cv_ready],
+            ['A3', candidateActivationState.skills_confirmed_count >= 3],
+            ['A4', candidateActivationState.preferences_ready],
+            ['A5', Boolean(candidateActivationState.first_quality_action_at)],
+        ] as const;
+
+        reached.forEach(([milestone, done]) => {
+            if (!done || activationMilestonesRef.current.has(milestone)) return;
+            activationMilestonesRef.current.add(milestone);
+            void trackAnalyticsEvent({
+                event_type: 'activation_milestone_reached',
+                feature: 'candidate_activation_v1',
+                metadata: {
+                    milestone,
+                    completion_percent: candidateActivationState.completion_percent,
+                },
+            });
+        });
+
+        if (candidateActivationState.first_quality_action_at && !timeToValueTrackedRef.current) {
+            timeToValueTrackedRef.current = true;
+            void trackAnalyticsEvent({
+                event_type: 'time_to_value_recorded',
+                feature: 'candidate_activation_v1',
+                metadata: {
+                    first_quality_action_at: candidateActivationState.first_quality_action_at,
+                },
+            });
+        }
+    }, [candidateActivationState, userProfile.isLoggedIn, userProfile.role]);
+
+    useEffect(() => {
+        if (!userProfile.isLoggedIn || userProfile.role === 'recruiter' || !userProfile.id) return;
+        if (viewState !== ViewState.PROFILE) return;
+        if (isActivationComplete(candidateActivationState)) return;
+        const isMissingA3 = candidateActivationState.skills_confirmed_count < 3;
+        const nudgeKey = `jobshaman_activation_nudge_at:${userProfile.id}:${isMissingA3 ? 'A3' : 'A5'}`;
+        const now = Date.now();
+        const cooldownMs = isMissingA3 ? 24 * 60 * 60 * 1000 : 72 * 60 * 60 * 1000;
+        try {
+            const last = Number(localStorage.getItem(nudgeKey) || '0');
+            if (Number.isFinite(last) && last > 0 && now - last < cooldownMs) return;
+            localStorage.setItem(nudgeKey, String(now));
+        } catch {
+            if (activationNudgeShownRef.current) return;
+            activationNudgeShownRef.current = true;
+        }
+        void trackAnalyticsEvent({
+            event_type: 'nudge_shown',
+            feature: 'candidate_activation_v1',
+            metadata: {
+                source: 'activation_rail',
+                next_step: activationNextStep,
+                nudge_type: isMissingA3 ? 'missing_A3' : 'missing_A5',
+            },
+        });
+    }, [activationNextStep, candidateActivationState, userProfile.id, userProfile.isLoggedIn, userProfile.role, viewState]);
 
     const {
         jobs: filteredJobs,
@@ -463,24 +542,60 @@ export default function App() {
         return () => window.removeEventListener('resize', handleResize);
     }, [userProfile.isLoggedIn, mobileViewOverride]);
 
+    const jhiCacheRef = useRef<Map<string, { key: string; jhi: any }>>(new Map());
+    const jhiPrefsKey = useMemo(
+        () => JSON.stringify(effectiveUserProfile.jhiPreferences || {}),
+        [effectiveUserProfile.jhiPreferences]
+    );
+
+    const buildJhiCacheKey = useCallback(
+        (job: Job) => {
+            const benefitsKey = Array.isArray(job.benefits) ? job.benefits.join('|') : '';
+            return [
+                jhiPrefsKey,
+                job.id,
+                job.salary_from ?? '',
+                job.salary_to ?? '',
+                job.type ?? '',
+                job.location ?? '',
+                job.distanceKm ?? '',
+                job.description?.length ?? '',
+                benefitsKey
+            ].join('|');
+        },
+        [jhiPrefsKey]
+    );
+
     const jobsForDisplay = useMemo(() => {
-        const personalized = filteredJobs.map((job) => ({
-            ...job,
-            jhi: calculateJHI({
-                salary_from: job.salary_from,
-                salary_to: job.salary_to,
-                type: job.type,
-                benefits: job.benefits,
-                description: job.description,
-                location: job.location,
-                distanceKm: job.distanceKm
-            }, 0, effectiveUserProfile.jhiPreferences)
-        }));
+        const prevCache = jhiCacheRef.current;
+        const nextCache = new Map<string, { key: string; jhi: any }>();
+        const personalized = filteredJobs.map((job) => {
+            const cacheKey = buildJhiCacheKey(job);
+            const cached = prevCache.get(job.id);
+            const jhi = cached && cached.key === cacheKey
+                ? cached.jhi
+                : calculateJHI({
+                    salary_from: job.salary_from,
+                    salary_to: job.salary_to,
+                    type: job.type,
+                    benefits: job.benefits,
+                    description: job.description,
+                    location: job.location,
+                    distanceKm: job.distanceKm
+                }, 0, effectiveUserProfile.jhiPreferences);
+            nextCache.set(job.id, { key: cacheKey, jhi });
+            return {
+                ...job,
+                jhi
+            };
+        });
+        jhiCacheRef.current = nextCache;
+
         if (sortBy === 'personalized_jhi_desc') {
-            return personalized.sort((a, b) => (b.jhi.personalizedScore || b.jhi.score) - (a.jhi.personalizedScore || a.jhi.score));
+            return [...personalized].sort((a, b) => (b.jhi.personalizedScore || b.jhi.score) - (a.jhi.personalizedScore || a.jhi.score));
         }
         return personalized;
-    }, [filteredJobs, sortBy, effectiveUserProfile.jhiPreferences]);
+    }, [filteredJobs, sortBy, effectiveUserProfile.jhiPreferences, buildJhiCacheKey]);
 
     const todayNewJobsCount = useMemo(() => {
         const today = new Date();
@@ -698,6 +813,27 @@ export default function App() {
             }
         })();
     }, [userProfile.isLoggedIn, userProfile.id, userProfile.welcomeEmailSent, i18n.language]);
+
+    useEffect(() => {
+        if (!userProfile.isLoggedIn || !userProfile.id) {
+            return;
+        }
+        const key = `jobshaman_recs_warmup_at:${userProfile.id}`;
+        const last = Number(localStorage.getItem(key) || 0);
+        const now = Date.now();
+        if (last && now - last < 6 * 60 * 60 * 1000) return;
+
+        (async () => {
+            try {
+                await authenticatedFetch(`${BACKEND_URL}/jobs/recommendations/warmup?limit=80`, {
+                    method: 'POST'
+                });
+                localStorage.setItem(key, String(Date.now()));
+            } catch (error) {
+                console.warn('Recommendation warmup failed:', error);
+            }
+        })();
+    }, [userProfile.isLoggedIn, userProfile.id]);
 
     const loadRealJobs = useCallback(async () => {
         try {
@@ -1366,6 +1502,26 @@ export default function App() {
         setViewState(ViewState.COMPANY_DASHBOARD);
     };
 
+    const persistQualityAction = useCallback((source: 'save' | 'apply' | 'assessment') => {
+        if (!userProfile.isLoggedIn || userProfile.role === 'recruiter' || !userProfile.id) return;
+        if (candidateActivationState.first_quality_action_at) return;
+        const nextProfile = markFirstQualityAction(userProfile);
+        userProfileRef.current = nextProfile;
+        setUserProfile(nextProfile);
+        void updateUserProfile(userProfile.id, { preferences: nextProfile.preferences }).catch((error) => {
+            console.warn('Failed to persist quality action milestone:', error);
+        });
+        void trackAnalyticsEvent({
+            event_type: 'activation_milestone_reached',
+            feature: 'candidate_activation_v1',
+            metadata: {
+                milestone: 'A5',
+                source,
+                completion_percent: nextProfile.preferences?.activation_v1?.completion_percent || 100,
+            },
+        });
+    }, [candidateActivationState.first_quality_action_at, setUserProfile, userProfile]);
+
     const handleToggleSave = (jobId: string) => {
         const isAlreadySaved = savedJobIds.includes(jobId);
         const job = jobsForDisplay.find((j) => j.id === jobId) || (selectedJob?.id === jobId ? selectedJob : null);
@@ -1387,6 +1543,7 @@ export default function App() {
         });
         if (!isAlreadySaved && job) {
             setSavedJobsCache((prev) => ({ ...prev, [jobId]: job }));
+            persistQualityAction('save');
         }
         if (isAlreadySaved) {
             setSavedJobsCache((prev) => {
@@ -1423,6 +1580,7 @@ export default function App() {
                 position: (job as any)?.rankPosition || (job as any)?.aiRecommendationPosition
             }
         });
+        persistQualityAction('apply');
         handleJobSelect(job.id);
         if (job.source !== 'jobshaman.cz' && job.url) {
             const pending: PendingApplyFollowup = {
@@ -1695,7 +1853,26 @@ export default function App() {
 
         if (viewState === ViewState.PROFILE) {
             return (
-                <div className="col-span-1 lg:col-span-12 max-w-4xl mx-auto w-full h-full overflow-y-auto custom-scrollbar pb-6 px-1">
+                <div className="col-span-1 lg:col-span-12 max-w-4xl mx-auto w-full pb-6 px-1">
+                    {userProfile.isLoggedIn
+                        && userProfile.role !== 'recruiter'
+                        && !isActivationComplete(candidateActivationState)
+                        && activationNextStep !== 'quality_action' && (
+                        <div className="mb-4">
+                            <CandidateActivationRail
+                                state={candidateActivationState}
+                                onContinue={() => {
+                                    onboardingDismissedRef.current = false;
+                                    setShowCandidateOnboarding(true);
+                                    void trackAnalyticsEvent({
+                                        event_type: 'nudge_clicked',
+                                        feature: 'candidate_activation_v1',
+                                        metadata: { source: 'profile_rail', next_step: activationNextStep },
+                                    });
+                                }}
+                            />
+                        </div>
+                    )}
                     <ProfileEditor
                         profile={userProfile}
                         onChange={(p, persist) => handleProfileUpdate(p, persist)} // Pass persist flag for immediate saves
@@ -1975,9 +2152,15 @@ export default function App() {
             <main className={
                 isImmersiveAssessmentRoute
                     ? "flex-1 min-h-0 w-full overflow-hidden"
-                    : "flex-1 min-h-0 max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 overflow-hidden"
+                    : `flex-1 min-h-0 max-w-[1920px] mx-auto w-full px-4 sm:px-6 lg:px-8 py-6 ${usePageScrollLayout ? '' : 'overflow-hidden'}`
             }>
-                <div className={isImmersiveAssessmentRoute ? "h-full" : "grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100dvh-120px)]"}>
+                <div className={
+                    isImmersiveAssessmentRoute
+                        ? "h-full"
+                        : usePageScrollLayout
+                            ? "grid grid-cols-1 lg:grid-cols-12 gap-6"
+                            : "grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100dvh-120px)]"
+                }>
                     <Suspense
                         fallback={
                             <div className="col-span-1 lg:col-span-12 flex items-center justify-center py-16">
@@ -1993,18 +2176,55 @@ export default function App() {
             <CandidateOnboardingModal
                 isOpen={showCandidateOnboarding}
                 profile={userProfile}
+                initialStep={
+                    activationNextStep === 'skills'
+                        ? 'preferences'
+                        : activationNextStep === 'quality_action'
+                            ? 'done'
+                            : activationNextStep
+                }
                 onClose={() => {
-                    markCandidateOnboardingSeen();
+                    onboardingDismissedRef.current = true;
                     setShowCandidateOnboarding(false);
                 }}
                 onComplete={() => {
-                    markCandidateOnboardingSeen();
+                    onboardingDismissedRef.current = true;
                     setShowCandidateOnboarding(false);
                 }}
                 onGoToProfile={() => {
-                    markCandidateOnboardingSeen();
+                    onboardingDismissedRef.current = true;
                     setShowCandidateOnboarding(false);
+                    setSelectedJobId(null);
+                    setSelectedBlogPostSlug(null);
+                    setShowCompanyLanding(false);
+                    setIsMobileSwipeView(false);
+                    try {
+                        const lng = getLocalePrefix();
+                        window.history.replaceState({}, '', `/${lng}/profil${window.location.search || ''}${window.location.hash || ''}`);
+                    } catch (error) {
+                        console.warn('Failed to navigate to profile path:', error);
+                    }
                     setViewState(ViewState.PROFILE);
+                }}
+                onStepViewed={(step) => {
+                    void trackAnalyticsEvent({
+                        event_type: 'onboarding_step_viewed',
+                        feature: 'candidate_activation_v1',
+                        metadata: {
+                            step,
+                            completion_percent: candidateActivationState.completion_percent,
+                        },
+                    });
+                }}
+                onStepCompleted={(step) => {
+                    void trackAnalyticsEvent({
+                        event_type: 'onboarding_step_completed',
+                        feature: 'candidate_activation_v1',
+                        metadata: {
+                            step,
+                            completion_percent: candidateActivationState.completion_percent,
+                        },
+                    });
                 }}
                 onUpdateProfile={handleProfileUpdate}
                 onOpenPremium={(featureLabel) => setShowPremiumUpgrade({ open: true, feature: featureLabel })}

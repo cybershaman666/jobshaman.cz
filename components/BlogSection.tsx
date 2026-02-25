@@ -179,6 +179,10 @@ const BlogSection: React.FC<BlogSectionProps> = ({
         const msg = String((error as any)?.message || error || '').toLowerCase();
         return msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('fetch resource');
     };
+    const isAbortLikeError = (error: unknown): boolean => {
+        const msg = String((error as any)?.message || error || '').toLowerCase();
+        return (error as any)?.name === 'AbortError' || msg.includes('aborted') || msg.includes('timeout');
+    };
 
     useEffect(() => {
         let isMounted = true;
@@ -229,7 +233,7 @@ const BlogSection: React.FC<BlogSectionProps> = ({
                     setGlobalStats(prev => ({ ...prev, avg_jhi: avg }));
                 }
             } catch (err) {
-                if (!isLikelyNetworkError(err)) {
+                if (!isLikelyNetworkError(err) && !isAbortLikeError(err)) {
                     console.error('Error computing average JHI from jobs:', err);
                 }
             }

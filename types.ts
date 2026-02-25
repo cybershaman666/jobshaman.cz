@@ -96,6 +96,11 @@ export interface BenchmarkTransparency {
   confidence_score: number;
   confidence_tier: 'low' | 'medium' | 'high';
   fallback_reason?: string | null;
+  source_url?: string | null;
+  period_label?: string | null;
+  measure_type?: 'median' | 'average' | string | null;
+  gross_net?: 'gross' | 'net' | string | null;
+  employment_scope?: string | null;
   confidence_components?: {
     sample_size_component: number;
     variance_component: number;
@@ -487,6 +492,15 @@ export interface UserProfile {
     financialGoals: number; // 1-100
     commuteTolerance: number; // Minutes
     priorities: string[]; // e.g. "Dog Friendly", "Wheelchair Access"
+    desired_role?: string;
+    desired_salary_min?: number | null;
+    desired_salary_max?: number | null;
+    desired_employment_type?: 'full_time' | 'part_time' | 'contract' | 'internship' | 'temporary';
+    profile_visibility?: 'private' | 'recruiter' | 'public';
+    linkedIn?: string;
+    portfolio?: string;
+    github?: string;
+    activation_v1?: CandidateActivationStateV1;
     ikigai_v1?: IkigaiSnapshotV1;
   };
   taxProfile?: TaxProfile;
@@ -505,6 +519,16 @@ export interface UserProfile {
   dailyDigestTime?: string;
   dailyDigestTimezone?: string;
   dailyDigestPushEnabled?: boolean;
+}
+
+export interface CandidateActivationStateV1 {
+  location_verified: boolean;
+  cv_ready: boolean;
+  skills_confirmed_count: number;
+  preferences_ready: boolean;
+  first_quality_action_at?: string;
+  completion_percent: number;
+  last_prompted_step?: 'location' | 'skills' | 'preferences' | 'cv' | 'quality_action' | 'done';
 }
 
 export interface IkigaiPsychProfileV1 {

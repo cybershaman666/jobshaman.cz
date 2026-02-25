@@ -43,6 +43,7 @@ import TransportModeSelector from './TransportModeSelector';
 import { createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from '../services/profileDefaults';
 import { getPremiumPriceDisplay } from '../services/premiumPricingService';
 import { simulateHappinessAudit } from '../services/assessmentThreeService';
+import { fetchJobsByIds } from '../services/jobService';
 import { useSceneCapability } from '../hooks/useSceneCapability';
 import SceneShell from './three/SceneShell';
 import LifeSustainabilityOrbit from './three/LifeSustainabilityOrbit';
@@ -93,6 +94,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [isRepairingPhoto, setIsRepairingPhoto] = useState(false);
   const [editingSection, setEditingSection] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'profile' | 'saved'>('profile');
+  const [savedJobsSearchTerm, setSavedJobsSearchTerm] = useState('');
+  const [savedJobsFallback, setSavedJobsFallback] = useState<Job[]>([]);
   const [showAIGuide, setShowAIGuide] = useState(false);
   const [editableCvAiText, setEditableCvAiText] = useState(profile.cvAiText || '');
   const [isSavingCvAiText, setIsSavingCvAiText] = useState(false);
@@ -253,9 +256,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       email: sourceProfile.email || '',
       phone: sourceProfile.phone || '',
       address: sourceProfile.address || '',
-      linkedIn: (sourceProfile as any).linkedIn || '',
-      portfolio: (sourceProfile as any).portfolio || '',
-      github: (sourceProfile as any).github || ''
+      linkedIn: sourceProfile.preferences?.linkedIn || (sourceProfile as any).linkedIn || '',
+      portfolio: sourceProfile.preferences?.portfolio || (sourceProfile as any).portfolio || '',
+      github: sourceProfile.preferences?.github || (sourceProfile as any).github || ''
     },
     notifications: {
       dailyDigestEnabled: sourceProfile.dailyDigestEnabled ?? true,
@@ -277,6 +280,34 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   useEffect(() => {
     setFormData(buildFormDataFromProfile(profile));
   }, [profile]);
+
+  useEffect(() => {
+    let cancelled = false;
+    if (activeTab !== 'saved') return;
+    if (savedJobs.length > 0 || savedJobIds.length === 0) {
+      setSavedJobsFallback([]);
+      return;
+    }
+
+    (async () => {
+      try {
+        const fetched = await fetchJobsByIds(savedJobIds.map((id) => String(id)));
+        if (!cancelled) {
+          setSavedJobsFallback(fetched || []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.warn('Failed to hydrate saved jobs in profile tab:', error);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, savedJobs, savedJobIds]);
+
+  const displaySavedJobs = savedJobs.length > 0 ? savedJobs : savedJobsFallback;
 
   useEffect(() => {
     if (!FEATURE_HAPPINESS_AUDIT_THREE || !isPremium) return;
@@ -501,7 +532,21 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       personal: { ...formData.personal, [field]: value }
     };
     setFormData(newFormData);
-    onChange({ ...profile, ...formData.personal, [field]: value });
+    const nextPersonal = { ...formData.personal, [field]: value };
+    onChange({
+      ...profile,
+      name: nextPersonal.name,
+      jobTitle: nextPersonal.jobTitle,
+      email: nextPersonal.email,
+      phone: nextPersonal.phone,
+      address: nextPersonal.address,
+      preferences: {
+        ...profile.preferences,
+        linkedIn: nextPersonal.linkedIn,
+        portfolio: nextPersonal.portfolio,
+        github: nextPersonal.github,
+      },
+    });
 
     // Reset verification if address changes
     if (field === 'address') {
@@ -692,7 +737,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         // Update profile with new coordinates
         onChange({
           ...profile,
-          ...formData.personal,
+          name: formData.personal.name,
+          jobTitle: formData.personal.jobTitle,
+          email: formData.personal.email,
+          phone: formData.personal.phone,
+          address: formData.personal.address,
           coordinates: coords
         }, true);
       } else {
@@ -984,7 +1033,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 }`}
             >
               <Bookmark className="w-4 h-4" />
-              <span>{t('profile.saved_jobs', { count: savedJobs.length })}</span>
+              <span>{t('profile.saved_jobs', { count: displaySavedJobs.length })}</span>
             </button>
           </div>
         </div>
@@ -2482,15 +2531,15 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               }
             >
               <SavedJobsPage
-                savedJobs={savedJobs}
+                savedJobs={displaySavedJobs}
                 savedJobIds={savedJobIds}
                 onToggleSave={onToggleSave || (() => { })}
                 onJobSelect={onJobSelect || (() => { })}
                 onApplyToJob={onApplyToJob || (() => { })}
                 selectedJobId={selectedJobId || null}
                 userProfile={profile}
-                searchTerm=""
-                onSearchChange={() => { }}
+                searchTerm={savedJobsSearchTerm}
+                onSearchChange={setSavedJobsSearchTerm}
               />
             </Suspense>
           </div>

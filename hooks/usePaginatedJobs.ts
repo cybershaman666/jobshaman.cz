@@ -441,6 +441,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 abroadOnly;
 
             const canUseRecommendations =
+                userProfile.isLoggedIn &&
                 sortBy === 'recommended' &&
                 !searchTerm &&
                 !filterCity &&
@@ -453,12 +454,23 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 !filterLanguage &&
                 !abroadOnly;
 
+            const hasStrictFilterSet =
+                !!filterCity ||
+                filterContractType.length > 0 ||
+                filterBenefits.length > 0 ||
+                !!filterMinSalary ||
+                filterDate !== 'all' ||
+                filterExperience.length > 0 ||
+                enableCommuteFilter ||
+                !!filterLanguage ||
+                abroadOnly;
+
             const canUseSimplePagination =
                 !dedicatedSearchRuntime &&
                 !hasAnyFilters &&
                 (!hasCountryFilter || normalizedCountryCodes.length === 1);
 
-            if (canUseRecommendations) {
+            if (canUseRecommendations && !hasStrictFilterSet) {
                 const now = Date.now();
                 const recommendationsAllowed =
                     !isBackendNetworkCooldownActive() &&
@@ -501,21 +513,21 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                     undefined,
                     undefined,
                     50,
-                    singleCountry
+                    singleCountry,
+                    false
                 );
                 if (isStaleRequest()) return;
 
+                const visibleJobs = filterDismissedJobs(basicResult.jobs);
                 if (isLoadMore) {
-                    const visibleJobs = filterDismissedJobs(basicResult.jobs);
                     setJobs(prev => dedupeJobs(visibleJobs, prev));
                 } else {
-                    const visibleJobs = filterDismissedJobs(basicResult.jobs);
                     setJobs(visibleJobs);
                 }
                 hydrateJobsWithAiMatchScores(requestId);
 
                 setHasMore(basicResult.hasMore);
-                setTotalCount(Math.max(0, Number(basicResult.totalCount || 0) - (basicResult.jobs.length - filterDismissedJobs(basicResult.jobs).length)));
+                setTotalCount(Math.max(0, Number(basicResult.totalCount || 0) - (basicResult.jobs.length - visibleJobs.length)));
                 return;
             }
 
@@ -542,21 +554,21 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 filterLanguageCodes: filterLanguage ? [filterLanguage] : undefined,
                 jhiPreferences: userProfile.jhiPreferences,
                 userTaxProfile: userProfile.taxProfile,
+                includeJhi: false,
                 abortSignal: fetchController.signal
             });
             if (isStaleRequest()) return;
 
+            const visibleJobs = filterDismissedJobs(result.jobs);
             if (isLoadMore) {
-                const visibleJobs = filterDismissedJobs(result.jobs);
                 setJobs(prev => dedupeJobs(visibleJobs, prev));
             } else {
-                const visibleJobs = filterDismissedJobs(result.jobs);
                 setJobs(visibleJobs);
             }
             hydrateJobsWithAiMatchScores(requestId);
 
             setHasMore(result.hasMore);
-            setTotalCount(Math.max(0, Number(result.totalCount || 0) - (result.jobs.length - filterDismissedJobs(result.jobs).length)));
+            setTotalCount(Math.max(0, Number(result.totalCount || 0) - (result.jobs.length - visibleJobs.length)));
 
             // Track analytics
             if ((filterCity || filterContractType.length > 0 || filterBenefits.length > 0)) {

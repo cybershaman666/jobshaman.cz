@@ -16,6 +16,7 @@ from .routers import jobs, billing, stripe, assessments, scraper, auth, admin, a
 from .core.security import add_security_headers
 from .matching_engine import run_hourly_batch_jobs, run_daily_batch_jobs
 from .services.daily_digest import run_daily_job_digest
+from .services.benchmarks_public import run_salary_public_reference_refresh
 from .governance import run_retention_cleanup
 
 SENTRY_DSN = os.getenv("SENTRY_DSN")
@@ -147,6 +148,7 @@ from .core.security import cleanup_csrf_sessions
 scheduler: BackgroundScheduler | None = None
 _scheduler_enabled = os.getenv("ENABLE_BACKGROUND_SCHEDULER", "false").strip().lower() in {"1", "true", "yes", "on"}
 _daily_digest_enabled = os.getenv("ENABLE_DAILY_DIGESTS", "false").strip().lower() in {"1", "true", "yes", "on"}
+_public_benchmarks_enabled = os.getenv("ENABLE_PUBLIC_BENCHMARK_REFRESH", "false").strip().lower() in {"1", "true", "yes", "on"}
 
 
 def _start_scheduler() -> None:
@@ -162,6 +164,16 @@ def _start_scheduler() -> None:
         scheduler.add_job(run_retention_cleanup, 'cron', hour=3, minute=10, id="retention_cleanup", max_instances=1, coalesce=True)
         if _daily_digest_enabled:
             scheduler.add_job(run_daily_job_digest, 'interval', minutes=15, id="daily_digest", max_instances=1, coalesce=True)
+        if _public_benchmarks_enabled:
+            scheduler.add_job(
+                run_salary_public_reference_refresh,
+                'cron',
+                hour=4,
+                minute=5,
+                id="public_salary_benchmark_refresh",
+                max_instances=1,
+                coalesce=True,
+            )
         scheduler.start()
         print("✅ Background scheduler started.")
     except Exception as exc:

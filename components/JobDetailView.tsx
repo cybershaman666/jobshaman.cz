@@ -92,7 +92,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     const [isSavingOptimizedCv, setIsSavingOptimizedCv] = useState(false);
     const [optimizedCvSaved, setOptimizedCvSaved] = useState(false);
     const [salaryBenchmark, setSalaryBenchmark] = useState<SalaryBenchmarkResolved | null>(null);
-    const aiMatchScore = typeof (selectedJob as any)?.aiMatchScore === 'number'
+    const aiMatchScore = userProfile.isLoggedIn && typeof (selectedJob as any)?.aiMatchScore === 'number'
         ? Math.round((selectedJob as any).aiMatchScore)
         : null;
     const highValueKeywords = [
@@ -264,7 +264,20 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
         }
     };
 
+    const openProfileForCvTools = () => {
+        if (!userProfile.isLoggedIn) {
+            handleAuthAction('login');
+            return;
+        }
+        setSelectedJobId(null);
+        setViewState(ViewState.PROFILE);
+    };
+
     const handleOptimizeCv = async () => {
+        if (!userProfile.isLoggedIn) {
+            handleAuthAction('login');
+            return;
+        }
         if (!isPremium) {
             onOpenPremium?.(t('job_detail.cv_ai_tools_feature_label'));
             return;
@@ -279,19 +292,27 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
         setCvOptimizationError(null);
         setCvCopied(false);
         setOptimizedCvSaved(false);
+        setOptimizedCvText('');
+        setOptimizationImprovements([]);
         setIsOptimizingCv(true);
         try {
+            const trimmedCv = sourceCv.slice(0, 7000);
+            const shortDescription = (selectedJob?.description || '').slice(0, 2000);
+            const shortSkills = selectedJob?.required_skills?.length ? selectedJob.required_skills.slice(0, 12) : [];
             const jobContext = [
-                `Target role: ${selectedJob?.title || ''}`,
+                `Role: ${selectedJob?.title || ''}`,
                 `Company: ${selectedJob?.company || ''}`,
                 `Location: ${selectedJob?.location || ''}`,
-                selectedJob?.description ? `Job description:\n${selectedJob.description}` : '',
-                selectedJob?.required_skills?.length ? `Required skills: ${selectedJob.required_skills.join(', ')}` : ''
+                shortSkills.length ? `Required skills: ${shortSkills.join(', ')}` : '',
+                shortDescription ? `Job description:\n${shortDescription}` : ''
             ].filter(Boolean).join('\n');
-
-            const result = await optimizeCvForAts(`${sourceCv}\n\n${jobContext}`);
-            setOptimizedCvText(result.optimizedText || '');
+            const result = await optimizeCvForAts(trimmedCv, jobContext);
+            const normalizedText = (result.optimizedText || '').trim();
+            setOptimizedCvText(normalizedText || trimmedCv);
             setOptimizationImprovements(Array.isArray(result.improvements) ? result.improvements : []);
+            if (!normalizedText) {
+                setCvOptimizationError(t('job_detail.cv_ai_tools_failed'));
+            }
         } catch (error) {
             console.error('CV optimization failed:', error);
             setCvOptimizationError(t('job_detail.cv_ai_tools_failed'));
@@ -654,7 +675,7 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                         {isOptimizingCv ? t('job_detail.cv_ai_tools_optimizing') : t('job_detail.cv_ai_tools_optimize')}
                                     </button>
                                     <button
-                                        onClick={() => setViewState(ViewState.PROFILE)}
+                                        onClick={openProfileForCvTools}
                                         className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 text-sm font-semibold hover:bg-slate-100 dark:hover:bg-slate-800"
                                     >
                                         {t('job_detail.cv_ai_tools_open_profile')}

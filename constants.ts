@@ -183,7 +183,8 @@ export const DEFAULT_USER_PROFILE: UserProfile = {
     workLifeBalance: 50,
     financialGoals: 50,
     commuteTolerance: 45,
-    priorities: []
+    priorities: [],
+    profile_visibility: 'recruiter'
   },
   taxProfile: {
     countryCode: 'CZ',

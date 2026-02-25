@@ -1,5 +1,5 @@
 import os
-from fastapi import APIRouter, Request, Depends, HTTPException, Query
+from fastapi import APIRouter, Request, Depends, HTTPException, Query, BackgroundTasks
 from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from ..core.limiter import limiter
@@ -551,6 +551,28 @@ async def get_job_recommendations(
             print(f"⚠️ Failed to write recommendation exposures: {exp_exc}")
 
     return {"jobs": enriched_matches, "request_id": request_id}
+
+
+@router.post("/jobs/recommendations/warmup")
+@limiter.limit("15/minute")
+async def warmup_job_recommendations(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    limit: int = Query(80, ge=1, le=200),
+    user: dict = Depends(get_current_user),
+):
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    background_tasks.add_task(
+        recommend_jobs_for_user,
+        user_id=user_id,
+        limit=limit,
+        allow_cache=True,
+    )
+
+    return {"status": "scheduled", "limit": limit}
 
 
 @router.post("/jobs/hybrid-search")

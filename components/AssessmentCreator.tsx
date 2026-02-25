@@ -42,7 +42,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
     const [selectedDemoOutputId, setSelectedDemoOutputId] = useState<string>('demo-backend-senior');
     const [showDemoCenter, setShowDemoCenter] = useState(false);
     const [showThreePreview, setShowThreePreview] = useState<boolean>(FEATURE_ASSESSMENT_THREE);
-    const demoUsesCockpit = true;
+    const demoUsesCockpit = false;
     const demoOutputRef = useRef<HTMLDivElement>(null);
     const sceneCapability = useSceneCapability();
 
@@ -828,7 +828,13 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
             )}
 
             <div className="lg:col-span-2">
-                <div className={`${demoUsesCockpit ? 'cockpit-panel text-slate-50' : 'bg-white dark:bg-slate-900'} rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm p-5`}>
+                <div
+                    className={`rounded-xl shadow-sm p-5 ${
+                        demoUsesCockpit
+                            ? 'cockpit-panel cockpit-root text-slate-50 border border-white/20 shadow-[0_16px_34px_rgba(2,18,13,0.38)]'
+                            : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800'
+                    }`}
+                >
                     <div className="flex items-center justify-between gap-3 mb-4">
                         <div>
                             <h3 className={`text-lg font-bold ${demoUsesCockpit ? 'text-cyan-50' : 'text-slate-900 dark:text-white'}`}>
@@ -928,20 +934,37 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                             </div>
 
                             {FEATURE_ASSESSMENT_THREE && showThreePreview && (
-                                <div className="mt-5 rounded-xl border border-white/20 bg-black/25 backdrop-blur-sm p-3">
+                                <div className={`mt-5 rounded-xl border p-3 ${
+                                    demoUsesCockpit
+                                        ? 'border-white/20 bg-black/25 backdrop-blur-sm'
+                                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm'
+                                }`}>
                                     <div className="flex items-center justify-between mb-2">
-                                        <div className="text-xs uppercase tracking-wider text-cyan-100">Biophilic Cockpit Preview</div>
-                                        <div className="text-xs text-cyan-200/85">
-                                            Signal {selectedDemoOutput.finalScore}% · Culture {selectedDemoOutput.cultureFitMatch}%
+                                        <div className={`text-xs uppercase tracking-wider ${
+                                            demoUsesCockpit ? 'text-cyan-100' : 'text-cyan-700 dark:text-cyan-300'
+                                        }`}>Náhled Biophilic Cockpit</div>
+                                        <div className={`text-xs ${
+                                            demoUsesCockpit ? 'text-cyan-200/85' : 'text-slate-500 dark:text-slate-400'
+                                        }`}>
+                                            Signál {selectedDemoOutput.finalScore}% · Kultura {selectedDemoOutput.cultureFitMatch}%
                                         </div>
                                     </div>
                                     <SceneShell
                                         capability={sceneCapability}
                                         enableControls
                                         performanceMode={sceneCapability.qualityTier}
+                                        className={`h-56 w-full rounded-lg overflow-hidden border ${
+                                            demoUsesCockpit
+                                                ? 'border-white/20 bg-black/20'
+                                                : 'border-slate-200 dark:border-slate-800 bg-gradient-to-br from-cyan-50 via-slate-50 to-emerald-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800'
+                                        }`}
                                         fallback={
-                                            <div className="h-52 rounded-lg cockpit-scene-fallback p-3 text-xs text-cyan-100/90 border border-white/20">
-                                                Biophilic fallback aktivní. Live metriky běží bez WebGL.
+                                            <div className={`h-52 rounded-lg p-3 text-xs border ${
+                                                demoUsesCockpit
+                                                    ? 'cockpit-scene-fallback text-cyan-100/90 border-white/20'
+                                                    : 'bg-slate-50 dark:bg-slate-950/30 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800'
+                                            }`}>
+                                                Biophilic fallback je aktivní. Živé metriky běží bez WebGL.
                                             </div>
                                         }
                                     >
@@ -953,31 +976,51 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                             energy={demoSceneMetrics.energy}
                                             culture={demoSceneMetrics.culture}
                                             qualityTier={sceneCapability.qualityTier}
+                                            visualMode={demoUsesCockpit ? 'cockpit' : 'dashboard'}
                                         />
                                     </SceneShell>
                                     <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-2">
                                         {[
-                                            ['Signal', selectedDemoOutput.finalScore],
-                                            ['Confidence', demoSceneMetrics.confidence],
-                                            ['Energy', demoSceneMetrics.energy],
-                                            ['Culture', demoSceneMetrics.culture],
+                                            ['Signál', selectedDemoOutput.finalScore],
+                                            ['Jistota', demoSceneMetrics.confidence],
+                                            ['Energie', demoSceneMetrics.energy],
+                                            ['Kultura', demoSceneMetrics.culture],
                                         ].map(([label, value]) => (
-                                            <div key={String(label)} className="rounded-lg border border-white/20 bg-black/25 px-2 py-1.5">
-                                                <div className="text-[10px] uppercase tracking-wide text-cyan-100/75">{label}</div>
-                                                <div className="text-sm font-semibold text-cyan-50">{value}%</div>
+                                            <div key={String(label)} className={`rounded-lg border px-2 py-1.5 ${
+                                                demoUsesCockpit
+                                                    ? 'border-white/20 bg-black/25'
+                                                    : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30'
+                                            }`}>
+                                                <div className={`text-[10px] uppercase tracking-wide ${
+                                                    demoUsesCockpit ? 'text-cyan-100/75' : 'text-slate-500 dark:text-slate-400'
+                                                }`}>{label}</div>
+                                                <div className={`text-sm font-semibold ${
+                                                    demoUsesCockpit ? 'text-cyan-50' : 'text-slate-900 dark:text-white'
+                                                }`}>{value}%</div>
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="mt-2 text-xs text-cyan-100/85">
-                                        Basic personality profile: <span className="font-semibold">{demoPersonalityCode}</span>
+                                    <div className={`mt-2 text-xs ${
+                                        demoUsesCockpit ? 'text-cyan-100/85' : 'text-slate-600 dark:text-slate-300'
+                                    }`}>
+                                        Základní osobnostní profil: <span className="font-semibold">{demoPersonalityCode}</span>
                                     </div>
-                                    <div className="mt-2 text-[11px] text-cyan-100/75">
+                                    <div className={`mt-2 text-[11px] ${
+                                        demoUsesCockpit ? 'text-cyan-100/75' : 'text-slate-500 dark:text-slate-400'
+                                    }`}>
                                         {t('ai_advisory.default', { defaultValue: 'AI recommendation only. Final decision remains with recruiter.' })}
                                     </div>
                                 </div>
                             )}
 
-                            <div ref={demoOutputRef} className="mt-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30 p-4">
+                            <div
+                                ref={demoOutputRef}
+                                className={`mt-5 rounded-xl border p-4 ${
+                                    demoUsesCockpit
+                                        ? 'assessment-demo-output-cockpit border-white/20 bg-black/20 backdrop-blur-sm'
+                                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30'
+                                }`}
+                            >
                         <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                             <h4 className="text-sm font-bold text-slate-900 dark:text-white">
                                 {t('assessment_creator.demo_center.output_title', { defaultValue: 'Ukázka výstupu pro firmu' })}

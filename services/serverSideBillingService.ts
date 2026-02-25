@@ -26,6 +26,7 @@ export interface BillingVerificationResult {
 
 const SUBSCRIPTION_STATUS_CACHE_KEY = 'subscription_status_cache_v1';
 const SUBSCRIPTION_STATUS_NETWORK_COOLDOWN_MS = 60_000;
+const SUBSCRIPTION_STATUS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
 let subscriptionStatusNetworkCooldownUntil = 0;
 let lastSubscriptionStatusLogAt = 0;
 const subscriptionStatusInFlight = new Map<string, Promise<SubscriptionStatus>>();
@@ -44,13 +45,19 @@ type SubscriptionStatus = {
   canceledAt?: string;
 };
 
-const readCachedSubscriptionStatus = (userId: string): SubscriptionStatus | null => {
+type SubscriptionStatusCache = {
+  userId?: string;
+  data?: SubscriptionStatus;
+  cachedAt?: string;
+};
+
+const readCachedSubscriptionStatus = (userId: string): { data: SubscriptionStatus; cachedAt?: string } | null => {
   try {
     const raw = localStorage.getItem(SUBSCRIPTION_STATUS_CACHE_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as { userId?: string; data?: SubscriptionStatus };
+    const parsed = JSON.parse(raw) as SubscriptionStatusCache;
     if (!parsed?.data || parsed.userId !== userId) return null;
-    return parsed.data;
+    return { data: parsed.data, cachedAt: parsed.cachedAt };
   } catch {
     return null;
   }
@@ -65,6 +72,16 @@ const writeCachedSubscriptionStatus = (userId: string, data: SubscriptionStatus)
   } catch {
     // ignore storage failures
   }
+};
+
+const readFreshCachedSubscriptionStatus = (userId: string): SubscriptionStatus | null => {
+  const cached = readCachedSubscriptionStatus(userId);
+  if (!cached) return null;
+  if (!cached.cachedAt) return cached.data;
+  const cachedAt = new Date(cached.cachedAt).getTime();
+  if (!Number.isFinite(cachedAt)) return cached.data;
+  if (Date.now() - cachedAt > SUBSCRIPTION_STATUS_CACHE_MAX_AGE_MS) return null;
+  return cached.data;
 };
 
 const isLikelyNetworkError = (error: unknown): boolean => {
@@ -133,9 +150,13 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
 
   const run = (async (): Promise<SubscriptionStatus> => {
   try {
+    const freshCached = readFreshCachedSubscriptionStatus(userId);
+    if (freshCached) {
+      return freshCached;
+    }
     if (Date.now() < subscriptionStatusNetworkCooldownUntil || isBackendNetworkCooldownActive()) {
       const cached = readCachedSubscriptionStatus(userId);
-      if (cached) return cached;
+      if (cached) return cached.data;
       return {
         tier: 'free',
         tierName: 'Free',
@@ -230,7 +251,8 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
     }
     throw lastError || new Error('Failed to get subscription status');
   } catch (error) {
-    if (isLikelyNetworkError(error)) {
+    const isAborted = error instanceof Error && error.name === 'AbortError';
+    if (isLikelyNetworkError(error) || isAborted) {
       subscriptionStatusNetworkCooldownUntil = Date.now() + SUBSCRIPTION_STATUS_NETWORK_COOLDOWN_MS;
       const now = Date.now();
       if (now - lastSubscriptionStatusLogAt > 15_000) {
@@ -238,7 +260,6 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
         lastSubscriptionStatusLogAt = now;
       }
     }
-    const isAborted = error instanceof Error && error.name === 'AbortError';
     if (isAborted && import.meta.env.DEV) {
       console.warn('⏱️ Subscription status request TIMED OUT. The server is likely waking up from sleep.');
     } else if (!isLikelyNetworkError(error)) {
@@ -246,7 +267,7 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
     }
     const cached = readCachedSubscriptionStatus(userId);
     if (cached) {
-      return cached;
+      return cached.data;
     }
     return {
       tier: 'free',

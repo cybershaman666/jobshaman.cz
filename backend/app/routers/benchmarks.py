@@ -275,7 +275,7 @@ def _fetch_job(job_id: int) -> Dict[str, Any]:
     return rows[0]
 
 
-def _fetch_internal_salary_population(country_code: str, window_days: int) -> List[Dict[str, Any]]:
+def _fetch_internal_salary_population(country_codes: List[str], window_days: int) -> List[Dict[str, Any]]:
     since = _to_iso(_utc_now() - timedelta(days=window_days))
     resp = (
         supabase
@@ -283,7 +283,7 @@ def _fetch_internal_salary_population(country_code: str, window_days: int) -> Li
         .select("id,title,description,location,country_code,contract_type,salary_from,salary_to,salary_timeframe,scraped_at")
         .eq("legality_status", "legal")
         .eq("status", "active")
-        .eq("country_code", country_code)
+        .in_("country_code", country_codes)
         .gte("scraped_at", since)
         .limit(5000)
         .execute()
@@ -292,7 +292,7 @@ def _fetch_internal_salary_population(country_code: str, window_days: int) -> Li
 
 
 def _get_external_reference(
-    country_code: str,
+    country_codes: List[str],
     role_family: str,
     seniority_band: str,
     employment_type: str,
@@ -304,24 +304,51 @@ def _get_external_reference(
     queries = []
     if region_key:
         queries.append(("region", region_key))
-    queries.append(("national", f"{country_code.lower()}_national"))
+    normalized_country = str(country_codes[0]).lower() if country_codes else "cz"
+    queries.append(("national", f"{normalized_country}_national"))
 
+    preferred_measures = ["median", "average"]
+    fallback_candidates = [
+        (role_family, seniority_band, employment_type),
+        (role_family, "mid", employment_type),
+        ("general", seniority_band, employment_type),
+        ("general", "mid", "employee"),
+    ]
     for _, target_region in queries:
-        resp = (
-            supabase
-            .table("salary_public_reference")
-            .select("role_family,country_code,region_key,seniority_band,employment_type,currency,p25,p50,p75,sample_size,data_window_days,source_name,updated_at,method_version")
-            .eq("country_code", country_code)
-            .eq("role_family", role_family)
-            .eq("seniority_band", seniority_band)
-            .eq("employment_type", employment_type)
-            .eq("region_key", target_region)
-            .limit(1)
-            .execute()
-        )
-        rows = resp.data or []
-        if rows:
-            return rows[0]
+        for measure in preferred_measures:
+            for rf, sb, et in fallback_candidates:
+                resp = (
+                    supabase
+                    .table("salary_public_reference")
+                    .select("role_family,country_code,region_key,seniority_band,employment_type,currency,p25,p50,p75,sample_size,data_window_days,source_name,source_url,period_label,measure_type,gross_net,employment_scope,updated_at,method_version")
+                    .in_("country_code", country_codes)
+                    .eq("role_family", rf)
+                    .eq("seniority_band", sb)
+                    .eq("employment_type", et)
+                    .eq("region_key", target_region)
+                    .eq("gross_net", "gross")
+                    .eq("measure_type", measure)
+                    .limit(1)
+                    .execute()
+                )
+                rows = resp.data or []
+                if rows:
+                    return rows[0]
+            # Final fallback: ignore role/seniority/employment but keep country/region.
+            resp = (
+                supabase
+                .table("salary_public_reference")
+                .select("role_family,country_code,region_key,seniority_band,employment_type,currency,p25,p50,p75,sample_size,data_window_days,source_name,source_url,period_label,measure_type,gross_net,employment_scope,updated_at,method_version")
+                .in_("country_code", country_codes)
+                .eq("region_key", target_region)
+                .eq("gross_net", "gross")
+                .eq("measure_type", measure)
+                .limit(1)
+                .execute()
+            )
+            rows = resp.data or []
+            if rows:
+                return rows[0]
     return None
 
 
@@ -333,7 +360,9 @@ async def get_salary_benchmark(job_id: str = Query(...), window_days: int = Quer
     parsed_job_id = _parse_job_id(job_id)
     job = _fetch_job(parsed_job_id)
 
-    country_code = str(job.get("country_code") or "cz").lower()
+    country_code_raw = str(job.get("country_code") or "cz")
+    country_code = country_code_raw.lower()
+    country_codes = sorted({country_code, country_code_raw.upper()})
     role_family = _infer_role_family(str(job.get("title") or ""))
     seniority_band = _infer_seniority(str(job.get("title") or ""), str(job.get("description") or ""))
     employment_type = _infer_employment_type(str(job.get("contract_type") or ""))
@@ -341,7 +370,7 @@ async def get_salary_benchmark(job_id: str = Query(...), window_days: int = Quer
 
     offer_monthly = _monthly_salary_from_row(job)
 
-    population = _fetch_internal_salary_population(country_code, window_days)
+    population = _fetch_internal_salary_population(country_codes, window_days)
 
     strict_values: List[float] = []
     strict_recency_days: List[float] = []
@@ -390,7 +419,7 @@ async def get_salary_benchmark(job_id: str = Query(...), window_days: int = Quer
     internal_valid = len(used_values) >= MIN_INTERNAL_SAMPLE and confidence_tier != "low"
 
     external_ref = _get_external_reference(
-        country_code=country_code.upper(),
+        country_codes=country_codes,
         role_family=role_family,
         seniority_band=seniority_band,
         employment_type=employment_type,
@@ -537,6 +566,11 @@ async def get_salary_benchmark(job_id: str = Query(...), window_days: int = Quer
             "fallback_details": fallback_details,
             "confidence_components": components,
             "method_version": str((external_ref or {}).get("method_version") or "salary-benchmark-v2"),
+            "source_url": str(external_ref.get("source_url")) if external_ref else None,
+            "period_label": str(external_ref.get("period_label")) if external_ref else None,
+            "measure_type": str(external_ref.get("measure_type")) if external_ref else None,
+            "gross_net": str(external_ref.get("gross_net")) if external_ref else None,
+            "employment_scope": str(external_ref.get("employment_scope")) if external_ref else None,
         },
     }
 

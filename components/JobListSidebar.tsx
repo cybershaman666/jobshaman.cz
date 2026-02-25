@@ -1,4 +1,4 @@
-import React, { RefObject, useEffect, useRef, useState } from 'react';
+import React, { RefObject, useEffect, useMemo, useRef, useState } from 'react';
 import { Job, UserProfile } from '../types';
 import JobCard from './JobCard';
 import {
@@ -127,6 +127,56 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const seenImpressionsRef = useRef<Set<string>>(new Set());
     const lastRequestIdRef = useRef<string | null>(null);
+    const listContainerRef = useRef<HTMLDivElement | null>(null);
+    const listHeaderRef = useRef<HTMLDivElement | null>(null);
+    const [listHeight, setListHeight] = useState<number>(0);
+    const [listHeaderHeight, setListHeaderHeight] = useState<number>(0);
+    const [listScrollTop, setListScrollTop] = useState(0);
+    const listItemHeight = 188;
+    const listOverscan = 6;
+
+    useEffect(() => {
+        if (!listContainerRef.current) return;
+        const node = listContainerRef.current;
+        const update = () => {
+            const next = Math.max(0, node.clientHeight);
+            setListHeight(next);
+        };
+        update();
+        const observer = new ResizeObserver(update);
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        if (!listHeaderRef.current) return;
+        const node = listHeaderRef.current;
+        const update = () => {
+            const next = Math.max(0, node.clientHeight);
+            setListHeaderHeight(next);
+        };
+        update();
+        const observer = new ResizeObserver(update);
+        observer.observe(node);
+        return () => observer.disconnect();
+    }, []);
+
+    useEffect(() => {
+        const node = jobListRef.current;
+        if (!node) return;
+        let raf = 0;
+        const onScroll = () => {
+            if (raf) cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(() => {
+                setListScrollTop(node.scrollTop);
+            });
+        };
+        node.addEventListener('scroll', onScroll, { passive: true });
+        return () => {
+            if (raf) cancelAnimationFrame(raf);
+            node.removeEventListener('scroll', onScroll);
+        };
+    }, [jobListRef]);
 
     useEffect(() => {
         if (!onTrackImpression || filteredJobs.length === 0) return;
@@ -176,6 +226,17 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     const handleScrollToTop = () => {
         jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
     };
+
+    const listViewportHeight = Math.max(240, listHeight - listHeaderHeight - 12);
+    const totalListHeight = filteredJobs.length * listItemHeight;
+    const visibleStart = Math.max(0, Math.floor(listScrollTop / listItemHeight) - listOverscan);
+    const visibleEnd = Math.min(
+        filteredJobs.length - 1,
+        Math.ceil((listScrollTop + listViewportHeight) / listItemHeight) + listOverscan
+    );
+    const visibleJobs = filteredJobs.slice(visibleStart, visibleEnd + 1);
+    const paddingTop = visibleStart * listItemHeight;
+    const paddingBottom = Math.max(0, totalListHeight - paddingTop - visibleJobs.length * listItemHeight);
     const compactFilters = !userProfile?.isLoggedIn;
     const hasLocationAnchor = !!(userProfile.address || userProfile.coordinates || filterCity);
 
@@ -627,31 +688,33 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                 </div>
 
                 {/* Job List Container (Scrolls independently below fixed header) */}
-                <div ref={jobListRef} className="flex-1 overflow-y-auto custom-scrollbar p-4" style={{ overscrollBehavior: 'contain' }}>
-                    {totalCount > 0 && !isLoadingJobs && (
-                        <div className="mb-4 px-1 flex items-center justify-between">
-                            <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                                {t('app.found_jobs', { count: totalCount })}
-                            </span>
-                        </div>
-                    )}
-                    {hasNearConstraintMatches && !isLoadingJobs && (
-                        <div className="mb-3 rounded-lg border border-cyan-200 bg-cyan-50/80 px-3 py-2 text-xs text-cyan-900 dark:border-cyan-800/70 dark:bg-cyan-950/30 dark:text-cyan-200">
-                            <div className="flex items-start gap-2">
-                                <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-cyan-700 dark:text-cyan-300" />
-                                <div>
-                                    <p className="font-semibold">{t('app.near_matches_banner_title')}</p>
-                                    <p className="opacity-90">{t('app.near_matches_banner_desc')}</p>
+                <div ref={listContainerRef} className="flex-1 overflow-hidden p-4" style={{ overscrollBehavior: 'contain' }}>
+                    <div ref={listHeaderRef}>
+                        {totalCount > 0 && !isLoadingJobs && (
+                            <div className="mb-4 px-1 flex items-center justify-between">
+                                <span className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                                    {t('app.found_jobs', { count: totalCount })}
+                                </span>
+                            </div>
+                        )}
+                        {hasNearConstraintMatches && !isLoadingJobs && (
+                            <div className="mb-3 rounded-lg border border-cyan-200 bg-cyan-50/80 px-3 py-2 text-xs text-cyan-900 dark:border-cyan-800/70 dark:bg-cyan-950/30 dark:text-cyan-200">
+                                <div className="flex items-start gap-2">
+                                    <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-cyan-700 dark:text-cyan-300" />
+                                    <div>
+                                        <p className="font-semibold">{t('app.near_matches_banner_title')}</p>
+                                        <p className="opacity-90">{t('app.near_matches_banner_desc')}</p>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    )}
-                    {isLoadingJobs && filteredJobs.length > 0 && (
-                        <div className="mb-3 px-1 flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
-                            <Activity className="animate-spin text-cyan-500" size={14} />
-                            <span>{t('app.searching')}</span>
-                        </div>
-                    )}
+                        )}
+                        {isLoadingJobs && filteredJobs.length > 0 && (
+                            <div className="mb-3 px-1 flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
+                                <Activity className="animate-spin text-cyan-500" size={14} />
+                                <span>{t('app.searching')}</span>
+                            </div>
+                        )}
+                    </div>
                     <div className="space-y-3">
                         {isLoadingJobs && filteredJobs.length === 0 ? (
                             <div className="py-12 flex flex-col items-center justify-center text-slate-400">
@@ -659,19 +722,36 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                 <p className="text-sm">{t('app.searching')}</p>
                             </div>
                         ) : filteredJobs.length > 0 ? (
-                            filteredJobs.map((job) => (
-                                <div key={job.id} ref={(el) => { cardRefs.current[job.id] = el; }}>
-                                    <JobCard
-                                        job={job}
-                                        isSelected={selectedJobId === job.id}
-                                        isSaved={savedJobIds.includes(job.id)}
-                                        onToggleSave={() => handleToggleSave(job.id)}
-                                        onClick={() => handleJobSelect(job.id)}
-                                        variant={theme}
-                                        userProfile={userProfile}
-                                    />
+                            <div
+                                ref={jobListRef}
+                                className="custom-scrollbar overflow-y-auto"
+                                style={{ height: listViewportHeight }}
+                            >
+                                <div style={{ paddingTop, paddingBottom }}>
+                                    {visibleJobs.map((job, localIndex) => {
+                                        const index = visibleStart + localIndex;
+                                        return (
+                                            <div key={job.id} className="pb-3">
+                                                <div
+                                                    ref={(el) => { cardRefs.current[job.id] = el; }}
+                                                    data-job-id={job.id}
+                                                    data-position={String((job as any)?.rankPosition || (job as any)?.aiRecommendationPosition || (index + 1))}
+                                                >
+                                                    <JobCard
+                                                        job={job}
+                                                        isSelected={selectedJobId === job.id}
+                                                        isSaved={savedJobIds.includes(job.id)}
+                                                        onToggleSave={() => handleToggleSave(job.id)}
+                                                        onClick={() => handleJobSelect(job.id)}
+                                                        variant={theme}
+                                                        userProfile={userProfile}
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
                                 </div>
-                            ))
+                            </div>
                         ) : (
                             <div className="py-12 px-4 text-center text-slate-400 dark:text-slate-500 flex flex-col items-center">
                                 <Search size={32} className="mb-4 opacity-50" />

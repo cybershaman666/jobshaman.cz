@@ -50,16 +50,74 @@ const hashId = (value: string): string => {
   return String(Math.abs(hash));
 };
 
-const demoAnswerForQuestion = (question: Assessment['questions'][number], index: number): string => {
+type DemoDomain = 'backend' | 'cnc' | 'nurse' | 'sales' | 'support' | 'generic';
+
+const inferDemoDomain = (
+  question: Assessment['questions'][number],
+  assessmentRole?: string
+): DemoDomain => {
+  const qid = (question.id || '').toLowerCase();
+  if (qid.startsWith('be')) return 'backend';
+  if (qid.startsWith('cnc')) return 'cnc';
+  if (qid.startsWith('nur')) return 'nurse';
+  if (qid.startsWith('sal')) return 'sales';
+  if (qid.startsWith('cs')) return 'support';
+
+  const haystack = `${assessmentRole || ''} ${question.text || ''}`.toLowerCase();
+  if (/(backend|developer|software|api|data|engineer|devops|cloud|program)/.test(haystack)) return 'backend';
+  if (/(cnc|stroj|výroba|operator|operátor|obrábění|tolerance|nástroj)/.test(haystack)) return 'cnc';
+  if (/(nurse|sestr|zdravot|pacient|klin|triáž|urgent|léka)/.test(haystack)) return 'nurse';
+  if (/(sales|obchod|pipeline|lead|crm|deal|prospecting|vyjedn)/.test(haystack)) return 'sales';
+  if (/(support|ticket|incident|zákazník|eskal|sla|helpdesk)/.test(haystack)) return 'support';
+  return 'generic';
+};
+
+const demoAnswersByDomain: Record<DemoDomain, string[]> = {
+  backend: [
+    'Nejdřív si vyjasním SLA a rizika, potom navrhnu API kontrakt s verzováním a fallbackem, aby změna nerozbila klienty.',
+    'Postup rozdělím na rychlou stabilizaci a následnou optimalizaci: metriky, tracing, bottleneck, cílený fix a ověření dopadu.',
+    'U citlivých dat držím minimální logování, maskování PII a audit trail, aby bylo řešení bezpečné i dohledatelné.',
+  ],
+  cnc: [
+    'Začnu kontrolou výkresu, upnutí, nulových bodů a nástroje. První kus přeměřím a až pak pustím sérii.',
+    'Při odchylce mimo toleranci zastavím výrobu, ověřím příčinu, upravím korekce a udělám nové kontrolní měření.',
+    'Bezpečnost má prioritu: při nestabilitě stroje nebo riziku okamžitě stop, zajištění pracoviště a teprve pak restart dle postupu.',
+  ],
+  nurse: [
+    'V urgentu triážuji podle klinické závažnosti a vitálních funkcí, nejdřív řeším život ohrožující stavy.',
+    'Kritické informace předávám strukturovaně přes SBAR, aby tým měl jasný stav, riziko i další krok bez prodlevy.',
+    'U medikace držím identifikaci pacienta, kontrolu 5P a okamžitou dokumentaci, aby byla péče bezpečná a dohledatelná.',
+  ],
+  sales: [
+    'Nejdřív dělám discovery: problém, dopad, rozhodovatelé a timeline. Teprve potom volím nabídku a další krok.',
+    'Při námitce na cenu vracím debatu k hodnotě a ROI, navrhnu varianty a jasně potvrdím next step v CRM.',
+    'Když deal stagnuje, revaliduji kvalifikaci, zapojím decision makera a nastavím konkrétní plán obnovy s termíny.',
+  ],
+  support: [
+    'Prioritu ticketu určím podle business dopadu, SLA rizika a rozsahu incidentu, ne jen podle tónu zprávy.',
+    'Se zákazníkem komunikuji klidně a konkrétně: co víme, co děláme teď, kdy dáme další update a jaká je dočasná cesta.',
+    'Před eskalací připravím reprodukci, logy, kroky a očekávané chování, aby L2/L3 mohli okamžitě pokračovat.',
+  ],
+  generic: [
+    'Nejdřív si vyjasním cíl a priority, potom popíšu konkrétní postup krok za krokem a ověřím výsledek.',
+    'V nejistotě volím bezpečný první krok, průběžně sbírám data a podle nich upravuji další rozhodnutí.',
+    'Držím jasnou komunikaci: co je riziko, co je rozhodnutí teď a co bude následovat.',
+  ],
+};
+
+const demoAnswerForQuestion = (
+  question: Assessment['questions'][number],
+  index: number,
+  assessmentRole?: string
+): string => {
   if (question.type === 'MultipleChoice' && question.options?.length) {
-    return question.options[index % question.options.length];
+    if (question.correctAnswer && question.options.includes(question.correctAnswer)) {
+      return question.correctAnswer;
+    }
+    return question.options[0];
   }
-  const variants = [
-    'Nejdřív nastavím priority a hranice rozhodnutí, potom rizika a dopad na stakeholdery.',
-    'Začnu ověřením předpokladů, průběžně komunikuji kontext a na konci vyhodnotím metriky.',
-    'Rozdělím problém na rychlou stabilizaci a následnou iteraci, aby tým viděl jasný další krok.',
-    'Při nejistotě preferuji strukturu, ale nechávám prostor pro adaptaci podle nových dat.',
-  ];
+  const domain = inferDemoDomain(question, assessmentRole);
+  const variants = demoAnswersByDomain[domain];
   return variants[index % variants.length];
 };
 
@@ -340,7 +398,7 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
     if (mode === 'preview') {
       const seeded: Record<string, string> = {};
       assessment.questions.forEach((q, idx) => {
-        seeded[q.id] = demoAnswerForQuestion(q, idx);
+        seeded[q.id] = demoAnswerForQuestion(q, idx, assessment.role);
       });
       setAnswers(seeded);
       setPersonalityPulseAnswers((prev) => {
@@ -908,7 +966,7 @@ const AssessmentJourneyFlow: React.FC<Props> = ({
     if (!currentQuestion) return;
     setAnswers((prev) => ({
       ...prev,
-      [currentQuestion.id]: demoAnswerForQuestion(currentQuestion, index),
+      [currentQuestion.id]: demoAnswerForQuestion(currentQuestion, index, assessment.role),
     }));
   };
 

@@ -128,13 +128,41 @@ export const getShamanAdvice = async (userProfile: UserProfile, jobDescription: 
   }
 };
 
-export const optimizeCvForAts = async (cvText: string): Promise<{ optimizedText: string; improvements: string[] }> => {
+export const optimizeCvForAts = async (
+  cvText: string,
+  jobContext?: string
+): Promise<{ optimizedText: string; improvements: string[] }> => {
   try {
-    const payload = await callAiExecute('optimize_cv_for_ats', { cvText });
-    if (payload?.optimized) return payload.optimized;
+    const payload = await callAiExecute('optimize_cv_for_ats', { cvText, jobContext });
+    const optimized = payload?.optimized || {};
+    const optimizedText =
+      optimized.optimizedText ||
+      optimized.optimized_text ||
+      optimized.text ||
+      payload?.optimizedText ||
+      payload?.optimized_text ||
+      '';
+    const improvementsRaw =
+      optimized.improvements ||
+      optimized.improvement ||
+      payload?.improvements ||
+      payload?.improvement ||
+      [];
+    const improvements = Array.isArray(improvementsRaw)
+      ? improvementsRaw.map((item: unknown) => String(item))
+      : [];
+    if (optimizedText || improvements.length) {
+      return { optimizedText, improvements };
+    }
     throw new Error('Invalid ATS optimization payload');
   } catch (e) {
     console.error('ATS Optimization failed', e);
+    if ((e as any)?.name === 'AbortError') {
+      return {
+        optimizedText: cvText,
+        improvements: ['Optimalizace byla přerušena časovým limitem. Zkuste to prosím znovu.']
+      };
+    }
     return {
       optimizedText: cvText,
       improvements: ['Optimalizace dočasně nedostupná (AI limit)']

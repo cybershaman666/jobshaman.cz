@@ -41,10 +41,14 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
       setInvitations(data.invitations || []);
     } catch (e: any) {
       const message = String(e?.message || '');
+      const isAbort =
+        e?.name === 'AbortError' ||
+        message.toLowerCase().includes('aborted');
       const isBackendUnavailable = message.includes('cooldown active')
         || message.toLowerCase().includes('networkerror')
         || message.toLowerCase().includes('failed to fetch')
-        || message.toLowerCase().includes('timeout');
+        || message.toLowerCase().includes('timeout')
+        || isAbort;
       if (isBackendUnavailable) {
         setError(t('my_invitations.backend_unavailable', { defaultValue: 'Backend is temporarily unavailable. Please try again in a moment.' }));
       } else {

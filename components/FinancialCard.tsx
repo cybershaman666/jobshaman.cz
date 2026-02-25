@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Job, UserProfile, CommuteAnalysis, SalaryBenchmarkResolved, ViewState } from '../types';
 import {
     Wallet,
@@ -50,6 +50,7 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
     getTransportIcon
 }) => {
     const { t } = useTranslation();
+    const [showMarketDetails, setShowMarketDetails] = useState(false);
     const cur = commuteAnalysis?.financialReality.currency || 'Kč';
     const locationLabel = userProfile.address || t('financial.current_location_label');
     const salaryBenchmarkReady = !!salaryBenchmark && !salaryBenchmark.insufficient_data;
@@ -64,6 +65,31 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
     const salaryTierColor = salaryBenchmarkReady && salaryBenchmark?.delta_vs_p50 !== undefined
         ? (salaryBenchmark.delta_vs_p50 > 0 ? 'text-emerald-400' : salaryBenchmark.delta_vs_p50 < 0 ? 'text-rose-400' : 'text-amber-300')
         : 'text-slate-300';
+    const benchmarkFallbackMessage = useMemo(() => {
+        const transparency = salaryBenchmark?.transparency;
+        if (!transparency) return null;
+        const mode = transparency.source_mode;
+        const externalN = transparency.fallback_details?.external_sample ?? 0;
+        const countryN = transparency.fallback_details?.country_sample ?? transparency.sample_size ?? 0;
+
+        if (mode === 'public_fallback') {
+            return t('financial.market.fallback_public', {
+                source: transparency.source_name,
+                n: externalN || transparency.sample_size || 0
+            });
+        }
+        if (mode === 'blended_internal_public') {
+            return t('financial.market.fallback_blended', {
+                source: transparency.source_name,
+                n: countryN,
+                ext: externalN
+            });
+        }
+        if (mode === 'internal_only' && transparency.fallback_reason) {
+            return t('financial.market.fallback_national', { n: countryN });
+        }
+        return transparency.fallback_reason || null;
+    }, [salaryBenchmark?.transparency, t]);
 
     return (
         <div className="bg-[#1e293b] text-slate-200 rounded-xl overflow-hidden shadow-xl mb-8 border border-slate-700 relative">
@@ -238,40 +264,89 @@ const FinancialCard: React.FC<FinancialCardProps> = ({
                             )}
 
                             <div className="mt-4 rounded-lg border border-slate-700 bg-slate-900/50 p-3">
-                                <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold mb-2">
-                                    {t('financial.market.title', { defaultValue: 'Mzda vs trh' })}
+                                <div className="flex items-center justify-between gap-2 mb-2">
+                                    <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
+                                        {t('financial.market.title', { defaultValue: 'Mzda vs trh' })}
+                                    </div>
+                                    {salaryBenchmark?.transparency?.source_name && (
+                                        <span
+                                            className="text-[10px] text-slate-400 underline decoration-dotted cursor-help"
+                                            title={[
+                                                `${t('financial.market.source_label', { defaultValue: 'Zdroj' })}: ${salaryBenchmark.transparency.source_name}`,
+                                                salaryBenchmark.transparency.period_label
+                                                    ? `${t('financial.market.period_label', { defaultValue: 'Období' })}: ${salaryBenchmark.transparency.period_label}`
+                                                    : null,
+                                                salaryBenchmark.transparency.measure_type
+                                                    ? `${t('financial.market.measure_label', { defaultValue: 'Měření' })}: ${salaryBenchmark.transparency.measure_type === 'median' ? t('financial.market.measure_median', { defaultValue: 'median' }) : t('financial.market.measure_average', { defaultValue: 'průměr' })}`
+                                                    : null,
+                                                salaryBenchmark.transparency.gross_net
+                                                    ? `${t('financial.market.gross_net_label', { defaultValue: 'Typ' })}: ${salaryBenchmark.transparency.gross_net === 'gross' ? t('financial.market.gross', { defaultValue: 'gross' }) : t('financial.market.net', { defaultValue: 'net' })}`
+                                                    : null,
+                                                salaryBenchmark.transparency.employment_scope
+                                                    ? `${t('financial.market.scope_label', { defaultValue: 'Scope' })}: ${salaryBenchmark.transparency.employment_scope}`
+                                                    : null,
+                                                salaryBenchmark.transparency.source_url
+                                                    ? `${t('financial.market.source_url_label', { defaultValue: 'URL' })}: ${salaryBenchmark.transparency.source_url}`
+                                                    : null
+                                            ].filter(Boolean).join('\n')}
+                                        >
+                                            {t('financial.market.source_hint', { defaultValue: 'zdroj' })}
+                                        </span>
+                                    )}
                                 </div>
                                 {salaryBenchmarkReady ? (
                                     <div className="space-y-2 text-xs">
-                                        <div className={`font-semibold ${salaryTierColor}`}>
-                                            {salaryTierLabel}
-                                            {typeof salaryBenchmark?.delta_vs_p50_pct === 'number' && (
-                                                <span className="ml-1">
-                                                    ({salaryBenchmark.delta_vs_p50_pct > 0 ? '+' : ''}{salaryBenchmark.delta_vs_p50_pct.toFixed(1)}%)
-                                                </span>
-                                            )}
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
-                                            <div>{t('financial.market.p50', { defaultValue: 'Medián (p50)' })}</div>
-                                            <div className="text-right font-mono">{(salaryBenchmark?.p50 || 0).toLocaleString()} {salaryCurrency}</div>
-                                            <div>{t('financial.market.iqr', { defaultValue: 'IQR (p75 - p25)' })}</div>
-                                            <div className="text-right font-mono">{(salaryBenchmark?.iqr || 0).toLocaleString()} {salaryCurrency}</div>
-                                            <div>N</div>
-                                            <div className="text-right font-mono">{salaryBenchmark?.transparency.sample_size || 0}</div>
-                                            <div>{t('financial.market.window', { defaultValue: 'Datové okno' })}</div>
-                                            <div className="text-right font-mono">{salaryBenchmark?.transparency.data_window_days || 0}d</div>
-                                            <div>{t('financial.market.confidence', { defaultValue: 'Confidence' })}</div>
-                                            <div className="text-right font-semibold uppercase">{salaryBenchmark?.transparency.confidence_tier || 'low'}</div>
-                                        </div>
-                                        {salaryBenchmark?.transparency.fallback_reason && (
-                                            <div className="text-amber-300 text-[11px] leading-relaxed border-t border-slate-700 pt-2">
-                                                {salaryBenchmark.transparency.fallback_reason}
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div>
+                                                <div className={`font-semibold ${salaryTierColor}`}>
+                                                    {salaryTierLabel}
+                                                    {typeof salaryBenchmark?.delta_vs_p50_pct === 'number' && (
+                                                        <span className="ml-1">
+                                                            ({salaryBenchmark.delta_vs_p50_pct > 0 ? '+' : ''}{salaryBenchmark.delta_vs_p50_pct.toFixed(1)}%)
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="text-slate-300">
+                                                    {t('financial.market.p50', { defaultValue: 'Typická mzda (medián)' })}
+                                                </div>
                                             </div>
+                                            <div className="text-right">
+                                                <div className="text-right font-mono text-white">
+                                                    {(salaryBenchmark?.p50 || 0).toLocaleString()} {salaryCurrency}
+                                                </div>
+                                                <button
+                                                    onClick={() => setShowMarketDetails((prev) => !prev)}
+                                                    className="mt-1 text-[10px] text-slate-400 underline decoration-dotted"
+                                                >
+                                                    {showMarketDetails
+                                                        ? t('financial.market.hide_details', { defaultValue: 'Skrýt detail' })
+                                                        : t('financial.market.show_details', { defaultValue: 'Zobrazit detail' })}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        {showMarketDetails && (
+                                            <>
+                                                <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-slate-300">
+                                                    <div>{t('financial.market.iqr', { defaultValue: 'Rozpětí (p25–p75)' })}</div>
+                                                    <div className="text-right font-mono">{(salaryBenchmark?.iqr || 0).toLocaleString()} {salaryCurrency}</div>
+                                                    <div>{t('financial.market.sample_size', { defaultValue: 'Počet nabídek' })}</div>
+                                                    <div className="text-right font-mono">{salaryBenchmark?.transparency.sample_size || 0}</div>
+                                                    <div>{t('financial.market.window', { defaultValue: 'Období' })}</div>
+                                                    <div className="text-right font-mono">{salaryBenchmark?.transparency.data_window_days || 0}d</div>
+                                                    <div>{t('financial.market.confidence', { defaultValue: 'Spolehlivost' })}</div>
+                                                    <div className="text-right font-semibold uppercase">{salaryBenchmark?.transparency.confidence_tier || 'low'}</div>
+                                                </div>
+                                                {benchmarkFallbackMessage && (
+                                                    <div className="text-amber-300 text-[11px] leading-relaxed border-t border-slate-700 pt-2">
+                                                        {benchmarkFallbackMessage}
+                                                    </div>
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                 ) : (
                                     <div className="text-xs text-slate-400">
-                                        {salaryBenchmark?.transparency?.fallback_reason
+                                        {benchmarkFallbackMessage
                                             || t('financial.market.insufficient', { defaultValue: 'Insufficient data pro robustní benchmark.' })}
                                     </div>
                                 )}

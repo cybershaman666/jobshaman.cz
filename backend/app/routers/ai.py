@@ -354,11 +354,21 @@ CV:
 
     if action == "optimize_cv_for_ats":
         cv_text = str(p.get("cvText") or "")
+        job_context = str(p.get("jobContext") or "")
         prompt = f"""
-Rewrite this CV for ATS readability in Czech.
+You are an ATS CV optimization assistant. Optimize the CV for the target role and job context.
+Return STRICT JSON: {{"optimizedText":"string","improvements":["string"]}}
+
+Rules:
+- Output ONLY the optimized CV text (no explanation) in optimizedText.
+- Do NOT repeat the job description or these instructions.
+- Keep it in Czech, concise, ATS-friendly, with clear sections and bullet points.
+
+Target role context:
+{job_context[:2500]}
+
 CV:
 {cv_text[:9000]}
-Return STRICT JSON: {{"optimizedText":"string","improvements":["string"]}}
 """.strip()
         parsed, meta = _ai_json(prompt, "cv_ats_optimize")
         return {"optimized": parsed, "meta": meta}

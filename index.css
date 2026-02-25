@@ -407,6 +407,36 @@ html, body {
   box-shadow: 0 0 16px rgba(244, 211, 94, 0.22);
 }
 
+.assessment-demo-output-cockpit .bg-white,
+.assessment-demo-output-cockpit .bg-slate-50,
+.assessment-demo-output-cockpit .dark\:bg-slate-900,
+.assessment-demo-output-cockpit .dark\:bg-slate-950\/30,
+.assessment-demo-output-cockpit .dark\:bg-slate-950\/40 {
+  background: rgba(2, 10, 16, 0.32) !important;
+}
+
+.assessment-demo-output-cockpit .border-slate-200,
+.assessment-demo-output-cockpit .dark\:border-slate-800 {
+  border-color: rgba(148, 163, 184, 0.24) !important;
+}
+
+.assessment-demo-output-cockpit .text-slate-900,
+.assessment-demo-output-cockpit .dark\:text-white {
+  color: rgb(236, 254, 255) !important;
+}
+
+.assessment-demo-output-cockpit .text-slate-700,
+.assessment-demo-output-cockpit .dark\:text-slate-300 {
+  color: rgba(207, 250, 254, 0.94) !important;
+}
+
+.assessment-demo-output-cockpit .text-slate-600,
+.assessment-demo-output-cockpit .dark\:text-slate-400,
+.assessment-demo-output-cockpit .text-slate-500,
+.assessment-demo-output-cockpit .dark\:text-slate-500 {
+  color: rgba(186, 230, 253, 0.88) !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cockpit-topbar,
   .cockpit-panel-enter,

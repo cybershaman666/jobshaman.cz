@@ -11,9 +11,11 @@ const REQUEST_LOG_THROTTLE_MS = 15_000;
 const DEFAULT_FETCH_TIMEOUT_MS = 45_000;
 const CSRF_FETCH_TIMEOUT_MS = 35_000;
 const HYBRID_FETCH_TIMEOUT_MS = 25_000;
-const SUBSCRIPTION_FETCH_TIMEOUT_MS = 35_000;
+const SUBSCRIPTION_FETCH_TIMEOUT_MS = 12_000;
 const INTERACTION_FETCH_TIMEOUT_MS = 8_000;
-const AI_FETCH_TIMEOUT_MS = 90_000;
+const RECOMMENDATIONS_FETCH_TIMEOUT_MS = 8_000;
+const INVITATIONS_FETCH_TIMEOUT_MS = 8_000;
+const AI_FETCH_TIMEOUT_MS = 120_000;
 
 let backendNetworkCooldownUntil = 0;
 let csrfTokenCooldownUntil = 0;
@@ -47,6 +49,9 @@ const resolveRequestTimeoutMs = (url: string): number => {
     const path = getRequestPath(url);
     if (path === '/csrf-token') return CSRF_FETCH_TIMEOUT_MS;
     if (path === '/jobs/interactions') return INTERACTION_FETCH_TIMEOUT_MS;
+    if (path === '/jobs/recommendations') return RECOMMENDATIONS_FETCH_TIMEOUT_MS;
+    if (path === '/assessments/invitations') return INVITATIONS_FETCH_TIMEOUT_MS;
+    if (path.startsWith('/assessments/invitations/')) return INVITATIONS_FETCH_TIMEOUT_MS;
     if (path === '/jobs/hybrid-search' || path === '/jobs/hybrid-search-v2') return HYBRID_FETCH_TIMEOUT_MS;
     if (path === '/subscription-status') return SUBSCRIPTION_FETCH_TIMEOUT_MS;
     if (path.startsWith('/ai/')) return AI_FETCH_TIMEOUT_MS;

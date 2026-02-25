@@ -202,7 +202,7 @@ const BENEFIT_PATTERNS = [
 ];
 
 // Job transformation helper
-const transformJob = (scrapedJob: any): Job => {
+const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
     const salaryContext = `${scrapedJob.title || ''} ${scrapedJob.description || ''}`;
     const salaryFrom = normalizeSalaryAmount(
         safeParseInt(scrapedJob.salary_from),
@@ -235,15 +235,16 @@ const transformJob = (scrapedJob: any): Job => {
 
     const fullDesc = scrapedJob.description || 'Popis pozice není k dispozici.';
 
-    // Calculate JHI
-    const jhi = calculateJHI({
-        salary_from: salaryFrom ?? undefined,
-        salary_to: salaryTo ?? undefined,
-        type: scrapedJob.work_type as any,
-        benefits: benefits,
-        description: fullDesc,
-        location: locationString
-    });
+    const jhi = includeJhi
+        ? calculateJHI({
+            salary_from: salaryFrom ?? undefined,
+            salary_to: salaryTo ?? undefined,
+            type: scrapedJob.work_type as any,
+            benefits: benefits,
+            description: fullDesc,
+            location: locationString
+        })
+        : undefined;
 
     return {
         id: String(scrapedJob.id),
@@ -313,22 +314,32 @@ export const getJobCount = async (): Promise<number> => {
     try {
         let count: number | null = null;
         let error: any = null;
+        const selectCount = async (buildQuery: (mode: 'exact' | 'planned') => any) => {
+            const exact = await buildQuery('exact');
+            if (!exact.error) return exact;
+            const planned = await buildQuery('planned');
+            return planned;
+        };
 
         // Preferred definition for landing stat: truly active job offers.
         // Some environments have `status`, some only `is_active`; handle both.
-        const primary = await supabase
-            .from('jobs')
-            .select('*', { count: 'exact', head: true })
-            .eq('is_active', true)
-            .eq('status', 'active');
+        const primary = await selectCount((mode) =>
+            supabase
+                .from('jobs')
+                .select('id', { count: mode, head: true })
+                .eq('is_active', true)
+                .eq('status', 'active')
+        );
         count = primary.count;
         error = primary.error;
 
         if (error && String(error.message || '').toLowerCase().includes("column jobs.status does not exist")) {
-            const fallback = await supabase
-                .from('jobs')
-                .select('*', { count: 'exact', head: true })
-                .eq('is_active', true);
+            const fallback = await selectCount((mode) =>
+                supabase
+                    .from('jobs')
+                    .select('id', { count: mode, head: true })
+                    .eq('is_active', true)
+            );
             count = fallback.count;
             error = fallback.error;
         }
@@ -336,7 +347,7 @@ export const getJobCount = async (): Promise<number> => {
         if (error) {
             noteSupabaseNetworkFailure('getJobCount', error);
             if (isTransientSupabaseError(error) || isSupabaseNetworkCooldownActive()) return 0;
-            console.error("Error fetching job count:", error);
+            console.warn("Job count query failed, returning 0 fallback:", error);
             return 0;
         }
 
@@ -359,29 +370,39 @@ export const getTodayAnalyzedCount = async (): Promise<number> => {
     try {
         const startOfDay = new Date();
         startOfDay.setHours(0, 0, 0, 0);
+        const selectCount = async (buildQuery: (mode: 'exact' | 'planned') => any) => {
+            const exact = await buildQuery('exact');
+            if (!exact.error) return exact;
+            const planned = await buildQuery('planned');
+            return planned;
+        };
 
         // "Reviewed on JHI today" = jobs updated today that already passed legality/JHI screening.
         // Prefer updated_at; if status column is unavailable, fallback gracefully.
         let count: number | null = null;
         let error: any = null;
 
-        const withStatus = await supabase
-            .from('jobs')
-            .select('*', { count: 'exact', head: true })
-            .eq('is_active', true)
-            .eq('status', 'active')
-            .in('legality_status', ['legal', 'review', 'illegal'])
-            .gte('updated_at', startOfDay.toISOString());
+        const withStatus = await selectCount((mode) =>
+            supabase
+                .from('jobs')
+                .select('id', { count: mode, head: true })
+                .eq('is_active', true)
+                .eq('status', 'active')
+                .in('legality_status', ['legal', 'review', 'illegal'])
+                .gte('updated_at', startOfDay.toISOString())
+        );
         count = withStatus.count;
         error = withStatus.error;
 
         if (error && String(error.message || '').toLowerCase().includes("column jobs.status does not exist")) {
-            const withoutStatus = await supabase
-                .from('jobs')
-                .select('*', { count: 'exact', head: true })
-                .eq('is_active', true)
-                .in('legality_status', ['legal', 'review', 'illegal'])
-                .gte('updated_at', startOfDay.toISOString());
+            const withoutStatus = await selectCount((mode) =>
+                supabase
+                    .from('jobs')
+                    .select('id', { count: mode, head: true })
+                    .eq('is_active', true)
+                    .in('legality_status', ['legal', 'review', 'illegal'])
+                    .gte('updated_at', startOfDay.toISOString())
+            );
             count = withoutStatus.count;
             error = withoutStatus.error;
         }
@@ -389,19 +410,21 @@ export const getTodayAnalyzedCount = async (): Promise<number> => {
         if (error) {
             noteSupabaseNetworkFailure('getTodayAnalyzedCount', error);
             if (isTransientSupabaseError(error) || isSupabaseNetworkCooldownActive()) return 0;
-            console.error("Error fetching today's analyzed count:", error);
+            console.warn("Today's analyzed count query failed, returning 0 fallback:", error);
             return 0;
         }
 
         // Some pipelines only fill created_at meaningfully for daily batches.
         // If updated_at is not maintained and result is zero, use created_at fallback.
         if (!count || count <= 0) {
-            const createdFallback = await supabase
-                .from('jobs')
-                .select('*', { count: 'exact', head: true })
-                .eq('is_active', true)
-                .in('legality_status', ['legal', 'review', 'illegal'])
-                .gte('created_at', startOfDay.toISOString());
+            const createdFallback = await selectCount((mode) =>
+                supabase
+                    .from('jobs')
+                    .select('id', { count: mode, head: true })
+                    .eq('is_active', true)
+                    .in('legality_status', ['legal', 'review', 'illegal'])
+                    .gte('created_at', startOfDay.toISOString())
+            );
             if (!createdFallback.error && Number.isFinite(createdFallback.count)) {
                 return createdFallback.count || 0;
             }
@@ -422,7 +445,8 @@ export const fetchJobsPaginated = async (
     userLat?: number,
     userLng?: number,
     radiusKm: number = 50,
-    countryCode?: string
+    countryCode?: string,
+    includeJhi: boolean = true
 ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
     if (!isSupabaseConfigured() || !supabase) {
         console.warn("Supabase not configured.");
@@ -447,7 +471,7 @@ export const fetchJobsPaginated = async (
             if (error) {
                 console.error('Spatial query error:', error);
                 // Fallback to regular query if spatial function not ready
-                return fetchJobsPaginatedFallback(page, pageSize, userLat, userLng, radiusKm, countryCode, undefined);
+                return fetchJobsPaginatedFallback(page, pageSize, userLat, userLng, radiusKm, countryCode, undefined, includeJhi);
             }
 
             if (!data || data.length === 0) {
@@ -476,7 +500,7 @@ export const fetchJobsPaginated = async (
                     lat: row.lat,
                     lng: row.lng,
                     country_code: row.country_code
-                });
+                }, includeJhi);
 
                 // Add distance information
                 (job as any).distance_km = row.distance_km;
@@ -504,7 +528,7 @@ export const fetchJobsPaginated = async (
         }
 
         // Fallback: Regular pagination without location filter
-        return fetchJobsPaginatedFallback(page, pageSize, undefined, undefined, undefined, countryCode, undefined);
+        return fetchJobsPaginatedFallback(page, pageSize, undefined, undefined, undefined, countryCode, undefined, includeJhi);
 
     } catch (e) {
         console.error("Error in fetchJobsPaginated:", e);
@@ -520,7 +544,8 @@ const fetchJobsPaginatedFallback = async (
     userLng?: number,
     _radiusKm?: number, // Not used in fallback
     countryCode?: string,
-    languageCodes?: string[]
+    languageCodes?: string[],
+    includeJhi: boolean = true
 ): Promise<{ jobs: Job[], hasMore: boolean, totalCount: number }> => {
     try {
         // Get total count first
@@ -529,9 +554,12 @@ const fetchJobsPaginatedFallback = async (
         const from = page * pageSize;
         const to = from + pageSize - 1;
 
+        const listSelect = includeJhi
+            ? '*'
+            : 'id,title,company,location,description,benefits,contract_type,salary_from,salary_to,salary_timeframe,work_type,work_model,scraped_at,source,education_level,url,lat,lng,country_code,language_code,legality_status,verification_notes';
         let query = supabase
             .from('jobs')
-            .select('*')
+            .select(listSelect)
             .eq('legality_status', 'legal');
 
         // Apply country code filter if provided
@@ -558,7 +586,7 @@ const fetchJobsPaginatedFallback = async (
         console.log(`📋 Fallback: Fetched ${data.length} jobs (page ${page}, total: ${totalCount}, country: ${countryCode || 'all'})`);
 
         const processedJobs = data.map((job: any) => {
-            const transformed = transformJob(job);
+            const transformed = transformJob(job, includeJhi);
             // Calculate distance if coordinates provided
             if (userLat && userLng && job.lat && job.lng) {
                 (transformed as any).distance_km = calculateDistanceKm(
@@ -698,7 +726,7 @@ export const searchJobsByLocation = async (
             return { jobs: [], hasMore: false, totalCount };
         }
 
-        const processedJobs = mapJobs(data);
+        const processedJobs = mapJobs(data, undefined, undefined, true);
         const filteredJobs = filterJobsByQuality(processedJobs);
 
         console.log(`🏙️  Found ${filteredJobs.length} jobs with location containing "${locationText}" (total: ${totalCount})`);
@@ -753,6 +781,7 @@ export interface JobFilterOptions {
     jhiPreferences?: JHIPreferences;
     userTaxProfile?: TaxProfile;
     abortSignal?: AbortSignal;
+    includeJhi?: boolean;
 }
 
 const isSearchV2Enabled = (): boolean => {
@@ -1166,7 +1195,8 @@ export const fetchJobsWithFilters = async (
         sortMode = 'default',
         jhiPreferences,
         userTaxProfile,
-        abortSignal
+        abortSignal,
+        includeJhi = true
     } = options;
 
     const {
@@ -1201,7 +1231,17 @@ export const fetchJobsWithFilters = async (
         !!(filterMinSalary && filterMinSalary > 0) ||
         filterDatePosted !== 'all' ||
         sortMode !== 'default';
-    const shouldUseHybridSearch = !!BACKEND_URL && (dedicatedSearchRuntime || compactSearchLength >= 2 || hasFilteringIntent || isSearchV2Enabled());
+    const hasSemanticIntent =
+        compactSearchLength >= 2 ||
+        sortMode === 'recommended' ||
+        sortMode === 'personalized_jhi_desc';
+    const shouldUseHybridSearch = !!BACKEND_URL && (
+        hasSemanticIntent ||
+        // Dedicated search runtime can handle heavy filter combinations well.
+        // Without dedicated runtime, prefer Supabase RPC for filter-only queries
+        // to avoid slow backend wake-up / timeout penalties.
+        (dedicatedSearchRuntime && hasFilteringIntent && isSearchV2Enabled())
+    );
     const normalizedCountryCodes = (countryCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
     const normalizedExcludedCountryCodes = (excludeCountryCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
     const normalizedLanguageCodes = (filterLanguageCodes || []).map((c) => normalizeTokenText(String(c))).filter(Boolean);
@@ -1532,9 +1572,12 @@ export const fetchJobsWithFilters = async (
             STRICT_FALLBACK_MAX_WINDOW,
             Math.max(safeRpcPageSize * STRICT_FALLBACK_MULTIPLIER, (page + 1) * safeRpcPageSize * 2)
         );
+        const strictSelect = includeJhi
+            ? '*'
+            : 'id,title,company,location,description,benefits,contract_type,salary_from,salary_to,salary_timeframe,work_type,work_model,scraped_at,source,education_level,url,lat,lng,country_code,language_code,legality_status,verification_notes';
         let fallbackQuery = supabase
             .from('jobs')
-            .select('*')
+            .select(strictSelect)
             .eq('legality_status', 'legal')
             .order('scraped_at', { ascending: false })
             .range(0, fallbackWindow - 1);
@@ -1559,7 +1602,7 @@ export const fetchJobsWithFilters = async (
             throw error;
         }
 
-        const baseJobs = filterJobsByQuality(mapJobs(data || [], finalUserLat, finalUserLng));
+        const baseJobs = filterJobsByQuality(mapJobs(data || [], finalUserLat, finalUserLng, includeJhi));
         const strictJobs = sortJobsForMode(applyStrictClientFilters(baseJobs), sortMode);
         const start = page * safeRpcPageSize;
         const end = start + safeRpcPageSize;
@@ -1601,9 +1644,12 @@ export const fetchJobsWithFilters = async (
 
         const from = page * pageSize;
         const to = from + pageSize - 1;
+        const textSelect = includeJhi
+            ? '*'
+            : 'id,title,company,location,description,benefits,contract_type,salary_from,salary_to,salary_timeframe,work_type,work_model,scraped_at,source,education_level,url,lat,lng,country_code,language_code,legality_status,verification_notes';
         let query = supabase
             .from('jobs')
-            .select('*', { count: 'exact' })
+            .select(textSelect, { count: 'exact' })
             .eq('legality_status', 'legal')
             .or(`title.ilike.%${sanitizedTerm}%,company.ilike.%${sanitizedTerm}%,location.ilike.%${sanitizedTerm}%,description.ilike.%${sanitizedTerm}%`)
             .order('scraped_at', { ascending: false })
@@ -1623,7 +1669,7 @@ export const fetchJobsWithFilters = async (
             return null;
         }
 
-        const processedJobs = mapJobs(data || []);
+        const processedJobs = mapJobs(data || [], undefined, undefined, includeJhi);
         let fallbackJobs = filterJobsByQuality(processedJobs);
         const normalizedFallbackTerm = normalizeTokenText(sanitizedTerm);
         const isShortSingleTokenQuery = compactSearchLength <= 2 && !normalizedFallbackTerm.includes(' ');
@@ -1711,7 +1757,7 @@ export const fetchJobsWithFilters = async (
                     language_code: row.language_code,
                     legality_status: row.legality_status,
                     verification_notes: row.verification_notes
-                });
+                }, includeJhi);
 
                 (job as any).distance_km = row.distance_km;
                 (job as any).hybrid_score = row.hybrid_score;
@@ -1760,7 +1806,7 @@ export const fetchJobsWithFilters = async (
                     language_code: row.language_code,
                     legality_status: row.legality_status,
                     verification_notes: row.verification_notes
-                });
+                }, includeJhi);
                 (job as any).distance_km = row.distance_km;
                 const displayScoreSource = sortMode === 'recommended'
                     ? (row.hybrid_score ?? row.profile_fit_score ?? row.search_score)
@@ -2019,7 +2065,7 @@ export const fetchJobsWithFilters = async (
                 country_code: row.country_code,
                 legality_status: row.legality_status,
                 verification_notes: row.verification_notes
-            });
+            }, includeJhi);
 
             // Add distance and tags information
             (job as any).distance_km = row.distance_km;
@@ -2308,7 +2354,7 @@ export const fetchRealJobs = async (
 };
 
 // Synchronous job mapper - simple and reliable like the original working version
-const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
+const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: boolean = true): Job[] => {
     const mappedJobs = data.map((item: any): Job | null => {
         try {
             const scraped = item as ScrapedJob;
@@ -2454,7 +2500,7 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
                 lat: scraped.lat ? parseFloat(String(scraped.lat)) : undefined,
                 lng: scraped.lng ? parseFloat(String(scraped.lng)) : undefined,
                 ...(distanceKm !== undefined && { distanceKm }),
-                jhi: calculateJHI({
+                jhi: includeJhi ? calculateJHI({
                     salary_from: salaryFrom ?? undefined,
                     salary_to: salaryTo ?? undefined,
                     type: jobType,
@@ -2462,7 +2508,7 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number): Job[] => {
                     description: fullDesc,
                     location: locationString,
                     distanceKm: distanceKm
-                }),
+                }) : undefined,
                 noiseMetrics: estimateNoise(fullDesc),
                 transparency: {
                     turnoverRate: 15,

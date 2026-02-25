@@ -10,6 +10,7 @@ interface Props {
   energy: number;
   culture: number;
   qualityTier?: 'low' | 'medium' | 'high';
+  visualMode?: 'cockpit' | 'dashboard';
 }
 
 const clamp = (value: number, min: number, max: number): number => Math.max(min, Math.min(max, value));
@@ -22,6 +23,7 @@ const BiophilicCockpitScene: React.FC<Props> = ({
   energy,
   culture,
   qualityTier = 'high',
+  visualMode = 'cockpit',
 }) => {
   const rootRef = useRef<Group | null>(null);
   const fieldRef = useRef<Points | null>(null);
@@ -54,10 +56,32 @@ const BiophilicCockpitScene: React.FC<Props> = ({
     return arr;
   }, [fieldCount, fieldSeeds]);
 
+  const palette = visualMode === 'dashboard'
+    ? {
+      deep: '#0c4a6e',
+      bright: '#67e8f9',
+      streamFrom: '#06b6d4',
+      streamTo: '#34d399',
+      fog: '#dbeafe',
+      planeBase: '#dbeafe',
+      planeGlow: '#a7f3d0',
+      sceneBoost: 1.22,
+    }
+    : {
+      deep: '#0f766e',
+      bright: '#99f6e4',
+      streamFrom: '#67e8f9',
+      streamTo: '#bbf7d0',
+      fog: '#02170f',
+      planeBase: '#052e2b',
+      planeGlow: '#164e63',
+      sceneBoost: 1,
+    };
+
   const fieldColors = useMemo(() => {
     const arr = new Float32Array(fieldCount * 3);
-    const deep = new Color('#0f766e');
-    const bright = new Color('#99f6e4');
+    const deep = new Color(palette.deep);
+    const bright = new Color(palette.bright);
     for (let i = 0; i < fieldCount; i += 1) {
       const mix = (i % 13) / 12;
       const color = deep.clone().lerp(bright, mix * 0.85);
@@ -67,13 +91,13 @@ const BiophilicCockpitScene: React.FC<Props> = ({
       arr[j + 2] = color.b;
     }
     return arr;
-  }, [fieldCount]);
+  }, [fieldCount, palette.deep, palette.bright]);
 
   const streamPositions = useMemo(() => new Float32Array(streamCount * 3), [streamCount]);
   const streamColors = useMemo(() => {
     const arr = new Float32Array(streamCount * 3);
-    const from = new Color('#67e8f9');
-    const to = new Color('#bbf7d0');
+    const from = new Color(palette.streamFrom);
+    const to = new Color(palette.streamTo);
     for (let i = 0; i < streamCount; i += 1) {
       const mix = (i % 19) / 18;
       const color = from.clone().lerp(to, mix);
@@ -83,7 +107,7 @@ const BiophilicCockpitScene: React.FC<Props> = ({
       arr[j + 2] = color.b;
     }
     return arr;
-  }, [streamCount]);
+  }, [streamCount, palette.streamFrom, palette.streamTo]);
 
   useFrame(({ clock }, delta) => {
     const t = clock.getElapsedTime();
@@ -129,7 +153,7 @@ const BiophilicCockpitScene: React.FC<Props> = ({
 
   return (
     <group ref={rootRef}>
-      <fog attach="fog" args={['#02170f', 9, 24]} />
+      <fog attach="fog" args={[palette.fog, 9, 24]} />
 
       <points ref={fieldRef}>
         <bufferGeometry>
@@ -140,7 +164,7 @@ const BiophilicCockpitScene: React.FC<Props> = ({
           size={qualityTier === 'low' ? 0.032 : 0.04}
           vertexColors
           transparent
-          opacity={0.3 + intensity * 0.35}
+          opacity={(0.3 + intensity * 0.35) * palette.sceneBoost}
           depthWrite={false}
         />
       </points>
@@ -150,12 +174,17 @@ const BiophilicCockpitScene: React.FC<Props> = ({
           <bufferAttribute attach="attributes-position" args={[streamPositions, 3]} />
           <bufferAttribute attach="attributes-color" args={[streamColors, 3]} />
         </bufferGeometry>
-        <pointsMaterial size={0.085} vertexColors transparent opacity={0.72 + intensity * 0.15} depthWrite={false} />
+        <pointsMaterial size={0.092} vertexColors transparent opacity={Math.min(1, (0.72 + intensity * 0.15) * palette.sceneBoost)} depthWrite={false} />
       </points>
 
       <mesh position={[0, -0.55, -1.5]} scale={[11.5, 6.5, 1]} rotation={[-0.14, 0, 0]}>
         <planeGeometry args={[1, 1]} />
-        <meshStandardMaterial color="#052e2b" emissive="#164e63" emissiveIntensity={0.28} transparent opacity={0.28} />
+        <meshStandardMaterial color={palette.planeBase} emissive={palette.planeGlow} emissiveIntensity={visualMode === 'dashboard' ? 0.42 : 0.28} transparent opacity={visualMode === 'dashboard' ? 0.35 : 0.28} />
+      </mesh>
+
+      <mesh position={[0, 0, -0.9]} scale={[4.7, 2.7, 1]}>
+        <planeGeometry args={[1, 1]} />
+        <meshStandardMaterial color={palette.streamFrom} emissive={palette.streamTo} emissiveIntensity={visualMode === 'dashboard' ? 0.2 : 0.12} transparent opacity={visualMode === 'dashboard' ? 0.16 : 0.1} />
       </mesh>
     </group>
   );
