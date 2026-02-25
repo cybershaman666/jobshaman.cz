@@ -87,7 +87,7 @@ export interface MarketContext {
 
 export interface BenchmarkTransparency {
   source_name: string;
-  source_mode: 'internal_only' | 'blended_internal_public' | 'public_fallback';
+  source_mode: 'internal_only' | 'blended_internal_public' | 'public_fallback' | 'offer_only';
   method_version?: string;
   updated_at: string;
   sample_size: number;
@@ -109,6 +109,9 @@ export interface BenchmarkTransparency {
   fallback_details?: {
     strict_region_sample?: number;
     country_sample?: number;
+    profession_sample?: number;
+    family_sample?: number;
+    group_sample?: number;
     external_sample?: number;
   };
 }
