@@ -269,14 +269,14 @@ export const fetchJobInteractionState = async (limit: number = 5000): Promise<Jo
             if (!response.ok) continue;
 
             const payload = await response.json();
-            const savedJobIds = Array.isArray(payload?.saved_job_ids)
+            const savedJobIds: string[] = Array.isArray(payload?.saved_job_ids)
                 ? payload.saved_job_ids.map((id: unknown) => String(id))
                 : [];
-            const dismissedJobIds = Array.isArray(payload?.dismissed_job_ids)
+            const dismissedJobIds: string[] = Array.isArray(payload?.dismissed_job_ids)
                 ? payload.dismissed_job_ids.map((id: unknown) => String(id))
                 : [];
 
-            const result = {
+            const result: JobInteractionStateResponse = {
                 savedJobIds: Array.from(new Set(savedJobIds)),
                 dismissedJobIds: Array.from(new Set(dismissedJobIds))
             };
