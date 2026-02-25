@@ -60,8 +60,12 @@ const resolveInteractionStateBackends = (): string[] => {
 };
 
 const INTERACTION_BACKEND_COOLDOWN_MS = 20_000;
+const INTERACTION_TRACKING_COOLDOWN_MS = 120_000;
+const INTERACTION_STATE_CACHE_KEY = 'job_interaction_state_cache_v1';
+const INTERACTION_STATE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const interactionBackendCooldownByHost = new Map<string, number>();
 const interactionBackendFailureCountByHost = new Map<string, number>();
+let interactionTrackingDisabledUntil = 0;
 
 const isInteractionBackendCooldownActive = (baseUrl: string): boolean =>
     Date.now() < (interactionBackendCooldownByHost.get(baseUrl) || 0);
@@ -75,7 +79,51 @@ const clearInteractionBackendCooldown = (baseUrl: string): void => {
     interactionBackendFailureCountByHost.delete(baseUrl);
 };
 
+const readInteractionStateCache = (): { savedJobIds: string[]; dismissedJobIds: string[] } | null => {
+    try {
+        const raw = localStorage.getItem(INTERACTION_STATE_CACHE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw) as { savedJobIds?: string[]; dismissedJobIds?: string[]; cachedAt?: string };
+        if (!parsed?.cachedAt) return null;
+        const cachedAt = new Date(parsed.cachedAt).getTime();
+        if (!Number.isFinite(cachedAt)) return null;
+        if (Date.now() - cachedAt > INTERACTION_STATE_CACHE_TTL_MS) return null;
+        return {
+            savedJobIds: Array.isArray(parsed.savedJobIds) ? parsed.savedJobIds.map((id) => String(id)) : [],
+            dismissedJobIds: Array.isArray(parsed.dismissedJobIds) ? parsed.dismissedJobIds.map((id) => String(id)) : []
+        };
+    } catch {
+        return null;
+    }
+};
+
+const writeInteractionStateCache = (payload: { savedJobIds: string[]; dismissedJobIds: string[] }): void => {
+    try {
+        localStorage.setItem(INTERACTION_STATE_CACHE_KEY, JSON.stringify({
+            savedJobIds: payload.savedJobIds,
+            dismissedJobIds: payload.dismissedJobIds,
+            cachedAt: new Date().toISOString()
+        }));
+    } catch {
+        // ignore storage failures
+    }
+};
+
 export const trackJobInteraction = async (payload: JobInteractionPayload): Promise<void> => {
+    if (Date.now() < interactionTrackingDisabledUntil) {
+        return;
+    }
+    if (isBackendNetworkCooldownActive()) {
+        recordRuntimeSignal('interaction_tracking_skipped', {
+            reason: 'backend_cooldown',
+            event_type: payload.eventType
+        }, {
+            dedupeKey: 'backend_cooldown',
+            throttleMs: 60_000,
+            sendAnalytics: false
+        });
+        return;
+    }
     const authToken = await getCurrentAuthTokenSilently();
     if (!authToken) {
         recordRuntimeSignal('interaction_tracking_skipped', {
@@ -167,6 +215,9 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
                     markInteractionBackendCooldown(baseUrl);
                     interactionBackendFailureCountByHost.delete(baseUrl);
                 }
+                if ((error as any)?.name === 'AbortError') {
+                    interactionTrackingDisabledUntil = Date.now() + INTERACTION_TRACKING_COOLDOWN_MS;
+                }
                 continue;
             }
 
@@ -186,6 +237,13 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
 };
 
 export const fetchJobInteractionState = async (limit: number = 5000): Promise<JobInteractionStateResponse> => {
+    const cached = readInteractionStateCache();
+    if (cached) {
+        return {
+            savedJobIds: Array.from(new Set(cached.savedJobIds)),
+            dismissedJobIds: Array.from(new Set(cached.dismissedJobIds))
+        };
+    }
     if (isBackendNetworkCooldownActive()) {
         return { savedJobIds: [], dismissedJobIds: [] };
     }
@@ -199,7 +257,7 @@ export const fetchJobInteractionState = async (limit: number = 5000): Promise<Jo
         return { savedJobIds: [], dismissedJobIds: [] };
     }
 
-    const clampedLimit = Math.max(1, Math.min(20_000, Math.floor(limit || 5000)));
+    const clampedLimit = Math.max(1, Math.min(5_000, Math.floor(limit || 5000)));
 
     for (const baseUrl of backends) {
         try {
@@ -218,10 +276,12 @@ export const fetchJobInteractionState = async (limit: number = 5000): Promise<Jo
                 ? payload.dismissed_job_ids.map((id: unknown) => String(id))
                 : [];
 
-            return {
+            const result = {
                 savedJobIds: Array.from(new Set(savedJobIds)),
                 dismissedJobIds: Array.from(new Set(dismissedJobIds))
             };
+            writeInteractionStateCache(result);
+            return result;
         } catch (error) {
             const msg = String((error as any)?.message || '').toLowerCase();
             const isTransient =

@@ -49,6 +49,7 @@ const resolveRequestTimeoutMs = (url: string): number => {
     const path = getRequestPath(url);
     if (path === '/csrf-token') return CSRF_FETCH_TIMEOUT_MS;
     if (path === '/jobs/interactions') return INTERACTION_FETCH_TIMEOUT_MS;
+    if (path === '/jobs/interactions/state') return 12_000;
     if (path === '/jobs/recommendations') return RECOMMENDATIONS_FETCH_TIMEOUT_MS;
     if (path === '/assessments/invitations') return INVITATIONS_FETCH_TIMEOUT_MS;
     if (path.startsWith('/assessments/invitations/')) return INVITATIONS_FETCH_TIMEOUT_MS;

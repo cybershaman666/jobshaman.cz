@@ -146,6 +146,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const aiMatchScoresLastErrorLogAtRef = useRef(0);
     const recommendationsRetryAfterRef = useRef(0);
     const recommendationsLastErrorLogAtRef = useRef(0);
+    const recommendationsDeferUntilRef = useRef(Date.now() + 20_000);
     const AI_MATCH_CACHE_TTL_MS = 5 * 60 * 1000;
     const AI_MATCH_ERROR_RETRY_MS = 90 * 1000;
     const RECOMMENDATIONS_ERROR_RETRY_MS = 90 * 1000;
@@ -474,7 +475,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 const now = Date.now();
                 const recommendationsAllowed =
                     !isBackendNetworkCooldownActive() &&
-                    now >= recommendationsRetryAfterRef.current;
+                    now >= recommendationsRetryAfterRef.current &&
+                    now >= recommendationsDeferUntilRef.current;
                 if (recommendationsAllowed) {
                     try {
                         const recs = await fetchRecommendedJobs(initialPageSize);

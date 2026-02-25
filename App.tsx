@@ -29,7 +29,7 @@ import { supabase, getUserProfile, updateUserProfile, verifyAuthSession, trackAn
 import { verifyServerSideBilling } from './services/serverSideBillingService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
 import { checkPaymentStatus } from './services/stripeService';
-import { clearCsrfToken, authenticatedFetch } from './services/csrfService';
+import { clearCsrfToken, authenticatedFetch, isBackendNetworkCooldownActive } from './services/csrfService';
 import { clearPasswordRecoveryPending, isPasswordRecoveryPending } from './services/supabaseClient';
 import { trackPageView } from './services/trafficAnalytics';
 import { trackJobInteraction } from './services/jobInteractionService';
@@ -823,16 +823,18 @@ export default function App() {
         const now = Date.now();
         if (last && now - last < 6 * 60 * 60 * 1000) return;
 
-        (async () => {
+        const warmupTimer = setTimeout(async () => {
             try {
+                if (isBackendNetworkCooldownActive()) return;
                 await authenticatedFetch(`${BACKEND_URL}/jobs/recommendations/warmup?limit=80`, {
                     method: 'POST'
                 });
                 localStorage.setItem(key, String(Date.now()));
-            } catch (error) {
-                console.warn('Recommendation warmup failed:', error);
+            } catch {
+                // Avoid noisy logs during backend sleep; this is best-effort only.
             }
-        })();
+        }, 10_000);
+        return () => clearTimeout(warmupTimer);
     }, [userProfile.isLoggedIn, userProfile.id]);
 
     const loadRealJobs = useCallback(async () => {
@@ -1354,23 +1356,41 @@ export default function App() {
         }
     }, [selectedJobId, userProfile]);
 
-    // Wake backend early to reduce cold start latency
+    // Wake backend early to reduce cold start latency (fire-and-forget, no CORS noise).
     useEffect(() => {
-        let didCancel = false;
-        let loggedWakeFailure = false;
-        const wakeBackend = async () => {
-            try {
-                await fetch(`${BACKEND_URL}/healthz`, { method: 'GET' });
-            } catch (err) {
-                if (!didCancel && !loggedWakeFailure) {
-                    console.warn('Backend wake failed:', err);
-                    loggedWakeFailure = true;
-                }
+        const WAKE_THROTTLE_MS = 10 * 60 * 1000;
+        const lastWakeKey = 'jobshaman_backend_wake_at';
+        const wakeBackend = () => {
+            const lastWake = Number(localStorage.getItem(lastWakeKey) || 0);
+            const now = Date.now();
+            if (lastWake && now - lastWake < WAKE_THROTTLE_MS) return;
+            localStorage.setItem(lastWakeKey, String(now));
+            // Use no-cors to avoid console errors; we only need the ping to reach the server.
+            void fetch(`${BACKEND_URL}/healthz`, {
+                method: 'GET',
+                mode: 'no-cors',
+                keepalive: true
+            });
+        };
+
+        const scheduleWake = () => {
+            if ('requestIdleCallback' in window) {
+                (window as any).requestIdleCallback(wakeBackend, { timeout: 1500 });
+            } else {
+                setTimeout(wakeBackend, 800);
             }
         };
-        wakeBackend();
+
+        scheduleWake();
+
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                scheduleWake();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibility);
         return () => {
-            didCancel = true;
+            document.removeEventListener('visibilitychange', handleVisibility);
         };
     }, []);
 
