@@ -326,6 +326,13 @@
     "register_button": "Registrovať",
     "signup": "Zaregistrovať sa",
     "forgot_password": "Zabudli ste heslo?",
+    "new_password": "Nové heslo",
+    "confirm_new_password": "Potvrdenie hesla",
+    "set_new_password": "Nastaviť nové heslo",
+    "password_too_short": "Heslo musí mať aspoň 6 znakov.",
+    "passwords_mismatch": "Heslá sa nezhodujú.",
+    "password_reset_success": "Heslo bolo úspešne zmenené.",
+    "reset_password_failed": "Nepodarilo sa zmeniť heslo.",
     "email_confirm_notice_title": "Pred prihlásením potvrďte e‑mail",
     "email_confirm_notice_body": "Ak ste sa práve zaregistrovali, potvrďte e‑mail v správe, ktorú sme poslali.",
     "continue_with_google": "Pokračovať s Google",
@@ -684,7 +691,14 @@
       "single": "Slobodný/á",
       "married": "Ženatý/vydatá",
       "children": "Počet detí",
-      "spouse_income": "Príjem partnera/partnerky (ročne)"
+      "spouse_income": "Príjem partnera/partnerky (ročne)",
+      "de_tax_class": "Daňová trieda (DE)",
+      "de_church_tax": "Cirkevná daň (DE)",
+      "de_church_none": "Nie",
+      "de_kvz": "KVZ (DE) – Zusatzbeitragssatz %",
+      "at_13_14": "13./14. plat (AT)",
+      "at_13_14_yes": "Áno (štandard)",
+      "at_13_14_no": "Nie"
     },
     "jhi": {
       "title": "JHI preferencie",
@@ -728,6 +742,13 @@
     "github_placeholder": "github.com/meno",
     "transport_pref": "Preferovaná doprava",
     "transport_desc": "Ako sa radšej dopravujete do práce? Túto informáciu budeme používať vo \"Finančnej a dojazdovej realite\" pri každej pozícii.",
+    "transport_selected": "Vybrané",
+    "transport_mode": {
+      "car": "Auto",
+      "public": "MHD",
+      "bike": "Bicykel",
+      "walk": "Pešo"
+    },
     "photo_type_error": "Prosím nahrávajte iba obrázky.",
     "photo_size_error": "Obrázok je príliš veľký. Maximálna veľkosť je 5MB.",
     "cv_type_error": "Prosím nahrávajte iba PDF, DOC alebo DOCX súbory.",

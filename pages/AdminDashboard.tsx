@@ -85,6 +85,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     salary_range: '',
     growth_potential: '',
     ai_impact: '',
+    ai_intensity: 'medium',
     remote_friendly: '',
   });
 
@@ -230,6 +231,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
           salary_range: role.salary_range || '',
           growth_potential: role.growth_potential || '',
           ai_impact: role.ai_impact || '',
+          ai_intensity: role.ai_intensity || 'medium',
           remote_friendly: role.remote_friendly || '',
         };
       });
@@ -255,6 +257,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
         salary_range: jobRoleCreate.salary_range || undefined,
         growth_potential: jobRoleCreate.growth_potential || undefined,
         ai_impact: jobRoleCreate.ai_impact || undefined,
+        ai_intensity: jobRoleCreate.ai_intensity || undefined,
         remote_friendly: jobRoleCreate.remote_friendly || undefined,
       };
       await createAdminJobRole(payload);
@@ -269,6 +272,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
         salary_range: '',
         growth_potential: '',
         ai_impact: '',
+        ai_intensity: 'medium',
         remote_friendly: '',
       });
       await loadJobRoles();
@@ -293,6 +297,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
         salary_range: draft.salary_range || undefined,
         growth_potential: draft.growth_potential || undefined,
         ai_impact: draft.ai_impact || undefined,
+        ai_intensity: draft.ai_intensity || undefined,
         remote_friendly: draft.remote_friendly || undefined,
       };
       await updateAdminJobRole(roleId, payload);
@@ -1016,6 +1021,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-2 bg-white dark:bg-slate-900"
               />
               <input
+                value={jobRoleCreate.ai_intensity}
+                onChange={(e) => setJobRoleCreate(prev => ({ ...prev, ai_intensity: e.target.value }))}
+                placeholder="AI intensity (low/medium/high)"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-2 bg-white dark:bg-slate-900"
+              />
+              <input
                 value={jobRoleCreate.remote_friendly}
                 onChange={(e) => setJobRoleCreate(prev => ({ ...prev, remote_friendly: e.target.value }))}
                 placeholder="Remote (Remote/Hybrid/Onsite)"
@@ -1053,6 +1064,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     <th className="py-2 pr-3">Plat</th>
                     <th className="py-2 pr-3">Growth</th>
                     <th className="py-2 pr-3">AI</th>
+                    <th className="py-2 pr-3">AI intensity</th>
                     <th className="py-2 pr-3">Remote</th>
                     <th className="py-2 pr-3">Akce</th>
                   </tr>
@@ -1100,6 +1112,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                           <input
                             value={draft.ai_impact || ''}
                             onChange={(e) => setJobRoleEdits(prev => ({ ...prev, [role.id]: { ...draft, ai_impact: e.target.value } }))}
+                            className="w-full border border-slate-200 dark:border-slate-800 rounded-md px-2 py-1 bg-white dark:bg-slate-900"
+                          />
+                        </td>
+                        <td className="py-2 pr-3 min-w-[120px]">
+                          <input
+                            value={draft.ai_intensity || ''}
+                            onChange={(e) => setJobRoleEdits(prev => ({ ...prev, [role.id]: { ...draft, ai_intensity: e.target.value } }))}
                             className="w-full border border-slate-200 dark:border-slate-800 rounded-md px-2 py-1 bg-white dark:bg-slate-900"
                           />
                         </td>

@@ -86,7 +86,7 @@ const fetchRolesFromSupabase = async (): Promise<any[]> => {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from('job_role_profiles')
-    .select('id, title, d1, d2, d3, d4, d5, d6, salary_range, growth_potential, ai_impact, remote_friendly');
+    .select('id, title, d1, d2, d3, d4, d5, d6, salary_range, growth_potential, ai_impact, ai_intensity, remote_friendly');
   if (error) throw error;
   return data || [];
 };
@@ -142,6 +142,24 @@ const fitScore = (user: Record<string, number>, role: Record<string, number>) =>
   return Math.max(0, Math.min(100, score));
 };
 
+const HIGH_GATE_THRESHOLD = 5.5;
+const LOW_GATE_THRESHOLD = 2.5;
+const ROLE_HIGH_MIN = 4.6;
+const ROLE_LOW_MAX = 3.8;
+
+const passesHardGates = (userProfile: Record<string, number>, roleProfile: Record<string, number>, aiIntensity?: string) => {
+  for (const dim of Object.keys(WEIGHTS)) {
+    const u = Number(userProfile[dim] ?? 0);
+    const r = Number(roleProfile[dim] ?? 0);
+    if (u >= HIGH_GATE_THRESHOLD && r < ROLE_HIGH_MIN) return false;
+    if (u <= LOW_GATE_THRESHOLD && r > ROLE_LOW_MAX) return false;
+  }
+  if (Number(userProfile.d6_ai_readiness ?? 0) >= HIGH_GATE_THRESHOLD) {
+    if ((aiIntensity || '').toLowerCase() !== 'high') return false;
+  }
+  return true;
+};
+
 const rankRolesLocal = (userProfile: Record<string, number>, roles: any[]) => {
   const ranked = roles.map((role) => {
     const roleProfile = {
@@ -152,6 +170,9 @@ const rankRolesLocal = (userProfile: Record<string, number>, roles: any[]) => {
       d5_values: Number(role.d5),
       d6_ai_readiness: Number(role.d6),
     };
+    if (!passesHardGates(userProfile, roleProfile, role.ai_intensity)) {
+      return null;
+    }
     return {
       role_id: role.id,
       title: role.title,
@@ -162,7 +183,69 @@ const rankRolesLocal = (userProfile: Record<string, number>, roles: any[]) => {
       remote_friendly: role.remote_friendly || null,
     };
   });
-  return ranked.sort((a, b) => (b.fit_score || 0) - (a.fit_score || 0)).slice(0, 10);
+  return ranked
+    .filter(Boolean)
+    .sort((a: any, b: any) => (b.fit_score || 0) - (a.fit_score || 0))
+    .slice(0, 10);
+};
+
+export const mapJcfpmToJhiPreferences = (
+  snapshot: JcfpmSnapshotV1,
+  current: import('../types').JHIPreferences
+): import('../types').JHIPreferences => {
+  const pct = (dim: import('../types').JcfpmDimensionId) => {
+    const value = snapshot.percentile_summary?.[dim];
+    if (typeof value === 'number') return Math.max(0, Math.min(100, value));
+    const row = (snapshot.dimension_scores || []).find((r) => r.dimension === dim);
+    return typeof row?.percentile === 'number' ? Math.max(0, Math.min(100, row.percentile)) : 50;
+  };
+
+  const d2 = pct('d2_social');
+  const d3 = pct('d3_motivational');
+  const d4 = pct('d4_energy');
+  const d5 = pct('d5_values');
+  const d6 = pct('d6_ai_readiness');
+
+  const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+  const tValues = d5 / 100;
+  const tGrowth = ((d3 + d6) / 2) / 100;
+  const tEnergy = d4 / 100;
+
+  let financial = 0.25;
+  let values = lerp(0.08, 0.22, tValues);
+  let growth = lerp(0.12, 0.25, tGrowth);
+  let timeCost = lerp(0.3, 0.15, tEnergy);
+  let mentalLoad = 1 - (financial + values + growth + timeCost);
+  mentalLoad = Math.max(0.12, Math.min(0.3, mentalLoad));
+
+  const total = financial + values + growth + timeCost + mentalLoad;
+  financial /= total;
+  values /= total;
+  growth /= total;
+  timeCost /= total;
+  mentalLoad /= total;
+
+  const peopleIntensity = Math.round(d2);
+  const careerGrowthPreference = Math.round((d3 + d6) / 2);
+  const homeOfficePreference = Math.round(50 + (100 - d2) * 0.2 + (100 - d4) * 0.2);
+
+  return {
+    ...current,
+    pillarWeights: {
+      ...current.pillarWeights,
+      financial,
+      timeCost,
+      mentalLoad,
+      growth,
+      values,
+    },
+    workStyle: {
+      ...current.workStyle,
+      peopleIntensity,
+      careerGrowthPreference,
+      homeOfficePreference: Math.max(0, Math.min(100, homeOfficePreference)),
+    },
+  };
 };
 
 export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {

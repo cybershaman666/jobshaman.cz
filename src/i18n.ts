@@ -3,6 +3,8 @@ import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
 import Backend from 'i18next-http-backend';
 
+const I18N_VERSION = '20260226-1';
+
 i18n
     // load translation using http -> see /public/locales (i.e. https://github.com/i18next/react-i18next/tree/master/example/react/public/locales)
     // learn more: https://github.com/i18next/i18next-http-backend
@@ -30,7 +32,7 @@ i18n
 
         // Improve caching
         backend: {
-            loadPath: '/locales/{{lng}}/{{ns}}.json',
+            loadPath: `/locales/{{lng}}/{{ns}}.json?v=${I18N_VERSION}`,
         },
 
         interpolation: {

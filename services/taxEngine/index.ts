@@ -11,16 +11,36 @@ export const DEFAULT_TAX_YEAR = 2026;
 export const createDefaultTaxProfile = (
   countryCode: SupportedCountryCode = 'CZ',
   taxYear: number = DEFAULT_TAX_YEAR
-): TaxProfile => ({
-  countryCode,
-  taxYear,
-  employmentType: 'employee',
-  maritalStatus: 'single',
-  spouseAnnualIncome: 0,
-  childrenCount: 0,
-  isSingleParent: false,
-  specialReliefs: [],
-});
+): TaxProfile => {
+  const base: TaxProfile = {
+    countryCode,
+    taxYear,
+    employmentType: 'employee',
+    maritalStatus: 'single',
+    spouseAnnualIncome: 0,
+    childrenCount: 0,
+    isSingleParent: false,
+    specialReliefs: [],
+  };
+
+  if (countryCode === 'DE') {
+    return {
+      ...base,
+      deTaxClass: base.maritalStatus === 'married' ? 'IV' : 'I',
+      deChurchTaxRate: 0,
+      deKvzRate: 2.9,
+    };
+  }
+
+  if (countryCode === 'AT') {
+    return {
+      ...base,
+      atHas13th14th: true,
+    };
+  }
+
+  return base;
+};
 
 export const computeTaxByProfile = (input: TaxComputationInput): TaxComputationResult => {
   switch (input.taxProfile.countryCode) {

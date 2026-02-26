@@ -14,6 +14,7 @@ export interface JHI {
 export type SupportedCountryCode = 'CZ' | 'SK' | 'PL' | 'DE' | 'AT';
 export type EmploymentType = 'employee' | 'contractor';
 export type MaritalStatus = 'single' | 'married';
+export type GermanTaxClass = 'I' | 'II' | 'III' | 'IV' | 'V' | 'VI';
 
 export interface TaxProfile {
   countryCode: SupportedCountryCode;
@@ -24,6 +25,10 @@ export interface TaxProfile {
   childrenCount: number;
   isSingleParent?: boolean;
   specialReliefs?: string[];
+  deTaxClass?: GermanTaxClass;
+  deChurchTaxRate?: number; // 0, 0.08, 0.09
+  deKvzRate?: number; // Zusatzbeitragssatz (%), e.g. 2.9
+  atHas13th14th?: boolean; // Austria standard
 }
 
 export interface JHIPillarWeights {

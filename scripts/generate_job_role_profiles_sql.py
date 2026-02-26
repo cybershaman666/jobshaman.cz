@@ -47,6 +47,7 @@ def main() -> None:
                 "salary_range": (row.get("salary_range") or "").strip(),
                 "growth_potential": (row.get("growth_potential") or "").strip(),
                 "ai_impact": (row.get("ai_impact") or "").strip(),
+                "ai_intensity": (row.get("ai_intensity") or "").strip(),
                 "remote_friendly": (row.get("remote_friendly") or "").strip(),
             })
 
@@ -60,11 +61,11 @@ def main() -> None:
         return "'" + value.replace("'", "''") + "'"
 
     with output_path.open("w", encoding="utf-8") as handle:
-        handle.write("INSERT INTO public.job_role_profiles (title, d1, d2, d3, d4, d5, d6, salary_range, growth_potential, ai_impact, remote_friendly) VALUES\n")
+        handle.write("INSERT INTO public.job_role_profiles (title, d1, d2, d3, d4, d5, d6, salary_range, growth_potential, ai_impact, ai_intensity, remote_friendly) VALUES\n")
         for idx, row in enumerate(rows):
             tail = "," if idx < len(rows) - 1 else ""
             handle.write(
-                "('{title}', {d1:.2f}, {d2:.2f}, {d3:.2f}, {d4:.2f}, {d5:.2f}, {d6:.2f}, {salary_range}, {growth_potential}, {ai_impact}, {remote_friendly}){tail}\n".format(
+                "('{title}', {d1:.2f}, {d2:.2f}, {d3:.2f}, {d4:.2f}, {d5:.2f}, {d6:.2f}, {salary_range}, {growth_potential}, {ai_impact}, {ai_intensity}, {remote_friendly}){tail}\n".format(
                     title=row["title"].replace("'", "''"),
                     d1=row["d1"],
                     d2=row["d2"],
@@ -75,6 +76,7 @@ def main() -> None:
                     salary_range=_sql_str(row["salary_range"]),
                     growth_potential=_sql_str(row["growth_potential"]),
                     ai_impact=_sql_str(row["ai_impact"]),
+                    ai_intensity=_sql_str(row["ai_intensity"]),
                     remote_friendly=_sql_str(row["remote_friendly"]),
                     tail=tail,
                 )

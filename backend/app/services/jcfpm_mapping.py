@@ -11,6 +11,26 @@ WEIGHTS = {
     "d6_ai_readiness": 1.1,
 }
 
+HIGH_GATE_THRESHOLD = 5.5  # user is very high on dimension
+LOW_GATE_THRESHOLD = 2.5   # user is very low on dimension
+ROLE_HIGH_MIN = 4.6        # role must not be too low if user is high
+ROLE_LOW_MAX = 3.8         # role must not be too high if user is low
+
+
+def _passes_hard_gates(user: Dict[str, float], role: Dict[str, float], ai_intensity: str | None = None) -> bool:
+    for dim in WEIGHTS.keys():
+        u = float(user.get(dim, 0))
+        r = float(role.get(dim, 0))
+        if u >= HIGH_GATE_THRESHOLD and r < ROLE_HIGH_MIN:
+            return False
+        if u <= LOW_GATE_THRESHOLD and r > ROLE_LOW_MAX:
+            return False
+    # Extra hard gate for high AI readiness
+    if float(user.get("d6_ai_readiness", 0)) >= HIGH_GATE_THRESHOLD:
+        if (ai_intensity or "").lower() != "high":
+            return False
+    return True
+
 
 def _weighted_distance(user: Dict[str, float], role: Dict[str, float]) -> float:
     total_w = sum(WEIGHTS.values())
@@ -41,6 +61,8 @@ def rank_roles(user: Dict[str, float], roles: List[dict], top_n: int = 10) -> Li
             "d5_values": role.get("d5"),
             "d6_ai_readiness": role.get("d6"),
         }
+        if not _passes_hard_gates(user, role_profile, role.get("ai_intensity")):
+            continue
         score = fit_score(user, role_profile)
         ranked.append({
             "role_id": role.get("id"),

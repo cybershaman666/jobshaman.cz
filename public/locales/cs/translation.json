@@ -326,6 +326,13 @@
     "register_button": "Registrovat",
     "signup": "Zaregistrovat se",
     "forgot_password": "Zapomněli jste heslo?",
+    "new_password": "Nové heslo",
+    "confirm_new_password": "Potvrzení hesla",
+    "set_new_password": "Nastavit nové heslo",
+    "password_too_short": "Heslo musí mít alespoň 6 znaků.",
+    "passwords_mismatch": "Hesla se neshodují.",
+    "password_reset_success": "Heslo bylo úspěšně změněno.",
+    "reset_password_failed": "Nepodařilo se změnit heslo.",
     "email_confirm_notice_title": "Před přihlášením potvrďte e‑mail",
     "email_confirm_notice_body": "Pokud jste se právě zaregistrovali, nejdřív potvrďte e‑mail v doručené zprávě.",
     "continue_with_google": "Pokračovat s Google",
@@ -680,6 +687,13 @@
     "github_placeholder": "github.com/jmeno",
     "transport_pref": "Preferovaná doprava",
     "transport_desc": "Jak se raději dopravujete do práce? Tuto informaci budeme používat ve \"Finanční a dojezdové realitě\" u každé pozice.",
+    "transport_selected": "Vybrané",
+    "transport_mode": {
+      "car": "Autem",
+      "public": "MHD",
+      "bike": "Kolo",
+      "walk": "Pěšky"
+    },
     "tax": {
       "title": "Daňový profil",
       "country": "Země",
@@ -691,7 +705,14 @@
       "single": "Svobodný/á",
       "married": "Ženatý/vdaná",
       "children": "Počet dětí",
-      "spouse_income": "Příjem partnera/ky (ročně)"
+      "spouse_income": "Příjem partnera/ky (ročně)",
+      "de_tax_class": "Daňová třída (DE)",
+      "de_church_tax": "Církevní daň (DE)",
+      "de_church_none": "Ne",
+      "de_kvz": "KVZ (DE) – Zusatzbeitragssatz %",
+      "at_13_14": "13./14. plat (AT)",
+      "at_13_14_yes": "Ano (standard)",
+      "at_13_14_no": "Ne"
     },
     "jhi": {
       "title": "JHI preference",

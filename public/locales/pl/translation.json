@@ -326,6 +326,13 @@
     "register_button": "Zarejestruj się",
     "signup": "Zarejestruj się",
     "forgot_password": "Zapomniałeś hasła?",
+    "new_password": "Nowe hasło",
+    "confirm_new_password": "Potwierdź nowe hasło",
+    "set_new_password": "Ustaw nowe hasło",
+    "password_too_short": "Hasło musi mieć co najmniej 6 znaków.",
+    "passwords_mismatch": "Hasła nie są zgodne.",
+    "password_reset_success": "Hasło zostało zmienione.",
+    "reset_password_failed": "Nie udało się zmienić hasła.",
     "email_confirm_notice_title": "Przed logowaniem potwierdź e‑mail",
     "email_confirm_notice_body": "Jeśli dopiero się zarejestrowałeś, potwierdź e‑mail z wiadomości, którą wysłaliśmy.",
     "continue_with_google": "Kontynuuj z Google",
@@ -658,7 +665,14 @@
       "single": "Singiel",
       "married": "Małżeństwo",
       "children": "Liczba dzieci",
-      "spouse_income": "Dochód partnera/partnerki (rocznie)"
+      "spouse_income": "Dochód partnera/partnerki (rocznie)",
+      "de_tax_class": "Klasa podatkowa (DE)",
+      "de_church_tax": "Podatek kościelny (DE)",
+      "de_church_none": "Nie",
+      "de_kvz": "KVZ (DE) – dodatkowa składka zdrowotna %",
+      "at_13_14": "13./14. wypłata (AT)",
+      "at_13_14_yes": "Tak (standard)",
+      "at_13_14_no": "Nie"
     },
     "jhi": {
       "title": "Preferencje JHI",
@@ -827,8 +841,15 @@
       "skills": "Dovednosti"
     },
     "title": "Profil",
-    "transport_desc": "Jak se raději dopravujete do práce? Tuto informaci budeme používat ve \"Finanční a dojezdové realitě\" u každé pozice.",
-    "transport_pref": "Preferovaná doprava",
+    "transport_desc": "Jak najchętniej dojeżdżasz do pracy? Tę informację wykorzystamy w \"Rzeczywistości finansowej i dojazdów\" przy każdej roli.",
+    "transport_pref": "Preferowany transport",
+    "transport_selected": "Wybrane",
+    "transport_mode": {
+      "car": "Auto",
+      "public": "Transport publiczny",
+      "bike": "Rower",
+      "walk": "Pieszo"
+    },
     "year_placeholder": "např. 2020"
   },
   "cv_manager": {

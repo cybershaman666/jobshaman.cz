@@ -1,8 +1,9 @@
 import React from 'react';
-import { 
-  Car, 
-  Bus, 
-  Bike, 
+import { useTranslation } from 'react-i18next';
+import {
+  Car,
+  Bus,
+  Bike,
   Footprints
 } from 'lucide-react';
 import { TransportMode } from '../services/transportService';
@@ -18,6 +19,7 @@ const TransportModeSelector: React.FC<TransportModeSelectorProps> = ({
   onModeChange,
   compact = false
 }) => {
+  const { t } = useTranslation();
 
   const getIcon = (mode: TransportMode) => {
     const modes = {
@@ -30,13 +32,7 @@ const TransportModeSelector: React.FC<TransportModeSelectorProps> = ({
   };
 
   const getLabel = (mode: TransportMode) => {
-    const labels = {
-      car: 'Autem',
-      public: 'MHD',
-      bike: 'Kolo',
-      walk: 'Pěšky'
-    };
-    return labels[mode];
+    return t(`profile.transport_mode.${mode}`);
   };
 
   const getBgColor = (mode: TransportMode, isSelected: boolean) => {
@@ -74,7 +70,7 @@ const TransportModeSelector: React.FC<TransportModeSelectorProps> = ({
     <div className={`${compact ? 'space-y-2' : 'space-y-4'}`}>
       {compact && (
         <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">
-          Preferovaná doprava:
+          {t('profile.transport_pref')}:
         </p>
       )}
       <div className={`grid gap-2 ${compact ? 'grid-cols-4' : 'grid-cols-2 md:grid-cols-4'}`}>
@@ -98,7 +94,7 @@ const TransportModeSelector: React.FC<TransportModeSelectorProps> = ({
                 {getLabel(mode)}
               </p>
               {isSelected && (
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">Vybrané</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">{t('profile.transport_selected')}</p>
               )}
             </button>
           );

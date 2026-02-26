@@ -164,6 +164,7 @@ class AdminJobRoleCreateRequest(BaseModel):
     salary_range: Optional[str] = Field(None, max_length=120)
     growth_potential: Optional[str] = Field(None, max_length=60)
     ai_impact: Optional[str] = Field(None, max_length=60)
+    ai_intensity: Optional[str] = Field(None, max_length=60)
     remote_friendly: Optional[str] = Field(None, max_length=60)
     weights: Optional[dict] = None
 
@@ -179,6 +180,7 @@ class AdminJobRoleUpdateRequest(BaseModel):
     salary_range: Optional[str] = Field(None, max_length=120)
     growth_potential: Optional[str] = Field(None, max_length=60)
     ai_impact: Optional[str] = Field(None, max_length=60)
+    ai_intensity: Optional[str] = Field(None, max_length=60)
     remote_friendly: Optional[str] = Field(None, max_length=60)
     weights: Optional[dict] = None
 

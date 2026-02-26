@@ -217,6 +217,7 @@ export async function createAdminJobRole(payload: {
   salary_range?: string;
   growth_potential?: string;
   ai_impact?: string;
+  ai_intensity?: string;
   remote_friendly?: string;
   weights?: Record<string, unknown>;
 }) {
@@ -246,6 +247,7 @@ export async function updateAdminJobRole(roleId: string, payload: {
   salary_range?: string;
   growth_potential?: string;
   ai_impact?: string;
+  ai_intensity?: string;
   remote_friendly?: string;
   weights?: Record<string, unknown>;
 }) {

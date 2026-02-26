@@ -54,6 +54,7 @@ import AnalyticsService from '../services/analyticsService';
 import JcfpmEntryCard from './jcfpm/JcfpmEntryCard';
 import JcfpmFlow from './jcfpm/JcfpmFlow';
 import { readJcfpmDraft } from '../services/jcfpmSessionState';
+import { mapJcfpmToJhiPreferences } from '../services/jcfpmService';
 
 import { useTranslation } from 'react-i18next';
 
@@ -572,6 +573,20 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     onChange({ ...profile, taxProfile: updatedTaxProfile });
   };
 
+  const handleTaxCountryChange = (nextCountry: TaxProfile['countryCode']) => {
+    const defaults = createDefaultTaxProfileByCountry(nextCountry, formData.taxProfile.taxYear);
+    const updatedTaxProfile: TaxProfile = {
+      ...defaults,
+      employmentType: formData.taxProfile.employmentType,
+      maritalStatus: formData.taxProfile.maritalStatus,
+      spouseAnnualIncome: formData.taxProfile.spouseAnnualIncome || 0,
+      childrenCount: formData.taxProfile.childrenCount || 0,
+      isSingleParent: formData.taxProfile.isSingleParent || false,
+    };
+    setFormData(prev => ({ ...prev, taxProfile: updatedTaxProfile }));
+    onChange({ ...profile, taxProfile: updatedTaxProfile });
+  };
+
   const handleJhiPreferenceWeightChange = (field: keyof JHIPreferences['pillarWeights'], value: number) => {
     if (!isPremium) return;
     const updated: JHIPreferences = {
@@ -878,12 +893,17 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const handleJcfpmPersist = async (snapshot: JcfpmSnapshotV1) => {
     setJcfpmSnapshot(snapshot);
     setHasJcfpmDraft(false);
+    const nextJhiPreferences = mapJcfpmToJhiPreferences(
+      snapshot,
+      profile.jhiPreferences || createDefaultJHIPreferences()
+    );
     const updatedProfile: UserProfile = {
       ...profile,
       preferences: {
         ...profile.preferences,
         jcfpm_v1: snapshot,
       },
+      jhiPreferences: nextJhiPreferences,
     };
     await Promise.resolve(onChange(updatedProfile, true));
     AnalyticsService.trackEvent('jcfpm_profile_saved', {
@@ -1841,7 +1861,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">{t('profile.tax.country')}</label>
                   <select
                     value={formData.taxProfile.countryCode}
-                    onChange={(e) => handleTaxProfileChange('countryCode', e.target.value as TaxProfile['countryCode'])}
+                    onChange={(e) => handleTaxCountryChange(e.target.value as TaxProfile['countryCode'])}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
                   >
                     <option value="CZ">CZ</option>
@@ -1902,6 +1922,70 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
                   />
                 </div>
+                {formData.taxProfile.countryCode === 'DE' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        {t('profile.tax.de_tax_class', { defaultValue: 'Daňová třída (DE)' })}
+                      </label>
+                      <select
+                        value={formData.taxProfile.deTaxClass || (formData.taxProfile.maritalStatus === 'married' ? 'IV' : 'I')}
+                        onChange={(e) => handleTaxProfileChange('deTaxClass', e.target.value as TaxProfile['deTaxClass'])}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                      >
+                        <option value="I">I</option>
+                        <option value="II">II</option>
+                        <option value="III">III</option>
+                        <option value="IV">IV</option>
+                        <option value="V">V</option>
+                        <option value="VI">VI</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        {t('profile.tax.de_church_tax', { defaultValue: 'Církevní daň (DE)' })}
+                      </label>
+                      <select
+                        value={formData.taxProfile.deChurchTaxRate ?? 0}
+                        onChange={(e) => handleTaxProfileChange('deChurchTaxRate', Number(e.target.value))}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                      >
+                        <option value={0}>{t('profile.tax.de_church_none', { defaultValue: 'Ne' })}</option>
+                        <option value={0.08}>8 %</option>
+                        <option value={0.09}>9 %</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                        {t('profile.tax.de_kvz', { defaultValue: 'KVZ (DE) – Zusatzbeitragssatz %' })}
+                      </label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={5}
+                        step={0.1}
+                        value={formData.taxProfile.deKvzRate ?? 2.9}
+                        onChange={(e) => handleTaxProfileChange('deKvzRate', Number(e.target.value) || 0)}
+                        className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                      />
+                    </div>
+                  </>
+                )}
+                {formData.taxProfile.countryCode === 'AT' && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                      {t('profile.tax.at_13_14', { defaultValue: '13./14. plat (AT)' })}
+                    </label>
+                    <select
+                      value={formData.taxProfile.atHas13th14th === false ? 'no' : 'yes'}
+                      onChange={(e) => handleTaxProfileChange('atHas13th14th', e.target.value === 'yes')}
+                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg dark:bg-slate-700 dark:text-white"
+                    >
+                      <option value="yes">{t('profile.tax.at_13_14_yes', { defaultValue: 'Ano (standard)' })}</option>
+                      <option value="no">{t('profile.tax.at_13_14_no', { defaultValue: 'Ne' })}</option>
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2377,7 +2461,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   72 položek • 6 dimenzí • AI report + top role
                 </p>
               </div>
-              <div className="p-6 space-y-4 bg-gradient-to-br from-emerald-50/80 via-sky-50/70 to-stone-50/80">
+              <div className="p-6 space-y-4 bg-gradient-to-br from-emerald-50/80 via-sky-50/70 to-stone-50/80 dark:from-slate-900/70 dark:via-slate-900/80 dark:to-slate-950/80">
                 <JcfpmEntryCard
                   isPremium={isPremium}
                   hasDraft={hasJcfpmDraft}
@@ -2551,9 +2635,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       </div>
 
       {jcfpmStarted && (
-        <div className="fixed inset-0 z-[95] bg-gradient-to-br from-emerald-50/90 via-sky-50/90 to-stone-50/90 backdrop-blur-md">
+        <div className="fixed inset-0 z-[95] bg-gradient-to-br from-emerald-50/90 via-sky-50/90 to-stone-50/90 dark:from-slate-950/95 dark:via-slate-900/95 dark:to-slate-950/95 backdrop-blur-md">
           <div className="h-full w-full overflow-y-auto p-3 sm:p-6">
-            <div className="mx-auto min-h-full w-full max-w-[1200px] rounded-3xl border border-emerald-100 bg-white/90 shadow-[0_40px_120px_rgba(16,24,40,0.18)]">
+            <div className="mx-auto min-h-full w-full max-w-[1200px] rounded-3xl border border-emerald-100 dark:border-slate-700/60 bg-white/90 dark:bg-slate-900/90 shadow-[0_40px_120px_rgba(16,24,40,0.18)] dark:shadow-[0_40px_120px_rgba(2,6,23,0.6)]">
               <JcfpmFlow
                 initialSnapshot={jcfpmSnapshot}
                 mode={jcfpmView}

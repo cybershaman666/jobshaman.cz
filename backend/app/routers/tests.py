@@ -68,7 +68,7 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, user: dict = Depends(verify_
     role_resp = (
         supabase
         .table("job_role_profiles")
-        .select("id,title,d1,d2,d3,d4,d5,d6,salary_range,growth_potential,ai_impact,remote_friendly")
+        .select("id,title,d1,d2,d3,d4,d5,d6,salary_range,growth_potential,ai_impact,ai_intensity,remote_friendly")
         .execute()
     )
     roles = role_resp.data or []

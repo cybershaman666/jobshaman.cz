@@ -326,6 +326,13 @@
     "register_button": "Registrieren",
     "signup": "Registrieren",
     "forgot_password": "Passwort vergessen?",
+    "new_password": "Neues Passwort",
+    "confirm_new_password": "Passwort bestätigen",
+    "set_new_password": "Neues Passwort setzen",
+    "password_too_short": "Passwort muss mindestens 6 Zeichen haben.",
+    "passwords_mismatch": "Passwörter stimmen nicht überein.",
+    "password_reset_success": "Passwort wurde erfolgreich geändert.",
+    "reset_password_failed": "Passwort konnte nicht geändert werden.",
     "email_confirm_notice_title": "Bitte bestätigen Sie Ihre E‑Mail vor dem Login",
     "email_confirm_notice_body": "Wenn Sie sich gerade registriert haben, bestätigen Sie Ihre E‑Mail über die Nachricht, die wir gesendet haben.",
     "continue_with_google": "Mit Google fortfahren",
@@ -658,7 +665,14 @@
       "single": "Ledig",
       "married": "Verheiratet",
       "children": "Kinder",
-      "spouse_income": "Einkommen Partner/in (jährlich)"
+      "spouse_income": "Einkommen Partner/in (jährlich)",
+      "de_tax_class": "Steuerklasse (DE)",
+      "de_church_tax": "Kirchensteuer (DE)",
+      "de_church_none": "Nein",
+      "de_kvz": "KVZ (DE) – Zusatzbeitragssatz %",
+      "at_13_14": "13./14. Gehalt (AT)",
+      "at_13_14_yes": "Ja (Standard)",
+      "at_13_14_no": "Nein"
     },
     "jhi": {
       "title": "JHI-Präferenzen",
@@ -827,8 +841,15 @@
       "skills": "Dovednosti"
     },
     "title": "Profil",
-    "transport_desc": "Jak se raději dopravujete do práce? Tuto informaci budeme používat ve \"Finanční a dojezdové realitě\" u každé pozice.",
-    "transport_pref": "Preferovaná doprava",
+    "transport_desc": "Wie kommst du am liebsten zur Arbeit? Diese Info nutzen wir in der \"Finanz- und Pendelrealität\" bei jeder Rolle.",
+    "transport_pref": "Bevorzugtes Verkehrsmittel",
+    "transport_selected": "Ausgewählt",
+    "transport_mode": {
+      "car": "Auto",
+      "public": "ÖPNV",
+      "bike": "Fahrrad",
+      "walk": "Zu Fuß"
+    },
     "year_placeholder": "např. 2020"
   },
   "cv_manager": {

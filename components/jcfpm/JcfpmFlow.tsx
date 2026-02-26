@@ -47,6 +47,33 @@ const DIMENSIONS: { id: JcfpmDimensionId; title: string; subtitle: string }[] = 
 
 const LIKERT = [1, 2, 3, 4, 5, 6, 7];
 
+const INTERLUDES: Record<JcfpmDimensionId, { title: string; body: string }> = {
+  d1_cognitive: {
+    title: 'Kognitivní styl',
+    body: 'Jak přemýšlíš, filtruješ informace a rozhoduješ se. Půjdeme přímo po tvém vnitřním „procesoru“.',
+  },
+  d2_social: {
+    title: 'Sociální orientace',
+    body: 'Kde se cítíš nejlépe mezi lidmi? Zda ti víc sedí spolupráce, vedení, nebo klidná samostatnost.',
+  },
+  d3_motivational: {
+    title: 'Motivační profil',
+    body: 'Co tě dlouhodobě žene kupředu a co tě naopak vyčerpává. Teď zachytíme tvé motivátory.',
+  },
+  d4_energy: {
+    title: 'Energetický pattern',
+    body: 'Tvé tempo, rytmus a pracovní energie. Najdeme styl, ve kterém umíš podávat nejlepší výkon.',
+  },
+  d5_values: {
+    title: 'Hodnotová kotvení',
+    body: 'Kdy práce opravdu dává smysl. Tady mapujeme hodnoty, bez kterých to „nesedí“.',
+  },
+  d6_ai_readiness: {
+    title: 'AI readiness',
+    body: 'Jak se cítíš v proměnách a nových technologiích. Závěrečný pohled na adaptabilitu.',
+  },
+};
+
 const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', onPersist, onClose }) => {
   const draft = readJcfpmDraft();
   const [items, setItems] = useState<JcfpmItem[]>([]);
@@ -127,14 +154,18 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', onPersist,
   const canAdvance = currentItem ? responses[currentItem.id] != null : false;
 
   const prevDimRef = React.useRef<string | null>(null);
+  const prevStepRef = React.useRef<number>(stepIndex);
   useEffect(() => {
     const currentDimId = currentItem?.dimension || null;
     const prevDimId = prevDimRef.current;
-    if (prevDimId && currentDimId && prevDimId !== currentDimId) {
+    const prevStep = prevStepRef.current;
+    const movingForward = stepIndex > prevStep;
+    if (movingForward && prevDimId && currentDimId && prevDimId !== currentDimId) {
       setShowInterlude(true);
     }
     prevDimRef.current = currentDimId;
-  }, [currentItem?.dimension]);
+    prevStepRef.current = stepIndex;
+  }, [currentItem?.dimension, stepIndex]);
 
   const progress = viewMode === 'report'
     ? 100
@@ -273,10 +304,10 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', onPersist,
             <div className="jcfpm-interlude">
               <div className="jcfpm-interlude-card">
                 <div className="text-xs uppercase tracking-[0.2em] text-emerald-600">Nová dimenze</div>
-                <div className="mt-2 text-lg font-semibold text-slate-900">{currentDim.title}</div>
+                <div className="mt-2 jcfpm-heading text-lg font-semibold text-slate-900">{INTERLUDES[currentDim.id]?.title || currentDim.title}</div>
                 <p className="mt-2 text-sm text-slate-600">{currentDim.subtitle}</p>
-                <p className="mt-3 text-sm text-slate-500">
-                  V této části zklidníme tempo a zaměříme se na další vrstvu tvého pracovního profilu.
+                <p className="mt-3 text-sm text-slate-600">
+                  {INTERLUDES[currentDim.id]?.body}
                 </p>
                 <button
                   type="button"
@@ -292,7 +323,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', onPersist,
           <div className={`jcfpm-panel ${showInterlude ? 'is-blurred' : ''}`}>
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <div className="text-base font-semibold text-slate-900">{currentDim.title}</div>
+                <div className="jcfpm-heading text-base font-semibold text-slate-900">{currentDim.title}</div>
                 <p className="mt-1 text-sm text-slate-600">{currentDim.subtitle}</p>
                 <p className="mt-2 text-sm text-slate-700 jcfpm-story">
                   {currentDim.id === 'd1_cognitive' && 'Začneme tím, jak přemýšlíš, třídíš informace a rozhoduješ se.'}
@@ -332,7 +363,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', onPersist,
               <div className={`mt-4 grid gap-3 ${showInterlude ? 'pointer-events-none' : ''}`}>
                 {currentItem ? (
                   <div className="jcfpm-question jcfpm-question-animated">
-                    <div className="text-[16px] font-semibold text-slate-900">{currentItem.prompt}</div>
+                    <div className="jcfpm-question-title">{currentItem.prompt}</div>
                     {currentItem.subdimension ? (
                     <div className="mt-1 text-[11px] text-slate-600">{currentItem.subdimension}</div>
                     ) : null}

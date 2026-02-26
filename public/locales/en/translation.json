@@ -326,6 +326,13 @@
     "register_button": "Register",
     "signup": "Sign Up",
     "forgot_password": "Forgot Password?",
+    "new_password": "New password",
+    "confirm_new_password": "Confirm new password",
+    "set_new_password": "Set new password",
+    "password_too_short": "Password must be at least 6 characters.",
+    "passwords_mismatch": "Passwords do not match.",
+    "password_reset_success": "Password updated successfully.",
+    "reset_password_failed": "Failed to update password.",
     "email_confirm_notice_title": "Please confirm your email before signing in",
     "email_confirm_notice_body": "If you just registered, confirm your email from the message we sent you.",
     "continue_with_google": "Continue with Google",
@@ -658,7 +665,14 @@
       "single": "Single",
       "married": "Married",
       "children": "Children",
-      "spouse_income": "Partner income (annual)"
+      "spouse_income": "Partner income (annual)",
+      "de_tax_class": "Tax class (DE)",
+      "de_church_tax": "Church tax (DE)",
+      "de_church_none": "No",
+      "de_kvz": "KVZ (DE) – add-on health insurance rate %",
+      "at_13_14": "13th/14th salary (AT)",
+      "at_13_14_yes": "Yes (standard)",
+      "at_13_14_no": "No"
     },
     "jhi": {
       "title": "JHI Preferences",
@@ -827,8 +841,15 @@
       "skills": "Dovednosti"
     },
     "title": "Profile",
-    "transport_desc": "Jak se raději dopravujete do práce? Tuto informaci budeme používat ve \"Finanční a dojezdové realitě\" u každé pozice.",
-    "transport_pref": "Preferovaná doprava",
+    "transport_desc": "How do you prefer to commute to work? We'll use this in the \"Financial & Commute Reality\" for each role.",
+    "transport_pref": "Preferred transport",
+    "transport_selected": "Selected",
+    "transport_mode": {
+      "car": "Car",
+      "public": "Public transit",
+      "bike": "Bike",
+      "walk": "Walk"
+    },
     "year_placeholder": "např. 2020"
   },
   "cv_manager": {
