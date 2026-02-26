@@ -700,6 +700,7 @@ async def create_job_application(
 @router.get("/company/applications")
 @limiter.limit("60/minute")
 async def list_company_applications(
+    request: Request,
     company_id: str = Query(...),
     job_id: str | None = Query(None),
     limit: int = Query(500, ge=1, le=2000),
