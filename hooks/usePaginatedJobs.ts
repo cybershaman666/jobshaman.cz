@@ -140,7 +140,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [filterLanguage, setFilterLanguage] = useState<string>(''); // ISO code or empty for all
     const [globalSearch, setGlobalSearch] = useState(() => !initialCountry); // Toggle for searching entire database
     const [abroadOnly, setAbroadOnly] = useState(false);
-    const [sortBy, setSortBy] = useState<string>('default'); // default | recommended | jhi_desc | jhi_asc | personalized_jhi_desc | newest
+    const [sortBy, setSortBy] = useState<string>('newest'); // recommended | newest | distance | jhi_desc | salary_desc
     const hasAutoSortAppliedRef = useRef(false);
     const aiMatchScoresByJobIdRef = useRef<Map<string, number>>(new Map());
     const aiMatchScoresFetchedAtRef = useRef(0);
@@ -423,7 +423,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             !!userProfile.cvText ||
             !!userProfile.cvAiText ||
             !!(userProfile.skills && userProfile.skills.length > 0);
-        if (userProfile.isLoggedIn && hasCvSignal && sortBy === 'default') {
+        if (userProfile.isLoggedIn && hasCvSignal && sortBy === 'newest') {
             setSortBy('recommended');
             hasAutoSortAppliedRef.current = true;
         }
@@ -499,7 +499,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 filterDate !== 'all' ||
                 filterExperience.length > 0 ||
                 enableCommuteFilter ||
-                sortBy !== 'default' ||
+                sortBy !== 'newest' ||
                 !!filterLanguage ||
                 abroadOnly;
 
@@ -603,7 +603,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                 page,
                 pageSize: initialPageSize,
                 searchTerm,
-                sortMode: (sortBy === 'personalized_jhi_desc' ? 'default' : sortBy) as 'default' | 'newest' | 'jhi_desc' | 'jhi_asc' | 'recommended',
+                sortMode: (sortBy === 'distance' || sortBy === 'salary_desc' ? 'default' : sortBy) as 'default' | 'newest' | 'jhi_desc' | 'recommended',
                 filterCity,
                 filterContractTypes: filterContractType,
                 filterBenefits,

@@ -99,11 +99,10 @@
     "sort_by": "Řazení",
     "sort_options": {
       "recommended": "AI doporučené",
-      "default": "Doporučené",
       "newest": "Nejnovější",
+      "distance": "Vzdálenost",
       "jhi_desc": "JHI od nejvyššího",
-      "jhi_asc": "JHI od nejnižšího",
-      "personalized_jhi_desc": "Personalizované JHI"
+      "salary_desc": "Plat od nejvyššího"
     },
     "sort_explain": {
       "recommended": "AI doporučené řadí nabídky podle celkové relevance. Zobrazené % je AI shoda pro danou nabídku a nemusí růst úplně lineárně kvůli čerstvosti a diverzitě výsledků."

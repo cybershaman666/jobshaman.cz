@@ -515,7 +515,7 @@ export interface UserProfile {
     portfolio?: string;
     github?: string;
     activation_v1?: CandidateActivationStateV1;
-    ikigai_v1?: IkigaiSnapshotV1;
+    jcfpm_v1?: JcfpmSnapshotV1;
   };
   taxProfile?: TaxProfile;
   jhiPreferences?: JHIPreferences;
@@ -545,39 +545,59 @@ export interface CandidateActivationStateV1 {
   last_prompted_step?: 'location' | 'skills' | 'preferences' | 'cv' | 'quality_action' | 'done';
 }
 
-export interface IkigaiPsychProfileV1 {
-  axis_scores: {
-    extroversion_vs_introversion: number;
-    intuition_vs_sensing: number;
-    thinking_vs_feeling: number;
-    judging_vs_perceiving: number;
-  };
-  archetype_code: string;
-  blended_archetype?: string | null;
-  consistency_index: number;
-  confidence_score: number;
-  answered_items: number;
-  total_items: number;
-  disclaimer: string;
+export type JcfpmDimensionId =
+  | 'd1_cognitive'
+  | 'd2_social'
+  | 'd3_motivational'
+  | 'd4_energy'
+  | 'd5_values'
+  | 'd6_ai_readiness';
+
+export interface JcfpmItem {
+  id: string;
+  dimension: JcfpmDimensionId;
+  subdimension?: string | null;
+  prompt: string;
+  reverse_scoring?: boolean;
+  sort_order?: number;
 }
 
-export interface IkigaiQuadrantScoresV1 {
-  love_score: number;
-  strength_score: number;
-  need_score: number;
-  reward_score: number;
-  ikigai_core_score: number;
-  tension_vectors: string[];
+export interface JcfpmScore {
+  dimension: JcfpmDimensionId;
+  raw_score: number;
+  percentile: number;
+  percentile_band: string;
+  label: string;
 }
 
-export interface IkigaiSnapshotV1 {
-  schema_version: 'ikigai-v1';
-  updated_at: string;
-  progress_step: 'love' | 'strength' | 'need' | 'reward' | 'psych' | 'synthesis';
-  raw_answers: Record<string, unknown>;
-  psych_profile: IkigaiPsychProfileV1;
-  scores: IkigaiQuadrantScoresV1;
-  recommended_paths: string[];
+export interface JcfpmRoleFit {
+  role_id?: string;
+  title: string;
+  fit_score: number;
+  salary_range?: string | null;
+  growth_potential?: string | null;
+  ai_impact?: string | null;
+  remote_friendly?: string | null;
+}
+
+export interface JcfpmAIReport {
+  strengths: string[];
+  ideal_environment: string[];
+  top_roles: { title: string; reason: string }[];
+  development_areas: string[];
+  next_steps: string[];
+  ai_readiness: string;
+}
+
+export interface JcfpmSnapshotV1 {
+  schema_version: 'jcfpm-v1';
+  completed_at: string;
+  responses: Record<string, number>;
+  dimension_scores: JcfpmScore[];
+  fit_scores: JcfpmRoleFit[];
+  ai_report?: JcfpmAIReport | null;
+  percentile_summary: Record<JcfpmDimensionId, number>;
+  confidence: number;
 }
 
 export interface AssessmentResult {

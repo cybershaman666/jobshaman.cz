@@ -593,8 +593,30 @@ export default function App() {
         });
         jhiCacheRef.current = nextCache;
 
-        if (sortBy === 'personalized_jhi_desc') {
-            return [...personalized].sort((a, b) => (b.jhi.personalizedScore || b.jhi.score) - (a.jhi.personalizedScore || a.jhi.score));
+        if (sortBy === 'distance') {
+            return [...personalized].sort((a, b) => {
+                const da = (a as any)?.distanceKm ?? (a as any)?.distance_km ?? Number.POSITIVE_INFINITY;
+                const db = (b as any)?.distanceKm ?? (b as any)?.distance_km ?? Number.POSITIVE_INFINITY;
+                return da - db;
+            });
+        }
+        if (sortBy === 'salary_desc') {
+            const toMonthly = (job: any) => {
+                let salary = 0;
+                if (job.salary_from && job.salary_to) {
+                    salary = (Number(job.salary_from) + Number(job.salary_to)) / 2;
+                } else {
+                    salary = Number(job.salary_from || job.salary_to || 0);
+                }
+                if (!salary) return 0;
+                const tf = String(job.salary_timeframe || '').toLowerCase();
+                if (tf === 'hour' || tf === 'hourly') return Math.round(salary * 22 * 8);
+                if (tf === 'day' || tf === 'daily') return Math.round(salary * 22);
+                if (tf === 'week' || tf === 'weekly') return Math.round(salary * 4.345);
+                if (tf === 'year' || tf === 'yearly' || tf === 'annual') return Math.round(salary / 12);
+                return salary;
+            };
+            return [...personalized].sort((a, b) => toMonthly(b) - toMonthly(a));
         }
         return personalized;
     }, [filteredJobs, sortBy, effectiveUserProfile.jhiPreferences, buildJhiCacheKey]);

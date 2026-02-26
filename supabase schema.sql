@@ -588,3 +588,44 @@ CREATE TABLE public.webhook_events (
   status character varying DEFAULT 'processed'::character varying,
   CONSTRAINT webhook_events_pkey PRIMARY KEY (id)
 );
+
+CREATE TABLE public.jcfpm_items (
+  id text NOT NULL,
+  dimension text NOT NULL,
+  subdimension text,
+  prompt text NOT NULL,
+  reverse_scoring boolean DEFAULT false,
+  sort_order integer NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT jcfpm_items_pkey PRIMARY KEY (id)
+);
+
+CREATE TABLE public.job_role_profiles (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  title text NOT NULL,
+  d1 double precision NOT NULL,
+  d2 double precision NOT NULL,
+  d3 double precision NOT NULL,
+  d4 double precision NOT NULL,
+  d5 double precision NOT NULL,
+  d6 double precision NOT NULL,
+  salary_range text,
+  growth_potential text,
+  ai_impact text,
+  remote_friendly text,
+  weights jsonb,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT job_role_profiles_pkey PRIMARY KEY (id)
+);
+
+CREATE TABLE public.jcfpm_results (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  raw_responses jsonb NOT NULL,
+  dimension_scores jsonb NOT NULL,
+  fit_scores jsonb,
+  ai_report jsonb,
+  version text DEFAULT 'jcfpm-v1'::text,
+  CONSTRAINT jcfpm_results_pkey PRIMARY KEY (id)
+);

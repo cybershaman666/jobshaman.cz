@@ -2,7 +2,22 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Bell, BarChart3, RefreshCcw, Search, Sparkles } from 'lucide-react';
 import { UserProfile } from '../types';
 import { BACKEND_URL } from '../constants';
-import { adminSearch, getAdminAiQuality, getAdminNotifications, getAdminPushSubscriptions, getAdminStats, getAdminSubscriptionAudit, getAdminSubscriptions, getAdminUserDigest, updateAdminSubscription, updateAdminUserDigest } from '../services/adminService';
+import {
+  adminSearch,
+  createAdminJobRole,
+  deleteAdminJobRole,
+  getAdminAiQuality,
+  getAdminJobRoles,
+  getAdminNotifications,
+  getAdminPushSubscriptions,
+  getAdminStats,
+  getAdminSubscriptionAudit,
+  getAdminSubscriptions,
+  getAdminUserDigest,
+  updateAdminJobRole,
+  updateAdminSubscription,
+  updateAdminUserDigest,
+} from '../services/adminService';
 import { useTranslation } from 'react-i18next';
 
 interface AdminDashboardProps {
@@ -53,6 +68,25 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const [mailingResults, setMailingResults] = useState<any[]>([]);
   const [mailingLoading, setMailingLoading] = useState(false);
   const [wakeStatus, setWakeStatus] = useState<'idle' | 'ok' | 'error' | 'loading'>('idle');
+  const [jobRoles, setJobRoles] = useState<any[]>([]);
+  const [jobRolesTotal, setJobRolesTotal] = useState(0);
+  const [jobRolesLoading, setJobRolesLoading] = useState(false);
+  const [jobRolesError, setJobRolesError] = useState<string | null>(null);
+  const [jobRolesQuery, setJobRolesQuery] = useState('');
+  const [jobRoleEdits, setJobRoleEdits] = useState<Record<string, any>>({});
+  const [jobRoleCreate, setJobRoleCreate] = useState({
+    title: '',
+    d1: '',
+    d2: '',
+    d3: '',
+    d4: '',
+    d5: '',
+    d6: '',
+    salary_range: '',
+    growth_potential: '',
+    ai_impact: '',
+    remote_friendly: '',
+  });
 
   const [filters, setFilters] = useState({
     q: '',
@@ -171,6 +205,113 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     }
   };
 
+  const loadJobRoles = async () => {
+    setJobRolesLoading(true);
+    setJobRolesError(null);
+    try {
+      const data = await getAdminJobRoles({
+        q: jobRolesQuery || undefined,
+        limit: 200,
+        offset: 0
+      });
+      const items = data.items || [];
+      setJobRoles(items);
+      setJobRolesTotal(data.count || items.length || 0);
+      const nextEdits: Record<string, any> = {};
+      items.forEach((role: any) => {
+        nextEdits[role.id] = {
+          title: role.title || '',
+          d1: role.d1 ?? '',
+          d2: role.d2 ?? '',
+          d3: role.d3 ?? '',
+          d4: role.d4 ?? '',
+          d5: role.d5 ?? '',
+          d6: role.d6 ?? '',
+          salary_range: role.salary_range || '',
+          growth_potential: role.growth_potential || '',
+          ai_impact: role.ai_impact || '',
+          remote_friendly: role.remote_friendly || '',
+        };
+      });
+      setJobRoleEdits(nextEdits);
+    } catch (err: any) {
+      setJobRolesError(err?.message || 'Failed to load job roles');
+    } finally {
+      setJobRolesLoading(false);
+    }
+  };
+
+  const handleCreateJobRole = async () => {
+    try {
+      setJobRolesError(null);
+      const payload = {
+        title: jobRoleCreate.title.trim(),
+        d1: Number(jobRoleCreate.d1),
+        d2: Number(jobRoleCreate.d2),
+        d3: Number(jobRoleCreate.d3),
+        d4: Number(jobRoleCreate.d4),
+        d5: Number(jobRoleCreate.d5),
+        d6: Number(jobRoleCreate.d6),
+        salary_range: jobRoleCreate.salary_range || undefined,
+        growth_potential: jobRoleCreate.growth_potential || undefined,
+        ai_impact: jobRoleCreate.ai_impact || undefined,
+        remote_friendly: jobRoleCreate.remote_friendly || undefined,
+      };
+      await createAdminJobRole(payload);
+      setJobRoleCreate({
+        title: '',
+        d1: '',
+        d2: '',
+        d3: '',
+        d4: '',
+        d5: '',
+        d6: '',
+        salary_range: '',
+        growth_potential: '',
+        ai_impact: '',
+        remote_friendly: '',
+      });
+      await loadJobRoles();
+    } catch (err: any) {
+      setJobRolesError(err?.message || 'Failed to create role');
+    }
+  };
+
+  const handleUpdateJobRole = async (roleId: string) => {
+    try {
+      setJobRolesError(null);
+      const draft = jobRoleEdits[roleId];
+      if (!draft) return;
+      const payload = {
+        title: draft.title?.trim(),
+        d1: draft.d1 !== '' ? Number(draft.d1) : undefined,
+        d2: draft.d2 !== '' ? Number(draft.d2) : undefined,
+        d3: draft.d3 !== '' ? Number(draft.d3) : undefined,
+        d4: draft.d4 !== '' ? Number(draft.d4) : undefined,
+        d5: draft.d5 !== '' ? Number(draft.d5) : undefined,
+        d6: draft.d6 !== '' ? Number(draft.d6) : undefined,
+        salary_range: draft.salary_range || undefined,
+        growth_potential: draft.growth_potential || undefined,
+        ai_impact: draft.ai_impact || undefined,
+        remote_friendly: draft.remote_friendly || undefined,
+      };
+      await updateAdminJobRole(roleId, payload);
+      await loadJobRoles();
+    } catch (err: any) {
+      setJobRolesError(err?.message || 'Failed to update role');
+    }
+  };
+
+  const handleDeleteJobRole = async (roleId: string) => {
+    try {
+      setJobRolesError(null);
+      await deleteAdminJobRole(roleId);
+      await loadJobRoles();
+    } catch (err: any) {
+      setJobRolesError(err?.message || 'Failed to delete role');
+    }
+  };
+
   const handleMailingSearch = async () => {
     if (mailingQuery.trim().length < 2) {
       setMailingResults([]);
@@ -242,6 +383,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
       handleWakeBackend();
     }
   }, [filters.q, filters.tier, filters.status, filters.kind, filters.limit, filters.offset, pushSubsQuery, userProfile?.isLoggedIn]);
+
+  useEffect(() => {
+    if (userProfile?.isLoggedIn) {
+      loadJobRoles();
+    }
+  }, [jobRolesQuery, userProfile?.isLoggedIn]);
 
   const formatDate = (value?: string) => {
     if (!value) return '—';
@@ -748,6 +895,244 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               )}
             </div>
           </div>
+        </div>
+
+        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm mb-5">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">JCFPM role profiles</h3>
+              <p className="text-xs text-slate-500">Správa mapování rolí (D1–D6) pro Job Market Mapping.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <input
+                value={jobRolesQuery}
+                onChange={(e) => setJobRolesQuery(e.target.value)}
+                placeholder="Hledat podle názvu role"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-900 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20"
+              />
+              <button
+                onClick={loadJobRoles}
+                className="px-3 py-2 rounded-lg text-sm border border-slate-200 dark:border-slate-800 hover:border-cyan-400 hover:text-cyan-600 transition-colors flex items-center gap-2"
+              >
+                <RefreshCcw size={14} />
+                Refresh
+              </button>
+            </div>
+          </div>
+
+          {jobRolesError && (
+            <div className="mb-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+              {jobRolesError}
+            </div>
+          )}
+
+          <div className="border border-slate-200 dark:border-slate-800 rounded-xl p-3 bg-slate-50 dark:bg-slate-800/40">
+            <div className="text-xs uppercase tracking-wider text-slate-500 mb-2">Přidat roli</div>
+            <div className="grid grid-cols-1 md:grid-cols-6 gap-2 text-sm">
+              <input
+                value={jobRoleCreate.title}
+                onChange={(e) => setJobRoleCreate(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="Název role"
+                className="md:col-span-2 border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-2 bg-white dark:bg-slate-900"
+              />
+              <input
+                value={jobRoleCreate.d1}
+                onChange={(e) => setJobRoleCreate(prev => ({ ...prev, d1: e.target.value }))}
+                placeholder="D1"
+                type="number"
+                step="0.1"
+                min="1"
+                max="7"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-2 bg-white dark:bg-slate-900"
+              />
+              <input
+                value={jobRoleCreate.d2}
+                onChange={(e) => setJobRoleCreate(prev => ({ ...prev, d2: e.target.value }))}
+                placeholder="D2"
+                type="number"
+                step="0.1"
+                min="1"
+                max="7"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-2 bg-white dark:bg-slate-900"
+              />
+              <input
+                value={jobRoleCreate.d3}
+                onChange={(e) => setJobRoleCreate(prev => ({ ...prev, d3: e.target.value }))}
+                placeholder="D3"
+                type="number"
+                step="0.1"
+                min="1"
+                max="7"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-2 bg-white dark:bg-slate-900"
+              />
+              <input
+                value={jobRoleCreate.d4}
+                onChange={(e) => setJobRoleCreate(prev => ({ ...prev, d4: e.target.value }))}
+                placeholder="D4"
+                type="number"
+                step="0.1"
+                min="1"
+                max="7"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-2 bg-white dark:bg-slate-900"
+              />
+              <input
+                value={jobRoleCreate.d5}
+                onChange={(e) => setJobRoleCreate(prev => ({ ...prev, d5: e.target.value }))}
+                placeholder="D5"
+                type="number"
+                step="0.1"
+                min="1"
+                max="7"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-2 bg-white dark:bg-slate-900"
+              />
+              <input
+                value={jobRoleCreate.d6}
+                onChange={(e) => setJobRoleCreate(prev => ({ ...prev, d6: e.target.value }))}
+                placeholder="D6"
+                type="number"
+                step="0.1"
+                min="1"
+                max="7"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-2 bg-white dark:bg-slate-900"
+              />
+            </div>
+            <div className="mt-2 grid grid-cols-1 md:grid-cols-4 gap-2 text-sm">
+              <input
+                value={jobRoleCreate.salary_range}
+                onChange={(e) => setJobRoleCreate(prev => ({ ...prev, salary_range: e.target.value }))}
+                placeholder="Plat (např. 80-150k CZK)"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-2 bg-white dark:bg-slate-900"
+              />
+              <input
+                value={jobRoleCreate.growth_potential}
+                onChange={(e) => setJobRoleCreate(prev => ({ ...prev, growth_potential: e.target.value }))}
+                placeholder="Growth (High/Medium/Low)"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-2 bg-white dark:bg-slate-900"
+              />
+              <input
+                value={jobRoleCreate.ai_impact}
+                onChange={(e) => setJobRoleCreate(prev => ({ ...prev, ai_impact: e.target.value }))}
+                placeholder="AI impact"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-2 bg-white dark:bg-slate-900"
+              />
+              <input
+                value={jobRoleCreate.remote_friendly}
+                onChange={(e) => setJobRoleCreate(prev => ({ ...prev, remote_friendly: e.target.value }))}
+                placeholder="Remote (Remote/Hybrid/Onsite)"
+                className="border border-slate-200 dark:border-slate-800 rounded-lg px-2 py-2 bg-white dark:bg-slate-900"
+              />
+            </div>
+            <div className="mt-3 flex justify-end">
+              <button
+                onClick={handleCreateJobRole}
+                className="px-3 py-2 rounded-lg text-sm border border-emerald-200 text-emerald-700 hover:border-emerald-400 hover:text-emerald-600 transition-colors"
+              >
+                Přidat roli
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-4 text-xs text-slate-500">Celkem rolí: {jobRolesTotal}</div>
+
+          {jobRolesLoading ? (
+            <p className="mt-3 text-sm text-slate-500">Načítám role…</p>
+          ) : jobRoles.length === 0 ? (
+            <p className="mt-3 text-sm text-slate-500">Žádné role.</p>
+          ) : (
+            <div className="mt-3 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                    <th className="py-2 pr-3">Role</th>
+                    <th className="py-2 pr-3">D1</th>
+                    <th className="py-2 pr-3">D2</th>
+                    <th className="py-2 pr-3">D3</th>
+                    <th className="py-2 pr-3">D4</th>
+                    <th className="py-2 pr-3">D5</th>
+                    <th className="py-2 pr-3">D6</th>
+                    <th className="py-2 pr-3">Plat</th>
+                    <th className="py-2 pr-3">Growth</th>
+                    <th className="py-2 pr-3">AI</th>
+                    <th className="py-2 pr-3">Remote</th>
+                    <th className="py-2 pr-3">Akce</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {jobRoles.map((role: any) => {
+                    const draft = jobRoleEdits[role.id] || {};
+                    return (
+                      <tr key={role.id} className="border-b border-slate-100 dark:border-slate-800">
+                        <td className="py-2 pr-3 min-w-[180px]">
+                          <input
+                            value={draft.title || ''}
+                            onChange={(e) => setJobRoleEdits(prev => ({ ...prev, [role.id]: { ...draft, title: e.target.value } }))}
+                            className="w-full border border-slate-200 dark:border-slate-800 rounded-md px-2 py-1 bg-white dark:bg-slate-900"
+                          />
+                        </td>
+                        {['d1', 'd2', 'd3', 'd4', 'd5', 'd6'].map((field) => (
+                          <td key={field} className="py-2 pr-3">
+                            <input
+                              value={draft[field] ?? ''}
+                              onChange={(e) => setJobRoleEdits(prev => ({ ...prev, [role.id]: { ...draft, [field]: e.target.value } }))}
+                              type="number"
+                              step="0.1"
+                              min="1"
+                              max="7"
+                              className="w-16 border border-slate-200 dark:border-slate-800 rounded-md px-2 py-1 bg-white dark:bg-slate-900"
+                            />
+                          </td>
+                        ))}
+                        <td className="py-2 pr-3 min-w-[140px]">
+                          <input
+                            value={draft.salary_range || ''}
+                            onChange={(e) => setJobRoleEdits(prev => ({ ...prev, [role.id]: { ...draft, salary_range: e.target.value } }))}
+                            className="w-full border border-slate-200 dark:border-slate-800 rounded-md px-2 py-1 bg-white dark:bg-slate-900"
+                          />
+                        </td>
+                        <td className="py-2 pr-3 min-w-[110px]">
+                          <input
+                            value={draft.growth_potential || ''}
+                            onChange={(e) => setJobRoleEdits(prev => ({ ...prev, [role.id]: { ...draft, growth_potential: e.target.value } }))}
+                            className="w-full border border-slate-200 dark:border-slate-800 rounded-md px-2 py-1 bg-white dark:bg-slate-900"
+                          />
+                        </td>
+                        <td className="py-2 pr-3 min-w-[120px]">
+                          <input
+                            value={draft.ai_impact || ''}
+                            onChange={(e) => setJobRoleEdits(prev => ({ ...prev, [role.id]: { ...draft, ai_impact: e.target.value } }))}
+                            className="w-full border border-slate-200 dark:border-slate-800 rounded-md px-2 py-1 bg-white dark:bg-slate-900"
+                          />
+                        </td>
+                        <td className="py-2 pr-3 min-w-[110px]">
+                          <input
+                            value={draft.remote_friendly || ''}
+                            onChange={(e) => setJobRoleEdits(prev => ({ ...prev, [role.id]: { ...draft, remote_friendly: e.target.value } }))}
+                            className="w-full border border-slate-200 dark:border-slate-800 rounded-md px-2 py-1 bg-white dark:bg-slate-900"
+                          />
+                        </td>
+                        <td className="py-2 pr-3">
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleUpdateJobRole(role.id)}
+                              className="px-2.5 py-1.5 rounded-md text-xs border border-slate-200 dark:border-slate-800 hover:border-emerald-400 hover:text-emerald-600 transition-colors"
+                            >
+                              Uložit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteJobRole(role.id)}
+                              className="px-2.5 py-1.5 rounded-md text-xs border border-slate-200 dark:border-slate-800 hover:border-rose-400 hover:text-rose-600 transition-colors"
+                            >
+                              Smazat
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
         <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm mb-5">

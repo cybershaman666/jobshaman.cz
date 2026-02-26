@@ -1,0 +1,51 @@
+title,d1,d2,d3,d4,d5,d6,salary_range,growth_potential,ai_impact,remote_friendly,notes
+AI Research Scientist,6.6,3.2,6.0,4.8,5.5,6.8,120-220k CZK,High,Augmentation,Hybrid,Example
+Machine Learning Engineer,6.2,4.1,5.7,4.7,5.2,6.4,90-180k CZK,High,Augmentation,Hybrid,Example
+Data Scientist,6.1,4.0,5.6,4.5,5.1,6.0,90-160k CZK,High,Augmentation,Hybrid,Example
+Data Engineer,6.0,3.8,5.2,4.6,4.8,5.8,85-150k CZK,High,Augmentation,Hybrid,Example
+Backend Engineer,5.9,3.8,5.3,4.7,4.8,5.8,80-150k CZK,High,Augmentation,Hybrid,Example
+Frontend Engineer,5.5,4.3,5.1,4.6,5.2,5.4,70-140k CZK,High,Augmentation,Remote,Example
+Full Stack Engineer,5.7,4.2,5.2,4.8,5.0,5.6,80-150k CZK,High,Augmentation,Hybrid,Example
+DevOps Engineer,5.8,4.1,5.1,5.1,4.9,6.0,90-170k CZK,High,Augmentation,Hybrid,Example
+Cybersecurity Analyst,5.7,4.1,5.1,4.6,5.3,5.6,80-150k CZK,High,Transformation,Hybrid,Example
+Product Manager,5.1,5.8,5.3,4.8,5.6,5.1,90-170k CZK,High,Transformation,Hybrid,Example
+Project Manager,4.8,5.6,4.9,4.7,5.2,4.8,75-140k CZK,Medium,Transformation,Hybrid,Example
+UX Designer,4.9,5.4,5.2,4.3,5.8,4.7,70-140k CZK,Medium,Augmentation,Hybrid,Example
+UX Researcher,5.1,5.5,5.4,4.2,6.0,4.8,70-130k CZK,Medium,Augmentation,Remote,Example
+Sales Manager,4.1,6.4,5.8,5.6,5.3,4.2,80-150k CZK,Medium,Transformation,Hybrid,Example
+Uklízečka / Uklízeč,3.2,4.5,4.0,3.8,4.6,3.0,30-45k CZK,Low,At Risk,Onsite,Facility cleaning
+Údržbář / Technik údržby,4.4,3.8,4.4,4.3,4.6,3.6,35-55k CZK,Medium,Augmentation,Onsite,Maintenance
+Skladník,3.8,4.0,4.1,4.2,4.4,3.4,30-45k CZK,Low,At Risk,Onsite,Warehouse
+Řidič / Kurýr,3.6,3.9,4.2,4.4,4.3,3.5,30-55k CZK,Medium,Transformation,Onsite,Driving
+Pokladní,3.4,5.2,4.0,3.9,4.5,3.2,28-40k CZK,Low,At Risk,Onsite,Retail cashier
+Prodavač / Prodejní asistent,3.8,5.8,4.6,4.3,4.8,3.8,30-50k CZK,Medium,Transformation,Onsite,Retail
+Kuchař,3.9,4.4,4.6,5.0,4.7,3.4,35-55k CZK,Medium,At Risk,Onsite,Culinary
+Číšník / Servírka,3.5,5.8,4.5,4.6,4.8,3.4,28-45k CZK,Medium,At Risk,Onsite,Hospitality
+Recepční,3.7,5.6,4.4,4.0,4.7,3.6,30-45k CZK,Medium,Augmentation,Onsite,Front desk
+Bezpečnostní pracovník,3.9,4.2,4.3,4.5,4.5,3.5,30-45k CZK,Low,At Risk,Onsite,Security
+Zdravotní sestra,4.4,6.0,5.0,4.8,5.8,4.2,45-70k CZK,High,Augmentation,Onsite,Healthcare
+Lékař,5.6,5.2,5.2,5.0,5.7,5.0,80-180k CZK,High,Augmentation,Onsite,Healthcare
+Pečovatel / Sociální pracovník,4.0,6.2,4.8,4.6,5.9,3.8,32-50k CZK,High,Augmentation,Onsite,Care
+Učitel,4.6,6.0,5.2,4.3,5.8,4.4,40-70k CZK,High,Augmentation,Onsite,Education
+Lektor / Trenér,4.5,6.0,5.3,4.4,5.6,4.6,40-80k CZK,High,Augmentation,Hybrid,Training
+Administrativní pracovník,4.2,4.8,4.4,4.0,4.7,4.0,30-50k CZK,Medium,Transformation,Onsite,Admin
+Asistent / Asistentka,4.1,5.2,4.5,4.2,4.8,4.1,30-55k CZK,Medium,Transformation,Hybrid,Assistant
+Účetní,5.0,4.2,4.6,4.1,4.8,4.2,40-70k CZK,Medium,Transformation,Hybrid,Accounting
+Finanční specialista,5.4,4.4,4.8,4.2,4.9,4.5,50-90k CZK,Medium,Augmentation,Hybrid,Finance
+HR Specialist,4.3,5.8,4.9,4.2,5.6,4.2,45-80k CZK,Medium,Transformation,Hybrid,HR
+Marketing Specialist,4.6,5.4,5.0,4.5,5.3,4.7,45-85k CZK,Medium,Augmentation,Hybrid,Marketing
+PR Specialist,4.2,5.9,4.9,4.3,5.4,4.3,40-80k CZK,Medium,Augmentation,Hybrid,PR
+Projektant / Inženýr,5.2,4.6,5.0,4.5,4.9,4.8,60-110k CZK,Medium,Augmentation,Onsite,Engineering
+Strojní inženýr,5.4,4.3,4.9,4.6,4.8,4.6,60-110k CZK,Medium,Augmentation,Onsite,Mechanical
+Elektrotechnik,5.0,4.1,4.8,4.7,4.8,4.5,55-100k CZK,Medium,Augmentation,Onsite,Electrical
+Stavař / Stavbyvedoucí,4.8,5.0,4.8,5.2,5.0,4.1,55-110k CZK,Medium,Transformation,Onsite,Construction
+Logistik,4.7,4.6,4.7,4.6,4.8,4.4,45-85k CZK,Medium,Augmentation,Hybrid,Logistics
+Nákupčí,4.4,5.1,4.8,4.4,4.9,4.3,45-85k CZK,Medium,Transformation,Hybrid,Procurement
+Quality Manager,5.0,4.6,4.9,4.5,4.9,4.6,60-110k CZK,Medium,Augmentation,Hybrid,Quality
+Operations Manager,4.9,5.2,4.9,5.0,5.1,4.7,80-140k CZK,Medium,Augmentation,Hybrid,Operations
+Plant Manager,5.0,5.0,4.9,5.1,5.0,4.5,90-160k CZK,Medium,Transformation,Onsite,Manufacturing
+Store Manager,4.4,5.8,4.7,4.8,4.9,4.0,45-80k CZK,Medium,Transformation,Onsite,Retail
+General Manager,5.2,6.2,5.4,5.1,5.4,5.0,120-220k CZK,High,Transformation,Hybrid,Executive
+CEO,5.6,6.5,5.6,5.2,5.6,5.5,200-500k CZK,High,Transformation,Hybrid,Executive
+CFO,5.8,5.2,5.2,4.7,5.0,5.0,180-400k CZK,High,Augmentation,Hybrid,Executive
+COO,5.4,6.0,5.3,5.3,5.3,5.0,180-400k CZK,High,Transformation,Hybrid,Executive

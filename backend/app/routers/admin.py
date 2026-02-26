@@ -9,7 +9,12 @@ import traceback
 from ..core.security import get_current_user, verify_csrf_token_header
 from ..core.database import supabase
 from ..matching_engine.evaluation import run_offline_recommendation_evaluation
-from ..models.requests import AdminSubscriptionUpdateRequest, AdminUserDigestUpdateRequest
+from ..models.requests import (
+    AdminSubscriptionUpdateRequest,
+    AdminUserDigestUpdateRequest,
+    AdminJobRoleCreateRequest,
+    AdminJobRoleUpdateRequest,
+)
 from ..utils.helpers import now_iso
 
 router = APIRouter()
@@ -369,6 +374,76 @@ async def admin_search(
         print(f"⚠️ Admin search unexpected failure: {exc}")
         print(traceback.format_exc())
         return {"items": []}
+
+
+@router.get("/admin/jcfpm/job-roles")
+async def list_job_role_profiles(
+    request: Request,
+    user: dict = Depends(get_current_user),
+    q: Optional[str] = Query(None),
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    query = supabase.table("job_role_profiles").select("*", count="exact")
+    safe_q = _safe_query(q or "")
+    if safe_q:
+        query = query.ilike("title", f"%{safe_q}%")
+    query = query.order("title", desc=False).range(offset, offset + limit - 1)
+    resp = query.execute()
+    return {
+        "items": resp.data or [],
+        "count": resp.count or 0,
+        "limit": limit,
+        "offset": offset,
+    }
+
+
+@router.post("/admin/jcfpm/job-roles")
+async def create_job_role_profile(
+    payload: AdminJobRoleCreateRequest,
+    user: dict = Depends(get_current_user),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    insert_payload = payload.dict()
+    resp = supabase.table("job_role_profiles").insert(insert_payload).execute()
+    return {"item": (resp.data or [None])[0]}
+
+
+@router.patch("/admin/jcfpm/job-roles/{role_id}")
+async def update_job_role_profile(
+    role_id: str,
+    payload: AdminJobRoleUpdateRequest,
+    user: dict = Depends(get_current_user),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    update_payload = {k: v for k, v in payload.dict().items() if v is not None}
+    if not update_payload:
+        raise HTTPException(status_code=400, detail="No fields provided")
+
+    resp = supabase.table("job_role_profiles").update(update_payload).eq("id", role_id).execute()
+    return {"item": (resp.data or [None])[0]}
+
+
+@router.delete("/admin/jcfpm/job-roles/{role_id}")
+async def delete_job_role_profile(
+    role_id: str,
+    user: dict = Depends(get_current_user),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+    supabase.table("job_role_profiles").delete().eq("id", role_id).execute()
+    return {"ok": True}
 
 
 @router.get("/admin/push-subscriptions")

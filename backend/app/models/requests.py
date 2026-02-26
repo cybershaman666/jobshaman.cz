@@ -1,7 +1,7 @@
 import html
 import bleach
 from pydantic import BaseModel, Field, validator
-from typing import List, Optional, Any, Literal
+from typing import List, Optional, Any, Literal, Dict
 
 class JobStatusUpdateRequest(BaseModel):
     status: str = Field(..., pattern=r"^(draft|active|paused|closed|archived)$")
@@ -118,6 +118,10 @@ class JobInteractionRequest(BaseModel):
     request_id: Optional[str] = None
     signal_value: Optional[float] = None
     scroll_depth: Optional[float] = Field(default=None, ge=0, le=100)
+
+
+class JcfpmSubmitRequest(BaseModel):
+    responses: Dict[str, int]
     scoring_version: Optional[str] = None
     model_version: Optional[str] = None
     metadata: Optional[dict] = None
@@ -147,6 +151,36 @@ class AdminSubscriptionUpdateRequest(BaseModel):
     cancel_at_period_end: Optional[bool] = None
     set_trial_days: Optional[int] = Field(None, ge=1, le=365)
     set_trial_until: Optional[str] = None
+
+
+class AdminJobRoleCreateRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    d1: float = Field(..., ge=1, le=7)
+    d2: float = Field(..., ge=1, le=7)
+    d3: float = Field(..., ge=1, le=7)
+    d4: float = Field(..., ge=1, le=7)
+    d5: float = Field(..., ge=1, le=7)
+    d6: float = Field(..., ge=1, le=7)
+    salary_range: Optional[str] = Field(None, max_length=120)
+    growth_potential: Optional[str] = Field(None, max_length=60)
+    ai_impact: Optional[str] = Field(None, max_length=60)
+    remote_friendly: Optional[str] = Field(None, max_length=60)
+    weights: Optional[dict] = None
+
+
+class AdminJobRoleUpdateRequest(BaseModel):
+    title: Optional[str] = Field(None, min_length=1, max_length=200)
+    d1: Optional[float] = Field(None, ge=1, le=7)
+    d2: Optional[float] = Field(None, ge=1, le=7)
+    d3: Optional[float] = Field(None, ge=1, le=7)
+    d4: Optional[float] = Field(None, ge=1, le=7)
+    d5: Optional[float] = Field(None, ge=1, le=7)
+    d6: Optional[float] = Field(None, ge=1, le=7)
+    salary_range: Optional[str] = Field(None, max_length=120)
+    growth_potential: Optional[str] = Field(None, max_length=60)
+    ai_impact: Optional[str] = Field(None, max_length=60)
+    remote_friendly: Optional[str] = Field(None, max_length=60)
+    weights: Optional[dict] = None
 
 
 class AdminUserDigestUpdateRequest(BaseModel):

@@ -99,11 +99,10 @@
     "sort_by": "Sortieren nach",
     "sort_options": {
       "recommended": "AI empfohlen",
-      "default": "Empfohlen",
       "newest": "Neueste",
+      "distance": "Entfernung",
       "jhi_desc": "JHI absteigend",
-      "jhi_asc": "JHI aufsteigend",
-      "personalized_jhi_desc": "Personalisiertes JHI"
+      "salary_desc": "Höchstes Gehalt"
     },
     "sort_explain": {
       "recommended": "AI empfohlen sortiert nach Gesamt‑Relevanz. Der angezeigte %‑Wert ist der AI‑Match pro Stelle und steigt wegen Frische- und Diversitätsausgleich nicht immer streng linear."

@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useEffect, useState, useRef } from 'react';
-import { UserProfile, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences, HappinessAuditInput, HappinessAuditOutput, IkigaiSnapshotV1 } from '../types';
+import { UserProfile, WorkExperience, Education, TransportMode, Job, TaxProfile, JHIPreferences, HappinessAuditInput, HappinessAuditOutput, JcfpmSnapshotV1 } from '../types';
 import {
   User,
   Upload,
@@ -30,7 +30,7 @@ import { validateCvFile, uploadAndParseCv, mergeProfileWithParsedCv } from '../s
 import { resolveAddressToCoordinates } from '../services/commuteService';
 import { authenticatedFetch } from '../services/csrfService';
 import { BACKEND_URL } from '../constants';
-import { FEATURE_HAPPINESS_AUDIT_THREE, FEATURE_PREMIUM_IKIGAI_GUIDE_V1 } from '../constants';
+import { FEATURE_HAPPINESS_AUDIT_THREE } from '../constants';
 import PremiumFeaturesPreview from './PremiumFeaturesPreview';
 import MyInvitations from './MyInvitations';
 import AIGuidedProfileWizard from './AIGuidedProfileWizard';
@@ -51,10 +51,9 @@ import CareerAnchorDrift from './three/CareerAnchorDrift';
 import NebulaOfPotential from './three/NebulaOfPotential';
 import CulturalNorthstarCompass from './three/CulturalNorthstarCompass';
 import AnalyticsService from '../services/analyticsService';
-import IkigaiGuideEntryCard from './ikigai/IkigaiGuideEntryCard';
-import IkigaiGuideFlow from './ikigai/IkigaiGuideFlow';
-import { resolveIkigaiGuideVariant } from './ikigai/ikigaiAccess';
-import { readIkigaiDraft } from '../services/ikigaiSessionState';
+import JcfpmEntryCard from './jcfpm/JcfpmEntryCard';
+import JcfpmFlow from './jcfpm/JcfpmFlow';
+import { readJcfpmDraft } from '../services/jcfpmSessionState';
 
 import { useTranslation } from 'react-i18next';
 
@@ -130,11 +129,12 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     fixed: true,
   });
   const [narrativeStory, setNarrativeStory] = useState('');
-  const [ikigaiStarted, setIkigaiStarted] = useState(false);
-  const [ikigaiSnapshot, setIkigaiSnapshot] = useState<IkigaiSnapshotV1 | null>(
-    profile.preferences?.ikigai_v1 || null
+  const [jcfpmStarted, setJcfpmStarted] = useState(false);
+  const [jcfpmView, setJcfpmView] = useState<'form' | 'report'>('form');
+  const [jcfpmSnapshot, setJcfpmSnapshot] = useState<JcfpmSnapshotV1 | null>(
+    profile.preferences?.jcfpm_v1 || null
   );
-  const [hasIkigaiDraft, setHasIkigaiDraft] = useState<boolean>(() => Boolean(readIkigaiDraft()));
+  const [hasJcfpmDraft, setHasJcfpmDraft] = useState<boolean>(() => Boolean(readJcfpmDraft()));
   const [culturalCompass, setCulturalCompass] = useState({
     individualVsTeam: 52,
     chaosVsStructure: 58,
@@ -219,7 +219,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const resolvedTier = String(effectiveTier || profile.subscription?.tier || 'free').toLowerCase();
   const normalizedCandidateTier: 'free' | 'premium' = resolvedTier === 'premium' ? 'premium' : 'free';
   const isPremium = normalizedCandidateTier === 'premium';
-  const ikigaiVariant = resolveIkigaiGuideVariant(FEATURE_PREMIUM_IKIGAI_GUIDE_V1, isPremium);
   const premiumPrice = getPremiumPriceDisplay(i18n.language || 'cs');
   const aiCvParsingEnabled = String(import.meta.env.VITE_ENABLE_AI_CV_PARSER || 'true').toLowerCase() !== 'false';
 
@@ -236,18 +235,18 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   }, [profile.cvAiText]);
 
   useEffect(() => {
-    setIkigaiSnapshot(profile.preferences?.ikigai_v1 || null);
-    setHasIkigaiDraft(Boolean(readIkigaiDraft()));
+    setJcfpmSnapshot(profile.preferences?.jcfpm_v1 || null);
+    setHasJcfpmDraft(Boolean(readJcfpmDraft()));
   }, [profile.preferences]);
 
   useEffect(() => {
-    if (!ikigaiStarted || typeof document === 'undefined') return;
+    if (!jcfpmStarted || typeof document === 'undefined') return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [ikigaiStarted]);
+  }, [jcfpmStarted]);
 
   const buildFormDataFromProfile = (sourceProfile: UserProfile) => ({
     personal: {
@@ -876,20 +875,20 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     }
   };
 
-  const handleIkigaiPersist = async (snapshot: IkigaiSnapshotV1) => {
-    setIkigaiSnapshot(snapshot);
-    setHasIkigaiDraft(false);
+  const handleJcfpmPersist = async (snapshot: JcfpmSnapshotV1) => {
+    setJcfpmSnapshot(snapshot);
+    setHasJcfpmDraft(false);
     const updatedProfile: UserProfile = {
       ...profile,
       preferences: {
         ...profile.preferences,
-        ikigai_v1: snapshot,
+        jcfpm_v1: snapshot,
       },
     };
     await Promise.resolve(onChange(updatedProfile, true));
-    AnalyticsService.trackEvent('ikigai_profile_saved', {
-      core_score: snapshot.scores.ikigai_core_score,
-      archetype: snapshot.psych_profile.archetype_code,
+    AnalyticsService.trackEvent('jcfpm_profile_saved', {
+      schema_version: snapshot.schema_version,
+      confidence: snapshot.confidence,
     });
   };
 
@@ -2369,32 +2368,37 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
             )}
 
-            {ikigaiVariant !== 'disabled' && (
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-                <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                  <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
-                    IKIGAI Navigator 3D
-                  </h2>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Premium biophilic guide with 4-axis personality mini-profile.
-                  </p>
-                </div>
-                <div className="p-6 space-y-4" style={{ background: 'var(--ikigai-bg-surface)' }}>
-                  <IkigaiGuideEntryCard
-                    isPremium={ikigaiVariant === 'full'}
-                    hasDraft={hasIkigaiDraft}
-                    hasSnapshot={Boolean(ikigaiSnapshot)}
-                    lastUpdatedAt={ikigaiSnapshot?.updated_at}
-                    onStart={() => setIkigaiStarted(true)}
-                    onUpgrade={() => {
-                      if (profile.id) {
-                        redirectToCheckout('premium', profile.id);
-                      }
-                    }}
-                  />
-                </div>
+            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+              <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
+                  Career Fit & Potential Test
+                </h2>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  72 položek • 6 dimenzí • AI report + top role
+                </p>
               </div>
-            )}
+              <div className="p-6 space-y-4 bg-gradient-to-br from-emerald-50/80 via-sky-50/70 to-stone-50/80">
+                <JcfpmEntryCard
+                  isPremium={isPremium}
+                  hasDraft={hasJcfpmDraft}
+                  hasSnapshot={Boolean(jcfpmSnapshot)}
+                  lastUpdatedAt={jcfpmSnapshot?.completed_at}
+                  onStart={() => {
+                    setJcfpmView('form');
+                    setJcfpmStarted(true);
+                  }}
+                  onView={() => {
+                    setJcfpmView('report');
+                    setJcfpmStarted(true);
+                  }}
+                  onUpgrade={() => {
+                    if (profile.id) {
+                      redirectToCheckout('premium', profile.id);
+                    }
+                  }}
+                />
+              </div>
+            </div>
 
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -2546,18 +2550,17 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         )}
       </div>
 
-      {ikigaiStarted && ikigaiVariant === 'full' && (
-        <div className="fixed inset-0 z-[95] bg-slate-950/85 backdrop-blur-sm">
-          <div className="h-full w-full overflow-y-auto p-2 sm:p-4">
-            <div className="mx-auto min-h-full w-full max-w-[1400px] rounded-3xl border border-cyan-300/30 bg-slate-950/70 shadow-2xl shadow-cyan-500/10">
-              <IkigaiGuideFlow
-                initialSnapshot={ikigaiSnapshot}
-                capability={sceneCapability}
-                performanceMode={sceneCapability.qualityTier}
-                onPersist={handleIkigaiPersist}
+      {jcfpmStarted && (
+        <div className="fixed inset-0 z-[95] bg-gradient-to-br from-emerald-50/90 via-sky-50/90 to-stone-50/90 backdrop-blur-md">
+          <div className="h-full w-full overflow-y-auto p-3 sm:p-6">
+            <div className="mx-auto min-h-full w-full max-w-[1200px] rounded-3xl border border-emerald-100 bg-white/90 shadow-[0_40px_120px_rgba(16,24,40,0.18)]">
+              <JcfpmFlow
+                initialSnapshot={jcfpmSnapshot}
+                mode={jcfpmView}
+                onPersist={handleJcfpmPersist}
                 onClose={() => {
-                  setIkigaiStarted(false);
-                  setHasIkigaiDraft(Boolean(readIkigaiDraft()));
+                  setJcfpmStarted(false);
+                  setHasJcfpmDraft(Boolean(readJcfpmDraft()));
                 }}
               />
             </div>

@@ -1,0 +1,73 @@
+Dimenze,ID,Položka,Typ skórování,Subdimenze
+D1_Kognitivní,D1.1,Před rozhodnutím potřebuji analyzovat všechna dostupná data a čísla.,direct,Analytické myšlení
+D1_Kognitivní,D1.2,Často se rozhoduji na základě intuice a prvního dojmu.,reverse,Intuitivní myšlení
+D1_Kognitivní,D1.3,Preferuji detailní plány a jasnou strukturu při řešení úkolů.,direct,Preference pro strukturu
+D1_Kognitivní,D1.4,Nejlépe mi to jde když můžu improvizovat a přizpůsobovat se situaci.,reverse,Improvizace
+D1_Kognitivní,D1.5,Rád/a se věnujem detailům a přesnosti ve své práci.,direct,Detail-orientace
+D1_Kognitivní,D1.6,Zaměřuji se spíše na celkový obraz a strategii než na jednotlivé detaily.,reverse,Big picture
+D1_Kognitivní,D1.7,Když řeším problém systematicky procházím každý krok.,direct,Systematický přístup
+D1_Kognitivní,D1.8,Nejlepší řešení mi často přijdou spontánně bez dlouhého přemýšlení.,reverse,Spontánnost
+D1_Kognitivní,D1.9,Mám rád/a jasně definované postupy a pravidla.,direct,Preference pro pravidla
+D1_Kognitivní,D1.10,Vyhovuje mi prostředí kde není vše pevně dané a můžu experimentovat.,reverse,Experimentování
+D1_Kognitivní,D1.11,Baví mě číst komplexní analýzy a statistiky.,direct,Analytická náročnost
+D1_Kognitivní,D1.12,Více než na fakta spoléhám na své zkušenosti a pocity.,reverse,Zkušenostní rozhodování
+D2_Sociální,D2.1,Nejlépe pracuji když můžu být většinu času sám/sama.,reverse,Solo práce
+D2_Sociální,D2.2,Prospívám v prostředí kde intenzivně spolupracuji s ostatními.,direct,Team collaboration
+D2_Sociální,D2.3,Rád/a přebírám vedoucí roli v týmových projektech.,direct,Leadership drive
+D2_Sociální,D2.4,Cítím se nejlépe jako člen týmu ne jako lídr.,reverse,Team member preference
+D2_Sociální,D2.5,Baví mě pracovat s klienty a externími partnery.,direct,External communication
+D2_Sociální,D2.6,Preferuji práci na vnitřních projektech bez interakce s externími lidmi.,reverse,Internal focus
+D2_Sociální,D2.7,Často přicházím s nápady které pak tým společně rozvíjí.,direct,Collaborative initiative
+D2_Sociální,D2.8,Raději pracuji na vlastních projektech bez nutnosti koordinace s ostatními.,reverse,Independent work
+D2_Sociální,D2.9,Mám přirozenou schopnost motivovat a vést ostatní.,direct,Leadership ability
+D2_Sociální,D2.10,Vyhovuje mi práce kde za své výsledky odpovídám jen sám/sama sobě.,reverse,Individual accountability
+D2_Sociální,D2.11,Důležitá je pro mě pravidelná komunikace a výměna informací s kolegy.,direct,Team communication
+D2_Sociální,D2.12,Často navazuji pracovní vztahy s lidmi mimo mou organizaci.,direct,External networking
+D3_Motivační,D3.1,Je pro mě zásadní mít svobodu rozhodovat o tom jak pracuji.,direct,Autonomie
+D3_Motivační,D3.2,Preferuji prostředí s jasnými pravidly a očekáváními.,reverse,Struktura
+D3_Motivační,D3.3,Motivuje mě neustálé zlepšování a rozvoj nových dovedností.,direct,Mastery goals
+D3_Motivační,D3.4,Důležitější je pro mě dosáhnout výsledku než se zdokonalovat v procesu.,reverse,Performance goals
+D3_Motivační,D3.5,Práce mě naplňuje sama o sobě bez ohledu na odměnu.,direct,Intrinsic motivation
+D3_Motivační,D3.6,Finanční odměna a uznání jsou pro mě klíčové motivátory.,reverse,Extrinsic motivation
+D3_Motivační,D3.7,Rád/a experimentuji a hledám nové způsoby práce bez vnějšího tlaku.,direct,Experimentální autonomie
+D3_Motivační,D3.8,Nejlépe mi vyhovuje struktura s jasným vedením a zadavateli.,reverse,Strukturovaná guidance
+D3_Motivační,D3.9,Baví mě učit se nové věci i když to hned nepřinese výsledky.,direct,Learning orientation
+D3_Motivační,D3.10,Zaměřuji se na konkrétní cíle a měřitelné výsledky.,reverse,Goal orientation
+D3_Motivační,D3.11,Nejsilnější motivace pro mě přichází z vnitřního uspokojení z práce.,direct,Intrinsic satisfaction
+D3_Motivační,D3.12,Potřebuji vnější uznání a zpětnou vazbu abych se cítil/a motivován/a.,reverse,External validation
+D4_Energetický,D4.1,Nejlépe pracuji ve sprintech s vysokou intenzitou a následným odpočinkem.,direct,Sprint pattern
+D4_Energetický,D4.2,Preferuji konstantní stabilní tempo práce po celý den.,reverse,Steady state
+D4_Energetický,D4.3,Bez problému zvládám pracovat na více věcech najednou.,direct,Multitasking
+D4_Energetický,D4.4,Nejlépe se soustředím když se věnuji jen jedné úloze najednou.,reverse,Deep work
+D4_Energetický,D4.5,V krizových situacích a pod časovým tlakem podávám nejlepší výkony.,direct,Urgency performance
+D4_Energetický,D4.6,Stres a urgence mě vyčerpávají a narušují mou výkonnost.,reverse,Stress sensitivity
+D4_Energetický,D4.7,Mám rád/a intenzivní periody po kterých si můžu odpočinout.,direct,Intensity cycling
+D4_Energetický,D4.8,Vyhovuje mi pravidelný režim s minimálními výkyvy v zátěži.,reverse,Consistent load
+D4_Energetický,D4.9,Umím efektivně přepínat mezi různými úkoly během dne.,direct,Task switching
+D4_Energetický,D4.10,Potřebuji dlouhé bloky času pro hlubokou soustředěnou práci.,reverse,Focus blocks
+D4_Energetický,D4.11,Dokážu rychle reagovat na nečekané změny a požadavky.,direct,Adaptability speed
+D4_Energetický,D4.12,Nejlépe pracuji v předvídatelném prostředí s minimem překvapení.,reverse,Predictability preference
+D5_Hodnotová,D5.1,Je pro mě důležité aby má práce měla pozitivní dopad na společnost.,direct,Sociální impact
+D5_Hodnotová,D5.2,Zaměřuji se hlavně na svůj osobní růst a úspěch.,reverse,Individuální focus
+D5_Hodnotová,D5.3,Přitahuje mě práce na nových inovativních projektech.,direct,Innovation orientation
+D5_Hodnotová,D5.4,Cením si stability a ověřených postupů.,reverse,Stability preference
+D5_Hodnotová,D5.5,Práce pro mě má smysl když pomáhám druhým nebo přispívám ke společnému cíli.,direct,Contribution value
+D5_Hodnotová,D5.6,Smysl pro mě znamená dosahovat osobních milníků a úspěchů.,reverse,Achievement value
+D5_Hodnotová,D5.7,Zajímá mě práce která posouvá hranice a mění status quo.,direct,Change orientation
+D5_Hodnotová,D5.8,Preferuji osvědčené metody s předvídatelnými výsledky.,reverse,Proven methods
+D5_Hodnotová,D5.9,Chci aby moje práce měla viditelný dopad na životy konkrétních lidí.,direct,Direct impact
+D5_Hodnotová,D5.10,Největší naplnění cítím když dosáhnu náročných osobních cílů.,reverse,Personal achievement
+D5_Hodnotová,D5.11,Kvalitní vztahy s kolegy a týmem jsou pro mě zdrojem smyslu v práci.,direct,Relational value
+D5_Hodnotová,D5.12,Práce je pro mě primárně prostředek k finančnímu zajištění.,reverse,Instrumental value
+D6_AI_Readiness,D6.1,Rád/a zkouším nové technologie a nástroje hned jak se objeví.,direct,Early adoption
+D6_AI_Readiness,D6.2,Preferuji nástroje a postupy které už dobře znám.,reverse,Familiarity preference
+D6_AI_Readiness,D6.3,Učení nových věcí mě baví a vnímám to jako příležitost.,direct,Learning enthusiasm
+D6_AI_Readiness,D6.4,Učit se nové věci mě stresuje a raději se držím toho co umím.,reverse,Learning resistance
+D6_AI_Readiness,D6.5,Dokážu pracovat efektivně i v nejistém prostředí bez jasných pravidel.,direct,Ambiguity tolerance
+D6_AI_Readiness,D6.6,Nejistota a nejasnost mě znervózňuje a potřebuji jasné směřování.,reverse,Clarity need
+D6_AI_Readiness,D6.7,Aktivně experimentuji s AI nástroji (ChatGPT Midjourney Copilot).,direct,AI engagement
+D6_AI_Readiness,D6.8,S AI nástroji nemám zkušenost a nejsem si jistý/á jak je používat.,reverse,AI unfamiliarity
+D6_AI_Readiness,D6.9,Zajímá mě jak AI změní můj obor a aktivně se o tom vzdělávám.,direct,AI awareness
+D6_AI_Readiness,D6.10,Technologické změny v mém oboru mě spíše znepokojují.,reverse,Tech anxiety
+D6_AI_Readiness,D6.11,Rychle se adaptuju na nové systémy a postupy v práci.,direct,Adaptation speed
+D6_AI_Readiness,D6.12,Potřebuji čas na zvyknutí si na nové pracovní postupy.,reverse,Adaptation time

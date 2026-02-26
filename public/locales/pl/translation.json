@@ -99,11 +99,10 @@
     "sort_by": "Sortuj według",
     "sort_options": {
       "recommended": "AI polecane",
-      "default": "Polecane",
       "newest": "Najnowsze",
+      "distance": "Odległość",
       "jhi_desc": "JHI malejąco",
-      "jhi_asc": "JHI rosnąco",
-      "personalized_jhi_desc": "Spersonalizowane JHI"
+      "salary_desc": "Najwyższa pensja"
     },
     "sort_explain": {
       "recommended": "AI polecane sortuje oferty według łącznej trafności. Pokazany % to dopasowanie AI dla danej oferty i nie musi rosnąć idealnie liniowo ze względu na świeżość i różnorodność wyników."

@@ -99,11 +99,10 @@
     "sort_by": "Sort by",
     "sort_options": {
       "recommended": "AI recommended",
-      "default": "Recommended",
       "newest": "Newest",
+      "distance": "Distance",
       "jhi_desc": "JHI highest",
-      "jhi_asc": "JHI lowest",
-      "personalized_jhi_desc": "Personalized JHI"
+      "salary_desc": "Highest salary"
     },
     "sort_explain": {
       "recommended": "AI recommended ranks jobs by overall relevance. The shown % is the AI match for each job and may not increase strictly linearly due to freshness and diversity balancing."

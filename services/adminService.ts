@@ -186,3 +186,95 @@ export async function updateAdminUserDigest(userId: string, payload: {
 
   return response.json();
 }
+
+export async function getAdminJobRoles(params: { q?: string; limit?: number; offset?: number } = {}) {
+  const search = new URLSearchParams();
+  if (params.q) search.set('q', params.q);
+  if (params.limit) search.set('limit', String(params.limit));
+  if (params.offset) search.set('offset', String(params.offset));
+
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/jcfpm/job-roles?${search.toString()}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Failed to load job roles');
+  }
+
+  return response.json();
+}
+
+export async function createAdminJobRole(payload: {
+  title: string;
+  d1: number;
+  d2: number;
+  d3: number;
+  d4: number;
+  d5: number;
+  d6: number;
+  salary_range?: string;
+  growth_potential?: string;
+  ai_impact?: string;
+  remote_friendly?: string;
+  weights?: Record<string, unknown>;
+}) {
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/jcfpm/job-roles`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    const detail = error.detail || error.message || `HTTP ${response.status}`;
+    throw new Error(`Failed to create job role: ${detail}`);
+  }
+
+  return response.json();
+}
+
+export async function updateAdminJobRole(roleId: string, payload: {
+  title?: string;
+  d1?: number;
+  d2?: number;
+  d3?: number;
+  d4?: number;
+  d5?: number;
+  d6?: number;
+  salary_range?: string;
+  growth_potential?: string;
+  ai_impact?: string;
+  remote_friendly?: string;
+  weights?: Record<string, unknown>;
+}) {
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/jcfpm/job-roles/${roleId}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    const detail = error.detail || error.message || `HTTP ${response.status}`;
+    throw new Error(`Failed to update job role: ${detail}`);
+  }
+
+  return response.json();
+}
+
+export async function deleteAdminJobRole(roleId: string) {
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/jcfpm/job-roles/${roleId}`, {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    const detail = error.detail || error.message || `HTTP ${response.status}`;
+    throw new Error(`Failed to delete job role: ${detail}`);
+  }
+
+  return response.json();
+}

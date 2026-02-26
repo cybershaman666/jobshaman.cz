@@ -789,7 +789,7 @@ export interface JobFilterOptions {
     // Languages
     filterLanguageCodes?: string[];
     searchTerm?: string;
-    sortMode?: 'default' | 'newest' | 'jhi_desc' | 'jhi_asc' | 'recommended' | 'personalized_jhi_desc';
+    sortMode?: 'default' | 'newest' | 'jhi_desc' | 'recommended' | 'distance' | 'salary_desc';
     jhiPreferences?: JHIPreferences;
     userTaxProfile?: TaxProfile;
     abortSignal?: AbortSignal;
@@ -1153,7 +1153,7 @@ const getDatePostedCutoffMs = (filterDatePosted: string): number | null => {
 
 const sortJobsForMode = (
     jobs: Job[],
-    sortMode: 'default' | 'newest' | 'jhi_desc' | 'jhi_asc' | 'recommended' | 'personalized_jhi_desc'
+    sortMode: 'default' | 'newest' | 'jhi_desc' | 'recommended' | 'distance' | 'salary_desc'
 ): Job[] => {
     if (!jobs.length || sortMode === 'default' || sortMode === 'recommended') {
         return jobs;
@@ -1166,11 +1166,30 @@ const sortJobsForMode = (
     if (sortMode === 'jhi_desc') {
         return sorted.sort((a, b) => (b.jhi?.score || 0) - (a.jhi?.score || 0));
     }
-    if (sortMode === 'jhi_asc') {
-        return sorted.sort((a, b) => (a.jhi?.score || 0) - (b.jhi?.score || 0));
+    if (sortMode === 'distance') {
+        return sorted.sort((a, b) => {
+            const da = (a as any)?.distance_km ?? (a as any)?.distanceKm ?? Number.POSITIVE_INFINITY;
+            const db = (b as any)?.distance_km ?? (b as any)?.distanceKm ?? Number.POSITIVE_INFINITY;
+            return da - db;
+        });
     }
-    if (sortMode === 'personalized_jhi_desc') {
-        return sorted.sort((a, b) => (b.jhi?.personalizedScore || b.jhi?.score || 0) - (a.jhi?.personalizedScore || a.jhi?.score || 0));
+    if (sortMode === 'salary_desc') {
+        const toMonthly = (job: Job) => {
+            let salary = 0;
+            if ((job as any).salary_from && (job as any).salary_to) {
+                salary = (Number((job as any).salary_from) + Number((job as any).salary_to)) / 2;
+            } else {
+                salary = Number((job as any).salary_from || (job as any).salary_to || 0);
+            }
+            if (!salary) return 0;
+            const tf = String((job as any).salary_timeframe || '').toLowerCase();
+            if (tf === 'hour' || tf === 'hourly') return Math.round(salary * 22 * 8);
+            if (tf === 'day' || tf === 'daily') return Math.round(salary * 22);
+            if (tf === 'week' || tf === 'weekly') return Math.round(salary * 4.345);
+            if (tf === 'year' || tf === 'yearly' || tf === 'annual') return Math.round(salary / 12);
+            return salary;
+        };
+        return sorted.sort((a, b) => toMonthly(b) - toMonthly(a));
     }
     return jobs;
 };
@@ -1266,8 +1285,7 @@ export const fetchJobsWithFilters = async (
         sortMode !== 'default';
     const hasSemanticIntent =
         compactSearchLength >= 2 ||
-        sortMode === 'recommended' ||
-        sortMode === 'personalized_jhi_desc';
+        sortMode === 'recommended';
     const shouldUseHybridSearch = !!BACKEND_URL && (
         hasSemanticIntent ||
         // Dedicated search runtime can handle heavy filter combinations well.
