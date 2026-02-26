@@ -19,6 +19,7 @@ import AssessmentInvitationModal from './AssessmentInvitationModal';
 import MyInvitations from './MyInvitations';
 import AssessmentResultsList from './AssessmentResultsList';
 import { fetchCandidateBenchmarkMetrics, fetchCompanyCandidates } from '../services/benchmarkService';
+import { fetchCompanyJobViews } from '../services/companyDashboardService';
 import {
     Briefcase,
     Users,
@@ -214,11 +215,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 .in('job_id', jobIds);
 
                             // 2. Fetch Views count from analytics
-                            const { data: views } = await supabase
-                                .from('analytics_events')
-                                .select('metadata')
-                                .eq('event_type', 'job_view')
-                                .eq('company_id', companyProfile.id);
+                            const viewsResponse = await fetchCompanyJobViews(companyProfile.id, 90);
 
                             // Aggregate stats
                             const stats: Record<string, { views: number, applicants: number }> = {};
@@ -228,9 +225,11 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 if (stats[app.job_id]) stats[app.job_id].applicants++;
                             });
 
-                            views?.forEach((v: any) => {
-                                const jId = v.metadata?.job_id;
-                                if (jId && stats[jId]) stats[jId].views++;
+                            viewsResponse?.job_views?.forEach((v: any) => {
+                                const jId = String(v?.job_id || '');
+                                if (jId && stats[jId]) {
+                                    stats[jId].views = Number(v?.views || 0);
+                                }
                             });
 
                             setJobStats(stats);

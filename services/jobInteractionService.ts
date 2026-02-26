@@ -29,6 +29,19 @@ export interface JobInteractionStateResponse {
     dismissedJobIds: string[];
 }
 
+export interface JobInteractionStateSyncPayload {
+    savedJobIds: string[];
+    dismissedJobIds: string[];
+    clientUpdatedAt?: string;
+    source?: string;
+}
+
+export interface JobInteractionStateSyncResponse {
+    savedJobIds: string[];
+    dismissedJobIds: string[];
+    updatedAt: string;
+}
+
 const normalizeBackendBaseUrl = (value?: string): string | null => {
     if (!value) return null;
     try {
@@ -63,9 +76,14 @@ const INTERACTION_BACKEND_COOLDOWN_MS = 20_000;
 const INTERACTION_TRACKING_COOLDOWN_MS = 120_000;
 const INTERACTION_STATE_CACHE_KEY = 'job_interaction_state_cache_v1';
 const INTERACTION_STATE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const INTERACTION_STATE_SYNC_QUEUE_KEY = 'job_interaction_state_sync_queue_v1';
+const INTERACTION_STATE_SYNC_MAX_RETRIES = 3;
+const INTERACTION_STATE_SYNC_RETRY_MS = 6000;
 const interactionBackendCooldownByHost = new Map<string, number>();
 const interactionBackendFailureCountByHost = new Map<string, number>();
 let interactionTrackingDisabledUntil = 0;
+let interactionStateSyncInFlight = false;
+let interactionStateSyncTimer: number | null = null;
 
 const isInteractionBackendCooldownActive = (baseUrl: string): boolean =>
     Date.now() < (interactionBackendCooldownByHost.get(baseUrl) || 0);
@@ -107,6 +125,42 @@ const writeInteractionStateCache = (payload: { savedJobIds: string[]; dismissedJ
     } catch {
         // ignore storage failures
     }
+};
+
+const readInteractionSyncQueue = (): { payload: JobInteractionStateSyncPayload; attempts: number } | null => {
+    try {
+        const raw = localStorage.getItem(INTERACTION_STATE_SYNC_QUEUE_KEY);
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        if (!parsed?.payload) return null;
+        return {
+            payload: parsed.payload,
+            attempts: Math.max(0, Math.floor(parsed.attempts || 0))
+        };
+    } catch {
+        return null;
+    }
+};
+
+const writeInteractionSyncQueue = (entry: { payload: JobInteractionStateSyncPayload; attempts: number } | null): void => {
+    try {
+        if (!entry) {
+            localStorage.removeItem(INTERACTION_STATE_SYNC_QUEUE_KEY);
+            return;
+        }
+        localStorage.setItem(INTERACTION_STATE_SYNC_QUEUE_KEY, JSON.stringify(entry));
+    } catch {
+        // ignore storage failures
+    }
+};
+
+const scheduleInteractionStateSyncRetry = () => {
+    if (interactionStateSyncTimer) {
+        window.clearTimeout(interactionStateSyncTimer);
+    }
+    interactionStateSyncTimer = window.setTimeout(() => {
+        void flushInteractionStateSyncQueue();
+    }, INTERACTION_STATE_SYNC_RETRY_MS);
 };
 
 export const trackJobInteraction = async (payload: JobInteractionPayload): Promise<void> => {
@@ -234,6 +288,96 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
         throttleMs: 30_000,
         sendAnalytics: false
     });
+};
+
+export const syncJobInteractionState = async (
+    payload: JobInteractionStateSyncPayload
+): Promise<JobInteractionStateSyncResponse | null> => {
+    const authToken = await getCurrentAuthTokenSilently();
+    if (!authToken) return null;
+
+    try {
+        const response = await authenticatedFetch(`${BACKEND_URL}/jobs/interactions/state/sync`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                saved_job_ids: payload.savedJobIds || [],
+                dismissed_job_ids: payload.dismissedJobIds || [],
+                client_updated_at: payload.clientUpdatedAt || null,
+                source: payload.source || null
+            })
+        }, authToken);
+
+        if (!response.ok) {
+            const status = response.status;
+            const isTransient = status >= 500 || status === 429;
+            if (isTransient) {
+                enqueueInteractionStateSync(payload);
+            }
+            return null;
+        }
+
+        const data = await response.json();
+        const result: JobInteractionStateSyncResponse = {
+            savedJobIds: Array.isArray(data?.saved_job_ids) ? data.saved_job_ids.map((id: unknown) => String(id)) : [],
+            dismissedJobIds: Array.isArray(data?.dismissed_job_ids) ? data.dismissed_job_ids.map((id: unknown) => String(id)) : [],
+            updatedAt: String(data?.updated_at || new Date().toISOString())
+        };
+        writeInteractionStateCache({
+            savedJobIds: result.savedJobIds,
+            dismissedJobIds: result.dismissedJobIds
+        });
+        writeInteractionSyncQueue(null);
+        return result;
+    } catch (error) {
+        const msg = String((error as any)?.message || '').toLowerCase();
+        const isTransient =
+            (error as any)?.name === 'AbortError' ||
+            msg.includes('aborted') ||
+            msg.includes('cooldown active') ||
+            msg.includes('networkerror') ||
+            msg.includes('failed to fetch') ||
+            msg.includes('cors') ||
+            msg.includes('timeout');
+        if (isTransient) {
+            enqueueInteractionStateSync(payload);
+        }
+        return null;
+    }
+};
+
+const enqueueInteractionStateSync = (payload: JobInteractionStateSyncPayload) => {
+    const existing = readInteractionSyncQueue();
+    const attempts = Math.min(INTERACTION_STATE_SYNC_MAX_RETRIES, (existing?.attempts || 0));
+    writeInteractionSyncQueue({ payload, attempts });
+    scheduleInteractionStateSyncRetry();
+};
+
+export const flushInteractionStateSyncQueue = async (): Promise<void> => {
+    if (interactionStateSyncInFlight) return;
+    const entry = readInteractionSyncQueue();
+    if (!entry) return;
+
+    if (entry.attempts >= INTERACTION_STATE_SYNC_MAX_RETRIES) {
+        writeInteractionSyncQueue(null);
+        return;
+    }
+
+    interactionStateSyncInFlight = true;
+    try {
+        const result = await syncJobInteractionState(entry.payload);
+        if (result) {
+            writeInteractionSyncQueue(null);
+            return;
+        }
+        writeInteractionSyncQueue({
+            payload: entry.payload,
+            attempts: entry.attempts + 1
+        });
+        scheduleInteractionStateSyncRetry();
+    } finally {
+        interactionStateSyncInFlight = false;
+    }
 };
 
 export const fetchJobInteractionState = async (limit: number = 5000): Promise<JobInteractionStateResponse> => {

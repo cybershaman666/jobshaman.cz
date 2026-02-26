@@ -4,7 +4,7 @@ from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access, verify_supabase_token
-from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest
+from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, JobInteractionStateSyncRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest
 from ..models.responses import JobCheckResponse
 from ..services.legality import check_legality_rules
 from ..services.matching import calculate_candidate_match
@@ -488,6 +488,150 @@ async def get_job_interaction_state(
     return {
         "saved_job_ids": saved_job_ids,
         "dismissed_job_ids": dismissed_job_ids,
+    }
+
+
+@router.post("/jobs/interactions/state/sync")
+@limiter.limit("60/minute")
+async def sync_job_interaction_state(
+    payload: JobInteractionStateSyncRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    def _normalize_ids(values: list[str]) -> list[str]:
+        out: list[str] = []
+        for raw in values or []:
+            job_id = _canonical_job_id(raw)
+            if not job_id:
+                continue
+            if job_id.isdigit():
+                out.append(job_id)
+        return out
+
+    client_saved = set(_normalize_ids(payload.saved_job_ids))
+    client_dismissed = set(_normalize_ids(payload.dismissed_job_ids))
+    # Saved always wins over dismissed.
+    client_dismissed = {jid for jid in client_dismissed if jid not in client_saved}
+
+    server_saved, server_dismissed = _fetch_user_interaction_state(user_id, limit=20000)
+    server_saved_set = set(server_saved)
+    server_dismissed_set = set(server_dismissed)
+
+    to_save = client_saved - server_saved_set
+    to_unsave = server_saved_set - client_saved
+    to_dismiss = client_dismissed - server_dismissed_set
+    to_undismiss = server_dismissed_set - client_dismissed
+
+    # If a job is saved, dismissals should be cleared by save.
+    to_undismiss = {jid for jid in to_undismiss if jid not in client_saved}
+
+    insert_rows = []
+    meta = {
+        "source": "state_sync",
+        "client_updated_at": payload.client_updated_at,
+        "origin": payload.source,
+    }
+
+    for job_id in to_save:
+        insert_rows.append({
+            "user_id": user_id,
+            "job_id": int(job_id),
+            "event_type": "save",
+            "metadata": meta,
+        })
+    for job_id in to_unsave:
+        insert_rows.append({
+            "user_id": user_id,
+            "job_id": int(job_id),
+            "event_type": "unsave",
+            "metadata": meta,
+        })
+    for job_id in to_dismiss:
+        insert_rows.append({
+            "user_id": user_id,
+            "job_id": int(job_id),
+            "event_type": "swipe_left",
+            "metadata": meta,
+        })
+    for job_id in to_undismiss:
+        insert_rows.append({
+            "user_id": user_id,
+            "job_id": int(job_id),
+            "event_type": "unsave",
+            "metadata": meta,
+        })
+
+    if insert_rows:
+        try:
+            supabase.table("job_interactions").insert(insert_rows).execute()
+        except Exception as exc:
+            print(f"⚠️ Failed to sync interaction state: {exc}")
+            raise HTTPException(status_code=500, detail="Failed to sync interaction state")
+
+    updated_at = now_iso()
+    return {
+        "saved_job_ids": sorted(list(client_saved)),
+        "dismissed_job_ids": sorted(list(client_dismissed)),
+        "updated_at": updated_at,
+    }
+
+
+@router.get("/company/dashboard/job_views")
+@limiter.limit("60/minute")
+async def get_company_job_views(
+    company_id: str = Query(...),
+    window_days: int = Query(90, ge=7, le=365),
+    job_id: str | None = Query(None),
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    require_company_access(user, company_id)
+    jobs_query = (
+        supabase
+        .table("jobs")
+        .select("id")
+        .eq("company_id", company_id)
+    )
+    if job_id:
+        jobs_query = jobs_query.eq("id", _normalize_job_id(job_id))
+    jobs_resp = jobs_query.execute()
+    job_rows = jobs_resp.data or []
+    job_ids = [row.get("id") for row in job_rows if row.get("id")]
+    if not job_ids:
+        return {"company_id": company_id, "window_days": window_days, "total": 0, "job_views": []}
+
+    since_iso = (datetime.now(timezone.utc) - timedelta(days=window_days)).isoformat()
+    views_resp = (
+        supabase
+        .table("job_interactions")
+        .select("job_id,created_at")
+        .eq("event_type", "open_detail")
+        .in_("job_id", job_ids)
+        .gte("created_at", since_iso)
+        .limit(50000)
+        .execute()
+    )
+    view_rows = views_resp.data or []
+    counts: dict[str, int] = {}
+    for row in view_rows:
+        jid = _canonical_job_id(row.get("job_id"))
+        if not jid:
+            continue
+        counts[jid] = counts.get(jid, 0) + 1
+
+    job_views = [{"job_id": jid, "views": count} for jid, count in counts.items()]
+    total = sum(counts.values())
+    return {
+        "company_id": company_id,
+        "window_days": window_days,
+        "total": total,
+        "job_views": job_views,
     }
 
 

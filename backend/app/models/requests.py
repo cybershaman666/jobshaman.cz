@@ -122,6 +122,12 @@ class JobInteractionRequest(BaseModel):
     model_version: Optional[str] = None
     metadata: Optional[dict] = None
 
+class JobInteractionStateSyncRequest(BaseModel):
+    saved_job_ids: List[str] = Field(default_factory=list, max_length=20000)
+    dismissed_job_ids: List[str] = Field(default_factory=list, max_length=20000)
+    client_updated_at: Optional[str] = None
+    source: Optional[str] = None
+
 class AdminSubscriptionUpdateRequest(BaseModel):
     subscription_id: Optional[str] = None
     target_type: Optional[Literal["company", "user"]] = None

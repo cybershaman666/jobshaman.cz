@@ -129,7 +129,7 @@ def run_offline_recommendation_evaluation(window_days: int = 30) -> Dict:
     try:
         feedback_rows = (
             supabase.table("recommendation_feedback_events")
-            .select("request_id,user_id,job_id,signal_type,created_at")
+            .select("request_id,user_id,job_id,signal_type,signal_value,created_at")
             .gte("created_at", start_iso)
             .eq("signal_type", "apply_click")
             .limit(30000)
@@ -141,15 +141,24 @@ def run_offline_recommendation_evaluation(window_days: int = 30) -> Dict:
         print(f"⚠️ [Evaluation] failed to load feedback rows: {exc}")
         feedback_rows = []
 
+    def _is_positive_apply(row: Dict) -> bool:
+        val = row.get("signal_value")
+        if val is None:
+            return True
+        try:
+            return float(val) >= 1.0
+        except Exception:
+            return False
+
     positive_with_request = {
         (str(row.get("request_id") or ""), str(row.get("user_id") or ""), str(row.get("job_id") or ""))
         for row in feedback_rows
-        if row.get("user_id") and row.get("job_id")
+        if row.get("user_id") and row.get("job_id") and _is_positive_apply(row)
     }
     positive_without_request = {
         (str(row.get("user_id") or ""), str(row.get("job_id") or ""))
         for row in feedback_rows
-        if row.get("user_id") and row.get("job_id")
+        if row.get("user_id") and row.get("job_id") and _is_positive_apply(row)
     }
 
     pairs: List[Tuple[float, int]] = []

@@ -10,7 +10,7 @@ interface MobileSwipeJobBrowserProps {
     jobs: Job[];
     swipeStateStorageKey: string;
     savedJobIds: string[];
-    onToggleSave: (jobId: string) => void;
+    onToggleSave: (jobId: string, options?: { source?: string; position?: number }) => void;
     onRejectJob?: (jobId: string) => void;
     onOpenDetails: (jobId: string) => void;
     onSwitchToList: () => void;
@@ -234,34 +234,23 @@ const MobileSwipeJobBrowser: React.FC<MobileSwipeJobBrowserProps> = ({
         const dwellTimeMs = viewStartRef.current ? Date.now() - viewStartRef.current : undefined;
         if (currentJob) {
             const recMeta = currentRecommendationMeta();
-            onToggleSave(currentJob.id);
-            trackJobInteraction({
-                jobId: currentJob.id,
-                eventType: 'swipe_right',
-                dwellTimeMs,
-                sessionId: sessionIdRef.current,
-                requestId: recMeta.request_id,
-                scoringVersion: recMeta.scoring_version,
-                modelVersion: recMeta.model_version,
-                signalValue: 1,
-                metadata: {
-                    source: 'mobile_swipe',
-                    ...recMeta,
-                }
-            });
-            trackJobInteraction({
-                jobId: currentJob.id,
-                eventType: isSaved ? 'unsave' : 'save',
-                dwellTimeMs,
-                sessionId: sessionIdRef.current,
-                requestId: recMeta.request_id,
-                scoringVersion: recMeta.scoring_version,
-                modelVersion: recMeta.model_version,
-                metadata: {
-                    source: 'mobile_swipe',
-                    ...recMeta,
-                }
-            });
+            onToggleSave(currentJob.id, { source: 'mobile_swipe', position: displayPosition });
+            if (!isSaved) {
+                trackJobInteraction({
+                    jobId: currentJob.id,
+                    eventType: 'swipe_right',
+                    dwellTimeMs,
+                    sessionId: sessionIdRef.current,
+                    requestId: recMeta.request_id,
+                    scoringVersion: recMeta.scoring_version,
+                    modelVersion: recMeta.model_version,
+                    signalValue: 1,
+                    metadata: {
+                        source: 'mobile_swipe',
+                        ...recMeta,
+                    }
+                });
+            }
         }
         if (currentJob) {
             setExitAnimation('right');

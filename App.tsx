@@ -475,6 +475,7 @@ export default function App() {
         totalCount,
         searchTerm,
         isSearching,
+        impressionSessionKey,
         loadInitialJobs,
         loadMoreJobs,
         performSearch,
@@ -1542,7 +1543,7 @@ export default function App() {
         });
     }, [candidateActivationState.first_quality_action_at, setUserProfile, userProfile]);
 
-    const handleToggleSave = (jobId: string) => {
+    const handleToggleSave = (jobId: string, options?: { source?: string; position?: number }) => {
         const isAlreadySaved = savedJobIds.includes(jobId);
         const job = jobsForDisplay.find((j) => j.id === jobId) || (selectedJob?.id === jobId ? selectedJob : null);
         const requestId = (job as any)?.requestId || (job as any)?.aiRecommendationRequestId;
@@ -1557,8 +1558,8 @@ export default function App() {
             modelVersion,
             signalValue: isAlreadySaved ? 0 : 1,
             metadata: {
-                source: 'desktop_list',
-                position: (job as any)?.rankPosition || (job as any)?.aiRecommendationPosition
+                source: options?.source || 'desktop_list',
+                position: options?.position ?? (job as any)?.rankPosition ?? (job as any)?.aiRecommendationPosition
             }
         });
         if (!isAlreadySaved && job) {
@@ -2049,6 +2050,7 @@ export default function App() {
                             isLoadingJobs={isLoadingJobs}
                             isSearching={isSearching}
                             filteredJobs={jobsForDisplay}
+                            impressionSessionKey={impressionSessionKey}
                             savedJobIds={savedJobIds}
                             handleToggleSave={handleToggleSave}
                             handleJobSelect={handleJobSelect}

@@ -7,7 +7,7 @@ import { geocodeWithCaching, getStaticCoordinates } from '../services/geocodingS
 import AnalyticsService from '../services/analyticsService';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
 import { isBackendNetworkCooldownActive } from '../services/csrfService';
-import { fetchJobInteractionState } from '../services/jobInteractionService';
+import { fetchJobInteractionState, flushInteractionStateSyncQueue, syncJobInteractionState } from '../services/jobInteractionService';
 
 // Infer country code from address text (best-effort)
 const getCountryCodeFromAddress = (address: string): string | null => {
@@ -126,6 +126,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [totalCount, setTotalCount] = useState(0);
     const [currentPage, setCurrentPage] = useState(0);
     const [searchTerm, setSearchTerm] = useState('');
+    const [impressionSessionKey, setImpressionSessionKey] = useState(() => `impr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
 
     // Filter state
     const [filterCity, setFilterCity] = useState('');
@@ -160,6 +161,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const [dismissedJobIds, setDismissedJobIds] = useState<string[]>([]);
     const savedJobIdsRef = useRef<Set<string>>(new Set());
     const dismissedJobIdsRef = useRef<Set<string>>(new Set());
+    const interactionStateHydratedRef = useRef(false);
+    const lastInteractionSyncSignatureRef = useRef<string>('');
+    const interactionSyncTimerRef = useRef<number | null>(null);
 
     useEffect(() => {
         savedJobIdsRef.current = new Set(savedJobIds);
@@ -233,6 +237,51 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [dismissedJobIds, dismissedJobStorageKey]);
 
     useEffect(() => {
+        if (!userProfile.isLoggedIn || !userProfile.id) return;
+        if (!interactionStateHydratedRef.current) return;
+
+        const normalizeIds = (list: string[]) => Array.from(new Set(list.map((id) => String(id)))).sort();
+        const nextSaved = normalizeIds(savedJobIds);
+        const nextDismissed = normalizeIds(dismissedJobIds).filter((id) => !nextSaved.includes(id));
+        const signature = JSON.stringify({ saved: nextSaved, dismissed: nextDismissed });
+        if (signature === lastInteractionSyncSignatureRef.current) return;
+
+        if (interactionSyncTimerRef.current) {
+            window.clearTimeout(interactionSyncTimerRef.current);
+        }
+
+        interactionSyncTimerRef.current = window.setTimeout(() => {
+            void (async () => {
+                const payload = {
+                    savedJobIds: nextSaved,
+                    dismissedJobIds: nextDismissed,
+                    clientUpdatedAt: new Date().toISOString(),
+                    source: 'client_state_sync'
+                };
+                const result = await syncJobInteractionState(payload);
+                if (result) {
+                    const canonicalSaved = normalizeIds(result.savedJobIds || []);
+                    const canonicalDismissed = normalizeIds(result.dismissedJobIds || []).filter((id) => !canonicalSaved.includes(id));
+                    const canonicalSignature = JSON.stringify({ saved: canonicalSaved, dismissed: canonicalDismissed });
+                    lastInteractionSyncSignatureRef.current = canonicalSignature;
+                    if (canonicalSignature !== signature) {
+                        setSavedJobIds(canonicalSaved);
+                        setDismissedJobIds(canonicalDismissed);
+                    }
+                } else {
+                    lastInteractionSyncSignatureRef.current = signature;
+                }
+            })();
+        }, 800);
+
+        return () => {
+            if (interactionSyncTimerRef.current) {
+                window.clearTimeout(interactionSyncTimerRef.current);
+            }
+        };
+    }, [savedJobIds, dismissedJobIds, userProfile.isLoggedIn, userProfile.id]);
+
+    useEffect(() => {
         let cancelled = false;
         if (!userProfile.isLoggedIn || !userProfile.id) return;
 
@@ -260,6 +309,11 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             } catch (error) {
                 if (!cancelled) {
                     console.warn('Failed to hydrate interaction state from backend:', error);
+                }
+            } finally {
+                if (!cancelled) {
+                    interactionStateHydratedRef.current = true;
+                    void flushInteractionStateSyncQueue();
                 }
             }
         })();
@@ -623,6 +677,9 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     // Debounced reload when filters change
     useEffect(() => {
         if (hasRunFilterEffectRef.current) {
+            setImpressionSessionKey(`impr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
+        }
+        if (hasRunFilterEffectRef.current) {
             pendingHardRefreshRef.current = true;
             setLoading(true);
             setLoadingMore(false);
@@ -654,6 +711,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             hasHandledInitialSortFetchRef.current = true;
             return;
         }
+        setImpressionSessionKey(`impr_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
         pendingHardRefreshRef.current = true;
         setLoading(true);
         setLoadingMore(false);
@@ -797,6 +855,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
         totalCount,
         searchTerm,
         isSearching: !!searchTerm,
+        impressionSessionKey,
 
         filterCity,
         filterMaxDistance,

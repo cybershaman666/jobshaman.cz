@@ -52,6 +52,7 @@ interface JobListSidebarProps {
     isLoadingJobs: boolean;
     isSearching: boolean;
     filteredJobs: Job[];
+    impressionSessionKey?: string;
     savedJobIds: string[];
     handleToggleSave: (jobId: string) => void;
     handleJobSelect: (jobId: string) => void;
@@ -103,6 +104,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     isLoadingJobs,
     isSearching,
     filteredJobs,
+    impressionSessionKey,
     savedJobIds,
     handleToggleSave,
     handleJobSelect,
@@ -181,9 +183,10 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     useEffect(() => {
         if (!onTrackImpression || filteredJobs.length === 0) return;
         const currentRequestId = (filteredJobs[0] as any)?.requestId || (filteredJobs[0] as any)?.aiRecommendationRequestId || null;
-        if (lastRequestIdRef.current !== currentRequestId) {
+        const currentSessionKey = impressionSessionKey || currentRequestId || 'no-request';
+        if (lastRequestIdRef.current !== currentSessionKey) {
             seenImpressionsRef.current.clear();
-            lastRequestIdRef.current = currentRequestId;
+            lastRequestIdRef.current = currentSessionKey;
         }
 
         const observer = new IntersectionObserver(
@@ -195,7 +198,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                     const positionRaw = el.dataset.position;
                     const position = positionRaw ? parseInt(positionRaw, 10) : 0;
                     if (!jobId) return;
-                    const dedupeKey = `${currentRequestId || 'no-request'}:${jobId}`;
+                    const dedupeKey = `${currentSessionKey}:${jobId}`;
                     if (seenImpressionsRef.current.has(dedupeKey)) return;
                     const job = filteredJobs.find((x) => x.id === jobId);
                     if (!job) return;
