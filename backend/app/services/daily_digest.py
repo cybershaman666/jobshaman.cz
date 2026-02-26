@@ -17,6 +17,7 @@ _DIGEST_RADIUS_KM = 50.0
 _DIGEST_MAX_JOBS = 10
 _APP_URL = "https://jobshaman.cz"
 _DIGEST_WINDOW_MINUTES = 20
+_DIGEST_LOOKBACK_HOURS = 36
 _REMOTE_ONLY_FLAGS = ["remote", "remote-first", "work from home", "home office", "homeoffice", "fully remote"]
 _TIMEZONE_TO_COUNTRY = {
     "Europe/Prague": "CZ",
@@ -468,13 +469,13 @@ def _resolve_digest_country_code(
     return None
 
 
-def _job_in_country(job: Dict, country_code: Optional[str]) -> bool:
+def _job_in_country(job: Dict, country_code: Optional[str], allow_missing: bool = False) -> bool:
     required = str(country_code or "").strip().upper()
     if not required:
         return True
     job_country = str(job.get("country_code") or "").strip().upper()
     if not job_country:
-        return False
+        return allow_missing
     return job_country == required
 
 
@@ -484,10 +485,15 @@ def _fetch_newest_local_jobs(
     address: Optional[str],
     country_code: Optional[str],
     allowed_language_codes: Optional[set[str]] = None,
+    lookback_hours: Optional[int] = _DIGEST_LOOKBACK_HOURS,
     limit: int = _DIGEST_MAX_JOBS,
 ) -> List[Dict]:
     if not supabase:
         return []
+
+    cutoff = None
+    if lookback_hours:
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=int(lookback_hours))).isoformat()
 
     try:
         query = (
@@ -497,6 +503,8 @@ def _fetch_newest_local_jobs(
             .order("scraped_at", desc=True)
             .limit(250)
         )
+        if cutoff:
+            query = query.gte("scraped_at", cutoff)
         if country_code:
             query = query.eq("country_code", str(country_code).upper())
         if c_lat is None or c_lng is None:
@@ -543,6 +551,16 @@ def _fetch_newest_local_jobs(
         )
         if len(picks) >= limit:
             break
+    if not picks and lookback_hours:
+        return _fetch_newest_local_jobs(
+            c_lat=c_lat,
+            c_lng=c_lng,
+            address=address,
+            country_code=country_code,
+            allowed_language_codes=allowed_language_codes,
+            lookback_hours=None,
+            limit=limit,
+        )
     return picks
 
 
@@ -553,6 +571,7 @@ def _fetch_role_focused_jobs(
     address: Optional[str],
     country_code: Optional[str],
     allowed_language_codes: Optional[set[str]] = None,
+    lookback_hours: Optional[int] = _DIGEST_LOOKBACK_HOURS,
     limit: int = _DIGEST_MAX_JOBS,
 ) -> List[Dict]:
     if not supabase:
@@ -562,6 +581,10 @@ def _fetch_role_focused_jobs(
     if not keywords:
         return []
 
+    cutoff = None
+    if lookback_hours:
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=int(lookback_hours))).isoformat()
+
     try:
         query = (
             supabase.table("jobs")
@@ -570,6 +593,8 @@ def _fetch_role_focused_jobs(
             .order("scraped_at", desc=True)
             .limit(300)
         )
+        if cutoff:
+            query = query.gte("scraped_at", cutoff)
         if country_code:
             query = query.eq("country_code", str(country_code).upper())
         if c_lat is None or c_lng is None:
@@ -627,6 +652,17 @@ def _fetch_role_focused_jobs(
         )
         if len(picks) >= limit:
             break
+    if not picks and lookback_hours:
+        return _fetch_role_focused_jobs(
+            role_title=role_title,
+            c_lat=c_lat,
+            c_lng=c_lng,
+            address=address,
+            country_code=country_code,
+            allowed_language_codes=allowed_language_codes,
+            lookback_hours=None,
+            limit=limit,
+        )
     return picks
 
 
@@ -650,15 +686,28 @@ def _merge_digest_jobs(primary: List[Dict], secondary: List[Dict], limit: int) -
 def _fetch_newest_jobs_relaxed(
     country_code: Optional[str],
     allowed_language_codes: Optional[set[str]] = None,
+    lookback_hours: Optional[int] = _DIGEST_LOOKBACK_HOURS,
     limit: int = _DIGEST_MAX_JOBS,
 ) -> List[Dict]:
     """Last-resort fallback to avoid silent digest drops when strict filters return no jobs."""
     if not supabase:
         return []
 
+    cutoff = None
+    if lookback_hours:
+        cutoff = (datetime.now(timezone.utc) - timedelta(hours=int(lookback_hours))).isoformat()
+
     try:
         resp = (
             supabase.table("jobs")
+            .select("id,title,company,location,scraped_at,country_code,language_code")
+            .eq("legality_status", "legal")
+            .order("scraped_at", desc=True)
+            .limit(100)
+            .gte("scraped_at", cutoff)
+            .execute()
+            if cutoff
+            else supabase.table("jobs")
             .select("id,title,company,location,scraped_at,country_code,language_code")
             .eq("legality_status", "legal")
             .order("scraped_at", desc=True)
@@ -678,7 +727,7 @@ def _fetch_newest_jobs_relaxed(
         job_id = job.get("id")
         if not job_id:
             continue
-        if not _job_in_country(job, country_code):
+        if not _job_in_country(job, country_code, allow_missing=True):
             continue
         if not _job_language_allowed(job, allowed_language_codes):
             continue
@@ -694,6 +743,13 @@ def _fetch_newest_jobs_relaxed(
         )
         if len(picks) >= limit:
             break
+    if not picks and lookback_hours:
+        return _fetch_newest_jobs_relaxed(
+            country_code=country_code,
+            allowed_language_codes=allowed_language_codes,
+            lookback_hours=None,
+            limit=limit,
+        )
     return picks
 
 

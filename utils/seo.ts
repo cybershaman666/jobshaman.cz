@@ -12,7 +12,7 @@ export interface SEOMetadata {
 // Dynamic SEO metadata based on page content
 export const generateSEOMetadata = (page: string, t: any, data?: any): SEOMetadata => {
   const baseTitle = t('seo.base_title');
-  const baseUrl = "https://jobshaman.cz";
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : "https://jobshaman.cz";
 
   switch (page) {
     case 'home':

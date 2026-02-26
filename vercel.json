@@ -21,6 +21,20 @@
         },
         {
             "source": "/(.*)",
+            "has": [
+                { "type": "host", "value": "jobshaman.com" }
+            ],
+            "destination": "/index.en.html"
+        },
+        {
+            "source": "/(.*)",
+            "has": [
+                { "type": "host", "value": "www.jobshaman.com" }
+            ],
+            "destination": "/index.en.html"
+        },
+        {
+            "source": "/(.*)",
             "destination": "/index.html"
         }
     ]
