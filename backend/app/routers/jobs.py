@@ -4,7 +4,7 @@ from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access, verify_supabase_token
-from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, JobInteractionStateSyncRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest
+from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, JobInteractionStateSyncRequest, JobApplicationCreateRequest, JobApplicationStatusUpdateRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest
 from ..models.responses import JobCheckResponse
 from ..services.legality import check_legality_rules
 from ..services.matching import calculate_candidate_match
@@ -583,6 +583,7 @@ async def sync_job_interaction_state(
 @router.get("/company/dashboard/job_views")
 @limiter.limit("60/minute")
 async def get_company_job_views(
+    request: Request,
     company_id: str = Query(...),
     window_days: int = Query(90, ge=7, le=365),
     job_id: str | None = Query(None),
@@ -633,6 +634,146 @@ async def get_company_job_views(
         "total": total,
         "job_views": job_views,
     }
+
+
+@router.post("/jobs/applications")
+@limiter.limit("60/minute")
+async def create_job_application(
+    payload: JobApplicationCreateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    job_id = _normalize_job_id(payload.job_id)
+    if job_id is None:
+        raise HTTPException(status_code=400, detail="Invalid job ID")
+
+    try:
+        existing = (
+            supabase
+            .table("job_applications")
+            .select("id,status,created_at")
+            .eq("job_id", job_id)
+            .eq("candidate_id", user_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if existing.data:
+            row = existing.data[0]
+            return {"status": "exists", "application_id": row.get("id"), "created_at": row.get("created_at")}
+    except Exception as exc:
+        print(f"⚠️ Failed to check existing application: {exc}")
+
+    company_id = None
+    try:
+        job_resp = supabase.table("jobs").select("company_id").eq("id", job_id).maybe_single().execute()
+        company_id = (job_resp.data or {}).get("company_id") if job_resp else None
+    except Exception as exc:
+        print(f"⚠️ Failed to resolve company for job {job_id}: {exc}")
+
+    insert_payload = {
+        "job_id": job_id,
+        "candidate_id": user_id,
+        "company_id": company_id,
+        "status": "pending",
+        "applied_at": now_iso(),
+    }
+    try:
+        res = supabase.table("job_applications").insert(insert_payload).execute()
+        app_id = None
+        if res.data:
+            app_id = res.data[0].get("id")
+        return {"status": "created", "application_id": app_id}
+    except Exception as exc:
+        print(f"⚠️ Failed to create application: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to create application")
+
+
+@router.get("/company/applications")
+@limiter.limit("60/minute")
+async def list_company_applications(
+    company_id: str = Query(...),
+    job_id: str | None = Query(None),
+    limit: int = Query(500, ge=1, le=2000),
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    require_company_access(user, company_id)
+    query = (
+        supabase
+        .table("job_applications")
+        .select("id,job_id,candidate_id,status,created_at,jobs(id,title),profiles(id,full_name,email)")
+        .eq("company_id", company_id)
+        .order("created_at", desc=True)
+        .limit(limit)
+    )
+    if job_id:
+        query = query.eq("job_id", _normalize_job_id(job_id))
+
+    resp = query.execute()
+    rows = resp.data or []
+    out = []
+    for row in rows:
+        job = row.get("jobs") or {}
+        profile = row.get("profiles") or {}
+        out.append({
+            "id": row.get("id"),
+            "job_id": row.get("job_id"),
+            "candidate_id": row.get("candidate_id"),
+            "status": row.get("status"),
+            "created_at": row.get("created_at"),
+            "job_title": job.get("title"),
+            "candidate_name": profile.get("full_name") or profile.get("email") or "Candidate",
+            "candidate_email": profile.get("email"),
+        })
+
+    return {"company_id": company_id, "applications": out}
+
+
+@router.patch("/company/applications/{application_id}/status")
+@limiter.limit("60/minute")
+async def update_company_application_status(
+    application_id: str,
+    payload: JobApplicationStatusUpdateRequest,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+    resp = (
+        supabase
+        .table("job_applications")
+        .select("id,company_id")
+        .eq("id", application_id)
+        .maybe_single()
+        .execute()
+    )
+    row = resp.data if resp else None
+    if not row:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    require_company_access(user, str(row.get("company_id") or ""))
+
+    try:
+        supabase.table("job_applications").update({"status": payload.status}).eq("id", application_id).execute()
+    except Exception as exc:
+        print(f"⚠️ Failed to update application status: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to update application status")
+
+    return {"status": "success"}
 
 
 @router.get("/jobs/recommendations")

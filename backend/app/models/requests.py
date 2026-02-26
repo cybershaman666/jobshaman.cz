@@ -128,6 +128,14 @@ class JobInteractionStateSyncRequest(BaseModel):
     client_updated_at: Optional[str] = None
     source: Optional[str] = None
 
+class JobApplicationCreateRequest(BaseModel):
+    job_id: int
+    source: Optional[str] = None
+    metadata: Optional[dict] = None
+
+class JobApplicationStatusUpdateRequest(BaseModel):
+    status: str = Field(..., pattern=r"^(pending|reviewed|shortlisted|rejected|hired)$")
+
 class AdminSubscriptionUpdateRequest(BaseModel):
     subscription_id: Optional[str] = None
     target_type: Optional[Literal["company", "user"]] = None

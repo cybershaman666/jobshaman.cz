@@ -5,6 +5,7 @@ import { X, Upload, FileText, Wand2, CheckCircle, Send, Loader2, BrainCircuit, U
 import { generateCoverLetter } from '../services/geminiService';
 import { sendEmail, EmailTemplates } from '../services/emailService';
 import { supabase, trackAnalyticsEvent, getUserCVDocuments, updateUserCVSelection } from '../services/supabaseService';
+import { createJobApplication } from '../services/jobApplicationService';
 import { getSubscriptionStatus } from '../services/serverSideBillingService';
 
 interface ApplicationModalProps {
@@ -150,8 +151,17 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
       });
 
       if (emailResult.success) {
-        // Record in DB if possible
-        if (supabase) {
+        let recorded = false;
+        try {
+          const backendResult = await createJobApplication(job.id, 'application_modal', {
+            cover_letter: coverLetter ? coverLetter.slice(0, 2000) : null
+          });
+          recorded = !!backendResult;
+        } catch {
+          recorded = false;
+        }
+
+        if (!recorded && supabase) {
           try {
             await supabase.from('job_applications').insert({
               job_id: job.id,
@@ -161,21 +171,23 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
               cover_letter: coverLetter,
               status: 'pending'
             });
-
-            // Track analytics event
-            await trackAnalyticsEvent({
-              event_type: 'job_application',
-              user_id: user.id,
-              company_id: job.company_id,
-              metadata: {
-                job_id: job.id,
-                job_title: job.title
-              }
-            });
+            recorded = true;
           } catch (dbErr) {
             console.error('Failed to record application in DB:', dbErr);
-            // We don't fail the whole UI because the email was sent
           }
+        }
+
+        if (recorded) {
+          // Track analytics event
+          await trackAnalyticsEvent({
+            event_type: 'job_application',
+            user_id: user.id,
+            company_id: job.company_id,
+            metadata: {
+              job_id: job.id,
+              job_title: job.title
+            }
+          });
         }
 
         // Simulate API call delay for UI feedback

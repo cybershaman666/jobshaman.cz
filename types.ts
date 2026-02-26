@@ -369,6 +369,17 @@ export interface Candidate {
   values: string[];
 }
 
+export interface CompanyApplicationRow {
+  id: string;
+  job_id: string | number;
+  candidate_id: string;
+  status: 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'hired';
+  created_at?: string;
+  job_title?: string;
+  candidate_name?: string;
+  candidate_email?: string;
+}
+
 export enum ViewState {
   LIST = 'LIST',
   DETAIL = 'DETAIL',

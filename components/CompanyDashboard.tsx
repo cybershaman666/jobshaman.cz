@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import Markdown from 'markdown-to-jsx';
-import { Job, Candidate, AIAdOptimizationResult, CompanyProfile, CandidateBenchmarkMetric, CandidateBenchmarkMetrics } from '../types';
+import { Job, Candidate, AIAdOptimizationResult, CompanyProfile, CandidateBenchmarkMetric, CandidateBenchmarkMetrics, CompanyApplicationRow } from '../types';
 import { optimizeJobDescription } from '../services/geminiService';
 import { publishJob } from '../services/jobPublishService';
 import { canCompanyUseFeature, canCompanyPostJob } from '../services/billingService';
@@ -19,6 +19,7 @@ import AssessmentInvitationModal from './AssessmentInvitationModal';
 import MyInvitations from './MyInvitations';
 import AssessmentResultsList from './AssessmentResultsList';
 import { fetchCandidateBenchmarkMetrics, fetchCompanyCandidates } from '../services/benchmarkService';
+import { fetchCompanyApplications, updateCompanyApplicationStatus } from '../services/jobApplicationService';
 import { fetchCompanyJobViews } from '../services/companyDashboardService';
 import {
     Briefcase,
@@ -101,6 +102,9 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     const [jobs, setJobs] = useState<Job[]>([]);
     const [jobStats, setJobStats] = useState<Record<string, { views: number, applicants: number }>>({});
     const [candidates, setCandidates] = useState<Candidate[]>([]);
+    const [applications, setApplications] = useState<CompanyApplicationRow[]>([]);
+    const [applicationsLoading, setApplicationsLoading] = useState(false);
+    const [applicationsUpdating, setApplicationsUpdating] = useState<Record<string, boolean>>({});
 
     // Subscription state
     const [subscription, setSubscription] = useState<any>(null);
@@ -556,6 +560,32 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         loadCandidates();
         return () => { active = false; };
     }, [activeTab, t, companyProfile?.id]);
+
+    useEffect(() => {
+        let active = true;
+        const loadApplications = async () => {
+            if (!companyProfile?.id || activeTab !== 'candidates') return;
+            setApplicationsLoading(true);
+            const jobId = selectedJobId || undefined;
+            const rows = await fetchCompanyApplications(companyProfile.id, jobId, 500);
+            if (active) {
+                setApplications(rows);
+                setApplicationsLoading(false);
+            }
+        };
+        loadApplications();
+        return () => { active = false; };
+    }, [companyProfile?.id, activeTab, selectedJobId]);
+
+    const handleApplicationStatusChange = async (applicationId: string, status: CompanyApplicationRow['status']) => {
+        if (!applicationId) return;
+        setApplicationsUpdating(prev => ({ ...prev, [applicationId]: true }));
+        const ok = await updateCompanyApplicationStatus(applicationId, status);
+        if (ok) {
+            setApplications(prev => prev.map(app => app.id === applicationId ? { ...app, status } : app));
+        }
+        setApplicationsUpdating(prev => ({ ...prev, [applicationId]: false }));
+    };
 
     const formatPct = (value: number | null | undefined): string => {
         if (typeof value !== 'number' || Number.isNaN(value)) return '—';
@@ -1592,6 +1622,54 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         hireMetric,
                         formatPct(hireMetric?.value),
                         formatPct(hireMetric?.peer_value)
+                    )}
+                </div>
+
+                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                    <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                            {t('company.candidates.applications_title', { defaultValue: 'Applications' })}
+                        </h3>
+                        {applicationsLoading && (
+                            <span className="text-xs text-slate-500">{t('common.loading') || 'Načítám...'}</span>
+                        )}
+                    </div>
+                    {applications.length === 0 && !applicationsLoading ? (
+                        <div className="text-sm text-slate-500">
+                            {t('company.candidates.applications_empty', { defaultValue: 'Zatím žádné aplikace pro vybranou pozici.' })}
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {applications.map((app) => (
+                                <div key={app.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2">
+                                    <div className="text-sm">
+                                        <div className="font-semibold text-slate-800 dark:text-slate-100">
+                                            {app.candidate_name || 'Candidate'}
+                                        </div>
+                                        <div className="text-xs text-slate-500">
+                                            {app.job_title || t('company.dashboard.table.position')}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <select
+                                            value={app.status}
+                                            onChange={(e) => handleApplicationStatusChange(app.id, e.target.value as CompanyApplicationRow['status'])}
+                                            className="text-xs px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+                                            disabled={applicationsUpdating[app.id]}
+                                        >
+                                            <option value="pending">{t('company.dashboard.status.pending')}</option>
+                                            <option value="reviewed">{t('company.dashboard.status.approved', { defaultValue: 'Reviewed' })}</option>
+                                            <option value="shortlisted">{t('company.dashboard.status.shortlisted', { defaultValue: 'Shortlisted' })}</option>
+                                            <option value="rejected">{t('company.dashboard.status.refused', { defaultValue: 'Rejected' })}</option>
+                                            <option value="hired">{t('company.dashboard.status.hired', { defaultValue: 'Hired' })}</option>
+                                        </select>
+                                        {applicationsUpdating[app.id] && (
+                                            <span className="text-[11px] text-slate-400">{t('common.saving', { defaultValue: 'Ukládám…' })}</span>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
                     )}
                 </div>
 

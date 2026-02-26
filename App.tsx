@@ -33,6 +33,7 @@ import { clearCsrfToken, authenticatedFetch, isBackendNetworkCooldownActive } fr
 import { clearPasswordRecoveryPending, isPasswordRecoveryPending } from './services/supabaseClient';
 import { trackPageView } from './services/trafficAnalytics';
 import { trackJobInteraction } from './services/jobInteractionService';
+import { createJobApplication } from './services/jobApplicationService';
 import { sendWelcomeEmail } from './services/welcomeEmailService';
 import { useUserProfile } from './hooks/useUserProfile';
 import { usePaginatedJobs } from './hooks/usePaginatedJobs';
@@ -1645,6 +1646,12 @@ export default function App() {
                     url: applyFollowup.url || null
                 }
             });
+            if (didApply) {
+                await createJobApplication(applyFollowup.jobId, 'apply_followup', {
+                    opened_at: applyFollowup.openedAt,
+                    url: applyFollowup.url || null
+                });
+            }
         } catch (error) {
             console.warn('Failed to record apply follow-up:', error);
         } finally {
