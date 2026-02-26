@@ -1211,6 +1211,27 @@ export const fetchJobsWithFilters = async (
         includeJhi = true
     } = options;
 
+    const HYBRID_SEARCH_TIMEOUT_MS = 4500;
+    const createTimeoutError = (label: string) => {
+        const err = new Error(`${label} timed out`);
+        (err as any).code = 'timeout';
+        (err as any).timeout = true;
+        return err;
+    };
+    const raceWithTimeout = async <T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+        let timeoutId: ReturnType<typeof setTimeout> | null = null;
+        const timeoutPromise = new Promise<T>((_, reject) => {
+            timeoutId = setTimeout(() => reject(createTimeoutError(label)), timeoutMs);
+        });
+        try {
+            return await Promise.race([promise, timeoutPromise]);
+        } finally {
+            if (timeoutId !== null) {
+                clearTimeout(timeoutId);
+            }
+        }
+    };
+
     const {
         searchTerm,
         contractTypes: filterContractTypes
@@ -1960,7 +1981,12 @@ export const fetchJobsWithFilters = async (
         // Hybrid semantic search (backend) for text queries.
         if (shouldUseHybridSearch) {
             try {
-                return await fetchViaBackendHybrid();
+                const hybridPromise = fetchViaBackendHybrid();
+                try {
+                    return await raceWithTimeout(hybridPromise, HYBRID_SEARCH_TIMEOUT_MS, 'Hybrid search');
+                } finally {
+                    hybridPromise.catch(() => {});
+                }
             } catch (hybridErr) {
                 if (isAbortFetchError(hybridErr)) {
                     throw hybridErr;

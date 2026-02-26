@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { authenticatedFetch, isBackendNetworkCooldownActive } from '../services/csrfService';
 import { BACKEND_URL } from '../constants';
@@ -21,24 +21,44 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cooldownRetrying, setCooldownRetrying] = useState(false);
+  const retryTimeoutRef = useRef<number | null>(null);
+  const retryCountRef = useRef(0);
+  const MAX_RETRIES = 3;
+  const RETRY_DELAY_MS = 6000;
 
   // --- Assessment Taking Logic ---
   const [activeAssessment, setActiveAssessment] = useState<any | null>(null);
   const [activeInvitationId, setActiveInvitationId] = useState<string | null>(null);
 
+  const scheduleRetry = () => {
+    if (retryCountRef.current >= MAX_RETRIES) return;
+    if (retryTimeoutRef.current) {
+      window.clearTimeout(retryTimeoutRef.current);
+    }
+    retryCountRef.current += 1;
+    retryTimeoutRef.current = window.setTimeout(() => {
+      load();
+    }, RETRY_DELAY_MS);
+  };
+
   const load = async () => {
     setError(null);
     setLoading(true);
+    setCooldownRetrying(false);
     try {
       if (isBackendNetworkCooldownActive()) {
-        setError(t('my_invitations.backend_unavailable', { defaultValue: 'Backend is temporarily unavailable. Please try again in a moment.' }));
-        setInvitations([]);
+        if (!invitations.length) {
+          scheduleRetry();
+          setCooldownRetrying(true);
+        }
         return;
       }
       const res = await authenticatedFetch(`${BACKEND_URL}/assessments/invitations${forCompany ? '?for_company=true' : ''}`, { method: 'GET' });
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const data = await res.json();
       setInvitations(data.invitations || []);
+      retryCountRef.current = 0;
     } catch (e: any) {
       const message = String(e?.message || '');
       const isAbort =
@@ -50,17 +70,29 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
         || message.toLowerCase().includes('timeout')
         || isAbort;
       if (isBackendUnavailable) {
-        setError(t('my_invitations.backend_unavailable', { defaultValue: 'Backend is temporarily unavailable. Please try again in a moment.' }));
+        if (!invitations.length) {
+          scheduleRetry();
+          setCooldownRetrying(true);
+        }
       } else {
         console.error(e);
-        setError(e.message || t('my_invitations.load_failed'));
+        if (!invitations.length) {
+          setError(e.message || t('my_invitations.load_failed'));
+        }
       }
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    load();
+    return () => {
+      if (retryTimeoutRef.current) {
+        window.clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const handleStartAssessment = async (invitation: Invitation) => {
     if (forCompany) return; // Companies don't take tests here
@@ -111,6 +143,11 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
       </div>
 
       {loading && <div className="text-sm text-slate-500 animate-pulse">{t('my_invitations.loading')}</div>}
+      {!loading && cooldownRetrying && !invitations.length && (
+        <div className="text-sm text-slate-500 animate-pulse">
+          {t('my_invitations.retrying', { defaultValue: 'Zkouším znovu připojit backend…' })}
+        </div>
+      )}
       {error && <div className="text-sm text-rose-600 bg-rose-50 dark:bg-rose-900/20 p-2 rounded">{error}</div>}
 
       {!loading && !invitations.length && (

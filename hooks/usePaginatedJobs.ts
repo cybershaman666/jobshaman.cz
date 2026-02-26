@@ -103,6 +103,8 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     const latestRequestIdRef = useRef(0);
     const lastDebouncedLogAtRef = useRef(0);
     const hasHandledInitialSortFetchRef = useRef(false);
+    const hasRunFilterEffectRef = useRef(false);
+    const pendingHardRefreshRef = useRef(false);
     const defaultDomesticCountries = ['cs', 'cz', 'sk'];
     const initialCountry = getCountryCodeFromAddress(userProfile.address) || getCountryCodeFromLanguage(i18n.language);
     const [countryCodes, setCountryCodes] = useState<string[]>(() => (initialCountry ? [initialCountry] : []));
@@ -401,6 +403,12 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
         setLoading(true);
         if (isLoadMore) setLoadingMore(true);
+        if (!isLoadMore && pendingHardRefreshRef.current) {
+            pendingHardRefreshRef.current = false;
+            setJobs([]);
+            setHasMore(false);
+            setTotalCount(0);
+        }
 
         try {
             // Only use coordinates if we are doing a commute filter or proximity sort
@@ -614,6 +622,16 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
     // Debounced reload when filters change
     useEffect(() => {
+        if (hasRunFilterEffectRef.current) {
+            pendingHardRefreshRef.current = true;
+            setLoading(true);
+            setLoadingMore(false);
+            setJobs([]);
+            setHasMore(false);
+            setTotalCount(0);
+        }
+        hasRunFilterEffectRef.current = true;
+
         const timeoutId = setTimeout(() => {
             if (Date.now() - lastDebouncedLogAtRef.current > 2_000) {
                 console.log('⏱️ Debounced filter fetch triggered');
@@ -636,6 +654,12 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             hasHandledInitialSortFetchRef.current = true;
             return;
         }
+        pendingHardRefreshRef.current = true;
+        setLoading(true);
+        setLoadingMore(false);
+        setJobs([]);
+        setHasMore(false);
+        setTotalCount(0);
         setCurrentPage(0);
         fetchFilteredJobs(0, false);
     }, [sortBy, fetchFilteredJobs]);
