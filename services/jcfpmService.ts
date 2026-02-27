@@ -138,9 +138,26 @@ const normalizeJcfpmItems = (items: JcfpmItem[]): JcfpmItem[] =>
       .replace(/-+/g, '_') as any;
     const rawDim = String(item.dimension || '').trim().toLowerCase();
     const normalizedDim = (DIMENSIONS as readonly string[]).includes(rawDim) ? rawDim : undefined;
+    const inferDimFromKey = () => {
+      const rawKey = String(item.pool_key || item.id || '').replace(/_v\d+$/i, '').toLowerCase();
+      if (rawKey.startsWith('d1.')) return 'd1_cognitive';
+      if (rawKey.startsWith('d2.')) return 'd2_social';
+      if (rawKey.startsWith('d3.')) return 'd3_motivational';
+      if (rawKey.startsWith('d4.')) return 'd4_energy';
+      if (rawKey.startsWith('d5.')) return 'd5_values';
+      if (rawKey.startsWith('d6.')) return 'd6_ai_readiness';
+      if (rawKey.startsWith('d7.')) return 'd7_cognitive_reflection';
+      if (rawKey.startsWith('d8.')) return 'd8_digital_eq';
+      if (rawKey.startsWith('d9.')) return 'd9_systems_thinking';
+      if (rawKey.startsWith('d10.')) return 'd10_ambiguity_interpretation';
+      if (rawKey.startsWith('d11.')) return 'd11_problem_decomposition';
+      if (rawKey.startsWith('d12.')) return 'd12_moral_compass';
+      return 'd1_cognitive';
+    };
+    const safeDim = (normalizedDim || inferDimFromKey()) as import('../types').JcfpmDimensionId;
     return {
       ...item,
-      dimension: normalizedDim,
+      dimension: safeDim,
       item_type: normalizedType || undefined,
       payload: normalizeJson(payload) as any,
       assets: normalizeJson(assets) as any,
