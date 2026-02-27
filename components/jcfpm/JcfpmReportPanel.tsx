@@ -1,6 +1,6 @@
 import React from 'react';
 import { computeJcfpmScoresLocal, fetchJcfpmItems } from '../../services/jcfpmService';
-import { JcfpmSnapshotV1, JcfpmDimensionId } from '../../types';
+import { JcfpmSnapshotV1, JcfpmDimensionId, JcfpmAIReport } from '../../types';
 
 interface Props {
   snapshot: JcfpmSnapshotV1;
@@ -10,37 +10,37 @@ const DIMENSION_META: Record<string, { title: string; definition: string; subdim
   d1_cognitive: {
     title: 'Kognitivní styl',
     definition: 'Způsob zpracování informací a řešení problémů.',
-    subdims: 'Analytické vs. intuitivní • Struktura vs. improvizace • Detail vs. big picture',
+    subdims: 'Analytické vs. intuitivní • Struktura vs. improvizace • Detail vs. celek',
   },
   d2_social: {
     title: 'Sociální orientace',
     definition: 'Preferovaný způsob interakce s lidmi a týmové dynamiky.',
-    subdims: 'Solo vs. team • Leadership drive • External vs. internal communication',
+    subdims: 'Samostatnost vs. tým • Chuť vést lidi • Vnější vs. interní komunikace',
   },
   d3_motivational: {
     title: 'Motivační profil',
     definition: 'Co tě pohání a co považuješ za odměnu.',
-    subdims: 'Autonomie vs. struktura • Mastery vs. performance • Intrinsic vs. extrinsic',
+    subdims: 'Autonomie vs. struktura • Rozvoj vs. výkon • Vnitřní vs. vnější motivace',
   },
   d4_energy: {
-    title: 'Energetický pattern',
+    title: 'Energetický styl',
     definition: 'Tempo, intenzita a styl práce.',
-    subdims: 'Sprint vs. steady • Multitasking vs. deep work • Urgence vs. stabilita',
+    subdims: 'Sprint vs. stabilní tempo • Přepínání úkolů vs. hluboká práce • Naléhavost vs. stabilita',
   },
   d5_values: {
     title: 'Hodnotová kotvení',
     definition: 'Co musí práce přinášet, aby dávala smysl.',
-    subdims: 'Impact vs. osobní růst • Inovace vs. stabilita • Vztahy vs. výkon',
+    subdims: 'Dopad vs. osobní růst • Inovace vs. stabilita • Vztahy vs. výkon',
   },
   d6_ai_readiness: {
-    title: 'Adaptační kapacita (AI Readiness)',
-    definition: 'Jak dobře prosperuješ v měnícím se tech prostředí.',
+    title: 'Připravenost na práci s AI',
+    definition: 'Jak dobře prosperuješ v rychle se měnícím technologickém prostředí.',
     subdims: 'Učení nového • Tolerance nejistoty • Aktivní práce s AI',
   },
   d7_cognitive_reflection: {
-    title: 'Cognitive Reflection & Logic',
+    title: 'Kognitivní reflexe a logika',
     definition: 'Schopnost zastavit první intuici a ověřit ji logikou.',
-    subdims: 'Intuice vs. ověření • Logické pasti • „Bullshit detector“',
+    subdims: 'Intuice vs. ověření • Logické pasti • Odhalování nesmyslů',
   },
   d8_digital_eq: {
     title: 'Digitální EQ',
@@ -53,7 +53,7 @@ const DIMENSION_META: Record<string, { title: string; definition: string; subdim
     subdims: 'Příčina a následek • Zpětné vazby • Zpožděné dopady',
   },
   d10_ambiguity_interpretation: {
-    title: 'Interpretace ambiguity',
+    title: 'Interpretace nejasností',
     definition: 'Jak čteš nejasné situace – rizika vs. příležitosti.',
     subdims: 'Opatrnost vs. průzkum • Hrozby vs. růst',
   },
@@ -158,7 +158,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
     { self: 'd3_motivational', perf: 'd11_problem_decomposition', label: 'Motivace vs. rozklad problémů' },
     { self: 'd4_energy', perf: 'd9_systems_thinking', label: 'Tempo vs. systémové myšlení' },
     { self: 'd5_values', perf: 'd12_moral_compass', label: 'Hodnoty vs. etika v praxi' },
-    { self: 'd6_ai_readiness', perf: 'd10_ambiguity_interpretation', label: 'AI readiness vs. práce s nejistotou' },
+    { self: 'd6_ai_readiness', perf: 'd10_ambiguity_interpretation', label: 'Připravenost na AI vs. práce s nejistotou' },
   ];
 
   const normalizedScoreMap = React.useMemo(() => {
@@ -173,11 +173,11 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
     () =>
       [
         { standard: 'd1_cognitive' as JcfpmDimensionId, deep: 'd7_cognitive_reflection' as JcfpmDimensionId, label: 'Logic' },
-        { standard: 'd2_social' as JcfpmDimensionId, deep: 'd8_digital_eq' as JcfpmDimensionId, label: 'Social' },
-        { standard: 'd3_motivational' as JcfpmDimensionId, deep: 'd11_problem_decomposition' as JcfpmDimensionId, label: 'Execution' },
-        { standard: 'd4_energy' as JcfpmDimensionId, deep: 'd9_systems_thinking' as JcfpmDimensionId, label: 'Systems' },
-        { standard: 'd5_values' as JcfpmDimensionId, deep: 'd12_moral_compass' as JcfpmDimensionId, label: 'Ethics' },
-        { standard: 'd6_ai_readiness' as JcfpmDimensionId, deep: 'd10_ambiguity_interpretation' as JcfpmDimensionId, label: 'Ambiguity' },
+        { standard: 'd2_social' as JcfpmDimensionId, deep: 'd8_digital_eq' as JcfpmDimensionId, label: 'Sociální' },
+        { standard: 'd3_motivational' as JcfpmDimensionId, deep: 'd11_problem_decomposition' as JcfpmDimensionId, label: 'Realizace' },
+        { standard: 'd4_energy' as JcfpmDimensionId, deep: 'd9_systems_thinking' as JcfpmDimensionId, label: 'Systémy' },
+        { standard: 'd5_values' as JcfpmDimensionId, deep: 'd12_moral_compass' as JcfpmDimensionId, label: 'Etika' },
+        { standard: 'd6_ai_readiness' as JcfpmDimensionId, deep: 'd10_ambiguity_interpretation' as JcfpmDimensionId, label: 'Nejistota' },
       ],
     [],
   );
@@ -233,6 +233,156 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
     }>;
   }, [bridgePairs, normalizedScoreMap]);
 
+  const aiReportResolved = React.useMemo<JcfpmAIReport>(() => {
+    const weakFragments = [
+      'na základě profilových dimenzí',
+      'nastav měřitelný návyk',
+      'baseline',
+      'fixní limit',
+    ];
+    const isWeakText = (value?: string) => {
+      const normalized = (value || '').trim().toLowerCase();
+      if (!normalized) return true;
+      if (normalized.length < 40) return true;
+      return weakFragments.some((fragment) => normalized.includes(fragment));
+    };
+
+    const hasServerReport =
+      ai_report &&
+      (
+        (ai_report.strengths && ai_report.strengths.length > 0) ||
+        (ai_report.ideal_environment && ai_report.ideal_environment.length > 0) ||
+        (ai_report.top_roles && ai_report.top_roles.length > 0) ||
+        (ai_report.development_areas && ai_report.development_areas.length > 0) ||
+        (ai_report.next_steps && ai_report.next_steps.length > 0) ||
+        Boolean(ai_report.ai_readiness)
+      );
+
+    const serverLooksWeak = !ai_report || (
+      (ai_report.strengths || []).slice(0, 3).some((item) => isWeakText(item))
+      || (ai_report.development_areas || []).slice(0, 2).some((item) => isWeakText(item))
+      || (ai_report.next_steps || []).slice(0, 2).some((item) => isWeakText(item))
+      || isWeakText(ai_report.ai_readiness || '')
+      || (ai_report.top_roles || []).slice(0, 2).some((role) => isWeakText(role?.reason))
+    );
+
+    if (hasServerReport && !serverLooksWeak) {
+      return ai_report as JcfpmAIReport;
+    }
+
+    const ranked = [...mergedScores]
+      .map((row) => ({
+        ...row,
+        normalized: Math.round(normalizeTo100(row.dimension, row.raw_score)),
+      }))
+      .sort((a, b) => b.normalized - a.normalized);
+
+    const strongest = ranked.slice(0, 3);
+    const weakest = [...ranked].reverse().slice(0, 2).reverse();
+    const aiReadiness = normalizedScoreMap.get('d6_ai_readiness') || 0;
+    const ambiguity = normalizedScoreMap.get('d10_ambiguity_interpretation') || 0;
+    const socialScore = normalizedScoreMap.get('d2_social') || 0;
+    const energyScore = normalizedScoreMap.get('d4_energy') || 0;
+
+    const strengthHints: Record<string, string> = {
+      d10_ambiguity_interpretation: 'V nejistotě se nezastavíš a umíš rychle najít směr.',
+      d12_moral_compass: 'I pod tlakem držíš férovost a důvěryhodné rozhodování.',
+      d8_digital_eq: 'V textové komunikaci dobře čteš tón i emoce druhých.',
+      d9_systems_thinking: 'Přirozeně vidíš souvislosti a vedlejší dopady rozhodnutí.',
+      d11_problem_decomposition: 'Umíš velké zadání rozdělit na srozumitelné a zvládnutelné kroky.',
+      d7_cognitive_reflection: 'Nejedeš jen na první dojem, umíš si odpověď ověřit.',
+    };
+
+    const developmentHints: Record<string, string> = {
+      d1_cognitive: 'Pomůže ti vědomě oddělit fakta, domněnky a závěr před finálním rozhodnutím.',
+      d7_cognitive_reflection: 'Před důležitým krokem si dej krátkou kontrolu: „Jaký je důkaz?“',
+      d9_systems_thinking: 'Před změnou si napiš, koho ovlivní a co se může stát za 1–3 měsíce.',
+      d11_problem_decomposition: 'Používej jednoduchou osnovu: cíl → kroky → rizika → termín.',
+      d8_digital_eq: 'U citlivých zpráv ověř porozumění jednou krátkou doplňující otázkou.',
+    };
+
+    const habitPlans: Record<string, string> = {
+      d1_cognitive: 'Před každým důležitým rozhodnutím sepiš 3 fakta, 1 riziko a 1 alternativu.',
+      d7_cognitive_reflection: 'Každý den vyber 1 rozhodnutí a napiš si, proč je správné.',
+      d8_digital_eq: 'U dvou zpráv denně vědomě uprav tón tak, aby byl jasný a respektující.',
+      d9_systems_thinking: 'Jednou denně zmapuj u změny „co to zlepší“ a „co to může zhoršit“.',
+      d11_problem_decomposition: 'Každý větší úkol rozděl do 3–5 malých kroků s termínem.',
+      d10_ambiguity_interpretation: 'V nejasné situaci napiš 2 rizika a 2 příležitosti, pak rozhodni.',
+    };
+
+    const strengths = strongest.map((row) => {
+      const title = DIMENSION_META[row.dimension]?.title || row.dimension;
+      const hint = strengthHints[row.dimension] || 'Tato oblast je nyní tvoje silná stránka.';
+      return `${title} (${row.normalized}/100): ${hint}`;
+    });
+
+    const developmentAreas = weakest.map((row) => {
+      const title = DIMENSION_META[row.dimension]?.title || row.dimension;
+      const hint = developmentHints[row.dimension] || 'Tady máš aktuálně největší prostor pro růst.';
+      return `${title} (${row.normalized}/100): ${hint}`;
+    });
+
+    const topStrengthNames = strongest
+      .slice(0, 2)
+      .map((row) => DIMENSION_META[row.dimension]?.title || row.dimension)
+      .join(' + ') || 'aktuální profil';
+    const roleUseCaseByDim: Record<string, string> = {
+      d8_digital_eq: 'komunikaci s klienty a zvládání citlivých situací v textu',
+      d9_systems_thinking: 'návrhu procesů a hlídání vedlejších dopadů změn',
+      d11_problem_decomposition: 'plánování kroků, prioritizaci a dotahování úkolů',
+      d7_cognitive_reflection: 'ověřování rozhodnutí a snižování chybných zkratek',
+      d10_ambiguity_interpretation: 'rozhodování i ve chvíli, kdy nejsou kompletní data',
+      d12_moral_compass: 'udržení důvěry při náročných rozhodnutích pod tlakem',
+    };
+    const primaryStrength = strongest[0];
+    const secondaryStrength = strongest[1];
+    const roleUseCase = roleUseCaseByDim[primaryStrength?.dimension || ''] || 'praktickém rozhodování a spolupráci';
+
+    const topRoles = uniqueFitScores.slice(0, 3).map((role) => {
+      const fit = Math.round(Number(role.fit_score) || 0);
+      const firstStrengthTitle = DIMENSION_META[primaryStrength?.dimension || '']?.title || topStrengthNames;
+      const firstStrengthScore = primaryStrength?.normalized ?? null;
+      const secondStrengthTitle = DIMENSION_META[secondaryStrength?.dimension || '']?.title || '';
+      const secondStrengthScore = secondaryStrength?.normalized ?? null;
+      const aiImpact = role.ai_impact ? ` AI dopad role: ${role.ai_impact}.` : '';
+      const workMode = role.remote_friendly ? ` Vhodnost práce na dálku: ${role.remote_friendly}.` : '';
+      return {
+        title: role.title,
+        reason:
+          `Shoda ${fit} %. Sedí díky silné oblasti ${firstStrengthTitle}${firstStrengthScore !== null ? ` (${firstStrengthScore}/100)` : ''}` +
+          `${secondStrengthTitle ? ` a ${secondStrengthTitle}${secondStrengthScore !== null ? ` (${secondStrengthScore}/100)` : ''}` : ''}. ` +
+          `V této roli to využiješ hlavně při ${roleUseCase}.${aiImpact}${workMode}`.trim(),
+      };
+    });
+
+    const nextSteps = weakest.map((row, index) => {
+      const title = DIMENSION_META[row.dimension]?.title || row.dimension;
+      const plan = habitPlans[row.dimension] || `Zvol malý denní návyk pro oblast "${title}" a po týdnu vyhodnoť posun.`;
+      return `Týden ${index + 1}: ${plan}`;
+    });
+
+    return {
+      strengths,
+      ideal_environment: [
+        socialScore >= 60
+          ? 'Spolupracující tým s pravidelnou zpětnou vazbou a jasnou domluvou.'
+          : 'Klidnější prostředí s delšími bloky na soustředěnou práci.',
+        energyScore >= 65
+          ? 'Práce s vyšším tempem a různorodými úkoly.'
+          : 'Stabilnější rytmus práce s menším množstvím náhlých změn.',
+        aiReadiness >= 60
+          ? 'Prostředí, kde se AI nástroje používají běžně a prakticky.'
+          : 'Prostředí, kde se nové nástroje zavádějí postupně a s podporou.',
+      ],
+      top_roles: topRoles,
+      development_areas: developmentAreas,
+      next_steps: nextSteps,
+      ai_readiness:
+        `Připravenost na AI máš na ${Math.round(aiReadiness)}/100 a práci s nejasností na ${Math.round(ambiguity)}/100. ` +
+        'Silné skóre znamená dobrý základ, další posun uděláš pravidelným tréninkem v praxi.',
+    };
+  }, [ai_report, mergedScores, normalizeTo100, normalizedScoreMap, uniqueFitScores]);
+
   const buildBridge = () => {
     const byDim = new Map(mergedScores.map((row) => [row.dimension, row]));
     const perfDims = bridgePairs
@@ -264,34 +414,34 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
 
     const skillToLearnTitle = weakestPerf
       ? (DIMENSION_META[weakestPerf.pair.perf]?.title || weakestPerf.pair.label)
-      : 'Nejslabší výkonová dimenze';
+      : 'Výkonová dimenze';
     const skillToLearnScore = weakestPerf ? Math.round(weakestPerf.score) : null;
-    const skillToLearnDetail = weakestPerf
-      ? `Výkonově jsi nyní na ${skillToLearnScore}/100. To znamená, že když jde o praktický výkon v této oblasti, máš největší prostor pro růst.`
-      : 'Výkonové dimenze ukazují, kde se tvoje dovednosti v praxi nejvíc odlišují od sebehodnocení.';
+    const skillToLearn = weakestPerf
+      ? `${skillToLearnTitle}: ${skillToLearnScore}/100. ` +
+        `Je to aktuálně nejslabší výkonová oblast v tomto běhu testu. ` +
+        `Fokus na 2 týdny: 1 konkrétní mikro‑návyk, 2 měřitelné výstupy týdně a krátké vyhodnocení pokroku.`
+      : 'Nebylo možné určit nejslabší výkonovou oblast.';
 
-    const behaviorIntro = biggestGap
-      ? `Rozdíl mezi tím, co si o sobě myslíš (${DIMENSION_META[biggestGap.pair.self]?.title || biggestGap.pair.label}), a tím, jak to vychází ve výkonu (${DIMENSION_META[biggestGap.pair.perf]?.title || biggestGap.pair.label}), je největší právě tady.`
-      : 'Největší rozdíly mezi sebehodnocením a výkonem jsou mírné.';
-
-    const behaviorGuidance = biggestGap && biggestGap.gap > 15
-      ? `Sebehodnocení je výrazně výš než výkon. To často znamená, že se spoléháš na pocit nebo minulou zkušenost, ale v aktuální praxi už to není tak silné. Změna chování: zpomal v klíčových situacích, přidej vědomé ověření a krátký „reality check“ (např. mini‑test, rychlý peer review, jasné kritérium úspěchu).`
-      : biggestGap && biggestGap.gap < -15
-        ? `Výkon je vyšší než sebehodnocení. To je signál, že v praxi zvládáš víc, než si připouštíš. Změna chování: přebírej více odpovědnosti, dávej si náročnější cíle a aktivně si říkej o zpětnou vazbu – tvoje výsledky to unesou.`
-        : `Rozdíly nejsou dramatické, ale i malé nesoulady se časem násobí. Změna chování: pravidelně si ověřuj realitu malými experimenty a měřitelnými úkoly, abys udržel/a sebekoncept a výkon v souladu.`;
-
-    const skillToLearn = [
-      `${skillToLearnTitle}`,
-      skillToLearnScore !== null ? `Aktuální výkon: ${skillToLearnScore}/100.` : '',
-      skillToLearnDetail,
-      'Doporučení: vyber si 1–2 malé, konkrétní návyky nebo mikro‑úkoly, které tuto dovednost posílí (např. logické ověření, strukturování problému, kontrola tónu v textu).'
-    ].filter(Boolean).join(' ');
-
-    const behaviorToChange = [
-      behaviorIntro,
-      behaviorGuidance,
-      'Cíl: aby tvůj deklarovaný styl a reálný výkon pracovaly ve stejném směru – pak se výsledky výrazně zrychlí.'
-    ].join(' ');
+    const behaviorToChange = biggestGap
+      ? (() => {
+          const selfTitle = DIMENSION_META[biggestGap.pair.self]?.title || biggestGap.pair.self;
+          const perfTitle = DIMENSION_META[biggestGap.pair.perf]?.title || biggestGap.pair.perf;
+          const selfRounded = Math.round(biggestGap.selfScore);
+          const perfRounded = Math.round(biggestGap.perfScore);
+          const absGap = Math.round(Math.abs(biggestGap.gap));
+          const direction = biggestGap.gap > 0
+            ? 'Sebehodnocení je vyšší než výkon.'
+            : biggestGap.gap < 0
+              ? 'Výkon je vyšší než sebehodnocení.'
+              : 'Sebehodnocení a výkon jsou vyrovnané.';
+          const action = biggestGap.gap > 10
+            ? 'Doporučení: před důležitým rozhodnutím použij krátký kontrolní seznam (kritérium úspěchu + 1 ověření).'
+            : biggestGap.gap < -10
+              ? 'Doporučení: slaď sebehodnocení s praxí a zapisuj si 3 konkrétní situace týdně.'
+              : 'Doporučení: drž současný režim a průběžně monitoruj odchylku.';
+          return `${selfTitle} (${selfRounded}/100) vs ${perfTitle} (${perfRounded}/100), rozdíl ${absGap} bodů. ${direction} ${action}`;
+        })()
+      : 'Rozdíl mezi sebehodnocením a výkonem nebylo možné spočítat.';
 
     return { skillToLearn, behaviorToChange };
   };
@@ -328,8 +478,8 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
         low: `Spíše tě drží stabilita a praktické jistoty (${rounded}/7). V prostředí chaosu bys mohl/a trpět.`,
       },
       d6_ai_readiness: {
-        high: `Vysoká AI readiness (${rounded}/7). Rychle se učíš nové nástroje a změny tě spíš posilují.`,
-        mid: `AI readiness je vyvážená (${rounded}/7). Nové technologie zvládáš, když je dobré vedení.`,
+        high: `Vysoká připravenost na AI (${rounded}/7). Rychle se učíš nové nástroje a změny tě spíš posilují.`,
+        mid: `Připravenost na AI je vyvážená (${rounded}/7). Nové technologie zvládáš, když je dobré vedení.`,
         low: `AI změny pro tebe nejsou přirozené (${rounded}/7). Potřebuješ stabilitu a jasný rámec.`,
       },
       d7_cognitive_reflection: {
@@ -355,7 +505,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
       d11_problem_decomposition: {
         high: `Silný rozklad problémů (${rounded}/${maxScore}). Umíš rychle vytvořit jasnou strukturu kroků.`,
         mid: `Vyvážený rozklad problémů (${rounded}/${maxScore}). Struktura ti jde, ale pomáhá rámec.`,
-        low: `Rozklad velkých úkolů je náročnější (${rounded}/${maxScore}). Pomohou checklisty a šablony.`,
+        low: `Rozklad velkých úkolů je náročnější (${rounded}/${maxScore}). Pomohou kontrolní seznamy a šablony.`,
       },
       d12_moral_compass: {
         high: `Silný morální kompas (${rounded}/${maxScore}). Integrita a dlouhodobá důvěra jsou pro tebe klíčové.`,
@@ -376,29 +526,29 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
         high:
           `Tvůj kognitivní styl je výrazně analytický (${rounded}/7). To znamená, že v hlavě přirozeně rozkládáš složité situace na menší části, hledáš vzorce a preferuješ logiku nad odhadem. Tato síla se velmi dobře uplatní v rolích, kde je potřeba strukturovat chaos – data, strategie, procesní optimalizace, architektura řešení nebo rozhodování s velkým množstvím vstupů. V praxi to znamená, že se nenecháš snadno strhnout emocí nebo tlakem a dokážeš být ten/ta, kdo dodá racionální rámec. Pozor však na jednu věc: někdy se můžeš příliš dlouho „zaseknout“ ve fázi analýzy a odkládat rozhodnutí, které by v dané situaci stačilo udělat rychle. Pomáhá si nastavit časové limity nebo testovat malé experimenty místo hledání perfektního řešení. Ve spolupráci s kreativnějšími kolegy tvoříš skvělý stabilizační pilíř.`,
         mid:
-          `Tvůj kognitivní styl je vyvážený (${rounded}/7). Umíš kombinovat analytiku s intuicí podle toho, co situace vyžaduje. Když jsou data, pracuješ racionálně; když chybí, dokážeš se opřít o zkušenost a rychlý odhad. Tato flexibilita je cenná v rolích, kde se mění kontext – produkt, projektové řízení, leadership, konzultace nebo kreativní strategie. V praxi to znamená, že zvládáš jak strukturované, tak „nejasné“ úkoly, a umíš přepínat mezi detailním a „big‑picture“ pohledem. Rizikem může být, že bez jasného rámce ztratíš prioritu – pomáhá pracovat s krátkými checklisty nebo „decision rules“. Celkově jde o velmi adaptivní profil, který dobře funguje v rychle se měnícím prostředí.`,
+          `Tvůj kognitivní styl je vyvážený (${rounded}/7). Umíš kombinovat analytiku s intuicí podle toho, co situace vyžaduje. Když jsou data, pracuješ racionálně; když chybí, dokážeš se opřít o zkušenost a rychlý odhad. Tato flexibilita je cenná v rolích, kde se mění kontext – produkt, projektové řízení, vedení lidí, konzultace nebo kreativní strategie. V praxi to znamená, že zvládáš jak strukturované, tak „nejasné“ úkoly, a umíš přepínat mezi detailním a „celkovým“ pohledem. Rizikem může být, že bez jasného rámce ztratíš prioritu – pomáhá pracovat s krátkými kontrolní seznamy nebo „rozhodovací pravidla“. Celkově jde o velmi adaptivní profil, který dobře funguje v rychle se měnícím prostředí.`,
         low:
           `Tvůj kognitivní styl je spíše intuitivní (${rounded}/7). Přirozeně se opíráš o celkový dojem, zkušenost a cit pro situaci. To je obrovská výhoda v prostředích, kde je málo dat, vysoká nejistota a je potřeba rychle vnímat nuance – například v komunikaci s lidmi, kreativitě, designu, obchodu nebo v rolích, kde rozhoduje timing. V praxi to znamená, že často „cítíš“, co je správné, ještě než to lze tvrdě dokázat. Můžeš ale narazit na prostředí, které vyžaduje rigorózní analytické zdůvodnění každého kroku – tam je vhodné se opřít o kolegy nebo jednoduché rámce (např. 2–3 klíčové metriky). Tvé rozhodování bývá rychlé a odvážné, ale pozor na to, aby nebylo příliš impulzivní v situacích s velkou odpovědností.`,
       },
       d2_social: {
         high:
-          `Sociální orientace je u tebe velmi silná (${rounded}/7). Energii ti dává práce s lidmi, spolupráce a často i leadership. Umíš číst atmosféru, zapojovat druhé a posouvat tým dopředu. To je skvělé pro role typu team lead, product owner, account management, HR nebo facilitace. V praxi to znamená, že se cítíš dobře v prostředí, kde můžeš budovat vztahy a ovlivňovat směr. Rizikem může být únava z přílišného „people managementu“ nebo potřeba potěšit všechny – pomáhá jasné vymezení odpovědnosti a hranic. Tvoje síla je schopnost vytvářet kohezivní tým a zvyšovat motivaci lidí kolem sebe.`,
+          `Sociální orientace je u tebe velmi silná (${rounded}/7). Energii ti dává práce s lidmi, spolupráce a často i vedení lidí. Umíš číst atmosféru, zapojovat druhé a posouvat tým dopředu. To je skvělé pro role typu vedoucí týmu, produktový manažer, péče o klienty, HR nebo facilitace. V praxi to znamená, že se cítíš dobře v prostředí, kde můžeš budovat vztahy a ovlivňovat směr. Rizikem může být únava z přílišného „řízení lidí“ nebo potřeba potěšit všechny – pomáhá jasné vymezení odpovědnosti a hranic. Tvoje síla je schopnost vytvářet kohezivní tým a zvyšovat motivaci lidí kolem sebe.`,
         mid:
           `Sociální orientace je vyvážená (${rounded}/7). Umíš fungovat jak v týmu, tak samostatně. Tato flexibilita je velmi praktická, protože ti umožňuje přizpůsobit se typu práce i kultuře firmy. V praxi zvládáš komunikaci, ale zároveň nepotřebuješ neustálou interakci, abys podal/a dobrý výkon. Silně ti bude vyhovovat prostředí, kde máš autonomii, ale zároveň možnost spolupráce, když to dává smysl. Rizikem může být, že se někdy „rozplyneš“ mezi rolí člena týmu a lídra – pomáhá vědomě přepínat podle situace a jasně si určit, kdy vedeš a kdy podporuješ.`,
         low:
-          `Preferuješ samostatnost (${rounded}/7). Nejlépe funguješ v prostředí, kde se můžeš soustředit bez častých interakcí a hluku. To je velká výhoda v rolích, které vyžadují hluboké soustředění, expertizu nebo individuální výkon. V praxi to znamená, že umíš být nezávislý/á, ale můžeš se cítit přetížený/á v neustálém „meeting mode“. Pomáhá jasná struktura spolupráce – domluvit si pravidelné, ale omezené synchronizace. Tvůj přínos je stabilita, preciznost a schopnost dotahovat věci bez vnějšího tlaku.`,
+          `Preferuješ samostatnost (${rounded}/7). Nejlépe funguješ v prostředí, kde se můžeš soustředit bez častých interakcí a hluku. To je velká výhoda v rolích, které vyžadují hluboké soustředění, expertizu nebo individuální výkon. V praxi to znamená, že umíš být nezávislý/á, ale můžeš se cítit přetížený/á v neustálém „režimu schůzek“. Pomáhá jasná struktura spolupráce – domluvit si pravidelné, ale omezené synchronizace. Tvůj přínos je stabilita, preciznost a schopnost dotahovat věci bez vnějšího tlaku.`,
       },
       d3_motivational: {
         high:
           `Tvůj motivační profil je silně vnitřní (${rounded}/7). Pohání tě smysl, autonomie a možnost růstu, ne jen odměna nebo status. V praxi to znamená, že podáváš nejlepší výkon v prostředí, kde máš prostor rozhodovat a cítíš, že práce něco znamená. To je skvělé pro inovativní týmy, startupy, výzkum nebo role, kde můžeš tvořit. Rizikem může být frustrace v rigidních strukturách nebo přílišná idealizace práce – pomáhá si nastavit realistické cíle a najít „drobné smysly“ i v rutinních úkolech. Tvoje síla je schopnost dlouhodobě držet tah bez vnější kontroly.`,
         mid:
-          `Motivace je u tebe vyvážená (${rounded}/7). Dokážeš fungovat jak na základě vnitřního smyslu, tak i jasných vnějších cílů. To je velmi adaptivní – zvládáš prostředí s KPI i kreativnější prostředí. V praxi to znamená, že se umíš přizpůsobit tomu, co firma nebo tým potřebuje, a neztrácíš výkon, když se mění podmínky. Rizikem může být rozptýlení mezi více typy motivátorů – pomáhá si ujasnit, co je v dané fázi nejdůležitější (např. růst vs. stabilita).`,
+          `Motivace je u tebe vyvážená (${rounded}/7). Dokážeš fungovat jak na základě vnitřního smyslu, tak i jasných vnějších cílů. To je velmi adaptivní – zvládáš prostředí s měřitelnými cíli i kreativnější prostředí. V praxi to znamená, že se umíš přizpůsobit tomu, co firma nebo tým potřebuje, a neztrácíš výkon, když se mění podmínky. Rizikem může být rozptýlení mezi více typy motivátorů – pomáhá si ujasnit, co je v dané fázi nejdůležitější (např. růst vs. stabilita).`,
         low:
-          `Silněji reaguješ na vnější motivátory (${rounded}/7). Jasné cíle, pravidla a odměny ti dávají stabilitu a výkon. V praxi to znamená, že umíš být velmi efektivní, když máš měřitelné výsledky a jasně daný rámec. To je skvělé pro role s KPI, procesy a systémem (sales, operations, performance). Rizikem může být vyhoření, pokud odměny dlouhodobě nepřicházejí nebo nejsou férové – proto je důležité mít transparentní očekávání. Tvoje síla je disciplína a schopnost doručovat výsledky.`,
+          `Silněji reaguješ na vnější motivátory (${rounded}/7). Jasné cíle, pravidla a odměny ti dávají stabilitu a výkon. V praxi to znamená, že umíš být velmi efektivní, když máš měřitelné výsledky a jasně daný rámec. To je skvělé pro role s měřitelnými cíli, procesy a systémem (obchod, provoz, výkon). Rizikem může být vyhoření, pokud odměny dlouhodobě nepřicházejí nebo nejsou férové – proto je důležité mít transparentní očekávání. Tvoje síla je disciplína a schopnost doručovat výsledky.`,
       },
       d4_energy: {
         high:
-          `Energetický pattern je u tebe vysoký (${rounded}/7). Umíš fungovat v rychlém tempu, zvládat tlak a přepínat mezi úkoly. To je silná výhoda v dynamických rolích a rychle se měnícím prostředí. V praxi to znamená, že se dokážeš „rozjet“ a doručit výkon, když je třeba. Rizikem je přetížení nebo dlouhodobé vyčerpání – pomáhá vědomě plánovat odpočinek a regeneraci. Tvoje síla je vysoká výkonnost v krizových situacích.`,
+          `Energetický styl je u tebe vysoký (${rounded}/7). Umíš fungovat v rychlém tempu, zvládat tlak a přepínat mezi úkoly. To je silná výhoda v dynamických rolích a rychle se měnícím prostředí. V praxi to znamená, že se dokážeš „rozjet“ a doručit výkon, když je třeba. Rizikem je přetížení nebo dlouhodobé vyčerpání – pomáhá vědomě plánovat odpočinek a regeneraci. Tvoje síla je vysoká výkonnost v krizových situacích.`,
         mid:
           `Tvůj energetický styl je vyvážený (${rounded}/7). Zvládáš stabilní tempo i nárazové zrychlení, což ti dává flexibilitu. V praxi se umíš adaptovat na různé režimy práce. Rizikem může být rozostření hranic mezi prací a odpočinkem – pomáhá vědomě plánovat rytmus dne. Tvoje síla je stabilita v různorodých podmínkách.`,
         low:
@@ -406,17 +556,17 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
       },
       d5_values: {
         high:
-          `Hodnotové kotvení je u tebe silné (${rounded}/7). Hledáš smysl, impact a inovace. V praxi to znamená, že potřebuješ vidět, že práce něco zlepšuje nebo posouvá. Když to cítíš, výkon roste; když ne, motivace klesá. To je skvělé pro role s misí, inovací nebo viditelným dopadem. Rizikem může být frustrace v prostředí, které je čistě procesní nebo krátkodobě orientované. Pomáhá si uvědomit, že i malé zlepšení může být smysluplné. Tvoje síla je schopnost dávat práci hlubší význam.`,
+          `Hodnotové kotvení je u tebe silné (${rounded}/7). Hledáš smysl, dopad a inovace. V praxi to znamená, že potřebuješ vidět, že práce něco zlepšuje nebo posouvá. Když to cítíš, výkon roste; když ne, motivace klesá. To je skvělé pro role s misí, inovací nebo viditelným dopadem. Rizikem může být frustrace v prostředí, které je čistě procesní nebo krátkodobě orientované. Pomáhá si uvědomit, že i malé zlepšení může být smysluplné. Tvoje síla je schopnost dávat práci hlubší význam.`,
         mid:
           `Hodnoty máš vyvážené (${rounded}/7). Umíš fungovat v různých typech kultur a prostředí, protože nejsi extrémně vyhraněný/á. V praxi to znamená, že se dokážeš přizpůsobit firmám s různými prioritami. Rizikem může být, že ti bude chybět „silný tah“, pokud prostředí nebude jasně definovat směr. Pomáhá si vědomě vybrat, co je pro tebe v dané fázi nejdůležitější.`,
         low:
-          `Spíše preferuješ stabilitu, jistotu a praktický užitek (${rounded}/7). V praxi to znamená, že ti vyhovuje jasně strukturované prostředí, kde jsou věci „předvídatelné“. To je výhoda v rolích s procesy, compliance nebo stabilním výstupem. Rizikem může být frustrace v chaotickém, experimentálním prostředí. Tvoje síla je spolehlivost a stabilní výkon.`,
+          `Spíše preferuješ stabilitu, jistotu a praktický užitek (${rounded}/7). V praxi to znamená, že ti vyhovuje jasně strukturované prostředí, kde jsou věci „předvídatelné“. To je výhoda v rolích s procesy, souladem s pravidly nebo stabilním výstupem. Rizikem může být frustrace v chaotickém, experimentálním prostředí. Tvoje síla je spolehlivost a stabilní výkon.`,
       },
       d6_ai_readiness: {
         high:
-          `Tvoje AI readiness je velmi vysoká (${rounded}/7). Rychle se učíš nové nástroje a změny tě spíš posilují než stresují. V praxi to znamená, že můžeš být early adopter, který zavádí nové postupy a technologie. Tato schopnost tě předurčuje k rolím s AI/tech složkou, kde je potřeba experimentovat a hledat nové možnosti. Rizikem může být nuda v prostředí, kde se nic nemění. Pomáhá hledat projekty s inovací. Tvoje síla je adaptabilita a technologická odvaha.`,
+          `Tvoje připravenost na AI je velmi vysoká (${rounded}/7). Rychle se učíš nové nástroje a změny tě spíš posilují než stresují. V praxi to znamená, že často patříš mezi první, kdo zavádí nové postupy. Tato schopnost tě předurčuje k rolím s výraznou technologickou složkou, kde je potřeba zkoušet nové přístupy. Rizikem může být nuda v prostředí, kde se nic nemění. Pomáhá hledat projekty s inovací. Tvoje síla je přizpůsobivost a technologická odvaha.`,
         mid:
-          `AI readiness je vyvážená (${rounded}/7). Nové technologie zvládáš, když je k tomu dobré vedení a smysl. V praxi znamená, že se umíš adaptovat, ale nepotřebuješ být první. To je vhodné pro role, kde se AI využívá, ale není to hlavní náplň. Rizikem je, že pokud změna přijde příliš rychle, můžeš potřebovat více podpory – pomáhá průběžné vzdělávání.`,
+          `Připravenost na AI je vyvážená (${rounded}/7). Nové technologie zvládáš, když je k tomu dobré vedení a jasný smysl. V praxi to znamená, že se umíš přizpůsobit, ale nepotřebuješ být vždy první. To je vhodné pro role, kde se AI používá, ale není hlavní náplní práce. Rizikem je, že při příliš rychlé změně můžeš potřebovat víc podpory – pomáhá průběžné vzdělávání.`,
         low:
           `AI změny pro tebe nejsou přirozené (${rounded}/7). Potřebuješ stabilitu a jasný rámec, abys mohl/a podávat dobrý výkon. To neznamená, že se AI nemůžeš naučit – jen to vyžaduje více času a podpory. V praxi ti budou sedět role, kde je technologie spíš nástroj než hlavní obsah práce. Tvoje síla je schopnost držet konzistentní výkon v ustáleném prostředí.`,
       },
@@ -424,45 +574,45 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
         high:
           `Tvoje kognitivní reflexe je velmi silná (${rounded}/${maxScore}). Dokážeš zachytit moment, kdy tě intuice táhne k rychlé, ale chybné odpovědi, a umíš ji zastavit ověřením. To je zásadní výhoda v rolích, kde je kvalita rozhodnutí kritická: analýza dat, výzkum, strategie, architektura systémů nebo kontrola kvality AI výstupů. V praxi to znamená, že jsi schopný/á dělat „druhé čtení“ – hledat slabiny argumentů, odhalovat logické pasti a ověřovat předpoklady. Lidé s tímto profilem často fungují jako bezpečnostní brzda týmu: zajišťují, že se neudělá unáhlené rozhodnutí. Rizikem může být přehnaná opatrnost a zbytečně dlouhé ověřování i tam, kde by stačilo rychlé rozhodnutí. Pomáhá time‑boxing a pravidlo „ověř jen klíčové věci“. Celkově je to vysoká mentální kvalita, která chrání tým před chybami a zvyšuje důvěryhodnost.`,
         mid:
-          `Tvoje kognitivní reflexe je vyvážená (${rounded}/${maxScore}). Umíš kombinovat rychlou intuici s logickým ověřením, což je praktické v reálných pracovních podmínkách, kde není čas na perfektní analýzu. V praxi často uděláš první odhad a poté si ho ověříš jednoduchým „sanity checkem“. To ti umožňuje fungovat v dynamických rolích, kde je potřeba rozhodovat rychle, ale nechceš dělat zásadní chyby. Rizikem může být, že v hodně komplexních problémech občas neuděláš druhou vrstvu ověření. Pomáhá vytvořit si osobní checklist (např. „Mám data? Nezáměňuji korelaci za kauzalitu? Co by vyvrátilo můj předpoklad?“). Tvoje síla je adaptabilita – umíš přepnout mezi rychlostí a kvalitou podle důležitosti situace.`,
+          `Tvoje kognitivní reflexe je vyvážená (${rounded}/${maxScore}). Umíš kombinovat rychlou intuici s logickým ověřením, což je praktické v reálných pracovních podmínkách, kde není čas na perfektní analýzu. V praxi často uděláš první odhad a poté si ho ověříš jednoduchou rychlou kontrolou smysluplnosti. To ti umožňuje fungovat v dynamických rolích, kde je potřeba rozhodovat rychle, ale nechceš dělat zásadní chyby. Rizikem může být, že v hodně komplexních problémech občas neuděláš druhou vrstvu ověření. Pomáhá vytvořit si osobní kontrolní seznam (např. „Mám data? Nezáměňuji korelaci za kauzalitu? Co by vyvrátilo můj předpoklad?“). Tvoje síla je adaptabilita – umíš přepnout mezi rychlostí a kvalitou podle důležitosti situace.`,
         low:
           `Tvoje kognitivní reflexe je spíše nízká (${rounded}/${maxScore}), což znamená, že rozhodnutí děláš rychle a silně se opíráš o intuici. To je velká výhoda v prostředích, kde je potřeba rychle reagovat, improvizovat a „cítit“ správnou cestu. V praxi můžeš být ten/ta, kdo se nebojí rozhodnout, i když není dost dat. Rizikem je vyšší náchylnost k logickým pastem a chybným zkratkám, zejména v technických nebo analytických úlohách. Pomůže ti, když si vytvoříš jednoduchý zvyk ověření u důležitých rozhodnutí: krátký zápis „proč“ + „co by to mohlo zpochybnit“. Když tento krok přidáš, získáš spolehlivost bez ztráty rychlosti.`,
       },
       d8_digital_eq: {
         high:
-          `Tvoje digitální EQ je velmi vysoké (${rounded}/${maxScore}). V textové komunikaci umíš číst nuance, zachytit emoce i nepřímé signály a dokážeš reagovat tak, že druhá strana cítí respekt a bezpečí. To je obrovská výhoda v době asynchronních týmů – umíš budovat důvěru bez fyzické přítomnosti. V praxi to znamená, že dokážeš zklidnit napjatou situaci v chatu, správně formulovat citlivé zpětné vazby a zároveň držet výkon. Silně ti sedí role s cross‑functional spoluprací, leadershipem nebo komunikací s klienty. Rizikem je, že můžeš trávit příliš času „laděním“ vztahů, když je potřeba rychle doručit výsledek. Pomáhá jasně nastavit očekávání a strukturu komunikace. Tvoje síla je schopnost držet tým pohromadě i na dálku.`,
+          `Tvoje digitální EQ je velmi vysoké (${rounded}/${maxScore}). V textové komunikaci umíš číst nuance, zachytit emoce i nepřímé signály a dokážeš reagovat tak, že druhá strana cítí respekt a bezpečí. To je obrovská výhoda v době asynchronních týmů – umíš budovat důvěru bez fyzické přítomnosti. V praxi to znamená, že dokážeš zklidnit napjatou situaci v chatu, správně formulovat citlivé zpětné vazby a zároveň držet výkon. Silně ti sedí role s mezitýmovou spoluprací, vedením lidí nebo komunikací s klienty. Rizikem je, že můžeš trávit příliš času „laděním“ vztahů, když je potřeba rychle doručit výsledek. Pomáhá jasně nastavit očekávání a strukturu komunikace. Tvoje síla je schopnost držet tým pohromadě i na dálku.`,
         mid:
           `Digitální EQ máš vyvážené (${rounded}/${maxScore}). Většinu tónu a emocí v textu zachytíš, ale občas můžeš některé nuance přehlédnout – zvlášť v rychlé nebo chaotické komunikaci. V praxi to znamená, že funguješ dobře v běžném týmovém provozu, ale při konfliktu ti pomůže ověřování („Rozumím správně, že…?“). Silně ti sedí prostředí, kde jsou jasná pravidla komunikace a kde je v pořádku se doptat. Tvoje výhoda je schopnost soustředit se na obsah a výkon, přičemž si zároveň držíš lidský přístup. Když k tomu přidáš vědomé ověřování tónu, zvedneš svou důvěryhodnost i v náročných situacích.`,
         low:
-          `Digitální EQ máš spíše nižší (${rounded}/${maxScore}). Textovou komunikaci vnímáš hlavně jako přenos informací, takže ti mohou unikat jemné signály v tónu a emočním podtextu. To je v pořádku v technických nebo jasně strukturovaných rolích, ale může to narážet v týmech, kde je důležitá vztahová rovina. V praxi se může stát, že tvůj stručný styl bude působit tvrději, než zamýšlíš. Pomáhá používat jednoduché „softeners“ (např. krátké uznání, potvrzení) a občas se doptat, jak byl tvůj výstup pochopen. Když si tyto návyky osvojíš, výrazně snížíš tření a zlepšíš spolupráci.`,
+          `Digitální EQ máš spíše nižší (${rounded}/${maxScore}). Textovou komunikaci vnímáš hlavně jako přenos informací, takže ti mohou unikat jemné signály v tónu a emočním podtextu. To je v pořádku v technických nebo jasně strukturovaných rolích, ale může to narážet v týmech, kde je důležitá vztahová rovina. V praxi se může stát, že tvůj stručný styl bude působit tvrději, než zamýšlíš. Pomáhá používat jednoduché „zjemňující formulace“ (např. krátké uznání, potvrzení) a občas se doptat, jak byl tvůj výstup pochopen. Když si tyto návyky osvojíš, výrazně snížíš tření a zlepšíš spolupráci.`,
       },
       d9_systems_thinking: {
         high:
           `Tvoje systémové myšlení je silné (${rounded}/${maxScore}). Vidíš, jak se jednotlivé části systému ovlivňují, vnímáš zpětné vazby, zpoždění a vedlejší efekty. To je zásadní dovednost pro architekturu procesů, produktové strategie, AI workflow nebo řízení komplexních projektů. V praxi to znamená, že umíš předvídat, jak se změna v jedné části projeví jinde – a vyhneš se „neviditelným“ problémům. Lidé s tímto profilem často včas identifikují rizika, která ostatním unikají. Rizikem může být přehnaná komplexita a příliš dlouhé modelování. Pomáhá si stanovit hranice systému a začít s „nejpravděpodobnějším“ modelem, který se postupně zpřesňuje. Tvoje síla je schopnost vidět celek a navrhovat stabilní řešení.`,
         mid:
-          `Tvoje systémové myšlení je vyvážené (${rounded}/${maxScore}). Umíš vidět souvislosti, ale zároveň se neztrácíš v detailu. To je praktická kombinace: dokážeš přemýšlet o širším dopadu, ale umíš rozhodnout a posunout se dál. V praxi se ti bude dařit v rolích, kde je potřeba „rozumná komplexita“ – produkt, operations, projektové řízení, konzultace. Rizikem může být, že někdy podceníš dlouhodobé vedlejší efekty. Pomáhá krátké mapování dopadů (např. „Kdo další je ovlivněn?“ „Co se stane za 3 měsíce?“). Tvoje síla je schopnost držet rovnováhu mezi detailním a systémovým pohledem.`,
+          `Tvoje systémové myšlení je vyvážené (${rounded}/${maxScore}). Umíš vidět souvislosti, ale zároveň se neztrácíš v detailu. To je praktická kombinace: dokážeš přemýšlet o širším dopadu, ale umíš rozhodnout a posunout se dál. V praxi se ti bude dařit v rolích, kde je potřeba „rozumná komplexita“ – produkt, provoz, projektové řízení, konzultace. Rizikem může být, že někdy podceníš dlouhodobé vedlejší efekty. Pomáhá krátké mapování dopadů (např. „Kdo další je ovlivněn?“ „Co se stane za 3 měsíce?“). Tvoje síla je schopnost držet rovnováhu mezi detailním a systémovým pohledem.`,
         low:
-          `Systémové myšlení je u tebe spíše nižší (${rounded}/${maxScore}). Přirozeně uvažuješ lineárně: problém → řešení. To je efektivní v jasně definovaných úlohách, ale u komplexních systémů můžeš přehlédnout vedlejší efekty. V praxi se může stát, že změna, která „vypadá dobře“, vytvoří problém jinde. Pomáhá pracovat s jednoduchými mapami vztahů nebo „impact map“ (co ovlivňuji přímo a nepřímo). Když si tuto dovednost postupně vybuduješ, budeš schopný/á dělat stabilnější a udržitelnější rozhodnutí.`,
+          `Systémové myšlení je u tebe spíše nižší (${rounded}/${maxScore}). Přirozeně uvažuješ lineárně: problém → řešení. To je efektivní v jasně definovaných úlohách, ale u komplexních systémů můžeš přehlédnout vedlejší efekty. V praxi se může stát, že změna, která „vypadá dobře“, vytvoří problém jinde. Pomáhá pracovat s jednoduchými mapami vztahů nebo s mapou dopadů (co ovlivňuji přímo a nepřímo). Když si tuto dovednost postupně vybuduješ, budeš schopný/á dělat stabilnější a udržitelnější rozhodnutí.`,
       },
       d10_ambiguity_interpretation: {
         high:
-          `Interpretace ambiguity je u tebe silně orientovaná na příležitosti (${rounded}/${maxScore}). V nejasných situacích vidíš potenciál, experimentuješ a hledáš nové cesty. To je klíčové pro inovace, business development, produktové experimenty nebo kreativní strategie. V praxi to znamená, že se nebojíš udělat první krok, i když není všechno jasné. Tvoje síla je schopnost „odkrývat“ nové možnosti tam, kde ostatní vidí jen riziko. Rizikem může být přehlížení varovných signálů nebo zbytečně vysoké riziko. Pomáhá si nastavit bezpečné experimenty (malé sázky, rychlé validace). Celkově jsi růstově orientovaný/á průzkumník.`,
+          `Interpretace nejasností je u tebe silně orientovaná na příležitosti (${rounded}/${maxScore}). V nejasných situacích vidíš potenciál, experimentuješ a hledáš nové cesty. To je klíčové pro inovace, rozvoj byznysu, produktové experimenty nebo kreativní strategie. V praxi to znamená, že se nebojíš udělat první krok, i když není všechno jasné. Tvoje síla je schopnost „odkrývat“ nové možnosti tam, kde ostatní vidí jen riziko. Rizikem může být přehlížení varovných signálů nebo zbytečně vysoké riziko. Pomáhá si nastavit bezpečné experimenty (malé sázky, rychlé validace). Celkově jsi růstově orientovaný/á průzkumník.`,
         mid:
-          `Vnímání ambiguity máš vyvážené (${rounded}/${maxScore}). Dokážeš držet opatrnost i odvahu – nejdeš bezhlavě, ale ani nezamrzáš. V praxi to znamená, že umíš rozhodovat v nejasnosti, když máš alespoň základní rámec a kontrolní body. To je ideální pro role, které kombinují kreativitu s odpovědností (produkt, project lead, UX, consulting). Rizikem může být váhání v situacích s vysokou nejistotou. Pomáhá nastavit „kritéria pokračování“ a mít plán B. Tvoje síla je stabilita v nejistém prostředí.`,
+          `Vnímání nejasnosti máš vyvážené (${rounded}/${maxScore}). Dokážeš držet opatrnost i odvahu – nejdeš bezhlavě, ale ani nezamrzáš. V praxi to znamená, že umíš rozhodovat v nejasnosti, když máš alespoň základní rámec a kontrolní body. To je ideální pro role, které kombinují kreativitu s odpovědností (produkt, vedení projektu, uživatelská zkušenost, poradenství). Rizikem může být váhání v situacích s vysokou nejistotou. Pomáhá nastavit „kritéria pokračování“ a mít plán B. Tvoje síla je stabilita v nejistém prostředí.`,
         low:
-          `Interpretace ambiguity je u tebe spíše opatrná (${rounded}/${maxScore}). Když věci nejsou jasné, přirozeně hledáš rizika a chceš mít pevný rámec. To je velká výhoda v rolích, kde je důležitá bezpečnost, compliance nebo minimalizace chyb. V praxi to znamená, že chráníš tým před unáhlenými rozhodnutími. Rizikem je, že v inovativních nebo rychle se měnících prostředích můžeš působit příliš konzervativně. Pomáhá pracovat s malými experimenty, které snižují nejistotu bez velkého rizika.`,
+          `Interpretace nejasností je u tebe spíše opatrná (${rounded}/${maxScore}). Když věci nejsou jasné, přirozeně hledáš rizika a chceš mít pevný rámec. To je velká výhoda v rolích, kde je důležitá bezpečnost, soulad s pravidly nebo minimalizace chyb. V praxi to znamená, že chráníš tým před unáhlenými rozhodnutími. Rizikem je, že v inovativních nebo rychle se měnících prostředích můžeš působit příliš konzervativně. Pomáhá pracovat s malými experimenty, které snižují nejistotu bez velkého rizika.`,
       },
       d11_problem_decomposition: {
         high:
-          `Rozklad problémů je u tebe velmi silný (${rounded}/${maxScore}). Když dostaneš velký a nejasný úkol, rychle ho rozsekáš na logické kroky a určíš priority. To je extrémně cenné v AI/tech rolích, produktovém řízení, konzultacích i leadershipu. V praxi to znamená, že umíš „postavit mapu“ a ostatním tím ulehčit práci. Tvoje síla je schopnost vytvářet strukturu tam, kde je chaos. Rizikem může být, že se příliš zaměříš na strukturu a ztratíš kreativitu nebo rychlost. Pomáhá ponechat prostor pro iteraci a průběžnou korekci plánu.`,
+          `Rozklad problémů je u tebe velmi silný (${rounded}/${maxScore}). Když dostaneš velký a nejasný úkol, rychle ho rozsekáš na logické kroky a určíš priority. To je extrémně cenné v technologicky orientovaných rolích, produktovém řízení, konzultacích i vedení lidí. V praxi to znamená, že umíš „postavit mapu“ a ostatním tím ulehčit práci. Tvoje síla je schopnost vytvářet strukturu tam, kde je chaos. Rizikem může být, že se příliš zaměříš na strukturu a ztratíš kreativitu nebo rychlost. Pomáhá ponechat prostor pro iteraci a průběžnou korekci plánu.`,
         mid:
           `Schopnost rozkladu problémů je u tebe vyvážená (${rounded}/${maxScore}). Umíš vytvořit základní strukturu, ale nejlepší výkon podáváš, když máš jasný rámec nebo vzor. V praxi se ti bude dařit v prostředí s dobře definovaným zadáním, kde můžeš přidat vlastní úpravy. Rizikem je, že u extrémně nejasných úkolů můžeš ztratit směr. Pomáhá používat jednoduché šablony (např. „cíl → kroky → rizika → metriky“). Tvoje síla je spolehlivé doručení, když máš definovaný start.`,
         low:
-          `Rozklad problémů je u tebe náročnější (${rounded}/${maxScore}). Velké úkoly mohou působit jako chaos, protože chybí jasná struktura. To není slabost, ale signál, že potřebuješ více rámců. V praxi se ti bude dařit v rolích, kde jsou jasné postupy nebo silné vedení. Pokud chceš tuto oblast posílit, pomůže checklist, mind‑mapa nebo práce v malých „milnících“. I malé zlepšení v této dovednosti výrazně zvyšuje tvoji schopnost pracovat s komplexními zadáními.`,
+          `Rozklad problémů je u tebe náročnější (${rounded}/${maxScore}). Velké úkoly mohou působit jako chaos, protože chybí jasná struktura. To není slabost, ale signál, že potřebuješ více rámců. V praxi se ti bude dařit v rolích, kde jsou jasné postupy nebo silné vedení. Pokud chceš tuto oblast posílit, pomůže kontrolní seznam, myšlenková mapa nebo práce v malých „milnících“. I malé zlepšení v této dovednosti výrazně zvyšuje tvoji schopnost pracovat s komplexními zadáními.`,
       },
       d12_moral_compass: {
         high:
-          `Tvůj morální a etický kompas je velmi silný (${rounded}/${maxScore}). V dilematech dokážeš držet integritu, i když je to náročné nebo krátkodobě nevýhodné. V praxi to znamená, že lidé ti důvěřují, protože jsi konzistentní a předvídatelný/á. Tato stabilita je cenná v leadershipu, HR, compliance, bezpečnosti i v AI produktech, kde etické otázky nejsou „nice‑to‑have“, ale klíčové riziko. Rizikem může být, že v prostředí s tlakem na výkon můžeš působit jako „brzda“ – pomáhá umět své hodnoty jasně vysvětlit a ukázat dlouhodobý přínos. Tvoje síla je schopnost budovat důvěru a udržitelnost.`,
+          `Tvůj morální a etický kompas je velmi silný (${rounded}/${maxScore}). V dilematech dokážeš držet integritu, i když je to náročné nebo krátkodobě nevýhodné. V praxi to znamená, že lidé ti důvěřují, protože jsi konzistentní a předvídatelný/á. Tato stabilita je cenná ve vedení lidí, HR, souladu s pravidly, bezpečnosti i v AI produktech, kde etické otázky nejsou „jen doplněk“, ale klíčové riziko. Rizikem může být, že v prostředí s tlakem na výkon můžeš působit jako „brzda“ – pomáhá umět své hodnoty jasně vysvětlit a ukázat dlouhodobý přínos. Tvoje síla je schopnost budovat důvěru a udržitelnost.`,
         mid:
           `Morální kompas máš vyvážený (${rounded}/${maxScore}). Umíš kombinovat výkon a principy, což je praktické v reálném byznysu. V praxi dokážeš hledat kompromisy, které zachovávají integritu, ale zároveň posouvají výsledky. To je vhodné pro role, kde se často řeší šedé zóny. Rizikem je, že bez jasného rámce můžeš občas sklouznout k pragmatismu. Pomáhá mít osobní hranice a etická „pravidla“, která tě podrží v tlaku. Tvoje síla je schopnost rozhodovat s rozumem i svědomím.`,
         low:
@@ -500,24 +650,17 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
         <div class="card">
           <div class="role-title">${role.title}</div>
           <div class="badges">
-            <span class="badge">Fit: ${role.fit_score}%</span>
+            <span class="badge">Shoda: ${role.fit_score}%</span>
             ${role.ai_impact ? `<span class="badge alt">AI: ${role.ai_impact}</span>` : ''}
-            ${role.remote_friendly ? `<span class="badge alt">Remote: ${role.remote_friendly}</span>` : ''}
+            ${role.remote_friendly ? `<span class="badge alt">Na dálku: ${role.remote_friendly}</span>` : ''}
           </div>
           <div class="meta">${role.salary_range ? `Plat: ${role.salary_range}` : 'Plat: —'}${role.salary_range && role.growth_potential ? ' • ' : ''}${role.growth_potential ? `Růst: ${role.growth_potential}` : ''}</div>
-          <div class="meta">AI dopad: ${role.ai_impact || '—'} • Remote: ${role.remote_friendly || '—'}</div>
+          <div class="meta">AI dopad: ${role.ai_impact || '—'} • Práce na dálku: ${role.remote_friendly || '—'}</div>
         </div>
       `)
       .join('');
 
-    const ai = ai_report || {
-      strengths: [],
-      ideal_environment: [],
-      top_roles: [],
-      development_areas: [],
-      next_steps: [],
-      ai_readiness: '',
-    };
+    const ai = aiReportResolved;
     const aiBlock = `
       <div class="section">
         <h2>AI interpretace</h2>
@@ -532,7 +675,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
           </div>
         </div>
         <div class="card">
-          <div class="eyebrow">Top role (AI)</div>
+          <div class="eyebrow">Nejvhodnější role (AI)</div>
           <ul>${ai.top_roles.map((r: any) => `<li><strong>${r.title}</strong>: ${r.reason}</li>`).join('')}</ul>
         </div>
         <div class="grid">
@@ -546,11 +689,76 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
           </div>
         </div>
         <div class="card">
-          <div class="eyebrow">AI readiness</div>
+          <div class="eyebrow">Připravenost na AI</div>
           <p>${ai.ai_readiness}</p>
         </div>
       </div>
     `;
+
+    const radarSvg = `
+      <div class="card radar-card">
+        <svg viewBox="0 0 300 300" class="radar-svg" role="img" aria-label="Radar dovedností">
+          <circle cx="${radarGeometry.cx}" cy="${radarGeometry.cy}" r="${radarGeometry.radius}" class="radar-ring"></circle>
+          <circle cx="${radarGeometry.cx}" cy="${radarGeometry.cy}" r="${radarGeometry.radius * 0.66}" class="radar-ring"></circle>
+          <circle cx="${radarGeometry.cx}" cy="${radarGeometry.cy}" r="${radarGeometry.radius * 0.33}" class="radar-ring"></circle>
+          ${radarGeometry.axes
+            .map(
+              (axis) => `
+                <g>
+                  <line x1="${radarGeometry.cx}" y1="${radarGeometry.cy}" x2="${axis.x2}" y2="${axis.y2}" class="radar-axis"></line>
+                  <text x="${axis.labelX}" y="${axis.labelY}" class="radar-label" text-anchor="middle">${axis.label}</text>
+                </g>
+              `,
+            )
+            .join('')}
+          <polygon points="${radarGeometry.standardPoints}" class="radar-standard"></polygon>
+          <polygon points="${radarGeometry.deepPoints}" class="radar-deep"></polygon>
+        </svg>
+        <div class="legend">
+          <span class="legend-pill standard">Základní profil</span>
+          <span class="legend-pill deep">Praktické dovednosti</span>
+        </div>
+      </div>
+    `;
+
+    const alignmentRows = alignmentBars
+      .map((bar) => {
+        const dotLeft = 50 + bar.offsetPct / 2;
+        const statusLabel = bar.status === 'hidden_talent'
+          ? 'Skrytý výkon'
+          : bar.status === 'overestimation'
+            ? 'Přestřelené sebehodnocení'
+            : 'Zarovnané';
+        return `
+          <div class="align-row">
+            <div class="align-head">
+              <div>${bar.label}</div>
+              <div class="align-meta">${bar.selfScore} → ${bar.perfScore} (${bar.diff >= 0 ? '+' : ''}${bar.diff})</div>
+            </div>
+            <div class="align-track">
+              <div class="align-zero"></div>
+              <div class="align-dot ${bar.status}" style="left: ${dotLeft}%;"></div>
+            </div>
+            <div class="align-note">${statusLabel}</div>
+          </div>
+        `;
+      })
+      .join('');
+
+    const synthesisBlock = `
+      <div class="section">
+        <h2>Souhrn</h2>
+        <div class="meta">Porovnání základního profilu (D1–D6) a praktických dovedností (D7–D12).</div>
+        <div class="grid">
+          ${radarSvg}
+          <div class="card">
+            <div class="eyebrow">Ukazatel souladu</div>
+            ${alignmentRows || '<div class="meta">Data pro vyhodnocení souladu nejsou dostupná.</div>'}
+          </div>
+        </div>
+      </div>
+    `;
+
     const html = `
       <html>
         <head>
@@ -585,6 +793,27 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
             .badge { border: 1px solid #bae6fd; background: #e0f2fe; color: #0e7490; border-radius: 999px; padding: 4px 10px; font-size: 12px; font-weight: 700; }
             .badge.alt { border-color: #c7d2fe; background: #eef2ff; color: #1d4ed8; }
             .meta { font-size: 12px; color: #475569; margin-top: 6px; }
+            .radar-card { display: flex; flex-direction: column; gap: 10px; }
+            .radar-svg { width: 100%; max-width: 340px; margin: 0 auto; display: block; }
+            .radar-ring { fill: none; stroke: #cbd5e1; stroke-width: 1; }
+            .radar-axis { stroke: #94a3b8; stroke-width: 1; }
+            .radar-label { fill: #475569; font-size: 10px; }
+            .radar-standard { fill: rgba(14, 165, 233, 0.22); stroke: #0284c7; stroke-width: 2; }
+            .radar-deep { fill: rgba(34, 197, 94, 0.2); stroke: #16a34a; stroke-width: 2; }
+            .legend { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+            .legend-pill { border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 700; }
+            .legend-pill.standard { background: #e0f2fe; color: #0369a1; border: 1px solid #bae6fd; }
+            .legend-pill.deep { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+            .align-row { margin-top: 10px; }
+            .align-head { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; font-weight: 600; color: #0f172a; }
+            .align-track { position: relative; height: 12px; margin-top: 6px; border-radius: 999px; background: linear-gradient(90deg, #fef2f2 0%, #f8fafc 50%, #ecfdf5 100%); border: 1px solid #e2e8f0; }
+            .align-zero { position: absolute; left: 50%; top: -3px; bottom: -3px; width: 1px; background: #64748b; }
+            .align-dot { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 10px; height: 10px; border-radius: 999px; border: 2px solid #ffffff; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25); }
+            .align-dot.hidden_talent { background: #16a34a; }
+            .align-dot.overestimation { background: #dc2626; }
+            .align-dot.aligned { background: #0284c7; }
+            .align-note { font-size: 11px; color: #475569; margin-top: 4px; }
+            .align-meta { font-size: 11px; color: #475569; font-weight: 500; }
             ul { padding-left: 18px; margin: 6px 0 0; }
             li { margin-bottom: 6px; }
             @media print {
@@ -609,19 +838,20 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
             <h2>Dimenze</h2>
             ${dimCards}
           </div>
+          ${synthesisBlock}
           <div class="section">
-            <h2>Top role podle fit skóre</h2>
+            <h2>Nejvhodnější role podle skóre shody</h2>
             ${roles}
           </div>
           ${aiBlock}
           <div class="section">
-            <h2>Bridge the Gap</h2>
+            <h2>Propojení sebehodnocení a výkonu</h2>
             <div class="card">
-              <div class="eyebrow">Skill to Learn</div>
+              <div class="eyebrow">Dovednost k rozvoji</div>
               <div class="long">${bridge.skillToLearn}</div>
             </div>
             <div class="card">
-              <div class="eyebrow">Behavior to Change</div>
+              <div class="eyebrow">Návyk ke změně</div>
               <div class="long">${bridge.behaviorToChange}</div>
             </div>
           </div>
@@ -637,7 +867,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="jcfpm-report-root space-y-4">
       <div className="jcfpm-report-card jcfpm-report-section">
         <div className="jcfpm-heading text-sm font-semibold">Jak číst výsledky</div>
         <div className="mt-2 text-xs text-slate-600">
@@ -654,7 +884,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
           <div className="jcfpm-metric-pill">80–100 → vysoké (D7–D12)</div>
         </div>
         <div className="mt-3 text-xs text-slate-600">
-          Fit score (0–100) vyjadřuje shodu s ideálním profilem role. Čím vyšší číslo, tím bližší match.
+          Skóre shody (0–100) vyjadřuje, jak moc sedí tvůj profil k dané roli. Čím vyšší číslo, tím lepší shoda.
         </div>
         <div className="mt-3 flex flex-wrap gap-2">
           <button onClick={printReport} className="jcfpm-secondary-button">Tisk / PDF</button>
@@ -665,7 +895,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
             <div className="mt-1">Např. 80. percentil znamená, že jsi výše než 80 % lidí v dané dimenzi.</div>
           </div>
           <div className="jcfpm-info-card">
-            <div className="font-semibold text-slate-700">Jak číst fit score</div>
+            <div className="font-semibold text-slate-700">Jak číst skóre shody</div>
             <div className="mt-1">70–85 = dobrá shoda, 85+ = velmi silná shoda.</div>
           </div>
         </div>
@@ -673,8 +903,8 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
 
       <div className="jcfpm-report-card jcfpm-report-section">
         <div className="flex items-center justify-between gap-2">
-          <h4 className="jcfpm-heading text-lg font-semibold">Career Fit Report</h4>
-          <span className="rounded-full border border-cyan-200/70 bg-cyan-50 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-cyan-700">
+          <h4 className="jcfpm-heading text-lg font-semibold">Přehled výsledků</h4>
+          <span className="jcfpm-report-tag">
             Percentily a interpretace
           </span>
         </div>
@@ -682,16 +912,16 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
       <div className="mt-3 grid gap-3 md:grid-cols-2">
           {mergedScores.map((row) => (
             <div key={row.dimension} className="jcfpm-report-card-lite jcfpm-report-dimension">
-              <div className="text-xs uppercase tracking-wider text-cyan-700">
+              <div className="jcfpm-report-eyebrow">
                 {DIMENSION_META[row.dimension]?.title || row.dimension}
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <div className="jcfpm-score-chip">
-                  <div className="text-[10px] uppercase tracking-wider text-cyan-700">Skóre</div>
+                  <div className="jcfpm-report-eyebrow text-[10px]">Skóre</div>
                   <div className="text-lg font-semibold text-slate-900">{row.raw_score} / {scoreMax(row.dimension)}</div>
                 </div>
                 <div className="jcfpm-score-chip jcfpm-score-chip-alt">
-                  <div className="text-[10px] uppercase tracking-wider text-cyan-700">Percentil</div>
+                  <div className="jcfpm-report-eyebrow text-[10px]">Percentil</div>
                   <div className="text-lg font-semibold text-slate-900">{row.percentile}</div>
                   <div className="text-[11px] text-slate-600">({row.percentile_band})</div>
                 </div>
@@ -712,11 +942,11 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
       </div>
 
       <div className="jcfpm-report-card jcfpm-report-section">
-        <div className="jcfpm-heading text-sm font-semibold">The Synthesis</div>
-        <div className="mt-1 text-xs text-slate-600">Overlay Standard (D1–D6) vs Deep Dive (D7–D12) + alignment bars.</div>
+        <div className="jcfpm-heading text-sm font-semibold">Souhrn</div>
+        <div className="mt-1 text-xs text-slate-600">Porovnání základního profilu (D1–D6) a praktických dovedností (D7–D12).</div>
         <div className="mt-3 grid gap-4 lg:grid-cols-[340px_1fr]">
           <div className="jcfpm-report-card-lite jcfpm-radar-panel">
-            <svg viewBox="0 0 300 300" className="jcfpm-radar-svg" role="img" aria-label="Potential radar">
+            <svg viewBox="0 0 300 300" className="jcfpm-radar-svg" role="img" aria-label="Radar dovedností">
               <circle cx={radarGeometry.cx} cy={radarGeometry.cy} r={radarGeometry.radius} className="jcfpm-radar-ring" />
               <circle cx={radarGeometry.cx} cy={radarGeometry.cy} r={radarGeometry.radius * 0.66} className="jcfpm-radar-ring" />
               <circle cx={radarGeometry.cx} cy={radarGeometry.cy} r={radarGeometry.radius * 0.33} className="jcfpm-radar-ring" />
@@ -730,12 +960,12 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
               <polygon points={radarGeometry.deepPoints} className="jcfpm-radar-deep" />
             </svg>
             <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-              <span className="jcfpm-radar-pill standard">Standard</span>
-              <span className="jcfpm-radar-pill deep">Deep Dive</span>
+              <span className="jcfpm-radar-pill standard">Základní profil</span>
+              <span className="jcfpm-radar-pill deep">Praktické dovednosti</span>
             </div>
           </div>
           <div className="jcfpm-report-card-lite">
-            <div className="text-xs uppercase tracking-wider text-cyan-700">Alignment Bar</div>
+            <div className="jcfpm-report-eyebrow">Ukazatel souladu</div>
             <div className="mt-3 space-y-3">
               {alignmentBars.map((bar) => (
                 <div key={bar.label} className="jcfpm-align-row">
@@ -755,9 +985,9 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
       </div>
 
       <div className="jcfpm-report-card jcfpm-report-section">
-        <div className="jcfpm-heading text-sm font-semibold">Top role podle fit skóre</div>
+        <div className="jcfpm-heading text-sm font-semibold">Nejvhodnější role podle skóre shody</div>
         <div className="mt-1 text-xs text-slate-600">
-          Fit score je vypočtený podle vážené vzdálenosti od ideálního profilu role (0–100).
+          Skóre shody je vypočtené podle vzdálenosti od ideálního profilu role (0–100).
         </div>
         <div className="mt-2 grid gap-3 md:grid-cols-2">
           {uniqueFitScores.slice(0, 10).map((role, idx) => (
@@ -772,9 +1002,9 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
                 </div>
               </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="jcfpm-score-badge">Fit: {role.fit_score}%</span>
+                <span className="jcfpm-score-badge">Shoda: {role.fit_score}%</span>
                 {role.ai_impact ? <span className="jcfpm-score-badge jcfpm-score-badge-alt">AI: {role.ai_impact}</span> : null}
-                {role.remote_friendly ? <span className="jcfpm-score-badge jcfpm-score-badge-alt">Remote: {role.remote_friendly}</span> : null}
+                {role.remote_friendly ? <span className="jcfpm-score-badge jcfpm-score-badge-alt">Na dálku: {role.remote_friendly}</span> : null}
               </div>
               <div className="mt-2 text-xs text-slate-600">
                 {role.salary_range ? `Plat: ${role.salary_range}` : null}
@@ -784,29 +1014,28 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
               <div className="mt-1 text-xs text-slate-600">
                 {role.ai_impact ? `AI dopad: ${role.ai_impact}` : 'AI dopad: —'}
                 {' • '}
-                {role.remote_friendly ? `Remote: ${role.remote_friendly}` : 'Remote: —'}
+                {role.remote_friendly ? `Práce na dálku: ${role.remote_friendly}` : 'Práce na dálku: —'}
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {ai_report ? (
-        <div className="jcfpm-report-card jcfpm-report-section">
+      <div className="jcfpm-report-card jcfpm-report-section">
           <div className="jcfpm-heading text-sm font-semibold">AI interpretace</div>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <div className="jcfpm-report-card-lite">
-              <div className="text-xs uppercase tracking-wider text-cyan-700">Silné stránky</div>
+              <div className="jcfpm-report-eyebrow">Silné stránky</div>
               <ul className="mt-2 space-y-1 text-sm text-slate-600">
-                {ai_report.strengths.map((item, idx) => (
+                {aiReportResolved.strengths.map((item, idx) => (
                   <li key={`strength-${idx}`}>- {item}</li>
                 ))}
               </ul>
             </div>
             <div className="jcfpm-report-card-lite">
-              <div className="text-xs uppercase tracking-wider text-cyan-700">Ideální prostředí</div>
+              <div className="jcfpm-report-eyebrow">Ideální prostředí</div>
               <ul className="mt-2 space-y-1 text-sm text-slate-600">
-                {ai_report.ideal_environment.map((item, idx) => (
+                {aiReportResolved.ideal_environment.map((item, idx) => (
                   <li key={`env-${idx}`}>- {item}</li>
                 ))}
               </ul>
@@ -814,9 +1043,9 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
           </div>
 
           <div className="jcfpm-report-card-lite mt-3">
-            <div className="text-xs uppercase tracking-wider text-cyan-700">Top role (AI)</div>
+            <div className="jcfpm-report-eyebrow">Nejvhodnější role (AI)</div>
             <ul className="mt-2 space-y-2 text-sm text-slate-600">
-              {ai_report.top_roles.map((role, idx) => (
+              {aiReportResolved.top_roles.map((role, idx) => (
                 <li key={`ai-role-${idx}`}>- {role.title}: {role.reason}</li>
               ))}
             </ul>
@@ -824,17 +1053,17 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
 
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <div className="jcfpm-report-card-lite">
-              <div className="text-xs uppercase tracking-wider text-cyan-700">Rozvojové oblasti</div>
+              <div className="jcfpm-report-eyebrow">Rozvojové oblasti</div>
               <ul className="mt-2 space-y-1 text-sm text-slate-600">
-                {ai_report.development_areas.map((item, idx) => (
+                {aiReportResolved.development_areas.map((item, idx) => (
                   <li key={`dev-${idx}`}>- {item}</li>
                 ))}
               </ul>
             </div>
             <div className="jcfpm-report-card-lite">
-              <div className="text-xs uppercase tracking-wider text-cyan-700">Další kroky</div>
+              <div className="jcfpm-report-eyebrow">Další kroky</div>
               <ul className="mt-2 space-y-1 text-sm text-slate-600">
-                {ai_report.next_steps.map((item, idx) => (
+                {aiReportResolved.next_steps.map((item, idx) => (
                   <li key={`next-${idx}`}>- {item}</li>
                 ))}
               </ul>
@@ -842,14 +1071,13 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
           </div>
 
           <div className="jcfpm-report-card-lite mt-3 text-sm text-slate-600">
-            <span className="text-xs uppercase tracking-wider text-cyan-700">AI readiness</span>
-            <div className="mt-2">{ai_report.ai_readiness}</div>
+            <span className="jcfpm-report-eyebrow">Připravenost na AI</span>
+            <div className="mt-2">{aiReportResolved.ai_readiness}</div>
           </div>
         </div>
-      ) : null}
 
       <div className="jcfpm-report-card jcfpm-report-section">
-        <div className="jcfpm-heading text-sm font-semibold">Bridge the Gap</div>
+        <div className="jcfpm-heading text-sm font-semibold">Propojení sebehodnocení a výkonu</div>
         <div className="mt-1 text-xs text-slate-600">
           Porovnání toho, co si o sobě myslíš (D1–D6), s tím, jak to prokazuješ v praxi (D7–D12).
         </div>
@@ -858,11 +1086,11 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
           return (
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div className="jcfpm-report-card-lite">
-                <div className="text-xs uppercase tracking-wider text-cyan-700">Skill to Learn</div>
+                <div className="jcfpm-report-eyebrow">Dovednost k rozvoji</div>
                 <div className="mt-2 text-sm text-slate-700">{bridge.skillToLearn}</div>
               </div>
               <div className="jcfpm-report-card-lite">
-                <div className="text-xs uppercase tracking-wider text-cyan-700">Behavior to Change</div>
+                <div className="jcfpm-report-eyebrow">Návyk ke změně</div>
                 <div className="mt-2 text-sm text-slate-700">{bridge.behaviorToChange}</div>
               </div>
             </div>

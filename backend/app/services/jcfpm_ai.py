@@ -1,6 +1,6 @@
 from __future__ import annotations
 import json
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List
 from ..ai_orchestration.client import call_primary_with_fallback, _extract_json, AIClientError
 from ..core.runtime_config import get_active_model_config
 
@@ -37,15 +37,15 @@ DIMENSION_META = {
     "d5_values": {
         "title": "Hodnotové ukotvení",
         "definition": "Co musí práce přinášet, aby dávala smysl.",
-        "contrast": "Impact vs. osobní růst • Inovace vs. stabilita • Vztahy vs. výkon",
+        "contrast": "Dopad vs. osobní růst • Inovace vs. stabilita • Vztahy vs. výkon",
     },
     "d6_ai_readiness": {
-        "title": "AI readiness",
+        "title": "Připravenost na práci s AI",
         "definition": "Ochota učit se, adaptovat se a využívat AI v práci.",
         "contrast": "Rychlá adaptace vs. jistota • Experimentování vs. osvědčené postupy",
     },
     "d7_cognitive_reflection": {
-        "title": "Cognitive Reflection & Logic",
+        "title": "Kognitivní reflexe a logika",
         "definition": "Schopnost zastavit první intuici a ověřit ji logikou.",
         "contrast": "Rychlá intuice vs. ověřená logika • Šum vs. důkaz",
     },
@@ -60,7 +60,7 @@ DIMENSION_META = {
         "contrast": "Lineární příčina vs. síť vztahů • Krátkodobé vs. dlouhodobé",
     },
     "d10_ambiguity_interpretation": {
-        "title": "Interpretace ambiguity",
+        "title": "Interpretace nejasností",
         "definition": "Jak čteš nejasné situace – rizika vs. příležitosti.",
         "contrast": "Opatrnost vs. průzkum • Ochrana vs. růst",
     },
@@ -114,6 +114,18 @@ def _fmt_dim(dim_row: Dict[str, Any]) -> str:
     pct = dim_row.get("percentile")
     max_score = 100 if dim in _EXTENDED_DIMS else 7
     return f"{title} ({score}/{max_score}, {pct}. percentil)"
+
+
+def _normalize_score_100(dim: str, raw_score: Any) -> int:
+    try:
+        value = float(raw_score or 0)
+    except (TypeError, ValueError):
+        value = 0.0
+    if dim in _EXTENDED_DIMS:
+        normalized = value
+    else:
+        normalized = (value / 7.0) * 100.0
+    return int(round(max(0.0, min(100.0, normalized))))
 
 
 def _dimension_sentence(dim_row: Dict[str, Any]) -> str:
@@ -203,92 +215,151 @@ def _build_fallback_report(payload: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(top_roles, list):
         top_roles = []
 
-    sorted_by_pct = sorted(dim_scores, key=lambda r: float(r.get("percentile") or 0), reverse=True)
-    sorted_by_low = sorted(dim_scores, key=lambda r: float(r.get("percentile") or 0))
+    scored_rows: List[Dict[str, Any]] = []
+    for row in dim_scores:
+        dim = str(row.get("dimension") or "")
+        scored_rows.append({
+            **row,
+            "dimension": dim,
+            "score_100": _normalize_score_100(dim, row.get("raw_score")),
+            "percentile_num": int(round(float(row.get("percentile") or 0))),
+        })
 
-    strengths_rows = (sorted_by_pct[:3] or sorted_by_pct[:2] or dim_scores[:2])
-    dev_rows = (sorted_by_low[:2] or sorted_by_low[:1] or dim_scores[:1])
+    scored_rows.sort(key=lambda r: r["score_100"], reverse=True)
+    strengths_rows = scored_rows[:3] or scored_rows[:2] or scored_rows[:1]
+    dev_rows = sorted(scored_rows, key=lambda r: r["score_100"])[:2] or scored_rows[:1]
+
+    strength_focus = {
+        "d1_cognitive": ("dobře třídíš informace a rozhoduješ se na základě faktů", "analýze variant a argumentaci"),
+        "d2_social": ("umíš dobře pracovat s lidmi a sladit tým", "domluvě v týmu a předávání odpovědnosti"),
+        "d3_motivational": ("máš stabilní vnitřní tah na cíl", "dlouhodobých úkolech a dokončování práce"),
+        "d4_energy": ("udržíš výkon i v náročnějším tempu", "řízení priorit při více úkolech"),
+        "d5_values": ("držíš směr podle jasných hodnot", "rozhodování pod tlakem a volbě priorit"),
+        "d6_ai_readiness": ("rychle se učíš nové nástroje a postupy", "zavádění AI nástrojů do běžné práce"),
+        "d7_cognitive_reflection": ("zastavíš první dojem a ověříš ho", "kritickém posouzení návrhů"),
+        "d8_digital_eq": ("v psané komunikaci dobře čteš tón i kontext", "citlivé komunikaci s klienty a týmem"),
+        "d9_systems_thinking": ("vidíš souvislosti a vedlejší dopady", "návrhu procesů a změn"),
+        "d10_ambiguity_interpretation": ("v nejistotě umíš hledat směr místo paralýzy", "rozhodování bez kompletních dat"),
+        "d11_problem_decomposition": ("umíš velké úkoly rozdělit na kroky", "plánování a řízení složitějších úkolů"),
+        "d12_moral_compass": ("udržíš férové rozhodování i pod tlakem", "situacích s konfliktem zájmů"),
+    }
+    growth_focus = {
+        "d1_cognitive": ("občas rozhodneš rychle bez ověření", "před rozhodnutím napiš 3 fakta, 1 riziko a 1 alternativu"),
+        "d2_social": ("můžeš podcenit sladění s ostatními", "u klíčového úkolu si vždy potvrď očekávání druhé strany"),
+        "d3_motivational": ("energie může kolísat podle typu úkolu", "na začátku týdne si urč 2 konkrétní cíle s termínem"),
+        "d4_energy": ("rychlé změny tě mohou unavit", "naplánuj si 2 bloky hluboké práce bez vyrušení"),
+        "d5_values": ("když chybí smysl, klesá tah na výsledek", "u každého většího úkolu si napiš, komu to pomůže"),
+        "d6_ai_readiness": ("u nových nástrojů můžeš váhat", "1x týdně otestuj jeden jednoduchý AI postup na reálném úkolu"),
+        "d7_cognitive_reflection": ("první intuice může někdy vyhrát nad ověřením", "u důležitých rozhodnutí použij otázku: „Jaký mám důkaz?“"),
+        "d8_digital_eq": ("v textu může dojít k nepochopení tónu", "u citlivých zpráv přidej krátké potvrzení porozumění"),
+        "d9_systems_thinking": ("hrozí přehlédnutí vedlejších dopadů", "před změnou napiš: co to zlepší, co to může zhoršit"),
+        "d10_ambiguity_interpretation": ("nejistota může brzdit rozhodnutí", "u nejasné situace sepiš 2 rizika a 2 příležitosti"),
+        "d11_problem_decomposition": ("větší úkol může působit nepřehledně", "rozděl větší zadání na 3–5 kroků s termínem"),
+        "d12_moral_compass": ("v tlaku může být těžší držet stejný metr", "u složitého rozhodnutí si napiš, koho to ovlivní krátkodobě i dlouhodobě"),
+    }
 
     strengths: List[str] = []
     for row in strengths_rows:
-        strengths.append(f"{_fmt_dim(row)}. {_dimension_sentence(row)}")
+        dim = row["dimension"]
+        title = DIMENSION_META.get(dim, {}).get("title", dim)
+        focus, practice = strength_focus.get(dim, ("v této oblasti máš nadprůměrný výkon", "náročnějších pracovních situacích"))
+        strengths.append(
+            f"{title}: {row['score_100']}/100 ({row['percentile_num']}. percentil). "
+            f"To znamená, že {focus}. V praxi to poznáš hlavně při {practice}."
+        )
 
     development: List[str] = []
     for row in dev_rows:
-        dim = row.get("dimension")
+        dim = row["dimension"]
         title = DIMENSION_META.get(dim, {}).get("title", dim)
-        level = _level_for(float(row.get("raw_score") or 0), dim)
-        if level == "high":
-            detail = "Pozor na přetížení: vysoká intenzita potřebuje vědomou regeneraci a disciplínu v prioritách."
-        elif level == "balanced":
-            detail = "V této oblasti máš zdravou rovnováhu; výhodu získáš, když ji propojíš s nejsilnějšími stránkami."
-        else:
-            detail = "Tady je prostor pro růst: drobné změny prostředí nebo návyků můžou výrazně zvednout komfort a výkon."
-        max_score = 100 if dim in _EXTENDED_DIMS else 7
-        development.append(f"{title} ({row.get('raw_score')}/{max_score}, {row.get('percentile')}. percentil). {detail}")
+        risk, step = growth_focus.get(dim, ("tady je prostor pro posun", "zvol jeden malý návyk a drž ho 7 dní"))
+        development.append(
+            f"{title}: {row['score_100']}/100 ({row['percentile_num']}. percentil). "
+            f"Právě tady se nejvíc projeví, že {risk}. První konkrétní krok: {step}."
+        )
 
-    # Ideal environment derived from D2/D4/D5 (fallback to others if missing)
-    ideal_environment: List[str] = []
-    for dim in ("d2_social", "d4_energy", "d5_values"):
-        row = next((r for r in dim_scores if r.get("dimension") == dim), None)
-        if not row:
-            continue
-        level = _level_for(float(row.get("raw_score") or 0), dim)
-        if dim == "d2_social":
-            ideal_environment.append(
-                "Prospíváš v týmech s jasnou rolí a kvalitní komunikací." if level in ("high", "balanced")
-                else "Nejlépe funguješ v samostatných úkolech s jasným zadáním a minimem rušivých meetingů."
-            )
-        if dim == "d4_energy":
-            ideal_environment.append(
-                "Dynamické prostředí ti sedí, když máš možnost rychle rozhodovat a měnit směr." if level == "high"
-                else "Stabilní rytmus, hlubší fokus a předvídatelné priority ti umožní podávat nejlepší výkon."
-            )
-        if dim == "d5_values":
-            ideal_environment.append(
-                "Potřebuješ vidět dopad práce a možnost inovovat." if level == "high"
-                else "Důležitá je stabilita, férovost a jasné standardy."
-            )
-    if len(ideal_environment) < 3:
-        ideal_environment.append("Hledej role s jasným očekáváním výsledku a realistickým tempem.")
+    by_dim = {row["dimension"]: row for row in scored_rows}
+    social = by_dim.get("d2_social", {}).get("score_100", 50)
+    energy = by_dim.get("d4_energy", {}).get("score_100", 50)
+    values = by_dim.get("d5_values", {}).get("score_100", 50)
+    ai = by_dim.get("d6_ai_readiness", {}).get("score_100", 50)
 
-    # Top roles with reasons tied to top dims
-    top_roles_out: List[Dict[str, str]] = []
-    reason_dims = strengths_rows[:2] or dim_scores[:2]
-    reason_bits = [DIMENSION_META.get(r.get("dimension"), {}).get("title", r.get("dimension")) for r in reason_dims]
-    reason_scores = [
-        f"{r.get('raw_score')}/{100 if r.get('dimension') in _EXTENDED_DIMS else 7}" for r in reason_dims
+    ideal_environment: List[str] = [
+        "Tým s pravidelnou zpětnou vazbou a jasnými očekáváními." if social >= 60
+        else "Prostředí s větším prostorem na samostatnou práci a menším počtem rušivých schůzek.",
+        "Rychlejší tempo práce s častou prioritizací." if energy >= 65
+        else "Stabilnější rytmus s možností soustředit se do hloubky.",
+        "Práce, kde je vidět dopad na lidi nebo byznys." if values >= 60
+        else "Práce s jasnými pravidly, férovým vedením a dlouhodobou stabilitou.",
+        "Prostředí, kde je běžné používat AI nástroje v praxi." if ai >= 60
+        else "Prostředí, kde se nové nástroje zavádějí postupně a s podporou.",
     ]
-    reason_effects = [_dimension_sentence(r) for r in reason_dims]
+
+    # Top roles with reasons tied to strongest dimensions
+    top_roles_out: List[Dict[str, str]] = []
+    reason_dims = strengths_rows[:2] or scored_rows[:2]
+    reason_a = reason_dims[0] if reason_dims else None
+    reason_b = reason_dims[1] if len(reason_dims) > 1 else None
+    role_use_case = "Tahle kombinace se hodí při rozhodování, komunikaci i dotahování výsledků."
+    if reason_a and reason_a["dimension"] == "d11_problem_decomposition":
+        role_use_case = "Silnou stránku využiješ hlavně při plánování práce, prioritizaci a předávání úkolů."
+    elif reason_a and reason_a["dimension"] == "d8_digital_eq":
+        role_use_case = "Silnou stránku využiješ hlavně při komunikaci s klienty, týmem a v citlivých situacích."
+    elif reason_a and reason_a["dimension"] == "d9_systems_thinking":
+        role_use_case = "Silnou stránku využiješ hlavně při návrhu procesů a vyhodnocování dopadů změn."
+
     for role in top_roles[:5]:
         title = role.get("title") or "Role"
-        reason = f"Sedí díky {reason_bits[0]} ({reason_scores[0]})"
-        if len(reason_bits) > 1:
-            reason += f" a {reason_bits[1]} ({reason_scores[1]}). {reason_effects[0]} {reason_effects[1]}"
+        fit = int(round(float(role.get("fit_score") or 0)))
+        if reason_a and reason_b:
+            a_title = DIMENSION_META.get(reason_a["dimension"], {}).get("title", reason_a["dimension"])
+            b_title = DIMENSION_META.get(reason_b["dimension"], {}).get("title", reason_b["dimension"])
+            reason = (
+                f"Shoda {fit} %. Sedí, protože máš silné {a_title} ({reason_a['score_100']}/100) "
+                f"a {b_title} ({reason_b['score_100']}/100). {role_use_case}"
+            )
         else:
-            reason += ", což podporuje způsob práce typický pro tuto roli."
+            reason = f"Shoda {fit} %. Tato role odpovídá tvému aktuálnímu profilu práce."
         top_roles_out.append({"title": title, "reason": reason})
 
-    next_steps = [
-        "Ověř si 1–2 top role krátkým projektem nebo stínováním v praxi.",
-        "Vyber prostředí, které odpovídá tvému energetickému režimu, a nastav si režim práce dopředu.",
-        "Rozviň nejslabší dimenzi malým experimentem (např. nový typ úkolu, změna tempa, jiný styl spolupráce).",
-    ]
+    next_steps: List[str] = []
+    for row in dev_rows[:2]:
+        dim = row["dimension"]
+        title = DIMENSION_META.get(dim, {}).get("title", dim)
+        step = growth_focus.get(dim, ("tady je prostor pro posun", "zvol jeden malý návyk a drž ho 7 dní"))[1]
+        next_steps.append(
+            f"Na příštích 7 dní zaměř oblast „{title}“: {step}. Cíl: splnit aspoň 4 z 5 pracovních dnů."
+        )
     if top_roles:
-        next_steps.append(f"Porovnej nabídky v rolích typu {top_roles[0].get('title')} podle míry autonomie a vlivu.")
+        next_steps.append(
+            f"Otestuj roli „{top_roles[0].get('title')}“ na malém úkolu (2–4 hodiny) a zapiš si, co ti šlo snadno a co tě brzdilo."
+        )
+    next_steps.append(
+        "Po 14 dnech si porovnej 3 konkrétní situace: co se zlepšilo, co zůstává slabé a jaký bude další krok."
+    )
 
-    # AI readiness summary
-    d6 = next((r for r in dim_scores if r.get("dimension") == "d6_ai_readiness"), None)
-    if d6:
-        d6_level = _level_for(float(d6.get("raw_score") or 0), "d6_ai_readiness")
-        if d6_level == "high":
-            ai_readiness = "Máš vysokou AI připravenost a rychlou adaptaci. Vyhledávej role, kde se AI aktivně používá a procesy se rychle mění."
-        elif d6_level == "balanced":
-            ai_readiness = "AI vnímáš pragmaticky: vybírej role s jasným přínosem AI, ale i stabilními procesy."
+    d6 = by_dim.get("d6_ai_readiness")
+    d10 = by_dim.get("d10_ambiguity_interpretation")
+    if d6 and d10:
+        d6_score = d6["score_100"]
+        d10_score = d10["score_100"]
+        if d6_score >= 75 and d10_score >= 70:
+            ai_readiness = (
+                f"Připravenost na práci s AI máš {d6_score}/100 a práci s nejasností {d10_score}/100. "
+                "Máš silný základ pro role, kde se nástroje i procesy rychle mění. Udržíš náskok, když budeš AI používat na reálných úkolech každý týden."
+            )
+        elif d6_score >= 50:
+            ai_readiness = (
+                f"Připravenost na práci s AI máš {d6_score}/100 a práci s nejasností {d10_score}/100. "
+                "AI umíš využít, když je jasný přínos a postup. Největší posun uděláš pravidelným tréninkem na konkrétních pracovních situacích."
+            )
         else:
-            ai_readiness = "Preferuješ stabilní postupy; dobře ti sednou role s jasnými standardy a postupným zaváděním AI."
+            ai_readiness = (
+                f"Připravenost na práci s AI máš {d6_score}/100 a práci s nejasností {d10_score}/100. "
+                "Lépe ti sedí postupné zavádění nástrojů s jasným návodem. Začni jedním jednoduchým použitím týdně a měř, kde šetří čas."
+            )
     else:
-        ai_readiness = "AI připravenost nelze přesně odhadnout, drž se rolí s jasným rámcem a postupnou adaptací."
+        ai_readiness = "Připravenost na práci s AI teď nejde přesně určit. Doporučení: zaváděj nové nástroje po malých krocích a vždy měř reálný přínos."
 
     return {
         "strengths": strengths[:6],
@@ -303,7 +374,7 @@ def _build_fallback_report(payload: Dict[str, Any]) -> Dict[str, Any]:
 def _build_prompt(payload: Dict[str, Any]) -> str:
     return f"""
 Vytvoř personalizovaný career report na základě následujícího profilu.
-Piš česky, konkrétně a ne obecně. Styl: koučovací, empatický, ale přímočarý.
+Piš česky, srozumitelně pro netechnického uživatele. Styl: věcný, podpůrný, konkrétní.
 Vyhni se klišé a generickým frázím.
 Opírej se o konkrétní dimenze, jejich skóre a percentily (nejméně 2 silné + 1 slabší oblast).
 Každý bod musí vysvětlovat "proč" a uvést situaci, kde se to projeví.
@@ -322,9 +393,10 @@ Pravidla:
 - ideal_environment: 3–5 bodů, každý 1–2 věty, vazba na D2/D4/D5.
 - top_roles: 3–5 rolí z payload.top_roles (nepřidávej jiné), důvod musí odkazovat na konkrétní dimenze (min. 2).
 - development_areas: 2–4 bodů, každý 2–3 věty, konstruktivní a konkrétní.
-- next_steps: 3–5 bodů, praktické kroky (např. typ projektu, styl práce, zkouška role).
+- next_steps: 3–5 bodů, praktické kroky s horizontem 7–14 dní a jasným měřítkem.
 - ai_readiness: 2–4 věty, jasný závěr a doporučení.
 - Nepoužívej fráze typu "záleží", "obecně", "může být", "typicky" bez konkrétního kontextu.
+- Nepoužívej anglický žargon ani fráze "na základě profilových dimenzí", "baseline", "fixní limit".
 - U top_roles vždy přidej "proč" ve formě: "Sedí díky [dimenze A] + [dimenze B] a tomu, jak se to projevuje v praxi."
 
 Profil:
@@ -358,6 +430,24 @@ def generate_jcfpm_report(payload: Dict[str, Any]) -> Dict[str, Any]:
             return any(ch.isdigit() for ch in value)
 
         payload_titles = {str(r.get("title")) for r in (payload.get("top_roles") or []) if r.get("title")}
+        banned_fragments = (
+            "na základě profilových dimenzí",
+            "nastav měřitelný návyk",
+            "baseline",
+            "fixní limit",
+        )
+
+        def _looks_generic(lines: List[str]) -> bool:
+            for line in lines:
+                lowered = str(line or "").strip().lower()
+                if not lowered:
+                    return True
+                if len(lowered) < 45:
+                    return True
+                if any(fragment in lowered for fragment in banned_fragments):
+                    return True
+            return False
+
         if (
             len(strengths) < 4
             or len(ideal_environment) < 3
@@ -370,10 +460,17 @@ def generate_jcfpm_report(payload: Dict[str, Any]) -> Dict[str, Any]:
 
         if not all(isinstance(x, str) and _has_digits(x) for x in strengths[:4]):
             return _build_fallback_report(payload)
+        if _looks_generic(strengths[:4]) or _looks_generic(development_areas[:2]) or _looks_generic(next_steps[:3]):
+            return _build_fallback_report(payload)
+        if any(fragment in ai_readiness.lower() for fragment in banned_fragments):
+            return _build_fallback_report(payload)
         if payload_titles:
             for role in top_roles[:5]:
                 title = str(role.get("title") or "")
+                reason = str(role.get("reason") or "")
                 if not title or title not in payload_titles:
+                    return _build_fallback_report(payload)
+                if len(reason.strip()) < 55 or "díky" not in reason.lower():
                     return _build_fallback_report(payload)
 
         return {

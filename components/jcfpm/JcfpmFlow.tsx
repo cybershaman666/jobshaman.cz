@@ -3,6 +3,10 @@ import { ArrowLeft, ArrowRight, Save, X, Volume2, VolumeX, Sparkles, Clock } fro
 import { JcfpmItem, JcfpmSnapshotV1, JcfpmDimensionId } from '../../types';
 import { fetchJcfpmItems, submitJcfpm } from '../../services/jcfpmService';
 import { clearJcfpmDraft, readJcfpmDraft, writeJcfpmDraft } from '../../services/jcfpmSessionState';
+import { useSceneCapability } from '../../hooks/useSceneCapability';
+import SceneShell from '../three/SceneShell';
+import JcfpmFocusParticles from '../three/JcfpmFocusParticles';
+import JcfpmElegantParticles from '../three/JcfpmElegantParticles';
 import JcfpmReportPanel from './JcfpmReportPanel';
 
 interface Props {
@@ -47,8 +51,8 @@ const DIMENSIONS: { id: JcfpmDimensionId; title: string; subtitle: string }[] = 
   },
   {
     id: 'd7_cognitive_reflection',
-    title: 'Cognitive Reflection & Logic',
-    subtitle: 'Schopnost odhalit chybnou intuici a přepnout do logiky.'
+    title: 'Reflexe a logika',
+    subtitle: 'Schopnost zastavit automatickou odpověď a použít logiku.'
   },
   {
     id: 'd8_digital_eq',
@@ -62,8 +66,8 @@ const DIMENSIONS: { id: JcfpmDimensionId; title: string; subtitle: string }[] = 
   },
   {
     id: 'd10_ambiguity_interpretation',
-    title: 'Interpretace ambiguity',
-    subtitle: 'Jak čteš nejasné signály a vnímáš rizika vs. příležitosti.'
+    title: 'Interpretace nejasností',
+    subtitle: 'Jak čteš nejasné signály a rozlišuješ rizika a příležitosti.'
   },
   {
     id: 'd11_problem_decomposition',
@@ -72,7 +76,7 @@ const DIMENSIONS: { id: JcfpmDimensionId; title: string; subtitle: string }[] = 
   },
   {
     id: 'd12_moral_compass',
-    title: 'Morální & etický kompas',
+    title: 'Morální kompas',
     subtitle: 'Rozhodování v etických dilematech a šedých zónách.'
   },
 ];
@@ -675,22 +679,28 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
   const currentDim = DIMENSIONS.find((dim) => dim.id === inferDimension(currentItem)) || DIMENSIONS[0];
   const isDeepDive = Boolean(currentItem && DEEP_DIVE_DIMENSIONS.has(inferDimension(currentItem)));
   const isFocusMode = viewMode === 'form' && isDeepDive;
+  const sceneCapability = useSceneCapability();
   const resolvePayload = (item?: JcfpmItem): any => {
     if (!item) return {};
     const rawKey = stripVariantSuffix(String(item.id || item.pool_key || '')).trim();
     const key = rawKey.toUpperCase();
     const applyImageAssets = (payload: any) => {
       if (!payload || typeof payload !== 'object') return payload;
-      if (!Array.isArray(payload.options)) return payload;
+      const mapImage = (maybeUrl: any) => {
+        const imageUrl = String(maybeUrl || '');
+        if (imageUrl === '__D10_IMAGE_A__') return D10_IMAGE_ASSETS.a;
+        if (imageUrl === '__D10_IMAGE_B__') return D10_IMAGE_ASSETS.b;
+        if (imageUrl === '__D10_IMAGE_C__') return D10_IMAGE_ASSETS.c;
+        return maybeUrl;
+      };
+      const options = Array.isArray(payload.options)
+        ? payload.options.map((opt: any) => ({ ...opt, image_url: mapImage(opt?.image_url) }))
+        : payload.options;
       return {
         ...payload,
-        options: payload.options.map((opt: any) => {
-          const imageUrl = String(opt?.image_url || '');
-          if (imageUrl === '__D10_IMAGE_A__') return { ...opt, image_url: D10_IMAGE_ASSETS.a };
-          if (imageUrl === '__D10_IMAGE_B__') return { ...opt, image_url: D10_IMAGE_ASSETS.b };
-          if (imageUrl === '__D10_IMAGE_C__') return { ...opt, image_url: D10_IMAGE_ASSETS.c };
-          return opt;
-        }),
+        image_url: mapImage(payload.image_url),
+        prompt_image: mapImage(payload.prompt_image),
+        options,
       };
     };
     if (item.payload == null) return applyImageAssets(LOCAL_JCFPM_PAYLOADS[key] || {});
@@ -714,6 +724,11 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     if (Array.isArray(payload.correct_order)) return 'ordering';
     if (Array.isArray(payload.options)) {
       if (payload.options.some((opt: any) => opt?.image_url)) return 'image_choice';
+      // even when options don't carry images, a top-level prompt image or D10 id
+      // indicates we should render an abstract visual
+      if (payload.image_url || payload.prompt_image) return 'image_choice';
+      const id = stripVariantSuffix(String(item.id || item.pool_key || ''));
+      if (/^D10\./i.test(id)) return 'image_choice';
       return 'mcq';
     }
     const id = stripVariantSuffix(String(item.id || item.pool_key || ''));
@@ -830,17 +845,22 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
   }, [isDeepDive, viewMode, currentItem?.id, suspendTimer]);
 
   const responsesWithTiming = () => {
-    const result: Record<string, any> = { ...responses };
+    // Submit only items from the active section to avoid backend count mismatches
+    // when the draft/snapshot already contains answers from another section.
+    const result: Record<string, any> = {};
     orderedItems.forEach((item) => {
+      const baseValue = responses[item.id];
+      if (baseValue == null) return;
       const itemType = resolveItemType(item);
-      if (itemType === 'likert') return;
+      if (itemType === 'likert') {
+        result[item.id] = baseValue;
+        return;
+      }
       const timeMs = timingsRef.current[item.id];
-      if (timeMs == null) return;
-      const value = result[item.id];
-      if (value && typeof value === 'object') {
-        result[item.id] = { ...value, time_ms: timeMs };
-      } else if (value != null) {
-        result[item.id] = { choice_id: value, time_ms: timeMs };
+      if (baseValue && typeof baseValue === 'object') {
+        result[item.id] = timeMs == null ? baseValue : { ...baseValue, time_ms: timeMs };
+      } else {
+        result[item.id] = timeMs == null ? { choice_id: baseValue } : { choice_id: baseValue, time_ms: timeMs };
       }
     });
     return result;
@@ -997,6 +1017,16 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
       itemType === 'image_choice'
         ? (payload.image_url || payload.prompt_image || options.find((opt: any) => opt?.image_url)?.image_url)
         : null;
+    if (itemType === 'image_choice' && /^D10\./i.test(String(item.id || ''))) {
+      // eslint-disable-next-line no-console
+      console.debug('[JCFPM][DEBUG] D10 resolved payload for', item.id, payload);
+      // eslint-disable-next-line no-console
+      console.debug('[JCFPM][DEBUG] promptImage:', promptImage);
+      if (!promptImage) {
+        // eslint-disable-next-line no-console
+        console.warn('[JCFPM] D10 image missing for item:', item.id, { payload });
+      }
+    }
     const promptFallback = fallbackVisual(String(item.id || 'v'));
     const promptBackground = promptImage
       ? `url("${promptImage}"), ${promptFallback}`
@@ -1168,6 +1198,19 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
 
   return (
     <div className={`relative jcfpm-shell jcfpm-ambient ${ambientEnabled ? 'is-ambient-on' : ''} ${isDeepDive ? 'is-deep-dive' : 'is-standard'} ${isFocusMode ? 'is-focus-mode' : ''}`}>
+      <div className={`jcfpm-particles-layer ${ambientEnabled ? 'is-on' : ''}`} aria-hidden="true">
+        <SceneShell
+          capability={sceneCapability}
+          fallback={<div className="jcfpm-particles-fallback" />}
+          className="jcfpm-particles-canvas"
+          performanceMode={sceneCapability.qualityTier}
+          glide
+          glideIntensity={0.08}
+        >
+          <JcfpmElegantParticles qualityTier={sceneCapability.qualityTier} interactive={true} />
+        </SceneShell>
+      </div>
+
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-[0.22em] text-emerald-600/80">Career Fit & Potential</div>
@@ -1220,7 +1263,19 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
           <JcfpmReportPanel snapshot={snapshot} />
         </div>
       ) : (
-        <div className="mt-4 jcfpm-step" key={`jcfpm-step-${stepIndex}`}>
+        <div className="jcfpm-form-layout">
+          <button
+            type="button"
+            onClick={handleBack}
+            disabled={stepIndex === 0}
+            className="jcfpm-side-nav-button is-prev disabled:opacity-40"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Zpět
+          </button>
+
+          <div className="jcfpm-form-stage">
+            <div className="mt-4 jcfpm-step" key={`jcfpm-step-${stepIndex}`}>
           {showInterlude && (
             <div className="jcfpm-interlude">
               <div className="jcfpm-interlude-card">
@@ -1282,16 +1337,6 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
                 1 = Silně nesouhlasím • 4 = Neutrálně • 7 = Silně souhlasím
               </div>
             )}
-            <div className={`mt-4 jcfpm-timeline ${isFocusMode ? 'hidden' : ''}`}>
-              {activeDimensions.map((dim) => (
-                <div key={dim.id} className={`jcfpm-timeline-pill ${dim.id === currentDim.id ? 'is-active' : ''}`}>
-                  <span className="font-semibold">{dim.title}</span>
-                  <span className="text-[11px] text-slate-500">
-                    {answeredByDimension[dim.id] || 0}/{(itemsByDimension[dim.id] || []).length}
-                  </span>
-                </div>
-              ))}
-            </div>
             {isLoadingItems ? (
               <div className="mt-4 rounded-xl border border-emerald-100 bg-white p-4 text-sm text-slate-500 shadow-sm">
                 Načítám otázky…
@@ -1313,27 +1358,25 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
                 ) : null}
               </div>
             )}
+            <div className={`mt-4 jcfpm-timeline ${isFocusMode ? 'hidden' : ''}`}>
+              {activeDimensions.map((dim) => (
+                <div key={dim.id} className={`jcfpm-timeline-pill ${dim.id === currentDim.id ? 'is-active' : ''}`}>
+                  <span className="font-semibold">{dim.title}</span>
+                  <span className="text-[11px] text-slate-500">
+                    {answeredByDimension[dim.id] || 0}/{(itemsByDimension[dim.id] || []).length}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
-      )}
+          </div>
 
-      <div className="mt-5 flex items-center justify-between gap-3">
-        <button
-          type="button"
-          onClick={handleBack}
-          disabled={viewMode === 'form' && stepIndex === 0}
-          className="jcfpm-secondary-button disabled:opacity-50"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Zpět
-        </button>
-
-        {viewMode === 'form' ? (
           <button
             type="button"
             onClick={handleNext}
             disabled={!canAdvance || isSubmitting || Boolean(itemsError) || isLoadingItems}
-            className="jcfpm-primary-button disabled:opacity-60"
+            className="jcfpm-side-nav-button is-next disabled:opacity-50"
           >
             {stepIndex === orderedItems.length - 1 ? (
               <>
@@ -1346,12 +1389,16 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
               </>
             ) : (
               <>
-                Další otázka
+                Další
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
           </button>
-        ) : (
+        </div>
+      )}
+
+      {viewMode !== 'form' ? (
+        <div className="mt-5 flex items-center justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
@@ -1359,8 +1406,8 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
           >
             Zavřít
           </button>
-        )}
-      </div>
+        </div>
+      ) : null}
     </div>
   );
 };

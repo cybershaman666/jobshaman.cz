@@ -550,7 +550,7 @@ export const submitJcfpm = async (
           variant_seed: variantSeed,
         }),
       }),
-      12000,
+      30000,
       'JCFPM submit timeout'
     );
     if (!response.ok) {
@@ -559,13 +559,41 @@ export const submitJcfpm = async (
     const payload = await response.json();
     return (payload?.snapshot || null) as JcfpmSnapshotV1 | null;
   } catch {
+    // If backend submit likely completed but client timed out, try reading latest snapshot first.
+    try {
+      const latest = await fetchLatestJcfpm();
+      if (latest) {
+        const latestIds = Array.isArray(latest.item_ids) ? latest.item_ids : Object.keys(latest.responses || {});
+        const sameVariant = variantSeed && latest.variant_seed ? latest.variant_seed === variantSeed : false;
+        const sameItems =
+          itemIds.length > 0 &&
+          latestIds.length === itemIds.length &&
+          itemIds.every((id) => latestIds.includes(id));
+        if (sameVariant || sameItems) {
+          return latest;
+        }
+      }
+    } catch {
+      // Continue to local fallback.
+    }
+
     const items = await fetchItemsFromSupabase();
     if (items.length < 108) return null;
     const selectedItems = itemIds.length
       ? items.filter((item) => itemIds.includes(item.id))
       : items;
-    if (selectedItems.length < 108) return null;
-    const dimensionScores = computeJcfpmScoresLocal(selectedItems, responses);
+    if (!selectedItems.length) return null;
+    const inferDimension = (item: JcfpmItem): JcfpmDimensionId => {
+      const explicit = String(item.dimension || '').trim().toLowerCase();
+      const inferred =
+        inferDimensionFromIdentity(item.id) ||
+        inferDimensionFromIdentity(item.pool_key) ||
+        ((DIMENSIONS as readonly string[]).includes(explicit) ? (explicit as JcfpmDimensionId) : undefined);
+      return inferred || 'd1_cognitive';
+    };
+    const testedDimensions = new Set<JcfpmDimensionId>(selectedItems.map((item) => inferDimension(item)));
+    const dimensionScores = computeJcfpmScoresLocal(selectedItems, responses)
+      .filter((row: any) => testedDimensions.has(row.dimension as JcfpmDimensionId));
     const percentileSummary = dimensionScores.reduce((acc, row: any) => {
       acc[row.dimension] = row.percentile;
       return acc;
@@ -575,7 +603,16 @@ export const submitJcfpm = async (
       acc[row.dimension] = row.raw_score;
       return acc;
     }, {} as Record<string, number>);
-    const fitScores = rankRolesLocal(userProfile, roles);
+    const coreDimensions: JcfpmDimensionId[] = [
+      'd1_cognitive',
+      'd2_social',
+      'd3_motivational',
+      'd4_energy',
+      'd5_values',
+      'd6_ai_readiness',
+    ];
+    const hasCoreProfile = coreDimensions.every((dim) => typeof userProfile[dim] === 'number');
+    const fitScores = hasCoreProfile ? rankRolesLocal(userProfile, roles) : [];
     const snapshot: JcfpmSnapshotV1 = {
       schema_version: 'jcfpm-v1',
       completed_at: new Date().toISOString(),

@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from ..core.security import get_current_user, verify_subscription, verify_supabase_token
 from ..core.database import supabase
 from ..core import config
-from ..services.jcfpm_scoring import score_dimensions
+from ..services.jcfpm_scoring import JCFPM_DIMENSIONS, score_dimensions, score_dimensions_partial
 from ..services.jcfpm_mapping import rank_roles
 from ..services.jcfpm_ai import generate_jcfpm_report
 from ..models.requests import JcfpmSubmitRequest
@@ -66,6 +66,49 @@ def _fetch_items() -> list[dict]:
     return all_rows
 
 
+def _merge_snapshots(base_snapshot: Dict[str, Any], incoming_snapshot: Dict[str, Any]) -> Dict[str, Any]:
+    tested_dims = {
+        str(row.get("dimension"))
+        for row in (incoming_snapshot.get("dimension_scores") or [])
+        if isinstance(row, dict) and row.get("dimension")
+    }
+    if not tested_dims:
+        return incoming_snapshot
+
+    by_dim: Dict[str, dict] = {}
+    for row in (base_snapshot.get("dimension_scores") or []):
+        if isinstance(row, dict) and row.get("dimension"):
+            by_dim[str(row["dimension"])] = row
+    for row in (incoming_snapshot.get("dimension_scores") or []):
+        if isinstance(row, dict) and row.get("dimension"):
+            by_dim[str(row["dimension"])] = row
+    merged_scores = [by_dim[dim] for dim in JCFPM_DIMENSIONS if dim in by_dim]
+
+    merged_percentiles = dict(base_snapshot.get("percentile_summary") or {})
+    merged_percentiles.update(incoming_snapshot.get("percentile_summary") or {})
+
+    merged_item_ids = list(dict.fromkeys([
+        *(base_snapshot.get("item_ids") or []),
+        *(incoming_snapshot.get("item_ids") or []),
+    ]))
+
+    return {
+        **base_snapshot,
+        "completed_at": incoming_snapshot.get("completed_at") or base_snapshot.get("completed_at"),
+        "responses": {
+            **(base_snapshot.get("responses") or {}),
+            **(incoming_snapshot.get("responses") or {}),
+        },
+        "item_ids": merged_item_ids,
+        "variant_seed": incoming_snapshot.get("variant_seed") or base_snapshot.get("variant_seed"),
+        "dimension_scores": merged_scores,
+        "percentile_summary": merged_percentiles,
+        "confidence": incoming_snapshot.get("confidence", base_snapshot.get("confidence")),
+        "fit_scores": (base_snapshot.get("fit_scores") or incoming_snapshot.get("fit_scores") or []),
+        "ai_report": base_snapshot.get("ai_report") or incoming_snapshot.get("ai_report"),
+    }
+
+
 @router.get("/tests/jcfpm/items")
 async def jcfpm_items(request: Request):
     user = _resolve_optional_user(request) if config.JCFPM_REQUIRE_PREMIUM else None
@@ -114,24 +157,24 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
     # Deduplicate while preserving order
     seen = set()
     selected_ids = [item_id for item_id in selected_ids if not (item_id in seen or seen.add(item_id))]
-    if len(selected_ids) != 108:
-        raise HTTPException(status_code=400, detail="Expected 108 responses")
-    if len(responses) != len(selected_ids):
-        raise HTTPException(status_code=400, detail="Responses count does not match selected items")
+    if not selected_ids:
+        raise HTTPException(status_code=400, detail="No item_ids provided")
 
     # Validate range for likert items only
     item_map = {row.get("id"): row for row in items}
+    normalized_responses: Dict[str, Any] = {}
     selected_items: list[dict] = []
     for item_id in selected_ids:
         item = item_map.get(item_id)
         if not item:
             raise HTTPException(status_code=400, detail=f"Unknown item {item_id}")
+        if item_id not in responses:
+            raise HTTPException(status_code=400, detail=f"Missing response for {item_id}")
+        normalized_responses[item_id] = responses[item_id]
         selected_items.append(item)
-    for key, value in responses.items():
+    for key, value in normalized_responses.items():
         if key not in item_map:
             raise HTTPException(status_code=400, detail=f"Unknown item {key}")
-        if key not in selected_ids:
-            continue
         item = item_map.get(key)
         item_type = (item.get("item_type") or "likert").lower()
         if item_type == "likert":
@@ -139,7 +182,24 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
                 raise HTTPException(status_code=400, detail=f"Invalid response {key}")
 
     # Score
-    dimension_scores = score_dimensions(selected_items, responses)
+    selected_dims = {
+        str(item.get("dimension") or "")
+        for item in selected_items
+        if str(item.get("dimension") or "") in JCFPM_DIMENSIONS
+    }
+    is_full_submission = selected_dims == set(JCFPM_DIMENSIONS)
+    if is_full_submission and len(selected_ids) != 108:
+        raise HTTPException(status_code=400, detail="Expected 108 responses for full submission")
+
+    try:
+        dimension_scores = (
+            score_dimensions(selected_items, normalized_responses)
+            if is_full_submission
+            else score_dimensions_partial(selected_items, normalized_responses)
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
     percentile_summary = {row["dimension"]: row["percentile"] for row in dimension_scores}
 
     # Fit scores
@@ -151,7 +211,9 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
     )
     roles = role_resp.data or []
     user_profile = {row["dimension"]: row["raw_score"] for row in dimension_scores}
-    fit_scores = rank_roles(user_profile, roles, top_n=10) if roles else []
+    core_dims = {"d1_cognitive", "d2_social", "d3_motivational", "d4_energy", "d5_values", "d6_ai_readiness"}
+    has_core_profile = core_dims.issubset(set(user_profile.keys()))
+    fit_scores = rank_roles(user_profile, roles, top_n=10) if roles and has_core_profile else []
 
     # AI report
     ai_payload = {
@@ -164,7 +226,7 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
     snapshot = {
         "schema_version": "jcfpm-v1",
         "completed_at": __import__("datetime").datetime.utcnow().isoformat() + "Z",
-        "responses": responses,
+        "responses": normalized_responses,
         "item_ids": selected_ids,
         "variant_seed": payload.variant_seed,
         "dimension_scores": dimension_scores,
@@ -176,15 +238,6 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
 
     # Persist only for authenticated users.
     if user_id:
-        supabase.table("jcfpm_results").insert({
-            "user_id": user_id,
-            "raw_responses": responses,
-            "dimension_scores": dimension_scores,
-            "fit_scores": fit_scores,
-            "ai_report": ai_report,
-            "version": "jcfpm-v1",
-        }).execute()
-
         prof_resp = (
             supabase.table("candidate_profiles")
             .select("preferences")
@@ -195,6 +248,18 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
         prefs = (prof_resp.data or {}).get("preferences") if prof_resp and prof_resp.data else {}
         if not isinstance(prefs, dict):
             prefs = {}
+        existing_snapshot = prefs.get("jcfpm_v1")
+        if isinstance(existing_snapshot, dict) and not is_full_submission:
+            snapshot = _merge_snapshots(existing_snapshot, snapshot)
+
+        supabase.table("jcfpm_results").insert({
+            "user_id": user_id,
+            "raw_responses": normalized_responses,
+            "dimension_scores": dimension_scores,
+            "fit_scores": fit_scores,
+            "ai_report": ai_report,
+            "version": "jcfpm-v1",
+        }).execute()
         prefs["jcfpm_v1"] = snapshot
         supabase.table("candidate_profiles").update({"preferences": prefs}).eq("id", user_id).execute()
 

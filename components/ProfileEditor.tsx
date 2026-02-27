@@ -2454,10 +2454,13 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
             )}
 
-            <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div id="jcfpm-card" className="sticky top-20 z-20 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
                   Career Fit & Potential Test
+                  <span className="ml-2 inline-block bg-emerald-100 text-emerald-800 dark:bg-emerald-600 dark:text-emerald-50 text-xs font-medium px-2 py-0.5 rounded-full">
+                    &bull; test
+                  </span>
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
                   108 položek • 12 dimenzí • AI report + top role

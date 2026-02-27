@@ -77,8 +77,10 @@ const INTERACTION_STATE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const INTERACTION_STATE_SYNC_QUEUE_KEY = 'job_interaction_state_sync_queue_v1';
 const INTERACTION_STATE_SYNC_MAX_RETRIES = 3;
 const INTERACTION_STATE_SYNC_RETRY_MS = 6000;
+const INTERACTION_TRACKING_COOLDOWN_MS = 90_000;
 let interactionStateSyncInFlight = false;
 let interactionStateSyncTimer: number | null = null;
+let interactionTrackingDisabledUntil = 0;
 
 const readInteractionStateCache = (): { savedJobIds: string[]; dismissedJobIds: string[] } | null => {
     try {
@@ -147,6 +149,18 @@ const scheduleInteractionStateSyncRetry = () => {
 };
 
 export const trackJobInteraction = async (payload: JobInteractionPayload): Promise<void> => {
+    if (interactionTrackingDisabledUntil > Date.now()) {
+        recordRuntimeSignal('interaction_tracking_skipped', {
+            reason: 'cooldown_active',
+            event_type: payload.eventType
+        }, {
+            dedupeKey: 'cooldown_active',
+            throttleMs: 30_000,
+            sendAnalytics: false
+        });
+        return;
+    }
+
     const authToken = await getCurrentAuthTokenSilently();
     if (!authToken) {
         recordRuntimeSignal('interaction_tracking_skipped', {
@@ -163,8 +177,23 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
     const backends = resolveInteractionBackends();
     if (!backends.length) return;
 
+    const normalizedJobId = typeof payload.jobId === 'string'
+        ? Number.parseInt(payload.jobId, 10)
+        : Number(payload.jobId);
+    if (!Number.isFinite(normalizedJobId) || normalizedJobId <= 0) {
+        recordRuntimeSignal('interaction_tracking_skipped', {
+            reason: 'invalid_job_id',
+            event_type: payload.eventType
+        }, {
+            dedupeKey: 'invalid_job_id',
+            throttleMs: 60_000,
+            sendAnalytics: false
+        });
+        return;
+    }
+
     const requestBody = JSON.stringify({
-        job_id: typeof payload.jobId === 'string' ? parseInt(payload.jobId, 10) : payload.jobId,
+        job_id: normalizedJobId,
         event_type: payload.eventType,
         dwell_time_ms: payload.dwellTimeMs ?? null,
         session_id: payload.sessionId ?? null,
@@ -176,6 +205,7 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
         metadata: payload.metadata ?? null
     });
 
+    let hasTransientServerFailure = false;
     for (const baseUrl of backends) {
         try {
             const response = await authenticatedFetch(`${baseUrl}/jobs/interactions`, {
@@ -187,10 +217,12 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
             }, authToken);
 
             if (response.ok) {
+                interactionTrackingDisabledUntil = 0;
                 return;
             }
 
             if (response.status >= 500 || response.status === 429) {
+                hasTransientServerFailure = true;
                 recordRuntimeSignal('interaction_tracking_degraded', {
                     reason: 'server_error',
                     status: response.status,
@@ -215,6 +247,7 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
                 msg.includes('cors');
 
             if (isTransient) {
+                hasTransientServerFailure = true;
                 continue;
             }
 
@@ -223,11 +256,15 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
         }
     }
 
+    if (hasTransientServerFailure) {
+        interactionTrackingDisabledUntil = Date.now() + INTERACTION_TRACKING_COOLDOWN_MS;
+    }
+
     recordRuntimeSignal('interaction_tracking_skipped', {
-        reason: 'all_backends_unavailable',
+        reason: hasTransientServerFailure ? 'all_backends_unavailable_cooldown' : 'all_backends_unavailable',
         event_type: payload.eventType
     }, {
-        dedupeKey: 'all_backends_unavailable',
+        dedupeKey: hasTransientServerFailure ? 'all_backends_unavailable_cooldown' : 'all_backends_unavailable',
         throttleMs: 30_000,
         sendAnalytics: false
     });

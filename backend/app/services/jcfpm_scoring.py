@@ -229,49 +229,70 @@ def score_dimensions(items: List[dict], responses: Dict[str, object]) -> List[di
         dim_items = by_dim.get(dim) or []
         if not dim_items:
             raise ValueError(f"Missing items for dimension {dim}")
-        values = []
-        max_scores = []
-        for item in dim_items:
-            item_id = str(item.get("id"))
-            if item_id not in responses:
-                raise ValueError(f"Missing response for {item_id}")
-            scored, max_score = _score_interactive(item, responses[item_id])
-            values.append(scored)
-            max_scores.append(max_score)
-
-        if dim in {"d7_cognitive_reflection", "d8_digital_eq", "d9_systems_thinking", "d10_ambiguity_interpretation", "d11_problem_decomposition", "d12_moral_compass"}:
-            total = sum(values)
-            max_total = max(1.0, sum(max_scores))
-            raw_score = round((total / max_total) * 100, 2)
-            percentile, band = _percentile_band_100(raw_score)
-            if raw_score < 40:
-                label = _DIMENSION_LABELS.get(dim, {}).get("low", "Nízké")
-            elif raw_score < 60:
-                label = _DIMENSION_LABELS.get(dim, {}).get("mid_low", "Nižší")
-            elif raw_score < 80:
-                label = _DIMENSION_LABELS.get(dim, {}).get("balanced", "Vyvážené")
-            else:
-                label = _DIMENSION_LABELS.get(dim, {}).get("high", "Vysoké")
-        else:
-            raw_score = round(sum(values) / max(1, len(values)), 2)
-            percentile, band = _percentile_band(raw_score)
-            label_set = _DIMENSION_LABELS.get(dim, {})
-            if raw_score < 2.5:
-                label = label_set.get("low", "Nízké")
-            elif raw_score < 4.5:
-                label = label_set.get("mid_low", "Nižší")
-            elif raw_score < 5.5:
-                label = label_set.get("balanced", "Vyvážené")
-            else:
-                label = label_set.get("high", "Vysoké")
-        scores.append(
-            {
-                "dimension": dim,
-                "raw_score": raw_score,
-                "percentile": percentile,
-                "percentile_band": band,
-                "label": label,
-            }
-        )
+        scores.append(_score_single_dimension(dim, dim_items, responses))
 
     return scores
+
+
+def score_dimensions_partial(items: List[dict], responses: Dict[str, object]) -> List[dict]:
+    by_dim: Dict[str, List[dict]] = {}
+    for item in items:
+        dim = str(item.get("dimension") or "")
+        if dim not in JCFPM_DIMENSIONS:
+            continue
+        by_dim.setdefault(dim, []).append(item)
+
+    dims_in_payload = [dim for dim in JCFPM_DIMENSIONS if dim in by_dim]
+    scores: List[dict] = []
+    for dim in dims_in_payload:
+        dim_items = by_dim.get(dim) or []
+        if not dim_items:
+            continue
+        scores.append(_score_single_dimension(dim, dim_items, responses))
+
+    return scores
+
+
+def _score_single_dimension(dim: str, dim_items: List[dict], responses: Dict[str, object]) -> dict:
+    values = []
+    max_scores = []
+    for item in dim_items:
+        item_id = str(item.get("id"))
+        if item_id not in responses:
+            raise ValueError(f"Missing response for {item_id}")
+        scored, max_score = _score_interactive(item, responses[item_id])
+        values.append(scored)
+        max_scores.append(max_score)
+
+    if dim in {"d7_cognitive_reflection", "d8_digital_eq", "d9_systems_thinking", "d10_ambiguity_interpretation", "d11_problem_decomposition", "d12_moral_compass"}:
+        total = sum(values)
+        max_total = max(1.0, sum(max_scores))
+        raw_score = round((total / max_total) * 100, 2)
+        percentile, band = _percentile_band_100(raw_score)
+        if raw_score < 40:
+            label = _DIMENSION_LABELS.get(dim, {}).get("low", "Nízké")
+        elif raw_score < 60:
+            label = _DIMENSION_LABELS.get(dim, {}).get("mid_low", "Nižší")
+        elif raw_score < 80:
+            label = _DIMENSION_LABELS.get(dim, {}).get("balanced", "Vyvážené")
+        else:
+            label = _DIMENSION_LABELS.get(dim, {}).get("high", "Vysoké")
+    else:
+        raw_score = round(sum(values) / max(1, len(values)), 2)
+        percentile, band = _percentile_band(raw_score)
+        label_set = _DIMENSION_LABELS.get(dim, {})
+        if raw_score < 2.5:
+            label = label_set.get("low", "Nízké")
+        elif raw_score < 4.5:
+            label = label_set.get("mid_low", "Nižší")
+        elif raw_score < 5.5:
+            label = label_set.get("balanced", "Vyvážené")
+        else:
+            label = label_set.get("high", "Vysoké")
+    return {
+        "dimension": dim,
+        "raw_score": raw_score,
+        "percentile": percentile,
+        "percentile_band": band,
+        "label": label,
+    }
