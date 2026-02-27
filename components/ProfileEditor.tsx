@@ -222,6 +222,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const resolvedTier = String(effectiveTier || profile.subscription?.tier || 'free').toLowerCase();
   const normalizedCandidateTier: 'free' | 'premium' = resolvedTier === 'premium' ? 'premium' : 'free';
   const isPremium = normalizedCandidateTier === 'premium';
+  // temporary: unlock JCFPM test for all users (ignore premium flag)
+  // remove this override once the promotion period ends
+  const jcfpmOpenToAll = true; // set to `isPremium` to re-enable gating
+
   const premiumPrice = getPremiumPriceDisplay(i18n.language || 'cs');
   const aiCvParsingEnabled = String(import.meta.env.VITE_ENABLE_AI_CV_PARSER || 'true').toLowerCase() !== 'false';
 
@@ -2468,7 +2472,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
               <div className="p-6 space-y-4 bg-gradient-to-br from-emerald-50/80 via-sky-50/70 to-stone-50/80 dark:from-slate-900/70 dark:via-slate-900/80 dark:to-slate-950/80">
                 <JcfpmEntryCard
-                  isPremium={isPremium}
+                  // use override variable so non-premium users can also start the test
+                  isPremium={jcfpmOpenToAll}
                   hasDraft={hasJcfpmDraft}
                   hasSnapshot={Boolean(jcfpmSnapshot)}
                   lastUpdatedAt={jcfpmSnapshot?.completed_at}
