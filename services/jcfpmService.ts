@@ -173,12 +173,25 @@ const normalizeJcfpmItems = (items: JcfpmItem[]): JcfpmItem[] =>
 
 const fetchItemsFromSupabase = async (): Promise<JcfpmItem[]> => {
   if (!supabase) return [];
-  const { data, error } = await supabase
-    .from('jcfpm_items')
-    .select('id, dimension, subdimension, prompt, reverse_scoring, sort_order, item_type, payload, assets, pool_key, variant_index')
-    .order('sort_order', { ascending: true });
-  if (error) throw error;
-  return normalizeJcfpmItems((data || []) as JcfpmItem[]);
+  const pageSize = 1000;
+  let from = 0;
+  const all: JcfpmItem[] = [];
+
+  while (true) {
+    const { data, error } = await supabase
+      .from('jcfpm_items')
+      .select('id, dimension, subdimension, prompt, reverse_scoring, sort_order, item_type, payload, assets, pool_key, variant_index')
+      .order('sort_order', { ascending: true })
+      .order('id', { ascending: true })
+      .range(from, from + pageSize - 1);
+    if (error) throw error;
+    const page = (data || []) as JcfpmItem[];
+    all.push(...page);
+    if (page.length < pageSize) break;
+    from += pageSize;
+  }
+
+  return normalizeJcfpmItems(all);
 };
 
 const fetchRolesFromSupabase = async (): Promise<any[]> => {

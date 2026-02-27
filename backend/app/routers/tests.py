@@ -40,14 +40,30 @@ def _resolve_optional_user(request: Request) -> dict | None:
 def _fetch_items() -> list[dict]:
     if not supabase:
         raise HTTPException(status_code=500, detail="Database unavailable")
-    resp = (
-        supabase
-        .table("jcfpm_items")
-        .select("id, dimension, subdimension, prompt, reverse_scoring, sort_order, item_type, payload, assets, pool_key, variant_index")
-        .order("sort_order", desc=False)
-        .execute()
-    )
-    return resp.data or []
+    # Supabase/PostgREST often caps a single response to 1000 rows.
+    # Pull items in pages so we always evaluate the full JCFPM pool.
+    page_size = 1000
+    offset = 0
+    all_rows: list[dict] = []
+
+    while True:
+        resp = (
+            supabase
+            .table("jcfpm_items")
+            .select("id, dimension, subdimension, prompt, reverse_scoring, sort_order, item_type, payload, assets, pool_key, variant_index")
+            .order("sort_order", desc=False)
+            .order("id", desc=False)
+            .range(offset, offset + page_size - 1)
+            .execute()
+        )
+        page = resp.data or []
+        all_rows.extend(page)
+
+        if len(page) < page_size:
+            break
+        offset += page_size
+
+    return all_rows
 
 
 @router.get("/tests/jcfpm/items")
