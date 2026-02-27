@@ -50,7 +50,7 @@ def ensure_candidate_embedding(candidate_id: str, text: str) -> List[float]:
     return vector
 
 
-def ensure_job_embeddings(jobs: List[Dict]) -> Dict[str, List[float]]:
+def ensure_job_embeddings(jobs: List[Dict], persist: bool = True) -> Dict[str, List[float]]:
     out: Dict[str, List[float]] = {}
     if not jobs:
         return out
@@ -60,7 +60,7 @@ def ensure_job_embeddings(jobs: List[Dict]) -> Dict[str, List[float]]:
         text = "\n".join([job.get("title") or "", job.get("description") or "", job.get("location") or ""]).strip()
         out[job_id] = embed_text(text)
 
-    if not supabase:
+    if not supabase or not persist:
         return out
 
     rows = []

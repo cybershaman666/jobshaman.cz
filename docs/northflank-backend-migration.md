@@ -76,6 +76,11 @@ Feature flags:
 - `ENABLE_DAILY_DIGESTS`
 - `ENABLE_PUBLIC_BENCHMARK_REFRESH`
 
+Frontend note:
+
+- Frontend calls backend via `VITE_BACKEND_URL` (build-time var in frontend project).
+- `API_BASE_URL` is backend runtime config used mainly for generated links (for example email unsubscribe URLs), not for browser API routing.
+
 ## 6) Scheduler Split (Only if You Can Run Two Services)
 
 `jobshaman-api`:

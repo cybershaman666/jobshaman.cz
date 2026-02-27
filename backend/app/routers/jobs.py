@@ -197,6 +197,39 @@ def _filter_out_dismissed_jobs(jobs: list[dict], dismissed_job_ids: set[str]) ->
         out.append(row)
     return out
 
+
+def _filter_existing_job_ids(job_ids: set[str]) -> set[str]:
+    if not supabase or not job_ids:
+        return set()
+    existing: set[str] = set()
+    normalized_ints = []
+    for jid in job_ids:
+        if str(jid).isdigit():
+            normalized_ints.append(int(jid))
+    if not normalized_ints:
+        return set()
+
+    batch_size = 500
+    for i in range(0, len(normalized_ints), batch_size):
+        chunk = normalized_ints[i : i + batch_size]
+        try:
+            resp = (
+                supabase
+                .table("jobs")
+                .select("id")
+                .in_("id", chunk)
+                .limit(len(chunk))
+                .execute()
+            )
+            for row in resp.data or []:
+                job_id = _canonical_job_id((row or {}).get("id"))
+                if job_id:
+                    existing.add(job_id)
+        except Exception as exc:
+            print(f"⚠️ Failed to filter existing job IDs for sync: {exc}")
+            return set()
+    return existing
+
 def _coerce_job_analysis_payload(raw: dict) -> dict:
     summary = str(raw.get("summary") or "").strip()
     hidden = raw.get("hiddenRisks")
@@ -566,8 +599,17 @@ async def sync_job_interaction_state(
         })
 
     if insert_rows:
+        valid_job_ids = _filter_existing_job_ids({str(row.get("job_id")) for row in insert_rows if row.get("job_id") is not None})
+        if valid_job_ids:
+            insert_rows = [row for row in insert_rows if _canonical_job_id(row.get("job_id")) in valid_job_ids]
+        else:
+            insert_rows = []
+
+    if insert_rows:
         try:
-            supabase.table("job_interactions").insert(insert_rows).execute()
+            batch_size = 500
+            for i in range(0, len(insert_rows), batch_size):
+                supabase.table("job_interactions").insert(insert_rows[i : i + batch_size]).execute()
         except Exception as exc:
             print(f"⚠️ Failed to sync interaction state: {exc}")
             raise HTTPException(status_code=500, detail="Failed to sync interaction state")

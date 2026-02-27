@@ -590,7 +590,8 @@ def hybrid_search_jobs(filters: Dict, page: int = 0, page_size: int = 50) -> Dic
 
         embedding_vector = embed_text(search_term)
 
-    job_embeddings = ensure_job_embeddings(filtered)
+    # Keep online search path fast: no DB upserts during request handling.
+    job_embeddings = ensure_job_embeddings(filtered, persist=False)
 
     now = datetime.now(timezone.utc)
     ranked = []
@@ -1040,7 +1041,8 @@ def recommend_jobs_for_user(user_id: str, limit: int = 50, allow_cache: bool = T
     if not jobs:
         return []
 
-    job_embeddings = ensure_job_embeddings(jobs)
+    # Keep request path fast: compute embeddings in-memory, persist in batch jobs only.
+    job_embeddings = ensure_job_embeddings(jobs, persist=False)
 
     ranked = []
     shortlist = []
@@ -1136,7 +1138,7 @@ def batch_refresh_job_embeddings() -> int:
     jobs = fetch_recent_jobs(limit=3000, days=30)
     if not jobs:
         return 0
-    ensure_job_embeddings(jobs)
+    ensure_job_embeddings(jobs, persist=True)
     return len(jobs)
 
 
