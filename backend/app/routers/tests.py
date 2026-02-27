@@ -52,7 +52,7 @@ def _fetch_items() -> list[dict]:
 
 @router.get("/tests/jcfpm/items")
 async def jcfpm_items(request: Request):
-    user = _resolve_optional_user(request)
+    user = _resolve_optional_user(request) if config.JCFPM_REQUIRE_PREMIUM else None
     _require_premium(user)
     items = _fetch_items()
     pool_keys = {str(row.get("pool_key") or row.get("id") or "").strip().upper() for row in items}
@@ -64,7 +64,7 @@ async def jcfpm_items(request: Request):
 
 @router.get("/tests/jcfpm/diagnostics")
 async def jcfpm_diagnostics(request: Request):
-    user = _resolve_optional_user(request)
+    user = _resolve_optional_user(request) if config.JCFPM_REQUIRE_PREMIUM else None
     _require_premium(user)
     if not supabase:
         raise HTTPException(status_code=500, detail="Database unavailable")
@@ -83,7 +83,7 @@ async def jcfpm_diagnostics(request: Request):
 
 @router.post("/tests/jcfpm/submit")
 async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
-    user = _resolve_optional_user(request)
+    user = _resolve_optional_user(request) if config.JCFPM_REQUIRE_PREMIUM else None
     _require_premium(user)
     user_id = (user or {}).get("id") or (user or {}).get("auth_id")
 
@@ -187,7 +187,7 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
 
 @router.get("/tests/jcfpm/latest")
 async def jcfpm_latest(request: Request):
-    user = _resolve_optional_user(request)
+    user = _resolve_optional_user(request) if config.JCFPM_REQUIRE_PREMIUM else None
     _require_premium(user)
     user_id = (user or {}).get("id") or (user or {}).get("auth_id")
     if not user_id:

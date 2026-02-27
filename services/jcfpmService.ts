@@ -436,19 +436,28 @@ export const mapJcfpmToJhiPreferences = (
 };
 
 export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
-  const fetchOnce = async () => {
+  const ensureSeeded = (items: JcfpmItem[]): JcfpmItem[] => {
+    const normalized = normalizeJcfpmItems(items as JcfpmItem[]);
+    const poolCount = new Set(
+      normalized.map((item) => {
+        const idBase = stripVariantSuffix(String(item.id || ''));
+        const poolBase = stripVariantSuffix(String(item.pool_key || ''));
+        return (idBase || poolBase).toUpperCase();
+      }).filter(Boolean)
+    ).size;
+    if (poolCount >= 108) return normalized;
+    throw new Error('JCFPM items not seeded');
+  };
+
+  const fetchFromBackendPublic = async () => {
     const controller = new AbortController();
     const abortId = window.setTimeout(() => controller.abort(), 20000);
     try {
-      const response = await withTimeout(
-        authenticatedFetch(`${BACKEND_URL}/tests/jcfpm/items`, {
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          signal: controller.signal
-        }),
-        20000,
-        'JCFPM items timeout'
-      );
+      const response = await withTimeout(fetch(`${BACKEND_URL}/tests/jcfpm/items`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal
+      }), 20000, 'JCFPM items timeout');
       if (!response.ok) {
         const error = await response.json().catch(() => ({}));
         const detail = error.detail || error.message || `HTTP ${response.status}`;
@@ -456,29 +465,29 @@ export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
       }
       const payload = await response.json();
       const items = Array.isArray(payload?.items) ? payload.items : [];
-      const normalized = normalizeJcfpmItems(items as JcfpmItem[]);
-      const poolCount = new Set(
-        normalized.map((item) => {
-          const idBase = stripVariantSuffix(String(item.id || ''));
-          const poolBase = stripVariantSuffix(String(item.pool_key || ''));
-          return (idBase || poolBase).toUpperCase();
-        }).filter(Boolean)
-      ).size;
-      if (poolCount >= 108) return normalized;
-      throw new Error('JCFPM items not seeded');
+      return ensureSeeded(items as JcfpmItem[]);
     } finally {
       window.clearTimeout(abortId);
     }
   };
 
   try {
-    return await fetchOnce();
+    return await fetchFromBackendPublic();
   } catch (firstErr: any) {
     const msg = String(firstErr?.message || '').toLowerCase();
     const retryable = msg.includes('timeout') || msg.includes('network') || msg.includes('failed to fetch') || msg.includes('abort');
-    if (!retryable) throw firstErr;
-    await new Promise((resolve) => window.setTimeout(resolve, 1200));
-    return await fetchOnce();
+    if (retryable) {
+      await new Promise((resolve) => window.setTimeout(resolve, 1200));
+      try {
+        return await fetchFromBackendPublic();
+      } catch {
+        // Fall through to Supabase fallback.
+      }
+    }
+
+    // Last-resort fallback when backend auth/token/cold-start path is unstable.
+    const supabaseItems = await fetchItemsFromSupabase();
+    return ensureSeeded(supabaseItems);
   }
 };
 
