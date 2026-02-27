@@ -446,6 +446,8 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
     return { skillToLearn, behaviorToChange };
   };
 
+  const bridge = buildBridge();
+
   const describeScore = (dim: JcfpmDimensionId, raw: number, percentile: number) => {
     const rounded = Math.round(raw * 10) / 10;
     const maxScore = scoreMax(dim);
@@ -908,19 +910,41 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
             Percentily a interpretace
           </span>
         </div>
-        {/* simple bar overview for premium-feel graphic */}
-        <div className="mt-4 space-y-1 jcfpm-results-graph">
-          {mergedScores.map((row) => (
-            <div key={row.dimension} className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 transition-all duration-700"
-                style={{ width: `${normalizeTo100(row.dimension, row.raw_score)}%` }}
-              />
-            </div>
-          ))}
+        {/* Quick overview with percentiles and interpretation */}
+        <div className="mt-4 space-y-3">
+          {mergedScores.map((row) => {
+            const normalized = normalizeTo100(row.dimension, row.raw_score);
+            const dimTitle = DIMENSION_META[row.dimension]?.title || row.dimension;
+            const shortDesc = describeScore(row.dimension, row.raw_score, row.percentile);
+            return (
+              <div key={row.dimension} className="jcfpm-report-card-lite">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="font-semibold text-sm text-slate-800">{dimTitle}</div>
+                  <div className="flex gap-2 text-xs">
+                    <span className="bg-blue-50 text-blue-700 px-2 py-1 rounded font-medium">{row.raw_score}/{scoreMax(row.dimension)}</span>
+                    <span className="bg-indigo-50 text-indigo-700 px-2 py-1 rounded font-medium">{row.percentile}. percentil</span>
+                    <span className="bg-slate-100 text-slate-700 px-2 py-1 rounded text-[11px] font-medium uppercase tracking-wider">{row.percentile_band}</span>
+                  </div>
+                </div>
+                <div className="mt-2 h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-indigo-500 to-indigo-400 transition-all duration-500"
+                    style={{ width: `${normalized}%` }}
+                  />
+                </div>
+                <div className="mt-2 text-xs text-slate-600 leading-relaxed">
+                  {shortDesc}
+                </div>
+              </div>
+            );
+          })}
         </div>
+      </div>
 
-      <div className="mt-3 grid gap-3 md:grid-cols-2">
+      <div className="jcfpm-report-card jcfpm-report-section">
+        <div className="mt-6 border-t border-slate-200 pt-4">
+          <h5 className="jcfpm-heading text-sm font-semibold mb-3">Detailní analýza</h5>
+        <div className="grid gap-3 md:grid-cols-2">
           {mergedScores.map((row) => (
             <div key={row.dimension} className="jcfpm-report-card-lite jcfpm-report-dimension">
               <div className="jcfpm-report-eyebrow">
@@ -960,6 +984,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
               </div>
             </div>
           ))}
+        </div>
         </div>
       </div>
 
@@ -1103,21 +1128,17 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
         <div className="mt-1 text-xs text-slate-600">
           Porovnání toho, co si o sobě myslíš (D1–D6), s tím, jak to prokazuješ v praxi (D7–D12).
         </div>
-        {(() => {
-          const bridge = buildBridge();
-          return (
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
-              <div className="jcfpm-report-card-lite">
-                <div className="jcfpm-report-eyebrow">Dovednost k rozvoji</div>
-                <div className="mt-2 text-sm text-slate-700">{bridge.skillToLearn}</div>
-              </div>
-              <div className="jcfpm-report-card-lite">
-                <div className="jcfpm-report-eyebrow">Návyk ke změně</div>
-                <div className="mt-2 text-sm text-slate-700">{bridge.behaviorToChange}</div>
-              </div>
-            </div>
-          );
-        })()}
+        {/* simple bridge summary without IIFE */}
+        <div className="mt-3 grid gap-3 md:grid-cols-2">
+          <div className="jcfpm-report-card-lite">
+            <div className="jcfpm-report-eyebrow">Dovednost k rozvoji</div>
+            <div className="mt-2 text-sm text-slate-700">{bridge.skillToLearn}</div>
+          </div>
+          <div className="jcfpm-report-card-lite">
+            <div className="jcfpm-report-eyebrow">Návyk ke změně</div>
+            <div className="mt-2 text-sm text-slate-700">{bridge.behaviorToChange}</div>
+          </div>
+        </div>
       </div>
     </div>
   );

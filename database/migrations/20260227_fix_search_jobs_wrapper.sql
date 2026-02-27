@@ -1,14 +1,9 @@
--- Create wrapper function search_jobs_with_filters for frontend compatibility
--- Maps the frontend's expected parameter names to search_jobs_v2
+-- Fix: Drop all overloaded versions of search_jobs_with_filters and recreate cleanly
 
--- Drop all overloaded versions by signature to avoid "function name is not unique" error
--- Drop the numeric version (ambiguous with integer version)
-DROP FUNCTION IF EXISTS public.search_jobs_with_filters(text, double precision, double precision, double precision, text, text[], text[], numeric, text, text[], integer, integer, text[], text[], text[]) CASCADE;
--- Drop other variations
-DROP FUNCTION IF EXISTS public.search_jobs_with_filters() CASCADE;
-DROP FUNCTION IF EXISTS public.search_jobs_with_filters(text, double precision, double precision, double precision, text, text[], text[], integer, text, text[], integer, integer) CASCADE;
-DROP FUNCTION IF EXISTS public.search_jobs_with_filters(text, double precision, double precision, double precision) CASCADE;
+-- Drop all versions of the function if they exist
+DROP FUNCTION IF EXISTS public.search_jobs_with_filters CASCADE;
 
+-- Create the wrapper function once with all parameters
 CREATE OR REPLACE FUNCTION public.search_jobs_with_filters(
     search_term text DEFAULT NULL,
     user_lat double precision DEFAULT NULL,
