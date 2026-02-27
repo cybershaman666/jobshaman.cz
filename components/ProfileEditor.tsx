@@ -55,6 +55,7 @@ import JcfpmEntryCard from './jcfpm/JcfpmEntryCard';
 import JcfpmFlow from './jcfpm/JcfpmFlow';
 import { readJcfpmDraft } from '../services/jcfpmSessionState';
 import { mapJcfpmToJhiPreferences } from '../services/jcfpmService';
+import { clearJcfpmDraft } from '../services/jcfpmSessionState';
 
 import { useTranslation } from 'react-i18next';
 
@@ -132,10 +133,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [narrativeStory, setNarrativeStory] = useState('');
   const [jcfpmStarted, setJcfpmStarted] = useState(false);
   const [jcfpmView, setJcfpmView] = useState<'form' | 'report'>('form');
+  const [jcfpmSection, setJcfpmSection] = useState<'full' | 'core' | 'deep'>('full');
   const [jcfpmSnapshot, setJcfpmSnapshot] = useState<JcfpmSnapshotV1 | null>(
     profile.preferences?.jcfpm_v1 || null
   );
-  const [hasJcfpmDraft, setHasJcfpmDraft] = useState<boolean>(() => Boolean(readJcfpmDraft()));
+  const [hasJcfpmDraft, setHasJcfpmDraft] = useState<boolean>(() => Boolean(readJcfpmDraft(profile.id)));
   const [culturalCompass, setCulturalCompass] = useState({
     individualVsTeam: 52,
     chaosVsStructure: 58,
@@ -237,7 +239,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
   useEffect(() => {
     setJcfpmSnapshot(profile.preferences?.jcfpm_v1 || null);
-    setHasJcfpmDraft(Boolean(readJcfpmDraft()));
+    setHasJcfpmDraft(Boolean(readJcfpmDraft(profile.id)));
   }, [profile.preferences]);
 
   useEffect(() => {
@@ -2458,7 +2460,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   Career Fit & Potential Test
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  72 položek • 6 dimenzí • AI report + top role
+                  108 položek • 12 dimenzí • AI report + top role
                 </p>
               </div>
               <div className="p-6 space-y-4 bg-gradient-to-br from-emerald-50/80 via-sky-50/70 to-stone-50/80 dark:from-slate-900/70 dark:via-slate-900/80 dark:to-slate-950/80">
@@ -2467,7 +2469,24 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   hasDraft={hasJcfpmDraft}
                   hasSnapshot={Boolean(jcfpmSnapshot)}
                   lastUpdatedAt={jcfpmSnapshot?.completed_at}
-                  onStart={() => {
+                  onResume={() => {
+                    setJcfpmSection('full');
+                    setJcfpmView('form');
+                    setJcfpmStarted(true);
+                  }}
+                  onRestart={() => {
+                    clearJcfpmDraft(profile.id);
+                    setJcfpmSection('full');
+                    setJcfpmView('form');
+                    setJcfpmStarted(true);
+                  }}
+                  onStartCore={() => {
+                    setJcfpmSection('core');
+                    setJcfpmView('form');
+                    setJcfpmStarted(true);
+                  }}
+                  onStartDeep={() => {
+                    setJcfpmSection('deep');
                     setJcfpmView('form');
                     setJcfpmStarted(true);
                   }}
@@ -2641,10 +2660,12 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               <JcfpmFlow
                 initialSnapshot={jcfpmSnapshot}
                 mode={jcfpmView}
+                section={jcfpmSection}
+                userId={profile.id}
                 onPersist={handleJcfpmPersist}
                 onClose={() => {
                   setJcfpmStarted(false);
-                  setHasJcfpmDraft(Boolean(readJcfpmDraft()));
+                  setHasJcfpmDraft(Boolean(readJcfpmDraft(profile.id)));
                 }}
               />
             </div>

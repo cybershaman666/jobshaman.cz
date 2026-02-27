@@ -24,7 +24,7 @@ def _fetch_items() -> list[dict]:
     resp = (
         supabase
         .table("jcfpm_items")
-        .select("id, dimension, subdimension, prompt, reverse_scoring, sort_order")
+        .select("id, dimension, subdimension, prompt, reverse_scoring, sort_order, item_type, payload, assets, pool_key, variant_index")
         .order("sort_order", desc=False)
         .execute()
     )
@@ -35,7 +35,9 @@ def _fetch_items() -> list[dict]:
 async def jcfpm_items(user: dict = Depends(verify_subscription)):
     _require_premium(user)
     items = _fetch_items()
-    if len(items) < 72:
+    pool_keys = {str(row.get("pool_key") or row.get("id") or "").strip().upper() for row in items}
+    pool_keys.discard("")
+    if len(pool_keys) < 108:
         raise HTTPException(status_code=500, detail="JCFPM items not seeded")
     return {"items": items}
 
@@ -48,20 +50,42 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, user: dict = Depends(verify_
         raise HTTPException(status_code=401, detail="Unauthorized")
 
     items = _fetch_items()
-    if len(items) != 72:
+    pool_keys = {str(row.get("pool_key") or row.get("id") or "").strip().upper() for row in items}
+    pool_keys.discard("")
+    if len(pool_keys) < 108:
         raise HTTPException(status_code=500, detail="JCFPM items not seeded")
 
     responses = payload.responses or {}
-    if len(responses) != 72:
-        raise HTTPException(status_code=400, detail="Expected 72 responses")
+    selected_ids = payload.item_ids or list(responses.keys())
+    # Deduplicate while preserving order
+    seen = set()
+    selected_ids = [item_id for item_id in selected_ids if not (item_id in seen or seen.add(item_id))]
+    if len(selected_ids) != 108:
+        raise HTTPException(status_code=400, detail="Expected 108 responses")
+    if len(responses) != len(selected_ids):
+        raise HTTPException(status_code=400, detail="Responses count does not match selected items")
 
-    # Validate range
+    # Validate range for likert items only
+    item_map = {row.get("id"): row for row in items}
+    selected_items: list[dict] = []
+    for item_id in selected_ids:
+        item = item_map.get(item_id)
+        if not item:
+            raise HTTPException(status_code=400, detail=f"Unknown item {item_id}")
+        selected_items.append(item)
     for key, value in responses.items():
-        if not isinstance(value, int) or value < 1 or value > 7:
-            raise HTTPException(status_code=400, detail=f"Invalid response {key}")
+        if key not in item_map:
+            raise HTTPException(status_code=400, detail=f"Unknown item {key}")
+        if key not in selected_ids:
+            continue
+        item = item_map.get(key)
+        item_type = (item.get("item_type") or "likert").lower()
+        if item_type == "likert":
+            if not isinstance(value, int) or value < 1 or value > 7:
+                raise HTTPException(status_code=400, detail=f"Invalid response {key}")
 
     # Score
-    dimension_scores = score_dimensions(items, responses)
+    dimension_scores = score_dimensions(selected_items, responses)
     percentile_summary = {row["dimension"]: row["percentile"] for row in dimension_scores}
 
     # Fit scores
@@ -87,6 +111,8 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, user: dict = Depends(verify_
         "schema_version": "jcfpm-v1",
         "completed_at": __import__("datetime").datetime.utcnow().isoformat() + "Z",
         "responses": responses,
+        "item_ids": selected_ids,
+        "variant_seed": payload.variant_seed,
         "dimension_scores": dimension_scores,
         "fit_scores": fit_scores,
         "ai_report": ai_report,

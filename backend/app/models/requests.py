@@ -121,10 +121,12 @@ class JobInteractionRequest(BaseModel):
 
 
 class JcfpmSubmitRequest(BaseModel):
-    responses: Dict[str, int]
+    responses: Dict[str, Any]
     scoring_version: Optional[str] = None
     model_version: Optional[str] = None
     metadata: Optional[dict] = None
+    item_ids: Optional[List[str]] = None
+    variant_seed: Optional[str] = None
 
 class JobInteractionStateSyncRequest(BaseModel):
     saved_job_ids: List[str] = Field(default_factory=list, max_length=20000)

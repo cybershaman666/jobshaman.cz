@@ -10,6 +10,12 @@ const DIMENSIONS = [
   'd4_energy',
   'd5_values',
   'd6_ai_readiness',
+  'd7_cognitive_reflection',
+  'd8_digital_eq',
+  'd9_systems_thinking',
+  'd10_ambiguity_interpretation',
+  'd11_problem_decomposition',
+  'd12_moral_compass',
 ] as const;
 
 const WEIGHTS: Record<string, number> = {
@@ -58,6 +64,42 @@ const LABELS: Record<string, { low: string; mid_low: string; balanced: string; h
     balanced: 'Vyvážená připravenost',
     high: 'Vysoká adaptabilita a AI readiness',
   },
+  d7_cognitive_reflection: {
+    low: 'Silně intuitivní, rychlé odpovědi bez ověření',
+    mid_low: 'Spíše intuitivní, občas přemýšlíš do hloubky',
+    balanced: 'Vyvážený poměr intuice a logiky',
+    high: 'Silná schopnost odhalit chybnou intuici',
+  },
+  d8_digital_eq: {
+    low: 'Nízká citlivost na tón a emoce v textu',
+    mid_low: 'Základní digitální empatie',
+    balanced: 'Vyvážené čtení emocí v textu',
+    high: 'Vysoká digitální empatie a důvěryhodnost',
+  },
+  d9_systems_thinking: {
+    low: 'Spíše lineární uvažování',
+    mid_low: 'Částečné vnímání vztahů v systému',
+    balanced: 'Vyvážený systémový pohled',
+    high: 'Silné mapování zpětných vazeb a sítí',
+  },
+  d10_ambiguity_interpretation: {
+    low: 'Silná orientace na rizika',
+    mid_low: 'Spíše opatrný výklad',
+    balanced: 'Vyvážené vnímání rizik a příležitostí',
+    high: 'Silná orientace na příležitosti',
+  },
+  d11_problem_decomposition: {
+    low: 'Obtížný rozklad velkých úkolů',
+    mid_low: 'Základní strukturování',
+    balanced: 'Vyvážený rozklad a pořadí kroků',
+    high: 'Silná schopnost rozložit a prioritizovat',
+  },
+  d12_moral_compass: {
+    low: 'Pragmatická orientace na výkon',
+    mid_low: 'Mírná etická stabilita',
+    balanced: 'Vyvážený etický kompas',
+    high: 'Silná integrita a etické rozhodování',
+  },
 };
 
 const withTimeout = async <T>(promise: Promise<T>, ms: number, message: string): Promise<T> => {
@@ -72,14 +114,44 @@ const withTimeout = async <T>(promise: Promise<T>, ms: number, message: string):
   }
 };
 
+const normalizeJcfpmItems = (items: JcfpmItem[]): JcfpmItem[] =>
+  items.map((item) => {
+    const payload = item.payload;
+    const assets = item.assets;
+    const normalizeJson = (value: any) => {
+      if (value == null) return null;
+      let next = value;
+      for (let i = 0; i < 2; i += 1) {
+        if (typeof next !== 'string') break;
+        try {
+          next = JSON.parse(next);
+        } catch {
+          return null;
+        }
+      }
+      return next;
+    };
+    const normalizedType = String(item.item_type || '')
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/-+/g, '_') as any;
+    return {
+      ...item,
+      item_type: normalizedType || undefined,
+      payload: normalizeJson(payload) as any,
+      assets: normalizeJson(assets) as any,
+    };
+  });
+
 const fetchItemsFromSupabase = async (): Promise<JcfpmItem[]> => {
   if (!supabase) return [];
   const { data, error } = await supabase
     .from('jcfpm_items')
-    .select('id, dimension, subdimension, prompt, reverse_scoring, sort_order')
+    .select('id, dimension, subdimension, prompt, reverse_scoring, sort_order, item_type, payload, assets, pool_key, variant_index')
     .order('sort_order', { ascending: true });
   if (error) throw error;
-  return (data || []) as JcfpmItem[];
+  return normalizeJcfpmItems((data || []) as JcfpmItem[]);
 };
 
 const fetchRolesFromSupabase = async (): Promise<any[]> => {
@@ -103,23 +175,79 @@ const percentileBand = (score: number) => {
   return { pct: Math.round(interp(score, 5.5, 7.0, 85, 100)), band: '85–100' };
 };
 
-const scoreDimensionsLocal = (items: JcfpmItem[], responses: Record<string, number>) => {
+export const computeJcfpmScoresLocal = (items: JcfpmItem[], responses: Record<string, any>) => {
   const byDim: Record<string, JcfpmItem[]> = {};
   items.forEach((item) => {
     byDim[item.dimension] = byDim[item.dimension] || [];
     byDim[item.dimension].push(item);
   });
+  const scoreInteractive = (item: JcfpmItem, response: any) => {
+    const itemType = (item.item_type || 'likert').toLowerCase();
+    const payload = (item.payload || {}) as Record<string, any>;
+    if (itemType === 'likert') {
+      const raw = Number(response);
+      const scored = item.reverse_scoring ? 8 - raw : raw;
+      return { score: scored, max: 7 };
+    }
+    let timeFactor = 1;
+    const timeMs = response?.time_ms;
+    if (typeof timeMs === 'number' && timeMs > 0) {
+      if (timeMs <= 15000) timeFactor = 1;
+      else if (timeMs <= 60000) timeFactor = 1 - ((timeMs - 15000) / 45000) * 0.3;
+      else timeFactor = 0.5;
+      timeFactor = Math.min(1, Math.max(0.5, timeFactor));
+    }
+    if (itemType === 'mcq' || itemType === 'scenario_choice' || itemType === 'image_choice') {
+      const correct = payload.correct_id;
+      const selected = response?.choice_id ?? response;
+      return { score: (selected && correct && selected === correct ? 1 : 0) * timeFactor, max: 1 };
+    }
+    if (itemType === 'ordering') {
+      const correct = Array.isArray(payload.correct_order) ? payload.correct_order : [];
+      const order = Array.isArray(response?.order) ? response.order : [];
+      const max = Math.max(1, correct.length);
+      const score = correct.reduce((acc: number, value: string, idx: number) => acc + (order[idx] === value ? 1 : 0), 0);
+      return { score: score * timeFactor, max };
+    }
+    if (itemType === 'drag_drop') {
+      const correctPairs = Array.isArray(payload.correct_pairs) ? payload.correct_pairs : [];
+      const selectedPairs = Array.isArray(response?.pairs) ? response.pairs : [];
+      const correctSet = new Set(correctPairs.map((pair: any) => `${pair.source}->${pair.target}`));
+      const selectedSet = new Set(selectedPairs.map((pair: any) => `${pair.source}->${pair.target}`));
+      let score = 0;
+      correctSet.forEach((key) => {
+        if (selectedSet.has(key)) score += 1;
+      });
+      return { score: score * timeFactor, max: Math.max(1, correctSet.size) };
+    }
+    return { score: 0, max: 1 };
+  };
+
+  const percentileBand100 = (score: number) => ({ pct: Math.round(Math.max(0, Math.min(100, score))), band: '0–100' });
   return DIMENSIONS.map((dim) => {
     const dimItems = byDim[dim] || [];
-    const values = dimItems.map((item) => {
-      const raw = Number(responses[item.id]);
-      const scored = item.reverse_scoring ? 8 - raw : raw;
-      return scored;
-    });
-    const rawScore = Number((values.reduce((a, b) => a + b, 0) / Math.max(1, values.length)).toFixed(2));
-    const { pct, band } = percentileBand(rawScore);
+    const values = dimItems.map((item) => scoreInteractive(item, responses[item.id]));
+    let rawScore = 0;
+    let pct = 0;
+    let band = '0–100';
     const labels = LABELS[dim];
-    const label = rawScore < 2.5 ? labels.low : rawScore < 4.5 ? labels.mid_low : rawScore < 5.5 ? labels.balanced : labels.high;
+    let label = labels?.balanced || 'Vyvážené';
+    if (dim.startsWith('d7_') || dim.startsWith('d8_') || dim.startsWith('d9_') || dim.startsWith('d10_') || dim.startsWith('d11_') || dim.startsWith('d12_')) {
+      const total = values.reduce((acc, v) => acc + v.score, 0);
+      const maxTotal = Math.max(1, values.reduce((acc, v) => acc + v.max, 0));
+      rawScore = Number(((total / maxTotal) * 100).toFixed(2));
+      const bandResult = percentileBand100(rawScore);
+      pct = bandResult.pct;
+      band = bandResult.band;
+      label = rawScore < 40 ? labels.low : rawScore < 60 ? labels.mid_low : rawScore < 80 ? labels.balanced : labels.high;
+    } else {
+      const rawAvg = values.reduce((acc, v) => acc + v.score, 0) / Math.max(1, values.length);
+      rawScore = Number(rawAvg.toFixed(2));
+      const bandResult = percentileBand(rawScore);
+      pct = bandResult.pct;
+      band = bandResult.band;
+      label = rawScore < 2.5 ? labels.low : rawScore < 4.5 ? labels.mid_low : rawScore < 5.5 ? labels.balanced : labels.high;
+    }
     return {
       dimension: dim,
       raw_score: rawScore,
@@ -267,7 +395,11 @@ export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
     }
     const payload = await response.json();
     const items = Array.isArray(payload?.items) ? payload.items : [];
-    if (items.length >= 72) return items;
+    const normalized = normalizeJcfpmItems(items as JcfpmItem[]);
+    const poolCount = new Set(
+      normalized.map((item) => String(item.pool_key || item.id || '').trim().toUpperCase())
+    ).size;
+    if (poolCount >= 108) return normalized;
     throw new Error('JCFPM items not seeded');
   } catch {
     return await fetchItemsFromSupabase();
@@ -284,14 +416,22 @@ export const fetchLatestJcfpm = async (): Promise<JcfpmSnapshotV1 | null> => {
   return (payload?.snapshot || null) as JcfpmSnapshotV1 | null;
 };
 
-export const submitJcfpm = async (responses: Record<string, number>): Promise<JcfpmSnapshotV1 | null> => {
+export const submitJcfpm = async (
+  responses: Record<string, any>,
+  itemIds: string[] = [],
+  variantSeed?: string
+): Promise<JcfpmSnapshotV1 | null> => {
   try {
     const controller = new AbortController();
     const response = await withTimeout(
       authenticatedFetch(`${BACKEND_URL}/tests/jcfpm/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ responses }),
+        body: JSON.stringify({
+          responses,
+          item_ids: itemIds,
+          variant_seed: variantSeed,
+        }),
         signal: controller.signal
       }),
       12000,
@@ -302,8 +442,12 @@ export const submitJcfpm = async (responses: Record<string, number>): Promise<Jc
     return (payload?.snapshot || null) as JcfpmSnapshotV1 | null;
   } catch {
     const items = await fetchItemsFromSupabase();
-    if (items.length < 72) return null;
-    const dimensionScores = scoreDimensionsLocal(items, responses);
+    if (items.length < 108) return null;
+    const selectedItems = itemIds.length
+      ? items.filter((item) => itemIds.includes(item.id))
+      : items;
+    if (selectedItems.length < 108) return null;
+    const dimensionScores = computeJcfpmScoresLocal(selectedItems, responses);
     const percentileSummary = dimensionScores.reduce((acc, row: any) => {
       acc[row.dimension] = row.percentile;
       return acc;
@@ -318,6 +462,8 @@ export const submitJcfpm = async (responses: Record<string, number>): Promise<Jc
       schema_version: 'jcfpm-v1',
       completed_at: new Date().toISOString(),
       responses,
+      item_ids: itemIds,
+      variant_seed: variantSeed,
       dimension_scores: dimensionScores as any,
       fit_scores: fitScores as any,
       ai_report: null,

@@ -44,12 +44,60 @@ DIMENSION_META = {
         "definition": "Ochota učit se, adaptovat se a využívat AI v práci.",
         "contrast": "Rychlá adaptace vs. jistota • Experimentování vs. osvědčené postupy",
     },
+    "d7_cognitive_reflection": {
+        "title": "Cognitive Reflection & Logic",
+        "definition": "Schopnost zastavit první intuici a ověřit ji logikou.",
+        "contrast": "Rychlá intuice vs. ověřená logika • Šum vs. důkaz",
+    },
+    "d8_digital_eq": {
+        "title": "Digitální EQ",
+        "definition": "Citlivost na emoce, tón a důvěru v textové komunikaci.",
+        "contrast": "Empatie vs. direktiva • Kontext vs. tvrdý výkon",
+    },
+    "d9_systems_thinking": {
+        "title": "Systémové myšlení",
+        "definition": "Schopnost chápat vztahy, zpětné vazby a vedlejší efekty.",
+        "contrast": "Lineární příčina vs. síť vztahů • Krátkodobé vs. dlouhodobé",
+    },
+    "d10_ambiguity_interpretation": {
+        "title": "Interpretace ambiguity",
+        "definition": "Jak čteš nejasné situace – rizika vs. příležitosti.",
+        "contrast": "Opatrnost vs. průzkum • Ochrana vs. růst",
+    },
+    "d11_problem_decomposition": {
+        "title": "Rozklad problémů",
+        "definition": "Jak dokážeš rozsekat velký problém na jasné kroky.",
+        "contrast": "Chaos vs. struktura • Prioritizace vs. paralelní tlak",
+    },
+    "d12_moral_compass": {
+        "title": "Morální & etický kompas",
+        "definition": "Stabilita hodnot v dilematech a tlakových situacích.",
+        "contrast": "Krátkodobý zisk vs. dlouhodobá integrita",
+    },
 }
 
 LEVEL_ORDER = ("low", "mid_low", "balanced", "high")
 
 
-def _level_for(score: float) -> str:
+_EXTENDED_DIMS = {
+    "d7_cognitive_reflection",
+    "d8_digital_eq",
+    "d9_systems_thinking",
+    "d10_ambiguity_interpretation",
+    "d11_problem_decomposition",
+    "d12_moral_compass",
+}
+
+
+def _level_for(score: float, dim: str | None = None) -> str:
+    if dim in _EXTENDED_DIMS:
+        if score < 40:
+            return "low"
+        if score < 60:
+            return "mid_low"
+        if score < 80:
+            return "balanced"
+        return "high"
     if score < 2.5:
         return "low"
     if score < 4.5:
@@ -60,16 +108,18 @@ def _level_for(score: float) -> str:
 
 
 def _fmt_dim(dim_row: Dict[str, Any]) -> str:
-    title = DIMENSION_META.get(dim_row.get("dimension"), {}).get("title", dim_row.get("dimension"))
+    dim = dim_row.get("dimension")
+    title = DIMENSION_META.get(dim, {}).get("title", dim)
     score = dim_row.get("raw_score")
     pct = dim_row.get("percentile")
-    return f"{title} ({score}/7, {pct}. percentil)"
+    max_score = 100 if dim in _EXTENDED_DIMS else 7
+    return f"{title} ({score}/{max_score}, {pct}. percentil)"
 
 
 def _dimension_sentence(dim_row: Dict[str, Any]) -> str:
     dim = dim_row.get("dimension")
     title = DIMENSION_META.get(dim, {}).get("title", dim)
-    level = _level_for(float(dim_row.get("raw_score") or 0))
+    level = _level_for(float(dim_row.get("raw_score") or 0), dim)
     if dim == "d1_cognitive":
         if level == "high":
             return "Silná analytika a potřeba struktury ti pomáhá rozkládat složité problémy na kroky a držet kvalitu i pod tlakem."
@@ -106,6 +156,42 @@ def _dimension_sentence(dim_row: Dict[str, Any]) -> str:
         if level == "balanced":
             return "AI bereš pragmaticky: využíváš ji tam, kde dává jasný přínos, ale držíš si bezpečný rámec."
         return "Preferuješ ověřené postupy a stabilitu, což je výhoda v prostředích s přísnými pravidly."
+    if dim == "d7_cognitive_reflection":
+        if level == "high":
+            return "Dokážeš zachytit chybnou intuici a ověřit ji logikou, což ti dává silný „bullshit detector“."
+        if level == "balanced":
+            return "Umíš přepínat mezi rychlou intuicí a ověřením, když jde o důležitá rozhodnutí."
+        return "Spoléháš se na rychlý úsudek; v komplexních úlohách můžeš těžit z vědomého ověřování."
+    if dim == "d8_digital_eq":
+        if level == "high":
+            return "V textu čteš nuance, emoce i kontext, a dokážeš budovat důvěru i na dálku."
+        if level == "balanced":
+            return "Zvládáš základní digitální empatii, ale při napětí pomůže explicitně ověřovat význam."
+        return "Tón v textu můžeš snadno přehlédnout; jasná pravidla komunikace ti zlepší výsledky."
+    if dim == "d9_systems_thinking":
+        if level == "high":
+            return "Vidíš souvislosti, zpětné vazby a vedlejší efekty, takže umíš navrhovat stabilní řešení."
+        if level == "balanced":
+            return "Umíš kombinovat lineární a systémový pohled, což je dobrý základ pro návrh procesů."
+        return "Preferuješ přímé příčiny a následky; pomůže mapovat širší dopady změn."
+    if dim == "d10_ambiguity_interpretation":
+        if level == "high":
+            return "V nejasnosti vidíš příležitosti a dokážeš aktivně zkoumat nové cesty."
+        if level == "balanced":
+            return "Umíš držet rovnováhu mezi opatrností a průzkumem, což snižuje rizika."
+        return "V nejasnosti vnímáš spíš rizika; jasný rámec ti zlepší jistotu."
+    if dim == "d11_problem_decomposition":
+        if level == "high":
+            return "Dokážeš rozsekat velké cíle na jasné kroky a prioritizovat bez ztráty směru."
+        if level == "balanced":
+            return "Zvládáš základní strukturování, ale nejlépe funguješ s dopředu daným rámcem."
+        return "Rozklad problému je náročnější; pomáhají checklisty a explicitní workflow."
+    if dim == "d12_moral_compass":
+        if level == "high":
+            return "Dokážeš držet integritu i pod tlakem a rozhoduješ se konzistentně s hodnotami."
+        if level == "balanced":
+            return "Tvé rozhodování je stabilní, ale v šedých zónách pomáhá explicitní etický rámec."
+        return "V dilematech spíš optimalizuješ výkon; dlouhodobě může pomoci jasné hodnotové ukotvení."
     return "Tato dimenze vykazuje stabilní, dobře čitelný profil."
 
 
@@ -131,14 +217,15 @@ def _build_fallback_report(payload: Dict[str, Any]) -> Dict[str, Any]:
     for row in dev_rows:
         dim = row.get("dimension")
         title = DIMENSION_META.get(dim, {}).get("title", dim)
-        level = _level_for(float(row.get("raw_score") or 0))
+        level = _level_for(float(row.get("raw_score") or 0), dim)
         if level == "high":
             detail = "Pozor na přetížení: vysoká intenzita potřebuje vědomou regeneraci a disciplínu v prioritách."
         elif level == "balanced":
             detail = "V této oblasti máš zdravou rovnováhu; výhodu získáš, když ji propojíš s nejsilnějšími stránkami."
         else:
             detail = "Tady je prostor pro růst: drobné změny prostředí nebo návyků můžou výrazně zvednout komfort a výkon."
-        development.append(f"{title} ({row.get('raw_score')}/7, {row.get('percentile')}. percentil). {detail}")
+        max_score = 100 if dim in _EXTENDED_DIMS else 7
+        development.append(f"{title} ({row.get('raw_score')}/{max_score}, {row.get('percentile')}. percentil). {detail}")
 
     # Ideal environment derived from D2/D4/D5 (fallback to others if missing)
     ideal_environment: List[str] = []
@@ -146,7 +233,7 @@ def _build_fallback_report(payload: Dict[str, Any]) -> Dict[str, Any]:
         row = next((r for r in dim_scores if r.get("dimension") == dim), None)
         if not row:
             continue
-        level = _level_for(float(row.get("raw_score") or 0))
+        level = _level_for(float(row.get("raw_score") or 0), dim)
         if dim == "d2_social":
             ideal_environment.append(
                 "Prospíváš v týmech s jasnou rolí a kvalitní komunikací." if level in ("high", "balanced")
@@ -169,7 +256,9 @@ def _build_fallback_report(payload: Dict[str, Any]) -> Dict[str, Any]:
     top_roles_out: List[Dict[str, str]] = []
     reason_dims = strengths_rows[:2] or dim_scores[:2]
     reason_bits = [DIMENSION_META.get(r.get("dimension"), {}).get("title", r.get("dimension")) for r in reason_dims]
-    reason_scores = [f"{r.get('raw_score')}/7" for r in reason_dims]
+    reason_scores = [
+        f"{r.get('raw_score')}/{100 if r.get('dimension') in _EXTENDED_DIMS else 7}" for r in reason_dims
+    ]
     reason_effects = [_dimension_sentence(r) for r in reason_dims]
     for role in top_roles[:5]:
         title = role.get("title") or "Role"
@@ -191,7 +280,7 @@ def _build_fallback_report(payload: Dict[str, Any]) -> Dict[str, Any]:
     # AI readiness summary
     d6 = next((r for r in dim_scores if r.get("dimension") == "d6_ai_readiness"), None)
     if d6:
-        d6_level = _level_for(float(d6.get("raw_score") or 0))
+        d6_level = _level_for(float(d6.get("raw_score") or 0), "d6_ai_readiness")
         if d6_level == "high":
             ai_readiness = "Máš vysokou AI připravenost a rychlou adaptaci. Vyhledávej role, kde se AI aktivně používá a procesy se rychle mění."
         elif d6_level == "balanced":

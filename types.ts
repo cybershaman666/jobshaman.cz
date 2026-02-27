@@ -556,7 +556,21 @@ export type JcfpmDimensionId =
   | 'd3_motivational'
   | 'd4_energy'
   | 'd5_values'
-  | 'd6_ai_readiness';
+  | 'd6_ai_readiness'
+  | 'd7_cognitive_reflection'
+  | 'd8_digital_eq'
+  | 'd9_systems_thinking'
+  | 'd10_ambiguity_interpretation'
+  | 'd11_problem_decomposition'
+  | 'd12_moral_compass';
+
+export type JcfpmItemType =
+  | 'likert'
+  | 'mcq'
+  | 'scenario_choice'
+  | 'ordering'
+  | 'image_choice'
+  | 'drag_drop';
 
 export interface JcfpmItem {
   id: string;
@@ -565,6 +579,11 @@ export interface JcfpmItem {
   prompt: string;
   reverse_scoring?: boolean;
   sort_order?: number;
+  item_type?: JcfpmItemType;
+  payload?: Record<string, unknown> | null;
+  assets?: Record<string, unknown> | null;
+  pool_key?: string | null;
+  variant_index?: number | null;
 }
 
 export interface JcfpmScore {
@@ -597,7 +616,9 @@ export interface JcfpmAIReport {
 export interface JcfpmSnapshotV1 {
   schema_version: 'jcfpm-v1';
   completed_at: string;
-  responses: Record<string, number>;
+  responses: Record<string, unknown>;
+  item_ids?: string[];
+  variant_seed?: string;
   dimension_scores: JcfpmScore[];
   fit_scores: JcfpmRoleFit[];
   ai_report?: JcfpmAIReport | null;
