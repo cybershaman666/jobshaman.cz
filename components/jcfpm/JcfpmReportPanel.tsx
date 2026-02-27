@@ -908,6 +908,17 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
             Percentily a interpretace
           </span>
         </div>
+        {/* simple bar overview for premium-feel graphic */}
+        <div className="mt-4 space-y-1 jcfpm-results-graph">
+          {mergedScores.map((row) => (
+            <div key={row.dimension} className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-cyan-500 to-emerald-500 transition-all duration-700"
+                style={{ width: `${normalizeTo100(row.dimension, row.raw_score)}%` }}
+              />
+            </div>
+          ))}
+        </div>
 
       <div className="mt-3 grid gap-3 md:grid-cols-2">
           {mergedScores.map((row) => (
@@ -933,6 +944,17 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
               <div className="mt-2 text-xs text-slate-700">{DIMENSION_META[row.dimension]?.definition}</div>
               <div className="mt-1 text-[11px] text-slate-600">{DIMENSION_META[row.dimension]?.subdims}</div>
               <div className="mt-3 text-xs text-slate-700">{describeScore(row.dimension, row.raw_score, row.percentile)}</div>
+
+              {/* inline bar graph for this dimension */}
+              <div className="mt-2 jcfpm-results-graph">
+                <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-indigo-500 to-indigo-300 transition-all duration-500"
+                    style={{ width: `${normalizeTo100(row.dimension, row.raw_score)}%` }}
+                  />
+                </div>
+              </div>
+
               <div className="mt-3 text-sm text-slate-700 leading-relaxed">
                 {longNarrative(row.dimension, row.raw_score, row.percentile)}
               </div>

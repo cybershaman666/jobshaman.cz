@@ -966,7 +966,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className={`min-h-screen bg-slate-50 dark:bg-slate-900 ${jcfpmStarted ? 'overflow-hidden' : ''}`}>
       <div className="max-w-6xl mx-auto py-8 space-y-6">
         {/* Header */}
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
@@ -2662,9 +2662,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       </div>
 
       {jcfpmStarted && (
-        <div className="fixed inset-0 z-[95] bg-gradient-to-br from-emerald-50/90 via-sky-50/90 to-stone-50/90 dark:from-slate-950/95 dark:via-slate-900/95 dark:to-slate-950/95 backdrop-blur-md">
-          <div className="h-full w-full overflow-y-auto p-3 sm:p-6">
-            <div className="mx-auto min-h-full w-full max-w-[1200px] rounded-3xl border border-emerald-100 dark:border-slate-700/60 bg-white/90 dark:bg-slate-900/90 shadow-[0_40px_120px_rgba(16,24,40,0.18)] dark:shadow-[0_40px_120px_rgba(2,6,23,0.6)]">
+        <div className="fixed inset-0 z-[95] bg-gradient-to-br from-emerald-50/90 via-sky-50/90 to-stone-50/90 dark:from-slate-950/95 dark:via-slate-900/95 dark:to-slate-950/95 backdrop-blur-md overflow-hidden">
+          <div className="h-full w-full overflow-y-auto p-3 sm:p-6 flex flex-col">
+            <div className="mx-auto w-full max-w-[1200px] rounded-3xl border border-emerald-100 dark:border-slate-700/60 bg-white/90 dark:bg-slate-900/90 shadow-[0_40px_120px_rgba(16,24,40,0.18)] dark:shadow-[0_40px_120px_rgba(2,6,23,0.6)]">
               <JcfpmFlow
                 initialSnapshot={jcfpmSnapshot}
                 mode={jcfpmView}

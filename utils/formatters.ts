@@ -390,6 +390,11 @@ export const formatJobDescription = (description: string): string => {
     };
 
     const rawLines = description
+        // First: preserve markdown headings (###, ##, #)
+        .replace(/^(#{1,6})\s+(.+?)(\?)?$/gm, (match) => {
+            // Keep markdown headers as-is
+            return match;
+        })
         // Repair common OCR/scrape issue: missing space after sentence punctuation.
         .replace(/([.!?])(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1 ')
         .replace(inlineHeadingLooseRegex, '\n$1:\n')
@@ -1257,9 +1262,9 @@ export const formatJobDescription = (description: string): string => {
                 requirementLikeCount >= Math.ceil(texts.length * 0.5) ||
                 (texts.length >= 4 && shortCount >= Math.ceil(texts.length * 0.6) && sentenceCount === 0);
             const isTagCloud = isTagHeading(header) || (texts.length >= 8 && shortCount >= Math.ceil(texts.length * 0.7) && sentenceCount === 0);
-
             if (output.length > 0) output.push('');
-            output.push(`**${header}**`);
+            // Format as markdown heading (### ) instead of bold to properly render as headings
+            output.push(`### ${header}`);
 
             if (!texts.length) {
                 i = j;

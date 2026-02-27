@@ -605,9 +605,11 @@ body {
   backdrop-filter: blur(12px);
 }
 
-.jcfpm-shell.is-deep-dive {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(245, 243, 255, 0.94) 100%);
-  border-color: rgba(99, 102, 241, 0.18);
+/* deep dive style merged with standard; keep single appearance for all steps */
+.jcfpm-shell.is-deep-dive,
+.jcfpm-shell.is-standard {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96) 0%, rgba(240, 249, 255, 0.94) 100%);
+  border-color: rgba(99, 102, 241, 0.15);
 }
 
 .jcfpm-phase-pill {
@@ -631,8 +633,9 @@ body {
   border-color: rgba(99, 102, 241, 0.28);
 }
 
+/* phase pills look the same regardless of section */
 .jcfpm-phase-pill.is-deep {
-  color: #6d28d9;
+  color: #4f46e5;
   background: rgba(99, 102, 241, 0.1);
   border-color: rgba(99, 102, 241, 0.28);
 }
@@ -649,12 +652,9 @@ body {
   overflow: hidden;
 }
 
-.jcfpm-progress-fill.is-standard {
-  background: linear-gradient(90deg, #4f46e5 0%, #3b82f6 100%);
-}
-
+.jcfpm-progress-fill.is-standard,
 .jcfpm-progress-fill.is-deep-dive {
-  background: linear-gradient(90deg, #6d28d9 0%, #4f46e5 100%);
+  background: linear-gradient(90deg, #4f46e5 0%, #3b82f6 100%);
 }
 
 .jcfpm-panel {
@@ -1312,6 +1312,21 @@ body {
   font-size: 12px;
 }
 
+/* small utility for the inline score bars in the report */
+.jcfpm-results-graph {
+  margin-top: 0.5rem;
+}
+.jcfpm-results-graph .h-2 {
+  border-radius: 9999px;
+  overflow: hidden;
+}
+
+@media (prefers-color-scheme: dark) {
+  .jcfpm-results-graph .bg-slate-200 {
+    background: rgba(71, 85, 105, 0.2);
+  }
+}
+
 .jcfpm-score-chip {
   border-radius: 10px;
   border: 1px solid rgba(99, 102, 241, 0.18);
@@ -1681,27 +1696,26 @@ body {
 
 .jcfpm-timeline {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 0;
   align-items: center;
-  overflow-x: auto;
-  -webkit-overflow-scrolling: touch;
-  padding-bottom: 6px;
+  flex-wrap: wrap;
+  padding-bottom: 4px;
 }
 
 .jcfpm-timeline-pill {
-  border-radius: 12px;
+  border-radius: 10px;
   border: 1px solid rgba(15, 23, 42, 0.06);
   background: rgba(255, 255, 255, 0.65);
-  padding: 6px 10px;
+  padding: 5px 9px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
-  font-size: 12px;
+  gap: 2px;
+  font-size: 11px;
   color: #475569;
   transition: all 200ms ease;
-  min-width: 140px;
-  flex: 0 0 auto;
+  flex: 1 1 auto;
+  min-width: 95px;
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;

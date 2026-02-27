@@ -677,8 +677,9 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
 
   const currentItem = orderedItems[stepIndex];
   const currentDim = DIMENSIONS.find((dim) => dim.id === inferDimension(currentItem)) || DIMENSIONS[0];
-  const isDeepDive = Boolean(currentItem && DEEP_DIVE_DIMENSIONS.has(inferDimension(currentItem)));
-  const isFocusMode = viewMode === 'form' && isDeepDive;
+  // disable deep dive special styling; treat all items as standard for unified layout
+  const isDeepDive = false;
+  const isFocusMode = false;
   const sceneCapability = useSceneCapability();
   const resolvePayload = (item?: JcfpmItem): any => {
     if (!item) return {};
