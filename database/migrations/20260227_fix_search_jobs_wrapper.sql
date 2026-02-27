@@ -58,25 +58,63 @@ RETURNS TABLE (
 LANGUAGE sql
 STABLE
 AS $$
-    SELECT * FROM public.search_jobs_v2(
-        p_search_term := search_term,
-        p_page := (offset_val / GREATEST(limit_count, 1))::integer,
-        p_page_size := limit_count,
-        p_user_id := NULL,
-        p_user_lat := user_lat,
-        p_user_lng := user_lng,
-        p_radius_km := radius_km,
-        p_filter_city := filter_city,
-        p_filter_contract_types := filter_contract_types,
-        p_filter_benefits := filter_benefits,
-        p_filter_min_salary := filter_min_salary,
-        p_filter_date_posted := filter_date_posted,
-        p_filter_experience_levels := filter_experience_levels,
-        p_filter_country_codes := filter_country_codes,
-        p_exclude_country_codes := exclude_country_codes,
-        p_filter_language_codes := filter_language_codes,
-        p_sort_mode := 'default'
-    );
+    -- Wrap the underlying search_jobs_v2 call and deduplicate by job id.
+    -- Use DISTINCT ON (id) and keep the row with the lowest rank_position
+    -- to ensure consistent, unique results are returned to clients.
+    SELECT DISTINCT ON (id) id,
+           title,
+           company,
+           location,
+           description,
+           benefits,
+           contract_type,
+           salary_from,
+           salary_to,
+           currency,
+           salary_currency,
+           work_type,
+           work_model,
+           scraped_at,
+           source,
+           education_level,
+           url,
+           lat,
+           lng,
+           country_code,
+           language_code,
+           legality_status,
+           verification_notes,
+           distance_km,
+           hybrid_score,
+           fts_score,
+           trigram_score,
+           profile_fit_score,
+           recency_score,
+           behavior_prior_score,
+           rank_position,
+           total_count
+    FROM (
+        SELECT * FROM public.search_jobs_v2(
+            p_search_term := search_term,
+            p_page := (offset_val / GREATEST(limit_count, 1))::integer,
+            p_page_size := limit_count,
+            p_user_id := NULL,
+            p_user_lat := user_lat,
+            p_user_lng := user_lng,
+            p_radius_km := radius_km,
+            p_filter_city := filter_city,
+            p_filter_contract_types := filter_contract_types,
+            p_filter_benefits := filter_benefits,
+            p_filter_min_salary := filter_min_salary,
+            p_filter_date_posted := filter_date_posted,
+            p_filter_experience_levels := filter_experience_levels,
+            p_filter_country_codes := filter_country_codes,
+            p_exclude_country_codes := exclude_country_codes,
+            p_filter_language_codes := filter_language_codes,
+            p_sort_mode := 'default'
+        )
+    ) _sub
+    ORDER BY id, rank_position ASC;
 $$;
 
 -- Reload PostgREST schema cache
