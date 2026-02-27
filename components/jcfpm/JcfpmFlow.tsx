@@ -846,6 +846,60 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     return result;
   };
 
+  const mergePartialSnapshot = (
+    baseSnapshot: JcfpmSnapshotV1 | null,
+    incomingSnapshot: JcfpmSnapshotV1,
+    testedDims: Set<JcfpmDimensionId>,
+  ): JcfpmSnapshotV1 => {
+    if (!baseSnapshot) return incomingSnapshot;
+
+    const byDim = new Map<JcfpmDimensionId, any>(
+      (baseSnapshot.dimension_scores || []).map((row) => [row.dimension, row])
+    );
+    (incomingSnapshot.dimension_scores || []).forEach((row) => {
+      if (testedDims.has(row.dimension)) {
+        byDim.set(row.dimension, row);
+      }
+    });
+
+    const mergedDimensionScores = DIMENSIONS
+      .map((dim) => byDim.get(dim.id))
+      .filter(Boolean);
+
+    const mergedPercentiles = {
+      ...(baseSnapshot.percentile_summary || {}),
+    } as Record<JcfpmDimensionId, number>;
+    Object.entries(incomingSnapshot.percentile_summary || {}).forEach(([dim, value]) => {
+      const dimension = dim as JcfpmDimensionId;
+      if (testedDims.has(dimension)) {
+        mergedPercentiles[dimension] = value as number;
+      }
+    });
+
+    const mergedItemIds = Array.from(
+      new Set([...(baseSnapshot.item_ids || []), ...(incomingSnapshot.item_ids || [])])
+    );
+
+    return {
+      ...baseSnapshot,
+      completed_at: incomingSnapshot.completed_at,
+      responses: {
+        ...(baseSnapshot.responses || {}),
+        ...(incomingSnapshot.responses || {}),
+      },
+      item_ids: mergedItemIds,
+      variant_seed: incomingSnapshot.variant_seed || baseSnapshot.variant_seed,
+      dimension_scores: mergedDimensionScores,
+      percentile_summary: mergedPercentiles,
+      confidence: incomingSnapshot.confidence ?? baseSnapshot.confidence,
+      // Fit/AI are derived mainly from D1-D6 model; keep existing rich output unless missing.
+      fit_scores: (baseSnapshot.fit_scores && baseSnapshot.fit_scores.length)
+        ? baseSnapshot.fit_scores
+        : incomingSnapshot.fit_scores,
+      ai_report: baseSnapshot.ai_report || incomingSnapshot.ai_report || null,
+    };
+  };
+
   const handleNext = async () => {
     if (!canAdvance) return;
     recordTime(currentItem?.id || null);
@@ -873,18 +927,18 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
       setStepIndex((prev) => prev + 1);
       return;
     }
-    if (section !== 'full') {
-      onClose();
-      return;
-    }
     setIsSubmitting(true);
     try {
       const result = await submitJcfpm(responsesWithTiming(), orderedItems.map((item) => item.id), variantSeed);
       if (result) {
+        const testedDims = new Set<JcfpmDimensionId>(orderedItems.map((item) => inferDimension(item)));
+        const persistedSnapshot = section === 'full'
+          ? result
+          : mergePartialSnapshot(snapshot || initialSnapshot || null, result, testedDims);
         clearJcfpmDraft(userId);
-        setSnapshot(result);
+        setSnapshot(persistedSnapshot);
         setViewMode('report');
-        await onPersist(result);
+        await onPersist(persistedSnapshot);
       }
     } finally {
       setIsSubmitting(false);

@@ -403,23 +403,32 @@ async def log_job_interaction(payload: JobInteractionRequest, request: Request, 
     if not user_id:
         raise HTTPException(status_code=401, detail="User not authenticated")
 
-    try:
-        metadata = payload.metadata or {}
-        request_id = payload.request_id or metadata.get("request_id")
-        scoring_version = payload.scoring_version or metadata.get("scoring_version")
-        model_version = payload.model_version or metadata.get("model_version")
-        insert_data = {
-            "user_id": user_id,
-            "job_id": payload.job_id,
-            "event_type": payload.event_type,
-            "dwell_time_ms": payload.dwell_time_ms,
-            "session_id": payload.session_id,
-            "metadata": metadata
-        }
-        res = supabase.table("job_interactions").insert(insert_data).execute()
-        if not res.data:
-            return {"status": "error", "message": "No data inserted"}
+    metadata = getattr(payload, "metadata", None) or {}
+    if not isinstance(metadata, dict):
+        metadata = {}
+    request_id = payload.request_id or metadata.get("request_id")
+    scoring_version = getattr(payload, "scoring_version", None) or metadata.get("scoring_version")
+    model_version = getattr(payload, "model_version", None) or metadata.get("model_version")
 
+    insert_data = {
+        "user_id": user_id,
+        "job_id": payload.job_id,
+        "event_type": payload.event_type,
+        "dwell_time_ms": payload.dwell_time_ms,
+        "session_id": payload.session_id,
+        "metadata": metadata
+    }
+    try:
+        res = supabase.table("job_interactions").insert(insert_data).execute()
+    except Exception as exc:
+        # Telemetry should not degrade UX when DB constraints/table shape drift.
+        print(f"⚠️ Failed to insert job_interactions telemetry: {exc}")
+        return {"status": "degraded", "reason": "job_interactions_insert_failed"}
+
+    if not res.data:
+        return {"status": "degraded", "reason": "no_data_inserted"}
+
+    try:
         normalized_signal_type = _RECOMMENDATION_SIGNAL_MAP.get(payload.event_type, payload.event_type)
 
         feedback_rows = [
@@ -501,9 +510,9 @@ async def log_job_interaction(payload: JobInteractionRequest, request: Request, 
                 else:
                     print(f"⚠️ Failed to write search feedback events: {search_exc}")
         return {"status": "success"}
-    except Exception as e:
-        print(f"❌ Error logging job interaction: {e}")
-        raise HTTPException(status_code=500, detail="Failed to log interaction")
+    except Exception as exc:
+        print(f"⚠️ Partial telemetry failure after interaction insert: {exc}")
+        return {"status": "degraded", "reason": "secondary_feedback_failed"}
 
 
 @router.get("/jobs/interactions/state")

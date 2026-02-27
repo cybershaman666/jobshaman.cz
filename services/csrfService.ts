@@ -87,6 +87,7 @@ const endpointDoesNotRequireCsrf = (url: string): boolean => {
             path === '/jobs/hybrid-search' ||
             path === '/jobs/hybrid-search-v2' ||
             path === '/jobs/interactions' ||
+            path === '/jobs/interactions/state/sync' ||
             path.startsWith('/ai/') ||
             path === '/verify-billing' ||
             path === '/subscription-status' ||

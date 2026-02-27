@@ -118,6 +118,9 @@ class JobInteractionRequest(BaseModel):
     request_id: Optional[str] = None
     signal_value: Optional[float] = None
     scroll_depth: Optional[float] = Field(default=None, ge=0, le=100)
+    metadata: Optional[dict] = None
+    scoring_version: Optional[str] = None
+    model_version: Optional[str] = None
 
 
 class JcfpmSubmitRequest(BaseModel):

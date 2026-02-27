@@ -1,5 +1,4 @@
 import { BACKEND_URL } from '../constants';
-import { authenticatedFetch } from './csrfService';
 import { supabase } from './supabaseService';
 import { JcfpmItem, JcfpmSnapshotV1, JcfpmDimensionId } from '../types';
 
@@ -484,6 +483,14 @@ export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
     }
   };
 
+  // Prefer direct Supabase fetch: avoids backend auth/CSRF/network bottlenecks for read-only item bank.
+  try {
+    const supabaseItems = await fetchItemsFromSupabase();
+    return ensureSeeded(supabaseItems);
+  } catch {
+    // Fall back to backend endpoint when client-side Supabase access is not available.
+  }
+
   try {
     return await fetchFromBackendPublic();
   } catch (firstErr: any) {
@@ -504,11 +511,24 @@ export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
   }
 };
 
+const buildBackendAuthHeaders = async (): Promise<Record<string, string>> => {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (!supabase) return headers;
+  try {
+    const { data } = await supabase.auth.getSession();
+    const token = data?.session?.access_token;
+    if (token) headers.Authorization = `Bearer ${token}`;
+  } catch {
+    // Non-fatal: endpoints that allow anonymous access will still work.
+  }
+  return headers;
+};
+
 export const fetchLatestJcfpm = async (): Promise<JcfpmSnapshotV1 | null> => {
-  const response = await authenticatedFetch(`${BACKEND_URL}/tests/jcfpm/latest`, {
+  const response = await withTimeout(fetch(`${BACKEND_URL}/tests/jcfpm/latest`, {
     method: 'GET',
-    headers: { 'Content-Type': 'application/json' }
-  });
+    headers: await buildBackendAuthHeaders(),
+  }), 12000, 'JCFPM latest timeout');
   if (!response.ok) return null;
   const payload = await response.json();
   return (payload?.snapshot || null) as JcfpmSnapshotV1 | null;
@@ -520,22 +540,22 @@ export const submitJcfpm = async (
   variantSeed?: string
 ): Promise<JcfpmSnapshotV1 | null> => {
   try {
-    const controller = new AbortController();
     const response = await withTimeout(
-      authenticatedFetch(`${BACKEND_URL}/tests/jcfpm/submit`, {
+      fetch(`${BACKEND_URL}/tests/jcfpm/submit`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await buildBackendAuthHeaders(),
         body: JSON.stringify({
           responses,
           item_ids: itemIds,
           variant_seed: variantSeed,
         }),
-        signal: controller.signal
       }),
       12000,
       'JCFPM submit timeout'
     );
-    if (!response.ok) return null;
+    if (!response.ok) {
+      throw new Error(`JCFPM submit failed (${response.status})`);
+    }
     const payload = await response.json();
     return (payload?.snapshot || null) as JcfpmSnapshotV1 | null;
   } catch {

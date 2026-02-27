@@ -12,4 +12,4 @@ RUN pip install --no-cache-dir -r /app/requirements.txt
 
 COPY backend /app
 
-CMD ["sh", "-c", "python -m gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:${PORT:-8080} --timeout 120"]
+CMD ["sh", "-c", "python -m gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:${PORT:-8080} --workers ${WEB_CONCURRENCY:-1} --timeout 120"]
