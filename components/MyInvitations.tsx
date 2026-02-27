@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { authenticatedFetch, isBackendNetworkCooldownActive } from '../services/csrfService';
+import { authenticatedFetch } from '../services/csrfService';
 import { BACKEND_URL } from '../constants';
 import { supabase } from '../services/supabaseService';
 import AssessmentExperienceRouter from './AssessmentExperienceRouter';
@@ -21,7 +21,7 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
   const [invitations, setInvitations] = useState<Invitation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cooldownRetrying, setCooldownRetrying] = useState(false);
+  const [retrying, setRetrying] = useState(false);
   const retryTimeoutRef = useRef<number | null>(null);
   const retryCountRef = useRef(0);
   const MAX_RETRIES = 3;
@@ -45,15 +45,8 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
   const load = async () => {
     setError(null);
     setLoading(true);
-    setCooldownRetrying(false);
+    setRetrying(false);
     try {
-      if (isBackendNetworkCooldownActive()) {
-        if (!invitations.length) {
-          scheduleRetry();
-          setCooldownRetrying(true);
-        }
-        return;
-      }
       const res = await authenticatedFetch(`${BACKEND_URL}/assessments/invitations${forCompany ? '?for_company=true' : ''}`, { method: 'GET' });
       if (!res.ok) throw new Error(`API error ${res.status}`);
       const data = await res.json();
@@ -64,15 +57,14 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
       const isAbort =
         e?.name === 'AbortError' ||
         message.toLowerCase().includes('aborted');
-      const isBackendUnavailable = message.includes('cooldown active')
-        || message.toLowerCase().includes('networkerror')
+      const isBackendUnavailable = message.toLowerCase().includes('networkerror')
         || message.toLowerCase().includes('failed to fetch')
         || message.toLowerCase().includes('timeout')
         || isAbort;
       if (isBackendUnavailable) {
         if (!invitations.length) {
           scheduleRetry();
-          setCooldownRetrying(true);
+          setRetrying(true);
         }
       } else {
         console.error(e);
@@ -143,7 +135,7 @@ const MyInvitations: React.FC<{ forCompany?: boolean }> = ({ forCompany = false 
       </div>
 
       {loading && <div className="text-sm text-slate-500 animate-pulse">{t('my_invitations.loading')}</div>}
-      {!loading && cooldownRetrying && !invitations.length && (
+      {!loading && retrying && !invitations.length && (
         <div className="text-sm text-slate-500 animate-pulse">
           {t('my_invitations.retrying', { defaultValue: 'Zkouším znovu připojit backend…' })}
         </div>

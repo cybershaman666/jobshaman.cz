@@ -145,6 +145,25 @@ const D10_IMAGE_ASSETS = {
   c: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0naHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmcnIHdpZHRoPSc2NDAnIGhlaWdodD0nNDAwJyB2aWV3Qm94PScwIDAgNjQwIDQwMCc+CjxkZWZzPgogIDxsaW5lYXJHcmFkaWVudCBpZD0nZycgeDE9JzAnIHkxPScxJyB4Mj0nMScgeTI9JzAnPgogICAgPHN0b3Agb2Zmc2V0PScwJScgc3RvcC1jb2xvcj0nIzE0YjhhNicvPgogICAgPHN0b3Agb2Zmc2V0PScxMDAlJyBzdG9wLWNvbG9yPScjZjQzZjVlJy8+CiAgPC9saW5lYXJHcmFkaWVudD4KPC9kZWZzPgo8cmVjdCB3aWR0aD0nNjQwJyBoZWlnaHQ9JzQwMCcgZmlsbD0ndXJsKCNnKScvPgo8cmVjdCB4PSc4MCcgeT0nODAnIHdpZHRoPScxODAnIGhlaWdodD0nMTgwJyByeD0nMzYnIGZpbGw9J3JnYmEoMjU1LDI1NSwyNTUsMC4zNSknLz4KPHJlY3QgeD0nMzYwJyB5PScxNDAnIHdpZHRoPScyMDAnIGhlaWdodD0nMTQwJyByeD0nMjgnIGZpbGw9J3JnYmEoMTUsMjMsNDIsMC4yNSknLz4KPC9zdmc+',
 };
 
+const stripVariantSuffix = (value: string): string => value.trim().replace(/_v\d+$/i, '');
+
+const inferDimensionFromIdentity = (value: unknown): JcfpmDimensionId | undefined => {
+  const raw = stripVariantSuffix(String(value || '')).toLowerCase();
+  if (raw.startsWith('d1.')) return 'd1_cognitive';
+  if (raw.startsWith('d2.')) return 'd2_social';
+  if (raw.startsWith('d3.')) return 'd3_motivational';
+  if (raw.startsWith('d4.')) return 'd4_energy';
+  if (raw.startsWith('d5.')) return 'd5_values';
+  if (raw.startsWith('d6.')) return 'd6_ai_readiness';
+  if (raw.startsWith('d7.')) return 'd7_cognitive_reflection';
+  if (raw.startsWith('d8.')) return 'd8_digital_eq';
+  if (raw.startsWith('d9.')) return 'd9_systems_thinking';
+  if (raw.startsWith('d10.')) return 'd10_ambiguity_interpretation';
+  if (raw.startsWith('d11.')) return 'd11_problem_decomposition';
+  if (raw.startsWith('d12.')) return 'd12_moral_compass';
+  return undefined;
+};
+
 const LOCAL_JCFPM_PAYLOADS: Record<string, any> = {
   'D7.1': {
     options: [
@@ -546,8 +565,9 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     const groups = new Map<string, JcfpmItem[]>();
     const normalizeKey = (value: string) => value.trim().toUpperCase();
     items.forEach((item) => {
-      const baseId = String(item.id || '').trim().replace(/_v\\d+$/i, '');
-      const key = normalizeKey(String(item.pool_key || baseId || ''));
+      const baseId = stripVariantSuffix(String(item.id || ''));
+      const poolKey = stripVariantSuffix(String(item.pool_key || ''));
+      const key = normalizeKey(baseId || poolKey || '');
       if (!key) return;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(item);
@@ -565,7 +585,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     groups.forEach((group, key) => {
       const getVariantIndex = (item: JcfpmItem) => {
         if (typeof item.variant_index === 'number') return item.variant_index;
-        const match = String(item.id || '').match(/_v(\\d+)$/i);
+        const match = String(item.id || '').match(/_v(\d+)$/i);
         if (match) return Number(match[1]);
         return 1;
       };
@@ -598,22 +618,12 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
 
   const inferDimension = (item: JcfpmItem | undefined): JcfpmDimensionId => {
     if (!item) return 'd1_cognitive';
-    const explicit = String(item.dimension || '').trim();
-    if (explicit && DIMENSIONS.some((dim) => dim.id === explicit)) return explicit as JcfpmDimensionId;
-    const rawKey = String(item.pool_key || item.id || '').replace(/_v\\d+$/i, '').toLowerCase();
-    if (rawKey.startsWith('d1.')) return 'd1_cognitive';
-    if (rawKey.startsWith('d2.')) return 'd2_social';
-    if (rawKey.startsWith('d3.')) return 'd3_motivational';
-    if (rawKey.startsWith('d4.')) return 'd4_energy';
-    if (rawKey.startsWith('d5.')) return 'd5_values';
-    if (rawKey.startsWith('d6.')) return 'd6_ai_readiness';
-    if (rawKey.startsWith('d7.')) return 'd7_cognitive_reflection';
-    if (rawKey.startsWith('d8.')) return 'd8_digital_eq';
-    if (rawKey.startsWith('d9.')) return 'd9_systems_thinking';
-    if (rawKey.startsWith('d10.')) return 'd10_ambiguity_interpretation';
-    if (rawKey.startsWith('d11.')) return 'd11_problem_decomposition';
-    if (rawKey.startsWith('d12.')) return 'd12_moral_compass';
-    return 'd1_cognitive';
+    const explicit = String(item.dimension || '').trim().toLowerCase();
+    const inferred =
+      inferDimensionFromIdentity(item.id) ||
+      inferDimensionFromIdentity(item.pool_key) ||
+      (DIMENSIONS.some((dim) => dim.id === explicit) ? (explicit as JcfpmDimensionId) : undefined);
+    return inferred || 'd1_cognitive';
   };
 
   const itemsByDimension = useMemo(() => {
@@ -666,8 +676,8 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
   const isDeepDive = Boolean(currentItem && DEEP_DIVE_DIMENSIONS.has(inferDimension(currentItem)));
   const resolvePayload = (item?: JcfpmItem): any => {
     if (!item) return {};
-    const rawKey = String(item.pool_key || item.id || '').trim();
-    const key = rawKey.replace(/_v\d+$/i, '').toUpperCase();
+    const rawKey = stripVariantSuffix(String(item.id || item.pool_key || '')).trim();
+    const key = rawKey.toUpperCase();
     const applyImageAssets = (payload: any) => {
       if (!payload || typeof payload !== 'object') return payload;
       if (!Array.isArray(payload.options)) return payload;
@@ -705,8 +715,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
       if (payload.options.some((opt: any) => opt?.image_url)) return 'image_choice';
       return 'mcq';
     }
-    const rawId = String(item.pool_key || item.id || '');
-    const id = rawId.replace(/_v\d+$/i, '');
+    const id = stripVariantSuffix(String(item.id || item.pool_key || ''));
     if (/^D10\./i.test(id)) return 'image_choice';
     if (/^D8\./i.test(id) || /^D12\./i.test(id)) return 'scenario_choice';
     if (/^D7\./i.test(id)) return 'mcq';

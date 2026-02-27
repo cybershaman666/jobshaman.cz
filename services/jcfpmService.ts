@@ -1,7 +1,7 @@
 import { BACKEND_URL } from '../constants';
 import { authenticatedFetch } from './csrfService';
 import { supabase } from './supabaseService';
-import { JcfpmItem, JcfpmSnapshotV1 } from '../types';
+import { JcfpmItem, JcfpmSnapshotV1, JcfpmDimensionId } from '../types';
 
 const DIMENSIONS = [
   'd1_cognitive',
@@ -17,6 +17,25 @@ const DIMENSIONS = [
   'd11_problem_decomposition',
   'd12_moral_compass',
 ] as const;
+
+const stripVariantSuffix = (value: string): string => value.trim().replace(/_v\d+$/i, '');
+
+const inferDimensionFromIdentity = (value: unknown): JcfpmDimensionId | undefined => {
+  const raw = stripVariantSuffix(String(value || '')).toLowerCase();
+  if (raw.startsWith('d1.')) return 'd1_cognitive';
+  if (raw.startsWith('d2.')) return 'd2_social';
+  if (raw.startsWith('d3.')) return 'd3_motivational';
+  if (raw.startsWith('d4.')) return 'd4_energy';
+  if (raw.startsWith('d5.')) return 'd5_values';
+  if (raw.startsWith('d6.')) return 'd6_ai_readiness';
+  if (raw.startsWith('d7.')) return 'd7_cognitive_reflection';
+  if (raw.startsWith('d8.')) return 'd8_digital_eq';
+  if (raw.startsWith('d9.')) return 'd9_systems_thinking';
+  if (raw.startsWith('d10.')) return 'd10_ambiguity_interpretation';
+  if (raw.startsWith('d11.')) return 'd11_problem_decomposition';
+  if (raw.startsWith('d12.')) return 'd12_moral_compass';
+  return undefined;
+};
 
 const WEIGHTS: Record<string, number> = {
   d1_cognitive: 1.2,
@@ -138,23 +157,11 @@ const normalizeJcfpmItems = (items: JcfpmItem[]): JcfpmItem[] =>
       .replace(/-+/g, '_') as any;
     const rawDim = String(item.dimension || '').trim().toLowerCase();
     const normalizedDim = (DIMENSIONS as readonly string[]).includes(rawDim) ? rawDim : undefined;
-    const inferDimFromKey = () => {
-      const rawKey = String(item.pool_key || item.id || '').replace(/_v\d+$/i, '').toLowerCase();
-      if (rawKey.startsWith('d1.')) return 'd1_cognitive';
-      if (rawKey.startsWith('d2.')) return 'd2_social';
-      if (rawKey.startsWith('d3.')) return 'd3_motivational';
-      if (rawKey.startsWith('d4.')) return 'd4_energy';
-      if (rawKey.startsWith('d5.')) return 'd5_values';
-      if (rawKey.startsWith('d6.')) return 'd6_ai_readiness';
-      if (rawKey.startsWith('d7.')) return 'd7_cognitive_reflection';
-      if (rawKey.startsWith('d8.')) return 'd8_digital_eq';
-      if (rawKey.startsWith('d9.')) return 'd9_systems_thinking';
-      if (rawKey.startsWith('d10.')) return 'd10_ambiguity_interpretation';
-      if (rawKey.startsWith('d11.')) return 'd11_problem_decomposition';
-      if (rawKey.startsWith('d12.')) return 'd12_moral_compass';
-      return 'd1_cognitive';
-    };
-    const safeDim = (normalizedDim || inferDimFromKey()) as import('../types').JcfpmDimensionId;
+    const inferredDim =
+      inferDimensionFromIdentity(item.id) ||
+      inferDimensionFromIdentity(item.pool_key) ||
+      (normalizedDim as JcfpmDimensionId | undefined);
+    const safeDim = (inferredDim || 'd1_cognitive') as JcfpmDimensionId;
     return {
       ...item,
       dimension: safeDim,
@@ -197,22 +204,12 @@ const percentileBand = (score: number) => {
 
 export const computeJcfpmScoresLocal = (items: JcfpmItem[], responses: Record<string, any>) => {
   const inferDimension = (item: JcfpmItem) => {
-    const explicit = String(item.dimension || '').trim();
-    if (explicit && DIMENSIONS.includes(explicit as any)) return explicit;
-    const rawKey = String(item.pool_key || item.id || '').replace(/_v\d+$/i, '').toLowerCase();
-    if (rawKey.startsWith('d1.')) return 'd1_cognitive';
-    if (rawKey.startsWith('d2.')) return 'd2_social';
-    if (rawKey.startsWith('d3.')) return 'd3_motivational';
-    if (rawKey.startsWith('d4.')) return 'd4_energy';
-    if (rawKey.startsWith('d5.')) return 'd5_values';
-    if (rawKey.startsWith('d6.')) return 'd6_ai_readiness';
-    if (rawKey.startsWith('d7.')) return 'd7_cognitive_reflection';
-    if (rawKey.startsWith('d8.')) return 'd8_digital_eq';
-    if (rawKey.startsWith('d9.')) return 'd9_systems_thinking';
-    if (rawKey.startsWith('d10.')) return 'd10_ambiguity_interpretation';
-    if (rawKey.startsWith('d11.')) return 'd11_problem_decomposition';
-    if (rawKey.startsWith('d12.')) return 'd12_moral_compass';
-    return 'd1_cognitive';
+    const explicit = String(item.dimension || '').trim().toLowerCase();
+    const inferred =
+      inferDimensionFromIdentity(item.id) ||
+      inferDimensionFromIdentity(item.pool_key) ||
+      ((DIMENSIONS as readonly string[]).includes(explicit) ? (explicit as JcfpmDimensionId) : undefined);
+    return inferred || 'd1_cognitive';
   };
   const resolveItemType = (item: JcfpmItem, payload: Record<string, any>) => {
     const explicit = String(item.item_type || '').toLowerCase();
@@ -220,7 +217,7 @@ export const computeJcfpmScoresLocal = (items: JcfpmItem[], responses: Record<st
     if (Array.isArray(payload.correct_order)) return 'ordering';
     if (Array.isArray(payload.correct_pairs)) return 'drag_drop';
     if (Array.isArray(payload.options)) return payload.options.some((opt: any) => opt?.image_url) ? 'image_choice' : 'mcq';
-    const rawId = String(item.pool_key || item.id || '').replace(/_v\d+$/i, '');
+    const rawId = stripVariantSuffix(String(item.id || item.pool_key || ''));
     if (/^D10\./i.test(rawId)) return 'image_choice';
     if (/^D8\./i.test(rawId) || /^D12\./i.test(rawId)) return 'scenario_choice';
     if (/^D7\./i.test(rawId)) return 'mcq';
@@ -439,9 +436,9 @@ export const mapJcfpmToJhiPreferences = (
 };
 
 export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
-  try {
+  const fetchOnce = async () => {
     const controller = new AbortController();
-    const abortId = window.setTimeout(() => controller.abort(), 8000);
+    const abortId = window.setTimeout(() => controller.abort(), 20000);
     try {
       const response = await withTimeout(
         authenticatedFetch(`${BACKEND_URL}/tests/jcfpm/items`, {
@@ -449,7 +446,7 @@ export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
           headers: { 'Content-Type': 'application/json' },
           signal: controller.signal
         }),
-        8000,
+        20000,
         'JCFPM items timeout'
       );
       if (!response.ok) {
@@ -461,15 +458,27 @@ export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
       const items = Array.isArray(payload?.items) ? payload.items : [];
       const normalized = normalizeJcfpmItems(items as JcfpmItem[]);
       const poolCount = new Set(
-        normalized.map((item) => String(item.pool_key || item.id || '').trim().toUpperCase())
+        normalized.map((item) => {
+          const idBase = stripVariantSuffix(String(item.id || ''));
+          const poolBase = stripVariantSuffix(String(item.pool_key || ''));
+          return (idBase || poolBase).toUpperCase();
+        }).filter(Boolean)
       ).size;
       if (poolCount >= 108) return normalized;
       throw new Error('JCFPM items not seeded');
     } finally {
       window.clearTimeout(abortId);
     }
-  } catch {
-    return await fetchItemsFromSupabase();
+  };
+
+  try {
+    return await fetchOnce();
+  } catch (firstErr: any) {
+    const msg = String(firstErr?.message || '').toLowerCase();
+    const retryable = msg.includes('timeout') || msg.includes('network') || msg.includes('failed to fetch') || msg.includes('abort');
+    if (!retryable) throw firstErr;
+    await new Promise((resolve) => window.setTimeout(resolve, 1200));
+    return await fetchOnce();
   }
 };
 

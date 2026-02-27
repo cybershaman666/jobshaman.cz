@@ -801,12 +801,10 @@ const isSearchV2Enabled = (): boolean => {
     return flag !== '0' && flag !== 'false' && flag !== 'off';
 };
 
-const BACKEND_HYBRID_COOLDOWN_MS = 120000;
 const BACKEND_HYBRID_MAX_PAGE_SIZE = 200;
 const SUPABASE_RPC_MAX_PAGE_SIZE = 200;
 const STRICT_FALLBACK_MULTIPLIER = 4;
 const STRICT_FALLBACK_MAX_WINDOW = 400;
-const backendHybridCooldownByHost = new Map<string, number>();
 let lastHybridFallbackWarnAt = 0;
 
 const normalizeBackendBaseUrl = (value?: string): string | null => {
@@ -834,13 +832,6 @@ const hasDedicatedSearchRuntime = (): boolean => {
     const searchBase = normalizeBackendBaseUrl(SEARCH_BACKEND_URL);
     const coreBase = normalizeBackendBaseUrl(BACKEND_URL);
     return !!searchBase && !!coreBase && searchBase !== coreBase;
-};
-
-const isHybridBackendCooldownActive = (baseUrl: string): boolean =>
-    Date.now() < (backendHybridCooldownByHost.get(baseUrl) || 0);
-
-const markHybridBackendCooldown = (baseUrl: string): void => {
-    backendHybridCooldownByHost.set(baseUrl, Date.now() + BACKEND_HYBRID_COOLDOWN_MS);
 };
 
 const isNetworkFetchError = (err: unknown): boolean => {
@@ -1752,11 +1743,6 @@ export const fetchJobsWithFilters = async (
             return { jobs: [], hasMore: false, totalCount: 0 };
         }
 
-        const activeBases = backendBases.filter((baseUrl) => !isHybridBackendCooldownActive(baseUrl));
-        if (!activeBases.length) {
-            throw new Error('Hybrid backend temporarily in cooldown after network failure');
-        }
-
         const requestPayloadBase = {
             search_term: safeSearchTerm,
             page,
@@ -1871,7 +1857,7 @@ export const fetchJobsWithFilters = async (
         const endpoint = v2Enabled ? '/jobs/hybrid-search-v2' : '/jobs/hybrid-search';
         let lastError: unknown = null;
 
-        for (const baseUrl of activeBases) {
+        for (const baseUrl of backendBases) {
             throwIfAborted();
             try {
                 const hybridResponse = await authenticatedFetch(`${baseUrl}${endpoint}`, {
@@ -1950,7 +1936,6 @@ export const fetchJobsWithFilters = async (
                 lastError = err;
                 const status = Number((err as any)?.status || 0);
                 if (isNetworkFetchError(err)) {
-                    markHybridBackendCooldown(baseUrl);
                     continue;
                 }
                 if (status >= 500) {

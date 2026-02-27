@@ -29,7 +29,7 @@ import { supabase, getUserProfile, updateUserProfile, verifyAuthSession, trackAn
 import { verifyServerSideBilling } from './services/serverSideBillingService';
 import { checkCookieConsent, getCookiePreferences } from './services/cookieConsentService';
 import { checkPaymentStatus } from './services/stripeService';
-import { clearCsrfToken, authenticatedFetch, isBackendNetworkCooldownActive } from './services/csrfService';
+import { clearCsrfToken, authenticatedFetch } from './services/csrfService';
 import { clearPasswordRecoveryPending, isPasswordRecoveryPending } from './services/supabaseClient';
 import { trackPageView } from './services/trafficAnalytics';
 import { trackJobInteraction } from './services/jobInteractionService';
@@ -849,13 +849,12 @@ export default function App() {
 
         const warmupTimer = setTimeout(async () => {
             try {
-                if (isBackendNetworkCooldownActive()) return;
                 await authenticatedFetch(`${BACKEND_URL}/jobs/recommendations/warmup?limit=80`, {
                     method: 'POST'
                 });
                 localStorage.setItem(key, String(Date.now()));
             } catch {
-                // Avoid noisy logs during backend sleep; this is best-effort only.
+                // Best-effort pre-warm; ignore failures.
             }
         }, 10_000);
         return () => clearTimeout(warmupTimer);

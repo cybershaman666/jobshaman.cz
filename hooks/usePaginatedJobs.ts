@@ -6,7 +6,6 @@ import { fetchJobsPaginated, fetchJobsWithFilters, fetchRecommendedJobs } from '
 import { geocodeWithCaching, getStaticCoordinates } from '../services/geocodingService';
 import AnalyticsService from '../services/analyticsService';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
-import { isBackendNetworkCooldownActive } from '../services/csrfService';
 import { fetchJobInteractionState, flushInteractionStateSyncQueue, syncJobInteractionState } from '../services/jobInteractionService';
 
 // Infer country code from address text (best-effort)
@@ -360,7 +359,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
 
     const refreshAiMatchScoresCache = useCallback(async () => {
         if (!userProfile.isLoggedIn) return;
-        if (isBackendNetworkCooldownActive()) return;
         const now = Date.now();
         if (now < aiMatchScoresRetryAfterRef.current) return;
         const isFresh = (now - aiMatchScoresFetchedAtRef.current) < AI_MATCH_CACHE_TTL_MS;
@@ -381,7 +379,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
                     aiMatchScoresFetchedAtRef.current = Date.now();
                     aiMatchScoresRetryAfterRef.current = 0;
                 } catch (error) {
-                    // Avoid hammering recommendations endpoint when backend is waking up / timing out.
+                    // Avoid hammering recommendations endpoint when repeated timeouts/errors happen.
                     aiMatchScoresRetryAfterRef.current = Date.now() + AI_MATCH_ERROR_RETRY_MS;
                     if (Date.now() - aiMatchScoresLastErrorLogAtRef.current > 15_000) {
                         console.warn('Failed to refresh AI match score cache:', error);
@@ -536,7 +534,6 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
             if (canUseRecommendations && !hasStrictFilterSet) {
                 const now = Date.now();
                 const recommendationsAllowed =
-                    !isBackendNetworkCooldownActive() &&
                     now >= recommendationsRetryAfterRef.current &&
                     now >= recommendationsDeferUntilRef.current;
                 if (recommendationsAllowed) {

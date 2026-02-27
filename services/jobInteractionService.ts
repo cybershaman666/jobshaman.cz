@@ -1,5 +1,5 @@
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
-import { authenticatedFetch, getCurrentAuthTokenSilently, isBackendNetworkCooldownActive } from './csrfService';
+import { authenticatedFetch, getCurrentAuthTokenSilently } from './csrfService';
 import { recordRuntimeSignal } from './runtimeSignals';
 
 export type JobInteractionEventType =
@@ -72,30 +72,13 @@ const resolveInteractionStateBackends = (): string[] => {
     return [coreBase];
 };
 
-const INTERACTION_BACKEND_COOLDOWN_MS = 20_000;
-const INTERACTION_TRACKING_COOLDOWN_MS = 120_000;
 const INTERACTION_STATE_CACHE_KEY = 'job_interaction_state_cache_v1';
 const INTERACTION_STATE_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const INTERACTION_STATE_SYNC_QUEUE_KEY = 'job_interaction_state_sync_queue_v1';
 const INTERACTION_STATE_SYNC_MAX_RETRIES = 3;
 const INTERACTION_STATE_SYNC_RETRY_MS = 6000;
-const interactionBackendCooldownByHost = new Map<string, number>();
-const interactionBackendFailureCountByHost = new Map<string, number>();
-let interactionTrackingDisabledUntil = 0;
 let interactionStateSyncInFlight = false;
 let interactionStateSyncTimer: number | null = null;
-
-const isInteractionBackendCooldownActive = (baseUrl: string): boolean =>
-    Date.now() < (interactionBackendCooldownByHost.get(baseUrl) || 0);
-
-const markInteractionBackendCooldown = (baseUrl: string): void => {
-    interactionBackendCooldownByHost.set(baseUrl, Date.now() + INTERACTION_BACKEND_COOLDOWN_MS);
-};
-
-const clearInteractionBackendCooldown = (baseUrl: string): void => {
-    interactionBackendCooldownByHost.delete(baseUrl);
-    interactionBackendFailureCountByHost.delete(baseUrl);
-};
 
 const readInteractionStateCache = (): { savedJobIds: string[]; dismissedJobIds: string[] } | null => {
     try {
@@ -164,20 +147,6 @@ const scheduleInteractionStateSyncRetry = () => {
 };
 
 export const trackJobInteraction = async (payload: JobInteractionPayload): Promise<void> => {
-    if (Date.now() < interactionTrackingDisabledUntil) {
-        return;
-    }
-    if (isBackendNetworkCooldownActive()) {
-        recordRuntimeSignal('interaction_tracking_skipped', {
-            reason: 'backend_cooldown',
-            event_type: payload.eventType
-        }, {
-            dedupeKey: 'backend_cooldown',
-            throttleMs: 60_000,
-            sendAnalytics: false
-        });
-        return;
-    }
     const authToken = await getCurrentAuthTokenSilently();
     if (!authToken) {
         recordRuntimeSignal('interaction_tracking_skipped', {
@@ -193,18 +162,6 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
 
     const backends = resolveInteractionBackends();
     if (!backends.length) return;
-    const activeBackends = backends.filter((baseUrl) => !isInteractionBackendCooldownActive(baseUrl));
-    if (!activeBackends.length) {
-        recordRuntimeSignal('interaction_tracking_skipped', {
-            reason: 'all_backends_in_cooldown',
-            event_type: payload.eventType
-        }, {
-            dedupeKey: 'all_backends_in_cooldown',
-            throttleMs: 30_000,
-            sendAnalytics: false
-        });
-        return;
-    }
 
     const requestBody = JSON.stringify({
         job_id: typeof payload.jobId === 'string' ? parseInt(payload.jobId, 10) : payload.jobId,
@@ -219,7 +176,7 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
         metadata: payload.metadata ?? null
     });
 
-    for (const baseUrl of activeBackends) {
+    for (const baseUrl of backends) {
         try {
             const response = await authenticatedFetch(`${baseUrl}/jobs/interactions`, {
                 method: 'POST',
@@ -230,13 +187,10 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
             }, authToken);
 
             if (response.ok) {
-                clearInteractionBackendCooldown(baseUrl);
                 return;
             }
 
             if (response.status >= 500 || response.status === 429) {
-                markInteractionBackendCooldown(baseUrl);
-                interactionBackendFailureCountByHost.delete(baseUrl);
                 recordRuntimeSignal('interaction_tracking_degraded', {
                     reason: 'server_error',
                     status: response.status,
@@ -256,22 +210,11 @@ export const trackJobInteraction = async (payload: JobInteractionPayload): Promi
             const isTransient =
                 (error as any)?.name === 'AbortError' ||
                 msg.includes('aborted') ||
-                msg.includes('cooldown active') ||
                 msg.includes('networkerror') ||
                 msg.includes('failed to fetch') ||
                 msg.includes('cors');
 
             if (isTransient) {
-                const currentFailures = (interactionBackendFailureCountByHost.get(baseUrl) || 0) + 1;
-                interactionBackendFailureCountByHost.set(baseUrl, currentFailures);
-                // Avoid aggressive cooldown on single transient timeout.
-                if (currentFailures >= 2) {
-                    markInteractionBackendCooldown(baseUrl);
-                    interactionBackendFailureCountByHost.delete(baseUrl);
-                }
-                if ((error as any)?.name === 'AbortError') {
-                    interactionTrackingDisabledUntil = Date.now() + INTERACTION_TRACKING_COOLDOWN_MS;
-                }
                 continue;
             }
 
@@ -334,7 +277,6 @@ export const syncJobInteractionState = async (
         const isTransient =
             (error as any)?.name === 'AbortError' ||
             msg.includes('aborted') ||
-            msg.includes('cooldown active') ||
             msg.includes('networkerror') ||
             msg.includes('failed to fetch') ||
             msg.includes('cors') ||
@@ -387,9 +329,6 @@ export const fetchJobInteractionState = async (limit: number = 5000): Promise<Jo
             savedJobIds: Array.from(new Set(cached.savedJobIds)),
             dismissedJobIds: Array.from(new Set(cached.dismissedJobIds))
         };
-    }
-    if (isBackendNetworkCooldownActive()) {
-        return { savedJobIds: [], dismissedJobIds: [] };
     }
     const authToken = await getCurrentAuthTokenSilently();
     if (!authToken) {

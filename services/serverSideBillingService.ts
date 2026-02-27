@@ -3,7 +3,7 @@
  * This replaces all client-side billing verification for security.
  */
 
-import { authenticatedFetch, isBackendNetworkCooldownActive } from './csrfService';
+import { authenticatedFetch } from './csrfService';
 import { BILLING_BACKEND_URL } from '../constants';
 import { BACKEND_URL } from '../constants';
 
@@ -25,10 +25,7 @@ export interface BillingVerificationResult {
 }
 
 const SUBSCRIPTION_STATUS_CACHE_KEY = 'subscription_status_cache_v1';
-const SUBSCRIPTION_STATUS_NETWORK_COOLDOWN_MS = 60_000;
 const SUBSCRIPTION_STATUS_CACHE_MAX_AGE_MS = 6 * 60 * 60 * 1000;
-let subscriptionStatusNetworkCooldownUntil = 0;
-let lastSubscriptionStatusLogAt = 0;
 const subscriptionStatusInFlight = new Map<string, Promise<SubscriptionStatus>>();
 
 type SubscriptionStatus = {
@@ -86,7 +83,7 @@ const readFreshCachedSubscriptionStatus = (userId: string): SubscriptionStatus |
 
 const isLikelyNetworkError = (error: unknown): boolean => {
   const msg = String((error as any)?.message || error || '').toLowerCase();
-  return msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('cors') || msg.includes('cooldown');
+  return msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('cors');
 };
 
 /**
@@ -154,19 +151,6 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
     if (freshCached) {
       return freshCached;
     }
-    if (Date.now() < subscriptionStatusNetworkCooldownUntil || isBackendNetworkCooldownActive()) {
-      const cached = readCachedSubscriptionStatus(userId);
-      if (cached) return cached.data;
-      return {
-        tier: 'free',
-        tierName: 'Free',
-        status: 'inactive',
-        assessmentsAvailable: 0,
-        assessmentsUsed: 0,
-        jobPostingsAvailable: 0
-      };
-    }
-
     // MOCK DATA INTERCEPTION
     if (userId === 'mock_company_id') {
       const mockResult: SubscriptionStatus = {
@@ -253,16 +237,9 @@ export async function getSubscriptionStatus(userId: string): Promise<Subscriptio
   } catch (error) {
     const isAborted = error instanceof Error && error.name === 'AbortError';
     if (isLikelyNetworkError(error) || isAborted) {
-      subscriptionStatusNetworkCooldownUntil = Date.now() + SUBSCRIPTION_STATUS_NETWORK_COOLDOWN_MS;
-      const now = Date.now();
-      if (now - lastSubscriptionStatusLogAt > 15_000) {
-        console.warn('⚠️ Subscription status backend unavailable. Using cached/free fallback.');
-        lastSubscriptionStatusLogAt = now;
-      }
+      console.warn('⚠️ Subscription status backend unavailable. Using cached/free fallback.');
     }
-    if (isAborted && import.meta.env.DEV) {
-      console.warn('⏱️ Subscription status request TIMED OUT. The server is likely waking up from sleep.');
-    } else if (!isLikelyNetworkError(error)) {
+    if (!isLikelyNetworkError(error) && !isAborted) {
       console.warn('Error getting subscription status (falling back to free tier):', error);
     }
     const cached = readCachedSubscriptionStatus(userId);

@@ -36,7 +36,7 @@ export const sendWelcomeEmail = async (locale: string, appUrl: string): Promise<
         }
         return false;
     } catch (error) {
-        // Network errors from sleeping/unreachable backend should not break app startup flow.
+        // Transient network errors should not break app startup flow.
         console.warn('Welcome email request unavailable:', error);
         return false;
     }

@@ -8,8 +8,6 @@ export type RuntimeSignalName =
     | 'search_backend_meta_fallback'
     | 'csrf_fetch_unavailable'
     | 'request_timeout'
-    | 'backend_cooldown_entered'
-    | 'request_blocked_by_cooldown'
     | 'interaction_tracking_degraded'
     | 'interaction_tracking_skipped'
     | `custom:${string}`;
@@ -235,4 +233,3 @@ export const clearRuntimeSignalSnapshot = (): void => {
         window.__jobshamanRuntimeSignals = buildSnapshot();
     }
 };
-

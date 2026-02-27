@@ -9,7 +9,7 @@ import {
   RealtimeSignalsResponse,
 } from '../types';
 import { BACKEND_URL } from '../constants';
-import { authenticatedFetch, isBackendNetworkCooldownActive } from './csrfService';
+import { authenticatedFetch } from './csrfService';
 
 const toJsonOrThrow = async <T>(response: Response): Promise<T> => {
   if (!response.ok) {
@@ -24,16 +24,6 @@ export const fetchRealtimeSignals = async (
   unlockedSkills: string[],
   narrativeIntegrity: number
 ): Promise<RealtimeSignalsResponse> => {
-  if (isBackendNetworkCooldownActive()) {
-    const localFrame: RealtimeSignalsResponse['merged_frame'] = {
-      timestamp: new Date().toISOString(),
-      unlocked_skills: unlockedSkills,
-      narrative_integrity: narrativeIntegrity,
-      confidence: Math.max(25, Math.min(90, 30 + unlockedSkills.length * 5)),
-      evidence: [],
-    };
-    return { frames: [localFrame], merged_frame: localFrame };
-  }
   const response = await authenticatedFetch(`${BACKEND_URL}/assessments/realtime-signals`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -50,18 +40,6 @@ export const fetchCultureResonance = async (
   candidateAnswers: string[],
   companyValues: string[]
 ): Promise<CultureResonanceResponse> => {
-  if (isBackendNetworkCooldownActive()) {
-    return {
-      frame: {
-        candidate_vector: [0.6, 0.58, 0.62],
-        company_vector: [1, 1, 1],
-        match: 60,
-        tension_points: ['Realtime backend temporarily unavailable'],
-      },
-      recommendation: 'Local mode: verify culture fit in interview follow-up.',
-      disclaimer: 'AI recommendation only. Final decision remains with recruiter.',
-    };
-  }
   const response = await authenticatedFetch(`${BACKEND_URL}/assessments/culture-resonance`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -76,17 +54,6 @@ export const fetchCultureResonance = async (
 export const simulateHappinessAudit = async (
   payload: HappinessAuditInput
 ): Promise<HappinessAuditOutput> => {
-  if (isBackendNetworkCooldownActive()) {
-    const monthlyCommuteHours = (payload.commute_minutes_daily * 22) / 60;
-    return {
-      time_ring: Math.max(0, Math.min(100, Math.round(100 - monthlyCommuteHours * 1.8))),
-      energy_ring: Math.max(0, Math.min(100, Math.round(payload.subjective_energy - monthlyCommuteHours * 0.8))),
-      sustainability_score: Math.max(0, Math.min(100, Math.round(62 - payload.commute_cost / 2000 + payload.home_office_days * 4))),
-      drift_score: Math.max(0, Math.min(100, Math.round(45 + payload.role_shift * 0.35))),
-      recommendations: ['Backend unavailable: showing local estimate.'],
-      advisory_disclaimer: 'AI recommendation only. Final decision remains with user/recruiter.',
-    };
-  }
   const response = await authenticatedFetch(`${BACKEND_URL}/audit/happiness/simulate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -102,16 +69,6 @@ export const evaluateGalaxyNode = async (payload: {
   answer: string;
   metadata?: Record<string, unknown>;
 }): Promise<GalaxyEvaluateNodeResponse> => {
-  if (isBackendNetworkCooldownActive()) {
-    const text = (payload.answer || '').trim();
-    if (text.length < 20) {
-      return { quality_tier: 'weak', points: 4, penalty: 10, evidence: ['short_response'] };
-    }
-    if (text.length < 80) {
-      return { quality_tier: 'acceptable', points: 12, penalty: 3, evidence: ['medium_detail'] };
-    }
-    return { quality_tier: 'strong', points: 20, penalty: 0, evidence: ['detailed_response'] };
-  }
   const response = await authenticatedFetch(`${BACKEND_URL}/assessments/galaxy/evaluate-node`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

@@ -10,7 +10,7 @@ import {
     createBaseProfile,
     isSupabaseNetworkCooldownActive
 } from '../services/supabaseService';
-import { refreshCsrfTokenIfNeeded, clearCsrfToken, authenticatedFetch, isBackendNetworkCooldownActive } from '../services/csrfService';
+import { refreshCsrfTokenIfNeeded, clearCsrfToken, authenticatedFetch } from '../services/csrfService';
 import { BACKEND_URL, SEARCH_BACKEND_URL } from '../constants';
 import { supabase } from '../services/supabaseClient';
 import { clearSupabaseAuthStorage } from '../services/supabaseClient';
@@ -220,9 +220,6 @@ export const useUserProfile = () => {
                     // With dedicated search runtime, avoid eager CSRF prefetch against the core backend.
                     // CSRF token will be fetched lazily only for endpoints that require it.
                     if (!hasDedicatedSearchRuntime()) {
-                        if (isBackendNetworkCooldownActive()) {
-                            throw new Error('Backend cooldown active');
-                        }
                         // Get the session and validate the access token
                         const session = await supabase?.auth.getSession();
                         let accessToken = session?.data?.session?.access_token;

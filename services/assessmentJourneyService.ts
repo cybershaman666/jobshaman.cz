@@ -6,7 +6,7 @@ import {
   AssessmentJourneyFinalProfile,
 } from '../types';
 import { BACKEND_URL } from '../constants';
-import { authenticatedFetch, isBackendNetworkCooldownActive } from './csrfService';
+import { authenticatedFetch } from './csrfService';
 
 const CERTAINTY_MARKERS = ['definitely', 'certainly', 'always', 'jasne', 'urcite', 'presne'];
 const UNCERTAINTY_MARKERS = ['maybe', 'perhaps', 'idk', 'asi', 'mozna', 'nevim'];
@@ -141,22 +141,6 @@ export const fetchJourneyAnalyzeAnswer = async (payload: {
   answer: string;
   answers_so_far: string[];
 }): Promise<{ micro_insight: string; insight_type: string; decision_pattern: AssessmentJourneyDecisionPattern; behavioral_consistency: AssessmentJourneyBehavioralConsistency; energy_balance: AssessmentJourneyEnergyBalance; cultural_orientation: AssessmentJourneyCulturalOrientation; }> => {
-  if (isBackendNetworkCooldownActive()) {
-    const answers = [...payload.answers_so_far, payload.answer].filter(Boolean);
-    const decision = analyzeDecisionPattern(answers);
-    const consistency = analyzeConsistency(answers);
-    const energy = analyzeEnergyBalance(answers);
-    const culture = analyzeCulture(answers);
-    return {
-      micro_insight: consistency.recurring_motifs[0] || 'Začíná se rýsovat váš rozhodovací styl.',
-      insight_type: 'local_pattern',
-      decision_pattern: decision,
-      behavioral_consistency: consistency,
-      energy_balance: energy,
-      cultural_orientation: culture,
-    };
-  }
-
   const response = await authenticatedFetch(`${BACKEND_URL}/assessments/journey/analyze-answer`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -171,20 +155,6 @@ export const fetchJourneyAnalyzeAnswer = async (payload: {
 export const fetchJourneyFinalize = async (payload: {
   answers: string[];
 }): Promise<{ decision_pattern: AssessmentJourneyDecisionPattern; behavioral_consistency: AssessmentJourneyBehavioralConsistency; energy_balance: AssessmentJourneyEnergyBalance; cultural_orientation: AssessmentJourneyCulturalOrientation; final_profile: AssessmentJourneyFinalProfile; }> => {
-  if (isBackendNetworkCooldownActive()) {
-    const decision = analyzeDecisionPattern(payload.answers);
-    const consistency = analyzeConsistency(payload.answers);
-    const energy = analyzeEnergyBalance(payload.answers);
-    const culture = analyzeCulture(payload.answers);
-    return {
-      decision_pattern: decision,
-      behavioral_consistency: consistency,
-      energy_balance: energy,
-      cultural_orientation: culture,
-      final_profile: buildFinalProfile(decision, energy, culture),
-    };
-  }
-
   const response = await authenticatedFetch(`${BACKEND_URL}/assessments/journey/finalize`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

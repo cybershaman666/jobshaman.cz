@@ -1,11 +1,10 @@
 // CSRF Token Management Service
-import { BACKEND_URL, BILLING_BACKEND_URL } from '../constants';
+import { BACKEND_URL } from '../constants';
 import { supabase } from './supabaseClient';
 import { recordRuntimeSignal } from './runtimeSignals';
 
 const CSRF_TOKEN_KEY = 'csrf_token';
 const CSRF_TOKEN_EXPIRY_KEY = 'csrf_token_expiry';
-const BACKEND_NETWORK_COOLDOWN_MS = 20_000;
 const CSRF_TOKEN_COOLDOWN_MS = 60_000;
 const REQUEST_LOG_THROTTLE_MS = 15_000;
 const DEFAULT_FETCH_TIMEOUT_MS = 45_000;
@@ -17,10 +16,8 @@ const RECOMMENDATIONS_FETCH_TIMEOUT_MS = 8_000;
 const INVITATIONS_FETCH_TIMEOUT_MS = 12_000;
 const AI_FETCH_TIMEOUT_MS = 120_000;
 
-let backendNetworkCooldownUntil = 0;
 let csrfTokenCooldownUntil = 0;
 const csrfFetchInFlight = new Map<string, Promise<string | null>>();
-let lastCsrfNetworkLogAt = 0;
 let lastRequestTimeoutLogAt = 0;
 let lastMissingCsrfLogAt = 0;
 
@@ -68,30 +65,6 @@ const getRequestOrigin = (url: string): string | null => {
     }
 };
 
-const isBackendUrlRequest = (url: string): boolean => {
-    const requestOrigin = getRequestOrigin(url);
-    if (!requestOrigin) return false;
-    const backendOrigins = [BACKEND_URL, BILLING_BACKEND_URL]
-        .map((value) => {
-            try {
-                return new URL(value, window.location.origin).origin;
-            } catch {
-                return null;
-            }
-        })
-        .filter((value): value is string => Boolean(value));
-    return backendOrigins.includes(requestOrigin);
-};
-
-const shouldBypassBackendCooldown = (path: string): boolean => {
-    return (
-        path === '/jobs/hybrid-search' ||
-        path === '/jobs/hybrid-search-v2' ||
-        path === '/jobs/interactions' ||
-        path === '/jobs/interactions/state'
-    );
-};
-
 const isAuthOptionalRequest = (url: string): boolean => {
     try {
         const parsed = new URL(url, window.location.origin);
@@ -104,8 +77,6 @@ const isAuthOptionalRequest = (url: string): boolean => {
         return false;
     }
 };
-
-export const isBackendNetworkCooldownActive = (): boolean => Date.now() < backendNetworkCooldownUntil;
 
 const endpointDoesNotRequireCsrf = (url: string): boolean => {
     try {
@@ -135,7 +106,7 @@ export const fetchCsrfToken = async (authToken: string, backendBaseUrl: string =
     if (csrfFetchInFlight.has(csrfFetchKey)) {
         return csrfFetchInFlight.get(csrfFetchKey)!;
     }
-    if (Date.now() < csrfTokenCooldownUntil || Date.now() < backendNetworkCooldownUntil) {
+    if (Date.now() < csrfTokenCooldownUntil) {
         return null;
     }
 
@@ -227,10 +198,6 @@ export const fetchCsrfToken = async (authToken: string, backendBaseUrl: string =
 
             if (isConnectivityIssue) {
                 csrfTokenCooldownUntil = Date.now() + CSRF_TOKEN_COOLDOWN_MS;
-                // CSRF can fail during cold starts; do not block the whole backend on first failed attempt.
-                if (attempt >= maxRetries) {
-                    backendNetworkCooldownUntil = Date.now() + BACKEND_NETWORK_COOLDOWN_MS;
-                }
                 recordRuntimeSignal('csrf_fetch_unavailable', {
                     attempt,
                     aborted: isAborted,
@@ -239,18 +206,13 @@ export const fetchCsrfToken = async (authToken: string, backendBaseUrl: string =
                     dedupeKey: isAborted ? 'timeout' : 'network',
                     throttleMs: 15_000
                 });
-                const now = Date.now();
-                if (now - lastCsrfNetworkLogAt > REQUEST_LOG_THROTTLE_MS) {
-                    const cooldownState = attempt >= maxRetries ? 'backend cooldown enabled' : 'will retry without backend cooldown';
-                    console.warn(`⚠️ CSRF fetch unavailable (attempt ${attempt}), ${cooldownState}.`);
-                    lastCsrfNetworkLogAt = now;
-                }
+                console.warn(`⚠️ CSRF fetch unavailable (attempt ${attempt}).`);
             } else {
                 console.error(`❌ Error fetching CSRF token (Attempt ${attempt}):`, error);
             }
 
             if (attempt < maxRetries) {
-                if (Date.now() < csrfTokenCooldownUntil || Date.now() < backendNetworkCooldownUntil) {
+                if (Date.now() < csrfTokenCooldownUntil) {
                     break;
                 }
                 const delay = Math.pow(2, attempt) * 1000;
@@ -436,22 +398,6 @@ export const authenticatedFetch = async (
 ): Promise<Response> => {
     const method = (options.method || 'GET').toUpperCase();
     const requestPath = getRequestPath(url) || 'unknown';
-    if (
-        isBackendUrlRequest(url) &&
-        Date.now() < backendNetworkCooldownUntil &&
-        !shouldBypassBackendCooldown(requestPath) &&
-        method !== 'GET'
-    ) {
-        recordRuntimeSignal('request_blocked_by_cooldown', {
-            path: requestPath,
-            method
-        }, {
-            dedupeKey: `${method}:${requestPath}`,
-            throttleMs: 20_000,
-            sendAnalytics: false
-        });
-        throw new Error('Backend temporarily unreachable (cooldown active)');
-    }
     const isStateChanging = ['POST', 'PUT', 'DELETE', 'PATCH'].includes(method);
     const requiresCsrf = isStateChanging && !endpointDoesNotRequireCsrf(url);
 
@@ -486,7 +432,7 @@ export const authenticatedFetch = async (
 
             if (csrfToken) {
                 headers.set('X-CSRF-Token', csrfToken);
-            } else if (!isBackendUrlRequest(url) || Date.now() >= backendNetworkCooldownUntil) {
+            } else {
                 if (shouldEmitThrottledLog(lastMissingCsrfLogAt)) {
                     console.warn(`⚠️ No valid CSRF token found for ${method} request`);
                     lastMissingCsrfLogAt = Date.now();
@@ -532,26 +478,8 @@ export const authenticatedFetch = async (
                     signal: controller.signal
                 });
             } catch (error) {
-                const shouldTriggerCooldown = (isLikelyNetworkError(error) || (isAbortError(error) && !abortedByCaller))
-                    && isBackendUrlRequest(url)
-                    && !shouldBypassBackendCooldown(requestPath);
-                if (shouldTriggerCooldown) {
-                    const cooldownWasActive = Date.now() < backendNetworkCooldownUntil;
-                    backendNetworkCooldownUntil = Date.now() + BACKEND_NETWORK_COOLDOWN_MS;
-                    // CSRF endpoint often fails first during backend outages.
-                    if (url.includes('/csrf-token')) {
-                        csrfTokenCooldownUntil = Date.now() + CSRF_TOKEN_COOLDOWN_MS;
-                    }
-                    if (!cooldownWasActive) {
-                        recordRuntimeSignal('backend_cooldown_entered', {
-                            path: requestPath,
-                            method,
-                            reason: isAbortError(error) && !abortedByCaller ? 'timeout' : 'network'
-                        }, {
-                            dedupeKey: requestPath,
-                            throttleMs: 20_000
-                        });
-                    }
+                if (url.includes('/csrf-token') && (isLikelyNetworkError(error) || (isAbortError(error) && !abortedByCaller))) {
+                    csrfTokenCooldownUntil = Date.now() + CSRF_TOKEN_COOLDOWN_MS;
                 }
                 throw error;
             }
