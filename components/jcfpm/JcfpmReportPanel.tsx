@@ -161,6 +161,78 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
     { self: 'd6_ai_readiness', perf: 'd10_ambiguity_interpretation', label: 'AI readiness vs. práce s nejistotou' },
   ];
 
+  const normalizedScoreMap = React.useMemo(() => {
+    const map = new Map<JcfpmDimensionId, number>();
+    mergedScores.forEach((row) => {
+      map.set(row.dimension, Math.max(0, Math.min(100, normalizeTo100(row.dimension, row.raw_score))));
+    });
+    return map;
+  }, [mergedScores]);
+
+  const radarAxes = React.useMemo(
+    () =>
+      [
+        { standard: 'd1_cognitive' as JcfpmDimensionId, deep: 'd7_cognitive_reflection' as JcfpmDimensionId, label: 'Logic' },
+        { standard: 'd2_social' as JcfpmDimensionId, deep: 'd8_digital_eq' as JcfpmDimensionId, label: 'Social' },
+        { standard: 'd3_motivational' as JcfpmDimensionId, deep: 'd11_problem_decomposition' as JcfpmDimensionId, label: 'Execution' },
+        { standard: 'd4_energy' as JcfpmDimensionId, deep: 'd9_systems_thinking' as JcfpmDimensionId, label: 'Systems' },
+        { standard: 'd5_values' as JcfpmDimensionId, deep: 'd12_moral_compass' as JcfpmDimensionId, label: 'Ethics' },
+        { standard: 'd6_ai_readiness' as JcfpmDimensionId, deep: 'd10_ambiguity_interpretation' as JcfpmDimensionId, label: 'Ambiguity' },
+      ],
+    [],
+  );
+
+  const radarGeometry = React.useMemo(() => {
+    const cx = 150;
+    const cy = 150;
+    const radius = 112;
+    const toPoint = (idx: number, value: number, total: number) => {
+      const angle = ((Math.PI * 2) / total) * idx - Math.PI / 2;
+      const dist = (Math.max(0, Math.min(100, value)) / 100) * radius;
+      return `${cx + Math.cos(angle) * dist},${cy + Math.sin(angle) * dist}`;
+    };
+    const standardPoints = radarAxes.map((axis, idx) => toPoint(idx, normalizedScoreMap.get(axis.standard) || 0, radarAxes.length)).join(' ');
+    const deepPoints = radarAxes.map((axis, idx) => toPoint(idx, normalizedScoreMap.get(axis.deep) || 0, radarAxes.length)).join(' ');
+    const axes = radarAxes.map((axis, idx) => {
+      const angle = ((Math.PI * 2) / radarAxes.length) * idx - Math.PI / 2;
+      const x2 = cx + Math.cos(angle) * radius;
+      const y2 = cy + Math.sin(angle) * radius;
+      const labelX = cx + Math.cos(angle) * (radius + 20);
+      const labelY = cy + Math.sin(angle) * (radius + 20);
+      return { ...axis, x2, y2, labelX, labelY };
+    });
+    return { cx, cy, radius, standardPoints, deepPoints, axes };
+  }, [normalizedScoreMap, radarAxes]);
+
+  const alignmentBars = React.useMemo(() => {
+    return bridgePairs
+      .map((pair) => {
+        const selfScore = normalizedScoreMap.get(pair.self);
+        const perfScore = normalizedScoreMap.get(pair.perf);
+        if (selfScore == null || perfScore == null) return null;
+        const diff = Math.round(perfScore - selfScore);
+        const offsetPct = Math.max(-100, Math.min(100, diff));
+        return {
+          ...pair,
+          diff,
+          offsetPct,
+          status: diff > 10 ? 'hidden_talent' : diff < -10 ? 'overestimation' : 'aligned',
+          selfScore: Math.round(selfScore),
+          perfScore: Math.round(perfScore),
+        };
+      })
+      .filter(Boolean) as Array<{
+      self: JcfpmDimensionId;
+      perf: JcfpmDimensionId;
+      label: string;
+      diff: number;
+      offsetPct: number;
+      status: 'hidden_talent' | 'overestimation' | 'aligned';
+      selfScore: number;
+      perfScore: number;
+    }>;
+  }, [bridgePairs, normalizedScoreMap]);
+
   const buildBridge = () => {
     const byDim = new Map(mergedScores.map((row) => [row.dimension, row]));
     const perfDims = bridgePairs
@@ -640,6 +712,49 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
       </div>
 
       <div className="jcfpm-report-card jcfpm-report-section">
+        <div className="jcfpm-heading text-sm font-semibold">The Synthesis</div>
+        <div className="mt-1 text-xs text-slate-600">Overlay Standard (D1–D6) vs Deep Dive (D7–D12) + alignment bars.</div>
+        <div className="mt-3 grid gap-4 lg:grid-cols-[340px_1fr]">
+          <div className="jcfpm-report-card-lite jcfpm-radar-panel">
+            <svg viewBox="0 0 300 300" className="jcfpm-radar-svg" role="img" aria-label="Potential radar">
+              <circle cx={radarGeometry.cx} cy={radarGeometry.cy} r={radarGeometry.radius} className="jcfpm-radar-ring" />
+              <circle cx={radarGeometry.cx} cy={radarGeometry.cy} r={radarGeometry.radius * 0.66} className="jcfpm-radar-ring" />
+              <circle cx={radarGeometry.cx} cy={radarGeometry.cy} r={radarGeometry.radius * 0.33} className="jcfpm-radar-ring" />
+              {radarGeometry.axes.map((axis) => (
+                <g key={axis.label}>
+                  <line x1={radarGeometry.cx} y1={radarGeometry.cy} x2={axis.x2} y2={axis.y2} className="jcfpm-radar-axis" />
+                  <text x={axis.labelX} y={axis.labelY} className="jcfpm-radar-label" textAnchor="middle">{axis.label}</text>
+                </g>
+              ))}
+              <polygon points={radarGeometry.standardPoints} className="jcfpm-radar-standard" />
+              <polygon points={radarGeometry.deepPoints} className="jcfpm-radar-deep" />
+            </svg>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+              <span className="jcfpm-radar-pill standard">Standard</span>
+              <span className="jcfpm-radar-pill deep">Deep Dive</span>
+            </div>
+          </div>
+          <div className="jcfpm-report-card-lite">
+            <div className="text-xs uppercase tracking-wider text-cyan-700">Alignment Bar</div>
+            <div className="mt-3 space-y-3">
+              {alignmentBars.map((bar) => (
+                <div key={bar.label} className="jcfpm-align-row">
+                  <div className="flex items-center justify-between gap-2 text-xs text-slate-600">
+                    <span className="font-semibold text-slate-700">{bar.label}</span>
+                    <span>{bar.selfScore} → {bar.perfScore}</span>
+                  </div>
+                  <div className="jcfpm-align-track">
+                    <span className="jcfpm-align-zero" />
+                    <span className={`jcfpm-align-indicator ${bar.status}`} style={{ left: `${50 + bar.offsetPct * 0.45}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="jcfpm-report-card jcfpm-report-section">
         <div className="jcfpm-heading text-sm font-semibold">Top role podle fit skóre</div>
         <div className="mt-1 text-xs text-slate-600">
           Fit score je vypočtený podle vážené vzdálenosti od ideálního profilu role (0–100).
@@ -647,7 +762,15 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
         <div className="mt-2 grid gap-3 md:grid-cols-2">
           {uniqueFitScores.slice(0, 10).map((role, idx) => (
             <div key={`${role.title}-${idx}`} className="jcfpm-report-card-lite jcfpm-report-role">
-              <div className="text-sm font-semibold text-slate-800">{role.title}</div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-semibold text-slate-800">{role.title}</div>
+                <div
+                  className="jcfpm-compat-ring"
+                  style={{ '--fit': `${Math.max(0, Math.min(100, Number(role.fit_score) || 0))}` } as React.CSSProperties}
+                >
+                  <span>{Math.round(Number(role.fit_score) || 0)}%</span>
+                </div>
+              </div>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="jcfpm-score-badge">Fit: {role.fit_score}%</span>
                 {role.ai_impact ? <span className="jcfpm-score-badge jcfpm-score-badge-alt">AI: {role.ai_impact}</span> : null}

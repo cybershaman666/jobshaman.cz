@@ -674,6 +674,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
   const currentItem = orderedItems[stepIndex];
   const currentDim = DIMENSIONS.find((dim) => dim.id === inferDimension(currentItem)) || DIMENSIONS[0];
   const isDeepDive = Boolean(currentItem && DEEP_DIVE_DIMENSIONS.has(inferDimension(currentItem)));
+  const isFocusMode = viewMode === 'form' && isDeepDive;
   const resolvePayload = (item?: JcfpmItem): any => {
     if (!item) return {};
     const rawKey = stripVariantSuffix(String(item.id || item.pool_key || '')).trim();
@@ -920,6 +921,8 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
 
   const ChoiceTask: React.FC<TaskProps> = ({ item, response, onAnswer }) => {
     const itemType = resolveItemType(item);
+    const dim = inferDimension(item);
+    const isDigitalEq = dim === 'd8_digital_eq';
     const payload = resolvePayload(item);
     const options = Array.isArray(payload.options) ? payload.options : [];
     const fallbackVisual = (seed: string) => {
@@ -946,6 +949,12 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
       : promptFallback;
     return (
       <div className="mt-4">
+        {isDigitalEq && (
+          <div className="jcfpm-chat-thread mb-4">
+            <div className="jcfpm-chat-bubble is-peer">Kolega: „{item.prompt}“</div>
+            <div className="jcfpm-chat-bubble is-you">Ty: Jaká je nejlepší reakce?</div>
+          </div>
+        )}
         {itemType === 'image_choice' && (
           <div
             className="jcfpm-abstract-visual mb-4"
@@ -969,7 +978,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
             ) : null}
           </div>
         )}
-        <div className={`grid gap-3 ${itemType === 'image_choice' ? 'grid-cols-1 md:grid-cols-3' : ''}`}>
+        <div className={`grid gap-3 ${itemType === 'image_choice' ? 'grid-cols-1 md:grid-cols-3' : ''} ${isDigitalEq ? 'jcfpm-chat-options' : ''}`}>
           {options.map((option: any) => {
             const selected = response?.choice_id === option.id;
             return (
@@ -977,7 +986,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
                 key={option.id}
                 type="button"
                 onClick={() => onAnswer({ choice_id: option.id })}
-                className={`jcfpm-choice-card ${selected ? 'is-active' : ''}`}
+                className={`jcfpm-choice-card ${selected ? 'is-active' : ''} ${isDigitalEq ? 'jcfpm-chat-choice' : ''}`}
               >
                 <div className="text-sm font-semibold text-slate-900">{option.label}</div>
                 {option.desc ? <div className="mt-1 text-xs text-slate-600">{option.desc}</div> : null}
@@ -991,6 +1000,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
 
   const OrderingTask: React.FC<TaskProps> = ({ item, response, onAnswer }) => {
     const payload = resolvePayload(item);
+    const isDecomposition = inferDimension(item) === 'd11_problem_decomposition';
     const options = Array.isArray(payload.options) ? payload.options : [];
     if (!options.length) {
       console.warn('[JCFPM] Missing ordering options payload for item:', item);
@@ -1009,11 +1019,11 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
       onAnswer({ order: next });
     };
     return (
-      <div className="mt-4 space-y-2">
+      <div className={`mt-4 space-y-2 ${isDecomposition ? 'jcfpm-ordering-stack is-timeline' : ''}`}>
         {order.map((id: string, index: number) => {
           const option = options.find((opt: any) => opt.id === id);
           return (
-            <div key={id} className="jcfpm-ordering-item">
+            <div key={id} className={`jcfpm-ordering-item ${isDecomposition ? 'jcfpm-timeline-step' : ''}`}>
               <span className="text-sm font-semibold text-slate-800">{index + 1}.</span>
               <span className="text-sm text-slate-700 flex-1">{option?.label || id}</span>
               <div className="flex items-center gap-1">
@@ -1029,6 +1039,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
 
   const DragDropTask: React.FC<TaskProps> = ({ item, response, onAnswer }) => {
     const payload = resolvePayload(item);
+    const isSystems = inferDimension(item) === 'd9_systems_thinking';
     const sources = Array.isArray(payload.sources) ? payload.sources : [];
     const targets = Array.isArray(payload.targets) ? payload.targets : [];
     if (!sources.length || !targets.length) {
@@ -1045,11 +1056,11 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
       onAnswer({ pairs: next });
     };
     return (
-      <div className="mt-4 grid gap-3">
+      <div className={`mt-4 grid gap-3 ${isSystems ? 'jcfpm-systems-canvas' : ''}`}>
         {sources.map((src: any) => {
           const selected = currentPairs.find((pair) => pair.source === src.id)?.target || '';
           return (
-            <div key={src.id} className="jcfpm-drag-row">
+            <div key={src.id} className={`jcfpm-drag-row ${isSystems ? 'is-node-link' : ''}`}>
               <div className="text-sm font-semibold text-slate-800">{src.label}</div>
               <select
                 className="jcfpm-select"
@@ -1102,7 +1113,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
   };
 
   return (
-    <div className={`relative jcfpm-shell jcfpm-ambient ${ambientEnabled ? 'is-ambient-on' : ''}`}>
+    <div className={`relative jcfpm-shell jcfpm-ambient ${ambientEnabled ? 'is-ambient-on' : ''} ${isDeepDive ? 'is-deep-dive' : 'is-standard'} ${isFocusMode ? 'is-focus-mode' : ''}`}>
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-[0.22em] text-emerald-600/80">Career Fit & Potential</div>
@@ -1111,34 +1122,43 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
               ? 'Report'
               : `Otázka ${stepIndex + 1} / ${totalQuestions} • ${totalAnswered} zodpovězeno`}
           </p>
+          {viewMode === 'form' ? (
+            <div className={`jcfpm-phase-pill ${isDeepDive ? 'is-deep' : 'is-standard'} mt-2`}>
+              {isDeepDive ? 'Deep Dive • Focus Mode' : 'Standard Scan'}
+            </div>
+          ) : null}
         </div>
         <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => setAmbientEnabled((prev) => !prev)}
-            className="jcfpm-icon-button"
-            aria-label="Toggle ambient"
-            title={ambientEnabled ? 'Ambient zapnut' : 'Ambient vypnut'}
-          >
-            {ambientEnabled ? <Sparkles className="h-4 w-4 text-emerald-700" /> : <Sparkles className="h-4 w-4 text-slate-400" />}
-          </button>
-          <button
-            type="button"
-            onClick={() => setSoundEnabled((prev) => !prev)}
-            className="jcfpm-icon-button"
-            aria-label="Toggle sound"
-            title={soundEnabled ? 'Zvuk zapnut' : 'Zvuk vypnut'}
-          >
-            {soundEnabled ? <Volume2 className="h-4 w-4 text-emerald-700" /> : <VolumeX className="h-4 w-4 text-slate-500" />}
-          </button>
+          {!isFocusMode ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setAmbientEnabled((prev) => !prev)}
+                className="jcfpm-icon-button"
+                aria-label="Toggle ambient"
+                title={ambientEnabled ? 'Ambient zapnut' : 'Ambient vypnut'}
+              >
+                {ambientEnabled ? <Sparkles className="h-4 w-4 text-emerald-700" /> : <Sparkles className="h-4 w-4 text-slate-400" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => setSoundEnabled((prev) => !prev)}
+                className="jcfpm-icon-button"
+                aria-label="Toggle sound"
+                title={soundEnabled ? 'Zvuk zapnut' : 'Zvuk vypnut'}
+              >
+                {soundEnabled ? <Volume2 className="h-4 w-4 text-emerald-700" /> : <VolumeX className="h-4 w-4 text-slate-500" />}
+              </button>
+            </>
+          ) : null}
           <button type="button" onClick={onClose} className="jcfpm-icon-button" aria-label="Close JCFPM">
             <X className="h-4 w-4 text-slate-600" />
           </button>
         </div>
       </div>
 
-      <div className="mt-3 h-2 w-full overflow-hidden rounded-full bg-emerald-50">
-        <div className="h-full rounded-full bg-gradient-to-r from-emerald-300 via-teal-300 to-sky-300 transition-all duration-700" style={{ width: `${progress}%` }} />
+      <div className="jcfpm-progress-track mt-3 h-2 w-full overflow-hidden rounded-full">
+        <div className={`jcfpm-progress-fill h-full rounded-full transition-all duration-700 ${isDeepDive ? 'is-deep-dive' : 'is-standard'}`} style={{ width: `${progress}%` }} />
       </div>
 
       {viewMode === 'report' && snapshot ? (
@@ -1172,7 +1192,8 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
               <div>
                 <div className="jcfpm-heading text-base font-semibold text-slate-900">{currentDim.title}</div>
                 <p className="mt-1 text-sm text-slate-600">{currentDim.subtitle}</p>
-                <p className="mt-2 text-sm text-slate-700 jcfpm-story">
+                {!isFocusMode ? (
+                  <p className="mt-2 text-sm text-slate-700 jcfpm-story">
                   {currentDim.id === 'd1_cognitive' && 'Začneme tím, jak přemýšlíš, třídíš informace a rozhoduješ se.'}
                   {currentDim.id === 'd2_social' && 'Teď se podíváme na to, kde se ti nejlépe pracuje s lidmi.'}
                   {currentDim.id === 'd3_motivational' && 'Co tě skutečně pohání? Tady zachytíme tvé motivátory.'}
@@ -1185,7 +1206,8 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
                   {currentDim.id === 'd10_ambiguity_interpretation' && 'V nejasných obrazech odhalíš, zda vidíš spíš rizika nebo příležitosti.'}
                   {currentDim.id === 'd11_problem_decomposition' && 'Rozložíš velké úkoly na logické kroky.'}
                   {currentDim.id === 'd12_moral_compass' && 'Etická dilemata odhalí tvůj hodnotový kompas.'}
-                </p>
+                  </p>
+                ) : null}
                 {isDeepDive && (
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
                     <span className="jcfpm-timer-pill">
@@ -1202,11 +1224,11 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
               </div>
             </div>
             {(currentItem?.item_type || 'likert') === 'likert' && (
-              <div className="mt-3 jcfpm-legend">
+              <div className={`mt-3 jcfpm-legend ${isFocusMode ? 'hidden' : ''}`}>
                 1 = Silně nesouhlasím • 4 = Neutrálně • 7 = Silně souhlasím
               </div>
             )}
-            <div className="mt-4 jcfpm-timeline">
+            <div className={`mt-4 jcfpm-timeline ${isFocusMode ? 'hidden' : ''}`}>
               {activeDimensions.map((dim) => (
                 <div key={dim.id} className={`jcfpm-timeline-pill ${dim.id === currentDim.id ? 'is-active' : ''}`}>
                   <span className="font-semibold">{dim.title}</span>
