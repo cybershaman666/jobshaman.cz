@@ -691,7 +691,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
 
                 {/* Job List Container (Scrolls independently below fixed header) */}
                 <div ref={listContainerRef} className="flex-1 overflow-hidden p-4" style={{ overscrollBehavior: 'contain' }}>
-                    <div ref={listHeaderRef}>
+                    <div ref={listHeaderRef} style={{ position: 'relative' }}>
                         {hasNearConstraintMatches && !isLoadingJobs && (
                             <div className="mb-3 rounded-lg border border-cyan-200 bg-cyan-50/80 px-3 py-2 text-xs text-cyan-900 dark:border-cyan-800/70 dark:bg-cyan-950/30 dark:text-cyan-200">
                                 <div className="flex items-start gap-2">
@@ -704,7 +704,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                             </div>
                         )}
                         {isLoadingJobs && filteredJobs.length > 0 && (
-                            <div className="mb-3 px-1 flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
+                            <div style={{ position: 'absolute', right: 12, top: 8 }} className="px-1 flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
                                 <Activity className="animate-spin text-cyan-500" size={14} />
                                 <span>{t('app.searching')}</span>
                             </div>
