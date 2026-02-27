@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 
 from ..core.security import get_current_user, verify_subscription
 from ..core.database import supabase
+from ..core import config
 from ..services.jcfpm_scoring import score_dimensions
 from ..services.jcfpm_mapping import rank_roles
 from ..services.jcfpm_ai import generate_jcfpm_report
@@ -40,6 +41,24 @@ async def jcfpm_items(user: dict = Depends(verify_subscription)):
     if len(pool_keys) < 108:
         raise HTTPException(status_code=500, detail="JCFPM items not seeded")
     return {"items": items}
+
+
+@router.get("/tests/jcfpm/diagnostics")
+async def jcfpm_diagnostics(user: dict = Depends(verify_subscription)):
+    _require_premium(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+    items = _fetch_items()
+    pool_keys = {str(row.get("pool_key") or row.get("id") or "").strip().upper() for row in items}
+    pool_keys.discard("")
+    pool_key_nulls = sum(1 for row in items if row.get("pool_key") in (None, ""))
+    return {
+        "supabase_url": config.SUPABASE_URL or None,
+        "supabase_key_set": bool(config.SUPABASE_KEY),
+        "total_items": len(items),
+        "distinct_pool_keys": len(pool_keys),
+        "pool_key_nulls": pool_key_nulls,
+    }
 
 
 @router.post("/tests/jcfpm/submit")

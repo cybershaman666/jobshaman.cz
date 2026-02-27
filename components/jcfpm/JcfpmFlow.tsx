@@ -546,7 +546,8 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     const groups = new Map<string, JcfpmItem[]>();
     const normalizeKey = (value: string) => value.trim().toUpperCase();
     items.forEach((item) => {
-      const key = normalizeKey(String(item.pool_key || item.id || ''));
+      const baseId = String(item.id || '').trim().replace(/_v\\d+$/i, '');
+      const key = normalizeKey(String(item.pool_key || baseId || ''));
       if (!key) return;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(item);
@@ -562,14 +563,20 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     };
     const selected: JcfpmItem[] = [];
     groups.forEach((group, key) => {
+      const getVariantIndex = (item: JcfpmItem) => {
+        if (typeof item.variant_index === 'number') return item.variant_index;
+        const match = String(item.id || '').match(/_v(\\d+)$/i);
+        if (match) return Number(match[1]);
+        return 1;
+      };
       const ordered = [...group].sort((a, b) => {
-        const aIdx = a.variant_index ?? 0;
-        const bIdx = b.variant_index ?? 0;
+        const aIdx = getVariantIndex(a);
+        const bIdx = getVariantIndex(b);
         if (aIdx !== bIdx) return aIdx - bIdx;
         return String(a.id).localeCompare(String(b.id));
       });
       if (preferBaseVariants) {
-        const base = ordered.find((item) => (item.variant_index ?? 1) === 1) || ordered[0];
+        const base = ordered.find((item) => getVariantIndex(item) === 1) || ordered[0];
         if (base) selected.push(base);
       } else {
         const idx = ordered.length ? hashString(`${variantSeed}:${key}`) % ordered.length : 0;
@@ -581,17 +588,38 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
 
   useEffect(() => {
     if (!items.length) return;
-    if (pooledItems.length < 108) {
-      setItemsError('Test zatím není připraven – chybí seed 108 položek v databázi.');
+    const requiredCount = section === 'core' ? 72 : section === 'deep' ? 36 : 108;
+    if (pooledItems.length < requiredCount) {
+      setItemsError(`Test zatím není připraven – chybí seed ${requiredCount} položek v databázi.`);
     } else {
       setItemsError(null);
     }
-  }, [items.length, pooledItems.length]);
+  }, [items.length, pooledItems.length, section]);
+
+  const inferDimension = (item: JcfpmItem | undefined): JcfpmDimensionId => {
+    if (!item) return 'd1_cognitive';
+    const explicit = String(item.dimension || '').trim();
+    if (explicit && DIMENSIONS.some((dim) => dim.id === explicit)) return explicit as JcfpmDimensionId;
+    const rawKey = String(item.pool_key || item.id || '').replace(/_v\\d+$/i, '').toLowerCase();
+    if (rawKey.startsWith('d1.')) return 'd1_cognitive';
+    if (rawKey.startsWith('d2.')) return 'd2_social';
+    if (rawKey.startsWith('d3.')) return 'd3_motivational';
+    if (rawKey.startsWith('d4.')) return 'd4_energy';
+    if (rawKey.startsWith('d5.')) return 'd5_values';
+    if (rawKey.startsWith('d6.')) return 'd6_ai_readiness';
+    if (rawKey.startsWith('d7.')) return 'd7_cognitive_reflection';
+    if (rawKey.startsWith('d8.')) return 'd8_digital_eq';
+    if (rawKey.startsWith('d9.')) return 'd9_systems_thinking';
+    if (rawKey.startsWith('d10.')) return 'd10_ambiguity_interpretation';
+    if (rawKey.startsWith('d11.')) return 'd11_problem_decomposition';
+    if (rawKey.startsWith('d12.')) return 'd12_moral_compass';
+    return 'd1_cognitive';
+  };
 
   const itemsByDimension = useMemo(() => {
     const map: Record<string, JcfpmItem[]> = {};
     pooledItems.forEach((item) => {
-      const dim = item.dimension || 'd1_cognitive';
+      const dim = inferDimension(item);
       if (!map[dim]) map[dim] = [];
       map[dim].push(item);
     });
@@ -609,8 +637,9 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
 
   const orderedItems = useMemo(() => {
     const filtered = [...pooledItems].filter((item) => {
-      if (section === 'core') return !DEEP_DIVE_DIMENSIONS.has(item.dimension as JcfpmDimensionId);
-      if (section === 'deep') return DEEP_DIVE_DIMENSIONS.has(item.dimension as JcfpmDimensionId);
+      const dim = inferDimension(item);
+      if (section === 'core') return !DEEP_DIVE_DIMENSIONS.has(dim);
+      if (section === 'deep') return DEEP_DIVE_DIMENSIONS.has(dim);
       return true;
     });
     return filtered.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -633,8 +662,8 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
   }, [autoJumped, orderedItems, viewMode, responses]);
 
   const currentItem = orderedItems[stepIndex];
-  const currentDim = DIMENSIONS.find((dim) => dim.id === currentItem?.dimension) || DIMENSIONS[0];
-  const isDeepDive = Boolean(currentItem && DEEP_DIVE_DIMENSIONS.has(currentItem.dimension as JcfpmDimensionId));
+  const currentDim = DIMENSIONS.find((dim) => dim.id === inferDimension(currentItem)) || DIMENSIONS[0];
+  const isDeepDive = Boolean(currentItem && DEEP_DIVE_DIMENSIONS.has(inferDimension(currentItem)));
   const resolvePayload = (item?: JcfpmItem): any => {
     if (!item) return {};
     const rawKey = String(item.pool_key || item.id || '').trim();
@@ -902,17 +931,34 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
       itemType === 'image_choice'
         ? (payload.image_url || payload.prompt_image || options.find((opt: any) => opt?.image_url)?.image_url)
         : null;
+    const promptFallback = fallbackVisual(String(item.id || 'v'));
+    const promptBackground = promptImage
+      ? `url("${promptImage}"), ${promptFallback}`
+      : promptFallback;
     return (
       <div className="mt-4">
         {itemType === 'image_choice' && (
           <div
             className="jcfpm-abstract-visual mb-4"
             style={{
-              backgroundImage: promptImage ? `url(${promptImage})` : fallbackVisual(String(item.id || 'v')),
-              backgroundSize: promptImage ? 'cover' : 'auto',
+              backgroundImage: promptBackground,
+              backgroundSize: promptImage ? 'cover, cover' : 'auto',
               backgroundPosition: 'center',
             }}
-          />
+          >
+            {promptImage ? (
+              <img
+                src={promptImage}
+                alt=""
+                aria-hidden="true"
+                className="jcfpm-abstract-img"
+                onError={(event) => {
+                  (event.currentTarget as HTMLImageElement).style.display = 'none';
+                  console.warn('[JCFPM] Failed to load prompt image:', promptImage);
+                }}
+              />
+            ) : null}
+          </div>
         )}
         <div className={`grid gap-3 ${itemType === 'image_choice' ? 'grid-cols-1 md:grid-cols-3' : ''}`}>
           {options.map((option: any) => {

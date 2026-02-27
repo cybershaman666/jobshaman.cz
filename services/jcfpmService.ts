@@ -136,8 +136,11 @@ const normalizeJcfpmItems = (items: JcfpmItem[]): JcfpmItem[] =>
       .toLowerCase()
       .replace(/\s+/g, '_')
       .replace(/-+/g, '_') as any;
+    const rawDim = String(item.dimension || '').trim().toLowerCase();
+    const normalizedDim = (DIMENSIONS as readonly string[]).includes(rawDim) ? rawDim : undefined;
     return {
       ...item,
+      dimension: normalizedDim,
       item_type: normalizedType || undefined,
       payload: normalizeJson(payload) as any,
       assets: normalizeJson(assets) as any,
@@ -176,14 +179,56 @@ const percentileBand = (score: number) => {
 };
 
 export const computeJcfpmScoresLocal = (items: JcfpmItem[], responses: Record<string, any>) => {
+  const inferDimension = (item: JcfpmItem) => {
+    const explicit = String(item.dimension || '').trim();
+    if (explicit && DIMENSIONS.includes(explicit as any)) return explicit;
+    const rawKey = String(item.pool_key || item.id || '').replace(/_v\d+$/i, '').toLowerCase();
+    if (rawKey.startsWith('d1.')) return 'd1_cognitive';
+    if (rawKey.startsWith('d2.')) return 'd2_social';
+    if (rawKey.startsWith('d3.')) return 'd3_motivational';
+    if (rawKey.startsWith('d4.')) return 'd4_energy';
+    if (rawKey.startsWith('d5.')) return 'd5_values';
+    if (rawKey.startsWith('d6.')) return 'd6_ai_readiness';
+    if (rawKey.startsWith('d7.')) return 'd7_cognitive_reflection';
+    if (rawKey.startsWith('d8.')) return 'd8_digital_eq';
+    if (rawKey.startsWith('d9.')) return 'd9_systems_thinking';
+    if (rawKey.startsWith('d10.')) return 'd10_ambiguity_interpretation';
+    if (rawKey.startsWith('d11.')) return 'd11_problem_decomposition';
+    if (rawKey.startsWith('d12.')) return 'd12_moral_compass';
+    return 'd1_cognitive';
+  };
+  const resolveItemType = (item: JcfpmItem, payload: Record<string, any>) => {
+    const explicit = String(item.item_type || '').toLowerCase();
+    if (explicit && explicit !== 'likert') return explicit;
+    if (Array.isArray(payload.correct_order)) return 'ordering';
+    if (Array.isArray(payload.correct_pairs)) return 'drag_drop';
+    if (Array.isArray(payload.options)) return payload.options.some((opt: any) => opt?.image_url) ? 'image_choice' : 'mcq';
+    const rawId = String(item.pool_key || item.id || '').replace(/_v\d+$/i, '');
+    if (/^D10\./i.test(rawId)) return 'image_choice';
+    if (/^D8\./i.test(rawId) || /^D12\./i.test(rawId)) return 'scenario_choice';
+    if (/^D7\./i.test(rawId)) return 'mcq';
+    if (/^D9\.1$/i.test(rawId) || /^D9\.4$/i.test(rawId) || /^D11\.2$/i.test(rawId) || /^D11\.5$/i.test(rawId)) return 'drag_drop';
+    if (/^D9\.3$/i.test(rawId) || /^D11\.1$/i.test(rawId) || /^D11\.3$/i.test(rawId) || /^D11\.6$/i.test(rawId)) return 'ordering';
+    if (/^D9\.2$/i.test(rawId) || /^D9\.5$/i.test(rawId) || /^D9\.6$/i.test(rawId) || /^D11\.4$/i.test(rawId)) return 'mcq';
+    return explicit || 'likert';
+  };
+
   const byDim: Record<string, JcfpmItem[]> = {};
   items.forEach((item) => {
-    byDim[item.dimension] = byDim[item.dimension] || [];
-    byDim[item.dimension].push(item);
+    const dim = inferDimension(item);
+    byDim[dim] = byDim[dim] || [];
+    byDim[dim].push(item);
   });
   const scoreInteractive = (item: JcfpmItem, response: any) => {
-    const itemType = (item.item_type || 'likert').toLowerCase();
-    const payload = (item.payload || {}) as Record<string, any>;
+    let payload = (item.payload || {}) as Record<string, any>;
+    if (typeof payload === 'string') {
+      try {
+        payload = JSON.parse(payload) as Record<string, any>;
+      } catch {
+        payload = {};
+      }
+    }
+    const itemType = resolveItemType(item, payload);
     if (itemType === 'likert') {
       const raw = Number(response);
       const scored = item.reverse_scoring ? 8 - raw : raw;
@@ -379,28 +424,33 @@ export const mapJcfpmToJhiPreferences = (
 export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
   try {
     const controller = new AbortController();
-    const response = await withTimeout(
-      authenticatedFetch(`${BACKEND_URL}/tests/jcfpm/items`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        signal: controller.signal
-      }),
-      8000,
-      'JCFPM items timeout'
-    );
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({}));
-      const detail = error.detail || error.message || `HTTP ${response.status}`;
-      throw new Error(detail);
+    const abortId = window.setTimeout(() => controller.abort(), 8000);
+    try {
+      const response = await withTimeout(
+        authenticatedFetch(`${BACKEND_URL}/tests/jcfpm/items`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal
+        }),
+        8000,
+        'JCFPM items timeout'
+      );
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        const detail = error.detail || error.message || `HTTP ${response.status}`;
+        throw new Error(detail);
+      }
+      const payload = await response.json();
+      const items = Array.isArray(payload?.items) ? payload.items : [];
+      const normalized = normalizeJcfpmItems(items as JcfpmItem[]);
+      const poolCount = new Set(
+        normalized.map((item) => String(item.pool_key || item.id || '').trim().toUpperCase())
+      ).size;
+      if (poolCount >= 108) return normalized;
+      throw new Error('JCFPM items not seeded');
+    } finally {
+      window.clearTimeout(abortId);
     }
-    const payload = await response.json();
-    const items = Array.isArray(payload?.items) ? payload.items : [];
-    const normalized = normalizeJcfpmItems(items as JcfpmItem[]);
-    const poolCount = new Set(
-      normalized.map((item) => String(item.pool_key || item.id || '').trim().toUpperCase())
-    ).size;
-    if (poolCount >= 108) return normalized;
-    throw new Error('JCFPM items not seeded');
   } catch {
     return await fetchItemsFromSupabase();
   }

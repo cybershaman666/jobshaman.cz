@@ -126,6 +126,35 @@ def _percentile_band_100(score: float) -> Tuple[int, str]:
 def _score_interactive(item: dict, response: object) -> Tuple[float, float]:
     item_type = (item.get("item_type") or "likert").lower()
     payload = item.get("payload") or {}
+    if isinstance(payload, str):
+        try:
+            payload = __import__("json").loads(payload)
+        except Exception:
+            payload = {}
+    if item_type in {"likert", ""}:
+        if isinstance(payload, dict):
+            if isinstance(payload.get("correct_order"), list):
+                item_type = "ordering"
+            elif isinstance(payload.get("correct_pairs"), list):
+                item_type = "drag_drop"
+            elif isinstance(payload.get("options"), list):
+                has_images = any(isinstance(opt, dict) and opt.get("image_url") for opt in payload.get("options"))
+                item_type = "image_choice" if has_images else "mcq"
+        raw_id = str(item.get("pool_key") or item.get("id") or "")
+        if raw_id:
+            base = raw_id.split("_v")[0].upper()
+            if base.startswith("D10."):
+                item_type = "image_choice"
+            elif base.startswith("D8.") or base.startswith("D12."):
+                item_type = "scenario_choice"
+            elif base.startswith("D7."):
+                item_type = "mcq"
+            elif base in {"D9.1", "D9.4", "D11.2", "D11.5"}:
+                item_type = "drag_drop"
+            elif base in {"D9.3", "D11.1", "D11.3", "D11.6"}:
+                item_type = "ordering"
+            elif base in {"D9.2", "D9.5", "D9.6", "D11.4"}:
+                item_type = "mcq"
     if item_type == "likert":
         raw = float(response) if response is not None else 0.0
         scored = _apply_reverse(raw, bool(item.get("reverse_scoring")))
