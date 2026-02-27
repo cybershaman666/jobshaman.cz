@@ -75,6 +75,7 @@ Feature flags:
 - `ENABLE_BACKGROUND_SCHEDULER`
 - `ENABLE_DAILY_DIGESTS`
 - `ENABLE_PUBLIC_BENCHMARK_REFRESH`
+- `JCFPM_REQUIRE_PREMIUM` (`false` temporarily disables premium gate for `/tests/jcfpm/*`)
 
 Frontend note:
 

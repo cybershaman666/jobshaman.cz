@@ -3,18 +3,23 @@ import { Job, Candidate, BenefitInsight, CompanyProfile, UserProfile } from './t
 
 // Backend API Configuration
 const normalizeBackendHost = (raw?: string): string => {
-  const fallback = 'https://jobshaman-cz-8d0p.onrender.com';
   const value = (raw || '').trim();
-  if (!value) return fallback;
+  if (!value) {
+    const legacyFallback =
+      (import.meta.env.VITE_API_URL as string | undefined)?.trim() ||
+      (import.meta.env.DEV ? 'http://localhost:8000' : '');
+    if (legacyFallback) return legacyFallback.replace(/\/$/, '');
+    if (typeof window !== 'undefined' && window.location?.origin) return window.location.origin;
+    return 'http://localhost:8000';
+  }
   try {
     const parsed = new URL(value);
-    if (parsed.hostname === 'jobshaman-cz.onrender.com') {
-      return fallback;
-    }
     return parsed.toString().replace(/\/$/, '');
   } catch {
     // If env contains malformed value, fall back safely.
-    return fallback;
+    if (import.meta.env.DEV) return 'http://localhost:8000';
+    if (typeof window !== 'undefined' && window.location?.origin) return window.location.origin;
+    return 'http://localhost:8000';
   }
 };
 
@@ -22,7 +27,7 @@ export const BACKEND_URL = normalizeBackendHost(import.meta.env.VITE_BACKEND_URL
 export const BILLING_BACKEND_URL =
   import.meta.env.VITE_BILLING_BACKEND_URL ||
   import.meta.env.VITE_STRIPE_BACKEND_URL ||
-  'https://site--jobshaman--rb4dlj74d5kc.code.run';
+  BACKEND_URL;
 export const SEARCH_BACKEND_URL =
   import.meta.env.VITE_SEARCH_API_URL ||
   import.meta.env.VITE_SEARCH_BACKEND_URL ||

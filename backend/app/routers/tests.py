@@ -14,6 +14,8 @@ router = APIRouter()
 
 
 def _require_premium(user: dict) -> None:
+    if not config.JCFPM_REQUIRE_PREMIUM:
+        return
     tier = (user.get("subscription_tier") or "").lower()
     if not user.get("is_subscription_active") or tier != "premium":
         raise HTTPException(status_code=403, detail="Premium subscription required")

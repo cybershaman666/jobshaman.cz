@@ -4,6 +4,13 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
+def _env_bool(name: str, default: bool = False) -> bool:
+    raw = os.getenv(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 def _resolve_secret_key() -> str:
     candidates = ("JWT_SECRET", "SECRET_KEY", "jwt_secret", "secret_key")
     checked: list[str] = []
@@ -61,3 +68,8 @@ SECRET_KEY = _resolve_secret_key()
 
 # CSRF
 CSRF_TOKEN_EXPIRY = 3600  # 1 hour
+
+# JCFPM access control
+# Temporary switch to allow JCFPM for authenticated users without premium token issues.
+# Set JCFPM_REQUIRE_PREMIUM=true to restore strict premium gate.
+JCFPM_REQUIRE_PREMIUM = _env_bool("JCFPM_REQUIRE_PREMIUM", False)
