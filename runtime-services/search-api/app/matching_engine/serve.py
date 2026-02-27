@@ -674,6 +674,24 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
     try:
         resp = supabase.rpc("search_jobs_v2", rpc_payload).execute()
         rows = resp.data or []
+        # Deduplicate rows by job id in case the RPC produced duplicate rows
+        if rows:
+            seen_ids = set()
+            deduped = []
+            dup_count = 0
+            for r in rows:
+                jid = str((r or {}).get("id") or "").strip()
+                if not jid:
+                    deduped.append(r)
+                    continue
+                if jid in seen_ids:
+                    dup_count += 1
+                    continue
+                seen_ids.add(jid)
+                deduped.append(r)
+            if dup_count:
+                print(f"⚠️ [Hybrid Search V2] deduplicated {dup_count} duplicate rows from RPC result")
+            rows = deduped
         _SEARCH_V2_RPC_AVAILABLE = True
     except Exception as exc:
         rpc_recovered = False
