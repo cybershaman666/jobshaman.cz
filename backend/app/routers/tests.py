@@ -2,7 +2,7 @@ from __future__ import annotations
 from typing import Any, Dict
 from fastapi import APIRouter, Depends, HTTPException, Request
 
-from ..core.security import get_current_user, verify_subscription
+from ..core.security import get_current_user, verify_subscription, verify_supabase_token
 from ..core.database import supabase
 from ..core import config
 from ..services.jcfpm_scoring import score_dimensions
@@ -13,12 +13,28 @@ from ..models.requests import JcfpmSubmitRequest
 router = APIRouter()
 
 
-def _require_premium(user: dict) -> None:
+def _require_premium(user: dict | None) -> None:
     if not config.JCFPM_REQUIRE_PREMIUM:
         return
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
     tier = (user.get("subscription_tier") or "").lower()
     if not user.get("is_subscription_active") or tier != "premium":
         raise HTTPException(status_code=403, detail="Premium subscription required")
+
+
+def _resolve_optional_user(request: Request) -> dict | None:
+    auth_header = request.headers.get("authorization") or ""
+    if not auth_header.lower().startswith("bearer "):
+        return None
+    token = auth_header.split(" ", 1)[1].strip()
+    if not token:
+        return None
+    try:
+        # Enrich with subscription context when token is valid.
+        return verify_subscription(verify_supabase_token(token))
+    except Exception:
+        return None
 
 
 def _fetch_items() -> list[dict]:
@@ -35,7 +51,8 @@ def _fetch_items() -> list[dict]:
 
 
 @router.get("/tests/jcfpm/items")
-async def jcfpm_items(user: dict = Depends(verify_subscription)):
+async def jcfpm_items(request: Request):
+    user = _resolve_optional_user(request)
     _require_premium(user)
     items = _fetch_items()
     pool_keys = {str(row.get("pool_key") or row.get("id") or "").strip().upper() for row in items}
@@ -46,7 +63,8 @@ async def jcfpm_items(user: dict = Depends(verify_subscription)):
 
 
 @router.get("/tests/jcfpm/diagnostics")
-async def jcfpm_diagnostics(user: dict = Depends(verify_subscription)):
+async def jcfpm_diagnostics(request: Request):
+    user = _resolve_optional_user(request)
     _require_premium(user)
     if not supabase:
         raise HTTPException(status_code=500, detail="Database unavailable")
@@ -64,11 +82,10 @@ async def jcfpm_diagnostics(user: dict = Depends(verify_subscription)):
 
 
 @router.post("/tests/jcfpm/submit")
-async def jcfpm_submit(payload: JcfpmSubmitRequest, user: dict = Depends(verify_subscription)):
+async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
+    user = _resolve_optional_user(request)
     _require_premium(user)
-    user_id = user.get("id") or user.get("auth_id")
-    if not user_id:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+    user_id = (user or {}).get("id") or (user or {}).get("auth_id")
 
     items = _fetch_items()
     pool_keys = {str(row.get("pool_key") or row.get("id") or "").strip().upper() for row in items}
@@ -141,39 +158,40 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, user: dict = Depends(verify_
         "confidence": 100,
     }
 
-    # Save results
-    supabase.table("jcfpm_results").insert({
-        "user_id": user_id,
-        "raw_responses": responses,
-        "dimension_scores": dimension_scores,
-        "fit_scores": fit_scores,
-        "ai_report": ai_report,
-        "version": "jcfpm-v1",
-    }).execute()
+    # Persist only for authenticated users.
+    if user_id:
+        supabase.table("jcfpm_results").insert({
+            "user_id": user_id,
+            "raw_responses": responses,
+            "dimension_scores": dimension_scores,
+            "fit_scores": fit_scores,
+            "ai_report": ai_report,
+            "version": "jcfpm-v1",
+        }).execute()
 
-    # Update profile preferences snapshot
-    prof_resp = (
-        supabase.table("candidate_profiles")
-        .select("preferences")
-        .eq("id", user_id)
-        .maybe_single()
-        .execute()
-    )
-    prefs = (prof_resp.data or {}).get("preferences") if prof_resp and prof_resp.data else {}
-    if not isinstance(prefs, dict):
-        prefs = {}
-    prefs["jcfpm_v1"] = snapshot
-    supabase.table("candidate_profiles").update({"preferences": prefs}).eq("id", user_id).execute()
+        prof_resp = (
+            supabase.table("candidate_profiles")
+            .select("preferences")
+            .eq("id", user_id)
+            .maybe_single()
+            .execute()
+        )
+        prefs = (prof_resp.data or {}).get("preferences") if prof_resp and prof_resp.data else {}
+        if not isinstance(prefs, dict):
+            prefs = {}
+        prefs["jcfpm_v1"] = snapshot
+        supabase.table("candidate_profiles").update({"preferences": prefs}).eq("id", user_id).execute()
 
     return {"snapshot": snapshot}
 
 
 @router.get("/tests/jcfpm/latest")
-async def jcfpm_latest(user: dict = Depends(verify_subscription)):
+async def jcfpm_latest(request: Request):
+    user = _resolve_optional_user(request)
     _require_premium(user)
-    user_id = user.get("id") or user.get("auth_id")
+    user_id = (user or {}).get("id") or (user or {}).get("auth_id")
     if not user_id:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+        return {"snapshot": None}
 
     prof_resp = (
         supabase.table("candidate_profiles")
