@@ -3,7 +3,10 @@ import json
 from datetime import datetime, timezone
 from typing import Any, Dict, List
 
-import sentry_sdk
+try:
+    import sentry_sdk
+except Exception:
+    sentry_sdk = None
 
 from ..core.database import supabase
 
@@ -95,21 +98,22 @@ def log_ai_generation(event: Dict[str, Any]) -> None:
     }
     print(f"📊 [AI Generation] {json.dumps(redacted, ensure_ascii=False)}")
 
-    sentry_sdk.add_breadcrumb(
-        category="ai",
-        message="ai_generation",
-        level="info",
-        data={
-            "feature": payload["feature"],
-            "prompt_version": payload["prompt_version"],
-            "model_final": payload["model_final"],
-            "fallback_used": payload["fallback_used"],
-            "schema_valid": payload["output_valid"],
-        },
-    )
-    sentry_sdk.set_tag("prompt_version", payload.get("prompt_version") or "unknown")
-    sentry_sdk.set_tag("model_final", payload.get("model_final") or "unknown")
-    sentry_sdk.set_tag("fallback_used", str(payload.get("fallback_used", False)).lower())
+    if sentry_sdk:
+        sentry_sdk.add_breadcrumb(
+            category="ai",
+            message="ai_generation",
+            level="info",
+            data={
+                "feature": payload["feature"],
+                "prompt_version": payload["prompt_version"],
+                "model_final": payload["model_final"],
+                "fallback_used": payload["fallback_used"],
+                "schema_valid": payload["output_valid"],
+            },
+        )
+        sentry_sdk.set_tag("prompt_version", payload.get("prompt_version") or "unknown")
+        sentry_sdk.set_tag("model_final", payload.get("model_final") or "unknown")
+        sentry_sdk.set_tag("fallback_used", str(payload.get("fallback_used", False)).lower())
 
     if not supabase:
         return

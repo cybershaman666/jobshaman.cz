@@ -3,13 +3,17 @@ import traceback
 from fastapi import FastAPI, Request, HTTPException
 import re
 from urllib.parse import urlsplit
-import sentry_sdk
-from sentry_sdk.integrations.fastapi import FastApiIntegration
 from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
 from starlette.responses import JSONResponse
+try:
+    import sentry_sdk
+    from sentry_sdk.integrations.fastapi import FastApiIntegration
+except Exception:
+    sentry_sdk = None
+    FastApiIntegration = None
 
 from .core.limiter import limiter
 from .routers import jobs, billing, stripe, assessments, scraper, auth, admin, ai, email, push, profile, analytics, benchmarks, tests
@@ -22,13 +26,15 @@ from .governance import run_retention_cleanup
 SENTRY_DSN = os.getenv("SENTRY_DSN")
 SENTRY_ENV = os.getenv("SENTRY_ENV", os.getenv("ENVIRONMENT", "production"))
 EXPOSE_DEBUG_ERRORS = os.getenv("EXPOSE_DEBUG_ERRORS", "false").strip().lower() in {"1", "true", "yes", "on"}
-if SENTRY_DSN:
+if SENTRY_DSN and sentry_sdk and FastApiIntegration:
     sentry_sdk.init(
         dsn=SENTRY_DSN,
         environment=SENTRY_ENV,
         integrations=[FastApiIntegration()],
         traces_sample_rate=0.1,
     )
+elif SENTRY_DSN:
+    print("⚠️ SENTRY_DSN is set but sentry-sdk is unavailable; continuing without Sentry.")
 
 app = FastAPI(title="JobShaman Backend Services")
 app.state.limiter = limiter
