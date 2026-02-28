@@ -211,66 +211,79 @@ async def list_subscriptions(
     if not supabase:
         raise HTTPException(status_code=500, detail="Database unavailable")
 
-    query = supabase.table("subscriptions").select(
-        "*, companies!fk_company(name, industry), profiles(email, full_name)",
-        count="exact"
-    )
+    try:
+        query = supabase.table("subscriptions").select(
+            "*, companies!fk_company(name, industry), profiles(email, full_name)",
+            count="exact"
+        )
 
-    if tier:
-        query = query.eq("tier", tier)
-    if status:
-        query = query.eq("status", status)
+        if tier:
+            query = query.eq("tier", tier)
+        if status:
+            query = query.eq("status", status)
 
-    safe_q = _safe_query(q or "")
-    if safe_q:
-        or_filters: List[str] = []
+        safe_q = _safe_query(q or "")
+        if safe_q:
+            or_filters: List[str] = []
 
-        # Direct matches
-        or_filters.append(f"stripe_subscription_id.ilike.%{safe_q}%")
-        or_filters.append(f"stripe_customer_id.ilike.%{safe_q}%")
+            # Direct matches
+            or_filters.append(f"stripe_subscription_id.ilike.%{safe_q}%")
+            or_filters.append(f"stripe_customer_id.ilike.%{safe_q}%")
 
-        if UUID_RE.match(safe_q):
-            or_filters.append(f"id.eq.{safe_q}")
-            or_filters.append(f"user_id.eq.{safe_q}")
-            or_filters.append(f"company_id.eq.{safe_q}")
+            if UUID_RE.match(safe_q):
+                or_filters.append(f"id.eq.{safe_q}")
+                or_filters.append(f"user_id.eq.{safe_q}")
+                or_filters.append(f"company_id.eq.{safe_q}")
 
-        # Company name lookup
-        try:
-            companies = supabase.table("companies").select("id").ilike("name", f"%{safe_q}%").execute()
-            company_ids = [c["id"] for c in (companies.data or [])]
-            if company_ids:
-                or_filters.append(f"company_id.in.({','.join(company_ids)})")
-        except Exception as e:
-            print(f"⚠️ Company search failed: {e}")
+            # Company name lookup
+            try:
+                companies_resp = supabase.table("companies").select("id").ilike("name", f"%{safe_q}%").execute()
+                company_ids = [c["id"] for c in (companies_resp.data or [])]
+                if company_ids:
+                    or_filters.append(f"company_id.in.({','.join(company_ids)})")
+            except Exception as e:
+                print(f"⚠️ Company search failed in admin: {e}")
 
-        # Profile email/full_name lookup
-        try:
-            profiles = supabase.table("profiles").select("id").or_(f"email.ilike.%{safe_q}%,full_name.ilike.%{safe_q}%").execute()
-            user_ids = [p["id"] for p in (profiles.data or [])]
-            if user_ids:
-                or_filters.append(f"user_id.in.({','.join(user_ids)})")
-        except Exception as e:
-            print(f"⚠️ Profile search failed: {e}")
+            # Profile email/full_name lookup
+            try:
+                profiles_resp = supabase.table("profiles").select("id").or_(f"email.ilike.%{safe_q}%,full_name.ilike.%{safe_q}%").execute()
+                user_ids = [p["id"] for p in (profiles_resp.data or [])]
+                if user_ids:
+                    or_filters.append(f"user_id.in.({','.join(user_ids)})")
+            except Exception as e:
+                print(f"⚠️ Profile search failed in admin: {e}")
 
-        if or_filters:
-            query = query.or_(",".join(or_filters))
+            if or_filters:
+                query = query.or_(",".join(or_filters))
 
-    query = query.order("created_at", desc=True).range(offset, offset + limit - 1)
-    resp = query.execute()
-    data = resp.data or []
+        query = query.order("created_at", desc=True).range(offset, offset + limit - 1)
+        resp = query.execute()
+        
+        # Check for PostgREST errors that didn't raise
+        if hasattr(resp, 'error') and resp.error:
+            print(f"❌ PostgREST error in list_subscriptions: {resp.error}")
+            raise HTTPException(status_code=500, detail=f"Database error: {resp.error}")
 
-    if kind in ["company", "user"]:
-        if kind == "company":
-            data = [s for s in data if s.get("company_id")]
-        else:
-            data = [s for s in data if s.get("user_id")]
+        data = resp.data or []
 
-    return {
-        "items": data,
-        "count": resp.count or 0,
-        "limit": limit,
-        "offset": offset,
-    }
+        if kind in ["company", "user"]:
+            if kind == "company":
+                data = [s for s in data if s.get("company_id")]
+            else:
+                data = [s for s in data if s.get("user_id")]
+
+        return {
+            "items": data,
+            "count": getattr(resp, 'count', 0) or 0,
+            "limit": limit,
+            "offset": offset,
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ CRASH in list_subscriptions: {e}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Internal admin error: {str(e)}")
 
 @router.get("/admin/search")
 async def admin_search(

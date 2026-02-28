@@ -500,7 +500,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 {loading ? (
                   <div className="flex-1 flex items-center justify-center text-sm text-slate-500">Loading...</div>
                 ) : (
-                  <div className="flex-1 w-full h-full min-h-[200px]">
+                  <div className="flex-1 w-full h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={trafficSeries}>
                         <defs>
@@ -529,7 +529,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 {loading ? (
                   <div className="flex-1 flex items-center justify-center text-sm text-slate-500">Loading...</div>
                 ) : (
-                  <div className="flex-1 w-full h-full min-h-[200px]">
+                  <div className="flex-1 w-full h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={tokenTrend}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
