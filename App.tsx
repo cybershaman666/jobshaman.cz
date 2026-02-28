@@ -99,6 +99,7 @@ const JobDetailView = lazy(() => import('./components/JobDetailView'));
 const MobileSwipeJobBrowser = lazy(() => import('./components/MobileSwipeJobBrowser'));
 const InvitationLanding = lazy(() => import('./pages/InvitationLanding'));
 const AssessmentPreviewPage = lazy(() => import('./pages/AssessmentPreviewPage'));
+const JcfpmFlow = lazy(() => import('./components/jcfpm/JcfpmFlow'));
 
 // JHI and formatting utilities now imported from utils/
 
@@ -211,7 +212,7 @@ export default function App() {
             parts.shift();
         }
         const normalizedPath = `/${parts.join('/')}`;
-        return normalizedPath === '/assessment-preview' || normalizedPath.startsWith('/assessment/');
+        return normalizedPath === '/assessment-preview' || normalizedPath.startsWith('/assessment/') || normalizedPath === '/jcfpm';
     })();
     const usePageScrollLayout = !isImmersiveAssessmentRoute && viewState === ViewState.PROFILE;
     const userProfileRef = useRef<UserProfile>(userProfile);
@@ -1120,8 +1121,8 @@ export default function App() {
                 targetPath = `/${lng}/assessment-centrum`;
             } else if (viewState === ViewState.PROFILE) {
                 targetPath = `/${lng}/profil`;
-            } else if (viewState === ViewState.COMPANY_DASHBOARD) {
-                targetPath = `/${lng}/company-dashboard`;
+            } else if (viewState === ViewState.JCFPM) {
+                targetPath = `/${lng}/jcfpm`;
             }
 
             if (window.location.pathname !== targetPath) {
@@ -1337,11 +1338,11 @@ export default function App() {
     // SEO Update Effect
     useEffect(() => {
         const pageName = showCompanyLanding ? 'company-dashboard' :
-                    viewState === ViewState.LIST ? 'home' :
-                        viewState === ViewState.PROFILE ? 'profile' :
-                            viewState === ViewState.SAVED ? 'saved' :
-                                viewState === ViewState.ASSESSMENT ? 'assessment' :
-                                    viewState === ViewState.COMPANY_DASHBOARD ? 'company-dashboard' : 'home';
+            viewState === ViewState.LIST ? 'home' :
+                viewState === ViewState.PROFILE ? 'profile' :
+                    viewState === ViewState.SAVED ? 'saved' :
+                        viewState === ViewState.ASSESSMENT ? 'assessment' :
+                            viewState === ViewState.COMPANY_DASHBOARD ? 'company-dashboard' : 'home';
 
         // Wait until translations are ready to avoid raw keys in browser tab
         if (t('seo.base_title') === 'seo.base_title') return;
@@ -1855,6 +1856,32 @@ export default function App() {
                 <AdminDashboard userProfile={userProfile} />
             );
         }
+        if (normalizedPath === '/jcfpm') {
+            const isGuest = !userProfile.id;
+            if (isGuest && !isAuthModalOpen) {
+                // Trigger registration modal if guest
+                setAuthModalMode('register');
+                setIsAuthModalOpen(true);
+            }
+
+            return (
+                <div className="h-full overflow-hidden">
+                    <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div></div>}>
+                        <JcfpmFlow
+                            userId={userProfile.id || 'guest'}
+                            onPersist={(snapshot) => {
+                                console.log('JCFPM Persist:', snapshot);
+                            }}
+                            onClose={() => {
+                                setViewState(ViewState.LIST);
+                                const lng = getLocalePrefix();
+                                window.history.pushState({}, '', `/${lng}/`);
+                            }}
+                        />
+                    </Suspense>
+                </div>
+            );
+        }
         if (normalizedPath === '/assessment-preview') {
             return (
                 <div className="h-full overflow-hidden">
@@ -1930,21 +1957,21 @@ export default function App() {
                         && userProfile.role !== 'recruiter'
                         && !isActivationComplete(candidateActivationState)
                         && activationNextStep !== 'quality_action' && (
-                        <div className="mb-4">
-                            <CandidateActivationRail
-                                state={candidateActivationState}
-                                onContinue={() => {
-                                    onboardingDismissedRef.current = false;
-                                    setShowCandidateOnboarding(true);
-                                    void trackAnalyticsEvent({
-                                        event_type: 'nudge_clicked',
-                                        feature: 'candidate_activation_v1',
-                                        metadata: { source: 'profile_rail', next_step: activationNextStep },
-                                    });
-                                }}
-                            />
-                        </div>
-                    )}
+                            <div className="mb-4">
+                                <CandidateActivationRail
+                                    state={candidateActivationState}
+                                    onContinue={() => {
+                                        onboardingDismissedRef.current = false;
+                                        setShowCandidateOnboarding(true);
+                                        void trackAnalyticsEvent({
+                                            event_type: 'nudge_clicked',
+                                            feature: 'candidate_activation_v1',
+                                            metadata: { source: 'profile_rail', next_step: activationNextStep },
+                                        });
+                                    }}
+                                />
+                            </div>
+                        )}
                     <ProfileEditor
                         profile={userProfile}
                         onChange={(p, persist) => handleProfileUpdate(p, persist)} // Pass persist flag for immediate saves
