@@ -173,27 +173,41 @@ const normalizeJcfpmItems = (items: JcfpmItem[]): JcfpmItem[] =>
     };
   });
 
+let globalJcfpmItemsCache: JcfpmItem[] | null = null;
+let globalJcfpmItemsFetchPromise: Promise<JcfpmItem[]> | null = null;
+
 const fetchItemsFromSupabase = async (): Promise<JcfpmItem[]> => {
+  if (globalJcfpmItemsCache) return globalJcfpmItemsCache;
+  if (globalJcfpmItemsFetchPromise) return globalJcfpmItemsFetchPromise;
   if (!supabase) return [];
-  const pageSize = 1000;
-  let from = 0;
-  const all: JcfpmItem[] = [];
 
-  while (true) {
-    const { data, error } = await supabase
-      .from('jcfpm_items')
-      .select('id, dimension, subdimension, prompt, prompt_i18n, subdimension_i18n, reverse_scoring, sort_order, item_type, payload, payload_i18n, assets, pool_key, variant_index')
-      .order('sort_order', { ascending: true })
-      .order('id', { ascending: true })
-      .range(from, from + pageSize - 1);
-    if (error) throw error;
-    const page = (data || []) as JcfpmItem[];
-    all.push(...page);
-    if (page.length < pageSize) break;
-    from += pageSize;
-  }
+  globalJcfpmItemsFetchPromise = (async () => {
+    const pageSize = 1000;
+    let from = 0;
+    const all: JcfpmItem[] = [];
 
-  return normalizeJcfpmItems(all);
+    while (true) {
+      const { data, error } = await supabase
+        .from('jcfpm_items')
+        .select('id, dimension, subdimension, prompt, prompt_i18n, subdimension_i18n, reverse_scoring, sort_order, item_type, payload, payload_i18n, assets, pool_key, variant_index')
+        .order('sort_order', { ascending: true })
+        .order('id', { ascending: true })
+        .range(from, from + pageSize - 1);
+      if (error) {
+        globalJcfpmItemsFetchPromise = null;
+        throw error;
+      }
+      const page = (data || []) as JcfpmItem[];
+      all.push(...page);
+      if (page.length < pageSize) break;
+      from += pageSize;
+    }
+
+    globalJcfpmItemsCache = normalizeJcfpmItems(all);
+    return globalJcfpmItemsCache;
+  })();
+
+  return globalJcfpmItemsFetchPromise;
 };
 
 const fetchRolesFromSupabase = async (): Promise<any[]> => {

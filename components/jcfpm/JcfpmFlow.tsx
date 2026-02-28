@@ -1713,7 +1713,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
                       ) : null}
                     </div>
                   )}
-                  <div className={`mt-4 jcfpm-timeline ${isFocusMode ? 'hidden' : ''}`}>
+                  <div className={`mt-4 jcfpm-timeline hidden md:flex ${isFocusMode ? '!hidden' : ''}`}>
                     {activeDimensions.map((dim) => (
                       <div key={dim.id} className={`jcfpm-timeline-pill ${dim.id === currentDim.id ? 'is-active' : ''}`}>
                         <span className="font-semibold">{dim.title}</span>
@@ -1722,6 +1722,9 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
                         </span>
                       </div>
                     ))}
+                  </div>
+                  <div className={`mt-3 flex justify-center text-center text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-wider md:hidden ${isFocusMode ? 'hidden' : ''}`}>
+                    {locale === 'cs' || locale === 'sk' ? 'Swipe doleva pro návrat • Doprava pro další' : 'Swipe left to go back • Right for next'}
                   </div>
                 </div>
               </div>
