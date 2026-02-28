@@ -94,10 +94,6 @@ async def jcfpm_items(request: Request):
     user = _resolve_optional_user(request) if config.JCFPM_REQUIRE_PREMIUM else None
     _require_premium(user)
     items = _fetch_items()
-    pool_keys = {str(row.get("pool_key") or row.get("id") or "").strip().upper() for row in items}
-    pool_keys.discard("")
-    if len(pool_keys) < 108:
-        raise HTTPException(status_code=500, detail="JCFPM items not seeded")
     def _strip_variant(value: str) -> str:
         if not value:
             return ""
@@ -108,6 +104,8 @@ async def jcfpm_items(request: Request):
         if str(row.get("dimension") or "") in JCFPM_DIMENSIONS
     }
     full_pool_keys.discard("")
+    if len(full_pool_keys) < 72:
+        raise HTTPException(status_code=500, detail=f"JCFPM items not seeded (found {len(full_pool_keys)}/72)")
     return {"items": items}
 
 
@@ -143,10 +141,6 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
     user_id = (user or {}).get("id") or (user or {}).get("auth_id")
 
     items = _fetch_items()
-    pool_keys = {str(row.get("pool_key") or row.get("id") or "").strip().upper() for row in items}
-    pool_keys.discard("")
-    if len(pool_keys) < 108:
-        raise HTTPException(status_code=500, detail="JCFPM items not seeded")
     def _strip_variant(value: str) -> str:
         if not value:
             return ""
@@ -157,6 +151,8 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
         if str(row.get("dimension") or "") in JCFPM_DIMENSIONS
     }
     full_pool_keys.discard("")
+    if len(full_pool_keys) < 72:
+        raise HTTPException(status_code=500, detail=f"JCFPM items not seeded (found {len(full_pool_keys)}/72)")
 
     responses = payload.responses or {}
     selected_ids = payload.item_ids or list(responses.keys())
