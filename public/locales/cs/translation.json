@@ -5,7 +5,7 @@
     "search_placeholder": "Hledat pozici, firmu...",
     "search_saved_placeholder": "Hledat v uložených...",
     "filters": "Filtry",
-    "searching": "Hledám nabídky...",
+    "searching": "Vyvolávám nabídky...",
     "no_jobs_found": "Nebyly nalezeny žádné pozice.",
     "try_adjust_filters": "Zkuste upravit filtry nebo hledaný výraz.",
     "no_results_for_search": "Žádné výsledky pro \"{{query}}\"",

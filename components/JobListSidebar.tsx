@@ -705,7 +705,17 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                         )}
                         {isLoadingJobs && filteredJobs.length > 0 && (
                             <div style={{ position: 'absolute', right: 12, top: 8 }} className="px-1 flex items-center gap-2 text-xs text-slate-400 dark:text-slate-500">
-                                <Activity className="animate-spin text-cyan-500" size={14} />
+                                <span className="job-shaman-loader" aria-hidden="true">
+                                    <span className="rain">
+                                        <span />
+                                        <span />
+                                        <span />
+                                        <span />
+                                    </span>
+                                    <span className="pulse" />
+                                    <span className="drum" />
+                                    <span className="drumstick" />
+                                </span>
                                 <span>{t('app.searching')}</span>
                             </div>
                         )}
@@ -713,7 +723,17 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                     <div className="space-y-3">
                         {isLoadingJobs && filteredJobs.length === 0 ? (
                             <div className="py-12 flex flex-col items-center justify-center text-slate-400">
-                                <Activity className="animate-spin mb-2 text-cyan-500" size={24} />
+                                <span className="job-shaman-loader is-lg mb-2" aria-hidden="true">
+                                    <span className="rain">
+                                        <span />
+                                        <span />
+                                        <span />
+                                        <span />
+                                    </span>
+                                    <span className="pulse" />
+                                    <span className="drum" />
+                                    <span className="drumstick" />
+                                </span>
                                 <p className="text-sm">{t('app.searching')}</p>
                             </div>
                         ) : filteredJobs.length > 0 ? (
@@ -762,7 +782,17 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                         <p className="font-bold mb-2">{t('app.backend_wake_title')}</p>
                                         <p className="text-xs opacity-75 max-w-[260px] mb-4">{t('app.backend_wake_desc')}</p>
                                         <div className="mt-2 text-sm text-slate-500 flex items-center gap-2">
-                                            <Activity className="animate-spin text-cyan-500" size={18} />
+                                            <span className="job-shaman-loader" aria-hidden="true">
+                                                <span className="rain">
+                                                    <span />
+                                                    <span />
+                                                    <span />
+                                                    <span />
+                                                </span>
+                                                <span className="pulse" />
+                                                <span className="drum" />
+                                                <span className="drumstick" />
+                                            </span>
                                             <span>{t('app.backend_wake_waiting')}</span>
                                         </div>
                                         <button onClick={loadRealJobs} className="mt-4 flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-lg text-xs font-bold hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors">
@@ -787,7 +817,17 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                         )}
                         {loadingMore && (
                             <div className="py-6 flex flex-col items-center justify-center text-slate-400">
-                                <Activity className="animate-spin mb-2 text-cyan-500" size={20} />
+                                <span className="job-shaman-loader mb-2" aria-hidden="true">
+                                    <span className="rain">
+                                        <span />
+                                        <span />
+                                        <span />
+                                        <span />
+                                    </span>
+                                    <span className="pulse" />
+                                    <span className="drum" />
+                                    <span className="drumstick" />
+                                </span>
                                 <p className="text-xs">{t('app.loading_more_offers')}</p>
                             </div>
                         )}

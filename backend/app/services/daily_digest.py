@@ -17,7 +17,6 @@ _DIGEST_RADIUS_KM = 50.0
 _DIGEST_MAX_JOBS = 10
 _APP_URL = "https://jobshaman.cz"
 _DIGEST_WINDOW_MINUTES = 20
-_DIGEST_LATE_GRACE_MINUTES = 180
 _DIGEST_LOOKBACK_HOURS = 36
 _REMOTE_ONLY_FLAGS = ["remote", "remote-first", "work from home", "home office", "homeoffice", "fully remote"]
 _TIMEZONE_TO_COUNTRY = {
@@ -318,7 +317,6 @@ def _should_send_now(last_sent: Optional[str], digest_time: time, tz_name: str) 
     today = now_local.date()
     window_start = datetime.combine(today, digest_time, tzinfo=tz)
     window_end = window_start + timedelta(minutes=_DIGEST_WINDOW_MINUTES)
-    late_grace_end = window_start + timedelta(minutes=_DIGEST_LATE_GRACE_MINUTES)
 
     if last_sent:
         try:
@@ -337,8 +335,8 @@ def _should_send_now(last_sent: Optional[str], digest_time: time, tz_name: str) 
     if window_start <= now_local <= window_end:
         return True
 
-    # Allow a limited late send window to recover when the scheduler runs after the target time.
-    return window_start <= now_local <= late_grace_end
+    # If we missed the strict window and no digest was sent today, send on the next run.
+    return now_local > window_end
 
 
 def _candidate_location(candidate_profile) -> tuple[Optional[float], Optional[float]]:
