@@ -747,6 +747,17 @@ def _fetch_newest_jobs_relaxed(
         )
         if len(picks) >= limit:
             break
+            
+    # CRITICAL FALLBACK FIX: In relaxed grab, enforce the country code if it is known!
+    # Earlier we set allow_missing=True but we didn't filter strictly by country.
+    # To avoid AT jobs for CZ users, we will strictly require the country_code 
+    # instead of doing allow_missing if the preferred country is known.
+    if country_code:
+        filtered_picks = [p for p in picks if _job_in_country(p, country_code, allow_missing=False)]
+        # Only use strict filtering if we found enough jobs, otherwise keep all picks
+        if len(filtered_picks) >= limit // 2:
+            picks = filtered_picks
+            
     if not picks and lookback_hours:
         return _fetch_newest_jobs_relaxed(
             country_code=country_code,
@@ -781,175 +792,184 @@ def run_daily_job_digest() -> None:
     rows = [r for r in (resp.data or []) if isinstance(r, dict)]
     print(f"📬 Daily digest candidates loaded: {len(rows)}")
     for row in rows:
-        user_id = str(row.get("id") or "")
-        email = str(row.get("email") or "")
-        email_enabled = bool(row.get("daily_digest_enabled")) and bool(email)
-        push_enabled = bool(row.get("daily_digest_push_enabled")) and is_push_configured()
-        if not user_id or (not email_enabled and not push_enabled):
-            print(
-                f"⏭️ [Digest] skipped user={user_id}: "
-                f"email_enabled={email_enabled}, push_enabled={push_enabled}, has_email={bool(email)}"
-            )
-            continue
-
-        digest_time = _parse_digest_time(str(row.get("daily_digest_time") or "") or None)
-        digest_tz = str(row.get("daily_digest_timezone") or _DEFAULT_TZ)
-        last_sent = str(row.get("daily_digest_last_sent_at") or "") or None
-        if not _should_send_now(last_sent, digest_time, digest_tz):
-            print(
-                f"⏭️ [Digest] outside window user={user_id}: "
-                f"time={digest_time}, tz={digest_tz}, last_sent={last_sent}"
-            )
-            continue
-
-        candidate_profile = row.get("candidate_profiles")
-        c_lat, c_lng = _candidate_location(candidate_profile)
-        c_address = _candidate_address(candidate_profile)
-        digest_country_code = _resolve_digest_country_code(
-            preferred_country_code=str(row.get("preferred_country_code") or "") or None,
-            preferred_locale=str(row.get("preferred_locale") or "") or None,
-            candidate_profile=candidate_profile,
-            c_lat=c_lat,
-            c_lng=c_lng,
-            digest_timezone=digest_tz,
-        )
-        locale = _resolve_locale(str(row.get("preferred_locale") or "") or None, digest_country_code)
-        allowed_languages = _allowed_language_codes(locale, digest_country_code)
-        has_matching_signal = _candidate_has_matching_signal(candidate_profile)
-        profile_obj = _profile_obj(candidate_profile)
-        role_title = str(profile_obj.get("job_title") or "").strip() if isinstance(profile_obj, dict) else ""
-
-        digest_jobs: List[Dict] = []
-        role_jobs: List[Dict] = []
-        if role_title:
-            role_jobs = _fetch_role_focused_jobs(
-                role_title=role_title,
-                c_lat=c_lat,
-                c_lng=c_lng,
-                address=c_address,
-                country_code=digest_country_code,
-                allowed_language_codes=allowed_languages,
-                limit=_DIGEST_MAX_JOBS,
-            )
-            digest_jobs = role_jobs
-        if has_matching_signal:
-            # Fetch broader set, then prioritize local+relevant entries for digest.
-            recs = recommend_jobs_for_user(user_id=user_id, limit=120, allow_cache=True)
-            digest_jobs = _pick_personalized_digest_jobs(
-                recs=recs,
-                c_lat=c_lat,
-                c_lng=c_lng,
-                country_code=digest_country_code,
-                allowed_language_codes=allowed_languages,
-                candidate_profile=candidate_profile,
-                limit=_DIGEST_MAX_JOBS,
-            )
-            if role_jobs:
-                digest_jobs = _merge_digest_jobs(role_jobs, digest_jobs, _DIGEST_MAX_JOBS)
-
-        # Fallback for users with incomplete profiles (or empty personalized result):
-        # deliver newest local jobs without AI match percentages.
-        if not digest_jobs:
-            digest_jobs = _fetch_newest_local_jobs(
-                c_lat=c_lat,
-                c_lng=c_lng,
-                address=c_address,
-                country_code=digest_country_code,
-                allowed_language_codes=allowed_languages,
-                limit=_DIGEST_MAX_JOBS,
-            )
-            if not digest_jobs:
+        try:
+            user_id = str(row.get("id") or "")
+            email = str(row.get("email") or "")
+            email_enabled = bool(row.get("daily_digest_enabled")) and bool(email)
+            push_enabled = bool(row.get("daily_digest_push_enabled")) and is_push_configured()
+            if not user_id or (not email_enabled and not push_enabled):
                 print(
-                    f"⚠️ [Digest] strict/local selection returned 0 jobs for user={user_id}; "
-                    "using relaxed fallback."
+                    f"⏭️ [Digest] skipped user={user_id}: "
+                    f"email_enabled={email_enabled}, push_enabled={push_enabled}, has_email={bool(email)}"
                 )
-                digest_jobs = _fetch_newest_jobs_relaxed(
+                continue
+    
+            digest_time = _parse_digest_time(str(row.get("daily_digest_time") or "") or None)
+            digest_tz = str(row.get("daily_digest_timezone") or _DEFAULT_TZ)
+            last_sent = str(row.get("daily_digest_last_sent_at") or "") or None
+            if not _should_send_now(last_sent, digest_time, digest_tz):
+                print(
+                    f"⏭️ [Digest] outside window user={user_id}: "
+                    f"time={digest_time}, tz={digest_tz}, last_sent={last_sent}"
+                )
+                continue
+    
+            candidate_profile = row.get("candidate_profiles")
+            c_lat, c_lng = _candidate_location(candidate_profile)
+            c_address = _candidate_address(candidate_profile)
+            digest_country_code = _resolve_digest_country_code(
+                preferred_country_code=str(row.get("preferred_country_code") or "") or None,
+                preferred_locale=str(row.get("preferred_locale") or "") or None,
+                candidate_profile=candidate_profile,
+                c_lat=c_lat,
+                c_lng=c_lng,
+                digest_timezone=digest_tz,
+            )
+            locale = _resolve_locale(str(row.get("preferred_locale") or "") or None, digest_country_code)
+            allowed_languages = _allowed_language_codes(locale, digest_country_code)
+            has_matching_signal = _candidate_has_matching_signal(candidate_profile)
+            profile_obj = _profile_obj(candidate_profile)
+            role_title = str(profile_obj.get("job_title") or "").strip() if isinstance(profile_obj, dict) else ""
+    
+            digest_jobs: List[Dict] = []
+            role_jobs: List[Dict] = []
+            if role_title:
+                role_jobs = _fetch_role_focused_jobs(
+                    role_title=role_title,
+                    c_lat=c_lat,
+                    c_lng=c_lng,
+                    address=c_address,
                     country_code=digest_country_code,
                     allowed_language_codes=allowed_languages,
                     limit=_DIGEST_MAX_JOBS,
                 )
-
-        if not digest_jobs:
-            print(f"⏭️ [Digest] skipped user={user_id}: no jobs available even after relaxed fallback")
-            continue
-
-        unsubscribe_url = ""
-        if email_enabled:
-            unsubscribe_token = make_unsubscribe_token(str(user_id), str(email))
-            unsubscribe_url = f"{API_BASE_URL}/email/unsubscribe?uid={user_id}&token={unsubscribe_token}"
-
-        email_ok = False
-        if email_enabled:
-            email_ok = send_daily_digest_email(
-                to_email=str(email),
-                full_name=str(row.get("full_name") or ""),
-                locale=locale,
-                jobs=digest_jobs,
-                app_url=_APP_URL,
-                unsubscribe_url=unsubscribe_url,
-            )
-
-        push_ok = False
-        if push_enabled:
-            try:
-                subs_resp = (
-                    supabase.table("push_subscriptions")
-                    .select("endpoint,p256dh,auth")
-                    .eq("user_id", user_id)
-                    .eq("is_active", True)
-                    .execute()
-                )
-                subs = [r for r in (subs_resp.data or []) if isinstance(r, dict)]
-                if subs:
-                    titles = [str(j.get("title")) for j in digest_jobs if j.get("title")]
-                    body = "\n".join(titles[:5])
-                    push_copy = {
-                        "cs": {
-                            "title": "JobShaman – denní digest",
-                            "fallback": "Máte nový přehled pracovních nabídek.",
-                        },
-                        "en": {
-                            "title": "JobShaman – daily digest",
-                            "fallback": "Your daily job matches are ready.",
-                        },
-                        "de": {
-                            "title": "JobShaman – täglicher Digest",
-                            "fallback": "Ihr täglicher Job‑Digest ist bereit.",
-                        },
-                        "pl": {
-                            "title": "JobShaman – dzienny digest",
-                            "fallback": "Twoje dzienne dopasowania są gotowe.",
-                        },
-                        "sk": {
-                            "title": "JobShaman – denný digest",
-                            "fallback": "Váš denný prehľad ponúk je pripravený.",
-                        },
-                    }
-                    copy = push_copy.get(locale, push_copy["cs"])
-                    payload = json.dumps(
-                        {
-                            "title": copy["title"],
-                            "body": body or copy["fallback"],
-                            "url": f"{_APP_URL}/digest",
-                        }
+                digest_jobs = role_jobs
+            if has_matching_signal:
+                # Fetch broader set, then prioritize local+relevant entries for digest.
+                try:
+                    recs = recommend_jobs_for_user(user_id=user_id, limit=120, allow_cache=True)
+                    digest_jobs = _pick_personalized_digest_jobs(
+                        recs=recs,
+                        c_lat=c_lat,
+                        c_lng=c_lng,
+                        country_code=digest_country_code,
+                        allowed_language_codes=allowed_languages,
+                        candidate_profile=candidate_profile,
+                        limit=_DIGEST_MAX_JOBS,
                     )
-                    for sub in subs:
-                        send_push(sub, payload)
-                    push_ok = True
-            except Exception as exc:
-                print(f"⚠️ Push digest failed for {user_id}: {exc}")
+                except Exception as ai_exc:
+                    print(f"⚠️ [Digest] AI recommendation failed for user {user_id}: {ai_exc} - dropping to fallback")
+                    recs = []
+                    digest_jobs = []
 
-        # Mark digest as sent only when the enabled channel actually succeeded.
-        # This prevents email-enabled users from being marked as "sent" when only push worked.
-        sent_successfully = (email_enabled and email_ok) or (push_enabled and push_ok and not email_enabled)
-
-        if sent_successfully:
-            try:
-                supabase.table("profiles").update({"daily_digest_last_sent_at": now_utc_iso}).eq("id", user_id).execute()
-            except Exception as exc:
-                print(f"⚠️ Failed to update daily_digest_last_sent_at for {user_id}: {exc}")
-        else:
-            print(
-                f"⚠️ Digest not marked as sent for {user_id}: "
-                f"email_enabled={email_enabled}, email_ok={email_ok}, push_enabled={push_enabled}, push_ok={push_ok}"
-            )
+                if role_jobs:
+                    digest_jobs = _merge_digest_jobs(role_jobs, digest_jobs, _DIGEST_MAX_JOBS)
+    
+            # Fallback for users with incomplete profiles (or empty personalized result):
+            # deliver newest local jobs without AI match percentages.
+            if not digest_jobs:
+                digest_jobs = _fetch_newest_local_jobs(
+                    c_lat=c_lat,
+                    c_lng=c_lng,
+                    address=c_address,
+                    country_code=digest_country_code,
+                    allowed_language_codes=allowed_languages,
+                    limit=_DIGEST_MAX_JOBS,
+                )
+                if not digest_jobs:
+                    print(
+                        f"⚠️ [Digest] strict/local selection returned 0 jobs for user={user_id}; "
+                        "using relaxed fallback."
+                    )
+                    digest_jobs = _fetch_newest_jobs_relaxed(
+                        country_code=digest_country_code,
+                        allowed_language_codes=allowed_languages,
+                        limit=_DIGEST_MAX_JOBS,
+                    )
+    
+            if not digest_jobs:
+                print(f"⏭️ [Digest] skipped user={user_id}: no jobs available even after relaxed fallback")
+                continue
+    
+            unsubscribe_url = ""
+            if email_enabled:
+                unsubscribe_token = make_unsubscribe_token(str(user_id), str(email))
+                unsubscribe_url = f"{API_BASE_URL}/email/unsubscribe?uid={user_id}&token={unsubscribe_token}"
+    
+            email_ok = False
+            if email_enabled:
+                email_ok = send_daily_digest_email(
+                    to_email=str(email),
+                    full_name=str(row.get("full_name") or ""),
+                    locale=locale,
+                    jobs=digest_jobs,
+                    app_url=_APP_URL,
+                    unsubscribe_url=unsubscribe_url,
+                )
+    
+            push_ok = False
+            if push_enabled:
+                try:
+                    subs_resp = (
+                        supabase.table("push_subscriptions")
+                        .select("endpoint,p256dh,auth")
+                        .eq("user_id", user_id)
+                        .eq("is_active", True)
+                        .execute()
+                    )
+                    subs = [r for r in (subs_resp.data or []) if isinstance(r, dict)]
+                    if subs:
+                        titles = [str(j.get("title")) for j in digest_jobs if j.get("title")]
+                        body = "\n".join(titles[:5])
+                        push_copy = {
+                            "cs": {
+                                "title": "JobShaman \u2013 denní digest",
+                                "fallback": "Máte nový přehled pracovních nabídek.",
+                            },
+                            "en": {
+                                "title": "JobShaman \u2013 daily digest",
+                                "fallback": "Your daily job matches are ready.",
+                            },
+                            "de": {
+                                "title": "JobShaman \u2013 täglicher Digest",
+                                "fallback": "Ihr täglicher Job\u2011Digest ist bereit.",
+                            },
+                            "pl": {
+                                "title": "JobShaman \u2013 dzienny digest",
+                                "fallback": "Twoje dzienne dopasowania są gotowe.",
+                            },
+                            "sk": {
+                                "title": "JobShaman \u2013 denný digest",
+                                "fallback": "Váš denný prehľad ponúk je pripravený.",
+                            },
+                        }
+                        copy = push_copy.get(locale, push_copy["cs"])
+                        payload = json.dumps(
+                            {
+                                "title": copy["title"],
+                                "body": body or copy["fallback"],
+                                "url": f"{_APP_URL}/digest",
+                            }
+                        )
+                        for sub in subs:
+                            send_push(sub, payload)
+                        push_ok = True
+                except Exception as exc:
+                    print(f"⚠️ Push digest failed for {user_id}: {exc}")
+    
+            # Mark digest as sent only when the enabled channel actually succeeded.
+            # This prevents email-enabled users from being marked as "sent" when only push worked.
+            sent_successfully = (email_enabled and email_ok) or (push_enabled and push_ok and not email_enabled)
+    
+            if sent_successfully:
+                try:
+                    supabase.table("profiles").update({"daily_digest_last_sent_at": now_utc_iso}).eq("id", user_id).execute()
+                except Exception as exc:
+                    print(f"⚠️ Failed to update daily_digest_last_sent_at for {user_id}: {exc}")
+            else:
+                print(
+                    f"⚠️ Digest not marked as sent for {user_id}: "
+                    f"email_enabled={email_enabled}, email_ok={email_ok}, push_enabled={push_enabled}, push_ok={push_ok}"
+                )
+        except Exception as outer_exc:
+            print(f"❌ CRITICAL ERROR processing digest for user {row.get('id')}: {outer_exc}")
