@@ -52,9 +52,7 @@ import NebulaOfPotential from './three/NebulaOfPotential';
 import CulturalNorthstarCompass from './three/CulturalNorthstarCompass';
 import AnalyticsService from '../services/analyticsService';
 import JcfpmEntryCard from './jcfpm/JcfpmEntryCard';
-import JcfpmFlow from './jcfpm/JcfpmFlow';
 import { readJcfpmDraft } from '../services/jcfpmSessionState';
-import { mapJcfpmToJhiPreferencesWithExplanation } from '../services/jcfpmService';
 import { clearJcfpmDraft } from '../services/jcfpmSessionState';
 
 import { useTranslation } from 'react-i18next';
@@ -131,10 +129,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     fixed: true,
   });
   const [narrativeStory, setNarrativeStory] = useState('');
-  const [jcfpmStarted, setJcfpmStarted] = useState(false);
-  const [jcfpmView, setJcfpmView] = useState<'form' | 'report'>('form');
-  const [jcfpmSection, setJcfpmSection] = useState<'full' | 'core' | 'deep'>('full');
-  const [jcfpmRunNonce, setJcfpmRunNonce] = useState(0);
   const [jcfpmSnapshot, setJcfpmSnapshot] = useState<JcfpmSnapshotV1 | null>(
     profile.preferences?.jcfpm_v1 || null
   );
@@ -288,14 +282,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     setHasJcfpmDraft(Boolean(readJcfpmDraft(profile.id)));
   }, [profile.preferences]);
 
-  useEffect(() => {
-    if (!jcfpmStarted || typeof document === 'undefined') return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [jcfpmStarted]);
 
   const buildFormDataFromProfile = (sourceProfile: UserProfile) => ({
     personal: {
@@ -938,28 +924,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     }
   };
 
-  const handleJcfpmPersist = async (snapshot: JcfpmSnapshotV1) => {
-    setJcfpmSnapshot(snapshot);
-    setHasJcfpmDraft(false);
-    const mapped = mapJcfpmToJhiPreferencesWithExplanation(
-      snapshot,
-      profile.jhiPreferences || createDefaultJHIPreferences()
-    );
-    const updatedProfile: UserProfile = {
-      ...profile,
-      preferences: {
-        ...profile.preferences,
-        jcfpm_v1: snapshot,
-        jcfpm_jhi_adjustment_v1: mapped.explanation,
-      },
-      jhiPreferences: mapped.preferences,
-    };
-    await Promise.resolve(onChange(updatedProfile, true));
-    AnalyticsService.trackEvent('jcfpm_profile_saved', {
-      schema_version: snapshot.schema_version,
-      confidence: snapshot.confidence,
-    });
-  };
 
   const handlePasswordChange = async () => {
     if (isChangingPassword) return;
@@ -1009,7 +973,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   };
 
   return (
-    <div className={`min-h-screen bg-slate-50 dark:bg-slate-900 ${jcfpmStarted ? 'overflow-hidden' : ''}`}>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
       <div className="max-w-6xl mx-auto py-8 space-y-6">
         {/* Header */}
         <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
@@ -2520,33 +2484,27 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   hasSnapshot={Boolean(jcfpmSnapshot)}
                   lastUpdatedAt={jcfpmSnapshot?.completed_at}
                   onResume={() => {
-                    setJcfpmSection('full');
-                    setJcfpmView('form');
-                    setJcfpmRunNonce((prev) => prev + 1);
-                    setJcfpmStarted(true);
+                    const lng = (i18n.language || 'cs').split('-')[0];
+                    window.location.href = `/${lng}/profile/jcfpm`;
                   }}
                   onRestart={() => {
                     clearJcfpmDraft(profile.id);
-                    setJcfpmSection('full');
-                    setJcfpmView('form');
-                    setJcfpmRunNonce((prev) => prev + 1);
-                    setJcfpmStarted(true);
+                    const lng = (i18n.language || 'cs').split('-')[0];
+                    window.location.href = `/${lng}/profile/jcfpm`;
                   }}
                   onStartCore={() => {
-                    setJcfpmSection('core');
-                    setJcfpmView('form');
-                    setJcfpmRunNonce((prev) => prev + 1);
-                    setJcfpmStarted(true);
+                    // We could pass query params if we want to preserve section, 
+                    // but for now let's keep it simple.
+                    const lng = (i18n.language || 'cs').split('-')[0];
+                    window.location.href = `/${lng}/profile/jcfpm`;
                   }}
                   onStartDeep={() => {
-                    setJcfpmSection('deep');
-                    setJcfpmView('form');
-                    setJcfpmRunNonce((prev) => prev + 1);
-                    setJcfpmStarted(true);
+                    const lng = (i18n.language || 'cs').split('-')[0];
+                    window.location.href = `/${lng}/profile/jcfpm`;
                   }}
                   onView={() => {
-                    setJcfpmView('report');
-                    setJcfpmStarted(true);
+                    const lng = (i18n.language || 'cs').split('-')[0];
+                    window.location.href = `/${lng}/profile/jcfpm`;
                   }}
                   onUpgrade={() => {
                     if (profile.id) {
@@ -2572,8 +2530,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                               translateLegacyJhiReason(change.reason);
                             return (
                               <>
-                          <span className="font-semibold">{formatJhiFieldLabel(change.field)}</span>: {change.from} → {change.to}
-                          <span className="text-slate-500 dark:text-slate-400"> ({reasonText})</span>
+                                <span className="font-semibold">{formatJhiFieldLabel(change.field)}</span>: {change.from} → {change.to}
+                                <span className="text-slate-500 dark:text-slate-400"> ({reasonText})</span>
                               </>
                             );
                           })()}
@@ -2735,27 +2693,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         )}
       </div>
 
-      {jcfpmStarted && (
-        <div className="fixed inset-0 z-[95] bg-gradient-to-br from-emerald-50/90 via-sky-50/90 to-stone-50/90 dark:from-slate-950/95 dark:via-slate-900/95 dark:to-slate-950/95 backdrop-blur-md overflow-hidden">
-          <div className="h-full w-full overflow-y-auto p-3 sm:p-6 flex flex-col">
-            <div className="mx-auto w-full max-w-[1200px] rounded-3xl border border-emerald-100 dark:border-slate-700/60 bg-white/90 dark:bg-slate-900/90 shadow-[0_40px_120px_rgba(16,24,40,0.18)] dark:shadow-[0_40px_120px_rgba(2,6,23,0.6)]">
-              <JcfpmFlow
-                key={`jcfpm-flow-${jcfpmSection}-${jcfpmView}-${jcfpmRunNonce}`}
-                initialSnapshot={jcfpmSnapshot}
-                mode={jcfpmView}
-                section={jcfpmSection}
-                userId={profile.id}
-                isPremium={isPremium}
-                onPersist={handleJcfpmPersist}
-                onClose={() => {
-                  setJcfpmStarted(false);
-                  setHasJcfpmDraft(Boolean(readJcfpmDraft(profile.id)));
-                }}
-              />
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Account Deletion Confirmation Modal */}
       {showDeleteConfirm && (

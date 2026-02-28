@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Save, X, Volume2, VolumeX, Sparkles, Clock, GripVertical } from 'lucide-react';
-import { Reorder } from 'framer-motion';
+import { Reorder, motion } from 'framer-motion';
 import { JcfpmItem, JcfpmSnapshotV1, JcfpmDimensionId } from '../../types';
 import { fetchJcfpmItems, submitJcfpm } from '../../services/jcfpmService';
 import { clearJcfpmDraft, readJcfpmDraft, writeJcfpmDraft } from '../../services/jcfpmSessionState';
@@ -19,6 +19,7 @@ interface Props {
   isPremium?: boolean;
   onPersist: (snapshot: JcfpmSnapshotV1) => void | Promise<void>;
   onClose: () => void;
+  theme?: 'light' | 'dark';
 }
 
 const DIMENSION_IDS: JcfpmDimensionId[] = [
@@ -642,7 +643,7 @@ const LOCAL_JCFPM_PAYLOADS: Record<string, any> = {
   },
 };
 
-const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 'full', userId, useDraft = true, isPremium = false, onPersist, onClose }) => {
+const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 'full', userId, useDraft = true, isPremium = false, onPersist, onClose, theme = 'dark' }) => {
   const { i18n } = useTranslation();
   const locale = (i18n.language || 'cs').split('-')[0];
   const copy = useMemo(() => FLOW_COPY[locale] || FLOW_COPY.cs, [locale]);
@@ -660,7 +661,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
   const [snapshot, setSnapshot] = useState<JcfpmSnapshotV1 | null>(initialSnapshot || null);
   const aiRegenAttemptedForRef = useRef<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(false);
-  const [ambientEnabled, setAmbientEnabled] = useState(false);
+  const [ambientEnabled, setAmbientEnabled] = useState(() => section === 'full');
   const [showInterlude, setShowInterlude] = useState(false);
   const [autoJumped, setAutoJumped] = useState(false);
 
@@ -1497,40 +1498,25 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
   );
   const currentItemType = currentItem ? resolveItemType(currentItem) : 'likert';
 
-  const swipeStateRef = React.useRef<{ x: number; y: number; active: boolean }>({ x: 0, y: 0, active: false });
   const SWIPE_THRESHOLD_PX = 56;
   const SWIPE_MAX_VERTICAL_DRIFT_PX = 72;
-  const isInteractiveTouchTarget = (target: EventTarget | null): boolean => {
-    if (!(target instanceof Element)) return false;
-    return Boolean(
-      target.closest('button, input, select, textarea, a, [role="button"], [data-no-swipe="true"]')
-    );
-  };
-  const handleQuestionTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+  // Framer Motion Swipe logic
+  const handleDragEnd = (_: any, info: any) => {
     if (viewMode !== 'form' || showInterlude) return;
     if (currentItemType === 'ordering' || currentItemType === 'drag_drop') return;
-    if (event.touches.length !== 1) return;
-    if (isInteractiveTouchTarget(event.target)) return;
-    const touch = event.touches[0];
-    swipeStateRef.current = { x: touch.clientX, y: touch.clientY, active: true };
-  };
-  const handleQuestionTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
-    if (!swipeStateRef.current.active) return;
-    swipeStateRef.current.active = false;
-    const touch = event.changedTouches[0];
-    if (!touch) return;
-    const deltaX = touch.clientX - swipeStateRef.current.x;
-    const deltaY = touch.clientY - swipeStateRef.current.y;
+
+    const deltaX = info.offset.x;
+    const deltaY = info.offset.y;
+
     if (Math.abs(deltaY) > SWIPE_MAX_VERTICAL_DRIFT_PX) return;
     if (Math.abs(deltaX) < SWIPE_THRESHOLD_PX || Math.abs(deltaY) > Math.abs(deltaX)) return;
 
+    // User request: doprava (right/deltaX > 0) -> další (next), doleva (left/deltaX < 0) -> zpět (back)
     if (deltaX > 0) {
       if (canAdvance && !isSubmitting && !itemsError && !isLoadingItems) {
         void handleNext();
       }
-      return;
-    }
-    if (deltaX < 0 && stepIndex > 0) {
+    } else if (deltaX < 0 && stepIndex > 0) {
       handleBack();
     }
   };
@@ -1557,7 +1543,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
   };
 
   return (
-    <div className={`relative jcfpm-shell jcfpm-ambient ${ambientEnabled ? 'is-ambient-on' : ''} ${isDeepDive ? 'is-deep-dive' : 'is-standard'} ${isFocusMode ? 'is-focus-mode' : ''}`}>
+    <div className={`relative jcfpm-shell jcfpm-ambient flex flex-col ${ambientEnabled ? 'is-ambient-on' : ''} ${isDeepDive ? 'is-deep-dive' : 'is-standard'} ${isFocusMode ? 'is-focus-mode' : ''} ${section === 'full' ? 'is-immersive-full w-full h-full min-h-screen rounded-none border-none shadow-none max-w-none m-0' : ''}`}>
       <div className={`jcfpm-particles-layer ${ambientEnabled ? 'is-on' : ''}`} aria-hidden="true">
         <SceneShell
           capability={sceneCapability}
@@ -1567,7 +1553,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
           glide
           glideIntensity={showInterlude ? 0.35 : 0.08}
         >
-          <JcfpmElegantParticles qualityTier={sceneCapability.qualityTier} interactive={!showInterlude} dimensionId={currentDim.id} />
+          <JcfpmElegantParticles qualityTier={sceneCapability.qualityTier} interactive={!showInterlude} dimensionId={currentDim.id} theme={theme} />
         </SceneShell>
       </div>
 
@@ -1619,144 +1605,153 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
         </div>
       </div>
 
-      <div className="jcfpm-progress-track mt-3 h-2 w-full overflow-hidden rounded-full font-sans">
+      <div className="jcfpm-progress-track mt-3 h-2 w-full overflow-hidden rounded-full font-sans flex-shrink-0">
         <div className={`jcfpm-progress-fill h-full rounded-full transition-all duration-700 ${isDeepDive ? 'is-deep-dive' : 'is-standard'}`} style={{ width: `${progress}%` }} />
       </div>
 
-      {viewMode === 'report' && snapshot ? (
-        <div className="mt-4">
-          <JcfpmReportPanel
-            snapshot={snapshot}
-            showAdvancedReport={Boolean(isPremium || snapshot?.ai_report)}
-          />
-        </div>
-      ) : (
-        <div className="jcfpm-form-layout">
-          <button
-            type="button"
-            onClick={handleBack}
-            disabled={stepIndex === 0}
-            className="jcfpm-side-nav-button is-prev disabled:opacity-40"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            {copy.back}
-          </button>
+      <div className="flex-1 min-h-0 overflow-y-auto mt-4 pr-1 -mr-1 custom-scrollbar">
+        {viewMode === 'report' && snapshot ? (
+          <div className="mt-4">
+            <JcfpmReportPanel
+              snapshot={snapshot}
+              showAdvancedReport={Boolean(isPremium || snapshot?.ai_report)}
+            />
+          </div>
+        ) : (
+          <div className="jcfpm-form-layout">
+            <button
+              type="button"
+              onClick={handleBack}
+              disabled={stepIndex === 0}
+              className="jcfpm-side-nav-button is-prev disabled:opacity-40"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {copy.back}
+            </button>
 
-          <div className="jcfpm-form-stage">
-            <div className="mt-4 jcfpm-step" key={`jcfpm-step-${stepIndex}`}>
-              {showInterlude && (
-                <div className="jcfpm-interlude">
-                  <div className="jcfpm-interlude-card">
-                    <div className="text-xs uppercase tracking-[0.2em] text-cyan-600">{copy.newDimension}</div>
-                    <div className="mt-2 jcfpm-heading text-lg font-semibold text-slate-900 dark:text-white">{interludes[currentDim.id]?.title || currentDim.title}</div>
-                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{currentDim.subtitle}</p>
-                    <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
-                      {interludes[currentDim.id]?.body}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => setShowInterlude(false)}
-                      className="mt-5 jcfpm-primary-button"
-                    >
-                      {copy.continue}
-                      <ArrowRight className="h-4 w-4" />
-                    </button>
-                  </div>
-                </div>
-              )}
-              <div className={`jcfpm-panel ${showInterlude ? 'is-blurred' : ''}`}>
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <div className="jcfpm-heading text-base font-semibold text-slate-900 dark:text-white">{currentDim.title}</div>
-                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{currentDim.subtitle}</p>
-                    {!isFocusMode ? (
-                      <p className="mt-2 text-sm text-slate-700 dark:text-slate-300 jcfpm-story">
-                        {copy.stories[currentDim.id] || ''}
+            <div className="jcfpm-form-stage">
+              <div className="mt-4 jcfpm-step" key={`jcfpm-step-${stepIndex}`}>
+                {showInterlude && (
+                  <div className="jcfpm-interlude">
+                    <div className="jcfpm-interlude-card">
+                      <div className="text-xs uppercase tracking-[0.2em] text-cyan-600">{copy.newDimension}</div>
+                      <div className="mt-2 jcfpm-heading text-lg font-semibold text-slate-900 dark:text-white">{interludes[currentDim.id]?.title || currentDim.title}</div>
+                      <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{currentDim.subtitle}</p>
+                      <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
+                        {interludes[currentDim.id]?.body}
                       </p>
-                    ) : null}
-                    {isDeepDive && (
-                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                        <span className="jcfpm-timer-pill">
-                          <span className="jcfpm-pulse-dot" aria-hidden="true" />
-                          <Clock className="h-3.5 w-3.5 text-cyan-600" />
-                          <span>{copy.timerLabel}: {Math.floor(elapsedMs / 60000).toString().padStart(2, '0')}:{Math.floor((elapsedMs % 60000) / 1000).toString().padStart(2, '0')}</span>
-                        </span>
-                        <span className="jcfpm-timer-note dark:text-slate-400">{copy.timerNote}</span>
-                      </div>
-                    )}
-                  </div>
-                  <div className="jcfpm-dim-badge">
-                    {currentDimAnswered} / {currentDimQuestionCount}
-                  </div>
-                </div>
-                {currentItemType === 'likert' && (
-                  <div className={`mt-3 jcfpm-legend ${isFocusMode ? 'hidden' : ''}`}>
-                    {copy.legendLikert}
-                  </div>
-                )}
-                {isLoadingItems ? (
-                  <div className="mt-4 rounded-xl border border-cyan-100 bg-white dark:bg-slate-850 p-4 text-sm text-slate-500 shadow-sm">
-                    {copy.loadingQuestions}
-                  </div>
-                ) : itemsError ? (
-                  <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-                    {itemsError}
-                  </div>
-                ) : (
-                  <div className={`mt-4 grid gap-3 ${showInterlude ? 'pointer-events-none' : ''}`}>
-                    {currentItem ? (
-                      <div
-                        className="jcfpm-question jcfpm-question-animated"
-                        onTouchStart={handleQuestionTouchStart}
-                        onTouchEnd={handleQuestionTouchEnd}
+                      <button
+                        type="button"
+                        onClick={() => setShowInterlude(false)}
+                        className="mt-5 jcfpm-primary-button"
                       >
-                        <div className="jcfpm-question-title">{resolvePrompt(currentItem)}</div>
-                        {resolveSubdimension(currentItem) ? (
-                          <div className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">{resolveSubdimension(currentItem)}</div>
-                        ) : null}
-                        {renderItemBody()}
-                      </div>
-                    ) : null}
+                        {copy.continue}
+                        <ArrowRight className="h-4 w-4" />
+                      </button>
+                    </div>
                   </div>
                 )}
-                <div className={`mt-4 jcfpm-timeline ${isFocusMode ? 'hidden' : ''}`}>
-                  {activeDimensions.map((dim) => (
-                    <div key={dim.id} className={`jcfpm-timeline-pill ${dim.id === currentDim.id ? 'is-active' : ''}`}>
-                      <span className="font-semibold">{dim.title}</span>
-                      <span className="text-[11px] text-slate-500">
-                        {answeredByDimension[dim.id] || 0}/{(sectionItemsByDimension[dim.id] || []).length}
-                      </span>
+                <div className={`jcfpm-panel ${showInterlude ? 'is-blurred' : ''}`}>
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div className="jcfpm-heading text-base font-semibold text-slate-900 dark:text-white">{currentDim.title}</div>
+                      <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{currentDim.subtitle}</p>
+                      {!isFocusMode ? (
+                        <p className="mt-2 text-sm text-slate-700 dark:text-slate-300 jcfpm-story">
+                          {copy.stories[currentDim.id] || ''}
+                        </p>
+                      ) : null}
+                      {isDeepDive && (
+                        <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                          <span className="jcfpm-timer-pill">
+                            <span className="jcfpm-pulse-dot" aria-hidden="true" />
+                            <Clock className="h-3.5 w-3.5 text-cyan-600" />
+                            <span>{copy.timerLabel}: {Math.floor(elapsedMs / 60000).toString().padStart(2, '0')}:{Math.floor((elapsedMs % 60000) / 1000).toString().padStart(2, '0')}</span>
+                          </span>
+                          <span className="jcfpm-timer-note dark:text-slate-400">{copy.timerNote}</span>
+                        </div>
+                      )}
                     </div>
-                  ))}
+                    <div className="jcfpm-dim-badge">
+                      {currentDimAnswered} / {currentDimQuestionCount}
+                    </div>
+                  </div>
+                  {currentItemType === 'likert' && (
+                    <div className={`mt-3 jcfpm-legend ${isFocusMode ? 'hidden' : ''}`}>
+                      {copy.legendLikert}
+                    </div>
+                  )}
+                  {isLoadingItems ? (
+                    <div className="mt-4 rounded-xl border border-cyan-100 bg-white dark:bg-slate-850 p-4 text-sm text-slate-500 shadow-sm">
+                      {copy.loadingQuestions}
+                    </div>
+                  ) : itemsError ? (
+                    <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                      {itemsError}
+                    </div>
+                  ) : (
+                    <div className={`mt-4 grid gap-3 ${showInterlude ? 'pointer-events-none' : ''}`}>
+                      {currentItem ? (
+                        <motion.div
+                          key={`msg-${currentItem.id}`}
+                          layout
+                          initial={{ opacity: 0, x: 20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          drag="x"
+                          dragConstraints={{ left: 0, right: 0 }}
+                          dragElastic={0.1}
+                          onDragEnd={handleDragEnd}
+                          className="jcfpm-question jcfpm-question-animated cursor-grab active:cursor-grabbing"
+                        >
+                          <div className="jcfpm-question-title">{resolvePrompt(currentItem)}</div>
+                          {resolveSubdimension(currentItem) ? (
+                            <div className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">{resolveSubdimension(currentItem)}</div>
+                          ) : null}
+                          {renderItemBody()}
+                        </motion.div>
+                      ) : null}
+                    </div>
+                  )}
+                  <div className={`mt-4 jcfpm-timeline ${isFocusMode ? 'hidden' : ''}`}>
+                    {activeDimensions.map((dim) => (
+                      <div key={dim.id} className={`jcfpm-timeline-pill ${dim.id === currentDim.id ? 'is-active' : ''}`}>
+                        <span className="font-semibold">{dim.title}</span>
+                        <span className="text-[11px] text-slate-500">
+                          {answeredByDimension[dim.id] || 0}/{(sectionItemsByDimension[dim.id] || []).length}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <button
-            type="button"
-            onClick={handleNext}
-            disabled={!canAdvance || isSubmitting || Boolean(itemsError) || isLoadingItems}
-            className="jcfpm-side-nav-button is-next disabled:opacity-50"
-          >
-            {stepIndex === orderedItems.length - 1 ? (
-              <>
-                <Save className="h-4 w-4" />
-                {isSubmitting
-                  ? copy.saving
-                  : section === 'full'
-                    ? copy.finishTest
-                    : copy.finishSection}
-              </>
-            ) : (
-              <>
-                {copy.next}
-                <ArrowRight className="h-4 w-4" />
-              </>
-            )}
-          </button>
-        </div>
-      )}
+            <button
+              type="button"
+              onClick={handleNext}
+              disabled={!canAdvance || isSubmitting || Boolean(itemsError) || isLoadingItems}
+              className="jcfpm-side-nav-button is-next disabled:opacity-50"
+            >
+              {stepIndex === orderedItems.length - 1 ? (
+                <>
+                  <Save className="h-4 w-4" />
+                  {isSubmitting
+                    ? copy.saving
+                    : section === 'full'
+                      ? copy.finishTest
+                      : copy.finishSection}
+                </>
+              ) : (
+                <>
+                  {copy.next}
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
 
       {viewMode !== 'form' ? (
         <div className="mt-5 flex items-center justify-end gap-3">

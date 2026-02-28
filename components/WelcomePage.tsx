@@ -22,7 +22,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   selectedBlogPostSlug,
   handleBlogPostSelect
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const handlePrimary = () => {
     if (onTryFree) {
@@ -310,14 +310,24 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
 
             <div className="flex flex-col sm:flex-row gap-4">
               <button
-                onClick={() => window.location.href = '/jcfpm'}
+                onClick={() => {
+                  const lng = (i18n.language || 'cs').split('-')[0];
+                  const target = `/${lng}/profile/jcfpm`;
+                  window.history.pushState({}, '', target);
+                  // Trigger a custom event that App.tsx can listen to if needed, 
+                  // or just rely on the fact that we'll likely need to trigger a re-render.
+                  // In this app, App.tsx doesn't seem to have a global listener for popstate yet for internal navigation,
+                  // but we can try to find if there's a better way.
+                  // For now, let's use the current behavior but with the correct URL.
+                  window.location.href = target;
+                }}
                 className="px-8 py-4 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
               >
                 {t('landing.jcfpm_promo.cta_try_it')}
                 <ArrowRight size={20} />
               </button>
 
-              {!onTryFree && (
+              {onTryFree && (
                 <button
                   onClick={onTryFree}
                   className="px-8 py-4 rounded-2xl border-2 border-slate-300 dark:border-slate-700 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"

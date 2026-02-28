@@ -7,6 +7,12 @@ from typing import Any
 from pymongo import ASCENDING, MongoClient
 from pymongo.collection import Collection
 
+try:
+    import certifi
+    ca = certifi.where()
+except ImportError:
+    ca = None
+
 from ..core import config
 from ..core.database import supabase
 
@@ -16,6 +22,27 @@ _POOL_METRICS = {
     "supabase_hits": 0,
     "fallback_count": 0,
 }
+
+_mongo_client: MongoClient | None = None
+
+def get_mongo_client() -> MongoClient:
+    global _mongo_client
+    if _mongo_client is None:
+        if not config.MONGODB_URI:
+            raise RuntimeError("MONGODB_URI missing")
+        
+        client_kwargs = {
+            "serverSelectionTimeoutMS": 5000,
+            "connectTimeoutMS": 10000,
+            "retryWrites": True,
+        }
+        
+        if ca:
+            client_kwargs["tlsCAFile"] = ca
+            
+        _mongo_client = MongoClient(config.MONGODB_URI, **client_kwargs)
+        
+    return _mongo_client
 
 
 @dataclass
@@ -58,9 +85,7 @@ def _fetch_items_from_supabase() -> list[dict]:
 
 
 def _mongo_collection() -> Collection:
-    if not config.MONGODB_URI:
-        raise RuntimeError("MONGODB_URI missing")
-    client = MongoClient(config.MONGODB_URI, serverSelectionTimeoutMS=3000)
+    client = get_mongo_client()
     db = client[config.MONGODB_DB]
     return db[config.MONGODB_JCFPM_COLLECTION]
 
@@ -93,60 +118,49 @@ def _fetch_items_from_mongo() -> list[dict]:
 
 
 def fetch_jcfpm_items() -> JcfpmItemsFetchResult:
+    """
+    Fetches all JCFPM items.
+    Tries MongoDB if configured, falls back to Supabase.
+    """
     _POOL_METRICS["requests_total"] += 1
     provider = config.JCFPM_ITEMS_PROVIDER
     started = time.perf_counter()
 
-    if provider == "supabase":
-        items = _fetch_items_from_supabase()
-        _POOL_METRICS["supabase_hits"] += 1
-        return JcfpmItemsFetchResult(
-            items=items,
-            source="supabase",
-            latency_ms=round((time.perf_counter() - started) * 1000),
-            fallback_used=False,
-        )
+    # Try Mongo first if auto/mongo
+    if provider in ("mongo", "auto") and config.MONGODB_URI:
+        try:
+            mongo_items = _fetch_items_from_mongo()
+            if mongo_items:
+                _POOL_METRICS["mongo_hits"] += 1
+                return JcfpmItemsFetchResult(
+                    items=mongo_items,
+                    source="mongo",
+                    latency_ms=round((time.perf_counter() - started) * 1000),
+                    fallback_used=False,
+                )
+            fallback_reason = "mongo_empty"
+        except Exception as exc:
+            if provider == "mongo":
+                raise RuntimeError(f"JCFPM pool unavailable (MongoDB error: {type(exc).__name__}: {str(exc)})")
+            fallback_reason = f"mongo_error:{type(exc).__name__}"
+            print(f"⚠️ JCFPM: Mongo failed, falling back: {fallback_reason}")
+    else:
+        fallback_reason = "provider_not_mongo"
 
-    if provider == "mongo":
-        items = _fetch_items_from_mongo()
-        _POOL_METRICS["mongo_hits"] += 1
-        return JcfpmItemsFetchResult(
-            items=items,
-            source="mongo",
-            latency_ms=round((time.perf_counter() - started) * 1000),
-            fallback_used=False,
-        )
-
-    # auto => Mongo primary + Supabase fallback
-    mongo_started = time.perf_counter()
+    # Fallback/Primary: Supabase
     try:
-        mongo_items = _fetch_items_from_mongo()
-        if mongo_items:
-            _POOL_METRICS["mongo_hits"] += 1
-            return JcfpmItemsFetchResult(
-                items=mongo_items,
-                source="mongo",
-                latency_ms=round((time.perf_counter() - mongo_started) * 1000),
-                fallback_used=False,
-            )
-        fallback_reason = "mongo_empty"
-    except Exception as exc:  # pragma: no cover - best effort diagnostics
-        fallback_reason = f"mongo_error:{type(exc).__name__}"
-
-    supa_started = time.perf_counter()
-    try:
+        supa_started = time.perf_counter()
         supa_items = _fetch_items_from_supabase()
         _POOL_METRICS["supabase_hits"] += 1
-        _POOL_METRICS["fallback_count"] += 1
         return JcfpmItemsFetchResult(
             items=supa_items,
             source="supabase",
             latency_ms=round((time.perf_counter() - supa_started) * 1000),
-            fallback_used=True,
-            fallback_reason=fallback_reason,
+            fallback_used=(provider == "auto"),
+            fallback_reason=fallback_reason if provider == "auto" else None,
         )
     except Exception as exc:
-        raise RuntimeError(f"Fetch failed: {fallback_reason} AND supabase_error:{type(exc).__name__}: {str(exc)}")
+        raise RuntimeError(f"JCFPM pool unavailable (Supabase error: {type(exc).__name__}: {str(exc)})")
 
 
 def jcfpm_pool_diagnostics() -> dict[str, Any]:

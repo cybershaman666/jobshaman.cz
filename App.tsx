@@ -38,6 +38,8 @@ import { sendWelcomeEmail } from './services/welcomeEmailService';
 import { useUserProfile } from './hooks/useUserProfile';
 import { usePaginatedJobs } from './hooks/usePaginatedJobs';
 import { BACKEND_URL, DEFAULT_USER_PROFILE, SEARCH_BACKEND_URL } from './constants';
+import { mapJcfpmToJhiPreferencesWithExplanation } from './services/jcfpmService';
+import { createDefaultJHIPreferences } from './services/profileDefaults';
 import {
     deriveActivationState,
     getNextActivationStep,
@@ -106,7 +108,17 @@ const JcfpmFlow = lazy(() => import('./components/jcfpm/JcfpmFlow'));
 export default function App() {
     const { t, i18n } = useTranslation();
     const vercelAnalyticsEnabled = import.meta.env.VITE_ENABLE_VERCEL_ANALYTICS === 'true';
-    const [theme, setTheme] = useState<'light' | 'dark'>('light');
+    const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+        if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem('theme');
+            if (stored === 'dark' || (!stored && window.matchMedia?.('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+                return 'dark';
+            }
+        }
+        document.documentElement.classList.remove('dark');
+        return 'light';
+    });
     const [selectedJobId, setSelectedJobIdState] = useState<string | null>(() => {
         const path = window.location.pathname;
         const parts = path.split('/').filter(Boolean);
@@ -192,6 +204,7 @@ export default function App() {
     const timeToValueTrackedRef = useRef(false);
     const welcomeEmailAttemptedRef = useRef(false);
     const passwordRecoveryInProgressRef = useRef(false);
+    const guestAuthPromptedRef = useRef(false);
 
 
     // Use custom hooks
@@ -206,21 +219,46 @@ export default function App() {
         deleteAccount,
         handleSessionRestoration
     } = useUserProfile();
-    const isImmersiveAssessmentRoute = (() => {
+    const normalizedPath = useMemo(() => {
         const supportedLocales = ['cs', 'en', 'de', 'pl', 'sk', 'at'];
         const parts = window.location.pathname.split('/').filter(Boolean);
         if (parts.length > 0 && supportedLocales.includes(parts[0])) {
             parts.shift();
         }
-        const normalizedPath = `/${parts.join('/')}`;
-        return normalizedPath === '/assessment-preview' || normalizedPath.startsWith('/assessment/') || normalizedPath === '/jcfpm';
-    })();
+        return `/${parts.join('/')}`;
+    }, [window.location.pathname]);
+
+    const isImmersiveAssessmentRoute = useMemo(() => {
+        if (viewState === ViewState.JCFPM || viewState === ViewState.ASSESSMENT) return true;
+        return normalizedPath === '/assessment-preview' ||
+            normalizedPath.startsWith('/assessment/') ||
+            normalizedPath === '/jcfpm' ||
+            normalizedPath === '/profile/jcfpm' ||
+            normalizedPath === '/profil/jcfpm';
+    }, [viewState, normalizedPath]);
     const usePageScrollLayout = !isImmersiveAssessmentRoute && viewState === ViewState.PROFILE;
     const userProfileRef = useRef<UserProfile>(userProfile);
 
     useEffect(() => {
         userProfileRef.current = userProfile;
     }, [userProfile]);
+
+    useEffect(() => {
+        if (!sessionCheckComplete) return;
+
+        const isJcfpmRoute = normalizedPath === '/jcfpm' ||
+            normalizedPath === '/profile/jcfpm' ||
+            normalizedPath === '/profil/jcfpm';
+
+        if (isJcfpmRoute && !userProfile.id && !guestAuthPromptedRef.current && !isAuthModalOpen) {
+            console.log('🚪 [App] JCFPM guest detected, prompting registration...');
+            guestAuthPromptedRef.current = true;
+            setAuthModalMode('register');
+            setIsAuthModalOpen(true);
+        } else if (!isJcfpmRoute) {
+            guestAuthPromptedRef.current = false;
+        }
+    }, [normalizedPath, sessionCheckComplete, userProfile.id, isAuthModalOpen]);
 
     const loadPendingEmailConfirmation = useCallback((): { email?: string } | null => {
         try {
@@ -913,21 +951,7 @@ export default function App() {
     }, [loadingMore, hasMore, isSearching, loadMoreJobs, isLoadingJobs, viewState]);
 
     useEffect(() => {
-        // Initial Theme Setup
-        let initialTheme = 'light';
-        try {
-            if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-                initialTheme = 'dark';
-            }
-        } catch (e) { }
-
-        if (initialTheme === 'dark') {
-            setTheme('dark');
-            document.documentElement.classList.add('dark');
-        } else {
-            setTheme('light');
-            document.documentElement.classList.remove('dark');
-        }
+        // Initial Theme handled by useState initializer to prevent flashes and race conditions
         // Job loading is driven by usePaginatedJobs; avoid forcing parallel initial reload here.
         const paymentStatus = checkPaymentStatus();
         if (paymentStatus === 'success') {
@@ -1038,8 +1062,17 @@ export default function App() {
                 setShowCompanyLanding(false);
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
-            } else if (parts[0] === 'profil') {
-                setViewState(ViewState.PROFILE);
+            } else if (parts[0] === 'profil' || parts[0] === 'profile') {
+                if (parts[1] === 'jcfpm') {
+                    setViewState(ViewState.JCFPM);
+                } else {
+                    setViewState(ViewState.PROFILE);
+                }
+                setShowCompanyLanding(false);
+                setSelectedJobId(null);
+                setSelectedBlogPostSlug(null);
+            } else if (parts[0] === 'jcfpm') {
+                setViewState(ViewState.JCFPM);
                 setShowCompanyLanding(false);
                 setSelectedJobId(null);
                 setSelectedBlogPostSlug(null);
@@ -1127,7 +1160,7 @@ export default function App() {
             } else if (viewState === ViewState.PROFILE) {
                 targetPath = `/${lng}/profil`;
             } else if (viewState === ViewState.JCFPM) {
-                targetPath = `/${lng}/jcfpm`;
+                targetPath = `/${lng}/profile/jcfpm`;
             }
 
             if (window.location.pathname !== targetPath) {
@@ -1364,10 +1397,10 @@ export default function App() {
     useEffect(() => {
         if (theme === 'dark') {
             document.documentElement.classList.add('dark');
-            localStorage.theme = 'dark';
+            localStorage.setItem('theme', 'dark');
         } else {
             document.documentElement.classList.remove('dark');
-            localStorage.theme = 'light';
+            localStorage.setItem('theme', 'light');
         }
     }, [theme]);
 
@@ -1858,24 +1891,45 @@ export default function App() {
 
         if (normalizedPath === '/admin') {
             return (
-                <AdminDashboard userProfile={userProfile} />
+                <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
+                    <AdminDashboard userProfile={userProfile} />
+                </div>
             );
         }
-        if (normalizedPath === '/jcfpm') {
-            const isGuest = sessionCheckComplete && !userProfile.id;
-            if (isGuest && !isAuthModalOpen) {
-                // Trigger registration modal if guest
-                setAuthModalMode('register');
-                setIsAuthModalOpen(true);
-            }
+        if (normalizedPath === '/jcfpm' || normalizedPath === '/profile/jcfpm') {
 
             return (
-                <div className="h-full overflow-hidden">
+                <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
                     <Suspense fallback={<div className="flex items-center justify-center p-12"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500"></div></div>}>
                         <JcfpmFlow
                             userId={userProfile.id || 'guest'}
-                            onPersist={(snapshot) => {
+                            isPremium={userProfile.subscription?.tier === 'premium'}
+                            section="full"
+                            theme={theme}
+                            onPersist={async (snapshot) => {
                                 console.log('JCFPM Persist:', snapshot);
+                                const mapped = mapJcfpmToJhiPreferencesWithExplanation(
+                                    snapshot,
+                                    userProfile.jhiPreferences || createDefaultJHIPreferences()
+                                );
+                                const updatedProfile: UserProfile = {
+                                    ...userProfile,
+                                    preferences: {
+                                        ...userProfile.preferences,
+                                        jcfpm_v1: snapshot,
+                                        jcfpm_jhi_adjustment_v1: mapped.explanation,
+                                    },
+                                    jhiPreferences: mapped.preferences,
+                                };
+                                await handleProfileUpdate(updatedProfile, true);
+                                void trackAnalyticsEvent({
+                                    event_type: 'jcfpm_profile_saved',
+                                    feature: 'jcfpm_v1',
+                                    metadata: {
+                                        schema_version: snapshot.schema_version,
+                                        confidence: snapshot.confidence,
+                                    },
+                                });
                             }}
                             onClose={() => {
                                 setViewState(ViewState.LIST);
@@ -1889,14 +1943,14 @@ export default function App() {
         }
         if (normalizedPath === '/assessment-preview') {
             return (
-                <div className="h-full overflow-hidden">
+                <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
                     <AssessmentPreviewPage />
                 </div>
             );
         }
         if (normalizedPath.startsWith('/assessment/')) {
             return (
-                <div className="h-full overflow-hidden">
+                <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
                     <InvitationLanding />
                 </div>
             );
@@ -2207,7 +2261,7 @@ export default function App() {
     };
 
     return (
-        <div className={`flex flex-col min-h-screen ${isImmersiveAssessmentRoute ? 'bg-slate-950 text-slate-100' : 'app-grid-bg text-slate-900 dark:text-white'} font-sans transition-colors duration-300 selection:bg-cyan-500/30 selection:text-cyan-900 dark:selection:text-cyan-100`}>
+        <div className={`flex flex-col min-h-screen ${isImmersiveAssessmentRoute ? (theme === 'dark' ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900') : 'app-grid-bg text-slate-900 dark:text-white'} font-sans transition-colors duration-300 selection:bg-cyan-500/30 selection:text-cyan-900 dark:selection:text-cyan-100`}>
             {!isImmersiveAssessmentRoute && (
                 <AppHeader
                     viewState={viewState}

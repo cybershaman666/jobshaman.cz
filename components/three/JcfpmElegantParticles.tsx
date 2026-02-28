@@ -6,6 +6,7 @@ interface Props {
   qualityTier?: 'low' | 'medium' | 'high';
   interactive?: boolean;
   dimensionId?: string;
+  theme?: 'light' | 'dark';
 }
 
 const PALETTES: Record<string, number[][]> = {
@@ -19,7 +20,7 @@ const PALETTES: Record<string, number[][]> = {
   deep_dive: [[0.10, 0.10, 0.25], [0.15, 0.15, 0.40], [0.20, 0.20, 0.60]], // Deep Blue/Navy
 };
 
-const JcfpmElegantParticles: React.FC<Props> = ({ qualityTier = 'medium', interactive = true, dimensionId }) => {
+const JcfpmElegantParticles: React.FC<Props> = ({ qualityTier = 'medium', interactive = true, dimensionId, theme = 'dark' }) => {
   const pointsRef = useRef<Points>(null);
   useThree();
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
@@ -47,13 +48,15 @@ const JcfpmElegantParticles: React.FC<Props> = ({ qualityTier = 'medium', intera
       speedsData[i] = 0.02 + Math.random() * 0.12;
 
       // Assign colors from palette
-      colorsData[idx] = palette[colorIdx][0];
-      colorsData[idx + 1] = palette[colorIdx][1];
-      colorsData[idx + 2] = palette[colorIdx][2];
+      // In light mode, particles need to be significantly darker to contrast with the white background
+      const colorMult = theme === 'light' ? 0.25 : 1.0;
+      colorsData[idx] = palette[colorIdx][0] * colorMult;
+      colorsData[idx + 1] = palette[colorIdx][1] * colorMult;
+      colorsData[idx + 2] = palette[colorIdx][2] * colorMult;
     }
 
     return { positions: positionsData, speeds: speedsData, colors: colorsData };
-  }, [count, dimensionId]);
+  }, [count, dimensionId, theme]);
 
   // Update mouse position for interactivity
   React.useEffect(() => {
@@ -125,7 +128,8 @@ const JcfpmElegantParticles: React.FC<Props> = ({ qualityTier = 'medium', intera
         size={qualityTier === 'low' ? 0.025 : qualityTier === 'high' ? 0.045 : 0.035}
         sizeAttenuation
         transparent
-        opacity={qualityTier === 'low' ? 0.35 : qualityTier === 'high' ? 0.48 : 0.42}
+        // Higher opacity in light mode ensures particles don't wash out
+        opacity={theme === 'light' ? 0.85 : (qualityTier === 'low' ? 0.35 : qualityTier === 'high' ? 0.48 : 0.42)}
         depthWrite={false}
         vertexColors
         fog={false}
