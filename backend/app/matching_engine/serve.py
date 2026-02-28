@@ -37,7 +37,7 @@ _SEARCH_V2_TIMEOUT_WARNING_LAST_EMITTED: Optional[datetime] = None
 _SEARCH_V2_TIMEOUT_COOLDOWN_UNTIL: Optional[datetime] = None
 _SEARCH_V2_TIMEOUT_COOLDOWN_SECONDS = 300
 _SEARCH_V2_PAGE_SIZE_MAX = 100
-_SEARCH_V2_TIMEOUT_RETRY_PAGE_SIZE = 25
+_SEARCH_V2_TIMEOUT_RETRY_STEPS = (60, 40, 25, 15)
 _JOBS_STATUS_WARNING_EMITTED = False
 _INTERNAL_SOURCE_MARKERS = ("jobshaman",)
 _EXTERNAL_LISTING_DOMAINS = (
@@ -743,33 +743,53 @@ def hybrid_search_jobs_v2(filters: Dict, page: int = 0, page_size: int = 50, use
         return fallback
     _SEARCH_V2_TIMEOUT_COOLDOWN_UNTIL = None
 
+    rpc_started = datetime.now(timezone.utc)
     try:
         resp = supabase.rpc("search_jobs_v2", rpc_payload).execute()
         rows = resp.data or []
         _SEARCH_V2_RPC_AVAILABLE = True
+        rpc_latency_ms = int((datetime.now(timezone.utc) - rpc_started).total_seconds() * 1000)
+        _log_search_v2_event(
+            "rpc_ok",
+            page=safe_page,
+            requested_page_size=requested_page_size,
+            effective_page_size=effective_page_size,
+            rpc_latency_ms=rpc_latency_ms,
+            row_count=len(rows),
+        )
     except Exception as exc:
         rpc_recovered = False
         msg = str(exc).lower()
         rpc_missing = "pgrst202" in msg or "could not find the function public.search_jobs_v2" in msg
         rpc_timeout = "57014" in msg or "statement timeout" in msg
-        if rpc_timeout and safe_page_size > _SEARCH_V2_TIMEOUT_RETRY_PAGE_SIZE:
-            retry_payload = dict(rpc_payload)
-            retry_payload["p_page_size"] = _SEARCH_V2_TIMEOUT_RETRY_PAGE_SIZE
-            try:
-                resp = supabase.rpc("search_jobs_v2", retry_payload).execute()
-                rows = resp.data or []
-                _SEARCH_V2_RPC_AVAILABLE = True
-                effective_page_size = _SEARCH_V2_TIMEOUT_RETRY_PAGE_SIZE
-                print(
-                    "⚠️ [Hybrid Search V2] RPC timeout recovered via reduced page size "
-                    f"({safe_page_size} -> {effective_page_size})."
-                )
-                rpc_recovered = True
-            except Exception as retry_exc:
-                exc = retry_exc
-                msg = str(exc).lower()
-                rpc_missing = "pgrst202" in msg or "could not find the function public.search_jobs_v2" in msg
-                rpc_timeout = "57014" in msg or "statement timeout" in msg
+        retry_steps = [size for size in _SEARCH_V2_TIMEOUT_RETRY_STEPS if size < safe_page_size]
+        if rpc_timeout and retry_steps:
+            for retry_size in retry_steps:
+                retry_payload = dict(rpc_payload)
+                retry_payload["p_page_size"] = retry_size
+                retry_started = datetime.now(timezone.utc)
+                try:
+                    resp = supabase.rpc("search_jobs_v2", retry_payload).execute()
+                    rows = resp.data or []
+                    _SEARCH_V2_RPC_AVAILABLE = True
+                    effective_page_size = retry_size
+                    retry_latency_ms = int((datetime.now(timezone.utc) - retry_started).total_seconds() * 1000)
+                    _log_search_v2_event(
+                        "rpc_timeout_recovered",
+                        from_page_size=safe_page_size,
+                        to_page_size=effective_page_size,
+                        retry_latency_ms=retry_latency_ms,
+                        row_count=len(rows),
+                    )
+                    rpc_recovered = True
+                    break
+                except Exception as retry_exc:
+                    exc = retry_exc
+                    msg = str(exc).lower()
+                    rpc_missing = "pgrst202" in msg or "could not find the function public.search_jobs_v2" in msg
+                    rpc_timeout = "57014" in msg or "statement timeout" in msg
+                    if not rpc_timeout:
+                        break
         if rpc_recovered:
             pass
         else:

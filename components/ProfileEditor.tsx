@@ -134,6 +134,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [jcfpmStarted, setJcfpmStarted] = useState(false);
   const [jcfpmView, setJcfpmView] = useState<'form' | 'report'>('form');
   const [jcfpmSection, setJcfpmSection] = useState<'full' | 'core' | 'deep'>('full');
+  const [jcfpmRunNonce, setJcfpmRunNonce] = useState(0);
   const [jcfpmSnapshot, setJcfpmSnapshot] = useState<JcfpmSnapshotV1 | null>(
     profile.preferences?.jcfpm_v1 || null
   );
@@ -2480,22 +2481,26 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   onResume={() => {
                     setJcfpmSection('full');
                     setJcfpmView('form');
+                    setJcfpmRunNonce((prev) => prev + 1);
                     setJcfpmStarted(true);
                   }}
                   onRestart={() => {
                     clearJcfpmDraft(profile.id);
                     setJcfpmSection('full');
                     setJcfpmView('form');
+                    setJcfpmRunNonce((prev) => prev + 1);
                     setJcfpmStarted(true);
                   }}
                   onStartCore={() => {
                     setJcfpmSection('core');
                     setJcfpmView('form');
+                    setJcfpmRunNonce((prev) => prev + 1);
                     setJcfpmStarted(true);
                   }}
                   onStartDeep={() => {
                     setJcfpmSection('deep');
                     setJcfpmView('form');
+                    setJcfpmRunNonce((prev) => prev + 1);
                     setJcfpmStarted(true);
                   }}
                   onView={() => {
@@ -2684,6 +2689,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
           <div className="h-full w-full overflow-y-auto p-3 sm:p-6 flex flex-col">
             <div className="mx-auto w-full max-w-[1200px] rounded-3xl border border-emerald-100 dark:border-slate-700/60 bg-white/90 dark:bg-slate-900/90 shadow-[0_40px_120px_rgba(16,24,40,0.18)] dark:shadow-[0_40px_120px_rgba(2,6,23,0.6)]">
               <JcfpmFlow
+                key={`jcfpm-flow-${jcfpmSection}-${jcfpmView}-${jcfpmRunNonce}`}
                 initialSnapshot={jcfpmSnapshot}
                 mode={jcfpmView}
                 section={jcfpmSection}

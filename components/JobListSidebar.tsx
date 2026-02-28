@@ -1,6 +1,7 @@
 import React, { RefObject, useEffect, useRef, useState } from 'react';
 import { Job, UserProfile } from '../types';
 import JobCard from './JobCard';
+import { FixedSizeList, ListChildComponentProps, ListOnItemsRenderedProps } from 'react-window';
 import {
     Search,
     Filter,
@@ -126,13 +127,16 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     const { t, i18n } = useTranslation();
     const [showSortExplain, setShowSortExplain] = useState(false);
     const hasNearConstraintMatches = filteredJobs.some((job) => job.constraint_mode === 'near');
-    const cardRefs = useRef<Record<string, HTMLDivElement | null>>({});
     const seenImpressionsRef = useRef<Set<string>>(new Set());
     const lastRequestIdRef = useRef<string | null>(null);
     const listContainerRef = useRef<HTMLDivElement | null>(null);
     const listHeaderRef = useRef<HTMLDivElement | null>(null);
     const [listHeight, setListHeight] = useState<number>(0);
+    const [listWidth, setListWidth] = useState<number>(0);
     const [listHeaderHeight, setListHeaderHeight] = useState<number>(0);
+    const ROW_HEIGHT = 238;
+    const ROW_GAP = 12;
+    const rowStride = ROW_HEIGHT + ROW_GAP;
 
     useEffect(() => {
         if (!listContainerRef.current) return;
@@ -140,6 +144,7 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
         const update = () => {
             const next = Math.max(0, node.clientHeight);
             setListHeight(next);
+            setListWidth(Math.max(0, node.clientWidth - 16));
         };
         update();
         const observer = new ResizeObserver(update);
@@ -161,6 +166,12 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     }, []);
 
     useEffect(() => {
+        if (sortBy !== 'recommended') {
+            setShowSortExplain(false);
+        }
+    }, [sortBy]);
+
+    const handleItemsRendered = (props: ListOnItemsRenderedProps) => {
         if (!onTrackImpression || filteredJobs.length === 0) return;
         const currentRequestId = (filteredJobs[0] as any)?.requestId || (filteredJobs[0] as any)?.aiRecommendationRequestId || null;
         const currentSessionKey = impressionSessionKey || currentRequestId || 'no-request';
@@ -168,43 +179,35 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
             seenImpressionsRef.current.clear();
             lastRequestIdRef.current = currentSessionKey;
         }
-
-        const observer = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (!entry.isIntersecting) return;
-                    const el = entry.target as HTMLDivElement;
-                    const jobId = el.dataset.jobId;
-                    const positionRaw = el.dataset.position;
-                    const position = positionRaw ? parseInt(positionRaw, 10) : 0;
-                    if (!jobId) return;
-                    const dedupeKey = `${currentSessionKey}:${jobId}`;
-                    if (seenImpressionsRef.current.has(dedupeKey)) return;
-                    const job = filteredJobs.find((x) => x.id === jobId);
-                    if (!job) return;
-                    seenImpressionsRef.current.add(dedupeKey);
-                    onTrackImpression(job, position || 0);
-                });
-            },
-            { root: jobListRef.current, threshold: 0.6 }
-        );
-
-        filteredJobs.forEach((job, idx) => {
-            const node = cardRefs.current[job.id];
-            if (!node) return;
-            node.dataset.jobId = job.id;
-            node.dataset.position = String((job as any)?.rankPosition || (job as any)?.aiRecommendationPosition || (idx + 1));
-            observer.observe(node);
-        });
-
-        return () => observer.disconnect();
-    }, [filteredJobs, jobListRef, onTrackImpression]);
-
-    useEffect(() => {
-        if (sortBy !== 'recommended') {
-            setShowSortExplain(false);
+        for (let idx = props.visibleStartIndex; idx <= props.visibleStopIndex; idx += 1) {
+            const job = filteredJobs[idx];
+            if (!job) continue;
+            const dedupeKey = `${currentSessionKey}:${job.id}`;
+            if (seenImpressionsRef.current.has(dedupeKey)) continue;
+            seenImpressionsRef.current.add(dedupeKey);
+            onTrackImpression(job, (job as any)?.rankPosition || (job as any)?.aiRecommendationPosition || (idx + 1));
         }
-    }, [sortBy]);
+    };
+
+    const renderVirtualRow = ({ index, style }: ListChildComponentProps) => {
+        const job = filteredJobs[index];
+        if (!job) return null;
+        return (
+            <div style={{ ...style, height: ROW_HEIGHT, paddingBottom: ROW_GAP }}>
+                <div data-job-id={job.id} data-position={String((job as any)?.rankPosition || (job as any)?.aiRecommendationPosition || (index + 1))}>
+                    <JobCard
+                        job={job}
+                        isSelected={selectedJobId === job.id}
+                        isSaved={savedJobIds.includes(job.id)}
+                        onToggleSave={() => handleToggleSave(job.id)}
+                        onClick={() => handleJobSelect(job.id)}
+                        variant={theme}
+                        userProfile={userProfile}
+                    />
+                </div>
+            </div>
+        );
+    };
 
     const handleScrollToTop = () => {
         jobListRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
@@ -720,31 +723,20 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                 <p className="text-sm">{t('app.searching')}</p>
                             </div>
                         ) : filteredJobs.length > 0 ? (
-                            <div
-                                ref={jobListRef}
-                                className="custom-scrollbar overflow-y-auto"
-                                style={{ height: listViewportHeight, WebkitOverflowScrolling: 'touch' }}
+                            <FixedSizeList
+                                className="custom-scrollbar"
+                                outerRef={jobListRef as React.Ref<HTMLDivElement>}
+                                height={listViewportHeight}
+                                width={Math.max(280, listWidth)}
+                                itemCount={filteredJobs.length}
+                                itemSize={rowStride}
+                                overscanCount={4}
+                                onItemsRendered={handleItemsRendered}
+                                itemKey={(index: number) => filteredJobs[index]?.id ?? `job-${index}`}
+                                style={{ WebkitOverflowScrolling: 'touch' }}
                             >
-                                {filteredJobs.map((job, index) => (
-                                    <div key={job.id} className="pb-3">
-                                        <div
-                                            ref={(el) => { cardRefs.current[job.id] = el; }}
-                                            data-job-id={job.id}
-                                            data-position={String((job as any)?.rankPosition || (job as any)?.aiRecommendationPosition || (index + 1))}
-                                        >
-                                            <JobCard
-                                                job={job}
-                                                isSelected={selectedJobId === job.id}
-                                                isSaved={savedJobIds.includes(job.id)}
-                                                onToggleSave={() => handleToggleSave(job.id)}
-                                                onClick={() => handleJobSelect(job.id)}
-                                                variant={theme}
-                                                userProfile={userProfile}
-                                            />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                                {renderVirtualRow}
+                            </FixedSizeList>
                         ) : (
                             <div className="py-12 px-4 text-center text-slate-400 dark:text-slate-500 flex flex-col items-center">
                                 <Search size={32} className="mb-4 opacity-50" />

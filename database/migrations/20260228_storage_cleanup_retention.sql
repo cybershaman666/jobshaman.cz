@@ -22,11 +22,59 @@ DELETE FROM public.premium_access_logs
 WHERE timestamp < now() - interval '90 days';
 
 -- 4) AB testing history (retain only recent window)
-DELETE FROM public.ab_test_conversions
-WHERE converted_at < now() - interval '90 days';
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_name = 'ab_test_conversions'
+  ) THEN
+    -- handle both possible timestamp column names across environments
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'ab_test_conversions'
+        AND column_name = 'converted_at'
+    ) THEN
+      DELETE FROM public.ab_test_conversions
+      WHERE converted_at < now() - interval '90 days';
+    ELSIF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'ab_test_conversions'
+        AND column_name = 'created_at'
+    ) THEN
+      DELETE FROM public.ab_test_conversions
+      WHERE created_at < now() - interval '90 days';
+    END IF;
+  END IF;
 
-DELETE FROM public.ab_test_assignments
-WHERE assigned_at < now() - interval '90 days';
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_name = 'ab_test_assignments'
+  ) THEN
+    IF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'ab_test_assignments'
+        AND column_name = 'assigned_at'
+    ) THEN
+      DELETE FROM public.ab_test_assignments
+      WHERE assigned_at < now() - interval '90 days';
+    ELSIF EXISTS (
+      SELECT 1 FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND table_name = 'ab_test_assignments'
+        AND column_name = 'created_at'
+    ) THEN
+      DELETE FROM public.ab_test_assignments
+      WHERE created_at < now() - interval '90 days';
+    END IF;
+  END IF;
+END $$;
 
 -- 5) Processed webhook history
 DELETE FROM public.webhook_events
@@ -50,8 +98,15 @@ ANALYZE public.job_interactions;
 ANALYZE public.analytics_events;
 ANALYZE public.filter_analytics;
 ANALYZE public.premium_access_logs;
-ANALYZE public.ab_test_assignments;
-ANALYZE public.ab_test_conversions;
+DO $$
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ab_test_assignments') THEN
+    EXECUTE 'ANALYZE public.ab_test_assignments';
+  END IF;
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'ab_test_conversions') THEN
+    EXECUTE 'ANALYZE public.ab_test_conversions';
+  END IF;
+END $$;
 ANALYZE public.webhook_events;
 ANALYZE public.geocode_cache;
 ANALYZE public.jobs;

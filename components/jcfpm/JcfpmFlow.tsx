@@ -246,6 +246,10 @@ const D10_IMAGE_ASSETS = {
 };
 
 const stripVariantSuffix = (value: string): string => value.trim().replace(/_v\d+$/i, '');
+const stripVariantLabelFromPrompt = (value: string): string =>
+  value
+    .replace(/\s*\((?:varianta|variant)\s*\d+\)\s*$/i, '')
+    .trim();
 
 const inferDimensionFromIdentity = (value: unknown): JcfpmDimensionId | undefined => {
   const raw = stripVariantSuffix(String(value || '')).toLowerCase();
@@ -614,7 +618,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
   const interludes = useMemo(() => buildInterludes(copy), [copy]);
   const draft = readJcfpmDraft(userId);
   const [items, setItems] = useState<JcfpmItem[]>([]);
-  const [responses, setResponses] = useState<Record<string, any>>(() => draft?.responses || initialSnapshot?.responses || {});
+  const [responses, setResponses] = useState<Record<string, any>>(() => draft?.responses || {});
   const [stepIndex, setStepIndex] = useState<number>(() => draft?.stepIndex ?? 0);
   const [variantSeed] = useState<string>(() => draft?.variantSeed || Math.random().toString(36).slice(2, 10));
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -731,17 +735,6 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     return inferred || 'd1_cognitive';
   }, []);
 
-  const itemsByDimension = useMemo(() => {
-    const map: Record<string, JcfpmItem[]> = {};
-    pooledItems.forEach((item) => {
-      const dim = inferDimension(item);
-      if (!map[dim]) map[dim] = [];
-      map[dim].push(item);
-    });
-    Object.values(map).forEach((list) => list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
-    return map;
-  }, [inferDimension, pooledItems]);
-
   const activeDimensions = useMemo(() => {
     return dimensions.filter((dim) => {
       if (section === 'core') return !DEEP_DIVE_DIMENSIONS.has(dim.id);
@@ -759,6 +752,17 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     });
     return filtered.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   }, [pooledItems, section]);
+
+  const sectionItemsByDimension = useMemo(() => {
+    const map: Record<string, JcfpmItem[]> = {};
+    orderedItems.forEach((item) => {
+      const dim = inferDimension(item);
+      if (!map[dim]) map[dim] = [];
+      map[dim].push(item);
+    });
+    Object.values(map).forEach((list) => list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
+    return map;
+  }, [inferDimension, orderedItems]);
 
   useEffect(() => {
     if (!orderedItems.length) return;
@@ -785,7 +789,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
   const resolvePrompt = useCallback((item?: JcfpmItem): string => {
     if (!item) return '';
     const localized = item.prompt_i18n?.[locale] || item.prompt_i18n?.[(locale || '').toLowerCase()] || item.prompt_i18n?.[(locale || '').split('-')[0]];
-    return String(localized || item.prompt || '');
+    return stripVariantLabelFromPrompt(String(localized || item.prompt || ''));
   }, [locale]);
   const resolveSubdimension = useCallback((item?: JcfpmItem): string => {
     if (!item) return '';
@@ -910,19 +914,22 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     ? 100
     : Math.round(((stepIndex + 1) / Math.max(1, orderedItems.length)) * 100);
 
-  const totalAnswered = useMemo(() => {
-    const ids = new Set(orderedItems.map((item) => item.id));
-    return Object.keys(responses).filter((id) => ids.has(id)).length;
-  }, [responses, orderedItems]);
   const totalQuestions = orderedItems.length || (section === 'core' ? 72 : section === 'deep' ? 36 : 108);
   const answeredByDimension = useMemo(() => {
     const map: Record<string, number> = {};
     DIMENSION_IDS.forEach((dimId) => {
-      const dimItems = itemsByDimension[dimId] || [];
+      const dimItems = sectionItemsByDimension[dimId] || [];
       map[dimId] = dimItems.filter((item) => responses[item.id] != null).length;
     });
     return map;
-  }, [itemsByDimension, responses]);
+  }, [sectionItemsByDimension, responses]);
+  const currentDimItems = sectionItemsByDimension[currentDim.id] || [];
+  const currentDimQuestionCount = currentDimItems.length;
+  const currentDimQuestionIndex = Math.max(
+    0,
+    currentDimItems.findIndex((item) => item.id === currentItem?.id)
+  );
+  const currentDimAnswered = answeredByDimension[currentDim.id] || 0;
 
   const handleAnswer = useCallback((itemId: string, value: any) => {
     setResponses((prev) => ({ ...prev, [itemId]: value }));
@@ -1497,7 +1504,12 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
           <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
             {viewMode === 'report'
               ? copy.reportLabel
-              : copy.questionProgress(stepIndex + 1, totalQuestions, totalAnswered)}
+              : `${currentDim.title} • ${copy.questionProgress(
+                  currentDimQuestionCount > 0 ? currentDimQuestionIndex + 1 : stepIndex + 1,
+                  currentDimQuestionCount > 0 ? currentDimQuestionCount : totalQuestions,
+                  currentDimAnswered
+                )}`
+            }
           </p>
           {viewMode === 'form' ? (
             <div className={`jcfpm-phase-pill ${isDeepDive ? 'is-deep' : 'is-standard'} mt-2`}>
@@ -1598,7 +1610,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
                     )}
                   </div>
                   <div className="jcfpm-dim-badge">
-                    {answeredByDimension[currentDim.id] || 0} / {(itemsByDimension[currentDim.id] || []).length}
+                    {currentDimAnswered} / {currentDimQuestionCount}
                   </div>
                 </div>
                 {currentItemType === 'likert' && (
@@ -1636,7 +1648,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
                     <div key={dim.id} className={`jcfpm-timeline-pill ${dim.id === currentDim.id ? 'is-active' : ''}`}>
                       <span className="font-semibold">{dim.title}</span>
                       <span className="text-[11px] text-slate-500">
-                        {answeredByDimension[dim.id] || 0}/{(itemsByDimension[dim.id] || []).length}
+                        {answeredByDimension[dim.id] || 0}/{(sectionItemsByDimension[dim.id] || []).length}
                       </span>
                     </div>
                   ))}

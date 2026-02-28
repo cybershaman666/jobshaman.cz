@@ -1008,11 +1008,7 @@ async def jobs_hybrid_search_v2(
                 "filters_json": {
                     "sort_mode": payload.sort_mode,
                     "filter_city": payload.filter_city,
-                    "filter_contract_types": payload.filter_contract_types,
-                    "filter_benefits": payload.filter_benefits,
-                    "filter_min_salary": payload.filter_min_salary,
                     "filter_date_posted": payload.filter_date_posted,
-                    "filter_experience_levels": payload.filter_experience_levels,
                     "filter_country_codes": payload.filter_country_codes,
                     "exclude_country_codes": payload.exclude_country_codes,
                     "filter_language_codes": payload.filter_language_codes,
@@ -1030,16 +1026,26 @@ async def jobs_hybrid_search_v2(
         )
     global _SEARCH_EXPOSURES_AVAILABLE, _SEARCH_EXPOSURES_WARNING_EMITTED
     if exposures and _SEARCH_EXPOSURES_AVAILABLE:
+        exposure_write_started = datetime.now(timezone.utc)
         try:
             supabase.table("search_exposures").upsert(exposures, on_conflict="request_id,job_id").execute()
+            exposure_write_ms = int((datetime.now(timezone.utc) - exposure_write_started).total_seconds() * 1000)
+            print(
+                f"📊 [Hybrid Search V2] exposures_upsert_ok request_id={request_id} "
+                f"rows={len(exposures)} write_ms={exposure_write_ms}"
+            )
         except Exception as exc:
+            exposure_write_ms = int((datetime.now(timezone.utc) - exposure_write_started).total_seconds() * 1000)
             if _is_missing_table_error(exc, "search_exposures"):
                 _SEARCH_EXPOSURES_AVAILABLE = False
                 if not _SEARCH_EXPOSURES_WARNING_EMITTED:
                     print("⚠️ search_exposures table missing. Disabling search exposure writes.")
                     _SEARCH_EXPOSURES_WARNING_EMITTED = True
             else:
-                print(f"⚠️ Failed to write search exposures: {exc}")
+                print(
+                    f"⚠️ Failed to write search exposures (request_id={request_id}, "
+                    f"rows={len(exposures)}, write_ms={exposure_write_ms}): {exc}"
+                )
 
     meta = result.get("meta") or {}
     response = {
