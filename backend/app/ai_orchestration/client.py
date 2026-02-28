@@ -97,7 +97,7 @@ def _call_openai_chat_completion(
     if not api_key:
         raise AIClientError("OPENAI_API_KEY is not configured")
 
-    endpoint = os.getenv("OPENAI_ENDPOINT", "https://api.openai.com/v1/chat/completions")
+    endpoint = os.getenv("OPENAI_ENDPOINT", "https://openrouter.ai/api/v1/chat/completions")
     temperature = (generation_config or {}).get("temperature", 0)
     top_p = (generation_config or {}).get("top_p", 1)
 
@@ -117,8 +117,9 @@ def _call_openai_chat_completion(
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
     }
-    if "openrouter.ai" in endpoint:
-        headers["HTTP-Referer"] = os.getenv("OPENROUTER_HTTP_REFERER", "https://jobshaman.com")
+    is_openrouter = "openrouter.ai" in endpoint
+    if is_openrouter:
+        headers["HTTP-Referer"] = os.getenv("OPENROUTER_HTTP_REFERER", "https://jobshaman.cz")
         headers["X-Title"] = os.getenv("OPENROUTER_APP_TITLE", "JobShaman")
 
     attempt = 0

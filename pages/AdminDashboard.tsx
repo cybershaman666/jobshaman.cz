@@ -29,6 +29,21 @@ import {
   updateAdminSubscription,
 } from '../services/adminService';
 import { useTranslation } from 'react-i18next';
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
 
 interface AdminDashboardProps {
   userProfile: UserProfile;
@@ -40,18 +55,6 @@ const TIERS = ['free', 'premium', 'starter', 'growth', 'professional', 'trial', 
 const STATUSES = ['active', 'trialing', 'inactive', 'canceled'];
 
 const num = (value: any) => Number(value) || 0;
-
-const MiniBars: React.FC<{ values: number[]; color?: string }> = ({ values, color = 'bg-cyan-500' }) => {
-  const max = Math.max(1, ...values, 1);
-  return (
-    <div className="flex h-10 items-end gap-1">
-      {values.map((v, idx) => {
-        const height = Math.max(4, Math.round((v / max) * 40));
-        return <div key={idx} className={`w-2 rounded-sm ${color}`} style={{ height }} />;
-      })}
-    </div>
-  );
-};
 
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const { t, i18n } = useTranslation();
@@ -190,14 +193,14 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     const conv = stats?.conversion || {};
     const ai = aiQuality?.summary || {};
     return [
-      { label: 'Users', value: formatNumber(users.total), hint: `+${formatNumber(users.new_30d)} / 30d`, icon: Users },
-      { label: 'Companies', value: formatNumber(companies.total), hint: `+${formatNumber(companies.new_30d)} / 30d`, icon: Building2 },
-      { label: 'Paid Conversion', value: `${formatPercent(conv.company_paid_percent)} / ${formatPercent(conv.user_paid_percent)}`, hint: 'Company / User', icon: Activity },
-      { label: 'AI Generations', value: formatNumber(ai.total_generations), hint: `${formatNumber(ai.ai_unique_users)} unique AI users`, icon: Brain },
-      { label: 'AI Cost', value: formatUsd(ai.total_estimated_cost), hint: `Avg ${formatUsd(ai.avg_estimated_cost_per_generation)}`, icon: Sparkles },
-      { label: 'Apply Uplift', value: formatPercent(ai.conversion_impact_on_applications), hint: `AI ${formatPercent(ai.ai_apply_rate)} vs baseline ${formatPercent(ai.baseline_apply_rate)}`, icon: BarChart3 },
+      { label: t('admin_dashboard.kpis.users'), value: formatNumber(users.total), hint: `+${formatNumber(users.new_30d)} / 30d`, icon: Users },
+      { label: t('admin_dashboard.kpis.companies'), value: formatNumber(companies.total), hint: `+${formatNumber(companies.new_30d)} / 30d`, icon: Building2 },
+      { label: t('admin_dashboard.kpis.paid_conversion'), value: `${formatPercent(conv.company_paid_percent)} / ${formatPercent(conv.user_paid_percent)}`, hint: 'Company / User', icon: Activity },
+      { label: t('admin_dashboard.kpis.ai_generations'), value: formatNumber(ai.total_generations), hint: `${formatNumber(ai.ai_unique_users)} unique AI users`, icon: Brain },
+      { label: t('admin_dashboard.kpis.ai_cost'), value: formatUsd(ai.total_estimated_cost), hint: `Avg ${formatUsd(ai.avg_estimated_cost_per_generation)}`, icon: Sparkles },
+      { label: t('admin_dashboard.kpis.apply_uplift'), value: formatPercent(ai.conversion_impact_on_applications), hint: `AI ${formatPercent(ai.ai_apply_rate)} vs baseline ${formatPercent(ai.baseline_apply_rate)}`, icon: BarChart3 },
     ];
-  }, [stats, aiQuality]);
+  }, [stats, aiQuality, t]);
 
   const trafficSeries = useMemo(() => {
     const daily = stats?.traffic?.daily || [];
@@ -411,11 +414,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             <div>
               <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400 font-semibold mb-2">
                 <Layers size={14} />
-                Executive Analytics Cockpit
+                {t('admin_dashboard.cockpit')}
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">Admin Dashboard</h1>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">{t('admin_dashboard.title')}</h1>
               <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
-                Traffic, AI performance, recommendation outcomes, and operational controls in one view.
+                {t('admin_dashboard.description')}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -423,13 +426,13 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 onClick={loadOverview}
                 className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500 transition-colors"
               >
-                <RefreshCcw size={15} /> Refresh
+                <RefreshCcw size={15} /> {t('admin_dashboard.refresh')}
               </button>
               <button
                 onClick={exportInvestorPack}
                 className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
               >
-                <Download size={15} /> Export Pack
+                <Download size={15} /> {t('admin_dashboard.export_pack')}
               </button>
               <button
                 onClick={async () => {
@@ -441,16 +444,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 }}
                 className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200"
               >
-                <Activity size={15} /> Backend ping
+                <Activity size={15} /> {t('admin_dashboard.backend_ping')}
               </button>
             </div>
           </div>
 
           <div className="mt-5 flex flex-wrap gap-2">
             {([
-              { id: 'overview', label: 'Overview', icon: BarChart3 },
-              { id: 'operations', label: 'Operations', icon: Settings },
-              { id: 'jcfpm', label: 'JCFPM Role Lab', icon: Sparkles },
+              { id: 'overview', label: t('admin_dashboard.tabs.overview'), icon: BarChart3 },
+              { id: 'operations', label: t('admin_dashboard.tabs.operations'), icon: Settings },
+              { id: 'jcfpm', label: t('admin_dashboard.tabs.jcfpm'), icon: Sparkles },
             ] as const).map((tab) => {
               const Icon = tab.icon;
               const active = view === tab.id;
@@ -489,129 +492,163 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             </section>
 
             <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
-                <div className="flex items-center gap-2 mb-3">
+              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm min-h-[300px] flex flex-col">
+                <div className="flex items-center gap-2 mb-4">
                   <Globe size={16} className="text-cyan-600" />
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">Traffic Trend (14 days)</h3>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">{t('admin_dashboard.sections.traffic_trend')}</h3>
                 </div>
                 {loading ? (
-                  <p className="text-sm text-slate-500">Loading...</p>
+                  <div className="flex-1 flex items-center justify-center text-sm text-slate-500">Loading...</div>
                 ) : (
-                  <>
-                    <MiniBars values={trafficSeries.map((x: any) => x.pageviews)} />
-                    <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-600 dark:text-slate-300">
-                      <div>Latest pageviews: <span className="font-semibold">{formatNumber(trafficSeries[trafficSeries.length - 1]?.pageviews || 0)}</span></div>
-                      <div>Latest visitors: <span className="font-semibold">{formatNumber(trafficSeries[trafficSeries.length - 1]?.visitors || 0)}</span></div>
-                    </div>
-                  </>
+                  <div className="flex-1 w-full h-full min-h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={trafficSeries}>
+                        <defs>
+                          <linearGradient id="colorPv" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#0891b2" stopOpacity={0.3} />
+                            <stop offset="95%" stopColor="#0891b2" stopOpacity={0} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                        <Tooltip />
+                        <Area type="monotone" dataKey="pageviews" stroke="#0891b2" fillOpacity={1} fill="url(#colorPv)" />
+                        <Area type="monotone" dataKey="visitors" stroke="#10b981" fillOpacity={0} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
                 )}
               </article>
 
-              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
-                <div className="flex items-center gap-2 mb-3">
+              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm min-h-[300px] flex flex-col">
+                <div className="flex items-center gap-2 mb-4">
                   <Brain size={16} className="text-cyan-600" />
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">AI Token Trend (14 days)</h3>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">{t('admin_dashboard.sections.ai_token_trend')}</h3>
                 </div>
                 {loading ? (
-                  <p className="text-sm text-slate-500">Loading...</p>
+                  <div className="flex-1 flex items-center justify-center text-sm text-slate-500">Loading...</div>
                 ) : (
-                  <>
-                    <MiniBars values={tokenTrend.map((x: any) => x.tokens)} color="bg-emerald-500" />
-                    <p className="mt-3 text-xs text-slate-500">
-                      Schema pass rate: <span className="font-semibold text-slate-700 dark:text-slate-200">{formatPercent(aiQuality?.summary?.schema_pass_rate)}</span>
-                      {' '}• Fallback rate: <span className="font-semibold text-slate-700 dark:text-slate-200">{formatPercent(aiQuality?.summary?.fallback_rate)}</span>
-                    </p>
-                  </>
+                  <div className="flex-1 w-full h-full min-h-[200px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={tokenTrend}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                        <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10 }} />
+                        <Tooltip />
+                        <Bar dataKey="tokens" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )}
+                {!loading && (
+                  <p className="mt-3 text-xs text-slate-500">
+                    Schema pass rate: <span className="font-semibold text-slate-700 dark:text-slate-200">{formatPercent(aiQuality?.summary?.schema_pass_rate)}</span>
+                    {' '}• Fallback rate: <span className="font-semibold text-slate-700 dark:text-slate-200">{formatPercent(aiQuality?.summary?.fallback_rate)}</span>
+                  </p>
                 )}
               </article>
             </section>
 
             <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm xl:col-span-2">
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-2 mb-4">
                   <BarChart3 size={16} className="text-cyan-600" />
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">Recommendation Performance</h3>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">{t('admin_dashboard.sections.recommendation_performance')}</h3>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-3">
-                    <div className="font-semibold mb-2">CTR by model version</div>
-                    <div className="space-y-1 max-h-44 overflow-auto pr-1">
-                      {ctrByModel.length === 0 && <p className="text-xs text-slate-500">No data</p>}
-                      {ctrByModel.map((row: any) => (
-                        <div key={row.model_version} className="flex items-center justify-between text-xs">
-                          <span className="truncate mr-2">{row.model_version}</span>
-                          <span className="font-semibold">{formatPercent(row.ctr_apply)} ({formatNumber(row.applies)}/{formatNumber(row.exposures)})</span>
-                        </div>
-                      ))}
-                    </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[250px]">
+                  <div className="flex flex-col">
+                    <div className="text-xs font-semibold mb-2 text-slate-500">{t('admin_dashboard.sections.ctr_by_model')}</div>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={ctrByModel} layout="vertical">
+                        <XAxis type="number" hide />
+                        <YAxis dataKey="model_version" type="category" width={80} tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                        <Tooltip />
+                        <Bar dataKey="ctr_apply" fill="#0891b2" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
-                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-3">
-                    <div className="font-semibold mb-2">CTR by scoring version</div>
-                    <div className="space-y-1 max-h-44 overflow-auto pr-1">
-                      {ctrByScoring.length === 0 && <p className="text-xs text-slate-500">No data</p>}
-                      {ctrByScoring.map((row: any) => (
-                        <div key={row.scoring_version} className="flex items-center justify-between text-xs">
-                          <span className="truncate mr-2">{row.scoring_version}</span>
-                          <span className="font-semibold">{formatPercent(row.ctr_apply)} ({formatNumber(row.applies)}/{formatNumber(row.exposures)})</span>
-                        </div>
-                      ))}
-                    </div>
+                  <div className="flex flex-col">
+                    <div className="text-xs font-semibold mb-2 text-slate-500">{t('admin_dashboard.sections.ctr_by_scoring')}</div>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={ctrByScoring} layout="vertical">
+                        <XAxis type="number" hide />
+                        <YAxis dataKey="scoring_version" type="category" width={80} tick={{ fontSize: 9 }} axisLine={false} tickLine={false} />
+                        <Tooltip />
+                        <Bar dataKey="ctr_apply" fill="#10b981" radius={[0, 4, 4, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
                   </div>
                 </div>
               </article>
 
-              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
-                <div className="flex items-center gap-2 mb-3">
+              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm flex flex-col min-h-[300px]">
+                <div className="flex items-center gap-2 mb-4">
                   <Users size={16} className="text-cyan-600" />
-                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">Anonymous User Decisions</h3>
+                  <h3 className="font-semibold text-slate-800 dark:text-slate-100">{t('admin_dashboard.sections.score_distribution')}</h3>
                 </div>
-                <div className="space-y-2 text-xs">
-                  <div className="flex items-center justify-between"><span>Score &lt; 40</span><span className="font-semibold">{formatNumber(scoreDistribution.lt_40)}</span></div>
-                  <div className="flex items-center justify-between"><span>Score 40-60</span><span className="font-semibold">{formatNumber(scoreDistribution['40_60'])}</span></div>
-                  <div className="flex items-center justify-between"><span>Score 60-80</span><span className="font-semibold">{formatNumber(scoreDistribution['60_80'])}</span></div>
-                  <div className="flex items-center justify-between"><span>Score ≥ 80</span><span className="font-semibold">{formatNumber(scoreDistribution.gte_80)}</span></div>
-                </div>
-                <div className="mt-4 border-t border-slate-200 dark:border-slate-800 pt-3">
-                  <div className="text-xs font-semibold mb-2">Selection Strategy</div>
-                  <div className="space-y-1 text-xs">
-                    {Object.keys(strategyCounts).length === 0 && <p className="text-slate-500">No data</p>}
-                    {Object.entries(strategyCounts).map(([k, v]) => (
-                      <div key={k} className="flex items-center justify-between"><span>{k}</span><span className="font-semibold">{formatNumber(Number(v))}</span></div>
-                    ))}
-                  </div>
+                <div className="flex-1 flex flex-col justify-center">
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: '< 40', value: scoreDistribution.lt_40 || 0, color: '#f43f5e' },
+                          { name: '40-60', value: scoreDistribution['40_60'] || 0, color: '#fbbf24' },
+                          { name: '60-80', value: scoreDistribution['60_80'] || 0, color: '#0ea5e9' },
+                          { name: '≥ 80', value: scoreDistribution.gte_80 || 0, color: '#10b981' },
+                        ]}
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {[0, 1, 2, 3].map((_, index) => (
+                          <Cell key={`cell-${index}`} fill={['#f43f5e', '#fbbf24', '#0ea5e9', '#10b981'][index]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
                 </div>
               </article>
             </section>
 
             <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
               <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
-                <div className="font-semibold mb-3">Top Countries</div>
+                <div className="font-semibold mb-3 text-sm">{t('admin_dashboard.sections.top_countries')}</div>
                 <div className="space-y-1 text-xs">
                   {topCountries.length === 0 && <p className="text-slate-500">No data</p>}
                   {topCountries.map((row: any) => (
-                    <div key={row.label} className="flex items-center justify-between"><span>{row.label}</span><span className="font-semibold">{formatNumber(row.count)}</span></div>
+                    <div key={row.label} className="flex items-center justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">{row.label}</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-100">{formatNumber(row.count)}</span>
+                    </div>
                   ))}
                 </div>
               </article>
 
               <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
-                <div className="font-semibold mb-3">Top Devices</div>
+                <div className="font-semibold mb-3 text-sm">{t('admin_dashboard.sections.top_devices')}</div>
                 <div className="space-y-1 text-xs">
                   {topDevices.length === 0 && <p className="text-slate-500">No data</p>}
                   {topDevices.map((row: any) => (
-                    <div key={row.label} className="flex items-center justify-between"><span>{row.label}</span><span className="font-semibold">{formatNumber(row.count)}</span></div>
+                    <div key={row.label} className="flex items-center justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">{row.label}</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-100">{formatNumber(row.count)}</span>
+                    </div>
                   ))}
                 </div>
               </article>
 
               <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
-                <div className="font-semibold mb-3">Top AI Models by Cost</div>
-                <div className="space-y-1 text-xs max-h-36 overflow-auto pr-1">
+                <div className="font-semibold mb-3 text-sm">{t('admin_dashboard.sections.top_models_cost')}</div>
+                <div className="space-y-1 text-xs max-h-40 overflow-auto pr-1">
                   {modelUsage.length === 0 && <p className="text-slate-500">No data</p>}
                   {modelUsage.map((row: any) => (
-                    <div key={row.model} className="flex items-center justify-between">
-                      <span className="truncate mr-2">{row.model}</span>
-                      <span className="font-semibold">{formatUsd(row.estimated_cost)}</span>
+                    <div key={row.model} className="flex items-center justify-between py-0.5">
+                      <span className="truncate mr-2 text-slate-600 dark:text-slate-400">{row.model}</span>
+                      <span className="font-semibold text-slate-800 dark:text-slate-100">{formatUsd(row.estimated_cost)}</span>
                     </div>
                   ))}
                 </div>
@@ -621,7 +658,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
               <div className="flex items-center gap-2 mb-3">
                 <Bell size={16} className="text-cyan-600" />
-                <h3 className="font-semibold">Notifications (expiring trials)</h3>
+                <h3 className="font-semibold">{t('admin_dashboard.sections.notifications')}</h3>
               </div>
               {notifications.length === 0 ? (
                 <p className="text-sm text-slate-500">No upcoming trial expirations in selected window.</p>
@@ -646,26 +683,26 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
           <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <article className="xl:col-span-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">Subscription Operations</h3>
-                <span className="text-xs text-slate-500">{formatNumber(totalSubscriptions)} total</span>
+                <h3 className="font-semibold">{t('admin_dashboard.operations.title')}</h3>
+                <span className="text-xs text-slate-500">{formatNumber(totalSubscriptions)} {t('admin_dashboard.operations.total')}</span>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-3">
                 <input
                   value={subFilters.q}
                   onChange={(e) => setSubFilters((prev) => ({ ...prev, q: e.target.value, offset: 0 }))}
-                  placeholder="Search company/user/subscription"
+                  placeholder={t('admin_dashboard.operations.search_placeholder')}
                   className="md:col-span-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
                 />
                 <select value={subFilters.tier} onChange={(e) => setSubFilters((prev) => ({ ...prev, tier: e.target.value, offset: 0 }))} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
-                  <option value="">All tiers</option>
+                  <option value="">{t('admin_dashboard.operations.all_tiers')}</option>
                   {TIERS.map((x) => <option key={x} value={x}>{x}</option>)}
                 </select>
                 <select value={subFilters.status} onChange={(e) => setSubFilters((prev) => ({ ...prev, status: e.target.value, offset: 0 }))} className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
-                  <option value="">All statuses</option>
+                  <option value="">{t('admin_dashboard.operations.all_statuses')}</option>
                   {STATUSES.map((x) => <option key={x} value={x}>{x}</option>)}
                 </select>
-                <button onClick={loadSubscriptions} className="rounded-lg bg-cyan-600 px-3 py-2 text-sm font-semibold text-white">Refresh</button>
+                <button onClick={loadSubscriptions} className="rounded-lg bg-cyan-600 px-3 py-2 text-sm font-semibold text-white">{t('admin_dashboard.refresh')}</button>
               </div>
 
               <div className="space-y-2 max-h-[520px] overflow-auto pr-1">
@@ -674,7 +711,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     <div className="grid grid-cols-1 md:grid-cols-6 gap-2 items-center text-xs">
                       <div className="md:col-span-2">
                         <div className="font-semibold text-slate-800 dark:text-slate-100 truncate">{sub.companies?.name || sub.profiles?.full_name || sub.profiles?.email || sub.id}</div>
-                        <div className="text-slate-500">{sub.company_id ? 'Company' : 'User'} • {formatDate(sub.current_period_end)}</div>
+                        <div className="text-slate-500">{sub.company_id ? t('admin_dashboard.entity.company') : t('admin_dashboard.entity.user')} • {formatDate(sub.current_period_end)}</div>
                       </div>
                       <select
                         value={edits[sub.id]?.tier || sub.tier || 'free'}
@@ -693,43 +730,43 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       <input
                         value={edits[sub.id]?.set_trial_days || ''}
                         onChange={(e) => setEdits((prev) => ({ ...prev, [sub.id]: { ...prev[sub.id], set_trial_days: e.target.value } }))}
-                        placeholder="trial days"
+                        placeholder={t('admin_dashboard.operations.trial_days')}
                         className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-2 py-1.5"
                       />
                       <button
                         onClick={() => handleSaveSubscription(sub)}
                         className="rounded-lg bg-emerald-600 px-2 py-1.5 font-semibold text-white hover:bg-emerald-500"
-                      >Save</button>
+                      >{t('admin_dashboard.operations.save')}</button>
                     </div>
                   </div>
                 ))}
-                {!subscriptions.length && <p className="text-sm text-slate-500">No subscription records found.</p>}
+                {!subscriptions.length && <p className="text-sm text-slate-500">{t('admin_dashboard.common.no_data')}</p>}
               </div>
             </article>
 
             <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
-              <h3 className="font-semibold mb-3">Admin Search</h3>
+              <h3 className="font-semibold mb-3">{t('admin_dashboard.sections.admin_search')}</h3>
               <div className="space-y-2">
                 <select
                   value={searchKind}
                   onChange={(e) => setSearchKind(e.target.value as 'company' | 'user')}
                   className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
                 >
-                  <option value="company">Company</option>
-                  <option value="user">User</option>
+                  <option value="company">{t('admin_dashboard.entity.company')}</option>
+                  <option value="user">{t('admin_dashboard.entity.user')}</option>
                 </select>
                 <div className="flex gap-2">
                   <input
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search"
+                    placeholder={t('admin_dashboard.search.placeholder')}
                     className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
                   />
                   <button onClick={handleSearch} className="rounded-lg bg-cyan-600 px-3 text-white"><Search size={14} /></button>
                 </div>
               </div>
               <div className="mt-3 space-y-2 max-h-80 overflow-auto pr-1">
-                {searchLoading && <p className="text-sm text-slate-500">Searching...</p>}
+                {searchLoading && <p className="text-sm text-slate-500">{t('admin_dashboard.search.searching')}</p>}
                 {!searchLoading && searchResults.map((row: any) => (
                   <div key={`${row.kind}-${row.id}`} className="rounded-lg border border-slate-200 dark:border-slate-800 p-2 text-xs">
                     <div className="font-semibold">{row.label}</div>
@@ -745,11 +782,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
           <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
             <article className="xl:col-span-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="font-semibold">JCFPM Role Profiles</h3>
+                <h3 className="font-semibold">{t('admin_dashboard.jcfpm.title')}</h3>
                 <input
                   value={jobRolesQuery}
                   onChange={(e) => setJobRolesQuery(e.target.value)}
-                  placeholder="Search title..."
+                  placeholder={t('admin_dashboard.jcfpm.search_placeholder')}
                   className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
                 />
               </div>
@@ -772,19 +809,22 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       ))}
                     </div>
                     <div className="mt-2 flex gap-2">
-                      <button onClick={() => handleUpdateRole(role.id)} className="rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white">Update</button>
-                      <button onClick={() => handleDeleteRole(role.id)} className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white">Delete</button>
+                      <button onClick={() => handleUpdateRole(role.id)} className="rounded-lg bg-cyan-600 px-3 py-1.5 text-xs font-semibold text-white">{t('admin_dashboard.jcfpm.update')}</button>
+                      <button onClick={() => handleDeleteRole(role.id)} className="rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-semibold text-white">{t('admin_dashboard.jcfpm.delete')}</button>
                     </div>
                   </div>
                 ))}
-                {!jobRoles.length && <p className="text-sm text-slate-500">No role profiles found.</p>}
+                {!jobRoles.length && <p className="text-sm text-slate-500">{t('admin_dashboard.common.no_data')}</p>}
               </div>
             </article>
 
-            <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
-              <h3 className="font-semibold mb-3">Create Role</h3>
+            <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm text-xs">
+              <h3 className="font-semibold mb-3 text-sm">{t('admin_dashboard.jcfpm.create_title')}</h3>
               <div className="space-y-2">
-                <input value={jobRoleCreate.title} onChange={(e) => setJobRoleCreate((p) => ({ ...p, title: e.target.value }))} placeholder="Title" className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase text-slate-500">{t('admin_dashboard.jcfpm.fields.title')}</label>
+                  <input value={jobRoleCreate.title} onChange={(e) => setJobRoleCreate((p) => ({ ...p, title: e.target.value }))} placeholder="Title" className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2" />
+                </div>
                 <div className="grid grid-cols-3 gap-2">
                   {['d1', 'd2', 'd3', 'd4', 'd5', 'd6'].map((d) => (
                     <input
@@ -792,25 +832,40 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                       value={(jobRoleCreate as any)[d]}
                       onChange={(e) => setJobRoleCreate((p) => ({ ...p, [d]: e.target.value }))}
                       placeholder={d.toUpperCase()}
-                      className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm"
+                      className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2"
                     />
                   ))}
                 </div>
-                <input value={jobRoleCreate.salary_range} onChange={(e) => setJobRoleCreate((p) => ({ ...p, salary_range: e.target.value }))} placeholder="Salary range" className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
-                <input value={jobRoleCreate.growth_potential} onChange={(e) => setJobRoleCreate((p) => ({ ...p, growth_potential: e.target.value }))} placeholder="Growth potential" className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
-                <input value={jobRoleCreate.ai_impact} onChange={(e) => setJobRoleCreate((p) => ({ ...p, ai_impact: e.target.value }))} placeholder="AI impact" className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm" />
-                <select value={jobRoleCreate.ai_intensity} onChange={(e) => setJobRoleCreate((p) => ({ ...p, ai_intensity: e.target.value }))} className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
-                  <option value="low">low</option>
-                  <option value="medium">medium</option>
-                  <option value="high">high</option>
-                </select>
-                <select value={jobRoleCreate.remote_friendly} onChange={(e) => setJobRoleCreate((p) => ({ ...p, remote_friendly: e.target.value }))} className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
-                  <option value="">remote_friendly</option>
-                  <option value="yes">yes</option>
-                  <option value="hybrid">hybrid</option>
-                  <option value="no">no</option>
-                </select>
-                <button onClick={handleCreateRole} className="w-full rounded-xl bg-emerald-600 py-2 text-sm font-semibold text-white hover:bg-emerald-500">Create</button>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase text-slate-500">{t('admin_dashboard.jcfpm.fields.salary_range')}</label>
+                  <input value={jobRoleCreate.salary_range} onChange={(e) => setJobRoleCreate((p) => ({ ...p, salary_range: e.target.value }))} placeholder="Salary range" className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase text-slate-500">{t('admin_dashboard.jcfpm.fields.growth_potential')}</label>
+                  <input value={jobRoleCreate.growth_potential} onChange={(e) => setJobRoleCreate((p) => ({ ...p, growth_potential: e.target.value }))} placeholder="Growth potential" className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase text-slate-500">{t('admin_dashboard.jcfpm.fields.ai_impact')}</label>
+                  <input value={jobRoleCreate.ai_impact} onChange={(e) => setJobRoleCreate((p) => ({ ...p, ai_impact: e.target.value }))} placeholder="AI impact" className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase text-slate-500">{t('admin_dashboard.jcfpm.fields.ai_intensity')}</label>
+                  <select value={jobRoleCreate.ai_intensity} onChange={(e) => setJobRoleCreate((p) => ({ ...p, ai_intensity: e.target.value }))} className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
+                    <option value="low">low</option>
+                    <option value="medium">medium</option>
+                    <option value="high">high</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase text-slate-500">{t('admin_dashboard.jcfpm.fields.remote_friendly')}</label>
+                  <select value={jobRoleCreate.remote_friendly} onChange={(e) => setJobRoleCreate((p) => ({ ...p, remote_friendly: e.target.value }))} className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm">
+                    <option value="">remote_friendly</option>
+                    <option value="yes">yes</option>
+                    <option value="hybrid">hybrid</option>
+                    <option value="no">no</option>
+                  </select>
+                </div>
+                <button onClick={handleCreateRole} className="w-full rounded-xl bg-emerald-600 py-2 mt-2 text-sm font-semibold text-white hover:bg-emerald-500">{t('admin_dashboard.jcfpm.create')}</button>
               </div>
             </article>
           </section>

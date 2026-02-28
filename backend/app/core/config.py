@@ -52,6 +52,7 @@ STRIPE_PRICE_GROWTH = os.getenv("STRIPE_PRICE_GROWTH", "price_1T3JbcG2Aezsy59ehN
 STRIPE_PRICE_PROFESSIONAL = os.getenv("STRIPE_PRICE_PROFESSIONAL", "price_1T3JcHG2Aezsy59ela9PmnH7")
 
 # Other APIs
+# Note: AI features use OPENAI_API_KEY and OPENAI_ENDPOINT (defaulting to OpenRouter)
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 RESEND_API_KEY = os.getenv("RESEND_API_KEY") or os.getenv("VITE_RESEND_API_KEY")
 

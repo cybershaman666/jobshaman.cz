@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowRight, CheckCircle2, Compass, MapPin, Scale, Users } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Compass, MapPin, Scale, Users, Brain, ShieldCheck, Zap } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import BlogSection from './BlogSection';
 import OfferImpactSnapshot from './OfferImpactSnapshot';
@@ -256,6 +256,77 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
             <li>• {t('landing.unique.items.transparency')}</li>
           </ul>
           <p className="mt-5 text-sm font-medium text-slate-700 dark:text-slate-200">{t('landing.unique.decision_platform')}</p>
+        </div>
+      </section>
+
+      <section className="max-w-7xl mx-auto px-4 lg:px-8 pb-12">
+        <div className="rounded-3xl border-2 border-cyan-500/20 bg-gradient-to-br from-white to-cyan-50/30 dark:from-slate-900 dark:to-cyan-950/10 p-8 lg:p-12 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-8 opacity-10 dark:opacity-20 pointer-events-none">
+            <Brain size={160} className="text-cyan-600" />
+          </div>
+
+          <div className="relative z-10 max-w-3xl">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 text-xs font-bold uppercase tracking-wider mb-6">
+              <Zap size={14} />
+              {t('landing.hero.beta_badge', 'JCFPM Analysis')}
+            </div>
+
+            <h2 className="text-3xl lg:text-4xl font-bold mb-4">
+              {t('landing.jcfpm_promo.title')}
+            </h2>
+
+            <p className="text-lg text-slate-600 dark:text-slate-300 mb-6 font-medium">
+              {t('landing.jcfpm_promo.subtitle')}
+            </p>
+
+            <p className="text-slate-600 dark:text-slate-400 mb-8 leading-relaxed">
+              {t('landing.jcfpm_promo.what_is_it')}
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+              <div className="p-4 rounded-2xl bg-white/60 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-2 font-bold text-slate-800 dark:text-slate-100 mb-2">
+                  <CheckCircle2 size={18} className="text-emerald-500" />
+                  {t('app.demo_alert', 'Standardní výsledky')}
+                </div>
+                <p className="text-sm text-slate-500 dark:text-slate-400">
+                  {t('landing.jcfpm_promo.free_results')}
+                </p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-cyan-600/5 dark:bg-cyan-900/10 border border-cyan-500/30 relative">
+                <div className="absolute -top-2 -right-2 px-2 py-0.5 rounded-md bg-cyan-600 text-[10px] font-bold text-white uppercase">
+                  {t('landing.jcfpm_promo.premium_badge')}
+                </div>
+                <div className="flex items-center gap-2 font-bold text-cyan-700 dark:text-cyan-300 mb-2">
+                  <ShieldCheck size={18} />
+                  {t('admin_dashboard.tabs.overview', 'Premium report')}
+                </div>
+                <p className="text-sm text-cyan-600/80 dark:text-cyan-400/80">
+                  {t('landing.jcfpm_promo.premium_results')}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={() => window.location.href = '/jcfpm'}
+                className="px-8 py-4 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold shadow-xl hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+              >
+                {t('landing.jcfpm_promo.cta_try_it')}
+                <ArrowRight size={20} />
+              </button>
+
+              {!onTryFree && (
+                <button
+                  onClick={onTryFree}
+                  className="px-8 py-4 rounded-2xl border-2 border-slate-300 dark:border-slate-700 font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                >
+                  {t('landing.jcfpm_promo.cta_register')}
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       </section>
 

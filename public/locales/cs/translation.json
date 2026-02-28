@@ -143,34 +143,34 @@
     "benefit_info_desc": "Odhad na základě průměrných tržních hodnot. Skutečná hodnota se může lišit.",
     "per_month": "měsíc",
     "gross_monthly": "Hrubá měsíční mzda",
-  "reality_vs_income": "Čistý Příjem vs Realita",
-  "market": {
-    "insufficient": "Zatím nemáme dost dat pro spolehlivé srovnání.",
-    "title": "Srovnání mzdy s trhem",
-    "above": "Nad trhem",
-    "below": "Pod trhem",
-    "at": "Na úrovni trhu",
-    "p50": "Typická mzda (medián)",
-    "iqr": "Rozpětí (p25–p75)",
-    "sample_size": "Počet nabídek",
-    "window": "Období",
-    "confidence": "Spolehlivost",
-    "source_label": "Zdroj",
-    "period_label": "Období",
-    "measure_label": "Měření",
-    "measure_median": "medián",
-    "measure_average": "průměr",
-    "gross_net_label": "Typ",
-    "gross": "hrubá",
-    "net": "čistá",
-    "scope_label": "Scope",
-    "source_url_label": "URL",
-    "source_hint": "zdroj",
-    "fallback_national": "V regionu není dost dat, použili jsme národní srovnání (N={{n}}).",
-    "fallback_public": "Interní data nestačí, použili jsme veřejný benchmark (N={{n}}) ze zdroje {{source}}.",
-    "fallback_blended": "Málo interních dat, doplněno veřejným benchmarkem (interní N={{n}}, veřejné N={{ext}})."
-  },
-  "ai_estimation_hint": "Odhad AI (mzda není uvedena)",
+    "reality_vs_income": "Čistý Příjem vs Realita",
+    "market": {
+      "insufficient": "Zatím nemáme dost dat pro spolehlivé srovnání.",
+      "title": "Srovnání mzdy s trhem",
+      "above": "Nad trhem",
+      "below": "Pod trhem",
+      "at": "Na úrovni trhu",
+      "p50": "Typická mzda (medián)",
+      "iqr": "Rozpětí (p25–p75)",
+      "sample_size": "Počet nabídek",
+      "window": "Období",
+      "confidence": "Spolehlivost",
+      "source_label": "Zdroj",
+      "period_label": "Období",
+      "measure_label": "Měření",
+      "measure_median": "medián",
+      "measure_average": "průměr",
+      "gross_net_label": "Typ",
+      "gross": "hrubá",
+      "net": "čistá",
+      "scope_label": "Scope",
+      "source_url_label": "URL",
+      "source_hint": "zdroj",
+      "fallback_national": "V regionu není dost dat, použili jsme národní srovnání (N={{n}}).",
+      "fallback_public": "Interní data nestačí, použili jsme veřejný benchmark (N={{n}}) ze zdroje {{source}}.",
+      "fallback_blended": "Málo interních dat, doplněno veřejným benchmarkem (interní N={{n}}, veřejné N={{ext}})."
+    },
+    "ai_estimation_hint": "Odhad AI (mzda není uvedena)",
     "methodology": {
       "title": "Jak se počítá JHI a doprava?",
       "jhi_title": "JHI Impact Formula",
@@ -2410,11 +2410,71 @@
     "calculation_info": "Jak se počítá? Všechny náklady výše jsou jednosměrné. Systém automaticky počítá s cestou tam i zpět (×2), přepočítává na denní/měsíční/roční náklady a zohledňuje měsíční letenky pro MHD."
   },
   "admin_dashboard": {
+    "title": "Admin Dashboard",
+    "cockpit": "Executive Analytics Cockpit",
+    "description": "Návštěvnost, výkon AI, výsledky doporučování a operativní řízení v jednom pohledu.",
+    "refresh": "Aktualizovat",
+    "export_pack": "Exportovat balíček",
+    "backend_ping": "Backend ping",
+    "tabs": {
+      "overview": "Přehled",
+      "operations": "Operace",
+      "jcfpm": "JCFPM Role Lab"
+    },
+    "kpis": {
+      "users": "Uživatelé",
+      "companies": "Firmy",
+      "paid_conversion": "Placená konverze",
+      "ai_generations": "AI generace",
+      "ai_cost": "AI náklady",
+      "apply_uplift": "Nárůst odpovědí"
+    },
+    "sections": {
+      "traffic_trend": "Trend návštěvnosti (14 dní)",
+      "ai_token_trend": "AI Token Trend (14 dní)",
+      "recommendation_performance": "Výkon doporučování",
+      "anonymous_decisions": "Rozhodování anonymních uživatelů",
+      "top_countries": "Top země",
+      "top_devices": "Top zařízení",
+      "top_models_cost": "Top AI modely dle nákladů",
+      "notifications": "Notifikace (končící trialy)",
+      "subscription_operations": "Operace s předplatným",
+      "admin_search": "Admin vyhledávání",
+      "ctr_by_model": "CTR dle verze modelu",
+      "ctr_by_scoring": "CTR dle verze scoringu",
+      "selection_strategy": "Strategie výběru",
+      "score_distribution": "Distribuce skóre"
+    },
     "auth": {
       "admin_zone": "Admin zóna",
-      "login_required": "Pro přístup se nejdřív přihlaste.",
-      "access_denied": "Přístup zamítnut",
-      "no_admin_rights": "Tento účet nemá admin oprávnění."
+      "login_required": "Pro přístup k analytikám se prosím přihlaste s administrátorským účtem.",
+      "access_denied": "Přístup odepřen",
+      "no_admin_rights": "Váš účet nemá oprávnění k přístupu do admin zóny."
+    },
+    "operations": {
+      "title": "Operace s předplatným",
+      "total": "celkem",
+      "search_placeholder": "Hledat firmu/uživatele/předplatné",
+      "all_tiers": "Všechny tiery",
+      "all_statuses": "Všechny statusy",
+      "trial_days": "trial dní",
+      "save": "Uložit"
+    },
+    "jcfpm": {
+      "title": "JCFPM Role Profily",
+      "search_placeholder": "Hledat název...",
+      "create_title": "Vytvořit roli",
+      "update": "Aktualizovat",
+      "delete": "Smazat",
+      "create": "Vytvořit",
+      "fields": {
+        "title": "Název",
+        "salary_range": "Rozsah platu",
+        "growth_potential": "Potenciál růstu",
+        "ai_impact": "Dopad AI",
+        "ai_intensity": "Intenzita AI",
+        "remote_friendly": "Remote friendly"
+      }
     },
     "header": {
       "subtitle": "Správa předplatných, trialů, auditů a návštěvnosti",
@@ -3168,15 +3228,26 @@
       "crossborder_note": "Konkrétně i pro přeshraniční rozhodování: Rybnik / Ostrava / Katowice."
     },
     "unique": {
-      "title": "Co dnes nikdo jiný nedělá",
-      "lead": "V jednom přehledu kombinujeme:",
+      "title": "V čem jsme jiní?",
+      "lead": "JobShaman není jen další inzerce. Je to platforma pro informované kariérní rozhodnutí.",
       "items": {
-        "crossborder": "Přeshraniční vyhledávání s realitou nákladů",
-        "tax": "Integrovanou daňovou kalkulačku pro více zemí",
-        "net": "Výpočet čistého příjmu podle vašeho profilu",
-        "transparency": "Hodnocení transparentnosti nabídky"
+        "crossborder": "Příhraniční vyhledávání (DE, AT, PL, SK)",
+        "tax": "Přesné daňové kalkulace pro různé typy úvazků",
+        "net": "Přepočet na čistou mzdu včetně bonusů",
+        "transparency": "Transparentnost benefitů a firemní kultury"
       },
-      "decision_platform": "JobShaman je decision platform pro pracovní rozhodnutí, ne jen seznam nabídek."
+      "decision_platform": "Vaše platforma pro životní rozhodnutí."
+    },
+    "jcfpm_promo": {
+      "title": "Poznejte svůj Career Fit potenciál",
+      "subtitle": "JCFPM test vám odhalí, jak se hodíte na moderní pracovní pozice a jaký je váš digitální kvocient.",
+      "what_is_it": "JobShaman Career Fit & Potential Matrix (JCFPM) je unikátní metodika, která analyzuje kognitivní, sociální a technologické dovednosti v kontextu moderního trhu práce.",
+      "free_results": "Zdarma získáte základní přehled svých nejsilnějších oblastí.",
+      "premium_results": "S Premium účtem získáte detailní 15stránkový report, AI analýzu silných stránek, doporučení nejvhodnějších rolí a identifikaci mezer v dovednostech.",
+      "cta_try_it": "Vyzkoušet JCFPM zdarma",
+      "cta_register": "Zaregistrujte se pro plné výsledky",
+      "premium_badge": "PREMIUM",
+      "learn_more": "Zjistit více o metodice"
     },
     "blog": {
       "title": "Jak přemýšlet o nabídce práce (krátce)"
