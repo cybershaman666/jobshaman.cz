@@ -691,6 +691,56 @@ export const mapJcfpmToJhiPreferences = (
   return mapJcfpmToJhiPreferencesWithExplanation(snapshot, current).preferences;
 };
 
+let globalJcfpmItemsCache: JcfpmItem[] | null = null;
+let globalJcfpmItemsFetchPromise: Promise<JcfpmItem[]> | null = null;
+
+const fetchItemsFromSupabase = async (): Promise<JcfpmItem[]> => {
+  if (globalJcfpmItemsCache) {
+    return globalJcfpmItemsCache;
+  }
+  if (globalJcfpmItemsFetchPromise) {
+    return globalJcfpmItemsFetchPromise;
+  }
+
+  globalJcfpmItemsFetchPromise = (async () => {
+    try {
+      if (!supabase) throw new Error('Supabase client not initialized');
+      let allRows: any[] = [];
+      let offset = 0;
+      const pageSize = 1000;
+
+      while (true) {
+        const { data, error } = await supabase
+          .from('jcfpm_items')
+          .select('id, dimension, subdimension, prompt, prompt_i18n, subdimension_i18n, reverse_scoring, sort_order, item_type, payload, payload_i18n, assets, pool_key, variant_index')
+          .order('sort_order', { ascending: true })
+          .order('id', { ascending: true })
+          .range(offset, offset + pageSize - 1);
+
+        if (error) {
+          throw new Error(`Supabase query failed: ${error.message}`);
+        }
+
+        const page = Array.isArray(data) ? data : [];
+        allRows = allRows.concat(page);
+        if (page.length < pageSize) {
+          break;
+        }
+        offset += pageSize;
+      }
+
+      const normalized = normalizeJcfpmItems(allRows as JcfpmItem[]);
+      globalJcfpmItemsCache = normalized;
+      return normalized;
+    } catch (err) {
+      globalJcfpmItemsFetchPromise = null;
+      throw err;
+    }
+  })();
+
+  return globalJcfpmItemsFetchPromise;
+};
+
 export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
   const ensureSeeded = (items: JcfpmItem[]): JcfpmItem[] => {
     const normalized = normalizeJcfpmItems(items as JcfpmItem[]);
@@ -701,8 +751,8 @@ export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
         return (idBase || poolBase).toUpperCase();
       }).filter(Boolean)
     ).size;
-    if (poolCount >= 72) return normalized;
-    throw new Error(`JCFPM items not seeded sufficiently (found ${poolCount} keys, expected at least 72)`);
+    if (poolCount >= 108) return normalized;
+    throw new Error(`JCFPM items not seeded sufficiently (found ${poolCount} keys, expected at least 108)`);
   };
 
   const fetchFromBackendPublic = async () => {
@@ -728,18 +778,24 @@ export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
   };
 
   try {
-    return await fetchFromBackendPublic();
-  } catch (firstErr: any) {
-    const msg = String(firstErr?.message || '').toLowerCase();
-    const retryable = msg.includes('timeout') || msg.includes('network') || msg.includes('failed to fetch') || msg.includes('abort');
+    const supabaseItems = await fetchItemsFromSupabase();
+    return ensureSeeded(supabaseItems);
+  } catch (supabaseErr: any) {
+    console.warn('Failed to fetch from Supabase, falling back to backend:', supabaseErr);
+    try {
+      return await fetchFromBackendPublic();
+    } catch (firstErr: any) {
+      const msg = String(firstErr?.message || '').toLowerCase();
+      const retryable = msg.includes('timeout') || msg.includes('network') || msg.includes('failed to fetch') || msg.includes('abort');
 
-    if (retryable) {
-      await new Promise((resolve) => window.setTimeout(resolve, 1200));
-      return await fetchFromBackendPublic(); // Second try, throw naturally if it fails
+      if (retryable) {
+        await new Promise((resolve) => window.setTimeout(resolve, 1200));
+        return await fetchFromBackendPublic(); // Second try, throw naturally if it fails
+      }
+
+      // Direct throw if it wasn't a network error (e.g. 500 or ensureSeeded failed)
+      throw firstErr;
     }
-
-    // Direct throw if it wasn't a network error (e.g. 500 or ensureSeeded failed)
-    throw firstErr;
   }
 };
 
