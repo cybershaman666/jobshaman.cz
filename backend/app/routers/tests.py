@@ -43,7 +43,7 @@ def _fetch_items() -> list[dict]:
     try:
         return fetch_jcfpm_items().items
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"JCFPM pool unavailable ({type(exc).__name__})")
+        raise HTTPException(status_code=500, detail=f"JCFPM pool unavailable ({type(exc).__name__}: {str(exc)})")
 
 
 def _merge_snapshots(base_snapshot: Dict[str, Any], incoming_snapshot: Dict[str, Any]) -> Dict[str, Any]:

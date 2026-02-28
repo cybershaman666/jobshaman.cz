@@ -29,7 +29,7 @@ class JcfpmItemsFetchResult:
 
 def _fetch_items_from_supabase() -> list[dict]:
     if not supabase:
-        raise RuntimeError("Supabase unavailable")
+        raise RuntimeError("Supabase client not initialized - verify SUPABASE_URL and SUPABASE_SERVICE_KEY")
 
     page_size = 1000
     offset = 0
@@ -45,6 +45,9 @@ def _fetch_items_from_supabase() -> list[dict]:
             .range(offset, offset + page_size - 1)
             .execute()
         )
+        if not resp:
+            raise RuntimeError("Supabase query returned no response object")
+        
         page = resp.data or []
         all_rows.extend(page)
         if len(page) < page_size:
@@ -131,16 +134,19 @@ def fetch_jcfpm_items() -> JcfpmItemsFetchResult:
         fallback_reason = f"mongo_error:{type(exc).__name__}"
 
     supa_started = time.perf_counter()
-    supa_items = _fetch_items_from_supabase()
-    _POOL_METRICS["supabase_hits"] += 1
-    _POOL_METRICS["fallback_count"] += 1
-    return JcfpmItemsFetchResult(
-        items=supa_items,
-        source="supabase",
-        latency_ms=round((time.perf_counter() - supa_started) * 1000),
-        fallback_used=True,
-        fallback_reason=fallback_reason,
-    )
+    try:
+        supa_items = _fetch_items_from_supabase()
+        _POOL_METRICS["supabase_hits"] += 1
+        _POOL_METRICS["fallback_count"] += 1
+        return JcfpmItemsFetchResult(
+            items=supa_items,
+            source="supabase",
+            latency_ms=round((time.perf_counter() - supa_started) * 1000),
+            fallback_used=True,
+            fallback_reason=fallback_reason,
+        )
+    except Exception as exc:
+        raise RuntimeError(f"Fetch failed: {fallback_reason} AND supabase_error:{type(exc).__name__}: {str(exc)}")
 
 
 def jcfpm_pool_diagnostics() -> dict[str, Any]:

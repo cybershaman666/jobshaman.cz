@@ -186,6 +186,7 @@ export default function App() {
     const [mobileViewOverride, setMobileViewOverride] = useState<'swipe' | 'list' | null>(null);
     const [openedFromSwipe, setOpenedFromSwipe] = useState(false);
 
+    const [sessionCheckComplete, setSessionCheckComplete] = useState(false);
     const onboardingDismissedRef = useRef(false);
     const activationNudgeShownRef = useRef(false);
     const timeToValueTrackedRef = useRef(false);
@@ -937,13 +938,17 @@ export default function App() {
         if (supabase) {
             // Initial session check
             const initSession = async () => {
-                console.log('🏁 [App] Running initial session check...');
-                const { isValid, session } = await verifyAuthSession('AppInit');
-                if (isValid && session) {
-                    console.log('✅ [App] Initial session verified for:', session.user.id);
-                    handleSessionRestoration(session.user.id);
-                } else {
-                    console.log('ℹ️ [App] No initial valid session found.');
+                try {
+                    console.log('🏁 [App] Running initial session check...');
+                    const { isValid, session } = await verifyAuthSession('AppInit');
+                    if (isValid && session) {
+                        console.log('✅ [App] Initial session verified for:', session.user.id);
+                        await handleSessionRestoration(session.user.id);
+                    } else {
+                        console.log('ℹ️ [App] No initial valid session found.');
+                    }
+                } finally {
+                    setSessionCheckComplete(true);
                 }
             };
             initSession();
@@ -1857,7 +1862,7 @@ export default function App() {
             );
         }
         if (normalizedPath === '/jcfpm') {
-            const isGuest = !userProfile.id;
+            const isGuest = sessionCheckComplete && !userProfile.id;
             if (isGuest && !isAuthModalOpen) {
                 // Trigger registration modal if guest
                 setAuthModalMode('register');
