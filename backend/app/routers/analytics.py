@@ -115,15 +115,33 @@ async def track_analytics_event(payload: AnalyticsEvent, request: Request):
     if not isinstance(metadata, dict):
         metadata = {"raw": str(metadata)}
 
+    # 1. Try to get country from headers (Cloudflare/Proxy)
+    headers = request.headers
+    country_code = headers.get("cf-ipcountry") or headers.get("x-ip-country") or headers.get("x-real-ip-country")
+    if country_code and country_code != "XX":
+        metadata.setdefault("country_code", country_code)
+        # We don't have the full name here easily, but country_code is often enough for charts
+        if not metadata.get("country"):
+            metadata["country"] = country_code
+
+    # 2. Extract Client IP
     client_ip = _extract_client_ip(request)
     if client_ip:
         metadata.setdefault("ip", client_ip)
-        metadata.setdefault("geo", {})
-        geo = _geo_from_ip(client_ip)
-        if geo:
-            metadata.update({k: v for k, v in geo.items() if v})
+        
+        # 3. Only do heavy Geo Lookup if we don't have country yet or want full details
+        if not metadata.get("country_code") or metadata.get("country_code") == "XX":
+            geo = _geo_from_ip(client_ip)
+            if geo:
+                metadata.update({k: v for k, v in geo.items() if v})
+    
+    # Debug: log headers if everything failed
+    if not metadata.get("country_code"):
+        # Log common headers for debugging in server logs
+        print(f"DEBUG: Geo failed for IP {client_ip}. Headers: {dict(headers)}")
 
-    ua_raw = request.headers.get("user-agent", "")
+    # 4. Parse User Agent
+    ua_raw = headers.get("user-agent", "")
     ua_data = _parse_user_agent(ua_raw)
     if ua_data:
         metadata.update({k: v for k, v in ua_data.items() if v})
@@ -141,4 +159,5 @@ async def track_analytics_event(payload: AnalyticsEvent, request: Request):
         ).execute()
         return {"ok": True}
     except Exception as exc:
+        print(f"❌ Analytics insert failed: {exc}")
         return {"ok": False, "error": str(exc)}

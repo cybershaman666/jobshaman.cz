@@ -492,7 +492,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             </section>
 
             <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm min-h-[300px] flex flex-col">
+              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm h-[400px] flex flex-col">
                 <div className="flex items-center gap-2 mb-4">
                   <Globe size={16} className="text-cyan-600" />
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100">{t('admin_dashboard.sections.traffic_trend')}</h3>
@@ -500,7 +500,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 {loading ? (
                   <div className="flex-1 flex items-center justify-center text-sm text-slate-500">Loading...</div>
                 ) : (
-                  <div className="flex-1 w-full h-[300px]">
+                  <div className="w-full h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={trafficSeries}>
                         <defs>
@@ -521,7 +521,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 )}
               </article>
 
-              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm min-h-[300px] flex flex-col">
+              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm h-[400px] flex flex-col">
                 <div className="flex items-center gap-2 mb-4">
                   <Brain size={16} className="text-cyan-600" />
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100">{t('admin_dashboard.sections.ai_token_trend')}</h3>
@@ -529,7 +529,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 {loading ? (
                   <div className="flex-1 flex items-center justify-center text-sm text-slate-500">Loading...</div>
                 ) : (
-                  <div className="flex-1 w-full h-[300px]">
+                  <div className="w-full h-[300px]">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart data={tokenTrend}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
