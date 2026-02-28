@@ -759,13 +759,13 @@ export default function App() {
                     next[savedId] = fresh;
                     continue;
                 }
-                if (prev[savedId]) {
+                if (prev[savedId] !== undefined) {
                     next[savedId] = prev[savedId];
                 }
             }
             const prevKeys = Object.keys(prev);
             const nextKeys = Object.keys(next);
-            if (prevKeys.length === nextKeys.length && prevKeys.every((key) => next[key])) {
+            if (prevKeys.length === nextKeys.length && prevKeys.every((key) => next[key] === prev[key])) {
                 return prev;
             }
             return next;
@@ -775,15 +775,18 @@ export default function App() {
     useEffect(() => {
         let cancelled = false;
         const jobsById = new Set(jobsForDisplay.map((job) => job.id));
-        const missingIds = savedJobIds.filter((id) => !jobsById.has(id) && !savedJobsCache[id]);
+        const missingIds = savedJobIds.filter((id) => !jobsById.has(id) && savedJobsCache[id] === undefined);
         if (!missingIds.length) return;
 
         (async () => {
             try {
                 const fetched = await fetchJobsByIds(missingIds.slice(0, 120));
-                if (cancelled || !fetched.length) return;
+                if (cancelled) return;
                 setSavedJobsCache((prev) => {
                     const next = { ...prev };
+                    for (const missingId of missingIds.slice(0, 120)) {
+                        next[missingId] = null as any;
+                    }
                     for (const job of fetched) {
                         next[job.id] = job;
                     }
