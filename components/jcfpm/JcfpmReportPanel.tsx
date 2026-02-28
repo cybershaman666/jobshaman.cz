@@ -396,9 +396,10 @@ const DimensionAccordionRow = ({ row, normalized, dimMeta, shortDesc, longDesc, 
 
 interface Props {
   snapshot: JcfpmSnapshotV1;
+  showAdvancedReport?: boolean;
 }
 
-const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
+const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true }) => {
   const { i18n } = useTranslation();
   const locale = (i18n.language || 'cs').split('-')[0];
   const labels = useMemo(() => getReportUiCopy(locale), [locale]);
@@ -964,6 +965,15 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
   };
 
   const bridge = buildBridge();
+  const topDimensionsBasic = useMemo(() => {
+    return [...mergedScores]
+      .map((row) => ({
+        row,
+        normalized: Math.round(normalizeTo100(row.dimension, row.raw_score, extendedDims)),
+      }))
+      .sort((a, b) => b.normalized - a.normalized)
+      .slice(0, 3);
+  }, [extendedDims, mergedScores]);
 
   const printReport = () => {
     openPrintWindow(`JCFPM-report-${fileDateStamp}`);
@@ -996,6 +1006,37 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
           </div>
         </div>
       </div>
+      {!showAdvancedReport && (
+        <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
+          <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-cyan-50 to-teal-50 dark:from-slate-800 dark:to-slate-900">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
+              {locale === 'cs' ? 'Základní report (free)' : 'Basic report (free)'}
+            </h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
+              {locale === 'cs'
+                ? 'Test proběhl úspěšně. Pro detailní AI interpretaci, role-fit mapování a pokročilou analýzu odemkni Premium.'
+                : 'Test completed successfully. Unlock Premium for full AI interpretation, role-fit mapping, and advanced analysis.'}
+            </p>
+          </div>
+          <div className="p-6 grid gap-3">
+            {topDimensionsBasic.map(({ row, normalized }) => (
+              <div key={row.dimension} className="rounded-lg border border-slate-200 dark:border-slate-700 p-3">
+                <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                  {dimensionMeta[row.dimension]?.title || row.dimension}
+                </div>
+                <div className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                  {normalized}/100 · {row.percentile}. {labels.percentileLabel}
+                </div>
+              </div>
+            ))}
+            <div className="text-xs text-slate-600 dark:text-slate-400 pt-2">
+              {labels.aiReadinessTitle}: {Math.round(normalizedScoreMap.get('d6_ai_readiness') || 0)}/100
+            </div>
+          </div>
+        </motion.div>
+      )}
+      {showAdvancedReport && (
+      <>
       {/* 🚀 AI Interpretation Cards - Hero Section */}
       <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6 print:mt-0 print:border-none print:shadow-none">
         <div className="bg-gradient-to-r from-cyan-50 to-teal-50 dark:from-slate-800 dark:to-slate-850 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between print:bg-none print:border-b-2 print:border-slate-900">
@@ -1332,6 +1373,8 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot }) => {
           )}
         </AnimatePresence>
       </motion.div>
+      </>
+      )}
 
     </motion.div>
   );

@@ -73,12 +73,18 @@ const SavedJobsPage: React.FC<SavedJobsPageProps> = ({
 
         {/* Search */}
         <div className="relative">
+          <label htmlFor="saved-jobs-search" className="sr-only">
+            {t('saved_jobs_page.search_placeholder')}
+          </label>
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
           <input
+            id="saved-jobs-search"
+            name="saved_jobs_search"
             type="text"
             value={searchTerm}
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={t('saved_jobs_page.search_placeholder')}
+            aria-label={t('saved_jobs_page.search_placeholder')}
             className="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:text-white"
           />
         </div>

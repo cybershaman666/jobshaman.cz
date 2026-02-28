@@ -15,6 +15,7 @@ interface Props {
   mode?: 'form' | 'report';
   section?: 'full' | 'core' | 'deep';
   userId?: string | null;
+  isPremium?: boolean;
   onPersist: (snapshot: JcfpmSnapshotV1) => void | Promise<void>;
   onClose: () => void;
 }
@@ -605,7 +606,7 @@ const LOCAL_JCFPM_PAYLOADS: Record<string, any> = {
   },
 };
 
-const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 'full', userId, onPersist, onClose }) => {
+const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 'full', userId, isPremium = false, onPersist, onClose }) => {
   const { i18n } = useTranslation();
   const locale = (i18n.language || 'cs').split('-')[0];
   const copy = useMemo(() => FLOW_COPY[locale] || FLOW_COPY.cs, [locale]);
@@ -1539,7 +1540,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
 
       {viewMode === 'report' && snapshot ? (
         <div className="mt-4">
-          <JcfpmReportPanel snapshot={snapshot} />
+          <JcfpmReportPanel snapshot={snapshot} showAdvancedReport={isPremium} />
         </div>
       ) : (
         <div className="jcfpm-form-layout">

@@ -79,6 +79,18 @@ const APPLY_FOLLOWUP_STORAGE_KEY = 'jobshaman_apply_followup';
 const EMAIL_CONFIRMATION_STORAGE_KEY = 'jobshaman_email_confirmation_pending';
 const SAVED_JOBS_CACHE_PREFIX = 'jobshaman_saved_jobs_cache';
 
+const normalizeSavedJobId = (jobId: string): string => {
+    const raw = String(jobId || '').trim();
+    if (!raw) return '';
+    return raw.startsWith('db-') ? raw.substring(3) : raw;
+};
+
+const getSavedJobIdAliases = (jobId: string): string[] => {
+    const raw = String(jobId || '').trim();
+    const normalized = normalizeSavedJobId(raw);
+    return Array.from(new Set([raw, normalized, normalized ? `db-${normalized}` : ''].filter(Boolean)));
+};
+
 const CompanyDashboard = lazy(() => import('./components/CompanyDashboard'));
 const CompanyLandingPage = lazy(() => import('./components/CompanyLandingPage'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
@@ -874,24 +886,27 @@ export default function App() {
     const searchSessionIdRef = useRef(`list_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
 
     useEffect(() => {
+        let raf = 0;
         const handleScroll = () => {
-            if (!jobListRef.current) return;
-
-            const { scrollTop, scrollHeight, clientHeight } = jobListRef.current;
-            const threshold = 300; // Increased threshold
-            const isNearBottom = scrollTop + clientHeight >= scrollHeight - threshold;
-
-            if (isNearBottom && !loadingMore && hasMore) {
-                console.log('🚀 Infinite scroll triggered! Loading page...', totalCount);
-                loadMoreJobs();
-            }
+            if (raf) cancelAnimationFrame(raf);
+            raf = requestAnimationFrame(() => {
+                if (!jobListRef.current) return;
+                const { scrollTop, scrollHeight, clientHeight } = jobListRef.current;
+                const threshold = 300;
+                const isNearBottom = scrollTop + clientHeight >= scrollHeight - threshold;
+                if (isNearBottom && !loadingMore && hasMore) {
+                    loadMoreJobs();
+                }
+            });
         };
 
         const element = jobListRef.current;
         if (element) {
-            console.log('✅ Scroll listener attached to job list');
-            element.addEventListener('scroll', handleScroll);
-            return () => element.removeEventListener('scroll', handleScroll);
+            element.addEventListener('scroll', handleScroll, { passive: true });
+            return () => {
+                if (raf) cancelAnimationFrame(raf);
+                element.removeEventListener('scroll', handleScroll);
+            };
         }
     }, [loadingMore, hasMore, isSearching, loadMoreJobs, isLoadingJobs, viewState]);
 
@@ -1566,7 +1581,8 @@ export default function App() {
     }, [candidateActivationState.first_quality_action_at, setUserProfile, userProfile]);
 
     const handleToggleSave = (jobId: string, options?: { source?: string; position?: number }) => {
-        const isAlreadySaved = savedJobIds.includes(jobId);
+        const aliases = getSavedJobIdAliases(jobId);
+        const isAlreadySaved = aliases.some((id) => savedJobIds.includes(id));
         const job = jobsForDisplay.find((j) => j.id === jobId) || (selectedJob?.id === jobId ? selectedJob : null);
         const requestId = (job as any)?.requestId || (job as any)?.aiRecommendationRequestId;
         const scoringVersion = (job as any)?.aiMatchScoringVersion;
@@ -1590,13 +1606,20 @@ export default function App() {
         }
         if (isAlreadySaved) {
             setSavedJobsCache((prev) => {
-                if (!(jobId in prev)) return prev;
+                const hasAnyAlias = aliases.some((id) => id in prev);
+                if (!hasAnyAlias) return prev;
                 const next = { ...prev };
-                delete next[jobId];
+                aliases.forEach((id) => {
+                    delete next[id];
+                });
                 return next;
             });
         }
-        applyInteractionState(jobId, isAlreadySaved ? 'unsave' : 'save');
+        if (isAlreadySaved) {
+            aliases.forEach((id) => applyInteractionState(id, 'unsave'));
+            return;
+        }
+        applyInteractionState(jobId, 'save');
     };
 
     const handleOpenJobDetailsFromSwipe = (jobId: string) => {

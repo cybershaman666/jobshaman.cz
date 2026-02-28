@@ -1,6 +1,6 @@
 import { BACKEND_URL } from '../constants';
 import { supabase } from './supabaseService';
-import { JcfpmItem, JcfpmSnapshotV1, JcfpmDimensionId } from '../types';
+import { JcfpmItem, JcfpmSnapshotV1, JcfpmDimensionId, JcfpmJhiAdjustmentV1 } from '../types';
 
 const DIMENSIONS = [
   'd1_cognitive',
@@ -571,10 +571,10 @@ const rankRolesLocal = (userProfile: Record<string, number>, roles: any[]) => {
     .slice(0, 10);
 };
 
-export const mapJcfpmToJhiPreferences = (
+export const mapJcfpmToJhiPreferencesWithExplanation = (
   snapshot: JcfpmSnapshotV1,
   current: import('../types').JHIPreferences
-): import('../types').JHIPreferences => {
+): { preferences: import('../types').JHIPreferences; explanation: JcfpmJhiAdjustmentV1 } => {
   const pct = (dim: import('../types').JcfpmDimensionId) => {
     const value = snapshot.percentile_summary?.[dim];
     if (typeof value === 'number') return Math.max(0, Math.min(100, value));
@@ -611,7 +611,7 @@ export const mapJcfpmToJhiPreferences = (
   const careerGrowthPreference = Math.round((d3 + d6) / 2);
   const homeOfficePreference = Math.round(50 + (100 - d2) * 0.2 + (100 - d4) * 0.2);
 
-  return {
+  const nextPreferences = {
     ...current,
     pillarWeights: {
       ...current.pillarWeights,
@@ -628,6 +628,66 @@ export const mapJcfpmToJhiPreferences = (
       homeOfficePreference: Math.max(0, Math.min(100, homeOfficePreference)),
     },
   };
+
+  const pctWeight = (value: number) => Math.round(value * 100);
+  const explanation: JcfpmJhiAdjustmentV1 = {
+    version: 'jcfpm-jhi-adjustment-v1',
+    generated_at: new Date().toISOString(),
+    inputs: {
+      d2_social: d2,
+      d3_motivational: d3,
+      d4_energy: d4,
+      d5_values: d5,
+      d6_ai_readiness: d6,
+    },
+    changes: [
+      {
+        field: 'pillarWeights.values',
+        from: pctWeight(current.pillarWeights.values),
+        to: pctWeight(nextPreferences.pillarWeights.values),
+        reason: 'Higher D5 (values) increases weight of value alignment in job scoring.',
+      },
+      {
+        field: 'pillarWeights.growth',
+        from: pctWeight(current.pillarWeights.growth),
+        to: pctWeight(nextPreferences.pillarWeights.growth),
+        reason: 'Combined D3 (motivation) + D6 (AI readiness) drives growth priority.',
+      },
+      {
+        field: 'pillarWeights.timeCost',
+        from: pctWeight(current.pillarWeights.timeCost),
+        to: pctWeight(nextPreferences.pillarWeights.timeCost),
+        reason: 'Higher D4 (energy) lowers time-cost penalty; lower D4 raises it.',
+      },
+      {
+        field: 'workStyle.peopleIntensity',
+        from: Math.round(current.workStyle.peopleIntensity),
+        to: Math.round(nextPreferences.workStyle.peopleIntensity),
+        reason: 'Mapped directly from D2 (social orientation).',
+      },
+      {
+        field: 'workStyle.careerGrowthPreference',
+        from: Math.round(current.workStyle.careerGrowthPreference),
+        to: Math.round(nextPreferences.workStyle.careerGrowthPreference),
+        reason: 'Derived from average of D3 (motivation) and D6 (AI readiness).',
+      },
+      {
+        field: 'workStyle.homeOfficePreference',
+        from: Math.round(current.workStyle.homeOfficePreference),
+        to: Math.round(nextPreferences.workStyle.homeOfficePreference),
+        reason: 'Higher when D2 and D4 are lower (preference for calmer, solo/remote setup).',
+      },
+    ],
+  };
+
+  return { preferences: nextPreferences, explanation };
+};
+
+export const mapJcfpmToJhiPreferences = (
+  snapshot: JcfpmSnapshotV1,
+  current: import('../types').JHIPreferences
+): import('../types').JHIPreferences => {
+  return mapJcfpmToJhiPreferencesWithExplanation(snapshot, current).preferences;
 };
 
 export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {

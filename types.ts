@@ -521,6 +521,7 @@ export interface UserProfile {
     github?: string;
     activation_v1?: CandidateActivationStateV1;
     jcfpm_v1?: JcfpmSnapshotV1;
+    jcfpm_jhi_adjustment_v1?: JcfpmJhiAdjustmentV1;
   };
   taxProfile?: TaxProfile;
   jhiPreferences?: JHIPreferences;
@@ -651,6 +652,26 @@ export interface JcfpmTemperamentProfile {
 export interface JcfpmTraitsProfile {
   big_five: JcfpmBigFiveProfile;
   temperament: JcfpmTemperamentProfile;
+}
+
+export interface JcfpmJhiAdjustmentItem {
+  field: string;
+  from: number;
+  to: number;
+  reason: string;
+}
+
+export interface JcfpmJhiAdjustmentV1 {
+  version: 'jcfpm-jhi-adjustment-v1';
+  generated_at: string;
+  inputs: {
+    d2_social: number;
+    d3_motivational: number;
+    d4_energy: number;
+    d5_values: number;
+    d6_ai_readiness: number;
+  };
+  changes: JcfpmJhiAdjustmentItem[];
 }
 
 export interface JcfpmSnapshotV1 {

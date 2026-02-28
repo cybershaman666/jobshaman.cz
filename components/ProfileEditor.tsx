@@ -54,7 +54,7 @@ import AnalyticsService from '../services/analyticsService';
 import JcfpmEntryCard from './jcfpm/JcfpmEntryCard';
 import JcfpmFlow from './jcfpm/JcfpmFlow';
 import { readJcfpmDraft } from '../services/jcfpmSessionState';
-import { mapJcfpmToJhiPreferences } from '../services/jcfpmService';
+import { mapJcfpmToJhiPreferencesWithExplanation } from '../services/jcfpmService';
 import { clearJcfpmDraft } from '../services/jcfpmSessionState';
 
 import { useTranslation } from 'react-i18next';
@@ -899,7 +899,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const handleJcfpmPersist = async (snapshot: JcfpmSnapshotV1) => {
     setJcfpmSnapshot(snapshot);
     setHasJcfpmDraft(false);
-    const nextJhiPreferences = mapJcfpmToJhiPreferences(
+    const mapped = mapJcfpmToJhiPreferencesWithExplanation(
       snapshot,
       profile.jhiPreferences || createDefaultJHIPreferences()
     );
@@ -908,8 +908,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       preferences: {
         ...profile.preferences,
         jcfpm_v1: snapshot,
+        jcfpm_jhi_adjustment_v1: mapped.explanation,
       },
-      jhiPreferences: nextJhiPreferences,
+      jhiPreferences: mapped.preferences,
     };
     await Promise.resolve(onChange(updatedProfile, true));
     AnalyticsService.trackEvent('jcfpm_profile_saved', {
@@ -2465,7 +2466,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   </span>
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  108 položek • 12 dimenzí • AI report + top role
+                  108 položek • 12 dimenzí • základní report pro všechny • pokročilý report v Premium
                 </p>
               </div>
               <div className="p-6 space-y-4 bg-gradient-to-br from-emerald-50/80 via-sky-50/70 to-stone-50/80 dark:from-slate-900/70 dark:via-slate-900/80 dark:to-slate-950/80">
@@ -2507,6 +2508,24 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     }
                   }}
                 />
+                {profile.preferences?.jcfpm_jhi_adjustment_v1 && (
+                  <div className="rounded-xl border border-cyan-200/70 dark:border-cyan-900/40 bg-white/80 dark:bg-slate-900/70 p-4">
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                      Jak test upravil JHI preference
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
+                      Úpravy vycházejí hlavně z dimenzí D2, D3, D4, D5 a D6. Níže je přesně co se změnilo a proč.
+                    </p>
+                    <div className="space-y-2">
+                      {profile.preferences.jcfpm_jhi_adjustment_v1.changes.slice(0, 6).map((change, idx) => (
+                        <div key={`${change.field}-${idx}`} className="text-xs text-slate-700 dark:text-slate-300">
+                          <span className="font-semibold">{change.field}</span>: {change.from} → {change.to}
+                          <span className="text-slate-500 dark:text-slate-400"> ({change.reason})</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2669,6 +2688,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 mode={jcfpmView}
                 section={jcfpmSection}
                 userId={profile.id}
+                isPremium={isPremium}
                 onPersist={handleJcfpmPersist}
                 onClose={() => {
                   setJcfpmStarted(false);

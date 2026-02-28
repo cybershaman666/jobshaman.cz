@@ -133,9 +133,6 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     const listHeaderRef = useRef<HTMLDivElement | null>(null);
     const [listHeight, setListHeight] = useState<number>(0);
     const [listHeaderHeight, setListHeaderHeight] = useState<number>(0);
-    const [listScrollTop, setListScrollTop] = useState(0);
-    const listItemHeight = 188;
-    const listOverscan = 6;
 
     useEffect(() => {
         if (!listContainerRef.current) return;
@@ -162,23 +159,6 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
         observer.observe(node);
         return () => observer.disconnect();
     }, []);
-
-    useEffect(() => {
-        const node = jobListRef.current;
-        if (!node) return;
-        let raf = 0;
-        const onScroll = () => {
-            if (raf) cancelAnimationFrame(raf);
-            raf = requestAnimationFrame(() => {
-                setListScrollTop(node.scrollTop);
-            });
-        };
-        node.addEventListener('scroll', onScroll, { passive: true });
-        return () => {
-            if (raf) cancelAnimationFrame(raf);
-            node.removeEventListener('scroll', onScroll);
-        };
-    }, [jobListRef]);
 
     useEffect(() => {
         if (!onTrackImpression || filteredJobs.length === 0) return;
@@ -231,15 +211,6 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
     };
 
     const listViewportHeight = Math.max(240, listHeight - listHeaderHeight - 12);
-    const totalListHeight = filteredJobs.length * listItemHeight;
-    const visibleStart = Math.max(0, Math.floor(listScrollTop / listItemHeight) - listOverscan);
-    const visibleEnd = Math.min(
-        filteredJobs.length - 1,
-        Math.ceil((listScrollTop + listViewportHeight) / listItemHeight) + listOverscan
-    );
-    const visibleJobs = filteredJobs.slice(visibleStart, visibleEnd + 1);
-    const paddingTop = visibleStart * listItemHeight;
-    const paddingBottom = Math.max(0, totalListHeight - paddingTop - visibleJobs.length * listItemHeight);
     const compactFilters = !userProfile?.isLoggedIn;
     const hasLocationAnchor = !!(userProfile.address || userProfile.coordinates || filterCity);
 
@@ -254,6 +225,8 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                 <Search className="text-slate-400" size={18} />
                             </div>
                             <input
+                                id="job-search"
+                                name="job_search"
                                 type="text"
                                 value={searchTerm}
                                 onChange={(e) => {
@@ -279,10 +252,12 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
 
                         <div className={compactFilters ? "mt-2 grid grid-cols-2 gap-2" : "mt-3 grid grid-cols-2 gap-2"}>
                             <div>
-                                <label className="sr-only">
+                                <label htmlFor="filter-language" className="sr-only">
                                     {t('filters.language')}
                                 </label>
                                 <select
+                                    id="filter-language"
+                                    name="filter_language"
                                     value={filterLanguage}
                                     onChange={(e) => setFilterLanguage(e.target.value)}
                                     aria-label={t('filters.language')}
@@ -299,11 +274,13 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                             </div>
 
                             <div className="relative">
-                                <label className="sr-only">
+                                <label htmlFor="sort-by" className="sr-only">
                                     {t('filters.sort_by')}
                                 </label>
                                 <div className="flex items-center gap-1">
                                     <select
+                                        id="sort-by"
+                                        name="sort_by"
                                         value={sortBy}
                                         onChange={(e) => setSortBy(e.target.value)}
                                         aria-label={t('filters.sort_by')}
@@ -384,6 +361,8 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                         <div className="relative">
                                             <MapPin className="absolute left-3 top-2.5 text-slate-400 dark:text-slate-500" size={16} />
                                             <input
+                                                id="filter-city"
+                                                name="filter_city"
                                                 type="text"
                                                 value={filterCity}
                                                 onChange={(e) => setFilterCity(e.target.value)}
@@ -598,6 +577,8 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                         <div className="flex items-center gap-3">
                                             <div className="relative flex-1">
                                                 <input
+                                                    id="filter-min-salary"
+                                                    name="filter_min_salary"
                                                     type="number"
                                                     value={filterMinSalary || ''}
                                                     onChange={(e) => setFilterMinSalary(parseInt(e.target.value) || 0)}
@@ -608,6 +589,8 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                                             </div>
                                         </div>
                                         <input
+                                            id="filter-min-salary-range"
+                                            name="filter_min_salary_range"
                                             type="range"
                                             min="0"
                                             max="150000"
@@ -740,32 +723,27 @@ const JobListSidebar: React.FC<JobListSidebarProps> = ({
                             <div
                                 ref={jobListRef}
                                 className="custom-scrollbar overflow-y-auto"
-                                style={{ height: listViewportHeight }}
+                                style={{ height: listViewportHeight, WebkitOverflowScrolling: 'touch' }}
                             >
-                                <div style={{ paddingTop, paddingBottom }}>
-                                    {visibleJobs.map((job, localIndex) => {
-                                        const index = visibleStart + localIndex;
-                                        return (
-                                            <div key={job.id} className="pb-3">
-                                                <div
-                                                    ref={(el) => { cardRefs.current[job.id] = el; }}
-                                                    data-job-id={job.id}
-                                                    data-position={String((job as any)?.rankPosition || (job as any)?.aiRecommendationPosition || (index + 1))}
-                                                >
-                                                    <JobCard
-                                                        job={job}
-                                                        isSelected={selectedJobId === job.id}
-                                                        isSaved={savedJobIds.includes(job.id)}
-                                                        onToggleSave={() => handleToggleSave(job.id)}
-                                                        onClick={() => handleJobSelect(job.id)}
-                                                        variant={theme}
-                                                        userProfile={userProfile}
-                                                    />
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
+                                {filteredJobs.map((job, index) => (
+                                    <div key={job.id} className="pb-3">
+                                        <div
+                                            ref={(el) => { cardRefs.current[job.id] = el; }}
+                                            data-job-id={job.id}
+                                            data-position={String((job as any)?.rankPosition || (job as any)?.aiRecommendationPosition || (index + 1))}
+                                        >
+                                            <JobCard
+                                                job={job}
+                                                isSelected={selectedJobId === job.id}
+                                                isSaved={savedJobIds.includes(job.id)}
+                                                onToggleSave={() => handleToggleSave(job.id)}
+                                                onClick={() => handleJobSelect(job.id)}
+                                                variant={theme}
+                                                userProfile={userProfile}
+                                            />
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         ) : (
                             <div className="py-12 px-4 text-center text-slate-400 dark:text-slate-500 flex flex-col items-center">
