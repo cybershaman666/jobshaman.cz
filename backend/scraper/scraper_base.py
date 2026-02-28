@@ -425,6 +425,9 @@ def normalize_description_for_storage(text: str) -> str:
             else:
                 normalized = "\n".join(f"- {item}" for item in inline_parts)
 
+    # Final cleanup of multiple newlines should be careful not to squash everything
+    # Collapse multiple spaces but preserve newlines
+    normalized = re.sub(r"[^\S\r\n]{2,}", " ", normalized)
     normalized = re.sub(r"\n{3,}", "\n\n", normalized).strip()
     return normalized
 

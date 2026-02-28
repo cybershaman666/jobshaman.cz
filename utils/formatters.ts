@@ -390,11 +390,6 @@ export const formatJobDescription = (description: string): string => {
     };
 
     const rawLines = description
-        // First: preserve markdown headings (###, ##, #)
-        .replace(/^(#{1,6})\s+(.+?)(\?)?$/gm, (match) => {
-            // Keep markdown headers as-is
-            return match;
-        })
         // Repair common OCR/scrape issue: missing space after sentence punctuation.
         .replace(/([.!?])(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1 ')
         .replace(inlineHeadingLooseRegex, '\n$1:\n')
@@ -402,8 +397,11 @@ export const formatJobDescription = (description: string): string => {
         .replace(/[\s\S]*/, (value) => splitInlineBulletSegments(value))
         // Preserve list-like separators into newlines so we can render bullets naturally.
         .replace(/([.;])\s+(?=[A-ZÁČĎÉĚÍŇÓŘŠŤÚŮÝŽ])/g, '$1\n')
-        .replace(/\s{2,}/g, ' ')
-        .split(/\r?\n/);
+        // Collapse ONLY horizontal whitespace, preserving newlines
+        .replace(/[^\S\r\n]{2,}/g, ' ')
+        // Remove trailing spaces on lines
+        .split(/\r?\n/)
+        .map(l => l.trimRight());
 
     const isBulletLikeLine = (line: string) => /^[•◦▪▫∙‣⁃]|^[\-\*]\s+/.test(line.trim());
     const isHeadingCandidate = (line: string) => {
@@ -480,7 +478,7 @@ export const formatJobDescription = (description: string): string => {
         };
     }).filter((line) => !line.isBlank || line.text);
 
-    const isHeading = (line: string) => /^#{1,6}\s+/.test(line) || /:\s*$/.test(line);
+    const isHeading = (line: string) => /^\s*#{1,6}\s+/.test(line) || /:\s*$/.test(line.trim());
     const normalizeToken = (input: string) =>
         input
             .normalize('NFD')
