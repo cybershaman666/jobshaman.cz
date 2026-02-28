@@ -173,43 +173,6 @@ const normalizeJcfpmItems = (items: JcfpmItem[]): JcfpmItem[] =>
     };
   });
 
-let globalJcfpmItemsCache: JcfpmItem[] | null = null;
-let globalJcfpmItemsFetchPromise: Promise<JcfpmItem[]> | null = null;
-
-const fetchItemsFromSupabase = async (): Promise<JcfpmItem[]> => {
-  if (globalJcfpmItemsCache) return globalJcfpmItemsCache;
-  if (globalJcfpmItemsFetchPromise) return globalJcfpmItemsFetchPromise;
-  if (!supabase) return [];
-
-  globalJcfpmItemsFetchPromise = (async () => {
-    const pageSize = 1000;
-    let from = 0;
-    const all: JcfpmItem[] = [];
-
-    while (true) {
-      const { data, error } = await supabase
-        .from('jcfpm_items')
-        .select('id, dimension, subdimension, prompt, prompt_i18n, subdimension_i18n, reverse_scoring, sort_order, item_type, payload, payload_i18n, assets, pool_key, variant_index')
-        .order('sort_order', { ascending: true })
-        .order('id', { ascending: true })
-        .range(from, from + pageSize - 1);
-      if (error) {
-        globalJcfpmItemsFetchPromise = null;
-        throw error;
-      }
-      const page = (data || []) as JcfpmItem[];
-      all.push(...page);
-      if (page.length < pageSize) break;
-      from += pageSize;
-    }
-
-    globalJcfpmItemsCache = normalizeJcfpmItems(all);
-    return globalJcfpmItemsCache;
-  })();
-
-  return globalJcfpmItemsFetchPromise;
-};
-
 const fetchRolesFromSupabase = async (): Promise<any[]> => {
   if (!supabase) return [];
   const { data, error } = await supabase
@@ -738,8 +701,8 @@ export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
         return (idBase || poolBase).toUpperCase();
       }).filter(Boolean)
     ).size;
-    if (poolCount >= 108) return normalized;
-    throw new Error('JCFPM items not seeded');
+    if (poolCount >= 72) return normalized;
+    throw new Error(`JCFPM items not seeded sufficiently (found ${poolCount} keys, expected at least 72)`);
   };
 
   const fetchFromBackendPublic = async () => {
@@ -769,18 +732,14 @@ export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
   } catch (firstErr: any) {
     const msg = String(firstErr?.message || '').toLowerCase();
     const retryable = msg.includes('timeout') || msg.includes('network') || msg.includes('failed to fetch') || msg.includes('abort');
+
     if (retryable) {
       await new Promise((resolve) => window.setTimeout(resolve, 1200));
-      try {
-        return await fetchFromBackendPublic();
-      } catch {
-        // Fall through to Supabase fallback.
-      }
+      return await fetchFromBackendPublic(); // Second try, throw naturally if it fails
     }
 
-    // Last-resort fallback when backend path is unavailable.
-    const supabaseItems = await fetchItemsFromSupabase();
-    return ensureSeeded(supabaseItems);
+    // Direct throw if it wasn't a network error (e.g. 500 or ensureSeeded failed)
+    throw firstErr;
   }
 };
 
@@ -850,10 +809,10 @@ export const submitJcfpm = async (
       // Continue to local fallback.
     }
 
-    const items = await fetchItemsFromSupabase();
-    if (items.length < 108) return null;
+    const items = await fetchJcfpmItems();
+    if (items.length < 72) return null;
     const selectedItems = itemIds.length
-      ? items.filter((item) => itemIds.includes(item.id))
+      ? items.filter((item: JcfpmItem) => itemIds.includes(String(item.id)))
       : items;
     if (!selectedItems.length) return null;
     const inferDimension = (item: JcfpmItem): JcfpmDimensionId => {
@@ -864,7 +823,7 @@ export const submitJcfpm = async (
         ((DIMENSIONS as readonly string[]).includes(explicit) ? (explicit as JcfpmDimensionId) : undefined);
       return inferred || 'd1_cognitive';
     };
-    const testedDimensions = new Set<JcfpmDimensionId>(selectedItems.map((item) => inferDimension(item)));
+    const testedDimensions = new Set<JcfpmDimensionId>(selectedItems.map((item: JcfpmItem) => inferDimension(item)));
     const dimensionScores = computeJcfpmScoresLocal(selectedItems, responses)
       .filter((row: any) => testedDimensions.has(row.dimension as JcfpmDimensionId));
     const subdimensionScores = computeJcfpmSubdimensionScoresLocal(selectedItems, responses);
