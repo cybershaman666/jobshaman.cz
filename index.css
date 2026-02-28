@@ -1,8 +1,8 @@
 @import url('https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "tailwindcss/utilities";
 
 @keyframes swipeCardWiggle {
   0% {
@@ -1134,10 +1134,13 @@ body {
 }
 
 @keyframes jobShamanDrumBeat {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
     opacity: 0.85;
   }
+
   50% {
     transform: scale(1.06);
     opacity: 1;
@@ -1149,10 +1152,12 @@ body {
     transform: scale(0.55);
     opacity: 0.45;
   }
+
   70% {
     transform: scale(1.35);
     opacity: 0;
   }
+
   100% {
     transform: scale(1.45);
     opacity: 0;
@@ -1184,9 +1189,12 @@ body {
 }
 
 @keyframes jobShamanStick {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate(6px, -6px) rotate(-28deg);
   }
+
   50% {
     transform: translate(5px, -4px) rotate(-16deg);
   }
@@ -1208,15 +1216,45 @@ body {
   opacity: 0.6;
 }
 
-.job-shaman-loader .rain span:nth-child(1) { left: -4px; top: 2px; animation-delay: 0s; }
-.job-shaman-loader .rain span:nth-child(2) { left: 4px; top: -6px; animation-delay: 0.2s; }
-.job-shaman-loader .rain span:nth-child(3) { left: 18px; top: -4px; animation-delay: 0.4s; }
-.job-shaman-loader .rain span:nth-child(4) { left: 26px; top: 2px; animation-delay: 0.1s; }
+.job-shaman-loader .rain span:nth-child(1) {
+  left: -4px;
+  top: 2px;
+  animation-delay: 0s;
+}
+
+.job-shaman-loader .rain span:nth-child(2) {
+  left: 4px;
+  top: -6px;
+  animation-delay: 0.2s;
+}
+
+.job-shaman-loader .rain span:nth-child(3) {
+  left: 18px;
+  top: -4px;
+  animation-delay: 0.4s;
+}
+
+.job-shaman-loader .rain span:nth-child(4) {
+  left: 26px;
+  top: 2px;
+  animation-delay: 0.1s;
+}
 
 @keyframes jobShamanRain {
-  0% { transform: translateY(-2px); opacity: 0.1; }
-  50% { transform: translateY(6px); opacity: 0.7; }
-  100% { transform: translateY(10px); opacity: 0; }
+  0% {
+    transform: translateY(-2px);
+    opacity: 0.1;
+  }
+
+  50% {
+    transform: translateY(6px);
+    opacity: 0.7;
+  }
+
+  100% {
+    transform: translateY(10px);
+    opacity: 0;
+  }
 }
 
 .job-shaman-loader {

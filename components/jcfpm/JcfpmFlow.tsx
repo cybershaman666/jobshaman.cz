@@ -15,6 +15,7 @@ interface Props {
   mode?: 'form' | 'report';
   section?: 'full' | 'core' | 'deep';
   userId?: string | null;
+  useDraft?: boolean;
   isPremium?: boolean;
   onPersist: (snapshot: JcfpmSnapshotV1) => void | Promise<void>;
   onClose: () => void;
@@ -641,13 +642,13 @@ const LOCAL_JCFPM_PAYLOADS: Record<string, any> = {
   },
 };
 
-const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 'full', userId, isPremium = false, onPersist, onClose }) => {
+const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 'full', userId, useDraft = true, isPremium = false, onPersist, onClose }) => {
   const { i18n } = useTranslation();
   const locale = (i18n.language || 'cs').split('-')[0];
   const copy = useMemo(() => FLOW_COPY[locale] || FLOW_COPY.cs, [locale]);
   const dimensions = useMemo(() => buildDimensions(copy), [copy]);
   const interludes = useMemo(() => buildInterludes(copy), [copy]);
-  const draft = readJcfpmDraft(userId);
+  const draft = useDraft ? readJcfpmDraft(userId) : null;
   const [items, setItems] = useState<JcfpmItem[]>([]);
   const [responses, setResponses] = useState<Record<string, any>>(() => draft?.responses || {});
   const [stepIndex, setStepIndex] = useState<number>(() => draft?.stepIndex ?? 0);
@@ -1421,7 +1422,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
         <div className={`mt-4 grid gap-4 ${isSystems ? 'jcfpm-systems-canvas' : ''}`}>
           {sources.map((src: any) => {
             const selected = currentPairs.find((pair) => pair.source === src.id)?.target || '';
-            const targetLabel = targets.find((t: any) => t.id === selected)?.label || copy.targetPlaceholder;
+            const targetLabel = (targets.find((t: any) => t.id === selected) as any)?.label || copy.targetPlaceholder;
 
             return (
               <div
@@ -1577,10 +1578,10 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
             {viewMode === 'report'
               ? copy.reportLabel
               : `${currentDim.title} • ${copy.questionProgress(
-                  currentDimQuestionCount > 0 ? currentDimQuestionIndex + 1 : stepIndex + 1,
-                  currentDimQuestionCount > 0 ? currentDimQuestionCount : totalQuestions,
-                  currentDimAnswered
-                )}`
+                currentDimQuestionCount > 0 ? currentDimQuestionIndex + 1 : stepIndex + 1,
+                currentDimQuestionCount > 0 ? currentDimQuestionCount : totalQuestions,
+                currentDimAnswered
+              )}`
             }
           </p>
           {viewMode === 'form' ? (
