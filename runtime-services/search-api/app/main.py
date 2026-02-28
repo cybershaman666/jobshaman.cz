@@ -26,13 +26,13 @@ base_origins = [
     "https://jobshaman.com",
     "https://www.jobshaman.cz",
     "https://www.jobshaman.com",
-    "https://jobshaman-cz.onrender.com",
+    "https://www.jobshaman.com",
     "http://localhost:3000",
     "http://localhost:5173",
 ]
 _ALLOWED_ORIGIN_REGEX = r"^https?://([a-z0-9-]+\.)?jobshaman\.(cz|com)(:\d+)?$"
 EXPOSE_DEBUG_ERRORS = os.getenv("EXPOSE_DEBUG_ERRORS", "false").strip().lower() in {"1", "true", "yes", "on"}
-BACKEND_WAKE_URL = os.getenv("BACKEND_WAKE_URL", "https://jobshaman-cz.onrender.com/healthz").strip()
+BACKEND_WAKE_URL = os.getenv("BACKEND_WAKE_URL", "").strip()
 BACKEND_WAKE_INTERVAL_SECONDS = int(os.getenv("BACKEND_WAKE_INTERVAL_SECONDS", "300"))
 ENABLE_BACKEND_WAKE = os.getenv("ENABLE_BACKEND_WAKE", "true").strip().lower() in {"1", "true", "yes", "on"}
 BACKEND_WAKE_TIMEOUT_SECONDS = int(os.getenv("BACKEND_WAKE_TIMEOUT_SECONDS", "65"))
