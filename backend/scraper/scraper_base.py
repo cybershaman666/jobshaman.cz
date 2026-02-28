@@ -47,13 +47,21 @@ from geocoding import geocode_location
 # Explicitly load .env from backend directory
 backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 env_path = os.path.join(backend_dir, '.env')
-print(f"🔍 Hledám .env soubor v: {env_path}")
-if os.path.exists(env_path):
-    print(f"✅ .env soubor nalezen, načítám...")
-    load_dotenv(dotenv_path=env_path)
-else:
-    print(f"⚠️ .env soubor nenalezen v {env_path}, zkouším výchozí umístění...")
-    load_dotenv()
+
+# Only print "Hledám .env" if we're likely in a local dev environment OR if SUPABASE_URL is missing
+if not os.getenv("SUPABASE_URL") or os.path.exists(env_path):
+    if os.path.exists(env_path):
+        print(f"🔍 Načítám .env soubor z: {env_path}")
+        load_dotenv(dotenv_path=env_path)
+    else:
+        # If in a container and no SUPABASE_URL, then warning is appropriate.
+        # Otherwise, if SUPABASE_URL is already there (e.g. Northflank), we don't need to spam.
+        if not os.getenv("SUPABASE_URL"):
+            print(f"⚠️ .env soubor nenalezen v {env_path}, zkouším výchozí umístění...")
+            load_dotenv()
+        else:
+            # Just call load_dotenv() silently to pick up any local overrides if they exist
+            load_dotenv()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")

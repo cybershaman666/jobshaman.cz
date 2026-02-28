@@ -865,7 +865,6 @@ async def get_job_recommendations(
                 "action_model_version": item.get("action_model_version") or None,
                 "ranking_strategy": (item.get("breakdown") or {}).get("selection_strategy"),
                 "is_new_job": bool((item.get("breakdown") or {}).get("is_new_job")),
-                "is_long_tail_company": bool((item.get("breakdown") or {}).get("is_long_tail_company")),
                 "model_version": model_version,
                 "scoring_version": scoring_version,
                 "source": "recommendations_api",

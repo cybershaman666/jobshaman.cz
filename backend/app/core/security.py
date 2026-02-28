@@ -212,7 +212,8 @@ def verify_csrf_token_header(request: Request, user: dict) -> bool:
     """Helper to verify CSRF token from request headers"""
     csrf_token = request.headers.get("X-CSRF-Token")
     if not csrf_token:
-        print(f"❌ CSRF Header 'X-CSRF-Token' missing")
+        # We don't print ❌ here because some routes (like telemetry) optionally accept CSRF.
+        # Loggers or individual routes can handle the warning if needed.
         return False
     user_id = user.get("id") or user.get("auth_id")
     if not user_id:
