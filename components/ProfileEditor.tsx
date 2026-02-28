@@ -2171,11 +2171,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     </div>
                     <button
                       onClick={() => setEnableLive3D((prev) => !prev)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${
-                        enableLive3D
-                          ? 'bg-cyan-600 text-white border-cyan-500'
-                          : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
-                      }`}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${enableLive3D
+                        ? 'bg-cyan-600 text-white border-cyan-500'
+                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
+                        }`}
                     >
                       {enableLive3D
                         ? t('happiness_audit_3d.live_on', { defaultValue: 'Enable live 3D: ON' })
@@ -2208,11 +2207,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                               key={key}
                               type="button"
                               onClick={() => setResourceLeakToggles((prev) => ({ ...prev, [key]: !prev[key] }))}
-                              className={`px-3 py-2 rounded-lg text-sm border ${
-                                resourceLeakToggles[key]
-                                  ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300'
-                                  : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300'
-                              }`}
+                              className={`px-3 py-2 rounded-lg text-sm border ${resourceLeakToggles[key]
+                                ? 'bg-rose-50 dark:bg-rose-950/30 border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300'
+                                : 'bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-900 text-emerald-700 dark:text-emerald-300'
+                                }`}
                             >
                               {resourceLeakToggles[key] ? `Pipe ON: ${label}` : `Pipe OFF: ${label}`}
                             </button>
@@ -2458,7 +2456,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
             )}
 
-            <div id="jcfpm-card" className="sticky top-20 z-20 bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div id="jcfpm-card" className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
                   Career Fit & Potential Test
@@ -2474,6 +2472,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 <JcfpmEntryCard
                   // use override variable so non-premium users can also start the test
                   isPremium={jcfpmOpenToAll}
+                  sceneCapability={sceneCapability}
                   hasDraft={hasJcfpmDraft}
                   hasSnapshot={Boolean(jcfpmSnapshot)}
                   lastUpdatedAt={jcfpmSnapshot?.completed_at}

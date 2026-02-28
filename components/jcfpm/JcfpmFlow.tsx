@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Save, X, Volume2, VolumeX, Sparkles, Clock } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, ArrowRight, Save, X, Volume2, VolumeX, Sparkles, Clock, GripVertical } from 'lucide-react';
+import { Reorder } from 'framer-motion';
 import { JcfpmItem, JcfpmSnapshotV1, JcfpmDimensionId } from '../../types';
 import { fetchJcfpmItems, submitJcfpm } from '../../services/jcfpmService';
 import { clearJcfpmDraft, readJcfpmDraft, writeJcfpmDraft } from '../../services/jcfpmSessionState';
@@ -7,6 +8,7 @@ import { useSceneCapability } from '../../hooks/useSceneCapability';
 import SceneShell from '../three/SceneShell';
 import JcfpmElegantParticles from '../three/JcfpmElegantParticles';
 import JcfpmReportPanel from './JcfpmReportPanel';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   initialSnapshot?: JcfpmSnapshotV1 | null;
@@ -17,68 +19,211 @@ interface Props {
   onClose: () => void;
 }
 
-const DIMENSIONS: { id: JcfpmDimensionId; title: string; subtitle: string }[] = [
-  {
-    id: 'd1_cognitive',
-    title: 'Kognitivní styl',
-    subtitle: 'Jak přemýšlíš a jak řešíš problémy.'
-  },
-  {
-    id: 'd2_social',
-    title: 'Sociální orientace',
-    subtitle: 'Jak funguješ v týmu, komunikaci a leadershipu.'
-  },
-  {
-    id: 'd3_motivational',
-    title: 'Motivační profil',
-    subtitle: 'Co tě pohání a co považuješ za odměnu.'
-  },
-  {
-    id: 'd4_energy',
-    title: 'Energetický pattern',
-    subtitle: 'Tempo, intenzita a styl práce.'
-  },
-  {
-    id: 'd5_values',
-    title: 'Hodnotová kotvení',
-    subtitle: 'Co musí práce přinášet, aby dávala smysl.'
-  },
-  {
-    id: 'd6_ai_readiness',
-    title: 'Adaptační kapacita (AI Readiness)',
-    subtitle: 'Jak dobře prosperuješ v měnícím se tech prostředí.'
-  },
-  {
-    id: 'd7_cognitive_reflection',
-    title: 'Reflexe a logika',
-    subtitle: 'Schopnost zastavit automatickou odpověď a použít logiku.'
-  },
-  {
-    id: 'd8_digital_eq',
-    title: 'Digitální EQ',
-    subtitle: 'Empatie a práce s emocemi v asynchronní komunikaci.'
-  },
-  {
-    id: 'd9_systems_thinking',
-    title: 'Systémové myšlení',
-    subtitle: 'Jak vidíš vztahy, zpětné vazby a komplexní sítě.'
-  },
-  {
-    id: 'd10_ambiguity_interpretation',
-    title: 'Interpretace nejasností',
-    subtitle: 'Jak čteš nejasné signály a rozlišuješ rizika a příležitosti.'
-  },
-  {
-    id: 'd11_problem_decomposition',
-    title: 'Rozklad problémů',
-    subtitle: 'Schopnost rozsekat velký úkol na logické kroky.'
-  },
-  {
-    id: 'd12_moral_compass',
-    title: 'Morální kompas',
-    subtitle: 'Rozhodování v etických dilematech a šedých zónách.'
-  },
+const DIMENSION_IDS: JcfpmDimensionId[] = [
+  'd1_cognitive',
+  'd2_social',
+  'd3_motivational',
+  'd4_energy',
+  'd5_values',
+  'd6_ai_readiness',
+  'd7_cognitive_reflection',
+  'd8_digital_eq',
+  'd9_systems_thinking',
+  'd10_ambiguity_interpretation',
+  'd11_problem_decomposition',
+  'd12_moral_compass',
 ];
+
+const FLOW_COPY: Record<string, any> = {
+  cs: {
+    title: 'Career Fit & Potential',
+    reportLabel: 'Report',
+    questionProgress: (current: number, total: number, answered: number) => `Otázka ${current} / ${total} • ${answered} zodpovězeno`,
+    phaseDeep: 'Deep Dive • Focus Mode',
+    phaseStandard: 'Standard Scan',
+    likertLow: 'Spíše nesouhlasím',
+    likertHigh: 'Spíše souhlasím',
+    missingOptions: 'Chybí data pro tuto otázku (options). Prosím zkontroluj seed v `jcfpm_items`.',
+    missingOrdering: 'Chybí data pro tuto otázku (ordering). Prosím zkontroluj seed v `jcfpm_items`.',
+    missingDragDrop: 'Chybí data pro tuto otázku (drag_drop). Prosím zkontroluj seed v `jcfpm_items`.',
+    chatPeer: 'Kolega',
+    chatYou: 'Ty',
+    chatPrompt: 'Jaká je nejlepší reakce?',
+    sourceLabel: 'Zdroj',
+    targetLabel: 'Cíl',
+    targetPlaceholder: 'Vyber cíl',
+    reorderUp: 'Nahoru',
+    reorderDown: 'Dolů',
+    newDimension: 'Nová dimenze',
+    continue: 'Pokračovat',
+    timerLabel: 'Tempo',
+    timerNote: 'Čas lehce ovlivňuje výsledek – hledej rovnováhu mezi rychlostí a jistotou.',
+    legendLikert: '1 = Silně nesouhlasím • 4 = Neutrálně • 7 = Silně souhlasím',
+    loadingQuestions: 'Načítám otázky…',
+    back: 'Zpět',
+    next: 'Další',
+    saving: 'Ukládám...',
+    finishTest: 'Dokončit test',
+    finishSection: 'Dokončit sekci',
+    close: 'Zavřít',
+    ambientOn: 'Ambient zapnut',
+    ambientOff: 'Ambient vypnut',
+    soundOn: 'Zvuk zapnut',
+    soundOff: 'Zvuk vypnut',
+    errors: {
+      premium: 'Test je dostupný pouze pro premium uživatele.',
+      noAccess: 'Nemáte přístup k premium testu.',
+      missingSeed: 'Test zatím není připraven – chybí seed potřebných položek v databázi.',
+      missingCount: (count: number) => `Test zatím není připraven – chybí seed ${count} položek v databázi.`,
+      generic: 'Nepodařilo se načíst otázky. Zkuste to prosím znovu.',
+    },
+    dimensions: {
+      d1_cognitive: { title: 'Kognitivní styl', subtitle: 'Jak přemýšlíš a jak řešíš problémy.' },
+      d2_social: { title: 'Sociální orientace', subtitle: 'Jak funguješ v týmu, komunikaci a leadershipu.' },
+      d3_motivational: { title: 'Motivační profil', subtitle: 'Co tě pohání a co považuješ za odměnu.' },
+      d4_energy: { title: 'Energetický pattern', subtitle: 'Tempo, intenzita a styl práce.' },
+      d5_values: { title: 'Hodnotová kotvení', subtitle: 'Co musí práce přinášet, aby dávala smysl.' },
+      d6_ai_readiness: { title: 'Adaptační kapacita (AI Readiness)', subtitle: 'Jak dobře prosperuješ v měnícím se tech prostředí.' },
+      d7_cognitive_reflection: { title: 'Reflexe a logika', subtitle: 'Schopnost zastavit automatickou odpověď a použít logiku.' },
+      d8_digital_eq: { title: 'Digitální EQ', subtitle: 'Empatie a práce s emocemi v asynchronní komunikaci.' },
+      d9_systems_thinking: { title: 'Systémové myšlení', subtitle: 'Jak vidíš vztahy, zpětné vazby a komplexní sítě.' },
+      d10_ambiguity_interpretation: { title: 'Interpretace nejasností', subtitle: 'Jak čteš nejasné signály a rozlišuješ rizika a příležitosti.' },
+      d11_problem_decomposition: { title: 'Rozklad problémů', subtitle: 'Schopnost rozsekat velký úkol na logické kroky.' },
+      d12_moral_compass: { title: 'Morální kompas', subtitle: 'Rozhodování v etických dilematech a šedých zónách.' },
+    },
+    interludes: {
+      d1_cognitive: { title: 'Kognitivní styl', body: 'Jak přemýšlíš, filtruješ informace a rozhoduješ se. Půjdeme přímo po tvém vnitřním „procesoru“.' },
+      d2_social: { title: 'Sociální orientace', body: 'Kde se cítíš nejlépe mezi lidmi? Zda ti víc sedí spolupráce, vedení, nebo klidná samostatnost.' },
+      d3_motivational: { title: 'Motivační profil', body: 'Co tě dlouhodobě žene kupředu a co tě naopak vyčerpává. Teď zachytíme tvé motivátory.' },
+      d4_energy: { title: 'Energetický pattern', body: 'Tvé tempo, rytmus a pracovní energie. Najdeme styl, ve kterém umíš podávat nejlepší výkon.' },
+      d5_values: { title: 'Hodnotová kotvení', body: 'Kdy práce opravdu dává smysl. Tady mapujeme hodnoty, bez kterých to „nesedí“.' },
+      d6_ai_readiness: { title: 'AI readiness', body: 'Jak se cítíš v proměnách a nových technologiích. Závěrečný pohled na adaptabilitu.' },
+      d7_cognitive_reflection: { title: 'Cognitive Reflection & Logic', body: 'Tvoje schopnost zastavit automatickou odpověď a zapojit hlubší logiku.' },
+      d8_digital_eq: { title: 'Digitální EQ', body: 'Empatie a důvěra v asynchronní komunikaci – Slack, e-mail, chat.' },
+      d9_systems_thinking: { title: 'Systémové myšlení', body: 'Mapování vztahů, zpětných vazeb a nelineárních dopadů.' },
+      d10_ambiguity_interpretation: { title: 'Interpretace ambiguity', body: 'Jak čteš nejasné signály a co v nich vidíš jako první.' },
+      d11_problem_decomposition: { title: 'Rozklad problémů', body: 'Schopnost rozsekat velký a vágní úkol na logické kroky.' },
+      d12_moral_compass: { title: 'Morální & etický kompas', body: 'Jak se rozhoduješ v etických dilematech, kde není manuál.' },
+    },
+    stories: {
+      d1_cognitive: 'Začneme tím, jak přemýšlíš, třídíš informace a rozhoduješ se.',
+      d2_social: 'Teď se podíváme na to, kde se ti nejlépe pracuje s lidmi.',
+      d3_motivational: 'Co tě skutečně pohání? Tady zachytíme tvé motivátory.',
+      d4_energy: 'V této části mapujeme tvé tempo, rytmus a pracovní energii.',
+      d5_values: 'Zachytíme, jaké hodnoty musí práce naplňovat, aby dávala smysl.',
+      d6_ai_readiness: 'Na závěr zjistíme, jak se cítíš v AI a tech změnách.',
+      d7_cognitive_reflection: 'Krátké hádanky prověří tvůj “bullshit detector” a schopnost zpomalit intuici.',
+      d8_digital_eq: 'Připrav se na chatové situace a interpretaci tónu v textu.',
+      d9_systems_thinking: 'Budeme mapovat vztahy a zpětné vazby v jednoduchých systémech.',
+      d10_ambiguity_interpretation: 'V nejasných obrazech odhalíš, zda vidíš spíš rizika nebo příležitosti.',
+      d11_problem_decomposition: 'Rozložíš velké úkoly na logické kroky.',
+      d12_moral_compass: 'Etická dilemata odhalí tvůj hodnotový kompas.',
+    },
+  },
+  en: {
+    title: 'Career Fit & Potential',
+    reportLabel: 'Report',
+    questionProgress: (current: number, total: number, answered: number) => `Question ${current} / ${total} • ${answered} answered`,
+    phaseDeep: 'Deep Dive • Focus Mode',
+    phaseStandard: 'Standard Scan',
+    likertLow: 'Rather disagree',
+    likertHigh: 'Rather agree',
+    missingOptions: 'Missing data for this question (options). Please verify the `jcfpm_items` seed.',
+    missingOrdering: 'Missing data for this question (ordering). Please verify the `jcfpm_items` seed.',
+    missingDragDrop: 'Missing data for this question (drag_drop). Please verify the `jcfpm_items` seed.',
+    chatPeer: 'Colleague',
+    chatYou: 'You',
+    chatPrompt: 'What is the best response?',
+    sourceLabel: 'Source',
+    targetLabel: 'Target',
+    targetPlaceholder: 'Select target',
+    reorderUp: 'Up',
+    reorderDown: 'Down',
+    newDimension: 'New dimension',
+    continue: 'Continue',
+    timerLabel: 'Pace',
+    timerNote: 'Time slightly influences the result — aim for balance between speed and certainty.',
+    legendLikert: '1 = Strongly disagree • 4 = Neutral • 7 = Strongly agree',
+    loadingQuestions: 'Loading questions…',
+    back: 'Back',
+    next: 'Next',
+    saving: 'Saving...',
+    finishTest: 'Finish test',
+    finishSection: 'Finish section',
+    close: 'Close',
+    ambientOn: 'Ambient on',
+    ambientOff: 'Ambient off',
+    soundOn: 'Sound on',
+    soundOff: 'Sound off',
+    errors: {
+      premium: 'This test is available only for premium users.',
+      noAccess: 'You do not have access to the premium test.',
+      missingSeed: 'The test is not ready yet — required seed items are missing in the database.',
+      missingCount: (count: number) => `The test is not ready yet — ${count} required items are missing in the database.`,
+      generic: 'Unable to load questions. Please try again.',
+    },
+    dimensions: {
+      d1_cognitive: { title: 'Cognitive Style', subtitle: 'How you think and solve problems.' },
+      d2_social: { title: 'Social Orientation', subtitle: 'How you work with people, communication, and leadership.' },
+      d3_motivational: { title: 'Motivational Profile', subtitle: 'What drives you and what feels rewarding.' },
+      d4_energy: { title: 'Energy Pattern', subtitle: 'Pace, intensity, and work rhythm.' },
+      d5_values: { title: 'Value Anchors', subtitle: 'What work must deliver to feel meaningful.' },
+      d6_ai_readiness: { title: 'Adaptive Capacity (AI Readiness)', subtitle: 'How you thrive in changing tech environments.' },
+      d7_cognitive_reflection: { title: 'Reflection & Logic', subtitle: 'Ability to pause automatic answers and apply logic.' },
+      d8_digital_eq: { title: 'Digital EQ', subtitle: 'Empathy and emotional handling in async communication.' },
+      d9_systems_thinking: { title: 'Systems Thinking', subtitle: 'How you see relationships, feedback loops, and complexity.' },
+      d10_ambiguity_interpretation: { title: 'Ambiguity Interpretation', subtitle: 'How you read unclear signals and separate risks and opportunities.' },
+      d11_problem_decomposition: { title: 'Problem Decomposition', subtitle: 'Ability to break big tasks into logical steps.' },
+      d12_moral_compass: { title: 'Moral Compass', subtitle: 'Decisions in ethical dilemmas and grey zones.' },
+    },
+    interludes: {
+      d1_cognitive: { title: 'Cognitive Style', body: 'How you think, filter information, and decide. We will go straight to your internal “processor”.' },
+      d2_social: { title: 'Social Orientation', body: 'Where do you feel best among people? Collaboration, leadership, or calm autonomy.' },
+      d3_motivational: { title: 'Motivational Profile', body: 'What drives you long-term and what drains you. We will capture your motivators.' },
+      d4_energy: { title: 'Energy Pattern', body: 'Your pace, rhythm, and work energy. We will find the style where you deliver best.' },
+      d5_values: { title: 'Value Anchors', body: 'When work truly feels meaningful. We map the values you need to feel aligned.' },
+      d6_ai_readiness: { title: 'AI readiness', body: 'How you feel about change and new technology. A final look at adaptability.' },
+      d7_cognitive_reflection: { title: 'Cognitive Reflection & Logic', body: 'Your ability to stop the automatic answer and apply deeper logic.' },
+      d8_digital_eq: { title: 'Digital EQ', body: 'Empathy and trust in async communication — Slack, email, chat.' },
+      d9_systems_thinking: { title: 'Systems Thinking', body: 'Mapping relationships, feedback loops, and non-linear effects.' },
+      d10_ambiguity_interpretation: { title: 'Ambiguity Interpretation', body: 'How you read unclear signals and what you notice first.' },
+      d11_problem_decomposition: { title: 'Problem Decomposition', body: 'Ability to break a big, vague task into logical steps.' },
+      d12_moral_compass: { title: 'Moral & ethical compass', body: 'How you decide in ethical dilemmas without a manual.' },
+    },
+    stories: {
+      d1_cognitive: 'We start with how you think, sort information, and decide.',
+      d2_social: 'Now we look at where you work best with people.',
+      d3_motivational: 'What truly drives you? We capture your motivators.',
+      d4_energy: 'This section maps your pace, rhythm, and work energy.',
+      d5_values: 'We capture which values work must fulfill to feel meaningful.',
+      d6_ai_readiness: 'Finally, we see how you feel about AI and tech change.',
+      d7_cognitive_reflection: 'Short puzzles test your “bullshit detector” and ability to slow intuition.',
+      d8_digital_eq: 'Get ready for chat scenarios and reading tone in text.',
+      d9_systems_thinking: 'We will map relationships and feedback loops in simple systems.',
+      d10_ambiguity_interpretation: 'In unclear visuals we see whether you notice risk or opportunity first.',
+      d11_problem_decomposition: 'You will break big tasks into logical steps.',
+      d12_moral_compass: 'Ethical dilemmas reveal your values compass.',
+    },
+  },
+};
+
+const buildDimensions = (copy: any) =>
+  DIMENSION_IDS.map((id) => ({
+    id,
+    title: copy.dimensions[id]?.title || id,
+    subtitle: copy.dimensions[id]?.subtitle || '',
+  }));
+
+const buildInterludes = (copy: any) => {
+  const result: Record<JcfpmDimensionId, { title: string; body: string }> = {} as any;
+  DIMENSION_IDS.forEach((id) => {
+    result[id] = {
+      title: copy.interludes[id]?.title || copy.dimensions[id]?.title || id,
+      body: copy.interludes[id]?.body || '',
+    };
+  });
+  return result;
+};
 
 const DEEP_DIVE_DIMENSIONS = new Set<JcfpmDimensionId>([
   'd7_cognitive_reflection',
@@ -91,56 +236,6 @@ const DEEP_DIVE_DIMENSIONS = new Set<JcfpmDimensionId>([
 
 const LIKERT = [1, 2, 3, 4, 5, 6, 7];
 
-const INTERLUDES: Record<JcfpmDimensionId, { title: string; body: string }> = {
-  d1_cognitive: {
-    title: 'Kognitivní styl',
-    body: 'Jak přemýšlíš, filtruješ informace a rozhoduješ se. Půjdeme přímo po tvém vnitřním „procesoru“.',
-  },
-  d2_social: {
-    title: 'Sociální orientace',
-    body: 'Kde se cítíš nejlépe mezi lidmi? Zda ti víc sedí spolupráce, vedení, nebo klidná samostatnost.',
-  },
-  d3_motivational: {
-    title: 'Motivační profil',
-    body: 'Co tě dlouhodobě žene kupředu a co tě naopak vyčerpává. Teď zachytíme tvé motivátory.',
-  },
-  d4_energy: {
-    title: 'Energetický pattern',
-    body: 'Tvé tempo, rytmus a pracovní energie. Najdeme styl, ve kterém umíš podávat nejlepší výkon.',
-  },
-  d5_values: {
-    title: 'Hodnotová kotvení',
-    body: 'Kdy práce opravdu dává smysl. Tady mapujeme hodnoty, bez kterých to „nesedí“.',
-  },
-  d6_ai_readiness: {
-    title: 'AI readiness',
-    body: 'Jak se cítíš v proměnách a nových technologiích. Závěrečný pohled na adaptabilitu.',
-  },
-  d7_cognitive_reflection: {
-    title: 'Cognitive Reflection & Logic',
-    body: 'Tvoje schopnost zastavit automatickou odpověď a zapojit hlubší logiku.',
-  },
-  d8_digital_eq: {
-    title: 'Digitální EQ',
-    body: 'Empatie a důvěra v asynchronní komunikaci – Slack, e-mail, chat.',
-  },
-  d9_systems_thinking: {
-    title: 'Systémové myšlení',
-    body: 'Mapování vztahů, zpětných vazeb a nelineárních dopadů.',
-  },
-  d10_ambiguity_interpretation: {
-    title: 'Interpretace ambiguity',
-    body: 'Jak čteš nejasné signály a co v nich vidíš jako první.',
-  },
-  d11_problem_decomposition: {
-    title: 'Rozklad problémů',
-    body: 'Schopnost rozsekat velký a vágní úkol na logické kroky.',
-  },
-  d12_moral_compass: {
-    title: 'Morální & etický kompas',
-    body: 'Jak se rozhoduješ v etických dilematech, kde není manuál.',
-  },
-};
 
 const D10_IMAGE_ASSETS = {
   // clearer icons: exclamation, arrow, question mark
@@ -511,6 +606,11 @@ const LOCAL_JCFPM_PAYLOADS: Record<string, any> = {
 };
 
 const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 'full', userId, onPersist, onClose }) => {
+  const { i18n } = useTranslation();
+  const locale = (i18n.language || 'cs').split('-')[0];
+  const copy = useMemo(() => FLOW_COPY[locale] || FLOW_COPY.cs, [locale]);
+  const dimensions = useMemo(() => buildDimensions(copy), [copy]);
+  const interludes = useMemo(() => buildInterludes(copy), [copy]);
   const draft = readJcfpmDraft(userId);
   const [items, setItems] = useState<JcfpmItem[]>([]);
   const [responses, setResponses] = useState<Record<string, any>>(() => draft?.responses || initialSnapshot?.responses || {});
@@ -540,20 +640,20 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
         if (!mounted) return;
         const msg = String(err?.message || '');
         if (msg.toLowerCase().includes('premium')) {
-          setItemsError('Test je dostupný pouze pro premium uživatele.');
+          setItemsError(copy.errors.premium);
         } else if (msg.includes('403')) {
-          setItemsError('Nemáte přístup k premium testu.');
+          setItemsError(copy.errors.noAccess);
         } else if (msg.toLowerCase().includes('seed') || msg.toLowerCase().includes('items')) {
-          setItemsError('Test zatím není připraven – chybí seed 108 položek v databázi.');
+          setItemsError(copy.errors.missingSeed);
         } else {
-          setItemsError('Nepodařilo se načíst otázky. Zkuste to prosím znovu.');
+          setItemsError(copy.errors.generic);
         }
       } finally {
         if (mounted) setIsLoadingItems(false);
       }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [copy]);
 
   useEffect(() => {
     if (viewMode !== 'form') return;
@@ -614,21 +714,21 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     if (!items.length) return;
     const requiredCount = section === 'core' ? 72 : section === 'deep' ? 36 : 108;
     if (pooledItems.length < requiredCount) {
-      setItemsError(`Test zatím není připraven – chybí seed ${requiredCount} položek v databázi.`);
+      setItemsError(copy.errors.missingCount(requiredCount));
     } else {
       setItemsError(null);
     }
-  }, [items.length, pooledItems.length, section]);
+  }, [items.length, pooledItems.length, section, copy]);
 
-  const inferDimension = (item: JcfpmItem | undefined): JcfpmDimensionId => {
+  const inferDimension = useCallback((item: JcfpmItem | undefined): JcfpmDimensionId => {
     if (!item) return 'd1_cognitive';
     const explicit = String(item.dimension || '').trim().toLowerCase();
     const inferred =
       inferDimensionFromIdentity(item.id) ||
       inferDimensionFromIdentity(item.pool_key) ||
-      (DIMENSIONS.some((dim) => dim.id === explicit) ? (explicit as JcfpmDimensionId) : undefined);
+      (DIMENSION_IDS.includes(explicit as JcfpmDimensionId) ? (explicit as JcfpmDimensionId) : undefined);
     return inferred || 'd1_cognitive';
-  };
+  }, []);
 
   const itemsByDimension = useMemo(() => {
     const map: Record<string, JcfpmItem[]> = {};
@@ -639,15 +739,15 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     });
     Object.values(map).forEach((list) => list.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
     return map;
-  }, [pooledItems]);
+  }, [inferDimension, pooledItems]);
 
   const activeDimensions = useMemo(() => {
-    return DIMENSIONS.filter((dim) => {
+    return dimensions.filter((dim) => {
       if (section === 'core') return !DEEP_DIVE_DIMENSIONS.has(dim.id);
       if (section === 'deep') return DEEP_DIVE_DIMENSIONS.has(dim.id);
       return true;
     });
-  }, [section]);
+  }, [section, dimensions]);
 
   const orderedItems = useMemo(() => {
     const filtered = [...pooledItems].filter((item) => {
@@ -676,12 +776,47 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
   }, [autoJumped, orderedItems, viewMode, responses]);
 
   const currentItem = orderedItems[stepIndex];
-  const currentDim = DIMENSIONS.find((dim) => dim.id === inferDimension(currentItem)) || DIMENSIONS[0];
+  const currentDim = dimensions.find((dim) => dim.id === inferDimension(currentItem)) || dimensions[0];
   // disable deep dive special styling; treat all items as standard for unified layout
   const isDeepDive = false;
   const isFocusMode = false;
   const sceneCapability = useSceneCapability();
-  const resolvePayload = (item?: JcfpmItem): any => {
+  const resolvePrompt = useCallback((item?: JcfpmItem): string => {
+    if (!item) return '';
+    const localized = item.prompt_i18n?.[locale] || item.prompt_i18n?.[(locale || '').toLowerCase()] || item.prompt_i18n?.[(locale || '').split('-')[0]];
+    return String(localized || item.prompt || '');
+  }, [locale]);
+  const resolveSubdimension = useCallback((item?: JcfpmItem): string => {
+    if (!item) return '';
+    const localized = item.subdimension_i18n?.[locale] || item.subdimension_i18n?.[(locale || '').toLowerCase()] || item.subdimension_i18n?.[(locale || '').split('-')[0]];
+    return String(localized || item.subdimension || '');
+  }, [locale]);
+  const mergeLocalizedPayload = useCallback((base: any, localized: any) => {
+    if (!localized || typeof localized !== 'object') return base;
+    const mergeList = (baseList: any[], localizedList: any[]) => {
+      const localizedMap = new Map(localizedList.map((entry: any) => [String(entry?.id || entry?.key || ''), entry]));
+      return baseList.map((entry: any) => {
+        const key = String(entry?.id || entry?.key || '');
+        const override = key ? localizedMap.get(key) : null;
+        return override ? { ...entry, ...override } : entry;
+      });
+    };
+    const merged: any = { ...base, ...localized };
+    if (Array.isArray(base?.options) && Array.isArray(localized?.options)) {
+      merged.options = mergeList(base.options, localized.options);
+    }
+    if (Array.isArray(base?.sources) && Array.isArray(localized?.sources)) {
+      merged.sources = mergeList(base.sources, localized.sources);
+    }
+    if (Array.isArray(base?.targets) && Array.isArray(localized?.targets)) {
+      merged.targets = mergeList(base.targets, localized.targets);
+    }
+    if (Array.isArray(base?.correct_order) && Array.isArray(localized?.correct_order)) {
+      merged.correct_order = localized.correct_order;
+    }
+    return merged;
+  }, []);
+  const resolvePayload = useCallback((item?: JcfpmItem): any => {
     if (!item) return {};
     const rawKey = stripVariantSuffix(String(item.id || item.pool_key || '')).trim();
     const key = rawKey.toUpperCase();
@@ -704,7 +839,10 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
         options,
       };
     };
-    if (item.payload == null) return applyImageAssets(LOCAL_JCFPM_PAYLOADS[key] || {});
+    const localizedPayload = item.payload_i18n?.[locale] || item.payload_i18n?.[(locale || '').split('-')[0]];
+    if (item.payload == null) {
+      return applyImageAssets(mergeLocalizedPayload(LOCAL_JCFPM_PAYLOADS[key] || {}, localizedPayload));
+    }
     let value: any = item.payload;
     for (let i = 0; i < 2; i += 1) {
       if (typeof value !== 'string') break;
@@ -714,10 +852,10 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
         return {};
       }
     }
-    if (value && typeof value === 'object' && Object.keys(value).length > 0) return applyImageAssets(value);
-    return applyImageAssets(LOCAL_JCFPM_PAYLOADS[key] || {});
-  };
-  const resolveItemType = (item?: JcfpmItem): string => {
+    const basePayload = value && typeof value === 'object' && Object.keys(value).length > 0 ? value : (LOCAL_JCFPM_PAYLOADS[key] || {});
+    return applyImageAssets(mergeLocalizedPayload(basePayload, localizedPayload));
+  }, [locale, mergeLocalizedPayload]);
+  const resolveItemType = useCallback((item?: JcfpmItem): string => {
     if (!item) return 'likert';
     const explicit = String(item.item_type || '').trim().toLowerCase().replace(/\s+/g, '_').replace(/-+/g, '_');
     const payload = resolvePayload(item);
@@ -740,7 +878,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     if (/^D9\.3$/i.test(id) || /^D11\.1$/i.test(id) || /^D11\.3$/i.test(id) || /^D11\.6$/i.test(id)) return 'ordering';
     if (/^D9\.2$/i.test(id) || /^D9\.5$/i.test(id) || /^D9\.6$/i.test(id) || /^D11\.4$/i.test(id)) return 'mcq';
     return explicit || 'likert';
-  };
+  }, [resolvePayload]);
   const isAnswered = (item: JcfpmItem | undefined) => {
     if (!item) return false;
     const value = responses[item.id];
@@ -775,17 +913,17 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     const ids = new Set(orderedItems.map((item) => item.id));
     return Object.keys(responses).filter((id) => ids.has(id)).length;
   }, [responses, orderedItems]);
-  const totalQuestions = orderedItems.length || 108;
+  const totalQuestions = orderedItems.length || (section === 'core' ? 72 : section === 'deep' ? 36 : 108);
   const answeredByDimension = useMemo(() => {
     const map: Record<string, number> = {};
-    DIMENSIONS.forEach((dim) => {
-      const dimItems = itemsByDimension[dim.id] || [];
-      map[dim.id] = dimItems.filter((item) => responses[item.id] != null).length;
+    DIMENSION_IDS.forEach((dimId) => {
+      const dimItems = itemsByDimension[dimId] || [];
+      map[dimId] = dimItems.filter((item) => responses[item.id] != null).length;
     });
     return map;
   }, [itemsByDimension, responses]);
 
-  const handleAnswer = (itemId: string, value: any) => {
+  const handleAnswer = useCallback((itemId: string, value: any) => {
     setResponses((prev) => ({ ...prev, [itemId]: value }));
     if (soundEnabled) {
       try {
@@ -807,13 +945,13 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
         // ignore audio errors
       }
     }
-  };
+  }, [soundEnabled]);
 
   const timingsRef = React.useRef<Record<string, number>>({});
   const startTimeRef = React.useRef<number | null>(null);
   const startItemRef = React.useRef<string | null>(null);
+  const suspendTimerRef = React.useRef(false);
   const [elapsedMs, setElapsedMs] = useState(0);
-  const [suspendTimer, setSuspendTimer] = useState(false);
 
   const recordTime = (itemId: string | null) => {
     if (!itemId || startTimeRef.current == null) return;
@@ -837,13 +975,15 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
 
   useEffect(() => {
     if (!isDeepDive || viewMode === 'report') return;
+    const currentItemType = currentItem ? resolveItemType(currentItem) : null;
+    if (currentItemType === 'ordering' || currentItemType === 'drag_drop') return;
     const interval = window.setInterval(() => {
-      if (suspendTimer) return;
+      if (suspendTimerRef.current) return;
       if (startTimeRef.current == null) return;
       setElapsedMs(Date.now() - startTimeRef.current);
     }, 1000);
     return () => window.clearInterval(interval);
-  }, [isDeepDive, viewMode, currentItem?.id, suspendTimer]);
+  }, [isDeepDive, viewMode, currentItem?.id]);
 
   const responsesWithTiming = () => {
     // Submit only items from the active section to avoid backend count mismatches
@@ -883,8 +1023,8 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
       }
     });
 
-    const mergedDimensionScores = DIMENSIONS
-      .map((dim) => byDim.get(dim.id))
+    const mergedDimensionScores = DIMENSION_IDS
+      .map((dimId) => byDim.get(dimId))
       .filter(Boolean);
 
     const mergedPercentiles = {
@@ -972,208 +1112,308 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     onAnswer: (value: any) => void;
   };
 
-  const LikertTask: React.FC<TaskProps> = ({ item, response, onAnswer }) => (
-    <>
-      <div className="mt-4 grid grid-cols-7 gap-2" role="radiogroup" aria-label={item.prompt}>
-        {LIKERT.map((value) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => onAnswer(value)}
-            aria-pressed={response === value}
-            className={`jcfpm-likert ${response === value ? 'is-active' : ''}`}
-          >
-            {value}
-          </button>
-        ))}
-      </div>
-      <div className="mt-4 flex items-center justify-between text-xs text-slate-600">
-        <span>Spíše nesouhlasím</span>
-        <span>Spíše souhlasím</span>
-      </div>
-    </>
-  );
+  const LikertTask = useMemo<React.FC<TaskProps>>(() => {
+    const Component: React.FC<TaskProps> = ({ item, response, onAnswer }) => (
+      <>
+        <div className="mt-4 grid grid-cols-7 gap-2" role="radiogroup" aria-label={resolvePrompt(item)}>
+          {LIKERT.map((value) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onAnswer(value)}
+              aria-pressed={response === value}
+              className={`jcfpm-likert ${response === value ? 'is-active' : ''}`}
+            >
+              {value}
+            </button>
+          ))}
+        </div>
+        <div className="mt-4 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400">
+          <span>{copy.likertLow}</span>
+          <span>{copy.likertHigh}</span>
+        </div>
+      </>
+    );
+    return Component;
+  }, [copy.likertHigh, copy.likertLow, resolvePrompt]);
 
-  const ChoiceTask: React.FC<TaskProps> = ({ item, response, onAnswer }) => {
-    const itemType = resolveItemType(item);
-    const dim = inferDimension(item);
-    const isDigitalEq = dim === 'd8_digital_eq';
-    const payload = resolvePayload(item);
-    const options = Array.isArray(payload.options) ? payload.options : [];
-    const fallbackVisual = (seed: string) => {
-      const base = seed.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-      const hueA = base % 360;
-      const hueB = (base * 7) % 360;
-      return `linear-gradient(135deg, hsla(${hueA}, 70%, 60%, 0.9), hsla(${hueB}, 80%, 55%, 0.85))`;
-    };
-    if (!options.length) {
-      console.warn('[JCFPM] Missing options payload for item:', item);
+  const ChoiceTask = useMemo<React.FC<TaskProps>>(() => {
+    const Component: React.FC<TaskProps> = ({ item, response, onAnswer }) => {
+      const itemType = resolveItemType(item);
+      const dim = inferDimension(item);
+      const isDigitalEq = dim === 'd8_digital_eq';
+      const payload = resolvePayload(item);
+      const options = Array.isArray(payload.options) ? payload.options : [];
+      const fallbackVisual = (seed: string) => {
+        const base = seed.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+        const hueA = base % 360;
+        const hueB = (base * 7) % 360;
+        return `linear-gradient(135deg, hsla(${hueA}, 70%, 60%, 0.9), hsla(${hueB}, 80%, 55%, 0.85))`;
+      };
+      if (!options.length) {
+        console.warn('[JCFPM] Missing options payload for item:', item);
+        return (
+          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+            {copy.missingOptions}
+          </div>
+        );
+      }
+      const promptImage =
+        itemType === 'image_choice'
+          ? (payload.image_url || payload.prompt_image || options.find((opt: any) => opt?.image_url)?.image_url)
+          : null;
+      if (itemType === 'image_choice' && /^D10\./i.test(String(item.id || ''))) {
+        // eslint-disable-next-line no-console
+        console.debug('[JCFPM][DEBUG] D10 resolved payload for', item.id, payload);
+        // eslint-disable-next-line no-console
+        console.debug('[JCFPM][DEBUG] promptImage:', promptImage);
+        if (!promptImage) {
+          // eslint-disable-next-line no-console
+          console.warn('[JCFPM] D10 image missing for item:', item.id, { payload });
+        }
+      }
+      const promptFallback = fallbackVisual(String(item.id || 'v'));
+      const promptBackground = promptImage
+        ? `url("${promptImage}"), ${promptFallback}`
+        : promptFallback;
       return (
-        <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
-          Chybí data pro tuto otázku (options). Prosím zkontroluj seed v `jcfpm_items`.
+        <div className="mt-4">
+          {isDigitalEq && (
+            <div className="jcfpm-chat-thread mb-4">
+              <div className="jcfpm-chat-bubble is-peer">{copy.chatPeer}: „{resolvePrompt(item)}“</div>
+              <div className="jcfpm-chat-bubble is-you">{copy.chatYou}: {copy.chatPrompt}</div>
+            </div>
+          )}
+          {itemType === 'image_choice' && (
+            <div
+              className="jcfpm-abstract-visual mb-4"
+              style={{
+                backgroundImage: promptBackground,
+                backgroundSize: promptImage ? 'cover, cover' : 'auto',
+                backgroundPosition: 'center',
+              }}
+            >
+              {promptImage ? (
+                <img
+                  src={promptImage}
+                  alt=""
+                  aria-hidden="true"
+                  className="jcfpm-abstract-img"
+                  onError={(event) => {
+                    (event.currentTarget as HTMLImageElement).style.display = 'none';
+                    console.warn('[JCFPM] Failed to load prompt image:', promptImage);
+                  }}
+                />
+              ) : null}
+            </div>
+          )}
+          <div className={`grid gap-3 ${itemType === 'image_choice' ? 'grid-cols-1 md:grid-cols-3' : ''} ${isDigitalEq ? 'jcfpm-chat-options' : ''}`}>
+            {options.map((option: any) => {
+              const selected = response?.choice_id === option.id;
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  onClick={() => onAnswer({ choice_id: option.id })}
+                  className={`jcfpm-choice-card ${selected ? 'is-active' : ''} ${isDigitalEq ? 'jcfpm-chat-choice' : ''}`}
+                >
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">{option.label}</div>
+                  {option.desc ? <div className="mt-1 text-xs text-slate-600 dark:text-slate-400">{option.desc}</div> : null}
+                </button>
+              );
+            })}
+          </div>
         </div>
       );
-    }
-    const promptImage =
-      itemType === 'image_choice'
-        ? (payload.image_url || payload.prompt_image || options.find((opt: any) => opt?.image_url)?.image_url)
-        : null;
-    if (itemType === 'image_choice' && /^D10\./i.test(String(item.id || ''))) {
-      // eslint-disable-next-line no-console
-      console.debug('[JCFPM][DEBUG] D10 resolved payload for', item.id, payload);
-      // eslint-disable-next-line no-console
-      console.debug('[JCFPM][DEBUG] promptImage:', promptImage);
-      if (!promptImage) {
-        // eslint-disable-next-line no-console
-        console.warn('[JCFPM] D10 image missing for item:', item.id, { payload });
+    };
+    return Component;
+  }, [
+    copy.chatPeer,
+    copy.chatPrompt,
+    copy.chatYou,
+    copy.missingOptions,
+    inferDimension,
+    resolveItemType,
+    resolvePayload,
+    resolvePrompt,
+  ]);
+
+  const OrderingTask = useMemo<React.FC<TaskProps>>(() => {
+    const Component: React.FC<TaskProps> = ({ item, response, onAnswer }) => {
+      const payload = resolvePayload(item);
+      const isDecomposition = inferDimension(item) === 'd11_problem_decomposition';
+      const options = Array.isArray(payload.options) ? payload.options : [];
+
+      if (!options.length) {
+        console.warn('[JCFPM] Missing ordering options payload for item:', item);
+        return (
+          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+            {copy.missingOrdering}
+          </div>
+        );
       }
-    }
-    const promptFallback = fallbackVisual(String(item.id || 'v'));
-    const promptBackground = promptImage
-      ? `url("${promptImage}"), ${promptFallback}`
-      : promptFallback;
-    return (
-      <div className="mt-4">
-        {isDigitalEq && (
-          <div className="jcfpm-chat-thread mb-4">
-            <div className="jcfpm-chat-bubble is-peer">Kolega: „{item.prompt}“</div>
-            <div className="jcfpm-chat-bubble is-you">Ty: Jaká je nejlepší reakce?</div>
-          </div>
-        )}
-        {itemType === 'image_choice' && (
-          <div
-            className="jcfpm-abstract-visual mb-4"
-            style={{
-              backgroundImage: promptBackground,
-              backgroundSize: promptImage ? 'cover, cover' : 'auto',
-              backgroundPosition: 'center',
+
+      const order = Array.isArray(response?.order) ? response.order : options.map((opt: any) => opt.id);
+      const orderKey = order.join('|');
+      const [localOrder, setLocalOrder] = useState<string[]>(order);
+      useEffect(() => {
+        setLocalOrder(order);
+      }, [orderKey]);
+
+      const move = (index: number, direction: number) => {
+        const next = [...order];
+        const swapIndex = index + direction;
+        if (swapIndex < 0 || swapIndex >= next.length) return;
+        [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
+        onAnswer({ order: next });
+      };
+
+      return (
+        <div className={`mt-4 ${isDecomposition ? 'jcfpm-ordering-stack is-timeline' : ''}`}>
+          <Reorder.Group
+            axis="y"
+            values={localOrder}
+            onReorder={(next) => {
+              setLocalOrder(next as string[]);
+              onAnswer({ order: next });
             }}
+            className="space-y-2"
           >
-            {promptImage ? (
-              <img
-                src={promptImage}
-                alt=""
-                aria-hidden="true"
-                className="jcfpm-abstract-img"
-                onError={(event) => {
-                  (event.currentTarget as HTMLImageElement).style.display = 'none';
-                  console.warn('[JCFPM] Failed to load prompt image:', promptImage);
-                }}
-              />
-            ) : null}
+            {localOrder.map((id: string, index: number) => {
+              const option = options.find((opt: any) => opt.id === id);
+              return (
+                <Reorder.Item
+                  key={id}
+                  value={id}
+                  className={`jcfpm-ordering-item group ${isDecomposition ? 'jcfpm-timeline-step' : ''} touch-none`}
+                  whileDrag={{ scale: 1.02, boxShadow: "0 20px 50px rgba(0,0,0,0.15)" }}
+                  onDragStart={() => { suspendTimerRef.current = true; }}
+                  onDragEnd={() => { suspendTimerRef.current = false; }}
+                >
+                  <div className="flex items-center gap-3 flex-1">
+                    <div className="cursor-grab active:cursor-grabbing p-1 -ml-1 text-slate-400 hover:text-emerald-500 transition-colors">
+                      <GripVertical size={16} />
+                    </div>
+                    <span className="text-sm font-bold text-slate-800 dark:text-slate-200 min-w-[1.5rem]">{index + 1}.</span>
+                    <span className="text-sm text-slate-700 dark:text-slate-300 flex-1">{option?.label || id}</span>
+                  </div>
+                  <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button type="button" onClick={() => move(index, -1)} className="jcfpm-mini-btn" title={copy.reorderUp}>↑</button>
+                    <button type="button" onClick={() => move(index, 1)} className="jcfpm-mini-btn" title={copy.reorderDown}>↓</button>
+                  </div>
+                </Reorder.Item>
+              );
+            })}
+          </Reorder.Group>
+        </div>
+      );
+    };
+    return React.memo(Component);
+  }, [copy.missingOrdering, copy.reorderDown, copy.reorderUp, inferDimension, resolvePayload, suspendTimerRef]);
+
+  const DragDropTask = useMemo<React.FC<TaskProps>>(() => {
+    const Component: React.FC<TaskProps> = ({ item, response, onAnswer }) => {
+      const payload = resolvePayload(item);
+      const isSystems = inferDimension(item) === 'd9_systems_thinking';
+      const sources = Array.isArray(payload.sources) ? payload.sources : [];
+      const targets = Array.isArray(payload.targets) ? payload.targets : [];
+
+      if (!sources.length || !targets.length) {
+        console.warn('[JCFPM] Missing drag_drop payload for item:', item);
+        return (
+          <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
+            {copy.missingDragDrop}
           </div>
-        )}
-        <div className={`grid gap-3 ${itemType === 'image_choice' ? 'grid-cols-1 md:grid-cols-3' : ''} ${isDigitalEq ? 'jcfpm-chat-options' : ''}`}>
-          {options.map((option: any) => {
-            const selected = response?.choice_id === option.id;
+        );
+      }
+
+      const currentPairs: any[] = Array.isArray(response?.pairs)
+        ? response.pairs
+        : sources.map((src: any) => ({ source: src.id, target: '' }));
+
+      const updatePair = (sourceId: string, targetId: string) => {
+        const next = currentPairs.map((pair) =>
+          (pair.source === sourceId ? { ...pair, target: targetId } : pair)
+        );
+        onAnswer({ pairs: next });
+      };
+
+      return (
+        <div className={`mt-4 grid gap-4 ${isSystems ? 'jcfpm-systems-canvas' : ''}`}>
+          {sources.map((src: any) => {
+            const selected = currentPairs.find((pair) => pair.source === src.id)?.target || '';
+            const targetLabel = targets.find((t: any) => t.id === selected)?.label || copy.targetPlaceholder;
+
             return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => onAnswer({ choice_id: option.id })}
-                className={`jcfpm-choice-card ${selected ? 'is-active' : ''} ${isDigitalEq ? 'jcfpm-chat-choice' : ''}`}
+              <div
+                key={src.id}
+                className={`jcfpm-drag-row relative overflow-hidden transition-all duration-300 ${selected ? 'border-emerald-500/30 bg-emerald-500/5' : ''
+                  } ${isSystems ? 'is-node-link' : ''}`}
               >
-                <div className="text-sm font-semibold text-slate-900">{option.label}</div>
-                {option.desc ? <div className="mt-1 text-xs text-slate-600">{option.desc}</div> : null}
-              </button>
+                <div className="flex flex-col gap-1 min-w-[140px] flex-1">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">{copy.sourceLabel}</div>
+                  <div className="text-sm font-bold text-slate-800 dark:text-slate-200">{src.label}</div>
+                </div>
+
+                <div className="hidden sm:flex items-center text-slate-300">
+                  <ArrowRight size={16} className={selected ? 'text-emerald-500' : ''} />
+                </div>
+
+                <div className="flex flex-col gap-1 flex-1">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">{copy.targetLabel}</div>
+                  <select
+                    className={`jcfpm-select w-full ${selected ? 'is-filled' : ''}`}
+                    value={selected}
+                    onPointerDown={() => { suspendTimerRef.current = true; }}
+                    onMouseDown={() => { suspendTimerRef.current = true; }}
+                    onTouchStart={() => { suspendTimerRef.current = true; }}
+                    onFocus={() => { suspendTimerRef.current = true; }}
+                    onBlur={() => { suspendTimerRef.current = false; }}
+                    onChange={(e) => updatePair(src.id, e.target.value)}
+                  >
+                    <option value="">{targetLabel}</option>
+                    {targets.map((target: any) => (
+                      <option key={target.id} value={target.id}>{target.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {selected && (
+                  <div className="absolute top-0 right-0 h-1 w-full bg-emerald-500 opacity-50" />
+                )}
+              </div>
             );
           })}
         </div>
-      </div>
-    );
-  };
-
-  const OrderingTask: React.FC<TaskProps> = ({ item, response, onAnswer }) => {
-    const payload = resolvePayload(item);
-    const isDecomposition = inferDimension(item) === 'd11_problem_decomposition';
-    const options = Array.isArray(payload.options) ? payload.options : [];
-    if (!options.length) {
-      console.warn('[JCFPM] Missing ordering options payload for item:', item);
-      return (
-        <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
-          Chybí data pro tuto otázku (ordering). Prosím zkontroluj seed v `jcfpm_items`.
-        </div>
       );
-    }
-    const order = Array.isArray(response?.order) ? response.order : options.map((opt: any) => opt.id);
-    const move = (index: number, direction: number) => {
-      const next = [...order];
-      const swapIndex = index + direction;
-      if (swapIndex < 0 || swapIndex >= next.length) return;
-      [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
-      onAnswer({ order: next });
     };
-    return (
-      <div className={`mt-4 space-y-2 ${isDecomposition ? 'jcfpm-ordering-stack is-timeline' : ''}`}>
-        {order.map((id: string, index: number) => {
-          const option = options.find((opt: any) => opt.id === id);
-          return (
-            <div key={id} className={`jcfpm-ordering-item ${isDecomposition ? 'jcfpm-timeline-step' : ''}`}>
-              <span className="text-sm font-semibold text-slate-800">{index + 1}.</span>
-              <span className="text-sm text-slate-700 flex-1">{option?.label || id}</span>
-              <div className="flex items-center gap-1">
-                <button type="button" onClick={() => move(index, -1)} className="jcfpm-mini-btn">↑</button>
-                <button type="button" onClick={() => move(index, 1)} className="jcfpm-mini-btn">↓</button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
+    return React.memo(Component);
+  }, [
+    copy.missingDragDrop,
+    copy.sourceLabel,
+    copy.targetLabel,
+    copy.targetPlaceholder,
+    inferDimension,
+    resolvePayload,
+    suspendTimerRef,
+  ]);
 
-  const DragDropTask: React.FC<TaskProps> = ({ item, response, onAnswer }) => {
-    const payload = resolvePayload(item);
-    const isSystems = inferDimension(item) === 'd9_systems_thinking';
-    const sources = Array.isArray(payload.sources) ? payload.sources : [];
-    const targets = Array.isArray(payload.targets) ? payload.targets : [];
-    if (!sources.length || !targets.length) {
-      console.warn('[JCFPM] Missing drag_drop payload for item:', item);
-      return (
-        <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">
-          Chybí data pro tuto otázku (drag_drop). Prosím zkontroluj seed v `jcfpm_items`.
-        </div>
-      );
-    }
-    const currentPairs: any[] = Array.isArray(response?.pairs) ? response.pairs : sources.map((src: any) => ({ source: src.id, target: '' }));
-    const updatePair = (sourceId: string, targetId: string) => {
-      const next = currentPairs.map((pair) => (pair.source === sourceId ? { ...pair, target: targetId } : pair));
-      onAnswer({ pairs: next });
-    };
-    return (
-      <div className={`mt-4 grid gap-3 ${isSystems ? 'jcfpm-systems-canvas' : ''}`}>
-        {sources.map((src: any) => {
-          const selected = currentPairs.find((pair) => pair.source === src.id)?.target || '';
-          return (
-            <div key={src.id} className={`jcfpm-drag-row ${isSystems ? 'is-node-link' : ''}`}>
-              <div className="text-sm font-semibold text-slate-800">{src.label}</div>
-              <select
-                className="jcfpm-select"
-                value={selected}
-                onFocus={() => setSuspendTimer(true)}
-                onBlur={() => setSuspendTimer(false)}
-                onChange={(e) => updatePair(src.id, e.target.value)}
-              >
-                <option value="">Vyber cíl</option>
-                {targets.map((target: any) => (
-                  <option key={target.id} value={target.id}>{target.label}</option>
-                ))}
-              </select>
-            </div>
-          );
-        })}
-      </div>
-    );
-  };
-
-  const TASK_COMPONENTS: Record<string, React.FC<TaskProps>> = {
+  const TASK_COMPONENTS = useMemo<Record<string, React.FC<TaskProps>>>(() => ({
     likert: LikertTask,
     mcq: ChoiceTask,
     scenario_choice: ChoiceTask,
     image_choice: ChoiceTask,
     ordering: OrderingTask,
     drag_drop: DragDropTask,
-  };
+  }), [ChoiceTask, DragDropTask, LikertTask, OrderingTask]);
+
+  const onAnswerCurrent = useCallback(
+    (value: any) => {
+      if (!currentItem) return;
+      handleAnswer(currentItem.id, value);
+    },
+    [currentItem?.id, handleAnswer],
+  );
 
   const renderItemBody = () => {
     if (!currentItem) return null;
@@ -1183,7 +1423,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
       <SelectedTask
         item={currentItem}
         response={responses[currentItem.id]}
-        onAnswer={(value) => handleAnswer(currentItem.id, value)}
+        onAnswer={onAnswerCurrent}
       />
     );
   };
@@ -1202,27 +1442,27 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
       <div className={`jcfpm-particles-layer ${ambientEnabled ? 'is-on' : ''}`} aria-hidden="true">
         <SceneShell
           capability={sceneCapability}
-          fallback={<div className="jcfpm-particles-fallback" />}
+          fallback={<div className="absolute inset-0 bg-slate-50 dark:bg-slate-900" />}
           className="jcfpm-particles-canvas"
           performanceMode={sceneCapability.qualityTier}
           glide
-          glideIntensity={0.08}
+          glideIntensity={showInterlude ? 0.35 : 0.08}
         >
-          <JcfpmElegantParticles qualityTier={sceneCapability.qualityTier} interactive={true} />
+          <JcfpmElegantParticles qualityTier={sceneCapability.qualityTier} interactive={!showInterlude} dimensionId={currentDim.id} />
         </SceneShell>
       </div>
 
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-xs uppercase tracking-[0.22em] text-emerald-600/80">Career Fit & Potential</div>
-          <p className="mt-1 text-xs text-slate-600">
+          <div className="text-xs uppercase tracking-[0.22em] text-cyan-600/80">{copy.title}</div>
+          <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
             {viewMode === 'report'
-              ? 'Report'
-              : `Otázka ${stepIndex + 1} / ${totalQuestions} • ${totalAnswered} zodpovězeno`}
+              ? copy.reportLabel
+              : copy.questionProgress(stepIndex + 1, totalQuestions, totalAnswered)}
           </p>
           {viewMode === 'form' ? (
             <div className={`jcfpm-phase-pill ${isDeepDive ? 'is-deep' : 'is-standard'} mt-2`}>
-              {isDeepDive ? 'Deep Dive • Focus Mode' : 'Standard Scan'}
+              {isDeepDive ? copy.phaseDeep : copy.phaseStandard}
             </div>
           ) : null}
         </div>
@@ -1234,18 +1474,18 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
                 onClick={() => setAmbientEnabled((prev) => !prev)}
                 className="jcfpm-icon-button"
                 aria-label="Toggle ambient"
-                title={ambientEnabled ? 'Ambient zapnut' : 'Ambient vypnut'}
+                title={ambientEnabled ? copy.ambientOn : copy.ambientOff}
               >
-                {ambientEnabled ? <Sparkles className="h-4 w-4 text-emerald-700" /> : <Sparkles className="h-4 w-4 text-slate-400" />}
+                {ambientEnabled ? <Sparkles className="h-4 w-4 text-cyan-700" /> : <Sparkles className="h-4 w-4 text-slate-400" />}
               </button>
               <button
                 type="button"
                 onClick={() => setSoundEnabled((prev) => !prev)}
                 className="jcfpm-icon-button"
                 aria-label="Toggle sound"
-                title={soundEnabled ? 'Zvuk zapnut' : 'Zvuk vypnut'}
+                title={soundEnabled ? copy.soundOn : copy.soundOff}
               >
-                {soundEnabled ? <Volume2 className="h-4 w-4 text-emerald-700" /> : <VolumeX className="h-4 w-4 text-slate-500" />}
+                {soundEnabled ? <Volume2 className="h-4 w-4 text-cyan-700" /> : <VolumeX className="h-4 w-4 text-slate-500" />}
               </button>
             </>
           ) : null}
@@ -1255,7 +1495,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
         </div>
       </div>
 
-      <div className="jcfpm-progress-track mt-3 h-2 w-full overflow-hidden rounded-full">
+      <div className="jcfpm-progress-track mt-3 h-2 w-full overflow-hidden rounded-full font-sans">
         <div className={`jcfpm-progress-fill h-full rounded-full transition-all duration-700 ${isDeepDive ? 'is-deep-dive' : 'is-standard'}`} style={{ width: `${progress}%` }} />
       </div>
 
@@ -1272,105 +1512,94 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
             className="jcfpm-side-nav-button is-prev disabled:opacity-40"
           >
             <ArrowLeft className="h-4 w-4" />
-            Zpět
+            {copy.back}
           </button>
 
           <div className="jcfpm-form-stage">
             <div className="mt-4 jcfpm-step" key={`jcfpm-step-${stepIndex}`}>
-          {showInterlude && (
-            <div className="jcfpm-interlude">
-              <div className="jcfpm-interlude-card">
-                <div className="text-xs uppercase tracking-[0.2em] text-emerald-600">Nová dimenze</div>
-                <div className="mt-2 jcfpm-heading text-lg font-semibold text-slate-900">{INTERLUDES[currentDim.id]?.title || currentDim.title}</div>
-                <p className="mt-2 text-sm text-slate-600">{currentDim.subtitle}</p>
-                <p className="mt-3 text-sm text-slate-600">
-                  {INTERLUDES[currentDim.id]?.body}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => setShowInterlude(false)}
-                  className="mt-5 jcfpm-primary-button"
-                >
-                  Pokračovat
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </div>
-          )}
-          <div className={`jcfpm-panel ${showInterlude ? 'is-blurred' : ''}`}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <div className="jcfpm-heading text-base font-semibold text-slate-900">{currentDim.title}</div>
-                <p className="mt-1 text-sm text-slate-600">{currentDim.subtitle}</p>
-                {!isFocusMode ? (
-                  <p className="mt-2 text-sm text-slate-700 jcfpm-story">
-                  {currentDim.id === 'd1_cognitive' && 'Začneme tím, jak přemýšlíš, třídíš informace a rozhoduješ se.'}
-                  {currentDim.id === 'd2_social' && 'Teď se podíváme na to, kde se ti nejlépe pracuje s lidmi.'}
-                  {currentDim.id === 'd3_motivational' && 'Co tě skutečně pohání? Tady zachytíme tvé motivátory.'}
-                  {currentDim.id === 'd4_energy' && 'V této části mapujeme tvé tempo, rytmus a pracovní energii.'}
-                  {currentDim.id === 'd5_values' && 'Zachytíme, jaké hodnoty musí práce naplňovat, aby dávala smysl.'}
-                  {currentDim.id === 'd6_ai_readiness' && 'Na závěr zjistíme, jak se cítíš v AI a tech změnách.'}
-                  {currentDim.id === 'd7_cognitive_reflection' && 'Krátké hádanky prověří tvůj “bullshit detector” a schopnost zpomalit intuici.'}
-                  {currentDim.id === 'd8_digital_eq' && 'Připrav se na chatové situace a interpretaci tónu v textu.'}
-                  {currentDim.id === 'd9_systems_thinking' && 'Budeme mapovat vztahy a zpětné vazby v jednoduchých systémech.'}
-                  {currentDim.id === 'd10_ambiguity_interpretation' && 'V nejasných obrazech odhalíš, zda vidíš spíš rizika nebo příležitosti.'}
-                  {currentDim.id === 'd11_problem_decomposition' && 'Rozložíš velké úkoly na logické kroky.'}
-                  {currentDim.id === 'd12_moral_compass' && 'Etická dilemata odhalí tvůj hodnotový kompas.'}
-                  </p>
-                ) : null}
-                {isDeepDive && (
-                  <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
-                    <span className="jcfpm-timer-pill">
-                      <span className="jcfpm-pulse-dot" aria-hidden="true" />
-                      <Clock className="h-3.5 w-3.5 text-emerald-600" />
-                      <span>Tempo: {Math.floor(elapsedMs / 60000).toString().padStart(2, '0')}:{Math.floor((elapsedMs % 60000) / 1000).toString().padStart(2, '0')}</span>
-                    </span>
-                    <span className="jcfpm-timer-note">Čas lehce ovlivňuje výsledek – hledej rovnováhu mezi rychlostí a jistotou.</span>
+              {showInterlude && (
+                <div className="jcfpm-interlude">
+                  <div className="jcfpm-interlude-card">
+                    <div className="text-xs uppercase tracking-[0.2em] text-cyan-600">{copy.newDimension}</div>
+                    <div className="mt-2 jcfpm-heading text-lg font-semibold text-slate-900 dark:text-white">{interludes[currentDim.id]?.title || currentDim.title}</div>
+                    <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{currentDim.subtitle}</p>
+                    <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
+                      {interludes[currentDim.id]?.body}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => setShowInterlude(false)}
+                      className="mt-5 jcfpm-primary-button"
+                    >
+                      {copy.continue}
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              )}
+              <div className={`jcfpm-panel ${showInterlude ? 'is-blurred' : ''}`}>
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div>
+                    <div className="jcfpm-heading text-base font-semibold text-slate-900 dark:text-white">{currentDim.title}</div>
+                    <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">{currentDim.subtitle}</p>
+                    {!isFocusMode ? (
+                      <p className="mt-2 text-sm text-slate-700 dark:text-slate-300 jcfpm-story">
+                        {copy.stories[currentDim.id] || ''}
+                      </p>
+                    ) : null}
+                    {isDeepDive && (
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                        <span className="jcfpm-timer-pill">
+                          <span className="jcfpm-pulse-dot" aria-hidden="true" />
+                          <Clock className="h-3.5 w-3.5 text-cyan-600" />
+                          <span>{copy.timerLabel}: {Math.floor(elapsedMs / 60000).toString().padStart(2, '0')}:{Math.floor((elapsedMs % 60000) / 1000).toString().padStart(2, '0')}</span>
+                        </span>
+                        <span className="jcfpm-timer-note dark:text-slate-400">{copy.timerNote}</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="jcfpm-dim-badge">
+                    {answeredByDimension[currentDim.id] || 0} / {(itemsByDimension[currentDim.id] || []).length}
+                  </div>
+                </div>
+                {(currentItem?.item_type || 'likert') === 'likert' && (
+                  <div className={`mt-3 jcfpm-legend ${isFocusMode ? 'hidden' : ''}`}>
+                    {copy.legendLikert}
                   </div>
                 )}
-              </div>
-              <div className="jcfpm-dim-badge">
-                {answeredByDimension[currentDim.id] || 0} / {(itemsByDimension[currentDim.id] || []).length}
-              </div>
-            </div>
-            {(currentItem?.item_type || 'likert') === 'likert' && (
-              <div className={`mt-3 jcfpm-legend ${isFocusMode ? 'hidden' : ''}`}>
-                1 = Silně nesouhlasím • 4 = Neutrálně • 7 = Silně souhlasím
-              </div>
-            )}
-            {isLoadingItems ? (
-              <div className="mt-4 rounded-xl border border-emerald-100 bg-white p-4 text-sm text-slate-500 shadow-sm">
-                Načítám otázky…
-              </div>
-            ) : itemsError ? (
-              <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-                {itemsError}
-              </div>
-            ) : (
-              <div className={`mt-4 grid gap-3 ${showInterlude ? 'pointer-events-none' : ''}`}>
-                {currentItem ? (
-                  <div className="jcfpm-question jcfpm-question-animated">
-                    <div className="jcfpm-question-title">{currentItem.prompt}</div>
-                    {currentItem.subdimension ? (
-                      <div className="mt-1 text-[11px] text-slate-600">{currentItem.subdimension}</div>
-                    ) : null}
-                    {renderItemBody()}
+                {isLoadingItems ? (
+                  <div className="mt-4 rounded-xl border border-cyan-100 bg-white dark:bg-slate-850 p-4 text-sm text-slate-500 shadow-sm">
+                    {copy.loadingQuestions}
                   </div>
-                ) : null}
-              </div>
-            )}
-            <div className={`mt-4 jcfpm-timeline ${isFocusMode ? 'hidden' : ''}`}>
-              {activeDimensions.map((dim) => (
-                <div key={dim.id} className={`jcfpm-timeline-pill ${dim.id === currentDim.id ? 'is-active' : ''}`}>
-                  <span className="font-semibold">{dim.title}</span>
-                  <span className="text-[11px] text-slate-500">
-                    {answeredByDimension[dim.id] || 0}/{(itemsByDimension[dim.id] || []).length}
-                  </span>
+                ) : itemsError ? (
+                  <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                    {itemsError}
+                  </div>
+                ) : (
+                  <div className={`mt-4 grid gap-3 ${showInterlude ? 'pointer-events-none' : ''}`}>
+                    {currentItem ? (
+                      <div className="jcfpm-question jcfpm-question-animated">
+                        <div className="jcfpm-question-title">{resolvePrompt(currentItem)}</div>
+                        {resolveSubdimension(currentItem) ? (
+                          <div className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">{resolveSubdimension(currentItem)}</div>
+                        ) : null}
+                        {renderItemBody()}
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+                <div className={`mt-4 jcfpm-timeline ${isFocusMode ? 'hidden' : ''}`}>
+                  {activeDimensions.map((dim) => (
+                    <div key={dim.id} className={`jcfpm-timeline-pill ${dim.id === currentDim.id ? 'is-active' : ''}`}>
+                      <span className="font-semibold">{dim.title}</span>
+                      <span className="text-[11px] text-slate-500">
+                        {answeredByDimension[dim.id] || 0}/{(itemsByDimension[dim.id] || []).length}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
-        </div>
           </div>
 
           <button
@@ -1383,14 +1612,14 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
               <>
                 <Save className="h-4 w-4" />
                 {isSubmitting
-                  ? 'Ukládám...'
+                  ? copy.saving
                   : section === 'full'
-                    ? 'Dokončit test'
-                    : 'Dokončit sekci'}
+                    ? copy.finishTest
+                    : copy.finishSection}
               </>
             ) : (
               <>
-                Další
+                {copy.next}
                 <ArrowRight className="h-4 w-4" />
               </>
             )}
@@ -1405,7 +1634,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
             onClick={onClose}
             className="jcfpm-primary-button"
           >
-            Zavřít
+            {copy.close}
           </button>
         </div>
       ) : null}

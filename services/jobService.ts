@@ -1883,7 +1883,7 @@ export const fetchJobsWithFilters = async (
 
                     if (!fallbackResponse.ok) {
                         let detail = '';
-                        try { detail = await fallbackResponse.text(); } catch {}
+                        try { detail = await fallbackResponse.text(); } catch { }
                         console.warn('Hybrid v1 fallback response detail:', detail);
                         const err = new Error(`Hybrid fallback failed: ${fallbackResponse.status}`);
                         (err as any).status = fallbackResponse.status;
@@ -1902,7 +1902,7 @@ export const fetchJobsWithFilters = async (
 
                 if (!hybridResponse.ok) {
                     let detail = '';
-                    try { detail = await hybridResponse.text(); } catch {}
+                    try { detail = await hybridResponse.text(); } catch { }
                     console.warn('Hybrid response detail:', detail);
                     const err = new Error(`Hybrid request failed: ${hybridResponse.status}`);
                     (err as any).status = hybridResponse.status;
@@ -1988,7 +1988,7 @@ export const fetchJobsWithFilters = async (
                 try {
                     return await raceWithTimeout(hybridPromise, HYBRID_SEARCH_TIMEOUT_MS, 'Hybrid search');
                 } finally {
-                    hybridPromise.catch(() => {});
+                    hybridPromise.catch(() => { });
                 }
             } catch (hybridErr) {
                 if (isAbortFetchError(hybridErr)) {
@@ -2033,23 +2033,23 @@ export const fetchJobsWithFilters = async (
             const status = Number((error as any)?.status || (error as any)?.statusCode || 0);
             const isNetworkError = msg.includes('networkerror') || msg.includes('failed to fetch') || msg.includes('cors');
             const isServerOverload = status >= 500 || (error as any)?.code === '57014' || msg.includes('statement timeout');
-                if (isNetworkError && shouldUseHybridSearch) {
-                    try {
-                        throwIfAborted();
-                        console.warn('⚠️ Supabase RPC unreachable from browser; falling back to backend hybrid search.');
-                        return await fetchViaBackendHybrid();
-                    } catch (fallbackErr) {
-                        if (isAbortFetchError(fallbackErr)) {
-                            throw fallbackErr;
-                        }
-                        console.warn('⚠️ Backend fallback failed:', fallbackErr);
+            if (isNetworkError && shouldUseHybridSearch) {
+                try {
+                    throwIfAborted();
+                    console.warn('⚠️ Supabase RPC unreachable from browser; falling back to backend hybrid search.');
+                    return await fetchViaBackendHybrid();
+                } catch (fallbackErr) {
+                    if (isAbortFetchError(fallbackErr)) {
+                        throw fallbackErr;
                     }
+                    console.warn('⚠️ Backend fallback failed:', fallbackErr);
                 }
+            }
 
-                if (safeSearchTerm) {
-                    const textFallback = await fetchViaTextFallback();
-                    if (textFallback) return textFallback;
-                }
+            if (safeSearchTerm) {
+                const textFallback = await fetchViaTextFallback();
+                if (textFallback) return textFallback;
+            }
 
             // Postgres timeout/5xx: degrade to simpler query path.
             if (isServerOverload) {
@@ -2247,29 +2247,43 @@ export const fetchJobsByIds = async (jobIds: string[]): Promise<Job[]> => {
     const normalizedIds = Array.from(new Set(jobIds.map((id) => String(id).trim()).filter(Boolean)));
     if (!normalizedIds.length) return [];
 
+    // Strip 'db-' prefix if present for querying the database
+    const dbIds = normalizedIds.map(id => id.startsWith('db-') ? id.substring(3) : id);
+
     try {
         const chunks: string[][] = [];
-        for (let i = 0; i < normalizedIds.length; i += 100) {
-            chunks.push(normalizedIds.slice(i, i + 100));
+        for (let i = 0; i < dbIds.length; i += 100) {
+            chunks.push(dbIds.slice(i, i + 100));
         }
 
         const fetched: Job[] = [];
         for (const chunk of chunks) {
+            // Convert to numbers if the id column is integer (usually is in our schema)
+            const numericChunk = chunk.map(id => parseInt(id)).filter(id => !isNaN(id));
+            if (numericChunk.length === 0) continue;
+
             const { data, error } = await supabase
                 .from('jobs')
                 .select('*')
-                .in('id', chunk);
+                .in('id', numericChunk);
 
             if (error) {
                 console.warn('Failed to fetch saved jobs batch:', error);
                 continue;
             }
 
-            const mapped = mapJobs(data || []);
+            const mapped = mapJobs(data || [], undefined, undefined, true, true);
             fetched.push(...mapped);
         }
 
-        const byId = new Map(fetched.map((job) => [job.id, job]));
+        const byId = new Map<string, Job>();
+        fetched.forEach(job => {
+            byId.set(job.id, job);
+            if (job.id.startsWith('db-')) {
+                byId.set(job.id.substring(3), job);
+            }
+        });
+
         return normalizedIds
             .map((id) => byId.get(id))
             .filter((job): job is Job => !!job);
@@ -2395,7 +2409,7 @@ export const fetchRealJobs = async (
 };
 
 // Synchronous job mapper - simple and reliable like the original working version
-const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: boolean = true): Job[] => {
+const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: boolean = true, skipQualityFilter: boolean = false): Job[] => {
     const mappedJobs = data.map((item: any): Job | null => {
         try {
             const scraped = item as ScrapedJob;
@@ -2403,7 +2417,7 @@ const mapJobs = (data: any[], userLat?: number, userLng?: number, includeJhi: bo
             // 1. Description Processing
             const fullDesc = formatDescription(scraped.description);
 
-            if (fullDesc.length < 20) {
+            if (!skipQualityFilter && fullDesc.length < 20) {
                 return null;
             }
 

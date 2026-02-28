@@ -1,5 +1,9 @@
-import React from 'react';
-import { Play, RotateCcw, Lock, FileText } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Play, RotateCcw, Lock, FileText, Sparkles, Trophy } from 'lucide-react';
+import SceneShell from '../three/SceneShell';
+import JcfpmElegantParticles from '../three/JcfpmElegantParticles';
+import { ThreeSceneCapability } from '../../types';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   isPremium: boolean;
@@ -12,7 +16,41 @@ interface Props {
   onRestart: () => void;
   onView: () => void;
   onUpgrade: () => void;
+  sceneCapability?: ThreeSceneCapability;
 }
+
+const ENTRY_COPY: Record<string, any> = {
+  cs: {
+    badge: 'AI-Powered Career Intelligence',
+    title: 'Career Fit & Potential',
+    description: 'Objevte své silné stránky a ideální kariérní směřování skrze 200+ psychometrických bodů. Získejte personalizovaný AI report a mapování na reálné role.',
+    statDimensions: '12 dimenzí',
+    statAiReadiness: 'AI Readiness skóre',
+    statAnchors: 'Kariérní kotvy',
+    viewResults: 'Zobrazit výsledky',
+    resume: 'Pokračovat v testu',
+    start: 'Spustit test',
+    reset: 'Reset',
+    deepDive: 'Deep Dive',
+    unlockPremium: 'ODEMKNOUT PREMIUM',
+    updatedAt: 'Aktualizováno',
+  },
+  en: {
+    badge: 'AI-Powered Career Intelligence',
+    title: 'Career Fit & Potential',
+    description: 'Discover your strengths and ideal career direction through 200+ psychometric signals. Get a personalized AI report and mapping to real roles.',
+    statDimensions: '12 dimensions',
+    statAiReadiness: 'AI readiness score',
+    statAnchors: 'Career anchors',
+    viewResults: 'View results',
+    resume: 'Resume test',
+    start: 'Start test',
+    reset: 'Reset',
+    deepDive: 'Deep Dive',
+    unlockPremium: 'UNLOCK PREMIUM',
+    updatedAt: 'Updated',
+  },
+};
 
 const JcfpmEntryCard: React.FC<Props> = ({
   isPremium,
@@ -25,92 +63,125 @@ const JcfpmEntryCard: React.FC<Props> = ({
   onRestart,
   onView,
   onUpgrade,
+  sceneCapability = { webgl: true, qualityTier: 'medium', reducedMotion: false }
 }) => {
+  const { i18n } = useTranslation();
+  const locale = (i18n.language || 'cs').split('-')[0];
+  const copy = useMemo(() => ENTRY_COPY[locale] || ENTRY_COPY.cs, [locale]);
+
   return (
-    <div className="jcfpm-entry-card rounded-3xl border border-emerald-200/40 dark:border-slate-700/60 bg-white/90 dark:bg-slate-900/90 p-6 text-slate-800 dark:text-slate-100 shadow-[0_20px_60px_rgba(15,23,42,0.12)] dark:shadow-[0_20px_60px_rgba(2,6,23,0.5)]">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-emerald-200/60 dark:border-cyan-500/30 bg-emerald-50 dark:bg-cyan-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-emerald-700 dark:text-cyan-300">
-            <FileText className="h-3.5 w-3.5" />
-            Career Fit & Potential
+    <div className="jcfpm-entry-card group relative overflow-hidden rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-all duration-300 hover:shadow-xl hover:border-cyan-300/50 dark:hover:border-cyan-700/50">
+      {/* 3D Background Teaser */}
+      <div className="absolute inset-0 z-0 opacity-40 dark:opacity-20 transition-opacity group-hover:opacity-60 dark:group-hover:opacity-30">
+        <SceneShell
+          capability={sceneCapability}
+          fallback={<div className="absolute inset-0 bg-gradient-to-br from-cyan-50 to-teal-50 dark:from-slate-950 dark:to-slate-900" />}
+          className="h-full w-full"
+          glide
+          glideIntensity={0.15}
+        >
+          <JcfpmElegantParticles qualityTier={sceneCapability.qualityTier} interactive={false} />
+        </SceneShell>
+      </div>
+
+      <div className="relative z-10 p-8">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="flex-1">
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/60 dark:border-cyan-500/30 bg-cyan-50 dark:bg-cyan-500/10 px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-cyan-700 dark:text-cyan-400">
+              <Sparkles className="h-3 w-3" />
+              {copy.badge}
+            </div>
+            <h3 className="mt-4 text-3xl font-extrabold tracking-tight text-slate-900 dark:text-white">
+              {copy.title}
+              {hasSnapshot && <Trophy className="ml-3 inline-block h-6 w-6 text-amber-500" />}
+            </h3>
+            <p className="mt-3 max-w-xl text-base text-slate-600 dark:text-slate-400 leading-relaxed">
+              {copy.description}
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-4">
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                <div className="h-2 w-2 rounded-full bg-cyan-500" />
+                {copy.statDimensions}
+              </div>
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                <div className="h-2 w-2 rounded-full bg-teal-500" />
+                {copy.statAiReadiness}
+              </div>
+              <div className="flex items-center gap-2 text-sm font-medium text-slate-700 dark:text-slate-300">
+                <div className="h-2 w-2 rounded-full bg-cyan-600" />
+                {copy.statAnchors}
+              </div>
+            </div>
           </div>
-          <h3 className="mt-3 text-2xl font-bold tracking-tight text-slate-900 dark:text-white">JCFPM test (108 položek)</h3>
-          <p className="mt-2 max-w-2xl text-sm text-slate-700 dark:text-slate-300">
-            Moderní psychometrický test s AI readiness dimenzí a přímým mapováním na role na trhu práce.
-          </p>
+
+          <div className="flex flex-col gap-3 min-w-[240px]">
+            {isPremium ? (
+              <>
+                {hasSnapshot ? (
+                  <button
+                    type="button"
+                    onClick={onView}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-cyan-600/20 transition-all hover:bg-cyan-700 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <FileText className="h-5 w-5" />
+                    {copy.viewResults}
+                  </button>
+                ) : hasDraft ? (
+                  <button
+                    type="button"
+                    onClick={onResume}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-teal-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-teal-600/20 transition-all hover:bg-teal-700 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Play className="h-5 w-5" />
+                    {copy.resume}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={onStartCore}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-cyan-600/20 transition-all hover:bg-cyan-700 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Play className="h-5 w-5" />
+                    {copy.start}
+                  </button>
+                )}
+
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={onRestart}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-800/50 px-3 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 transition-all hover:bg-white dark:hover:bg-slate-800"
+                  >
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    {copy.reset}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={onStartDeep}
+                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-800/50 px-3 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 transition-all hover:bg-white dark:hover:bg-slate-800"
+                  >
+                    {copy.deepDive}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={onUpgrade}
+                className="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-amber-500/50 bg-amber-500/10 px-6 py-5 text-sm font-black text-amber-700 dark:text-amber-400 transition-all hover:bg-amber-500/20 hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <Lock className="h-5 w-5" />
+                {copy.unlockPremium}
+              </button>
+            )}
+            {hasSnapshot && lastUpdatedAt && (
+              <div className="mt-2 text-center text-[11px] text-slate-500 dark:text-slate-500 font-medium">
+                {copy.updatedAt}: {new Date(lastUpdatedAt).toLocaleDateString()}
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-
-      <div className="mt-5 grid gap-3 text-sm text-slate-800 dark:text-slate-200 md:grid-cols-3">
-        <div className="rounded-xl border border-emerald-100 dark:border-slate-700/60 bg-emerald-50/60 dark:bg-slate-800/70 px-3 py-2">12 dimenzí • 108 položek</div>
-        <div className="rounded-xl border border-sky-100 dark:border-slate-700/60 bg-sky-50/60 dark:bg-slate-800/70 px-3 py-2">Základní 6D + Deep Dive</div>
-        <div className="rounded-xl border border-teal-100 dark:border-slate-700/60 bg-teal-50/60 dark:bg-slate-800/70 px-3 py-2">Top role + AI report</div>
-      </div>
-
-      {hasSnapshot && lastUpdatedAt ? (
-        <p className="mt-4 text-xs text-slate-600 dark:text-slate-400">Naposledy dokončeno: {new Date(lastUpdatedAt).toLocaleString()}</p>
-      ) : null}
-
-      <div className="mt-6 flex flex-wrap items-center gap-3">
-        {isPremium ? (
-          <>
-            {hasSnapshot && (
-              <button
-                type="button"
-                onClick={onView}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-200 transition hover:border-cyan-300 hover:text-cyan-700 dark:hover:border-cyan-400 dark:hover:text-cyan-300"
-              >
-                <FileText className="h-4 w-4" />
-                Zobrazit report
-              </button>
-            )}
-            {hasDraft && (
-              <button
-                type="button"
-                onClick={onResume}
-                className="inline-flex items-center gap-2 rounded-xl border border-emerald-300 dark:border-cyan-500/40 bg-emerald-50 dark:bg-cyan-500/15 px-5 py-2.5 text-sm font-semibold text-emerald-800 dark:text-cyan-200 transition hover:bg-emerald-100 dark:hover:bg-cyan-500/25"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Pokračovat
-              </button>
-            )}
-            {(hasDraft || hasSnapshot) && (
-              <button
-                type="button"
-                onClick={onRestart}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-200 transition hover:border-emerald-300 hover:text-emerald-700 dark:hover:border-cyan-400 dark:hover:text-cyan-300"
-              >
-                <RotateCcw className="h-4 w-4" />
-                Spustit znovu
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onStartCore}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-200 transition hover:border-emerald-300 hover:text-emerald-700 dark:hover:border-cyan-400 dark:hover:text-cyan-300"
-            >
-              <Play className="h-4 w-4" />
-              Základní část (D1–D6)
-            </button>
-            <button
-              type="button"
-              onClick={onStartDeep}
-              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-600 dark:text-slate-200 transition hover:border-emerald-300 hover:text-emerald-700 dark:hover:border-cyan-400 dark:hover:text-cyan-300"
-            >
-              <Play className="h-4 w-4" />
-              Deep Dive (D7–D12)
-            </button>
-          </>
-        ) : (
-          <button
-            type="button"
-            onClick={onUpgrade}
-            className="inline-flex items-center gap-2 rounded-xl border border-amber-200 dark:border-amber-400/40 bg-amber-50 dark:bg-amber-500/15 px-5 py-2.5 text-sm font-semibold text-amber-700 dark:text-amber-200 transition hover:bg-amber-100 dark:hover:bg-amber-500/25"
-          >
-            <Lock className="h-4 w-4" />
-            Odemknout premium
-          </button>
-        )}
       </div>
     </div>
   );

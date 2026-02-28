@@ -5,9 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from ..core.security import get_current_user, verify_subscription, verify_supabase_token
 from ..core.database import supabase
 from ..core import config
-from ..services.jcfpm_scoring import JCFPM_DIMENSIONS, score_dimensions, score_dimensions_partial
+from ..services.jcfpm_scoring import JCFPM_DIMENSIONS, score_dimensions, score_dimensions_partial, score_subdimensions
 from ..services.jcfpm_mapping import rank_roles
 from ..services.jcfpm_ai import generate_jcfpm_report
+from ..services.jcfpm_traits import compute_traits
 from ..models.requests import JcfpmSubmitRequest
 
 router = APIRouter()
@@ -50,7 +51,7 @@ def _fetch_items() -> list[dict]:
         resp = (
             supabase
             .table("jcfpm_items")
-            .select("id, dimension, subdimension, prompt, reverse_scoring, sort_order, item_type, payload, assets, pool_key, variant_index")
+            .select("id, dimension, subdimension, prompt, prompt_i18n, subdimension_i18n, reverse_scoring, sort_order, item_type, payload, payload_i18n, assets, pool_key, variant_index")
             .order("sort_order", desc=False)
             .order("id", desc=False)
             .range(offset, offset + page_size - 1)
@@ -118,6 +119,16 @@ async def jcfpm_items(request: Request):
     pool_keys.discard("")
     if len(pool_keys) < 108:
         raise HTTPException(status_code=500, detail="JCFPM items not seeded")
+    def _strip_variant(value: str) -> str:
+        if not value:
+            return ""
+        return value.split("_v")[0].strip().upper()
+    full_pool_keys = {
+        _strip_variant(str(row.get("pool_key") or row.get("id") or ""))
+        for row in items
+        if str(row.get("dimension") or "") in JCFPM_DIMENSIONS
+    }
+    full_pool_keys.discard("")
     return {"items": items}
 
 
@@ -188,8 +199,9 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
         if str(item.get("dimension") or "") in JCFPM_DIMENSIONS
     }
     is_full_submission = selected_dims == set(JCFPM_DIMENSIONS)
-    if is_full_submission and len(selected_ids) != 108:
-        raise HTTPException(status_code=400, detail="Expected 108 responses for full submission")
+    expected_full_count = len(full_pool_keys) if full_pool_keys else 108
+    if is_full_submission and expected_full_count and len(selected_ids) != expected_full_count:
+        raise HTTPException(status_code=400, detail=f"Expected {expected_full_count} responses for full submission")
 
     try:
         dimension_scores = (
@@ -201,6 +213,8 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
         raise HTTPException(status_code=400, detail=str(exc))
 
     percentile_summary = {row["dimension"]: row["percentile"] for row in dimension_scores}
+    subdimension_scores = score_subdimensions(selected_items, normalized_responses)
+    traits = compute_traits(dimension_scores, subdimension_scores)
 
     # Fit scores
     role_resp = (
@@ -230,6 +244,8 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
         "item_ids": selected_ids,
         "variant_seed": payload.variant_seed,
         "dimension_scores": dimension_scores,
+        "subdimension_scores": subdimension_scores,
+        "traits": traits,
         "fit_scores": fit_scores,
         "ai_report": ai_report,
         "percentile_summary": percentile_summary,

@@ -572,15 +572,26 @@ export type JcfpmItemType =
   | 'image_choice'
   | 'drag_drop';
 
+export interface JcfpmLocalizedTextMap {
+  [locale: string]: string | undefined;
+}
+
+export interface JcfpmLocalizedPayloadMap {
+  [locale: string]: Record<string, unknown> | undefined;
+}
+
 export interface JcfpmItem {
   id: string;
   dimension: JcfpmDimensionId;
   subdimension?: string | null;
   prompt: string;
+  prompt_i18n?: JcfpmLocalizedTextMap | null;
+  subdimension_i18n?: JcfpmLocalizedTextMap | null;
   reverse_scoring?: boolean;
   sort_order?: number;
   item_type?: JcfpmItemType;
   payload?: Record<string, unknown> | null;
+  payload_i18n?: JcfpmLocalizedPayloadMap | null;
   assets?: Record<string, unknown> | null;
   pool_key?: string | null;
   variant_index?: number | null;
@@ -613,6 +624,35 @@ export interface JcfpmAIReport {
   ai_readiness: string;
 }
 
+export interface JcfpmSubdimensionScore {
+  dimension: JcfpmDimensionId;
+  subdimension: string;
+  raw_score: number;
+  normalized: number;
+}
+
+export interface JcfpmBigFiveProfile {
+  openness: number;
+  conscientiousness: number;
+  extraversion: number;
+  agreeableness: number;
+  neuroticism: number;
+  derived?: boolean;
+}
+
+export interface JcfpmTemperamentProfile {
+  label: 'cholerik' | 'sangvinik' | 'melancholik' | 'flegmatik';
+  dominance: number;
+  reactivity: number;
+  confidence: number;
+  notes?: string[];
+}
+
+export interface JcfpmTraitsProfile {
+  big_five: JcfpmBigFiveProfile;
+  temperament: JcfpmTemperamentProfile;
+}
+
 export interface JcfpmSnapshotV1 {
   schema_version: 'jcfpm-v1';
   completed_at: string;
@@ -620,6 +660,8 @@ export interface JcfpmSnapshotV1 {
   item_ids?: string[];
   variant_seed?: string;
   dimension_scores: JcfpmScore[];
+  subdimension_scores?: JcfpmSubdimensionScore[];
+  traits?: JcfpmTraitsProfile;
   fit_scores: JcfpmRoleFit[];
   ai_report?: JcfpmAIReport | null;
   percentile_summary: Record<JcfpmDimensionId, number>;

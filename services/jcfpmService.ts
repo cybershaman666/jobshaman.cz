@@ -167,6 +167,9 @@ const normalizeJcfpmItems = (items: JcfpmItem[]): JcfpmItem[] =>
       item_type: normalizedType || undefined,
       payload: normalizeJson(payload) as any,
       assets: normalizeJson(assets) as any,
+      prompt_i18n: normalizeJson((item as any).prompt_i18n) as any,
+      subdimension_i18n: normalizeJson((item as any).subdimension_i18n) as any,
+      payload_i18n: normalizeJson((item as any).payload_i18n) as any,
     };
   });
 
@@ -179,7 +182,7 @@ const fetchItemsFromSupabase = async (): Promise<JcfpmItem[]> => {
   while (true) {
     const { data, error } = await supabase
       .from('jcfpm_items')
-      .select('id, dimension, subdimension, prompt, reverse_scoring, sort_order, item_type, payload, assets, pool_key, variant_index')
+      .select('id, dimension, subdimension, prompt, prompt_i18n, subdimension_i18n, reverse_scoring, sort_order, item_type, payload, payload_i18n, assets, pool_key, variant_index')
       .order('sort_order', { ascending: true })
       .order('id', { ascending: true })
       .range(from, from + pageSize - 1);
@@ -327,6 +330,186 @@ export const computeJcfpmScoresLocal = (items: JcfpmItem[], responses: Record<st
       label,
     };
   });
+};
+
+const computeNormalizedScore = (total: number, maxTotal: number) => {
+  if (maxTotal <= 0) return 0;
+  return Math.max(0, Math.min(100, Number(((total / maxTotal) * 100).toFixed(2))));
+};
+
+export const computeJcfpmSubdimensionScoresLocal = (items: JcfpmItem[], responses: Record<string, any>) => {
+  const buckets = new Map<string, { dimension: JcfpmDimensionId; total: number; maxTotal: number; count: number; maxScores: number[] }>();
+  const inferDimension = (item: JcfpmItem) => {
+    const explicit = String(item.dimension || '').trim().toLowerCase();
+    const inferred =
+      inferDimensionFromIdentity(item.id) ||
+      inferDimensionFromIdentity(item.pool_key) ||
+      ((DIMENSIONS as readonly string[]).includes(explicit) ? (explicit as JcfpmDimensionId) : undefined);
+    return inferred || 'd1_cognitive';
+  };
+  const scoreInteractive = (item: JcfpmItem, response: any) => {
+    let payload = (item.payload || {}) as Record<string, any>;
+    if (typeof payload === 'string') {
+      try {
+        payload = JSON.parse(payload) as Record<string, any>;
+      } catch {
+        payload = {};
+      }
+    }
+    const itemType = (() => {
+      const explicit = String(item.item_type || '').toLowerCase();
+      if (explicit && explicit !== 'likert') return explicit;
+      if (Array.isArray(payload.correct_order)) return 'ordering';
+      if (Array.isArray(payload.correct_pairs)) return 'drag_drop';
+      if (Array.isArray(payload.options)) return payload.options.some((opt: any) => opt?.image_url) ? 'image_choice' : 'mcq';
+      return explicit || 'likert';
+    })();
+    if (itemType === 'likert') {
+      const raw = Number(response);
+      const scored = item.reverse_scoring ? 8 - raw : raw;
+      return { score: scored, max: 7 };
+    }
+    const correct = payload.correct_id;
+    if (itemType === 'mcq' || itemType === 'scenario_choice' || itemType === 'image_choice') {
+      const selected = response?.choice_id ?? response;
+      return { score: selected && correct && selected === correct ? 1 : 0, max: 1 };
+    }
+    if (itemType === 'ordering') {
+      const correctOrder = Array.isArray(payload.correct_order) ? payload.correct_order : [];
+      const order = Array.isArray(response?.order) ? response.order : [];
+      const max = Math.max(1, correctOrder.length);
+      const score = correctOrder.reduce((acc: number, value: string, idx: number) => acc + (order[idx] === value ? 1 : 0), 0);
+      return { score, max };
+    }
+    if (itemType === 'drag_drop') {
+      const correctPairs = Array.isArray(payload.correct_pairs) ? payload.correct_pairs : [];
+      const selectedPairs = Array.isArray(response?.pairs) ? response.pairs : [];
+      const correctSet = new Set(correctPairs.map((pair: any) => `${pair.source}->${pair.target}`));
+      const selectedSet = new Set(selectedPairs.map((pair: any) => `${pair.source}->${pair.target}`));
+      let score = 0;
+      correctSet.forEach((key) => {
+        if (selectedSet.has(key)) score += 1;
+      });
+      return { score, max: Math.max(1, correctSet.size) };
+    }
+    return { score: 0, max: 1 };
+  };
+
+  items.forEach((item) => {
+    const subdimension = String(item.subdimension || '').trim();
+    if (!subdimension) return;
+    const response = responses[item.id];
+    if (typeof response === 'undefined') return;
+    const { score, max } = scoreInteractive(item, response);
+    const key = `${inferDimension(item)}::${subdimension}`;
+    const bucket = buckets.get(key) || {
+      dimension: inferDimension(item),
+      total: 0,
+      maxTotal: 0,
+      count: 0,
+      maxScores: [],
+    };
+    bucket.total += score;
+    bucket.maxTotal += max;
+    bucket.count += 1;
+    bucket.maxScores.push(max);
+    buckets.set(key, bucket);
+  });
+
+  return Array.from(buckets.entries()).map(([key, bucket]) => {
+    const [, subdimension] = key.split('::');
+    const allLikert = bucket.maxScores.every((value) => value === 7);
+    const rawScore = allLikert && bucket.count > 0 ? Number((bucket.total / bucket.count).toFixed(2)) : computeNormalizedScore(bucket.total, bucket.maxTotal);
+    const normalized = computeNormalizedScore(bucket.total, bucket.maxTotal);
+    return {
+      dimension: bucket.dimension,
+      subdimension,
+      raw_score: rawScore,
+      normalized,
+    };
+  });
+};
+
+const average = (values: number[]) => {
+  if (!values.length) return 0;
+  return values.reduce((acc, value) => acc + value, 0) / values.length;
+};
+
+const clampScore = (value: number) => Math.max(0, Math.min(100, Number(value.toFixed(2))));
+
+export const computeJcfpmTraitsLocal = (
+  dimensionScores: Array<{ dimension: JcfpmDimensionId; percentile?: number; raw_score: number }>,
+  subdimensionScores: Array<{ subdimension: string; normalized: number }>,
+) => {
+  const pct = (dim: JcfpmDimensionId) => {
+    const row = dimensionScores.find((item) => item.dimension === dim);
+    if (!row) return 50;
+    const base = typeof row.percentile === 'number' ? row.percentile : (dim.startsWith('d7_') || dim.startsWith('d8_') || dim.startsWith('d9_') || dim.startsWith('d10_') || dim.startsWith('d11_') || dim.startsWith('d12_')) ? row.raw_score : (row.raw_score / 7) * 100;
+    return Math.max(0, Math.min(100, base));
+  };
+
+  const matchSubdims = (keywords: string[]) => {
+    const lowered = keywords.map((item) => item.toLowerCase());
+    return subdimensionScores
+      .filter((row) => lowered.some((key) => row.subdimension.toLowerCase().includes(key)))
+      .map((row) => row.normalized);
+  };
+
+  const extraversionSignals = matchSubdims([
+    'leadership', 'lead', 'extern', 'network', 'komunik', 'druž', 'asertiv', 'dominanc', 'aktiv', 'vzruš',
+  ]);
+  const agreeablenessSignals = matchSubdims([
+    'empath', 'empati', 'etick', 'moral', 'fair', 'férov', 'důvěr', 'altru', 'tone', 'feedback', 'integrit',
+  ]);
+  const conscientiousnessSignals = matchSubdims([
+    'strukt', 'detail', 'systemat', 'poř', 'organiz', 'focus', 'priorit', 'decompos', 'rozklad', 'planning', 'cílev', 'discipl',
+  ]);
+  const opennessSignals = matchSubdims([
+    'experiment', 'innov', 'nov', 'změn', 'kreat', 'ambigu', 'intuic', 'big picture', 'open', 'ai', 'tolerance',
+  ]);
+  const neuroticismSignals = matchSubdims([
+    'stres', 'anx', 'úzk', 'neklid', 'reakt', 'impuls', 'frustr', 'tlak', 'panic', 'nerv', 'hněv', 'anger',
+  ]);
+
+  const extraversion = clampScore(average(extraversionSignals.length ? extraversionSignals : [pct('d2_social'), pct('d4_energy')]));
+  const agreeableness = clampScore(average(agreeablenessSignals.length ? agreeablenessSignals : [pct('d8_digital_eq'), pct('d12_moral_compass'), pct('d5_values')]));
+  const conscientiousness = clampScore(average(conscientiousnessSignals.length ? conscientiousnessSignals : [pct('d1_cognitive'), pct('d11_problem_decomposition'), pct('d4_energy')]));
+  const openness = clampScore(average(opennessSignals.length ? opennessSignals : [pct('d5_values'), pct('d6_ai_readiness'), pct('d10_ambiguity_interpretation')]));
+  const neuroticismRaw = average(neuroticismSignals.length ? neuroticismSignals : [100 - pct('d4_energy'), 100 - pct('d6_ai_readiness')]);
+  const neuroticism = clampScore(neuroticismRaw);
+
+  const dominanceSignals = matchSubdims(['leadership', 'asertiv', 'dominanc', 'konfront', 'assert', 'lead']);
+  const reactivitySignals = matchSubdims(['reakt', 'stres', 'impuls', 'frustr', 'tlak', 'hněv', 'anger', 'urgent']);
+  const dominanceBase = dominanceSignals.length ? average(dominanceSignals) : average([extraversion, 100 - agreeableness]);
+  const reactivityBase = reactivitySignals.length ? average(reactivitySignals) : average([neuroticism, 100 - pct('d10_ambiguity_interpretation')]);
+  const dominance = clampScore(dominanceBase);
+  const reactivity = clampScore(reactivityBase);
+  const dominanceHigh = dominance >= 65;
+  const reactivityHigh = reactivity >= 65;
+  const temperamentLabel: 'cholerik' | 'sangvinik' | 'melancholik' | 'flegmatik' =
+    dominanceHigh && reactivityHigh ? 'cholerik' :
+      dominanceHigh && !reactivityHigh ? 'sangvinik' :
+        !dominanceHigh && reactivityHigh ? 'melancholik' : 'flegmatik';
+
+  const confidence = clampScore(Math.abs(dominance - 50) + Math.abs(reactivity - 50));
+
+  return {
+    big_five: {
+      openness,
+      conscientiousness,
+      extraversion,
+      agreeableness,
+      neuroticism,
+      derived: true,
+    },
+    temperament: {
+      label: temperamentLabel,
+      dominance,
+      reactivity,
+      confidence,
+      notes: [],
+    },
+  };
 };
 
 const fitScore = (user: Record<string, number>, role: Record<string, number>) => {
@@ -594,6 +777,8 @@ export const submitJcfpm = async (
     const testedDimensions = new Set<JcfpmDimensionId>(selectedItems.map((item) => inferDimension(item)));
     const dimensionScores = computeJcfpmScoresLocal(selectedItems, responses)
       .filter((row: any) => testedDimensions.has(row.dimension as JcfpmDimensionId));
+    const subdimensionScores = computeJcfpmSubdimensionScoresLocal(selectedItems, responses);
+    const traits = computeJcfpmTraitsLocal(dimensionScores as any, subdimensionScores as any);
     const percentileSummary = dimensionScores.reduce((acc, row: any) => {
       acc[row.dimension] = row.percentile;
       return acc;
@@ -620,6 +805,8 @@ export const submitJcfpm = async (
       item_ids: itemIds,
       variant_seed: variantSeed,
       dimension_scores: dimensionScores as any,
+      subdimension_scores: subdimensionScores as any,
+      traits: traits as any,
       fit_scores: fitScores as any,
       ai_report: null,
       percentile_summary: percentileSummary as any,

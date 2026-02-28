@@ -296,3 +296,54 @@ def _score_single_dimension(dim: str, dim_items: List[dict], responses: Dict[str
         "percentile_band": band,
         "label": label,
     }
+
+
+def score_subdimensions(items: List[dict], responses: Dict[str, object]) -> List[dict]:
+    buckets: Dict[Tuple[str, str], Dict[str, object]] = {}
+    for item in items:
+        subdimension = str(item.get("subdimension") or "").strip()
+        if not subdimension:
+            continue
+        item_id = str(item.get("id"))
+        if item_id not in responses:
+            continue
+        scored, max_score = _score_interactive(item, responses[item_id])
+        dim = str(item.get("dimension") or "")
+        key = (dim, subdimension)
+        bucket = buckets.get(key)
+        if not bucket:
+            bucket = {
+                "dimension": dim,
+                "subdimension": subdimension,
+                "total": 0.0,
+                "max_total": 0.0,
+                "count": 0,
+                "max_scores": [],
+            }
+            buckets[key] = bucket
+        bucket["total"] = float(bucket["total"]) + float(scored)
+        bucket["max_total"] = float(bucket["max_total"]) + float(max_score)
+        bucket["count"] = int(bucket["count"]) + 1
+        bucket["max_scores"].append(float(max_score))
+
+    output: List[dict] = []
+    for bucket in buckets.values():
+        max_total = float(bucket["max_total"] or 0.0)
+        total = float(bucket["total"] or 0.0)
+        count = int(bucket["count"] or 0)
+        max_scores = bucket["max_scores"] or []
+        normalized = 0.0 if max_total <= 0 else round((total / max_total) * 100.0, 2)
+        all_likert = max_scores and all(abs(value - 7.0) < 0.01 for value in max_scores)
+        if all_likert and count > 0:
+            raw_score = round(total / count, 2)
+        else:
+            raw_score = normalized
+        output.append(
+            {
+                "dimension": bucket["dimension"],
+                "subdimension": bucket["subdimension"],
+                "raw_score": raw_score,
+                "normalized": normalized,
+            }
+        )
+    return output
