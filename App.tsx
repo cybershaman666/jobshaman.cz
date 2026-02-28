@@ -243,13 +243,22 @@ export default function App() {
         userProfileRef.current = userProfile;
     }, [userProfile]);
 
+    // Track whether we should show the guest auth prompt.
     useEffect(() => {
+        // If the session check hasn't finished at all, we do nothing.
         if (!sessionCheckComplete) return;
+
+        // The critical check: If sessionCheckComplete is true but userProfile.id is missing,
+        // we might just be in the split-second gap where handleSessionRestoration is fetching
+        // the profile. If isLoggedIn is true, we ARE logged in and just waiting for the profile
+        // object to fill out. Wait for it.
+        if (userProfile.isLoggedIn && !userProfile.id) return;
 
         const isJcfpmRoute = normalizedPath === '/jcfpm' ||
             normalizedPath === '/profile/jcfpm' ||
             normalizedPath === '/profil/jcfpm';
 
+        // Now we can safely assume (!userProfile.id) means "Guest"
         if (isJcfpmRoute && !userProfile.id && !guestAuthPromptedRef.current && !isAuthModalOpen) {
             console.log('🚪 [App] JCFPM guest detected, prompting registration...');
             guestAuthPromptedRef.current = true;
@@ -258,7 +267,7 @@ export default function App() {
         } else if (!isJcfpmRoute) {
             guestAuthPromptedRef.current = false;
         }
-    }, [normalizedPath, sessionCheckComplete, userProfile.id]);
+    }, [normalizedPath, sessionCheckComplete, userProfile.id, userProfile.isLoggedIn]);
 
     const loadPendingEmailConfirmation = useCallback((): { email?: string } | null => {
         try {
