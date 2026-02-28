@@ -667,7 +667,7 @@ export const usePaginatedJobs = ({ userProfile, initialPageSize = 50 }: UsePagin
     }, [
         initialPageSize, searchTerm, filterCity, filterContractType, filterBenefits,
         filterMinSalary, filterDate, filterExperience, enableCommuteFilter,
-        filterMaxDistance, userProfile.coordinates, userProfile.id, countryCodes, globalSearch, filterLanguage, abroadOnly, sortBy, userProfile.isLoggedIn, userProfile.jhiPreferences, userProfile.taxProfile, hydrateJobsWithAiMatchScores, filterDismissedJobs
+        filterMaxDistance, userProfile.coordinates?.lat, userProfile.coordinates?.lon, userProfile.id, countryCodes, globalSearch, filterLanguage, abroadOnly, sortBy, userProfile.isLoggedIn, JSON.stringify(userProfile.jhiPreferences), JSON.stringify(userProfile.taxProfile), hydrateJobsWithAiMatchScores, filterDismissedJobs
     ]);
 
 

@@ -258,7 +258,7 @@ export default function App() {
         } else if (!isJcfpmRoute) {
             guestAuthPromptedRef.current = false;
         }
-    }, [normalizedPath, sessionCheckComplete, userProfile.id, isAuthModalOpen]);
+    }, [normalizedPath, sessionCheckComplete, userProfile.id]);
 
     const loadPendingEmailConfirmation = useCallback((): { email?: string } | null => {
         try {

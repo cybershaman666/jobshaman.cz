@@ -104,8 +104,10 @@ async def jcfpm_items(request: Request):
         if str(row.get("dimension") or "") in JCFPM_DIMENSIONS
     }
     full_pool_keys.discard("")
+    import logging
+    logger = logging.getLogger(__name__)
     if len(full_pool_keys) < 72:
-        raise HTTPException(status_code=500, detail=f"JCFPM items not seeded (found {len(full_pool_keys)}/72)")
+        logger.error(f"JCFPM items check failed: {len(full_pool_keys)}/72 (pool keys: {list(full_pool_keys)[:10]}). Returning items anyway to prevent full crash.")
     return {"items": items}
 
 
