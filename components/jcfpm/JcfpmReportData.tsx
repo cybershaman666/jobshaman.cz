@@ -40,9 +40,9 @@ const REPORT_COPY: Record<string, ReportCopy> = {
         subdims: 'Dopad vs. osobní růst • Inovace vs. stabilita • Vztahy vs. výkon',
       },
       d6_ai_readiness: {
-        title: 'Připravenost na práci s AI',
+        title: 'Technologická adaptabilita',
         definition: 'Jak dobře prosperuješ v rychle se měnícím technologickém prostředí.',
-        subdims: 'Učení nového • Tolerance nejistoty • Aktivní práce s AI',
+        subdims: 'Učení nového • Tolerance nejistoty • Práce s novými nástroji',
       },
       d7_cognitive_reflection: {
         title: 'Kognitivní reflexe a logika',
@@ -81,7 +81,7 @@ const REPORT_COPY: Record<string, ReportCopy> = {
       { self: 'd3_motivational', perf: 'd11_problem_decomposition', label: 'Motivace vs. rozklad problémů' },
       { self: 'd4_energy', perf: 'd9_systems_thinking', label: 'Tempo vs. systémové myšlení' },
       { self: 'd5_values', perf: 'd12_moral_compass', label: 'Hodnoty vs. etika v praxi' },
-      { self: 'd6_ai_readiness', perf: 'd10_ambiguity_interpretation', label: 'Připravenost na AI vs. práce s nejistotou' },
+      { self: 'd6_ai_readiness', perf: 'd10_ambiguity_interpretation', label: 'Technologická adaptabilita vs. práce s nejistotou' },
     ],
     describeScore: {
       d1_cognitive: {
@@ -110,9 +110,9 @@ const REPORT_COPY: Record<string, ReportCopy> = {
         low: 'Spíše tě drží stabilita a praktické jistoty. V prostředí chaosu bys mohl/a trpět.',
       },
       d6_ai_readiness: {
-        high: 'Vysoká připravenost na AI. Rychle se učíš nové nástroje a změny tě spíš posilují.',
-        mid: 'Připravenost na AI je vyvážená. Nové technologie zvládáš, když je dobré vedení.',
-        low: 'AI změny pro tebe nejsou přirozené. Potřebuješ stabilitu a jasný rámec.',
+        high: 'Vysoká technologická adaptabilita. Rychle se učíš nové nástroje a změny tě spíš posilují.',
+        mid: 'Technologická adaptabilita je vyvážená. Nové technologie zvládáš, když je dobré vedení.',
+        low: 'Rychlé technologické změny pro tebe nejsou přirozené. Potřebuješ stabilitu a jasný rámec.',
       },
       d7_cognitive_reflection: {
         high: 'Silná kognitivní reflexe. Dokážeš zastavit intuitivní odpověď a ověřit ji logikou.',
@@ -172,9 +172,9 @@ const REPORT_COPY: Record<string, ReportCopy> = {
         low: 'Více tě drží stabilita a praktické jistoty. Vynikáš v prostředí s jasnými pravidly a předvídatelným rytmem. V experimentech a chaosu ti může být méně pohodlně.',
       },
       d6_ai_readiness: {
-        high: 'AI readiness máš vysokou. Rychle se učíš a změny tě spíš posilují. Vynikneš v rolích, kde se testují nové nástroje a přístupy.',
-        mid: 'Připravenost na AI je vyvážená. Nové technologie zvládáš, když je dobré vedení a jasný smysl. Průběžné vzdělávání ti pomůže držet tempo.',
-        low: 'Změny tě více zatěžují a potřebuješ stabilitu. AI se můžeš naučit, ale chce to čas a podporu. Vhodné jsou role, kde je technologie spíš nástroj než hlavní obsah práce.',
+        high: 'Technologickou adaptabilitu máš vysokou. Rychle se učíš a změny tě spíš posilují. Vynikneš v rolích, kde se testují nové nástroje a přístupy.',
+        mid: 'Technologická adaptabilita je vyvážená. Nové technologie zvládáš, když je dobré vedení a jasný smysl. Průběžné vzdělávání ti pomůže držet tempo.',
+        low: 'Změny tě více zatěžují a potřebuješ stabilitu. Nové nástroje se můžeš naučit, ale chce to čas a podporu. Vhodné jsou role, kde je technologie spíš nástroj než hlavní obsah práce.',
       },
       d7_cognitive_reflection: {
         high: 'Silná kognitivní reflexe znamená, že umíš zastavit intuici a ověřit ji logikou. To chrání tým před unáhlenými chybami. Dávej si pozor, aby ověřování nebylo zbytečně dlouhé.',
@@ -236,9 +236,9 @@ const REPORT_COPY: Record<string, ReportCopy> = {
         subdims: 'Impact vs. personal growth • Innovation vs. stability • Relationships vs. performance',
       },
       d6_ai_readiness: {
-        title: 'AI Readiness',
+        title: 'Technology Adaptability',
         definition: 'How you thrive in fast-changing tech environments.',
-        subdims: 'Learning new things • Tolerance of uncertainty • Active use of AI',
+        subdims: 'Learning new things • Tolerance of uncertainty • Working with new tools',
       },
       d7_cognitive_reflection: {
         title: 'Cognitive Reflection & Logic',
@@ -277,7 +277,7 @@ const REPORT_COPY: Record<string, ReportCopy> = {
       { self: 'd3_motivational', perf: 'd11_problem_decomposition', label: 'Motivation vs. decomposition' },
       { self: 'd4_energy', perf: 'd9_systems_thinking', label: 'Pace vs. systems thinking' },
       { self: 'd5_values', perf: 'd12_moral_compass', label: 'Values vs. ethics in practice' },
-      { self: 'd6_ai_readiness', perf: 'd10_ambiguity_interpretation', label: 'AI readiness vs. ambiguity handling' },
+      { self: 'd6_ai_readiness', perf: 'd10_ambiguity_interpretation', label: 'Technology adaptability vs. ambiguity handling' },
     ],
     describeScore: {
       d1_cognitive: {
@@ -306,9 +306,9 @@ const REPORT_COPY: Record<string, ReportCopy> = {
         low: 'Stability and practical certainty matter more. Highly chaotic settings can be draining.',
       },
       d6_ai_readiness: {
-        high: 'High AI readiness. You learn tools quickly and change tends to energize you.',
-        mid: 'AI readiness is balanced. New tech works when there is good guidance.',
-        low: 'AI change is not natural for you. You need stability and a clear frame.',
+        high: 'High technology adaptability. You learn tools quickly and change tends to energize you.',
+        mid: 'Technology adaptability is balanced. New tech works when there is good guidance.',
+        low: 'Rapid technology change is not natural for you yet. You need stability and a clear frame.',
       },
       d7_cognitive_reflection: {
         high: 'Strong cognitive reflection. You can pause intuition and verify with logic.',
@@ -368,9 +368,9 @@ const REPORT_COPY: Record<string, ReportCopy> = {
         low: 'Stability and practical certainty matter most. You thrive in structured environments; chaotic experiments can be draining.',
       },
       d6_ai_readiness: {
-        high: 'AI readiness is high. You learn fast and change energizes you. Roles with experimentation and new tools will suit you.',
-        mid: 'AI readiness is balanced. You adapt when there is guidance and clear purpose. Ongoing learning helps you keep pace.',
-        low: 'Change is more stressful and you need stability. You can learn AI, but with time and support. Tech‑as‑tool roles fit well.',
+        high: 'Technology adaptability is high. You learn fast and change energizes you. Roles with experimentation and new tools will suit you.',
+        mid: 'Technology adaptability is balanced. You adapt when there is guidance and clear purpose. Ongoing learning helps you keep pace.',
+        low: 'Change is more stressful and you need stability. You can learn new tools, but with time and support. Tech‑as‑tool roles fit well.',
       },
       d7_cognitive_reflection: {
         high: 'Cognitive reflection is strong. You pause intuition and verify with logic, preventing costly errors. Keep checks efficient so they do not slow you down.',
@@ -450,4 +450,3 @@ export const longNarrative = (locale: string, dim: JcfpmDimensionId, raw: number
   const base = lookup[dim]?.[band as keyof BandCopy] || `Skóre ${rounded}/${maxScore}.`;
   return base.replace('{rounded}', String(rounded)).replace('{max}', String(maxScore));
 };
-

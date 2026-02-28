@@ -9,6 +9,7 @@ from ..services.jcfpm_scoring import JCFPM_DIMENSIONS, score_dimensions, score_d
 from ..services.jcfpm_mapping import rank_roles
 from ..services.jcfpm_ai import generate_jcfpm_report
 from ..services.jcfpm_traits import compute_traits
+from ..services.jcfpm_pool import fetch_jcfpm_items, jcfpm_pool_metrics
 from ..models.requests import JcfpmSubmitRequest
 
 router = APIRouter()
@@ -39,32 +40,10 @@ def _resolve_optional_user(request: Request) -> dict | None:
 
 
 def _fetch_items() -> list[dict]:
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Database unavailable")
-    # Supabase/PostgREST often caps a single response to 1000 rows.
-    # Pull items in pages so we always evaluate the full JCFPM pool.
-    page_size = 1000
-    offset = 0
-    all_rows: list[dict] = []
-
-    while True:
-        resp = (
-            supabase
-            .table("jcfpm_items")
-            .select("id, dimension, subdimension, prompt, prompt_i18n, subdimension_i18n, reverse_scoring, sort_order, item_type, payload, payload_i18n, assets, pool_key, variant_index")
-            .order("sort_order", desc=False)
-            .order("id", desc=False)
-            .range(offset, offset + page_size - 1)
-            .execute()
-        )
-        page = resp.data or []
-        all_rows.extend(page)
-
-        if len(page) < page_size:
-            break
-        offset += page_size
-
-    return all_rows
+    try:
+        return fetch_jcfpm_items().items
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"JCFPM pool unavailable ({type(exc).__name__})")
 
 
 def _merge_snapshots(base_snapshot: Dict[str, Any], incoming_snapshot: Dict[str, Any]) -> Dict[str, Any]:
@@ -136,18 +115,24 @@ async def jcfpm_items(request: Request):
 async def jcfpm_diagnostics(request: Request):
     user = _resolve_optional_user(request) if config.JCFPM_REQUIRE_PREMIUM else None
     _require_premium(user)
-    if not supabase:
-        raise HTTPException(status_code=500, detail="Database unavailable")
-    items = _fetch_items()
+    fetched = fetch_jcfpm_items()
+    items = fetched.items
     pool_keys = {str(row.get("pool_key") or row.get("id") or "").strip().upper() for row in items}
     pool_keys.discard("")
     pool_key_nulls = sum(1 for row in items if row.get("pool_key") in (None, ""))
     return {
         "supabase_url": config.SUPABASE_URL or None,
         "supabase_key_set": bool(config.SUPABASE_KEY),
+        "provider_mode": config.JCFPM_ITEMS_PROVIDER,
+        "source": fetched.source,
+        "latency_ms": fetched.latency_ms,
+        "fallback_used": fetched.fallback_used,
+        "fallback_reason": fetched.fallback_reason,
+        "mongodb_configured": bool(config.MONGODB_URI),
         "total_items": len(items),
         "distinct_pool_keys": len(pool_keys),
         "pool_key_nulls": pool_key_nulls,
+        "metrics": jcfpm_pool_metrics(),
     }
 
 
@@ -162,6 +147,16 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
     pool_keys.discard("")
     if len(pool_keys) < 108:
         raise HTTPException(status_code=500, detail="JCFPM items not seeded")
+    def _strip_variant(value: str) -> str:
+        if not value:
+            return ""
+        return value.split("_v")[0].strip().upper()
+    full_pool_keys = {
+        _strip_variant(str(row.get("pool_key") or row.get("id") or ""))
+        for row in items
+        if str(row.get("dimension") or "") in JCFPM_DIMENSIONS
+    }
+    full_pool_keys.discard("")
 
     responses = payload.responses or {}
     selected_ids = payload.item_ids or list(responses.keys())

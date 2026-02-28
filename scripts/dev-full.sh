@@ -4,7 +4,11 @@ set -eu
 ROOT_DIR="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
 cd "$ROOT_DIR"
 
-if ! command -v python3 >/dev/null 2>&1; then
+if [ -x "backend/venv/bin/python" ]; then
+  PYTHON_BIN="backend/venv/bin/python"
+elif command -v python3 >/dev/null 2>&1; then
+  PYTHON_BIN="python3"
+else
   echo "python3 is required for backend startup."
   exit 1
 fi
@@ -14,7 +18,7 @@ if ! command -v npm >/dev/null 2>&1; then
   exit 1
 fi
 
-BACKEND_CMD="python3 -m uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000"
+BACKEND_CMD="$PYTHON_BIN -m uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000"
 
 is_effectively_empty_secret() {
   value="${1:-}"

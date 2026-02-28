@@ -16,6 +16,9 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes('node_modules')) return undefined;
           if (id.includes('/react/') || id.includes('/react-dom/') || id.includes('/scheduler/')) return 'vendor-react';
+          if (id.includes('/three/')) return 'vendor-three';
+          if (id.includes('/@react-three/fiber/')) return 'vendor-r3f';
+          if (id.includes('/@react-three/drei/')) return 'vendor-r3drei';
           if (id.includes('/@supabase/')) return 'vendor-supabase';
           // Keep Sentry with the generic vendor chunk to avoid circular-chunk edge cases.
           if (id.includes('/@sentry/')) return 'vendor';

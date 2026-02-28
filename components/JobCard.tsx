@@ -181,7 +181,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
     <div
       onClick={onClick}
       className={`
-        p-5 rounded-lg border cursor-pointer transition-all duration-200 relative group
+        h-full p-5 rounded-lg border cursor-pointer transition-all duration-200 relative group overflow-hidden
         ${isSelected ? selectedStyle : containerBase}
       `}
     >

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, ArrowRight, Save, X, Volume2, VolumeX, Sparkles, Clock, GripVertical } from 'lucide-react';
 import { Reorder } from 'framer-motion';
 import { JcfpmItem, JcfpmSnapshotV1, JcfpmDimensionId } from '../../types';
@@ -84,7 +84,7 @@ const FLOW_COPY: Record<string, any> = {
       d3_motivational: { title: 'Motivační profil', subtitle: 'Co tě pohání a co považuješ za odměnu.' },
       d4_energy: { title: 'Energetický pattern', subtitle: 'Tempo, intenzita a styl práce.' },
       d5_values: { title: 'Hodnotová kotvení', subtitle: 'Co musí práce přinášet, aby dávala smysl.' },
-      d6_ai_readiness: { title: 'Adaptační kapacita (AI Readiness)', subtitle: 'Jak dobře prosperuješ v měnícím se tech prostředí.' },
+      d6_ai_readiness: { title: 'Adaptační kapacita (technologie)', subtitle: 'Jak dobře prosperuješ v měnícím se technologickém prostředí.' },
       d7_cognitive_reflection: { title: 'Reflexe a logika', subtitle: 'Schopnost zastavit automatickou odpověď a použít logiku.' },
       d8_digital_eq: { title: 'Digitální EQ', subtitle: 'Empatie a práce s emocemi v asynchronní komunikaci.' },
       d9_systems_thinking: { title: 'Systémové myšlení', subtitle: 'Jak vidíš vztahy, zpětné vazby a komplexní sítě.' },
@@ -98,9 +98,9 @@ const FLOW_COPY: Record<string, any> = {
       d3_motivational: { title: 'Motivační profil', body: 'Co tě dlouhodobě žene kupředu a co tě naopak vyčerpává. Teď zachytíme tvé motivátory.' },
       d4_energy: { title: 'Energetický pattern', body: 'Tvé tempo, rytmus a pracovní energie. Najdeme styl, ve kterém umíš podávat nejlepší výkon.' },
       d5_values: { title: 'Hodnotová kotvení', body: 'Kdy práce opravdu dává smysl. Tady mapujeme hodnoty, bez kterých to „nesedí“.' },
-      d6_ai_readiness: { title: 'AI readiness', body: 'Jak se cítíš v proměnách a nových technologiích. Závěrečný pohled na adaptabilitu.' },
+      d6_ai_readiness: { title: 'Technologická adaptabilita', body: 'Jak se cítíš v proměnách a nových nástrojích. Závěrečný pohled na adaptabilitu.' },
       d7_cognitive_reflection: { title: 'Cognitive Reflection & Logic', body: 'Tvoje schopnost zastavit automatickou odpověď a zapojit hlubší logiku.' },
-      d8_digital_eq: { title: 'Digitální EQ', body: 'Empatie a důvěra v asynchronní komunikaci – Slack, e-mail, chat.' },
+      d8_digital_eq: { title: 'Digitální EQ', body: 'Empatie a důvěra v asynchronní komunikaci napříč běžnými pracovními kanály.' },
       d9_systems_thinking: { title: 'Systémové myšlení', body: 'Mapování vztahů, zpětných vazeb a nelineárních dopadů.' },
       d10_ambiguity_interpretation: { title: 'Interpretace ambiguity', body: 'Jak čteš nejasné signály a co v nich vidíš jako první.' },
       d11_problem_decomposition: { title: 'Rozklad problémů', body: 'Schopnost rozsekat velký a vágní úkol na logické kroky.' },
@@ -112,7 +112,7 @@ const FLOW_COPY: Record<string, any> = {
       d3_motivational: 'Co tě skutečně pohání? Tady zachytíme tvé motivátory.',
       d4_energy: 'V této části mapujeme tvé tempo, rytmus a pracovní energii.',
       d5_values: 'Zachytíme, jaké hodnoty musí práce naplňovat, aby dávala smysl.',
-      d6_ai_readiness: 'Na závěr zjistíme, jak se cítíš v AI a tech změnách.',
+      d6_ai_readiness: 'Na závěr zjistíme, jak se cítíš v technologických a procesních změnách.',
       d7_cognitive_reflection: 'Krátké hádanky prověří tvůj “bullshit detector” a schopnost zpomalit intuici.',
       d8_digital_eq: 'Připrav se na chatové situace a interpretaci tónu v textu.',
       d9_systems_thinking: 'Budeme mapovat vztahy a zpětné vazby v jednoduchých systémech.',
@@ -169,7 +169,7 @@ const FLOW_COPY: Record<string, any> = {
       d3_motivational: { title: 'Motivational Profile', subtitle: 'What drives you and what feels rewarding.' },
       d4_energy: { title: 'Energy Pattern', subtitle: 'Pace, intensity, and work rhythm.' },
       d5_values: { title: 'Value Anchors', subtitle: 'What work must deliver to feel meaningful.' },
-      d6_ai_readiness: { title: 'Adaptive Capacity (AI Readiness)', subtitle: 'How you thrive in changing tech environments.' },
+      d6_ai_readiness: { title: 'Adaptive Capacity (Technology)', subtitle: 'How you thrive in changing technology environments.' },
       d7_cognitive_reflection: { title: 'Reflection & Logic', subtitle: 'Ability to pause automatic answers and apply logic.' },
       d8_digital_eq: { title: 'Digital EQ', subtitle: 'Empathy and emotional handling in async communication.' },
       d9_systems_thinking: { title: 'Systems Thinking', subtitle: 'How you see relationships, feedback loops, and complexity.' },
@@ -183,9 +183,9 @@ const FLOW_COPY: Record<string, any> = {
       d3_motivational: { title: 'Motivational Profile', body: 'What drives you long-term and what drains you. We will capture your motivators.' },
       d4_energy: { title: 'Energy Pattern', body: 'Your pace, rhythm, and work energy. We will find the style where you deliver best.' },
       d5_values: { title: 'Value Anchors', body: 'When work truly feels meaningful. We map the values you need to feel aligned.' },
-      d6_ai_readiness: { title: 'AI readiness', body: 'How you feel about change and new technology. A final look at adaptability.' },
+      d6_ai_readiness: { title: 'Technology adaptability', body: 'How you feel about change and new tools. A final look at adaptability.' },
       d7_cognitive_reflection: { title: 'Cognitive Reflection & Logic', body: 'Your ability to stop the automatic answer and apply deeper logic.' },
-      d8_digital_eq: { title: 'Digital EQ', body: 'Empathy and trust in async communication — Slack, email, chat.' },
+      d8_digital_eq: { title: 'Digital EQ', body: 'Empathy and trust in async communication across common work channels.' },
       d9_systems_thinking: { title: 'Systems Thinking', body: 'Mapping relationships, feedback loops, and non-linear effects.' },
       d10_ambiguity_interpretation: { title: 'Ambiguity Interpretation', body: 'How you read unclear signals and what you notice first.' },
       d11_problem_decomposition: { title: 'Problem Decomposition', body: 'Ability to break a big, vague task into logical steps.' },
@@ -197,7 +197,7 @@ const FLOW_COPY: Record<string, any> = {
       d3_motivational: 'What truly drives you? We capture your motivators.',
       d4_energy: 'This section maps your pace, rhythm, and work energy.',
       d5_values: 'We capture which values work must fulfill to feel meaningful.',
-      d6_ai_readiness: 'Finally, we see how you feel about AI and tech change.',
+      d6_ai_readiness: 'Finally, we see how you respond to technology and process change.',
       d7_cognitive_reflection: 'Short puzzles test your “bullshit detector” and ability to slow intuition.',
       d8_digital_eq: 'Get ready for chat scenarios and reading tone in text.',
       d9_systems_thinking: 'We will map relationships and feedback loops in simple systems.',
@@ -236,6 +236,37 @@ const DEEP_DIVE_DIMENSIONS = new Set<JcfpmDimensionId>([
 ]);
 
 const LIKERT = [1, 2, 3, 4, 5, 6, 7];
+
+const hashSeed = (input: string): number => {
+  let hash = 0;
+  for (let i = 0; i < input.length; i += 1) {
+    hash = (hash << 5) - hash + input.charCodeAt(i);
+    hash |= 0;
+  }
+  return Math.abs(hash);
+};
+
+const seededShuffle = <T,>(items: T[], seed: string): T[] => {
+  const next = [...items];
+  let state = hashSeed(seed) || 1;
+  const rand = () => {
+    state = (state * 1664525 + 1013904223) % 4294967296;
+    return state / 4294967296;
+  };
+  for (let i = next.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(rand() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+  return next;
+};
+
+const forceNonIdentityOrder = <T,>(items: T[], seed: string): T[] => {
+  if (items.length <= 1) return items;
+  const shuffled = seededShuffle(items, seed);
+  const identical = shuffled.every((item, idx) => item === items[idx]);
+  if (!identical) return shuffled;
+  return [...items.slice(1), items[0]];
+};
 
 
 const D10_IMAGE_ASSETS = {
@@ -298,10 +329,10 @@ const LOCAL_JCFPM_PAYLOADS: Record<string, any> = {
   },
   'D7.4': {
     options: [
-      { id: 'a', label: 'Přesnost je zavádějící kvůli nevyváženým třídám' },
-      { id: 'b', label: 'Model má příliš nízký recall' },
-      { id: 'c', label: 'Data jsou vždy kvalitní' },
-      { id: 'd', label: 'Model je perfektní' },
+      { id: 'a', label: 'Jediná metrika může klamat, když vstupy nejsou vyvážené' },
+      { id: 'b', label: 'Hlavní problém je jen nízká citlivost měření' },
+      { id: 'c', label: 'Vstupní data jsou vždy spolehlivá' },
+      { id: 'd', label: 'Výsledek je bez chyb' },
     ],
     correct_id: 'a',
   },
@@ -343,7 +374,7 @@ const LOCAL_JCFPM_PAYLOADS: Record<string, any> = {
     options: [
       { id: 'a', label: 'Počkám, až to někdo otevře.' },
       { id: 'b', label: 'Otevřu krátké check-in vlákno a nabídnu podporu.' },
-      { id: 'c', label: 'Pošlu technické logy bez komentáře.' },
+      { id: 'c', label: 'Pošlu jen surová data bez kontextu.' },
     ],
     correct_id: 'b',
   },
@@ -359,7 +390,7 @@ const LOCAL_JCFPM_PAYLOADS: Record<string, any> = {
     options: [
       { id: 'a', label: 'Napsat jen chybu bez kontextu.' },
       { id: 'b', label: 'Popis faktů + dopad + nabídka řešení.' },
-      { id: 'c', label: 'Napsat veřejně do kanálu.' },
+      { id: 'c', label: 'Napsat veřejně bez předchozího ověření.' },
     ],
     correct_id: 'b',
   },
@@ -493,8 +524,8 @@ const LOCAL_JCFPM_PAYLOADS: Record<string, any> = {
     options: [
       { id: 'o1', label: 'Definovat cíl' },
       { id: 'o2', label: 'Stanovit hypotézy' },
-      { id: 'o3', label: 'Postavit prototyp' },
-      { id: 'o4', label: 'Otestovat' },
+      { id: 'o3', label: 'Navrhnout pilotní řešení' },
+      { id: 'o4', label: 'Ověřit v praxi' },
       { id: 'o5', label: 'Iterovat' },
     ],
     correct_order: ['o1', 'o2', 'o3', 'o4', 'o5'],
@@ -503,12 +534,12 @@ const LOCAL_JCFPM_PAYLOADS: Record<string, any> = {
     sources: [
       { id: 's1', label: 'Zmapovat potřeby uživatelů' },
       { id: 's2', label: 'Navrhnout řešení' },
-      { id: 's3', label: 'Nasadit MVP' },
+      { id: 's3', label: 'Spustit pilot' },
     ],
     targets: [
-      { id: 't1', label: 'Discovery' },
-      { id: 't2', label: 'Design' },
-      { id: 't3', label: 'Build' },
+      { id: 't1', label: 'Analýza' },
+      { id: 't2', label: 'Návrh' },
+      { id: 't3', label: 'Realizace' },
     ],
     correct_pairs: [
       { source: 's1', target: 't1' },
@@ -518,10 +549,10 @@ const LOCAL_JCFPM_PAYLOADS: Record<string, any> = {
   },
   'D11.3': {
     options: [
-      { id: 'o1', label: 'Stabilizovat službu' },
+      { id: 'o1', label: 'Stabilizovat provoz' },
       { id: 'o2', label: 'Diagnostikovat příčinu' },
       { id: 'o3', label: 'Opravit' },
-      { id: 'o4', label: 'Post-mortem' },
+      { id: 'o4', label: 'Vyhodnotit a poučit se' },
     ],
     correct_order: ['o1', 'o2', 'o3', 'o4'],
   },
@@ -541,9 +572,9 @@ const LOCAL_JCFPM_PAYLOADS: Record<string, any> = {
       { id: 's3', label: 'Kritéria hodnocení' },
     ],
     targets: [
-      { id: 't1', label: 'System' },
-      { id: 't2', label: 'User' },
-      { id: 't3', label: 'Evaluation' },
+      { id: 't1', label: 'Kontext' },
+      { id: 't2', label: 'Zadání' },
+      { id: 't3', label: 'Hodnocení' },
     ],
     correct_pairs: [
       { source: 's1', target: 't1' },
@@ -626,6 +657,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
   const [itemsError, setItemsError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'form' | 'report'>(mode);
   const [snapshot, setSnapshot] = useState<JcfpmSnapshotV1 | null>(initialSnapshot || null);
+  const aiRegenAttemptedForRef = useRef<string | null>(null);
   const [soundEnabled, setSoundEnabled] = useState(false);
   const [ambientEnabled, setAmbientEnabled] = useState(false);
   const [showInterlude, setShowInterlude] = useState(false);
@@ -676,7 +708,8 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     items.forEach((item) => {
       const baseId = stripVariantSuffix(String(item.id || ''));
       const poolKey = stripVariantSuffix(String(item.pool_key || ''));
-      const key = normalizeKey(baseId || poolKey || '');
+      // Pool key identifies logical question; variants differ by id/variant_index.
+      const key = normalizeKey(poolKey || baseId || '');
       if (!key) return;
       if (!groups.has(key)) groups.set(key, []);
       groups.get(key)!.push(item);
@@ -694,7 +727,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     groups.forEach((group, key) => {
       const getVariantIndex = (item: JcfpmItem) => {
         if (typeof item.variant_index === 'number') return item.variant_index;
-        const match = String(item.id || '').match(/_v(\d+)$/i);
+        const match = String(item.id || item.pool_key || '').match(/_v(\d+)$/i);
         if (match) return Number(match[1]);
         return 1;
       };
@@ -1069,6 +1102,35 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     };
   };
 
+  useEffect(() => {
+    if (viewMode !== 'report' || !isPremium || !snapshot || snapshot.ai_report) return;
+    const hasResponses = snapshot.responses && Object.keys(snapshot.responses).length > 0;
+    if (!hasResponses) return;
+    const retryKey = `${snapshot.completed_at || 'na'}:${snapshot.variant_seed || 'na'}`;
+    if (aiRegenAttemptedForRef.current === retryKey) return;
+    aiRegenAttemptedForRef.current = retryKey;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const refreshed = await submitJcfpm(
+          snapshot.responses as Record<string, any>,
+          snapshot.item_ids || Object.keys(snapshot.responses || {}),
+          snapshot.variant_seed || variantSeed
+        );
+        if (!cancelled && refreshed) {
+          setSnapshot((prev) => mergePartialSnapshot(prev, refreshed, new Set(DIMENSION_IDS)));
+        }
+      } catch {
+        // keep current snapshot; report panel will still render fallback interpretation
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [viewMode, isPremium, snapshot, variantSeed]);
+
   const handleNext = async () => {
     if (!canAdvance) return;
     recordTime(currentItem?.id || null);
@@ -1323,8 +1385,17 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     const Component: React.FC<TaskProps> = ({ item, response, onAnswer }) => {
       const payload = resolvePayload(item);
       const isSystems = inferDimension(item) === 'd9_systems_thinking';
-      const sources = Array.isArray(payload.sources) ? payload.sources : [];
-      const targets = Array.isArray(payload.targets) ? payload.targets : [];
+      const rawSources = Array.isArray(payload.sources) ? payload.sources : [];
+      const rawTargets = Array.isArray(payload.targets) ? payload.targets : [];
+      const shuffleKey = `${item.id || 'drag'}:${variantSeed}:dragdrop`;
+      const sources = useMemo(
+        () => forceNonIdentityOrder(rawSources, `${shuffleKey}:sources`),
+        [rawSources, shuffleKey]
+      );
+      const targets = useMemo(
+        () => forceNonIdentityOrder(rawTargets, `${shuffleKey}:targets`),
+        [rawTargets, shuffleKey]
+      );
 
       if (!sources.length || !targets.length) {
         console.warn('[JCFPM] Missing drag_drop payload for item:', item);
@@ -1404,6 +1475,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     inferDimension,
     resolvePayload,
     suspendTimerRef,
+    variantSeed,
   ]);
 
   const TASK_COMPONENTS = useMemo<Record<string, React.FC<TaskProps>>>(() => ({
@@ -1552,7 +1624,10 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
 
       {viewMode === 'report' && snapshot ? (
         <div className="mt-4">
-          <JcfpmReportPanel snapshot={snapshot} showAdvancedReport={isPremium} />
+          <JcfpmReportPanel
+            snapshot={snapshot}
+            showAdvancedReport={Boolean(isPremium || snapshot?.ai_report)}
+          />
         </div>
       ) : (
         <div className="jcfpm-form-layout">

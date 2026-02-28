@@ -659,6 +659,7 @@ export interface JcfpmJhiAdjustmentItem {
   from: number;
   to: number;
   reason: string;
+  reason_i18n?: Record<string, string>;
 }
 
 export interface JcfpmJhiAdjustmentV1 {

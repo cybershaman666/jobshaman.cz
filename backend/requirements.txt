@@ -3,6 +3,7 @@ uvicorn[standard]
 gunicorn
 resend
 supabase
+pymongo
 python-dotenv
 beautifulsoup4
 requests

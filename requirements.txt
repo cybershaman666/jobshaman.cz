@@ -4,6 +4,7 @@ gunicorn
 google-generativeai
 resend
 supabase
+pymongo
 python-dotenv
 beautifulsoup4
 requests

@@ -73,3 +73,10 @@ CSRF_TOKEN_EXPIRY = 3600  # 1 hour
 # Temporary switch to allow JCFPM for authenticated users without premium token issues.
 # Set JCFPM_REQUIRE_PREMIUM=true to restore strict premium gate.
 JCFPM_REQUIRE_PREMIUM = _env_bool("JCFPM_REQUIRE_PREMIUM", False)
+
+# JCFPM items provider
+# auto = MongoDB primary + Supabase fallback
+JCFPM_ITEMS_PROVIDER = os.getenv("JCFPM_ITEMS_PROVIDER", "auto").strip().lower() or "auto"
+MONGODB_URI = os.getenv("MONGODB_URI")
+MONGODB_DB = os.getenv("MONGODB_DB", "jobshaman")
+MONGODB_JCFPM_COLLECTION = os.getenv("MONGODB_JCFPM_COLLECTION", "jcfpm_items")

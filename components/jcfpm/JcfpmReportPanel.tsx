@@ -73,9 +73,9 @@ const REPORT_UI_COPY: Record<string, any> = {
     percentileLabel: 'percentil',
     bandLabels: { high: 'vysoké', mid: 'střední', low: 'nízké' },
     shareTitle: 'Moje výsledky JCFPM testu',
-    shareText: 'Podívejte se na mou analýzu kognitivních a sociálních dovedností pro práci s AI.',
+    shareText: 'Podívejte se na mou analýzu kognitivních, sociálních a technologických dovedností.',
     inviteTitle: 'Pozvánka k JCFPM testu',
-    inviteText: 'Zkus si taky JCFPM test a zjisti svoji připravenost na práci s AI!',
+    inviteText: 'Zkus si taky JCFPM test a zjisti svůj profil práce v měnícím se prostředí.',
     shareTooltip: 'Odkaz zkopírován!',
     shareButtonTitle: 'Sdílet výsledky',
     inviteButtonTitle: 'Pozvat ostatní',
@@ -87,7 +87,7 @@ const REPORT_UI_COPY: Record<string, any> = {
     strengths: 'Silné stránky',
     idealEnvironment: 'Ideální prostředí',
     developmentAreas: 'Rozvojové oblasti',
-    aiReadinessTitle: 'Připravenost na AI',
+    aiReadinessTitle: 'Technologická adaptabilita',
     nextSteps: 'Další kroky',
     temperamentBigFive: 'Temperament & Big Five (projekce)',
     temperamentTitle: 'Temperament',
@@ -159,7 +159,7 @@ const REPORT_UI_COPY: Record<string, any> = {
       d12_moral_compass: 'udržení důvěry při náročných rozhodnutích pod tlakem',
     },
     roleUseCaseFallback: 'praktickém rozhodování a spolupráci',
-    roleAiImpactLabel: 'AI dopad role',
+    roleAiImpactLabel: 'Dopad automatizace v roli',
     roleRemoteLabel: 'Vhodnost práce na dálku',
     roleReason: (fit: number, firstTitle: string, firstScore: number | null, secondTitle: string, secondScore: number | null, roleUseCase: string, aiImpact?: string, workMode?: string) => {
       const first = `${firstTitle}${firstScore !== null ? ` (${firstScore}/100)` : ''}`;
@@ -171,13 +171,13 @@ const REPORT_UI_COPY: Record<string, any> = {
     vsLabel: 'vs',
     gapText: (gap: number) => `rozdíl ${gap} bodů`,
     aiReadinessSummary: (aiReadiness: number, ambiguity: number) =>
-      `Připravenost na AI máš na ${Math.round(aiReadiness)}/100 a práci s nejasností na ${Math.round(ambiguity)}/100. Silné skóre znamená dobrý základ, další posun uděláš pravidelným tréninkem v praxi.`,
+      `Technologickou adaptabilitu máš na ${Math.round(aiReadiness)}/100 a práci s nejasností na ${Math.round(ambiguity)}/100. Silné skóre znamená dobrý základ, další posun uděláš pravidelným tréninkem v praxi.`,
     environment: {
       socialHigh: 'Spolupracující tým s pravidelnou zpětnou vazbou a jasnou domluvou.',
       socialLow: 'Klidnější prostředí s delšími bloky na soustředěnou práci.',
       energyHigh: 'Práce s vyšším tempem a různorodými úkoly.',
       energyLow: 'Stabilnější rytmus práce s menším množstvím náhlých změn.',
-      aiHigh: 'Prostředí, kde se AI nástroje používají běžně a prakticky.',
+      aiHigh: 'Prostředí, kde se nové nástroje používají běžně a prakticky.',
       aiLow: 'Prostředí, kde se nové nástroje zavádějí postupně a s podporou.',
     },
     skillToLearnTitleFallback: 'Výkonová dimenze',
@@ -206,9 +206,9 @@ const REPORT_UI_COPY: Record<string, any> = {
     percentileLabel: 'percentile',
     bandLabels: { high: 'high', mid: 'mid', low: 'low' },
     shareTitle: 'My JCFPM results',
-    shareText: 'Take a look at my analysis of cognitive and social skills for working with AI.',
+    shareText: 'Take a look at my analysis of cognitive, social, and technology-related strengths.',
     inviteTitle: 'JCFPM test invitation',
-    inviteText: 'Try the JCFPM test and see your readiness for working with AI!',
+    inviteText: 'Try the JCFPM test and see your profile for work in changing environments.',
     shareTooltip: 'Link copied!',
     shareButtonTitle: 'Share results',
     inviteButtonTitle: 'Invite others',
@@ -220,7 +220,7 @@ const REPORT_UI_COPY: Record<string, any> = {
     strengths: 'Strengths',
     idealEnvironment: 'Ideal environment',
     developmentAreas: 'Growth areas',
-    aiReadinessTitle: 'AI readiness',
+    aiReadinessTitle: 'Technology adaptability',
     nextSteps: 'Next steps',
     temperamentBigFive: 'Temperament & Big Five (projection)',
     temperamentTitle: 'Temperament',
@@ -292,7 +292,7 @@ const REPORT_UI_COPY: Record<string, any> = {
       d12_moral_compass: 'maintaining trust under high‑pressure decisions',
     },
     roleUseCaseFallback: 'practical decision‑making and collaboration',
-    roleAiImpactLabel: 'Role AI impact',
+    roleAiImpactLabel: 'Role automation impact',
     roleRemoteLabel: 'Remote suitability',
     roleReason: (fit: number, firstTitle: string, firstScore: number | null, secondTitle: string, secondScore: number | null, roleUseCase: string, aiImpact?: string, workMode?: string) => {
       const first = `${firstTitle}${firstScore !== null ? ` (${firstScore}/100)` : ''}`;
@@ -304,13 +304,13 @@ const REPORT_UI_COPY: Record<string, any> = {
     vsLabel: 'vs',
     gapText: (gap: number) => `gap ${gap} points`,
     aiReadinessSummary: (aiReadiness: number, ambiguity: number) =>
-      `Your AI readiness is ${Math.round(aiReadiness)}/100 and ambiguity handling is ${Math.round(ambiguity)}/100. A strong score means a solid base; you will move further with regular practice.`,
+      `Your technology adaptability is ${Math.round(aiReadiness)}/100 and ambiguity handling is ${Math.round(ambiguity)}/100. A strong score means a solid base; you will move further with regular practice.`,
     environment: {
       socialHigh: 'Collaborative team with regular feedback and clear alignment.',
       socialLow: 'Calmer environment with longer focus blocks.',
       energyHigh: 'Work with higher pace and varied tasks.',
       energyLow: 'More stable work rhythm with fewer sudden changes.',
-      aiHigh: 'Environment where AI tools are used routinely and practically.',
+      aiHigh: 'Environment where new tools are used routinely and practically.',
       aiLow: 'Environment where new tools are introduced gradually with support.',
     },
     skillToLearnTitleFallback: 'Performance dimension',
@@ -334,6 +334,84 @@ const REPORT_UI_COPY: Record<string, any> = {
 };
 
 const getReportUiCopy = (locale: string) => REPORT_UI_COPY[locale] || REPORT_UI_COPY.cs;
+
+const buildExtendedDimensionNarrative = (
+  locale: string,
+  dimension: JcfpmDimensionId,
+  normalized: number,
+  title: string
+): string => {
+  const isCs = locale === 'cs';
+  const band = normalized >= 70 ? 'high' : normalized >= 45 ? 'mid' : 'low';
+  const scenarioByDim: Record<JcfpmDimensionId, { high: string; mid: string; low: string }> = {
+    d1_cognitive: {
+      high: isCs ? 'V praxi to bývá výhoda u rozhodnutí s více proměnnými (prioritizace, trade-offy, návrh postupu).' : 'In practice this helps with decisions that have many variables (prioritization, trade-offs, process design).',
+      mid: isCs ? 'V praxi dobře funguješ tam, kde je potřeba rychle přepínat mezi daty a intuicí.' : 'In practice you perform well where switching between data and intuition is required.',
+      low: isCs ? 'V praxi je to silné v rychlých situacích, ale u zásadních rozhodnutí pomůže krátké datové ověření.' : 'In practice this is strong in fast situations, but major decisions benefit from a short data check.',
+    },
+    d2_social: {
+      high: isCs ? 'V praxi se to projeví v facilitaci týmu, vyjednávání a držení společného směru.' : 'In practice this appears in team facilitation, negotiation, and shared direction.',
+      mid: isCs ? 'V praxi umíš plynule střídat samostatnou práci a týmovou koordinaci.' : 'In practice you can switch smoothly between solo work and team coordination.',
+      low: isCs ? 'V praxi podáš nejlepší výkon při jasném zadání a menším počtu synchronních meetingů.' : 'In practice your best performance appears with clear scope and fewer synchronous meetings.',
+    },
+    d3_motivational: {
+      high: isCs ? 'V praxi tě posouvají projekty s růstem odpovědnosti a viditelným dopadem.' : 'In practice, projects with growing ownership and visible impact move you forward.',
+      mid: isCs ? 'V praxi dobře funguje mix autonomie a jasně měřených cílů.' : 'In practice, a mix of autonomy and clear measurable goals works well.',
+      low: isCs ? 'V praxi pomáhá transparentní cíl, metrika úspěchu a pravidelný feedback.' : 'In practice, transparent goals, success metrics, and regular feedback help most.',
+    },
+    d4_energy: {
+      high: isCs ? 'V praxi zvládáš intenzivní sprinty; klíčové je plánovat vědomou regeneraci.' : 'In practice you handle intense sprints; planned recovery remains essential.',
+      mid: isCs ? 'V praxi držíš stabilní výkon napříč různými režimy práce.' : 'In practice you maintain stable output across different work modes.',
+      low: isCs ? 'V praxi tě nejvíc podpoří predikovatelné tempo a chráněné focus bloky.' : 'In practice, predictable pace and protected focus blocks support you most.',
+    },
+    d5_values: {
+      high: isCs ? 'V praxi potřebuješ vidět smysl, etiku a dlouhodobý dopad práce.' : 'In practice you need visible meaning, ethics, and long-term impact.',
+      mid: isCs ? 'V praxi se rychle adaptuješ na různé kultury, když jsou role a očekávání jasné.' : 'In practice you adapt quickly to different cultures when roles and expectations are clear.',
+      low: isCs ? 'V praxi se opíráš o stabilitu, jistotu a předvídatelné prostředí.' : 'In practice you rely on stability, certainty, and predictable environments.',
+    },
+    d6_ai_readiness: {
+      high: isCs ? 'V praxi máš potenciál být early adopter a zrychlovat práci přes nové nástroje.' : 'In practice you can be an early adopter and accelerate work using new tools.',
+      mid: isCs ? 'V praxi funguje postupné zavádění nových nástrojů s jasnými use-cases a pravidly.' : 'In practice, gradual adoption of new tools with clear use-cases and rules works well.',
+      low: isCs ? 'V praxi pomůže učit se nové nástroje po malých krocích na konkrétních opakovatelných úkolech.' : 'In practice, learning new tools in small steps on specific repetitive tasks is most effective.',
+    },
+    d7_cognitive_reflection: {
+      high: isCs ? 'V praxi to snižuje riziko chybných zkratek u důležitých rozhodnutí.' : 'In practice this lowers shortcut mistakes in important decisions.',
+      mid: isCs ? 'V praxi stačí držet jednoduchý check před finálním rozhodnutím.' : 'In practice, a simple pre-decision check is enough.',
+      low: isCs ? 'V praxi pomáhá pravidlo „zastav-se-ověř“ u všech rozhodnutí s vyšším dopadem.' : 'In practice, a “pause-and-verify” rule helps for higher-impact decisions.',
+    },
+    d8_digital_eq: {
+      high: isCs ? 'V praxi je to velká výhoda v asynchronní komunikaci a řešení citlivých témat.' : 'In practice this is a major advantage in async communication and sensitive topics.',
+      mid: isCs ? 'V praxi pomáhá průběžně parafrázovat porozumění a potvrdit očekávání.' : 'In practice, paraphrasing and confirming expectations helps.',
+      low: isCs ? 'V praxi pomůže standard „kontext → sdělení → další krok“ v důležitých zprávách.' : 'In practice, a “context → message → next step” standard helps in key messages.',
+    },
+    d9_systems_thinking: {
+      high: isCs ? 'V praxi to zvyšuje kvalitu rozhodnutí v komplexních procesech a změnách.' : 'In practice this improves decision quality in complex processes and changes.',
+      mid: isCs ? 'V praxi funguje krátká mapa dopadů před větší změnou.' : 'In practice, a short impact map before bigger changes works well.',
+      low: isCs ? 'V praxi pomáhá vizualizovat vazby mezi týmy a odhadnout vedlejší efekty.' : 'In practice, visualizing cross-team dependencies helps estimate side effects.',
+    },
+    d10_ambiguity_interpretation: {
+      high: isCs ? 'V praxi se hodíš do prostředí s nejistotou, kde je nutné rychle tvořit směr.' : 'In practice you fit uncertain environments where direction must be created quickly.',
+      mid: isCs ? 'V praxi máš dobrý balanc mezi opatrností a průzkumem nových možností.' : 'In practice you keep a strong balance between caution and exploration.',
+      low: isCs ? 'V praxi pomáhá řízený experiment s předem daným limitem rizika.' : 'In practice, controlled experiments with predefined risk limits help.',
+    },
+    d11_problem_decomposition: {
+      high: isCs ? 'V praxi umíš převést strategii do akčních kroků a priorit.' : 'In practice you can translate strategy into actionable steps and priorities.',
+      mid: isCs ? 'V praxi pomůže držet jednotnou šablonu pro rozpad úkolů napříč týmem.' : 'In practice, using one decomposition template across the team helps.',
+      low: isCs ? 'V praxi pomůže „3 kroky + 1 riziko + 1 deadline“ pro každý větší úkol.' : 'In practice, “3 steps + 1 risk + 1 deadline” helps for each larger task.',
+    },
+    d12_moral_compass: {
+      high: isCs ? 'V praxi posiluješ důvěru týmu i stakeholderů při složitých rozhodnutích.' : 'In practice you strengthen team and stakeholder trust in complex decisions.',
+      mid: isCs ? 'V praxi funguje explicitně pojmenovat hranice, které se v rozhodnutí nepřekročí.' : 'In practice, explicitly naming non-negotiable boundaries works well.',
+      low: isCs ? 'V praxi pomůže předem definovaný etický rámec a transparentní rozhodovací logika.' : 'In practice, a predefined ethical frame and transparent decision logic help.',
+    },
+  };
+  const actionByBand = {
+    high: isCs ? `Doporučení: využij sílu „${title}“ jako mentoringový nebo procesní asset pro tým.` : `Recommendation: use “${title}” as a mentoring/process asset for the team.`,
+    mid: isCs ? `Doporučení: drž tuto oblast stabilní přes jednoduchý týdenní review rytmus.` : `Recommendation: keep this area stable with a simple weekly review rhythm.`,
+    low: isCs ? `Doporučení: nastav na 14 dní jeden konkrétní mikro-návyk a sleduj měřitelný posun.` : `Recommendation: set one concrete micro-habit for 14 days and track measurable progress.`,
+  } as const;
+  return `${scenarioByDim[dimension]?.[band] || ''} ${actionByBand[band]}`.trim();
+};
 
 const DimensionAccordionRow = ({ row, normalized, dimMeta, shortDesc, longDesc, maxItemScore, labels }: any) => {
   const [open, setOpen] = useState(false);
@@ -966,13 +1044,20 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
 
   const bridge = buildBridge();
   const topDimensionsBasic = useMemo(() => {
-    return [...mergedScores]
+    const scored = [...mergedScores]
       .map((row) => ({
         row,
         normalized: Math.round(normalizeTo100(row.dimension, row.raw_score, extendedDims)),
-      }))
+      }));
+    const coreTop = scored
+      .filter(({ row }) => ['d1_cognitive', 'd2_social', 'd3_motivational', 'd4_energy', 'd5_values', 'd6_ai_readiness'].includes(row.dimension))
       .sort((a, b) => b.normalized - a.normalized)
       .slice(0, 3);
+    const deepTop = scored
+      .filter(({ row }) => ['d7_cognitive_reflection', 'd8_digital_eq', 'd9_systems_thinking', 'd10_ambiguity_interpretation', 'd11_problem_decomposition', 'd12_moral_compass'].includes(row.dimension))
+      .sort((a, b) => b.normalized - a.normalized)
+      .slice(0, 3);
+    return [...coreTop, ...deepTop];
   }, [extendedDims, mergedScores]);
 
   const printReport = () => {
@@ -1014,8 +1099,8 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
               {locale === 'cs'
-                ? 'Test proběhl úspěšně. Pro detailní AI interpretaci, role-fit mapování a pokročilou analýzu odemkni Premium.'
-                : 'Test completed successfully. Unlock Premium for full AI interpretation, role-fit mapping, and advanced analysis.'}
+                ? 'Rychlý náhled výsledků. Detailní interpretace a pokročilá analýza je v Premium.'
+                : 'Quick results preview. Detailed interpretation and advanced analysis are available in Premium.'}
             </p>
           </div>
           <div className="p-6 grid gap-3">
@@ -1029,9 +1114,6 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
                 </div>
               </div>
             ))}
-            <div className="text-xs text-slate-600 dark:text-slate-400 pt-2">
-              {labels.aiReadinessTitle}: {Math.round(normalizedScoreMap.get('d6_ai_readiness') || 0)}/100
-            </div>
           </div>
         </motion.div>
       )}
@@ -1327,7 +1409,14 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
             const normalized = normalizeTo100(row.dimension, row.raw_score, extendedDims);
             const dimMeta = dimensionMeta[row.dimension] || { title: row.dimension, definition: '', subdims: '' };
             const shortDesc = describeScore(locale, row.dimension, row.raw_score, row.percentile, extendedDims);
-            const longDesc = longNarrative(locale, row.dimension, row.raw_score, row.percentile, extendedDims);
+            const longDescBase = longNarrative(locale, row.dimension, row.raw_score, row.percentile, extendedDims);
+            const longDescExtension = buildExtendedDimensionNarrative(
+              locale,
+              row.dimension,
+              Math.round(normalizeTo100(row.dimension, row.raw_score, extendedDims)),
+              dimMeta.title
+            );
+            const longDesc = `${longDescBase} ${longDescExtension}`.trim();
 
             return (
               <DimensionAccordionRow

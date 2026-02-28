@@ -138,6 +138,46 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const [jcfpmSnapshot, setJcfpmSnapshot] = useState<JcfpmSnapshotV1 | null>(
     profile.preferences?.jcfpm_v1 || null
   );
+  const jcfpmReasonLocale = (i18n.language || 'cs').toLowerCase();
+  const jcfpmReasonLocaleBase = jcfpmReasonLocale.split('-')[0];
+  const translateLegacyJhiReason = (reason?: string) => {
+    const value = (reason || '').trim();
+    if (!value) return value;
+    if (jcfpmReasonLocaleBase !== 'cs') return value;
+
+    const legacyCsMap: Record<string, string> = {
+      'Higher D5 (values) increases weight of value alignment in job scoring.':
+        'Vyšší D5 (hodnoty) zvyšuje váhu hodnotového souladu při skórování pracovních nabídek.',
+      'Combined D3 (motivation) + D6 (AI readiness) drives growth priority.':
+        'Kombinace D3 (motivace) + D6 (technologická adaptabilita) posouvá prioritu na profesní růst.',
+      'Combined D3 (motivation) + D6 (technology adaptability) drives growth priority.':
+        'Kombinace D3 (motivace) + D6 (technologická adaptabilita) posouvá prioritu na profesní růst.',
+      'Higher D4 (energy) lowers time-cost penalty; lower D4 raises it.':
+        'Vyšší D4 (energie) snižuje penalizaci za časovou náročnost, nižší D4 ji naopak zvyšuje.',
+      'Mapped directly from D2 (social orientation).':
+        'Mapováno přímo z D2 (sociální orientace).',
+      'Derived from average of D3 (motivation) and D6 (AI readiness).':
+        'Odvozeno z průměru D3 (motivace) a D6 (technologická adaptabilita).',
+      'Derived from average of D3 (motivation) and D6 (technology adaptability).':
+        'Odvozeno z průměru D3 (motivace) a D6 (technologická adaptabilita).',
+      'Higher when D2 and D4 are lower (preference for calmer, solo/remote setup).':
+        'Je vyšší, když jsou D2 a D4 nižší (preference klidnějšího, samostatného/remote režimu).',
+    };
+
+    return legacyCsMap[value] || value;
+  };
+  const formatJhiFieldLabel = (field: string) => {
+    if (jcfpmReasonLocaleBase !== 'cs') return field;
+    const map: Record<string, string> = {
+      'pillarWeights.values': 'Váha: hodnotový soulad',
+      'pillarWeights.growth': 'Váha: růst a rozvoj',
+      'pillarWeights.timeCost': 'Váha: časová náročnost',
+      'workStyle.peopleIntensity': 'Styl práce: sociální intenzita',
+      'workStyle.careerGrowthPreference': 'Styl práce: preference kariérního růstu',
+      'workStyle.homeOfficePreference': 'Styl práce: preference home office',
+    };
+    return map[field] || field;
+  };
   const [hasJcfpmDraft, setHasJcfpmDraft] = useState<boolean>(() => Boolean(readJcfpmDraft(profile.id)));
   const [culturalCompass, setCulturalCompass] = useState({
     individualVsTeam: 52,
@@ -221,7 +261,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   }, [profile.id, profile.isLoggedIn, profile.subscription?.tier]);
 
   const resolvedTier = String(effectiveTier || profile.subscription?.tier || 'free').toLowerCase();
-  const normalizedCandidateTier: 'free' | 'premium' = resolvedTier === 'premium' ? 'premium' : 'free';
+  const hasPremiumAccess = !!resolvedTier && resolvedTier !== 'free' && resolvedTier !== 'null' && resolvedTier !== 'undefined';
+  const normalizedCandidateTier: 'free' | 'premium' = hasPremiumAccess ? 'premium' : 'free';
   const isPremium = normalizedCandidateTier === 'premium';
   // temporary: unlock JCFPM test for all users (ignore premium flag)
   // remove this override once the promotion period ends
@@ -2524,8 +2565,18 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     <div className="space-y-2">
                       {profile.preferences.jcfpm_jhi_adjustment_v1.changes.slice(0, 6).map((change, idx) => (
                         <div key={`${change.field}-${idx}`} className="text-xs text-slate-700 dark:text-slate-300">
-                          <span className="font-semibold">{change.field}</span>: {change.from} → {change.to}
-                          <span className="text-slate-500 dark:text-slate-400"> ({change.reason})</span>
+                          {(() => {
+                            const reasonText =
+                              change.reason_i18n?.[jcfpmReasonLocale] ||
+                              change.reason_i18n?.[jcfpmReasonLocaleBase] ||
+                              translateLegacyJhiReason(change.reason);
+                            return (
+                              <>
+                          <span className="font-semibold">{formatJhiFieldLabel(change.field)}</span>: {change.from} → {change.to}
+                          <span className="text-slate-500 dark:text-slate-400"> ({reasonText})</span>
+                              </>
+                            );
+                          })()}
                         </div>
                       ))}
                     </div>

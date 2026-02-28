@@ -77,10 +77,10 @@ const LABELS: Record<string, { low: string; mid_low: string; balanced: string; h
     high: 'Impact a inovace',
   },
   d6_ai_readiness: {
-    low: 'Nízká otevřenost k AI změnám',
+    low: 'Nižší otevřenost k rychlým technologickým změnám',
     mid_low: 'Opatrná adaptace',
-    balanced: 'Vyvážená připravenost',
-    high: 'Vysoká adaptabilita a AI readiness',
+    balanced: 'Vyvážená technologická adaptabilita',
+    high: 'Vysoká technologická adaptabilita',
   },
   d7_cognitive_reflection: {
     low: 'Silně intuitivní, rychlé odpovědi bez ověření',
@@ -646,36 +646,60 @@ export const mapJcfpmToJhiPreferencesWithExplanation = (
         from: pctWeight(current.pillarWeights.values),
         to: pctWeight(nextPreferences.pillarWeights.values),
         reason: 'Higher D5 (values) increases weight of value alignment in job scoring.',
+        reason_i18n: {
+          cs: 'Vyšší D5 (hodnoty) zvyšuje váhu hodnotového souladu při skórování pracovních nabídek.',
+          en: 'Higher D5 (values) increases weight of value alignment in job scoring.',
+        },
       },
       {
         field: 'pillarWeights.growth',
         from: pctWeight(current.pillarWeights.growth),
         to: pctWeight(nextPreferences.pillarWeights.growth),
-        reason: 'Combined D3 (motivation) + D6 (AI readiness) drives growth priority.',
+        reason: 'Combined D3 (motivation) + D6 (technology adaptability) drives growth priority.',
+        reason_i18n: {
+          cs: 'Kombinace D3 (motivace) + D6 (technologická adaptabilita) posouvá prioritu na profesní růst.',
+          en: 'Combined D3 (motivation) + D6 (technology adaptability) drives growth priority.',
+        },
       },
       {
         field: 'pillarWeights.timeCost',
         from: pctWeight(current.pillarWeights.timeCost),
         to: pctWeight(nextPreferences.pillarWeights.timeCost),
         reason: 'Higher D4 (energy) lowers time-cost penalty; lower D4 raises it.',
+        reason_i18n: {
+          cs: 'Vyšší D4 (energie) snižuje penalizaci za časovou náročnost, nižší D4 ji naopak zvyšuje.',
+          en: 'Higher D4 (energy) lowers time-cost penalty; lower D4 raises it.',
+        },
       },
       {
         field: 'workStyle.peopleIntensity',
         from: Math.round(current.workStyle.peopleIntensity),
         to: Math.round(nextPreferences.workStyle.peopleIntensity),
         reason: 'Mapped directly from D2 (social orientation).',
+        reason_i18n: {
+          cs: 'Mapováno přímo z D2 (sociální orientace).',
+          en: 'Mapped directly from D2 (social orientation).',
+        },
       },
       {
         field: 'workStyle.careerGrowthPreference',
         from: Math.round(current.workStyle.careerGrowthPreference),
         to: Math.round(nextPreferences.workStyle.careerGrowthPreference),
-        reason: 'Derived from average of D3 (motivation) and D6 (AI readiness).',
+        reason: 'Derived from average of D3 (motivation) and D6 (technology adaptability).',
+        reason_i18n: {
+          cs: 'Odvozeno z průměru D3 (motivace) a D6 (technologická adaptabilita).',
+          en: 'Derived from average of D3 (motivation) and D6 (technology adaptability).',
+        },
       },
       {
         field: 'workStyle.homeOfficePreference',
         from: Math.round(current.workStyle.homeOfficePreference),
         to: Math.round(nextPreferences.workStyle.homeOfficePreference),
         reason: 'Higher when D2 and D4 are lower (preference for calmer, solo/remote setup).',
+        reason_i18n: {
+          cs: 'Je vyšší, když jsou D2 a D4 nižší (preference klidnějšího, samostatného/remote režimu).',
+          en: 'Higher when D2 and D4 are lower (preference for calmer, solo/remote setup).',
+        },
       },
     ],
   };
@@ -726,14 +750,6 @@ export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
     }
   };
 
-  // Prefer direct Supabase fetch: avoids backend auth/CSRF/network bottlenecks for read-only item bank.
-  try {
-    const supabaseItems = await fetchItemsFromSupabase();
-    return ensureSeeded(supabaseItems);
-  } catch {
-    // Fall back to backend endpoint when client-side Supabase access is not available.
-  }
-
   try {
     return await fetchFromBackendPublic();
   } catch (firstErr: any) {
@@ -748,7 +764,7 @@ export const fetchJcfpmItems = async (): Promise<JcfpmItem[]> => {
       }
     }
 
-    // Last-resort fallback when backend auth/token/cold-start path is unstable.
+    // Last-resort fallback when backend path is unavailable.
     const supabaseItems = await fetchItemsFromSupabase();
     return ensureSeeded(supabaseItems);
   }

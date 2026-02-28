@@ -21,11 +21,11 @@ interface Props {
 
 const ENTRY_COPY: Record<string, any> = {
   cs: {
-    badge: 'AI-Powered Career Intelligence',
+    badge: 'Career Intelligence',
     title: 'Career Fit & Potential',
-    description: 'Objevte své silné stránky a ideální kariérní směřování skrze 200+ psychometrických bodů. Získejte personalizovaný AI report a mapování na reálné role.',
+    description: 'Objevte své silné stránky a ideální kariérní směřování skrze 200+ psychometrických bodů. Získejte personalizovaný report a mapování na reálné role.',
     statDimensions: '12 dimenzí',
-    statAiReadiness: 'AI Readiness skóre',
+    statAiReadiness: 'Skóre adaptace na změny',
     statAnchors: 'Kariérní kotvy',
     viewResults: 'Zobrazit výsledky',
     resume: 'Pokračovat v testu',
@@ -36,11 +36,11 @@ const ENTRY_COPY: Record<string, any> = {
     updatedAt: 'Aktualizováno',
   },
   en: {
-    badge: 'AI-Powered Career Intelligence',
+    badge: 'Career Intelligence',
     title: 'Career Fit & Potential',
-    description: 'Discover your strengths and ideal career direction through 200+ psychometric signals. Get a personalized AI report and mapping to real roles.',
+    description: 'Discover your strengths and ideal career direction through 200+ psychometric signals. Get a personalized report and mapping to real roles.',
     statDimensions: '12 dimensions',
-    statAiReadiness: 'AI readiness score',
+    statAiReadiness: 'Change adaptability score',
     statAnchors: 'Career anchors',
     viewResults: 'View results',
     resume: 'Resume test',
