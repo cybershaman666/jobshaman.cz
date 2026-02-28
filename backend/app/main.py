@@ -1,4 +1,5 @@
 import os
+import sys
 import traceback
 from fastapi import FastAPI, Request, HTTPException
 import re
@@ -47,8 +48,6 @@ base_origins = [
     "https://jobshaman.com",
     "https://www.jobshaman.cz",
     "https://www.jobshaman.com",
-    "https://jobshaman-api.onrender.com",
-    "https://jobshaman-cz.onrender.com",
     "https://jobshaman.vercel.app",
     "http://localhost:3000",
     "http://localhost:5173",
@@ -190,6 +189,8 @@ def _start_scheduler() -> None:
 
 @app.on_event("startup")
 async def _on_startup():
+    print(f"DEBUG: Environment keys: {sorted(os.environ.keys())}")
+    print(f"DEBUG: OPENAI_API_KEY set: {bool(os.getenv('OPENAI_API_KEY'))}")
     _start_scheduler()
 
 
