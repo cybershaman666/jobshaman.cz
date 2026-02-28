@@ -1414,11 +1414,49 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
     },
     [currentItem?.id, handleAnswer],
   );
+  const currentItemType = currentItem ? resolveItemType(currentItem) : 'likert';
+
+  const swipeStateRef = React.useRef<{ x: number; y: number; active: boolean }>({ x: 0, y: 0, active: false });
+  const SWIPE_THRESHOLD_PX = 56;
+  const SWIPE_MAX_VERTICAL_DRIFT_PX = 72;
+  const isInteractiveTouchTarget = (target: EventTarget | null): boolean => {
+    if (!(target instanceof Element)) return false;
+    return Boolean(
+      target.closest('button, input, select, textarea, a, [role="button"], [data-no-swipe="true"]')
+    );
+  };
+  const handleQuestionTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (viewMode !== 'form' || showInterlude) return;
+    if (currentItemType === 'ordering' || currentItemType === 'drag_drop') return;
+    if (event.touches.length !== 1) return;
+    if (isInteractiveTouchTarget(event.target)) return;
+    const touch = event.touches[0];
+    swipeStateRef.current = { x: touch.clientX, y: touch.clientY, active: true };
+  };
+  const handleQuestionTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+    if (!swipeStateRef.current.active) return;
+    swipeStateRef.current.active = false;
+    const touch = event.changedTouches[0];
+    if (!touch) return;
+    const deltaX = touch.clientX - swipeStateRef.current.x;
+    const deltaY = touch.clientY - swipeStateRef.current.y;
+    if (Math.abs(deltaY) > SWIPE_MAX_VERTICAL_DRIFT_PX) return;
+    if (Math.abs(deltaX) < SWIPE_THRESHOLD_PX || Math.abs(deltaY) > Math.abs(deltaX)) return;
+
+    if (deltaX > 0) {
+      if (canAdvance && !isSubmitting && !itemsError && !isLoadingItems) {
+        void handleNext();
+      }
+      return;
+    }
+    if (deltaX < 0 && stepIndex > 0) {
+      handleBack();
+    }
+  };
 
   const renderItemBody = () => {
     if (!currentItem) return null;
-    const itemType = resolveItemType(currentItem);
-    const SelectedTask = TASK_COMPONENTS[itemType] || TASK_COMPONENTS.likert;
+    const SelectedTask = TASK_COMPONENTS[currentItemType] || TASK_COMPONENTS.likert;
     return (
       <SelectedTask
         item={currentItem}
@@ -1562,7 +1600,7 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
                     {answeredByDimension[currentDim.id] || 0} / {(itemsByDimension[currentDim.id] || []).length}
                   </div>
                 </div>
-                {(currentItem?.item_type || 'likert') === 'likert' && (
+                {currentItemType === 'likert' && (
                   <div className={`mt-3 jcfpm-legend ${isFocusMode ? 'hidden' : ''}`}>
                     {copy.legendLikert}
                   </div>
@@ -1578,7 +1616,11 @@ const JcfpmFlow: React.FC<Props> = ({ initialSnapshot, mode = 'form', section = 
                 ) : (
                   <div className={`mt-4 grid gap-3 ${showInterlude ? 'pointer-events-none' : ''}`}>
                     {currentItem ? (
-                      <div className="jcfpm-question jcfpm-question-animated">
+                      <div
+                        className="jcfpm-question jcfpm-question-animated"
+                        onTouchStart={handleQuestionTouchStart}
+                        onTouchEnd={handleQuestionTouchEnd}
+                      >
                         <div className="jcfpm-question-title">{resolvePrompt(currentItem)}</div>
                         {resolveSubdimension(currentItem) ? (
                           <div className="mt-1 text-[11px] text-slate-600 dark:text-slate-400">{resolveSubdimension(currentItem)}</div>
