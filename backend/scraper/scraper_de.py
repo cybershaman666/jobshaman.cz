@@ -332,7 +332,7 @@ class GermanyScraper(BaseScraper):
                     print(f"       ⚠️ Nízká kvalita, přeskakuji.")
                     continue
 
-                if save_job_to_supabase(self.supabase, job_data):
+                if save_job_to_supabase(self.supabase, job_data, self._seen_urls):
                     jobs_saved += 1
                 
                 time.sleep(3)
@@ -696,7 +696,7 @@ class GermanyScraper(BaseScraper):
                     print(f"       ⚠️ Nízká kvalita, přeskakuji.")
                     continue
 
-                if save_job_to_supabase(self.supabase, job_data):
+                if save_job_to_supabase(self.supabase, job_data, self._seen_urls):
                     jobs_saved += 1
                 
                 time.sleep(3)
@@ -1081,7 +1081,7 @@ class GermanyScraper(BaseScraper):
                     print(f"       ⚠️ Nízká kvalita, přeskakuji.")
                     continue
 
-                if save_job_to_supabase(self.supabase, job_data):
+                if save_job_to_supabase(self.supabase, job_data, self._seen_urls):
                     jobs_saved += 1
 
                 time.sleep(3)

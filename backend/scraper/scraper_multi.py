@@ -657,7 +657,7 @@ def save_job_to_supabase(job_data):
                     print(f"    🈯 Language backfilled for existing job: {detected_lang}")
                 except Exception as e:
                     print(f"    ⚠️ Language backfill failed: {e}")
-        return True
+        return False  # Duplicate - not saved
 
     parsed_url = urlparse(job_data["url"])
     job_data["source"] = parsed_url.netloc.replace("www.", "")

@@ -669,13 +669,15 @@ def detect_work_type(title: str, description: str, location: str) -> str:
     return 'On-site'
 
 
-def save_job_to_supabase(supabase: Optional[Client], job_data: Dict) -> bool:
+def save_job_to_supabase(supabase: Optional[Client], job_data: Dict, seen_urls: Optional[set] = None) -> bool:
     """
     Save job to Supabase with duplicate detection and geocoding
     
     Args:
         supabase: Supabase client instance
         job_data: Job data dictionary
+        seen_urls: Optional set from BaseScraper._seen_urls - if URL already pre-checked,
+                   skip the redundant duplicate SELECT query.
     
     Returns:
         True if saved successfully, False otherwise
@@ -684,30 +686,38 @@ def save_job_to_supabase(supabase: Optional[Client], job_data: Dict) -> bool:
         print("Chyba: Supabase klient není inicializován, data nebudou uložena.")
         return False
     
-    # Check for duplicates (with transient DB retry)
+    url = job_data["url"]
+    
+    # If is_duplicate() was already called for this URL (cache hit), skip the DB check.
+    # Positive duplicates (url in seen_urls) should have been filtered by the caller,
+    # but we handle them defensively here. Negative pre-checks are marked as __new__{url}.
+    already_pre_checked = seen_urls is not None and f"__new__{url}" in seen_urls
+    
     response = None
-    for attempt in range(2):
-        try:
-            response = (
-                supabase.table("jobs")
-                .select("id,language_code")
-                .eq("url", job_data["url"])
-                .execute()
-            )
-            break
-        except Exception as e:
-            if attempt == 0 and _is_transient_db_error(e):
-                print(f"⚠️ Chyba při kontrole duplicity (pokus 1/2): {e}")
-                refreshed = _refresh_supabase_client()
-                if refreshed:
-                    supabase = refreshed
-                time.sleep(0.4)
-                continue
-            print(f"Chyba při kontrole duplicity: {e}")
-            break
+    if not already_pre_checked:
+        # Check for duplicates (with transient DB retry)
+        for attempt in range(2):
+            try:
+                response = (
+                    supabase.table("jobs")
+                    .select("id,language_code")
+                    .eq("url", url)
+                    .execute()
+                )
+                break
+            except Exception as e:
+                if attempt == 0 and _is_transient_db_error(e):
+                    print(f"⚠️ Chyba při kontrole duplicity (pokus 1/2): {e}")
+                    refreshed = _refresh_supabase_client()
+                    if refreshed:
+                        supabase = refreshed
+                    time.sleep(0.4)
+                    continue
+                print(f"Chyba při kontrole duplicity: {e}")
+                break
 
     if response and response.data:
-        print(f"    --> Nabídka s URL {job_data['url']} již existuje, přeskočeno.")
+        print(f"    --> Nabídka s URL {url} již existuje, přeskočeno.")
         # If language_code is missing, try to backfill it
         row = response.data[0]
         if row.get("language_code") is None:
@@ -862,31 +872,33 @@ class BaseScraper:
         """
         self.country_code = country_code
         self.supabase = supabase or get_supabase_client()
+        # In-memory cache of seen URLs to avoid redundant DB lookups within one run
+        self._seen_urls: set = set()
         
         if not self.supabase:
             print(f"⚠️ VAROVÁNÍ: Supabase není dostupné pro {country_code} scraper")
     
     def is_duplicate(self, url: str) -> bool:
         """
-        Check if job URL already exists in database
+        Check if job URL already exists in database.
+        Results are cached in memory so each URL hits the DB at most once per run.
         """
+        # Fast path: already seen in this run
+        if url in self._seen_urls:
+            print(f"    --> (Cache) Nabídka již existuje: {url}")
+            return True
         if not self.supabase:
             return False
             
         for attempt in range(2):
             try:
-                # Check for duplicates using the same logic as save_job_to_supabase
-                response = str(self.supabase.table("jobs").select("url", count="exact").eq("url", url).execute())
-                # If count > 0 or data returned
-                if "url" in response and url in response:
-                    # Logic depends on supabase-py specific return structure, simplified check:
-                    pass
-
-                # The most reliable way with supabase-py:
                 res = self.supabase.table("jobs").select("id").eq("url", url).execute()
                 if res.data and len(res.data) > 0:
-                    print(f"    --> (Cache) Nabídka již existuje: {url}")
+                    self._seen_urls.add(url)  # cache positive result
+                    print(f"    --> (DB) Nabídka již existuje: {url}")
                     return True
+                # Cache negative result too so save_job_to_supabase can skip its own check
+                self._seen_urls.add(f"__new__{url}")
                 return False
             except Exception as e:
                 if attempt == 0 and _is_transient_db_error(e):
