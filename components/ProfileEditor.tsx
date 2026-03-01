@@ -2500,7 +2500,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   }}
                   onStartDeep={() => {
                     const lng = (i18n.language || 'cs').split('-')[0];
-                    window.location.href = `/${lng}/profile/jcfpm`;
+                    window.location.href = `/${lng}/profile/jcfpm?section=deep_dive`;
                   }}
                   onView={() => {
                     const lng = (i18n.language || 'cs').split('-')[0];

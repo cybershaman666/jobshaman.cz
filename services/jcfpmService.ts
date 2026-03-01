@@ -120,6 +120,179 @@ const LABELS: Record<string, { low: string; mid_low: string; balanced: string; h
   },
 };
 
+export const ARCHETYPES: Record<string, { title: string; title_en: string; description: string; description_en: string; icon: string }> = {
+  architect: {
+    title: 'Vizionářský architekt',
+    title_en: 'Visionary Architect',
+    description: 'Vynikáš v systémovém myšlení a rozkladu komplexních problémů. Vidíš strukturu tam, kde ostatní vidí chaos.',
+    description_en: 'You excel in systems thinking and decomposing complex problems. You see structure where others see chaos.',
+    icon: 'Brain',
+  },
+  stabilizer: {
+    title: 'Sociální stabilizátor',
+    title_en: 'Social Stabilizer',
+    description: 'Tvoje síla je v digitální empatii a etickém kompasu. Jsi lepidlem, které drží tým i v náročných časech.',
+    description_en: 'Your strength lies in digital empathy and an ethical compass. You are the glue that holds the team together even in tough times.',
+    icon: 'Heart',
+  },
+  catalyst: {
+    title: 'Technologický katalyzátor',
+    title_en: 'Tech Catalyst',
+    description: 'Rychlá adaptace na AI a nejasné situace je tvoje superschopnost. Jsi průkopníkem nových cest.',
+    description_en: 'Rapid adaptation to AI and ambiguous situations is your superpower. You are a pioneer of new paths.',
+    icon: 'Zap',
+  },
+  navigator: {
+    title: 'Logický navigátor',
+    title_en: 'Logical Navigator',
+    description: 'Kognitivní reflexe a analytický styl ti umožňují bezpečně procházet i těmi nejsložitějšími daty.',
+    description_en: 'Cognitive reflection and analytical style allow you to safely navigate even the most complex data.',
+    icon: 'Compass',
+  },
+  guardian: {
+    title: 'Strážce integrity',
+    title_en: 'Guardian of Integrity',
+    description: 'Morální kompas a smysl pro hodnoty jsou tvým základem. Buduješ důvěru, která přetrvá.',
+    description_en: 'A moral compass and sense of values are your foundation. You build trust that lasts.',
+    icon: 'ShieldCheck',
+  },
+  shaman: {
+    title: 'Job Shaman',
+    title_en: 'Job Shaman',
+    description: 'Vzácná kombinace vysoké adaptibility, sociální intelligence a systémového pohledu.',
+    description_en: 'A rare combination of high adaptability, social intelligence, and a systems view.',
+    icon: 'Rocket',
+  },
+  strategist: {
+    title: 'Strategický hybatel',
+    title_en: 'Strategic Mover',
+    description: 'Kombinuješ analytickou sílu s orientací na výkon. Dokážeš proměnit data v akci.',
+    description_en: 'You combine analytical power with performance orientation. You can turn data into action.',
+    icon: 'Target',
+  },
+  harmonizer: {
+    title: 'Digitální harmonizátor',
+    title_en: 'Digital Harmonizer',
+    description: 'Mistr digitální empatie a spolupráce. Vytváříš psychologické bezpečí v týmu.',
+    description_en: 'Master of digital empathy and collaboration. You create psychological safety in the team.',
+    icon: 'Users',
+  },
+  pragmatist: {
+    title: 'Efektivní pragmatik',
+    title_en: 'Efficient Pragmatist',
+    description: 'Soustředíš se na výsledek a praktickou aplikaci. Neztrácíš čas zbytečnostmi.',
+    description_en: 'You focus on results and practical application. You don\'t waste time on fluff.',
+    icon: 'Activity',
+  },
+};
+
+export const computeArchetype = (dimensionScores: any[]) => {
+  const scores = dimensionScores.reduce((acc, row) => {
+    acc[row.dimension] = row.percentile || (row.raw_score / (row.raw_score > 7 ? 100 : 7)) * 100;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const top3 = dimensionScores
+    .slice()
+    .sort((a: any, b: any) => (b.percentile || 0) - (a.percentile || 0))
+    .slice(0, 3)
+    .map(d => d.dimension);
+
+  if (scores.d11_problem_decomposition > 75 && scores.d9_systems_thinking > 75) return ARCHETYPES.architect;
+  if (scores.d8_digital_eq > 75 && scores.d2_social > 75) return ARCHETYPES.stabilizer;
+  if (scores.d6_ai_readiness > 75 && scores.d10_ambiguity_interpretation > 75) return ARCHETYPES.catalyst;
+  if (scores.d7_cognitive_reflection > 75 && scores.d1_cognitive > 75) return ARCHETYPES.navigator;
+  if (scores.d12_moral_compass > 75 && scores.d5_values > 75) return ARCHETYPES.guardian;
+  if (scores.d1_cognitive > 70 && scores.d3_motivational > 70) return ARCHETYPES.strategist;
+  if (scores.d2_social > 70 && scores.d8_digital_eq > 70) return ARCHETYPES.harmonizer;
+  if (scores.d4_energy > 70 && scores.d11_problem_decomposition > 70) return ARCHETYPES.pragmatist;
+
+  const avg = (Object.values(scores) as any[]).reduce((a: number, b: number) => a + b, 0) / (Object.values(scores).length || 1);
+  if (avg > 70) return ARCHETYPES.shaman;
+
+  const top = top3[0];
+  if (['d11_problem_decomposition', 'd9_systems_thinking'].includes(top)) return ARCHETYPES.architect;
+  if (['d8_digital_eq', 'd2_social', 'd12_moral_compass'].includes(top)) return ARCHETYPES.stabilizer;
+  if (['d6_ai_readiness', 'd10_ambiguity_interpretation'].includes(top)) return ARCHETYPES.catalyst;
+  if (['d1_cognitive', 'd7_cognitive_reflection'].includes(top)) return ARCHETYPES.navigator;
+  if (['d5_values', 'd12_moral_compass'].includes(top)) return ARCHETYPES.guardian;
+  if (['d3_motivational', 'd4_energy'].includes(top)) return ARCHETYPES.pragmatist;
+
+  return ARCHETYPES.navigator;
+};
+
+/**
+ * Samples a balanced set of items from the pool.
+ * Selects only one variant per pool_key (randomly picked).
+ * Filters by section (basic: d1-d6, deep_dive: d7-d12, full: all).
+ * Limits the number of items per dimension for a manageable test length.
+ */
+export const sampleJcfpmItems = (items: JcfpmItem[], itemsPerDim: number = 3, section?: string, excludeKeys: string[] = []): JcfpmItem[] => {
+  if (!items || items.length === 0) return [];
+
+  // 1. Group by pool_key to have all variants together
+  const pools: Record<string, JcfpmItem[]> = {};
+  items.forEach(item => {
+    const key = item.pool_key || item.id;
+    if (!pools[key]) pools[key] = [];
+    pools[key].push(item);
+  });
+
+  // 2. Filter pools by section if provided
+  let poolKeys = Object.keys(pools);
+  if (section === 'deep_dive') {
+    const deepDims = ['d7_cognitive_reflection', 'd8_digital_eq', 'd9_systems_thinking', 'd10_ambiguity_interpretation', 'd11_problem_decomposition', 'd12_moral_compass'];
+    poolKeys = poolKeys.filter(k => deepDims.includes(pools[k][0].dimension));
+  } else if (section === 'basic') {
+    const basicDims = ['d1_cognitive', 'd2_social', 'd3_motivational', 'd4_energy', 'd5_values', 'd6_ai_readiness'];
+    poolKeys = poolKeys.filter(k => basicDims.includes(pools[k][0].dimension));
+  }
+
+  // 3. Separate pools into available and excluded (prioritize available)
+  const excludedSet = new Set(excludeKeys);
+
+  // 4. Group pool keys by dimension to ensure balanced sampling
+  const dimMap: Record<string, string[]> = {};
+  poolKeys.forEach(k => {
+    const dim = pools[k][0].dimension || 'unknown';
+    if (!dimMap[dim]) dimMap[dim] = [];
+    dimMap[dim].push(k);
+  });
+
+  const sampled: JcfpmItem[] = [];
+
+  Object.keys(dimMap).forEach(dim => {
+    const dimPools = dimMap[dim];
+    const availableDimPools = dimPools.filter(k => !excludedSet.has(k));
+    const excludedDimPools = dimPools.filter(k => excludedSet.has(k));
+
+    // Shuffle both
+    const shuffledAvailable = availableDimPools.sort(() => 0.5 - Math.random());
+    const shuffledExcluded = excludedDimPools.sort(() => 0.5 - Math.random());
+
+    // Take as many as possible from available, then from excluded if needed
+    const selectedKeys = [
+      ...shuffledAvailable.slice(0, itemsPerDim),
+      ...shuffledExcluded.slice(0, Math.max(0, itemsPerDim - shuffledAvailable.length))
+    ];
+
+    selectedKeys.forEach(k => {
+      const pool = pools[k];
+      const variant = pool[Math.floor(Math.random() * pool.length)];
+      sampled.push(variant);
+    });
+  });
+
+  // 5. Sort by dimension index and sort_order for a logical flow
+  return sampled.sort((a, b) => {
+    const idxA = DIMENSIONS.indexOf(a.dimension as any);
+    const idxB = DIMENSIONS.indexOf(b.dimension as any);
+    if (idxA !== idxB) return idxA - idxB;
+    return (a.sort_order || 0) - (b.sort_order || 0);
+  });
+};
+
+
 const withTimeout = async <T>(promise: Promise<T>, ms: number, message: string): Promise<T> => {
   let timeoutId: number | undefined;
   const timeout = new Promise<T>((_, reject) => {
@@ -242,10 +415,29 @@ export const computeJcfpmScoresLocal = (items: JcfpmItem[], responses: Record<st
     }
     let timeFactor = 1;
     const timeMs = response?.time_ms;
+    const BENCHMARKS: Record<string, { min: number; ideal: number; max: number }> = {
+      likert: { min: 2000, ideal: 5000, max: 15000 },
+      mcq: { min: 2500, ideal: 8000, max: 30000 },
+      scenario_choice: { min: 4000, ideal: 15000, max: 60000 },
+      image_choice: { min: 2000, ideal: 6000, max: 30000 },
+      ordering: { min: 10000, ideal: 30000, max: 90000 },
+      drag_drop: { min: 10000, ideal: 40000, max: 120000 },
+    };
+
+    const bench = BENCHMARKS[itemType] || BENCHMARKS.likert;
+
     if (typeof timeMs === 'number' && timeMs > 0) {
-      if (timeMs <= 15000) timeFactor = 1;
-      else if (timeMs <= 60000) timeFactor = 1 - ((timeMs - 15000) / 45000) * 0.3;
-      else timeFactor = 0.5;
+      if (timeMs < bench.min) {
+        // Potential noise/guessing
+        timeFactor = 0.7;
+      } else if (timeMs <= bench.ideal) {
+        timeFactor = 1.0;
+      } else if (timeMs <= bench.max) {
+        // Linear decay from 1.0 down to 0.6
+        timeFactor = 1.0 - ((timeMs - bench.ideal) / (bench.max - bench.ideal)) * 0.4;
+      } else {
+        timeFactor = 0.5;
+      }
       timeFactor = Math.min(1, Math.max(0.5, timeFactor));
     }
     if (itemType === 'mcq' || itemType === 'scenario_choice' || itemType === 'image_choice') {
@@ -299,12 +491,21 @@ export const computeJcfpmScoresLocal = (items: JcfpmItem[], responses: Record<st
       band = bandResult.band;
       label = rawScore < 2.5 ? labels.low : rawScore < 4.5 ? labels.mid_low : rawScore < 5.5 ? labels.balanced : labels.high;
     }
+    const consistencyScore = (() => {
+      if (values.length < 2) return 100;
+      const scores = values.map(v => v.score / v.max);
+      const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+      const variance = scores.reduce((a, b) => a + Math.pow(b - avg, 2), 0) / scores.length;
+      return Math.round(Math.max(0, 100 - variance * 200));
+    })();
+
     return {
       dimension: dim,
       raw_score: rawScore,
       percentile: pct,
       percentile_band: band,
       label,
+      consistency: consistencyScore,
     };
   });
 };
@@ -903,6 +1104,7 @@ export const submitJcfpm = async (
     ];
     const hasCoreProfile = coreDimensions.every((dim) => typeof userProfile[dim] === 'number');
     const fitScores = hasCoreProfile ? rankRolesLocal(userProfile, roles) : [];
+    const archetype = computeArchetype(dimensionScores);
     const snapshot: JcfpmSnapshotV1 = {
       schema_version: 'jcfpm-v1',
       completed_at: new Date().toISOString(),
@@ -916,6 +1118,7 @@ export const submitJcfpm = async (
       ai_report: null,
       percentile_summary: percentileSummary as any,
       confidence: 100,
+      archetype: archetype as any, // Adding archetype to snapshot
     };
 
     if (supabase) {

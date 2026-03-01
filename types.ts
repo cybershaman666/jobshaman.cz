@@ -605,6 +605,7 @@ export interface JcfpmScore {
   percentile: number;
   percentile_band: string;
   label: string;
+  consistency?: number; // 0-100 score
 }
 
 export interface JcfpmRoleFit {
@@ -689,6 +690,13 @@ export interface JcfpmSnapshotV1 {
   ai_report?: JcfpmAIReport | null;
   percentile_summary: Record<JcfpmDimensionId, number>;
   confidence: number;
+  archetype?: {
+    title: string;
+    title_en: string;
+    description: string;
+    description_en: string;
+    icon: string;
+  } | null;
 }
 
 export interface AssessmentResult {

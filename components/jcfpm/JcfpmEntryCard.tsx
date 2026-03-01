@@ -50,6 +50,21 @@ const ENTRY_COPY: Record<string, any> = {
     unlockPremium: 'UNLOCK PREMIUM',
     updatedAt: 'Updated',
   },
+  de: {
+    badge: 'Career Intelligence',
+    title: 'Career Fit & Potential',
+    description: 'Entdecken Sie Ihre Stärken und die ideale Karriererichtung durch 200+ psychometrische Signale. Erhalten Sie einen personalisierten Bericht und eine Zuordnung zu realen Rollen.',
+    statDimensions: '12 Dimensionen',
+    statAiReadiness: 'Anpassungsfähigkeit an Veränderungen',
+    statAnchors: 'Karriereanker',
+    viewResults: 'Ergebnisse anzeigen',
+    resume: 'Test fortsetzen',
+    start: 'Test starten',
+    reset: 'Zurücksetzen',
+    deepDive: 'Deep Dive',
+    unlockPremium: 'PREMIUM FREISCHALTEN',
+    updatedAt: 'Aktualisiert',
+  },
 };
 
 const JcfpmEntryCard: React.FC<Props> = ({

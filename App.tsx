@@ -1909,6 +1909,8 @@ export default function App() {
             );
         }
         if (normalizedPath === '/jcfpm' || normalizedPath === '/profile/jcfpm') {
+            const queryParams = new URLSearchParams(window.location.search);
+            const sectionParam = queryParams.get('section') || 'full';
 
             return (
                 <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
@@ -1916,9 +1918,9 @@ export default function App() {
                         <JcfpmFlow
                             userId={userProfile.id || 'guest'}
                             isPremium={userProfile.subscription?.tier === 'premium'}
-                            section="full"
+                            section={sectionParam}
                             theme={theme}
-                            onPersist={async (snapshot) => {
+                            onPersist={async (snapshot: any) => {
                                 console.log('JCFPM Persist:', snapshot);
                                 const mapped = mapJcfpmToJhiPreferencesWithExplanation(
                                     snapshot,

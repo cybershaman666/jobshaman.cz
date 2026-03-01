@@ -33,7 +33,7 @@ import {
   BarChart3
 } from 'lucide-react';
 import { JcfpmSnapshotV1, JcfpmDimensionId, JcfpmAIReport } from '../../types';
-import { computeJcfpmTraitsLocal } from '../../services/jcfpmService';
+import { computeJcfpmTraitsLocal, computeArchetype } from '../../services/jcfpmService';
 import { useTranslation } from 'react-i18next';
 
 const containerVariants = {
@@ -83,6 +83,7 @@ const REPORT_UI_COPY: Record<string, any> = {
     print: 'Tisk',
     reportTitle: 'Career Fit & Potential Report',
     completedLabel: 'Dokončeno',
+    archetypeTitle: 'Tvůj Job Shaman Archetyp',
     profileSummary: 'Shrnutí tvého profilu',
     strengths: 'Silné stránky',
     idealEnvironment: 'Ideální prostředí',
@@ -216,6 +217,7 @@ const REPORT_UI_COPY: Record<string, any> = {
     print: 'Print',
     reportTitle: 'Career Fit & Potential Report',
     completedLabel: 'Completed',
+    archetypeTitle: 'Your Job Shaman Archetype',
     profileSummary: 'Profile summary',
     strengths: 'Strengths',
     idealEnvironment: 'Ideal environment',
@@ -486,6 +488,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
   const { dimension_scores, fit_scores, ai_report } = snapshot;
   const reportRef = useRef<HTMLDivElement | null>(null);
   const [mergedScores, setMergedScores] = useState(dimension_scores || []);
+  const archetype = useMemo(() => computeArchetype(mergedScores), [mergedScores]);
   const [showHowToRead, setShowHowToRead] = useState(false);
   const [shareTooltip, setShareTooltip] = useState(false);
 
@@ -1118,351 +1121,391 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
         </motion.div>
       )}
       {showAdvancedReport && (
-      <>
-      {/* 🚀 AI Interpretation Cards - Hero Section */}
-      <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6 print:mt-0 print:border-none print:shadow-none">
-        <div className="bg-gradient-to-r from-cyan-50 to-teal-50 dark:from-slate-800 dark:to-slate-850 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between print:bg-none print:border-b-2 print:border-slate-900">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-cyan-600 text-white rounded-lg shadow-sm print:bg-black">
-              <Rocket className="w-5 h-5" />
-            </div>
-            <h2 className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 print:text-black">{labels.profileSummary}</h2>
-          </div>
-          <div className="flex items-center gap-2 print:hidden">
-            <div className="relative">
-              <button
-                type="button"
-                onClick={handleShare}
-                className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
-                title={labels.shareButtonTitle}
-              >
-                <Share2 size={16} />
-              </button>
-              {shareTooltip && (
-                <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap shadow-lg z-50">
-                  {labels.shareTooltip}
-                </div>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={handleInvite}
-              className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
-              title={labels.inviteButtonTitle}
-            >
-              <UserPlus size={16} />
-            </button>
-            <button
-              type="button"
-              onClick={exportPdf}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
-            >
-              <FileText size={16} /> {labels.exportPdf}
-            </button>
-            <button
-              type="button"
-              onClick={printReport}
-              className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
-            >
-              <Printer size={16} /> {labels.print}
-            </button>
-          </div>
-        </div>
-        <div className="p-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400 font-semibold mb-3 print:text-black">
-              <Award className="w-5 h-5" /> {labels.strengths}
-            </div>
-            <ul className="space-y-3">
-              {aiReportResolved.strengths.map((item, idx) => (
-                <li key={`str-${idx}`} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed flex items-start gap-2 bg-cyan-50/50 dark:bg-cyan-500/5 p-2.5 rounded-lg border border-cyan-100/50 dark:border-cyan-500/10 print:bg-none print:border-none print:p-0">
-                  <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-cyan-500 mt-1.5 print:bg-black"></span> {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-semibold mb-3 print:text-black">
-              <MapIcon className="w-5 h-5" /> {labels.idealEnvironment}
-            </div>
-            <ul className="space-y-3">
-              {aiReportResolved.ideal_environment.map((item, idx) => (
-                <li key={`env-${idx}`} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed flex items-start gap-2 bg-teal-50/50 dark:bg-teal-500/5 p-2.5 rounded-lg border border-teal-100/50 dark:border-teal-500/10 print:bg-none print:border-none print:p-0">
-                  <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-teal-500 mt-1.5 print:bg-black"></span> {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-semibold mb-3 print:text-black">
-              <TrendingUp className="w-5 h-5" /> {labels.developmentAreas}
-            </div>
-            <ul className="space-y-3">
-              {aiReportResolved.development_areas.map((item, idx) => (
-                <li key={`dev-${idx}`} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed flex items-start gap-2 bg-rose-50/50 dark:bg-rose-500/5 p-2.5 rounded-lg border border-rose-100/50 dark:border-rose-500/10 print:bg-none print:border-none print:p-0">
-                  <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 print:bg-black"></span> {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-6 flex flex-col md:flex-row gap-6 print:bg-none print:border-none">
-          <div className="flex-1">
-            <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400 font-semibold mb-2 print:text-black">
-              <Lightbulb className="w-5 h-5" /> {labels.aiReadinessTitle}
-            </div>
-            <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed print:text-black">{aiReportResolved.ai_readiness}</p>
-          </div>
-          <div className="flex-1">
-            <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-semibold mb-2 print:text-black">
-              <MapPin className="w-5 h-5" /> {labels.nextSteps}
-            </div>
-            <ul className="space-y-1.5">
-              {aiReportResolved.next_steps.map((item, idx) => (
-                <li key={`next-${idx}`} className="text-sm text-slate-700 dark:text-slate-300 flex items-start gap-2 print:text-black">
-                  <CheckCircle2 className="w-4 h-4 text-cyan-500 shrink-0 mt-0.5 print:text-black" /> {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </motion.div>
-
-      {(bigFive || temperament) && (
-        <motion.div variants={itemVariants} className="mt-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm jcfpm-avoid-break print:border-slate-300 print:shadow-none">
-          <div className="flex items-center justify-between gap-4 mb-5">
-            <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100 font-bold text-lg print:text-black">
-              <BarChart3 className="w-5 h-5 text-cyan-500 print:text-black" />
-              {labels.temperamentBigFive}
-            </div>
-            {temperament && (
-              <div className="px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-cyan-50 text-cyan-700 border border-cyan-100 print:bg-white print:text-black print:border-slate-300">
-                {labels.temperamentLabels?.[temperament.label] || temperament.label}
-              </div>
-            )}
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-            <div className="space-y-3">
-              {(bigFive ? [
-                { label: labels.bigFiveLabels[0], value: bigFive.openness, color: 'bg-cyan-500' },
-                { label: labels.bigFiveLabels[1], value: bigFive.conscientiousness, color: 'bg-emerald-500' },
-                { label: labels.bigFiveLabels[2], value: bigFive.extraversion, color: 'bg-teal-500' },
-                { label: labels.bigFiveLabels[3], value: bigFive.agreeableness, color: 'bg-sky-500' },
-                { label: labels.bigFiveLabels[4], value: bigFive.neuroticism, color: 'bg-rose-500' },
-              ] : []).map((row) => (
-                <div key={row.label} className="flex items-center gap-3">
-                  <div className="w-28 text-xs font-semibold text-slate-600 dark:text-slate-300 print:text-black">{row.label}</div>
-                  <div className="flex-1 h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border border-slate-200 dark:border-slate-700 print:border-slate-300">
-                    <div className={`h-full ${row.color}`} style={{ width: `${Math.round(row.value)}%` }} />
-                  </div>
-                  <div className="w-10 text-xs font-semibold text-slate-600 dark:text-slate-300 text-right print:text-black">{Math.round(row.value)}</div>
-                </div>
-              ))}
-              <div className="text-[11px] text-slate-500 dark:text-slate-400 print:text-slate-500">
-                {labels.bigFiveNote}
-              </div>
-            </div>
-
-            <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-700 dark:text-slate-300 print:bg-white print:border-slate-300 print:text-black">
-              <div className="font-semibold text-slate-800 dark:text-slate-100 mb-2 print:text-black">{labels.temperamentTitle}</div>
-              {temperament ? (
-                <div className="space-y-2">
-                  <div>
-                    {labels.temperamentDescriptions?.[temperament.label] || temperament.label}
-                  </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 print:text-slate-500">
-                    {labels.dominanceLabel}: {Math.round(temperament.dominance)}/100 · {labels.reactivityLabel}: {Math.round(temperament.reactivity)}/100
-                  </div>
-                </div>
-              ) : (
-                <div>{labels.temperamentUnavailable}</div>
-              )}
-            </div>
-          </div>
-        </motion.div>
-      )}
-
-      <motion.div variants={itemVariants} className="mt-8 jcfpm-page-break-before">
-        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2 print:text-black">
-          <Briefcase className="w-5 h-5 text-cyan-500 print:text-black" />
-          {labels.topRoles}
-        </h3>
-        <div className="jcfpm-roles-grid grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {uniqueFitScores.slice(0, 6).map((role, idx) => {
-            const fitScore = Math.max(0, Math.min(100, Number(role.fit_score) || 0));
-            return (
-              <motion.div
-                whileHover={{ y: -4, boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)' }}
-                key={`${role.title}-${idx}`}
-                className="jcfpm-avoid-break bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5 shadow-sm transition-all flex flex-col h-full print:border-slate-300 print:shadow-none"
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <h4 className="font-bold text-slate-800 dark:text-slate-100 line-clamp-2 leading-tight print:text-black">{role.title}</h4>
-                  <div className="shrink-0 flex items-center justify-center w-12 h-12 rounded-full border-4 border-cyan-100 dark:border-cyan-900/30 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 font-bold text-sm print:border-slate-200 print:text-black">
-                    {fitScore}%
-                  </div>
-                </div>
-
-                <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mb-4 overflow-hidden print:border print:border-slate-200">
-                  <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${fitScore}%` }} />
-                </div>
-
-                <div className="flex flex-wrap gap-2 mb-4">
-                  {role.ai_impact && <span className="bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-cyan-100 dark:border-cyan-900/30 print:border-slate-300 print:text-black">AI: {role.ai_impact}</span>}
-                  {role.remote_friendly && <span className="bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-400 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-teal-100 dark:border-teal-900/30 print:border-slate-300 print:text-black">Remote: {role.remote_friendly}</span>}
-                </div>
-
-                <div className="text-xs text-slate-600 dark:text-slate-400 mt-auto pt-3 border-t border-slate-100 dark:border-slate-800 print:border-slate-200 print:text-black">
-                  {aiReportResolved.top_roles.find(tr => tr.title === role.title)?.reason || labels.roleFallback}
-                </div>
-              </motion.div>
-            )
-          })}
-        </div>
-      </motion.div>
-
-      {/* 🕸 Radar & Bridge section */}
-      <motion.div variants={itemVariants} className="mt-8 grid lg:grid-cols-[1.2fr_1fr] gap-6 print:grid-cols-1 jcfpm-page-break-before">
-        <div className="jcfpm-avoid-break bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm print:border-slate-300 print:shadow-none">
-          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center gap-2 print:text-black">
-            <Activity className="w-5 h-5 text-cyan-500 print:text-black" />
-            {labels.radarTitle}
-          </h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 print:text-black">{labels.radarSubtitle}</p>
-
-          <div className="flex justify-center items-center py-4">
-            <svg viewBox="0 0 300 300" className="w-full max-w-[340px] drop-shadow-sm print:drop-shadow-none" role="img" aria-label={labels.radarAria}>
-              <circle cx={radarGeometry.cx} cy={radarGeometry.cy} r={radarGeometry.radius} fill="none" stroke="currentColor" className="text-slate-200 dark:text-slate-800 print:text-slate-300" strokeWidth="1" />
-              <circle cx={radarGeometry.cx} cy={radarGeometry.cy} r={radarGeometry.radius * 0.66} fill="none" stroke="currentColor" className="text-slate-200 dark:text-slate-800 print:text-slate-200" strokeWidth="1" strokeDasharray="4 4" />
-              <circle cx={radarGeometry.cx} cy={radarGeometry.cy} r={radarGeometry.radius * 0.33} fill="none" stroke="currentColor" className="text-slate-200 dark:text-slate-800 print:text-slate-200" strokeWidth="1" strokeDasharray="4 4" />
-              {radarGeometry.axes.map((axis) => (
-                <g key={axis.label}>
-                  <line x1={radarGeometry.cx} y1={radarGeometry.cy} x2={axis.x2} y2={axis.y2} stroke="currentColor" className="text-slate-200 dark:text-slate-700 print:text-slate-300" strokeWidth="1" />
-                  <text x={axis.labelX} y={axis.labelY} fill="currentColor" className="text-slate-500 dark:text-slate-400 print:text-slate-900" fontSize="10px" fontWeight="600" textAnchor="middle" transform={`translate(0, 4)`}>{axis.label}</text>
-                </g>
-              ))}
-              <polygon points={radarGeometry.standardPoints} fill="rgba(6, 182, 212, 0.15)" stroke="#0891b2" strokeWidth="2" className="transition-all duration-1000" />
-              <polygon points={radarGeometry.deepPoints} fill="rgba(20, 184, 166, 0.15)" stroke="#0d9488" strokeWidth="2" className="transition-all duration-1000" />
-            </svg>
-          </div>
-
-          <div className="mt-4 flex justify-center items-center gap-4 text-xs font-semibold">
-            <span className="flex items-center gap-1.5 text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-500/10 px-3 py-1.5 rounded-full border border-cyan-100 dark:border-cyan-900/30 print:text-black print:border-slate-300">
-              <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 print:bg-black"></span> {labels.baseProfile}
-            </span>
-            <span className="flex items-center gap-1.5 text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-500/10 px-3 py-1.5 rounded-full border border-teal-100 dark:border-teal-900/30 print:text-black print:border-slate-300">
-              <span className="w-2.5 h-2.5 rounded-full bg-teal-500 print:bg-black"></span> {labels.practicalSkills}
-            </span>
-          </div>
-        </div>
-
-        <div className="jcfpm-avoid-break bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm flex flex-col print:border-slate-300 print:shadow-none print:mt-6">
-          <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center gap-2 print:text-black">
-            <ShieldCheck className="w-5 h-5 text-cyan-500 print:text-black" />
-            {labels.alignmentTitle}
-          </h3>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 print:text-black">{labels.alignmentSubtitle}</p>
-
-          <div className="space-y-5 flex-1 p-2">
-            {alignmentBars.map((bar) => (
-              <div key={bar.label} className="relative">
-                <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 mb-2 print:text-black">
-                  <span>{bar.label}</span>
-                  <span className="text-slate-500 dark:text-slate-500">{bar.selfScore} <span className="text-slate-300 dark:text-slate-700 print:text-slate-300">→</span> {bar.perfScore}</span>
-                </div>
-                <div className="relative h-2 rounded-full border border-slate-200 dark:border-slate-800 bg-gradient-to-r from-rose-50 via-slate-100 to-teal-50 dark:from-rose-500/5 dark:via-slate-800 dark:to-teal-500/5 print:from-slate-100 print:to-slate-100">
-                  <span className="absolute left-1/2 top-[-4px] bottom-[-4px] w-[1px] bg-slate-300 dark:bg-slate-700 z-10" />
-                  <motion.span
-                    initial={{ left: '50%' }}
-                    animate={{ left: `${50 + bar.offsetPct * 0.45}%` }}
-                    transition={{ duration: 1, delay: 0.2 }}
-                    className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm z-20 ${bar.status === 'hidden_talent' ? 'bg-teal-500' :
-                      bar.status === 'overestimation' ? 'bg-rose-500' : 'bg-cyan-500'
-                      } print:border-black`}
-                  />
+        <>
+          {/* 🔮 Archetype Hero Section */}
+          <motion.div
+            variants={itemVariants}
+            className="relative overflow-hidden rounded-[2.5rem] border border-white/20 shadow-2xl bg-white/5 backdrop-blur-xl group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-teal-500/10 opacity-50 group-hover:opacity-70 transition-opacity duration-700" />
+            <div className="relative p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 md:gap-12">
+              <div className="shrink-0 relative">
+                <div className="absolute inset-0 bg-cyan-500/20 blur-3xl rounded-full" />
+                <div className="relative w-32 h-32 md:w-40 md:h-40 bg-white/10 backdrop-blur-2xl rounded-[2rem] border border-white/30 flex items-center justify-center shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500">
+                  {React.createElement(
+                    (DIM_ICONS as any)[archetype.icon.toLowerCase()] ||
+                    (archetype.icon === 'Rocket' ? Rocket :
+                      archetype.icon === 'Brain' ? Brain :
+                        archetype.icon === 'Target' ? Target :
+                          archetype.icon === 'Users' ? Users :
+                            archetype.icon === 'Activity' ? Activity :
+                              archetype.icon === 'Compass' ? Compass :
+                                archetype.icon === 'ShieldCheck' ? ShieldCheck : Rocket),
+                    { className: "w-16 h-16 md:w-20 md:h-20 text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.5)]" }
+                  )}
                 </div>
               </div>
-            ))}
-          </div>
-
-          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 print:border-slate-300">
-            <div className="text-sm">
-              <span className="font-semibold text-slate-700 dark:text-slate-200 block mb-1 print:text-black">{labels.skillToDevelop}</span>
-              <span className="text-slate-600 dark:text-slate-400 leading-relaxed text-xs print:text-black">{bridge.skillToLearn}</span>
-            </div>
-          </div>
-        </div>
-      </motion.div>
-
-      {/* 📚 Detailed Analysis Accordion List */}
-      <motion.div variants={itemVariants} className="mt-8 jcfpm-page-break-before">
-        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2 print:text-black">
-          <Crosshair className="w-5 h-5 text-cyan-500 print:text-black" />
-          {labels.detailedAnalysis}
-        </h3>
-        <motion.div variants={containerVariants}>
-          {mergedScores.map((row) => {
-            const maxScore = scoreMax(row.dimension, extendedDims);
-            const normalized = normalizeTo100(row.dimension, row.raw_score, extendedDims);
-            const dimMeta = dimensionMeta[row.dimension] || { title: row.dimension, definition: '', subdims: '' };
-            const shortDesc = describeScore(locale, row.dimension, row.raw_score, row.percentile, extendedDims);
-            const longDescBase = longNarrative(locale, row.dimension, row.raw_score, row.percentile, extendedDims);
-            const longDescExtension = buildExtendedDimensionNarrative(
-              locale,
-              row.dimension,
-              Math.round(normalizeTo100(row.dimension, row.raw_score, extendedDims)),
-              dimMeta.title
-            );
-            const longDesc = `${longDescBase} ${longDescExtension}`.trim();
-
-            return (
-              <DimensionAccordionRow
-                key={row.dimension}
-                row={row}
-                normalized={normalized}
-                maxItemScore={maxScore}
-                dimMeta={dimMeta}
-                shortDesc={shortDesc}
-                longDesc={longDesc}
-                labels={labels}
-              />
-            )
-          })}
-        </motion.div>
-      </motion.div>
-
-      {/* 💡 How to Read Results Info Box */}
-      <motion.div variants={itemVariants} className="mt-6 print:hidden">
-        <button onClick={() => setShowHowToRead(!showHowToRead)} className="flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors bg-white dark:bg-slate-900 px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm">
-          <Info size={16} /> {labels.howToRead} {showHowToRead ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-        </button>
-
-        <AnimatePresence>
-          {showHowToRead && (
-            <motion.div
-              initial={{ opacity: 0, y: -10, height: 0 }}
-              animate={{ opacity: 1, y: 0, height: 'auto' }}
-              exit={{ opacity: 0, y: -10, height: 0 }}
-              className="mt-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl p-5 border border-slate-200 dark:border-slate-800 overflow-hidden"
-            >
-              <div className="grid md:grid-cols-2 gap-6 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                <div>
-                  <strong className="text-slate-800 dark:text-slate-200 block mb-2">{labels.howToReadPercentilesTitle}</strong>
-                  {labels.howToReadPercentilesBody}
+              <div className="flex-1 text-center md:text-left space-y-4">
+                <div className="inline-flex px-4 py-1.5 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-widest animate-pulse">
+                  {labels.archetypeTitle}
                 </div>
-                <div>
-                  <strong className="text-slate-800 dark:text-slate-200 block mb-2">{labels.scoreInterpretationTitle}</strong>
-                  {labels.scoreInterpretationBody}
+                <h1 className="text-4xl md:text-5xl font-black text-white italic tracking-tighter uppercase leading-none">
+                  {locale === 'en' ? archetype.title_en : archetype.title}
+                </h1>
+                <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed max-w-2xl">
+                  {locale === 'en' ? archetype.description_en : archetype.description}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* 🚀 AI Interpretation Cards */}
+          <motion.div variants={itemVariants} className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 shadow-xl overflow-hidden mt-6 print:mt-0 print:border-none print:shadow-none">
+            <div className="bg-gradient-to-r from-cyan-50 to-teal-50 dark:from-slate-800 dark:to-slate-850 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between print:bg-none print:border-b-2 print:border-slate-900">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-cyan-600 text-white rounded-lg shadow-sm print:bg-black">
+                  <Rocket className="w-5 h-5" />
+                </div>
+                <h2 className="text-xl font-bold tracking-tight text-slate-800 dark:text-slate-100 print:text-black">{labels.profileSummary}</h2>
+              </div>
+              <div className="flex items-center gap-2 print:hidden">
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={handleShare}
+                    className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                    title={labels.shareButtonTitle}
+                  >
+                    <Share2 size={16} />
+                  </button>
+                  {shareTooltip && (
+                    <div className="absolute top-full mt-2 left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap shadow-lg z-50">
+                      {labels.shareTooltip}
+                    </div>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleInvite}
+                  className="p-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                  title={labels.inviteButtonTitle}
+                >
+                  <UserPlus size={16} />
+                </button>
+                <button
+                  type="button"
+                  onClick={exportPdf}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                >
+                  <FileText size={16} /> {labels.exportPdf}
+                </button>
+                <button
+                  type="button"
+                  onClick={printReport}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-md text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors shadow-sm"
+                >
+                  <Printer size={16} /> {labels.print}
+                </button>
+              </div>
+            </div>
+            <div className="p-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400 font-semibold mb-3 print:text-black">
+                  <Award className="w-5 h-5" /> {labels.strengths}
+                </div>
+                <ul className="space-y-3">
+                  {aiReportResolved.strengths.map((item, idx) => (
+                    <li key={`str-${idx}`} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed flex items-start gap-2 bg-cyan-50/50 dark:bg-cyan-500/5 p-2.5 rounded-lg border border-cyan-100/50 dark:border-cyan-500/10 print:bg-none print:border-none print:p-0">
+                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-cyan-500 mt-1.5 print:bg-black"></span> {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-semibold mb-3 print:text-black">
+                  <MapIcon className="w-5 h-5" /> {labels.idealEnvironment}
+                </div>
+                <ul className="space-y-3">
+                  {aiReportResolved.ideal_environment.map((item, idx) => (
+                    <li key={`env-${idx}`} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed flex items-start gap-2 bg-teal-50/50 dark:bg-teal-500/5 p-2.5 rounded-lg border border-teal-100/50 dark:border-teal-500/10 print:bg-none print:border-none print:p-0">
+                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-teal-500 mt-1.5 print:bg-black"></span> {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-rose-700 dark:text-rose-400 font-semibold mb-3 print:text-black">
+                  <TrendingUp className="w-5 h-5" /> {labels.developmentAreas}
+                </div>
+                <ul className="space-y-3">
+                  {aiReportResolved.development_areas.map((item, idx) => (
+                    <li key={`dev-${idx}`} className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed flex items-start gap-2 bg-rose-50/50 dark:bg-rose-500/5 p-2.5 rounded-lg border border-rose-100/50 dark:border-rose-500/10 print:bg-none print:border-none print:p-0">
+                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 print:bg-black"></span> {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 p-6 flex flex-col md:flex-row gap-6 print:bg-none print:border-none">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 text-cyan-700 dark:text-cyan-400 font-semibold mb-2 print:text-black">
+                  <Lightbulb className="w-5 h-5" /> {labels.aiReadinessTitle}
+                </div>
+                <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed print:text-black">{aiReportResolved.ai_readiness}</p>
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 text-teal-700 dark:text-teal-400 font-semibold mb-2 print:text-black">
+                  <MapPin className="w-5 h-5" /> {labels.nextSteps}
+                </div>
+                <ul className="space-y-1.5">
+                  {aiReportResolved.next_steps.map((item, idx) => (
+                    <li key={`next-${idx}`} className="text-sm text-slate-700 dark:text-slate-300 flex items-start gap-2 print:text-black">
+                      <CheckCircle2 className="w-4 h-4 text-cyan-500 shrink-0 mt-0.5 print:text-black" /> {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </motion.div>
+
+          {(bigFive || temperament) && (
+            <motion.div variants={itemVariants} className="mt-8 bg-white/5 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-8 shadow-2xl jcfpm-avoid-break print:border-slate-300 print:shadow-none text-white">
+              <div className="flex items-center justify-between gap-4 mb-5">
+                <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100 font-bold text-lg print:text-black">
+                  <BarChart3 className="w-5 h-5 text-cyan-500 print:text-black" />
+                  {labels.temperamentBigFive}
+                </div>
+                {temperament && (
+                  <div className="px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wide bg-cyan-50 text-cyan-700 border border-cyan-100 print:bg-white print:text-black print:border-slate-300">
+                    {labels.temperamentLabels?.[temperament.label] || temperament.label}
+                  </div>
+                )}
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
+                <div className="space-y-3">
+                  {(bigFive ? [
+                    { label: labels.bigFiveLabels[0], value: bigFive.openness, color: 'bg-cyan-500' },
+                    { label: labels.bigFiveLabels[1], value: bigFive.conscientiousness, color: 'bg-emerald-500' },
+                    { label: labels.bigFiveLabels[2], value: bigFive.extraversion, color: 'bg-teal-500' },
+                    { label: labels.bigFiveLabels[3], value: bigFive.agreeableness, color: 'bg-sky-500' },
+                    { label: labels.bigFiveLabels[4], value: bigFive.neuroticism, color: 'bg-rose-500' },
+                  ] : []).map((row) => (
+                    <div key={row.label} className="flex items-center gap-3">
+                      <div className="w-28 text-xs font-semibold text-slate-600 dark:text-slate-300 print:text-black">{row.label}</div>
+                      <div className="flex-1 h-2.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden border border-slate-200 dark:border-slate-700 print:border-slate-300">
+                        <div className={`h-full ${row.color}`} style={{ width: `${Math.round(row.value)}%` }} />
+                      </div>
+                      <div className="w-10 text-xs font-semibold text-slate-600 dark:text-slate-300 text-right print:text-black">{Math.round(row.value)}</div>
+                    </div>
+                  ))}
+                  <div className="text-[11px] text-slate-500 dark:text-slate-400 print:text-slate-500">
+                    {labels.bigFiveNote}
+                  </div>
+                </div>
+
+                <div className="bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-700 dark:text-slate-300 print:bg-white print:border-slate-300 print:text-black">
+                  <div className="font-semibold text-slate-800 dark:text-slate-100 mb-2 print:text-black">{labels.temperamentTitle}</div>
+                  {temperament ? (
+                    <div className="space-y-2">
+                      <div>
+                        {labels.temperamentDescriptions?.[temperament.label] || temperament.label}
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 print:text-slate-500">
+                        {labels.dominanceLabel}: {Math.round(temperament.dominance)}/100 · {labels.reactivityLabel}: {Math.round(temperament.reactivity)}/100
+                      </div>
+                    </div>
+                  ) : (
+                    <div>{labels.temperamentUnavailable}</div>
+                  )}
                 </div>
               </div>
             </motion.div>
           )}
-        </AnimatePresence>
-      </motion.div>
-      </>
+
+          <motion.div variants={itemVariants} className="mt-8 jcfpm-page-break-before">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-4 flex items-center gap-2 print:text-black">
+              <Briefcase className="w-5 h-5 text-cyan-500 print:text-black" />
+              {labels.topRoles}
+            </h3>
+            <div className="jcfpm-roles-grid grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {uniqueFitScores.slice(0, 6).map((role, idx) => {
+                const fitScore = Math.max(0, Math.min(100, Number(role.fit_score) || 0));
+                return (
+                  <motion.div
+                    whileHover={{ y: -8, scale: 1.02 }}
+                    key={`${role.title}-${idx}`}
+                    className="jcfpm-avoid-break bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 p-6 shadow-xl transition-all flex flex-col h-full print:border-slate-300 print:shadow-none group overflow-hidden"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative z-10 h-full flex flex-col">
+                      <div className="flex justify-between items-start mb-3">
+                        <h4 className="font-bold text-slate-800 dark:text-slate-100 line-clamp-2 leading-tight print:text-black">{role.title}</h4>
+                        <div className="shrink-0 flex items-center justify-center w-12 h-12 rounded-full border-4 border-cyan-100 dark:border-cyan-900/30 bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 font-bold text-sm print:border-slate-200 print:text-black">
+                          {fitScore}%
+                        </div>
+                      </div>
+
+                      <div className="w-full h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full mb-4 overflow-hidden print:border print:border-slate-200">
+                        <div className="h-full bg-cyan-500 rounded-full" style={{ width: `${fitScore}%` }} />
+                      </div>
+
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {role.ai_impact && <span className="bg-cyan-50 dark:bg-cyan-500/10 text-cyan-700 dark:text-cyan-400 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-cyan-100 dark:border-cyan-900/30 print:border-slate-300 print:text-black">AI: {role.ai_impact}</span>}
+                        {role.remote_friendly && <span className="bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-400 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-teal-100 dark:border-teal-900/30 print:border-slate-300 print:text-black">Remote: {role.remote_friendly}</span>}
+                      </div>
+
+                      <div className="text-xs text-slate-400 mt-auto pt-3 border-t border-white/5 print:border-slate-200 print:text-black">
+                        {aiReportResolved.top_roles.find(tr => tr.title === role.title)?.reason || labels.roleFallback}
+                      </div>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          </motion.div>
+
+          {/* 🕸 Radar & Bridge section */}
+          <motion.div variants={itemVariants} className="mt-8 grid lg:grid-cols-[1.2fr_1fr] gap-8 print:grid-cols-1 jcfpm-page-break-before">
+            <div className="jcfpm-avoid-break bg-white/5 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-8 shadow-2xl print:border-slate-300 print:shadow-none text-white">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center gap-2 print:text-black">
+                <Activity className="w-5 h-5 text-cyan-500 print:text-black" />
+                {labels.radarTitle}
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 print:text-black">{labels.radarSubtitle}</p>
+
+              <div className="flex justify-center items-center py-4">
+                <svg viewBox="0 0 300 300" className="w-full max-w-[340px] drop-shadow-sm print:drop-shadow-none" role="img" aria-label={labels.radarAria}>
+                  <circle cx={radarGeometry.cx} cy={radarGeometry.cy} r={radarGeometry.radius} fill="none" stroke="currentColor" className="text-slate-200 dark:text-slate-800 print:text-slate-300" strokeWidth="1" />
+                  <circle cx={radarGeometry.cx} cy={radarGeometry.cy} r={radarGeometry.radius * 0.66} fill="none" stroke="currentColor" className="text-slate-200 dark:text-slate-800 print:text-slate-200" strokeWidth="1" strokeDasharray="4 4" />
+                  <circle cx={radarGeometry.cx} cy={radarGeometry.cy} r={radarGeometry.radius * 0.33} fill="none" stroke="currentColor" className="text-slate-200 dark:text-slate-800 print:text-slate-200" strokeWidth="1" strokeDasharray="4 4" />
+                  {radarGeometry.axes.map((axis) => (
+                    <g key={axis.label}>
+                      <line x1={radarGeometry.cx} y1={radarGeometry.cy} x2={axis.x2} y2={axis.y2} stroke="currentColor" className="text-slate-200 dark:text-slate-700 print:text-slate-300" strokeWidth="1" />
+                      <text x={axis.labelX} y={axis.labelY} fill="currentColor" className="text-slate-500 dark:text-slate-400 print:text-slate-900" fontSize="10px" fontWeight="600" textAnchor="middle" transform={`translate(0, 4)`}>{axis.label}</text>
+                    </g>
+                  ))}
+                  <polygon points={radarGeometry.standardPoints} fill="rgba(6, 182, 212, 0.15)" stroke="#0891b2" strokeWidth="2" className="transition-all duration-1000" />
+                  <polygon points={radarGeometry.deepPoints} fill="rgba(20, 184, 166, 0.15)" stroke="#0d9488" strokeWidth="2" className="transition-all duration-1000" />
+                </svg>
+              </div>
+
+              <div className="mt-4 flex justify-center items-center gap-4 text-xs font-semibold">
+                <span className="flex items-center gap-1.5 text-cyan-700 dark:text-cyan-400 bg-cyan-50 dark:bg-cyan-500/10 px-3 py-1.5 rounded-full border border-cyan-100 dark:border-cyan-900/30 print:text-black print:border-slate-300">
+                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 print:bg-black"></span> {labels.baseProfile}
+                </span>
+                <span className="flex items-center gap-1.5 text-teal-700 dark:text-teal-400 bg-teal-50 dark:bg-teal-500/10 px-3 py-1.5 rounded-full border border-teal-100 dark:border-teal-900/30 print:text-black print:border-slate-300">
+                  <span className="w-2.5 h-2.5 rounded-full bg-teal-500 print:bg-black"></span> {labels.practicalSkills}
+                </span>
+              </div>
+            </div>
+
+            <div className="jcfpm-avoid-break bg-white/5 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-8 shadow-2xl flex flex-col print:border-slate-300 print:shadow-none print:mt-6 text-white">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center gap-2 print:text-black">
+                <ShieldCheck className="w-5 h-5 text-cyan-500 print:text-black" />
+                {labels.alignmentTitle}
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6 print:text-black">{labels.alignmentSubtitle}</p>
+
+              <div className="space-y-5 flex-1 p-2">
+                {alignmentBars.map((bar) => (
+                  <div key={bar.label} className="relative">
+                    <div className="flex items-center justify-between gap-2 text-xs font-medium text-slate-700 dark:text-slate-300 mb-2 print:text-black">
+                      <span>{bar.label}</span>
+                      <span className="text-slate-500 dark:text-slate-500">{bar.selfScore} <span className="text-slate-300 dark:text-slate-700 print:text-slate-300">→</span> {bar.perfScore}</span>
+                    </div>
+                    <div className="relative h-2 rounded-full border border-slate-200 dark:border-slate-800 bg-gradient-to-r from-rose-50 via-slate-100 to-teal-50 dark:from-rose-500/5 dark:via-slate-800 dark:to-teal-500/5 print:from-slate-100 print:to-slate-100">
+                      <span className="absolute left-1/2 top-[-4px] bottom-[-4px] w-[1px] bg-slate-300 dark:bg-slate-700 z-10" />
+                      <motion.span
+                        initial={{ left: '50%' }}
+                        animate={{ left: `${50 + bar.offsetPct * 0.45}%` }}
+                        transition={{ duration: 1, delay: 0.2 }}
+                        className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full border-2 border-white dark:border-slate-900 shadow-sm z-20 ${bar.status === 'hidden_talent' ? 'bg-teal-500' :
+                          bar.status === 'overestimation' ? 'bg-rose-500' : 'bg-cyan-500'
+                          } print:border-black`}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 print:border-slate-300">
+                <div className="text-sm">
+                  <span className="font-semibold text-slate-700 dark:text-slate-200 block mb-1 print:text-black">{labels.skillToDevelop}</span>
+                  <span className="text-slate-600 dark:text-slate-400 leading-relaxed text-xs print:text-black">{bridge.skillToLearn}</span>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+
+          {/* 📚 Detailed Analysis Accordion List */}
+          <motion.div variants={itemVariants} className="mt-8 jcfpm-page-break-before px-2">
+            <h3 className="text-xl font-black text-white italic uppercase tracking-tighter mb-6 flex items-center gap-3 print:text-black">
+              <Crosshair className="w-6 h-6 text-cyan-400 print:text-black" />
+              {labels.detailedAnalysis}
+            </h3>
+            <motion.div variants={containerVariants}>
+              {mergedScores.map((row) => {
+                const maxScore = scoreMax(row.dimension, extendedDims);
+                const normalized = normalizeTo100(row.dimension, row.raw_score, extendedDims);
+                const dimMeta = dimensionMeta[row.dimension] || { title: row.dimension, definition: '', subdims: '' };
+                const shortDesc = describeScore(locale, row.dimension, row.raw_score, row.percentile, extendedDims);
+                const longDescBase = longNarrative(locale, row.dimension, row.raw_score, row.percentile, extendedDims);
+                const longDescExtension = buildExtendedDimensionNarrative(
+                  locale,
+                  row.dimension,
+                  Math.round(normalizeTo100(row.dimension, row.raw_score, extendedDims)),
+                  dimMeta.title
+                );
+                const longDesc = `${longDescBase} ${longDescExtension}`.trim();
+
+                return (
+                  <DimensionAccordionRow
+                    key={row.dimension}
+                    row={row}
+                    normalized={normalized}
+                    maxItemScore={maxScore}
+                    dimMeta={dimMeta}
+                    shortDesc={shortDesc}
+                    longDesc={longDesc}
+                    labels={labels}
+                  />
+                )
+              })}
+            </motion.div>
+          </motion.div>
+
+          {/* 💡 How to Read Results Info Box */}
+          <motion.div variants={itemVariants} className="mt-6 print:hidden">
+            <button onClick={() => setShowHowToRead(!showHowToRead)} className="flex items-center gap-2 text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors bg-white dark:bg-slate-900 px-4 py-2 border border-slate-200 dark:border-slate-800 rounded-lg shadow-sm">
+              <Info size={16} /> {labels.howToRead} {showHowToRead ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </button>
+
+            <AnimatePresence>
+              {showHowToRead && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, height: 0 }}
+                  animate={{ opacity: 1, y: 0, height: 'auto' }}
+                  exit={{ opacity: 0, y: -10, height: 0 }}
+                  className="mt-3 bg-slate-50 dark:bg-slate-900/50 rounded-xl p-5 border border-slate-200 dark:border-slate-800 overflow-hidden"
+                >
+                  <div className="grid md:grid-cols-2 gap-6 text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                    <div>
+                      <strong className="text-slate-800 dark:text-slate-200 block mb-2">{labels.howToReadPercentilesTitle}</strong>
+                      {labels.howToReadPercentilesBody}
+                    </div>
+                    <div>
+                      <strong className="text-slate-800 dark:text-slate-200 block mb-2">{labels.scoreInterpretationTitle}</strong>
+                      {labels.scoreInterpretationBody}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        </>
       )}
 
     </motion.div>
