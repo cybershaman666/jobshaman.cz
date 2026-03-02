@@ -132,6 +132,25 @@ const DIMENSION_THEMES: Record<JcfpmDimension, DimensionTheme> = {
   },
 };
 
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' &&
+  typeof window.matchMedia === 'function' &&
+  window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+const isLowPowerDevice = () => {
+  if (typeof window === 'undefined') return false;
+  const nav = navigator as Navigator & {
+    deviceMemory?: number;
+    hardwareConcurrency?: number;
+    connection?: { saveData?: boolean };
+  };
+  if (window.innerWidth < 768) return true;
+  if (nav.connection?.saveData) return true;
+  if (typeof nav.deviceMemory === 'number' && nav.deviceMemory <= 4) return true;
+  if (typeof nav.hardwareConcurrency === 'number' && nav.hardwareConcurrency <= 4) return true;
+  return false;
+};
+
 const FLOW_COPY: any = {
   cs: {
     reportLabel: 'Report',
@@ -451,11 +470,36 @@ export default function JcfpmFlow({
   const [timeLeft, setTimeLeft] = useState<number>(0);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const confettiRef = useRef<ReturnType<typeof confetti.create> | null>(null);
+  const celebrationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const celebrationIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialization
   useEffect(() => {
+    if (!prefersReducedMotion()) {
+      try {
+        confettiRef.current = confetti.create(undefined, {
+          resize: true,
+          useWorker: true,
+        });
+      } catch {
+        confettiRef.current = null;
+      }
+    }
     fetchQuestions();
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (celebrationTimeoutRef.current) clearTimeout(celebrationTimeoutRef.current);
+      if (celebrationIntervalRef.current) clearInterval(celebrationIntervalRef.current);
+    };
   }, []);
+
+  const launchConfetti = (options: Parameters<typeof confetti>[0]) => {
+    if (prefersReducedMotion()) return;
+    const fire = confettiRef.current || confetti;
+    fire(options);
+  };
+  const lowPowerMode = isLowPowerDevice();
 
   const fetchQuestions = async () => {
     try {
@@ -525,32 +569,9 @@ export default function JcfpmFlow({
       const nextDim = items[currentIndex + 1].dimension;
 
       if (currentDim !== nextDim) {
-        // Dimension completed - brief celebration (smoother side showers)
-        const colors = [theme.particleColor || '#0ea5e9', '#ffffff'];
-        const end = Date.now() + 0.6 * 1000;
-
-        (function frame() {
-          confetti({
-            particleCount: 2,
-            angle: 60,
-            spread: 55,
-            origin: { x: 0, y: 0.75 },
-            colors: colors
-          });
-          confetti({
-            particleCount: 2,
-            angle: 120,
-            spread: 55,
-            origin: { x: 1, y: 0.75 },
-            colors: colors
-          });
-
-          if (Date.now() < end) {
-            requestAnimationFrame(frame);
-          }
-        }());
-
-        setTimeout(() => {
+        // Dimension completed - use CSS-only celebration in the interlude card.
+        if (celebrationTimeoutRef.current) clearTimeout(celebrationTimeoutRef.current);
+        celebrationTimeoutRef.current = setTimeout(() => {
           setStatus('interlude');
         }, 300);
       } else {
@@ -581,22 +602,38 @@ export default function JcfpmFlow({
         await onPersist(snapshot);
       }
 
-      setTimeout(() => {
-        // Test finished - elegant full-screen celebration
-        const duration = 2.5 * 1000;
+      if (celebrationTimeoutRef.current) clearTimeout(celebrationTimeoutRef.current);
+      celebrationTimeoutRef.current = setTimeout(() => {
+        // Test finished - smoother, lower-cost celebration.
+        const duration = 1.4 * 1000;
         const animationEnd = Date.now() + duration;
-        const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
+        const defaults = {
+          startVelocity: lowPowerMode ? 18 : 24,
+          spread: lowPowerMode ? 90 : 120,
+          ticks: lowPowerMode ? 52 : 70,
+          scalar: lowPowerMode ? 0.72 : 0.9,
+          zIndex: 0,
+        };
 
         const randomInRange = (min: number, max: number) => Math.random() * (max - min) + min;
 
-        const interval: any = setInterval(function () {
+        if (celebrationIntervalRef.current) clearInterval(celebrationIntervalRef.current);
+        celebrationIntervalRef.current = setInterval(function () {
           const timeLeft = animationEnd - Date.now();
-          if (timeLeft <= 0) return clearInterval(interval);
+          if (timeLeft <= 0) {
+            if (celebrationIntervalRef.current) {
+              clearInterval(celebrationIntervalRef.current);
+              celebrationIntervalRef.current = null;
+            }
+            return;
+          }
 
-          const particleCount = 50 * (timeLeft / duration);
-          confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 } });
-          confetti({ ...defaults, particleCount, origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 } });
-        }, 250);
+          const particleCount = Math.max(lowPowerMode ? 4 : 6, Math.round((lowPowerMode ? 10 : 18) * (timeLeft / duration)));
+          launchConfetti({ ...defaults, particleCount, origin: { x: randomInRange(0.18, 0.34), y: 0.08 } });
+          if (!lowPowerMode) {
+            launchConfetti({ ...defaults, particleCount, origin: { x: randomInRange(0.66, 0.82), y: 0.08 } });
+          }
+        }, lowPowerMode ? 420 : 320);
 
         setStatus('finished');
       }, 1500);
@@ -848,8 +885,22 @@ export default function JcfpmFlow({
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 1.05 }}
-              className="max-w-2xl mx-auto text-center space-y-8"
+              className="jcfpm-interlude-burst max-w-2xl mx-auto text-center space-y-8"
+              style={{ ['--jcfpm-burst-color' as any]: theme.particleColor || '#ffffff' }}
             >
+              <div className="jcfpm-burst-layer" aria-hidden="true">
+                {Array.from({ length: lowPowerMode ? 8 : 14 }).map((_, idx) => (
+                  <span
+                    key={idx}
+                    className="jcfpm-burst-dot"
+                    style={{
+                      ['--burst-x' as any]: `${Math.cos((idx / (lowPowerMode ? 8 : 14)) * Math.PI * 2) * (lowPowerMode ? 54 : 76)}px`,
+                      ['--burst-y' as any]: `${Math.sin((idx / (lowPowerMode ? 8 : 14)) * Math.PI * 2) * (lowPowerMode ? 38 : 58)}px`,
+                      animationDelay: `${idx * 24}ms`,
+                    }}
+                  />
+                ))}
+              </div>
               <div className={cn("inline-flex p-5 rounded-3xl bg-white/10 backdrop-blur-xl shadow-2xl", theme.accent)}>
                 {React.cloneElement(theme.icon as React.ReactElement, { className: "w-12 h-12" })}
               </div>

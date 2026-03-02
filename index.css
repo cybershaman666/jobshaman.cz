@@ -2235,6 +2235,48 @@ body {
   animation: jcfpmSlideUp 0.6s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
+.jcfpm-interlude-burst {
+  position: relative;
+  isolation: isolate;
+}
+
+.jcfpm-burst-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.jcfpm-burst-dot {
+  position: absolute;
+  left: 50%;
+  top: 5.5rem;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-left: -0.275rem;
+  margin-top: -0.275rem;
+  border-radius: 999px;
+  background: var(--jcfpm-burst-color, rgba(255, 255, 255, 0.9));
+  opacity: 0;
+  transform: translate3d(0, 0, 0) scale(0.35);
+  filter: blur(0.2px);
+  animation: jcfpmBurstOut 680ms cubic-bezier(.18,.7,.2,1) forwards;
+}
+
+@keyframes jcfpmBurstOut {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 0, 0) scale(0.35);
+  }
+  18% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--burst-x, 0), var(--burst-y, -40px), 0) scale(1);
+  }
+}
+
 .dark .jcfpm-interlude-card {
   background: rgba(15, 23, 42, 0.85);
   border: 1px solid rgba(99, 102, 241, 0.25);
