@@ -86,7 +86,26 @@ def compute_traits(dimension_scores: List[dict], subdimension_scores: List[dict]
     else:
         temperament_label = "flegmatik"
 
-    confidence = _clamp(abs(dominance - 50.0) + abs(reactivity - 50.0))
+    evidence_count = (
+        len(extraversion_signals)
+        + len(agreeableness_signals)
+        + len(conscientiousness_signals)
+        + len(openness_signals)
+        + len(neuroticism_signals)
+        + len(dominance_signals)
+        + len(reactivity_signals)
+    )
+    signal_separation = (abs(dominance - 50.0) + abs(reactivity - 50.0)) / 2.0
+    evidence_ratio = min(1.0, evidence_count / 12.0)
+    confidence = _clamp((signal_separation * 0.55) + (evidence_ratio * 45.0))
+
+    notes: List[str] = []
+    if evidence_count < 4:
+        notes.append("Temperament je odhad s nižší jistotou kvůli omezenému množství signálů.")
+    elif evidence_count >= 8:
+        notes.append("Temperament vychází z více shodných signálů napříč dimenzemi a subdimenzemi.")
+    if 45.0 <= dominance <= 55.0 and 45.0 <= reactivity <= 55.0:
+        notes.append("Profil leží blízko středu, proto je temperament spíše jemný než vyhraněný.")
 
     return {
         "big_five": {
@@ -102,6 +121,6 @@ def compute_traits(dimension_scores: List[dict], subdimension_scores: List[dict]
             "dominance": round(dominance, 2),
             "reactivity": round(reactivity, 2),
             "confidence": round(confidence, 2),
-            "notes": [],
+            "notes": notes,
         },
     }

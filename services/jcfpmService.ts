@@ -367,6 +367,62 @@ const percentileBand = (score: number) => {
   return { pct: Math.round(interp(score, 5.5, 7.0, 85, 100)), band: '85–100' };
 };
 
+const computeProfileConfidenceLocal = (
+  items: JcfpmItem[],
+  responses: Record<string, unknown>,
+  dimensionScores: Array<{ item_count?: number }>
+) => {
+  if (!items.length) return 0;
+  const ids = new Set(items.map((item) => String(item.id)));
+  let answered = 0;
+  ids.forEach((id) => {
+    if (Object.prototype.hasOwnProperty.call(responses, id)) answered += 1;
+  });
+  const coverageRatio = answered / Math.max(1, ids.size);
+  const dimsWithEvidence = dimensionScores.filter((row) => Number(row.item_count || 0) > 0).length;
+  const dimensionRatio = dimsWithEvidence / DIMENSIONS.length;
+  const avgItemsPerDim = answered / Math.max(1, dimsWithEvidence);
+  const densityRatio = Math.min(1, avgItemsPerDim / 4);
+  const score = (coverageRatio * 0.5) + (dimensionRatio * 0.3) + (densityRatio * 0.2);
+  return Math.round(Math.max(0, Math.min(1, score)) * 100);
+};
+
+const computeTimeFactor = (timeMs: unknown) => {
+  if (typeof timeMs !== 'number' || !Number.isFinite(timeMs) || timeMs <= 0) return 1;
+  if (timeMs <= 20000) return 1;
+  if (timeMs <= 90000) {
+    const ratio = (timeMs - 20000) / 70000;
+    return Math.max(0.85, Math.min(1, 1 - ratio * 0.15));
+  }
+  return 0.75;
+};
+
+const orderingSimilarity = (correctOrder: any[], order: any[]) => {
+  if (!correctOrder.length) return 0;
+  if (correctOrder.length === 1) return order[0] === correctOrder[0] ? 1 : 0;
+  const maxShift = correctOrder.length - 1;
+  const indexMap = new Map<any, number>();
+  order.forEach((value, idx) => indexMap.set(value, idx));
+  return correctOrder.reduce((acc: number, value: any, idx: number) => {
+    const selectedIdx = indexMap.get(value);
+    if (typeof selectedIdx !== 'number') return acc;
+    const distance = Math.abs(selectedIdx - idx);
+    return acc + Math.max(0, 1 - (distance / maxShift));
+  }, 0);
+};
+
+const pairMatchScore = (correctPairs: any[], selectedPairs: any[]) => {
+  const correctSet = new Set(correctPairs.map((pair: any) => `${pair.source}->${pair.target}`));
+  const selectedSet = new Set(selectedPairs.map((pair: any) => `${pair.source}->${pair.target}`));
+  if (!correctSet.size) return 0;
+  let truePositive = 0;
+  correctSet.forEach((key) => {
+    if (selectedSet.has(key)) truePositive += 1;
+  });
+  const falsePositive = Math.max(0, selectedSet.size - truePositive);
+  return Math.max(0, truePositive - (falsePositive * 0.35));
+};
+
 export const computeJcfpmScoresLocal = (items: JcfpmItem[], responses: Record<string, any>) => {
   const inferDimension = (item: JcfpmItem) => {
     const explicit = String(item.dimension || '').trim().toLowerCase();
@@ -413,33 +469,7 @@ export const computeJcfpmScoresLocal = (items: JcfpmItem[], responses: Record<st
       const scored = item.reverse_scoring ? 8 - raw : raw;
       return { score: scored, max: 7 };
     }
-    let timeFactor = 1;
-    const timeMs = response?.time_ms;
-    const BENCHMARKS: Record<string, { min: number; ideal: number; max: number }> = {
-      likert: { min: 2000, ideal: 5000, max: 15000 },
-      mcq: { min: 2500, ideal: 8000, max: 30000 },
-      scenario_choice: { min: 4000, ideal: 15000, max: 60000 },
-      image_choice: { min: 2000, ideal: 6000, max: 30000 },
-      ordering: { min: 10000, ideal: 30000, max: 90000 },
-      drag_drop: { min: 10000, ideal: 40000, max: 120000 },
-    };
-
-    const bench = BENCHMARKS[itemType] || BENCHMARKS.likert;
-
-    if (typeof timeMs === 'number' && timeMs > 0) {
-      if (timeMs < bench.min) {
-        // Potential noise/guessing
-        timeFactor = 0.7;
-      } else if (timeMs <= bench.ideal) {
-        timeFactor = 1.0;
-      } else if (timeMs <= bench.max) {
-        // Linear decay from 1.0 down to 0.6
-        timeFactor = 1.0 - ((timeMs - bench.ideal) / (bench.max - bench.ideal)) * 0.4;
-      } else {
-        timeFactor = 0.5;
-      }
-      timeFactor = Math.min(1, Math.max(0.5, timeFactor));
-    }
+    const timeFactor = computeTimeFactor(response?.time_ms);
     if (itemType === 'mcq' || itemType === 'scenario_choice' || itemType === 'image_choice') {
       const correct = payload.correct_id;
       const selected = response?.choice_id ?? response;
@@ -449,19 +479,12 @@ export const computeJcfpmScoresLocal = (items: JcfpmItem[], responses: Record<st
       const correct = Array.isArray(payload.correct_order) ? payload.correct_order : [];
       const order = Array.isArray(response?.order) ? response.order : [];
       const max = Math.max(1, correct.length);
-      const score = correct.reduce((acc: number, value: string, idx: number) => acc + (order[idx] === value ? 1 : 0), 0);
-      return { score: score * timeFactor, max };
+      return { score: orderingSimilarity(correct, order) * timeFactor, max };
     }
     if (itemType === 'drag_drop') {
       const correctPairs = Array.isArray(payload.correct_pairs) ? payload.correct_pairs : [];
       const selectedPairs = Array.isArray(response?.pairs) ? response.pairs : [];
-      const correctSet = new Set(correctPairs.map((pair: any) => `${pair.source}->${pair.target}`));
-      const selectedSet = new Set(selectedPairs.map((pair: any) => `${pair.source}->${pair.target}`));
-      let score = 0;
-      correctSet.forEach((key) => {
-        if (selectedSet.has(key)) score += 1;
-      });
-      return { score: score * timeFactor, max: Math.max(1, correctSet.size) };
+      return { score: pairMatchScore(correctPairs, selectedPairs) * timeFactor, max: Math.max(1, correctPairs.length) };
     }
     return { score: 0, max: 1 };
   };
@@ -506,6 +529,7 @@ export const computeJcfpmScoresLocal = (items: JcfpmItem[], responses: Record<st
       percentile_band: band,
       label,
       consistency: consistencyScore,
+      item_count: dimItems.length,
     };
   });
 };
@@ -669,7 +693,27 @@ export const computeJcfpmTraitsLocal = (
       dominanceHigh && !reactivityHigh ? 'sangvinik' :
         !dominanceHigh && reactivityHigh ? 'melancholik' : 'flegmatik';
 
-  const confidence = clampScore(Math.abs(dominance - 50) + Math.abs(reactivity - 50));
+  const evidenceCount =
+    extraversionSignals.length +
+    agreeablenessSignals.length +
+    conscientiousnessSignals.length +
+    opennessSignals.length +
+    neuroticismSignals.length +
+    dominanceSignals.length +
+    reactivitySignals.length;
+  const signalSeparation = (Math.abs(dominance - 50) + Math.abs(reactivity - 50)) / 2;
+  const evidenceRatio = Math.min(1, evidenceCount / 12);
+  const confidence = clampScore((signalSeparation * 0.55) + (evidenceRatio * 45));
+
+  const notes: string[] = [];
+  if (evidenceCount < 4) {
+    notes.push('Temperament je odhad s nižší jistotou kvůli omezenému množství signálů.');
+  } else if (evidenceCount >= 8) {
+    notes.push('Temperament vychází z více shodných signálů napříč dimenzemi a subdimenzemi.');
+  }
+  if (dominance >= 45 && dominance <= 55 && reactivity >= 45 && reactivity <= 55) {
+    notes.push('Profil leží blízko středu, proto je temperament spíše jemný než vyhraněný.');
+  }
 
   return {
     big_five: {
@@ -685,7 +729,7 @@ export const computeJcfpmTraitsLocal = (
       dominance,
       reactivity,
       confidence,
-      notes: [],
+      notes,
     },
   };
 };
@@ -706,22 +750,50 @@ const HIGH_GATE_THRESHOLD = 5.5;
 const LOW_GATE_THRESHOLD = 2.5;
 const ROLE_HIGH_MIN = 4.6;
 const ROLE_LOW_MAX = 3.8;
+const AI_INTENSITY_BONUS: Record<string, number> = {
+  low: 0,
+  medium: 4,
+  high: 6,
+};
 
-const passesHardGates = (userProfile: Record<string, number>, roleProfile: Record<string, number>, aiIntensity?: string) => {
+const passesHardGates = (userProfile: Record<string, number>, roleProfile: Record<string, number>, _aiIntensity?: string) => {
   for (const dim of Object.keys(WEIGHTS)) {
     const u = Number(userProfile[dim] ?? 0);
     const r = Number(roleProfile[dim] ?? 0);
     if (u >= HIGH_GATE_THRESHOLD && r < ROLE_HIGH_MIN) return false;
     if (u <= LOW_GATE_THRESHOLD && r > ROLE_LOW_MAX) return false;
   }
-  if (Number(userProfile.d6_ai_readiness ?? 0) >= HIGH_GATE_THRESHOLD) {
-    if ((aiIntensity || '').toLowerCase() !== 'high') return false;
-  }
   return true;
+};
+
+const aiIntensityBonus = (userProfile: Record<string, number>, aiIntensity?: string) => {
+  const level = String(aiIntensity || '').toLowerCase();
+  const base = AI_INTENSITY_BONUS[level] || 0;
+  const d6 = Number(userProfile.d6_ai_readiness ?? 0);
+  if (d6 >= HIGH_GATE_THRESHOLD) {
+    if (level === 'high') return base;
+    if (level === 'medium') return base + 3;
+    return 1;
+  }
+  if (d6 <= LOW_GATE_THRESHOLD) {
+    if (level === 'high') return -8;
+    if (level === 'medium') return -2.5;
+    return 2;
+  }
+  if (level === 'high') return base - 1;
+  return base;
+};
+
+const maxHighAiRoles = (userProfile: Record<string, number>, topN: number) => {
+  const d6 = Number(userProfile.d6_ai_readiness ?? 0);
+  if (d6 >= HIGH_GATE_THRESHOLD) return Math.max(2, Math.ceil(topN * 0.3));
+  if (d6 <= LOW_GATE_THRESHOLD) return Math.max(1, Math.ceil(topN * 0.1));
+  return Math.max(2, Math.ceil(topN * 0.2));
 };
 
 const rankRolesLocal = (userProfile: Record<string, number>, roles: any[]) => {
   const ranked = roles.map((role) => {
+    const aiIntensity = String(role.ai_intensity || '').toLowerCase();
     const roleProfile = {
       d1_cognitive: Number(role.d1),
       d2_social: Number(role.d2),
@@ -730,23 +802,38 @@ const rankRolesLocal = (userProfile: Record<string, number>, roles: any[]) => {
       d5_values: Number(role.d5),
       d6_ai_readiness: Number(role.d6),
     };
-    if (!passesHardGates(userProfile, roleProfile, role.ai_intensity)) {
+    if (!passesHardGates(userProfile, roleProfile, aiIntensity)) {
       return null;
     }
     return {
       role_id: role.id,
       title: role.title,
-      fit_score: Number(fitScore(userProfile, roleProfile).toFixed(2)),
+      fit_score: Number(Math.max(0, Math.min(100, fitScore(userProfile, roleProfile) + aiIntensityBonus(userProfile, aiIntensity))).toFixed(2)),
       salary_range: role.salary_range || null,
       growth_potential: role.growth_potential || null,
       ai_impact: role.ai_impact || null,
       remote_friendly: role.remote_friendly || null,
+      ai_intensity: aiIntensity || null,
     };
   });
-  return ranked
+  const sorted = ranked
     .filter(Boolean)
-    .sort((a: any, b: any) => (b.fit_score || 0) - (a.fit_score || 0))
-    .slice(0, 10);
+    .sort((a: any, b: any) => (b.fit_score || 0) - (a.fit_score || 0));
+  const limit = 10;
+  const highAiLimit = maxHighAiRoles(userProfile, limit);
+  let highAiCount = 0;
+  const deferred: any[] = [];
+  const selected: any[] = [];
+  sorted.forEach((role: any) => {
+    const isHighAi = role.ai_intensity === 'high';
+    if (isHighAi && highAiCount >= highAiLimit) {
+      deferred.push(role);
+      return;
+    }
+    if (isHighAi) highAiCount += 1;
+    selected.push(role);
+  });
+  return [...selected, ...deferred].slice(0, limit);
 };
 
 export const mapJcfpmToJhiPreferencesWithExplanation = (
@@ -1117,7 +1204,7 @@ export const submitJcfpm = async (
       fit_scores: fitScores as any,
       ai_report: null,
       percentile_summary: percentileSummary as any,
-      confidence: 100,
+      confidence: computeProfileConfidenceLocal(selectedItems, responses, dimensionScores as any),
       archetype: archetype as any, // Adding archetype to snapshot
     };
 

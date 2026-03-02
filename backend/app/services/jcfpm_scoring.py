@@ -123,6 +123,47 @@ def _percentile_band_100(score: float) -> Tuple[int, str]:
     return pct, "0–100"
 
 
+def _time_factor(time_ms: object) -> float:
+    # Keep timing as a weak signal only. Device lag or short interruptions should
+    # not heavily distort a cognitive/behavioral profile.
+    if not isinstance(time_ms, (int, float)) or time_ms <= 0:
+        return 1.0
+    if time_ms <= 20000:
+        return 1.0
+    if time_ms <= 90000:
+        ratio = (float(time_ms) - 20000.0) / 70000.0
+        return max(0.85, min(1.0, 1.0 - ratio * 0.15))
+    return 0.75
+
+
+def _ordering_similarity(correct: List[object], selected: List[object]) -> float:
+    if not correct:
+        return 0.0
+    if len(correct) == 1:
+        return 1.0 if selected[:1] == correct[:1] else 0.0
+    max_shift = len(correct) - 1
+    index_map = {value: idx for idx, value in enumerate(selected)}
+    acc = 0.0
+    for idx, value in enumerate(correct):
+        selected_idx = index_map.get(value)
+        if selected_idx is None:
+            continue
+        distance = abs(selected_idx - idx)
+        acc += max(0.0, 1.0 - (distance / max_shift))
+    return acc
+
+
+def _pair_match_score(correct_pairs: List[dict], selected_pairs: List[dict]) -> float:
+    correct_set = {f"{pair.get('source')}->{pair.get('target')}" for pair in correct_pairs if isinstance(pair, dict)}
+    selected_set = {f"{pair.get('source')}->{pair.get('target')}" for pair in selected_pairs if isinstance(pair, dict)}
+    if not correct_set:
+        return 0.0
+    true_positive = len(correct_set.intersection(selected_set))
+    false_positive = max(0, len(selected_set) - true_positive)
+    score = true_positive - (false_positive * 0.35)
+    return max(0.0, float(score))
+
+
 def _score_interactive(item: dict, response: object) -> Tuple[float, float]:
     item_type = (item.get("item_type") or "likert").lower()
     payload = item.get("payload") or {}
@@ -160,20 +201,8 @@ def _score_interactive(item: dict, response: object) -> Tuple[float, float]:
         scored = _apply_reverse(raw, bool(item.get("reverse_scoring")))
         return scored, 7.0
 
-    # Mild time pressure factor (only for interactive tasks)
-    time_ms = None
-    if isinstance(response, dict):
-        time_ms = response.get("time_ms")
-    time_factor = 1.0
-    if isinstance(time_ms, (int, float)) and time_ms > 0:
-        # 0-15s -> 1.0, 15-60s -> down to 0.7, 60s+ -> 0.5 floor
-        if time_ms <= 15000:
-            time_factor = 1.0
-        elif time_ms <= 60000:
-            time_factor = 1.0 - ((time_ms - 15000) / 45000) * 0.3
-        else:
-            time_factor = 0.5
-        time_factor = max(0.5, min(1.0, time_factor))
+    time_ms = response.get("time_ms") if isinstance(response, dict) else None
+    time_factor = _time_factor(time_ms)
 
     # MCQ / scenario / image choice
     if item_type in {"mcq", "scenario_choice", "image_choice"}:
@@ -196,7 +225,7 @@ def _score_interactive(item: dict, response: object) -> Tuple[float, float]:
         if not isinstance(correct, list) or not isinstance(selected, list):
             return 0.0, float(len(correct) or 1)
         max_score = max(1, len(correct))
-        score = sum(1 for idx, value in enumerate(correct) if idx < len(selected) and selected[idx] == value)
+        score = _ordering_similarity(correct, selected)
         score = float(score) * time_factor
         return float(score), float(max_score)
 
@@ -208,9 +237,9 @@ def _score_interactive(item: dict, response: object) -> Tuple[float, float]:
             selected_pairs = response.get("pairs") or []
         if not isinstance(correct_pairs, list) or not isinstance(selected_pairs, list):
             return 0.0, float(len(correct_pairs) or 1)
-        correct_set = {f"{pair.get('source')}->{pair.get('target')}" for pair in correct_pairs if isinstance(pair, dict)}
-        selected_set = {f"{pair.get('source')}->{pair.get('target')}" for pair in selected_pairs if isinstance(pair, dict)}
-        score = len(correct_set.intersection(selected_set))
+        correct_set = [pair for pair in correct_pairs if isinstance(pair, dict)]
+        selected_set = [pair for pair in selected_pairs if isinstance(pair, dict)]
+        score = _pair_match_score(correct_set, selected_set)
         score = float(score) * time_factor
         return float(score), float(max(1, len(correct_set)))
 
@@ -295,6 +324,7 @@ def _score_single_dimension(dim: str, dim_items: List[dict], responses: Dict[str
         "percentile": percentile,
         "percentile_band": band,
         "label": label,
+        "item_count": len(dim_items),
     }
 
 
@@ -347,3 +377,21 @@ def score_subdimensions(items: List[dict], responses: Dict[str, object]) -> List
             }
         )
     return output
+
+
+def compute_profile_confidence(items: List[dict], responses: Dict[str, object], dimension_scores: List[dict]) -> int:
+    if not items:
+        return 0
+
+    item_ids = {str(item.get("id")) for item in items if item.get("id") is not None}
+    answered = sum(1 for item_id in item_ids if item_id in responses)
+    coverage_ratio = answered / max(1, len(item_ids))
+
+    dims_with_evidence = sum(1 for row in dimension_scores if float(row.get("item_count") or 0) > 0)
+    dimension_ratio = dims_with_evidence / max(1, len(JCFPM_DIMENSIONS))
+
+    avg_items_per_dim = answered / max(1, dims_with_evidence)
+    density_ratio = min(1.0, avg_items_per_dim / 4.0)
+
+    score = (coverage_ratio * 0.5) + (dimension_ratio * 0.3) + (density_ratio * 0.2)
+    return int(round(max(0.0, min(1.0, score)) * 100.0))

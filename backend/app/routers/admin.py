@@ -212,10 +212,7 @@ async def list_subscriptions(
         raise HTTPException(status_code=500, detail="Database unavailable")
 
     try:
-        query = supabase.table("subscriptions").select(
-            "*, companies!fk_company(name, industry), profiles(email, full_name)",
-            count="exact"
-        )
+        query = supabase.table("subscriptions").select("*", count="exact")
 
         if tier:
             query = query.eq("tier", tier)
@@ -264,7 +261,64 @@ async def list_subscriptions(
             print(f"❌ PostgREST error in list_subscriptions: {resp.error}")
             raise HTTPException(status_code=500, detail=f"Database error: {resp.error}")
 
-        data = resp.data or []
+        data = [row for row in (resp.data or []) if isinstance(row, dict)]
+
+        # Enrich relations separately instead of relying on PostgREST embedded joins.
+        # This avoids runtime 500s when foreign-key embedding differs across environments.
+        company_ids = sorted({str(s.get("company_id")) for s in data if s.get("company_id")})
+        user_ids = sorted({str(s.get("user_id")) for s in data if s.get("user_id")})
+
+        companies_by_id = {}
+        if company_ids:
+            try:
+                companies_resp = (
+                    supabase.table("companies")
+                    .select("id,name,industry")
+                    .in_("id", company_ids)
+                    .execute()
+                )
+                companies_by_id = {
+                    str(row.get("id")): {
+                        "name": row.get("name"),
+                        "industry": row.get("industry"),
+                    }
+                    for row in (companies_resp.data or [])
+                    if isinstance(row, dict) and row.get("id")
+                }
+            except Exception as exc:
+                print(f"⚠️ Admin subscriptions company enrichment failed: {exc}")
+
+        profiles_by_id = {}
+        if user_ids:
+            profile_attempts = [
+                "id,email,full_name",
+                "id,email,name",
+            ]
+            for select_expr in profile_attempts:
+                try:
+                    profiles_resp = (
+                        supabase.table("profiles")
+                        .select(select_expr)
+                        .in_("id", user_ids)
+                        .execute()
+                    )
+                    profiles_by_id = {}
+                    for row in (profiles_resp.data or []):
+                        if not isinstance(row, dict) or not row.get("id"):
+                            continue
+                        profiles_by_id[str(row.get("id"))] = {
+                            "email": row.get("email"),
+                            "full_name": row.get("full_name") or row.get("name"),
+                        }
+                    break
+                except Exception as exc:
+                    print(f"⚠️ Admin subscriptions profile enrichment failed ({select_expr}): {exc}")
+
+        for row in data:
+            company_id = str(row.get("company_id") or "")
+            user_id = str(row.get("user_id") or "")
+            row["companies"] = companies_by_id.get(company_id)
+            row["profiles"] = profiles_by_id.get(user_id)
 
         if kind in ["company", "user"]:
             if kind == "company":

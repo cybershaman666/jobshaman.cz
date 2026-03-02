@@ -5,7 +5,13 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from ..core.security import get_current_user, verify_subscription, verify_supabase_token
 from ..core.database import supabase
 from ..core import config
-from ..services.jcfpm_scoring import JCFPM_DIMENSIONS, score_dimensions, score_dimensions_partial, score_subdimensions
+from ..services.jcfpm_scoring import (
+    JCFPM_DIMENSIONS,
+    compute_profile_confidence,
+    score_dimensions,
+    score_dimensions_partial,
+    score_subdimensions,
+)
 from ..services.jcfpm_mapping import rank_roles
 from ..services.jcfpm_ai import generate_jcfpm_report
 from ..services.jcfpm_traits import compute_traits
@@ -208,6 +214,7 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
     percentile_summary = {row["dimension"]: row["percentile"] for row in dimension_scores}
     subdimension_scores = score_subdimensions(selected_items, normalized_responses)
     traits = compute_traits(dimension_scores, subdimension_scores)
+    confidence = compute_profile_confidence(selected_items, normalized_responses, dimension_scores)
 
     # Fit scores
     role_resp = (
@@ -242,7 +249,7 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
         "fit_scores": fit_scores,
         "ai_report": ai_report,
         "percentile_summary": percentile_summary,
-        "confidence": 100,
+        "confidence": confidence,
     }
 
     # Persist only for authenticated users.
