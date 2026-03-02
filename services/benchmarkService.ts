@@ -1,6 +1,11 @@
 import { BACKEND_URL } from '../constants';
 import { Candidate, CandidateBenchmarkMetrics, SalaryBenchmarkResolved } from '../types';
 import { authenticatedFetch } from './csrfService';
+let candidateBenchmarkApiUnavailable = false;
+let companyCandidatesApiUnavailable = false;
+
+const shouldDisableBackendPath = (status: number): boolean =>
+    [404, 409, 500, 501, 502, 503].includes(status);
 
 const toJsonOrThrow = async <T>(response: Response): Promise<T> => {
     if (!response.ok) {
@@ -30,6 +35,9 @@ export const fetchCandidateBenchmarkMetrics = async (
     jobId?: string,
     windowDays: number = 90
 ): Promise<CandidateBenchmarkMetrics> => {
+    if (candidateBenchmarkApiUnavailable) {
+        return createEmptyCandidateBenchmarkMetrics(companyId, jobId, windowDays, 'Candidate benchmark endpoint unavailable');
+    }
     const params = new URLSearchParams({
         company_id: companyId,
         window_days: String(windowDays)
@@ -53,11 +61,19 @@ export const fetchCandidateBenchmarkMetrics = async (
             );
             if (response.status === 404) {
                 lastError = new Error(`Not Found: ${path}`);
-                continue;
+                candidateBenchmarkApiUnavailable = true;
+                break;
+            }
+            if (!response.ok && shouldDisableBackendPath(response.status)) {
+                candidateBenchmarkApiUnavailable = true;
+                lastError = new Error(`Candidate benchmark endpoint failed: ${response.status}`);
+                break;
             }
             return await toJsonOrThrow<CandidateBenchmarkMetrics>(response);
         } catch (error) {
             lastError = error instanceof Error ? error : new Error(String(error));
+            candidateBenchmarkApiUnavailable = true;
+            break;
         }
     }
 
@@ -68,6 +84,9 @@ export const fetchCompanyCandidates = async (
     companyId: string,
     limit: number = 500
 ): Promise<Candidate[]> => {
+    if (companyCandidatesApiUnavailable) {
+        throw new Error('Company candidates endpoint unavailable');
+    }
     const params = new URLSearchParams({
         company_id: companyId,
         limit: String(limit)
@@ -89,12 +108,20 @@ export const fetchCompanyCandidates = async (
             );
             if (response.status === 404) {
                 lastError = new Error(`Not Found: ${path}`);
-                continue;
+                companyCandidatesApiUnavailable = true;
+                break;
+            }
+            if (!response.ok && shouldDisableBackendPath(response.status)) {
+                companyCandidatesApiUnavailable = true;
+                lastError = new Error(`Company candidates endpoint failed: ${response.status}`);
+                break;
             }
             const payload = await toJsonOrThrow<{ candidates: Candidate[] }>(response);
             return Array.isArray(payload.candidates) ? payload.candidates : [];
         } catch (error) {
             lastError = error instanceof Error ? error : new Error(String(error));
+            companyCandidatesApiUnavailable = true;
+            break;
         }
     }
 

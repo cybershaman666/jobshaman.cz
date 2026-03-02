@@ -462,6 +462,56 @@ body {
   animation: cockpitMetricSweep 2.4s ease-in-out infinite;
 }
 
+.company-surface {
+  background-color: rgba(255, 255, 255, 0.95);
+  border-color: rgba(226, 232, 240, 0.82);
+}
+
+.company-surface-soft {
+  background-color: rgba(248, 250, 252, 0.82);
+  border-color: rgba(226, 232, 240, 0.82);
+}
+
+.company-surface-subtle {
+  background-color: rgba(255, 255, 255, 0.86);
+  border-color: rgba(226, 232, 240, 0.78);
+}
+
+.company-surface-elevated {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(248, 250, 252, 0.96));
+  border-color: rgba(226, 232, 240, 0.82);
+}
+
+.company-pill-surface {
+  background-color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(226, 232, 240, 0.82);
+}
+
+.dark .company-surface {
+  background-color: rgba(15, 23, 42, 0.94) !important;
+  border-color: rgba(51, 65, 85, 0.92) !important;
+}
+
+.dark .company-surface-soft {
+  background-color: rgba(15, 23, 42, 0.88) !important;
+  border-color: rgba(51, 65, 85, 0.9) !important;
+}
+
+.dark .company-surface-subtle {
+  background-color: rgba(15, 23, 42, 0.78) !important;
+  border-color: rgba(51, 65, 85, 0.86) !important;
+}
+
+.dark .company-surface-elevated {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(2, 6, 23, 0.94)) !important;
+  border-color: rgba(51, 65, 85, 0.92) !important;
+}
+
+.dark .company-pill-surface {
+  background-color: rgba(30, 41, 59, 0.78) !important;
+  border-color: rgba(51, 65, 85, 0.86) !important;
+}
+
 
 .assessment-demo-output-cockpit .bg-white,
 .assessment-demo-output-cockpit .bg-slate-50,

@@ -1910,7 +1910,10 @@ export default function App() {
         }
         if (normalizedPath === '/jcfpm' || normalizedPath === '/profile/jcfpm') {
             const queryParams = new URLSearchParams(window.location.search);
-            const sectionParam = queryParams.get('section') || 'full';
+            const requestedSection = queryParams.get('section') || 'full';
+            const sectionParam = userProfile.subscription?.tier === 'premium'
+                ? requestedSection
+                : 'basic';
 
             return (
                 <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">

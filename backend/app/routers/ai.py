@@ -61,6 +61,31 @@ def _fetch_latest_subscription_by(column: str, value: str) -> dict | None:
         return None
 
 
+def _sync_company_ad_optimization_usage(company_id: str) -> None:
+    if not supabase or not company_id:
+        return
+    company_sub = _fetch_latest_subscription_by("company_id", company_id)
+    subscription_id = str((company_sub or {}).get("id") or "")
+    if not subscription_id:
+        return
+    try:
+        usage_resp = (
+            supabase
+            .table("subscription_usage")
+            .select("id, ad_optimizations_used")
+            .eq("subscription_id", subscription_id)
+            .order("period_end", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if usage_resp.data:
+            row = usage_resp.data[0]
+            next_value = int(row.get("ad_optimizations_used") or 0) + 1
+            supabase.table("subscription_usage").update({"ad_optimizations_used": next_value}).eq("id", row["id"]).execute()
+    except Exception as exc:
+        print(f"⚠️ Failed to increment ad optimization usage for company {company_id}: {exc}")
+
+
 def _require_ai_profile_access(user: dict) -> str:
     def _deny(reason: str, extra: dict | None = None) -> None:
         payload = {
@@ -494,13 +519,23 @@ async def ai_execute(
             if not _user_has_allowed_subscription(user, allowed):
                 raise HTTPException(status_code=403, detail="Premium subscription required")
 
-        # Company assessment tooling: company plans only.
-        if action in {"evaluate_assessment_result", "extract_skills_from_job", "optimize_job_description", "match_candidate_to_job"}:
+        # Company tooling available from Starter and above.
+        if action in {"generate_assessment", "evaluate_assessment_result", "extract_skills_from_job", "optimize_job_description"}:
             allowed = {"starter", "growth", "professional", "enterprise"}
             if not _user_has_allowed_subscription(user, allowed):
                 raise HTTPException(status_code=403, detail="Company subscription required")
 
+        # Candidate-to-job recommendation tooling starts at Growth.
+        if action in {"match_candidate_to_job"}:
+            allowed = {"growth", "professional", "enterprise"}
+            if not _user_has_allowed_subscription(user, allowed):
+                raise HTTPException(status_code=403, detail="Growth plan required")
+
         result = _execute_ai_action(action, params)
+        if action == "optimize_job_description":
+            company_id = user.get("company_id")
+            if company_id and company_id in (user.get("authorized_ids") or []):
+                _sync_company_ad_optimization_usage(company_id)
         return {"ok": True, **result}
     except HTTPException:
         raise
@@ -519,17 +554,4 @@ async def ai_execute_public(
     request: Request,
 ):
     action = (payload.action or "").strip()
-    if action not in {"generate_assessment"}:
-        raise HTTPException(status_code=403, detail="Unsupported public AI action")
-
-    try:
-        result = _execute_ai_action(action, payload.params or {})
-        return {"ok": True, **result}
-    except HTTPException:
-        raise
-    except AIClientError as e:
-        raise HTTPException(status_code=503, detail=f"AI provider unavailable: {str(e)}")
-    except ValueError as e:
-        raise HTTPException(status_code=502, detail=f"AI response invalid: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=502, detail=f"AI processing failed: {str(e)}")
+    raise HTTPException(status_code=403, detail="Public AI execution disabled")

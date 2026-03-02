@@ -2,6 +2,10 @@ import { BACKEND_URL } from '../constants';
 import { authenticatedFetch } from './csrfService';
 import { supabase } from './supabaseService';
 import { ApplicationDossier, ApplicationJcfpmShareLevel, CompanyApplicationRow } from '../types';
+let companyApplicationsApiUnavailable = false;
+
+const shouldDisableCompanyApplicationsApi = (status: number): boolean =>
+    [404, 409, 500, 501, 502, 503].includes(status);
 
 export interface MutationResult {
     ok: boolean;
@@ -64,17 +68,24 @@ export const fetchCompanyApplicationDetail = async (
     applicationId: string
 ): Promise<ApplicationDossier | null> => {
     if (!applicationId) return null;
+    if (companyApplicationsApiUnavailable) {
+        return await fetchCompanyApplicationDetailFallback(applicationId);
+    }
     try {
         const response = await authenticatedFetch(
             `${BACKEND_URL}/company/applications/${applicationId}`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' } }
         );
         if (!response.ok) {
+            if (shouldDisableCompanyApplicationsApi(response.status)) {
+                companyApplicationsApiUnavailable = true;
+            }
             return await fetchCompanyApplicationDetailFallback(applicationId);
         }
         const payload = await response.json();
         return payload?.application || null;
     } catch {
+        companyApplicationsApiUnavailable = true;
         return await fetchCompanyApplicationDetailFallback(applicationId);
     }
 };
@@ -85,6 +96,9 @@ export const fetchCompanyApplications = async (
     limit: number = 500
 ): Promise<CompanyApplicationRow[]> => {
     if (!companyId) return [];
+    if (companyApplicationsApiUnavailable) {
+        return await fetchCompanyApplicationsFallback(companyId, jobId, limit);
+    }
     const params = new URLSearchParams({
         company_id: companyId,
         limit: String(limit)
@@ -96,11 +110,17 @@ export const fetchCompanyApplications = async (
             `${BACKEND_URL}/company/applications?${params.toString()}`,
             { method: 'GET', headers: { 'Content-Type': 'application/json' } }
         );
-        if (!response.ok) return await fetchCompanyApplicationsFallback(companyId, jobId, limit);
+        if (!response.ok) {
+            if (shouldDisableCompanyApplicationsApi(response.status)) {
+                companyApplicationsApiUnavailable = true;
+            }
+            return await fetchCompanyApplicationsFallback(companyId, jobId, limit);
+        }
         const payload = await response.json();
         if (!Array.isArray(payload?.applications)) return [];
         return payload.applications.map(mapCompanyApplicationRow);
     } catch {
+        companyApplicationsApiUnavailable = true;
         return await fetchCompanyApplicationsFallback(companyId, jobId, limit);
     }
 };
@@ -110,6 +130,9 @@ export const updateCompanyApplicationStatus = async (
     status: string
 ): Promise<MutationResult> => {
     if (!applicationId) return { ok: false, via: 'failed' };
+    if (companyApplicationsApiUnavailable) {
+        return await updateCompanyApplicationStatusFallback(applicationId, status);
+    }
     try {
         const response = await authenticatedFetch(
             `${BACKEND_URL}/company/applications/${applicationId}/status`,
@@ -120,8 +143,12 @@ export const updateCompanyApplicationStatus = async (
             }
         );
         if (response.ok) return { ok: true, via: 'api' };
+        if (shouldDisableCompanyApplicationsApi(response.status)) {
+            companyApplicationsApiUnavailable = true;
+        }
         return await updateCompanyApplicationStatusFallback(applicationId, status);
     } catch {
+        companyApplicationsApiUnavailable = true;
         return await updateCompanyApplicationStatusFallback(applicationId, status);
     }
 };

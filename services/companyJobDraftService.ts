@@ -58,6 +58,8 @@ export interface JobDraftUpsertInput {
 const jsonHeaders = { 'Content-Type': 'application/json' };
 let jobDraftApiUnavailable = false;
 let rolloutSchemaApiUnavailable = false;
+const shouldDisableDraftApi = (status: number): boolean =>
+    [404, 409, 500, 501, 502, 503].includes(status);
 
 const toJson = async <T>(response: Response): Promise<T> => {
     if (!response.ok) {
@@ -72,7 +74,7 @@ export const isMissingFeatureError = (error: unknown): boolean => {
 };
 
 const markDraftApiUnavailableIfNeeded = (error: unknown) => {
-    if (isMissingFeatureError(error)) {
+    if (error instanceof ApiRequestError && shouldDisableDraftApi(error.status)) {
         jobDraftApiUnavailable = true;
         rolloutSchemaApiUnavailable = true;
     }
@@ -271,7 +273,7 @@ export const fetchCompanySchemaRolloutStatus = async (): Promise<CompanySchemaRo
             headers: jsonHeaders
         });
         if (!response.ok) {
-            if ([404, 409, 501].includes(response.status)) {
+            if (shouldDisableDraftApi(response.status)) {
                 rolloutSchemaApiUnavailable = true;
             }
             return null;

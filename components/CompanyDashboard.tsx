@@ -16,6 +16,7 @@ import { useCompanyJobActions } from '../hooks/useCompanyJobActions';
 import { useCompanyDashboardNavigation } from '../hooks/useCompanyDashboardNavigation';
 import CompanyApplicationsWorkspace from './company/CompanyApplicationsWorkspace';
 import CompanyAssessmentsWorkspace from './company/CompanyAssessmentsWorkspace';
+import CompanyDashboardContent from './company/CompanyDashboardContent';
 import CompanyCandidatesWorkspace from './company/CompanyCandidatesWorkspace';
 import CompanyDashboardShell from './company/CompanyDashboardShell';
 import CompanyOverviewWorkspace from './company/CompanyOverviewWorkspace';
@@ -492,12 +493,15 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
     return (
         <CompanyDashboardShell activeTab={activeTab} onTabChange={setActiveTab}>
-            {activeTab === 'overview' && renderWorkspaceOverview()}
-            {activeTab === 'settings' && effectiveCompanyProfile && <CompanySettings profile={effectiveCompanyProfile} onSave={onProfileUpdate || (() => { })} onDeleteAccount={onDeleteAccount} />}
-            {activeTab === 'jobs' && renderJobs()}
-            {activeTab === 'applications' && renderApplications()}
-            {activeTab === 'assessments' && renderAssessments()}
-            {activeTab === 'candidates' && renderCandidates()}
+            <CompanyDashboardContent
+                activeTab={activeTab}
+                overview={renderWorkspaceOverview}
+                settings={() => effectiveCompanyProfile ? <CompanySettings profile={effectiveCompanyProfile} onSave={onProfileUpdate || (() => { })} onDeleteAccount={onDeleteAccount} /> : null}
+                jobs={renderJobs}
+                applications={renderApplications}
+                assessments={renderAssessments}
+                candidates={renderCandidates}
+            />
             <PlanUpgradeModal
                 isOpen={showUpgradeModal.open}
                 onClose={() => setShowUpgradeModal({ open: false })}

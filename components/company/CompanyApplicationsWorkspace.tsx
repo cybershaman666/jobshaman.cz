@@ -6,6 +6,7 @@ import ApplicationDossierDetail from './ApplicationDossierDetail';
 import MetricCard from './MetricCard';
 import SectionHeader from './SectionHeader';
 import WorkspaceHeader from './WorkspaceHeader';
+import WorkspacePanel from './WorkspacePanel';
 import WorkspaceSyncBadge from './WorkspaceSyncBadge';
 
 interface CompanyApplicationsWorkspaceProps {
@@ -55,12 +56,12 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
     const sharedJcfpmCount = applications.filter((app) => app.hasJcfpm).length;
     const openApplications = applications.filter((app) => ['pending', 'reviewed', 'shortlisted'].includes(String(app.status || 'pending')));
     return (
-        <div className="space-y-3 animate-in fade-in">
+        <div className="space-y-4 animate-in fade-in">
             <WorkspaceHeader
                 badgeIcon={<Briefcase size={12} />}
-                badgeLabel={t('company.applications.title', { defaultValue: 'Applications workspace' })}
-                title={t('company.applications.title', { defaultValue: 'Applications workspace' })}
-                subtitle={t('company.applications.subtitle', { defaultValue: 'Review structured application dossiers, update statuses, and inspect shared JCFPM context.' })}
+                badgeLabel={t('company.applications.title', { defaultValue: 'Hiring inbox' })}
+                title={t('company.applications.title', { defaultValue: 'Hiring inbox' })}
+                subtitle={t('company.applications.subtitle', { defaultValue: 'Review applicants, move them through the process, and keep each profile in context.' })}
                 actions={
                     <>
                         <WorkspaceSyncBadge
@@ -68,7 +69,7 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                             syncedAt={lastSyncedAt}
                             onRefresh={onRefresh}
                         />
-                        <div className="rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 min-w-[240px]">
+                        <div className="rounded-2xl border border-slate-200/80 bg-white/85 px-4 py-3 min-w-[240px] shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-950/50">
                             <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">
                                 {t('company.jobs.open_applications', { defaultValue: 'Open applications' })}
                             </div>
@@ -84,9 +85,9 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                         </div>
                         <button
                             onClick={onOpenJobs}
-                            className="px-4 py-3 rounded-xl border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            className="rounded-full border border-slate-200/80 bg-white/80 px-4 py-3 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:hover:bg-slate-800"
                         >
-                            {t('company.workspace.actions.open_jobs', { defaultValue: 'Open jobs' })}
+                            {t('company.workspace.actions.open_jobs', { defaultValue: 'Open roles' })}
                         </button>
                     </>
                 }
@@ -96,32 +97,32 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                 <MetricCard
                     label={t('company.workspace.labels.applications', { defaultValue: 'Applications' })}
                     value={applications.length}
-                    hint={t('company.workspace.cards.recent_applications_desc', { defaultValue: 'Open a dossier, move status, or jump directly into the linked review flow.' })}
+                    hint={t('company.workspace.cards.recent_applications_desc', { defaultValue: 'See who just applied, open the profile, and move them forward in one click.' })}
                 />
                 <MetricCard
-                    label={t('company.workspace.metrics.review_queue', { defaultValue: 'Review queue' })}
+                    label={t('company.workspace.metrics.review_queue', { defaultValue: 'Needs review' })}
                     value={openApplications.length}
                     hint={t('company.workspace.metrics.review_queue_hint', { defaultValue: 'Applications still need recruiter action or status progression.' })}
                 />
                 <MetricCard
-                    label={t('company.applications.metrics.shared_jcfpm', { defaultValue: 'Shared JCFPM' })}
+                    label={t('company.applications.metrics.shared_jcfpm', { defaultValue: 'Shared profile signal' })}
                     value={sharedJcfpmCount}
-                    hint={t('company.applications.metrics.shared_jcfpm_hint', { defaultValue: 'Shared JCFPM signals are visible directly inside recruiter dossiers.' })}
+                    hint={t('company.applications.metrics.shared_jcfpm_hint', { defaultValue: 'Candidates who shared a deeper profile signal for better hiring context.' })}
                 />
                 <MetricCard
-                    label={t('company.assessment_library.selected_role', { defaultValue: 'Selected role' })}
+                    label={t('company.assessment_library.selected_role', { defaultValue: 'Role in focus' })}
                     value={<span className="text-base font-semibold">{selectedJob?.title || t('company.dashboard.table.position')}</span>}
                     hint={selectedJob?.location || t('company.dashboard.empty_state_desc')}
                 />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,400px)_minmax(0,1fr)] gap-3">
-                <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+                <WorkspacePanel className="p-3">
                     <SectionHeader
                         title={t('company.candidates.applications_title', { defaultValue: 'Applications' })}
                         subtitle={t('company.workspace.cards.recent_applications_desc', { defaultValue: 'Open a dossier, move status, or jump directly into the linked review flow.' })}
-                        aside={applicationsLoading ? (
-                            <span className="text-xs text-slate-500">{t('common.loading') || 'Loading...'}</span>
+                            aside={applicationsLoading ? (
+                            <span className="text-xs text-slate-500 dark:text-slate-400">{t('common.loading') || 'Loading...'}</span>
                         ) : undefined}
                         className="mb-3"
                     />
@@ -132,14 +133,14 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                     ) : (
                         <div className="space-y-2.5">
                             {applications.map((app) => (
-                                <div key={app.id} className="rounded-xl border border-slate-200 dark:border-slate-800 px-3 py-2.5">
+                                <div key={app.id} className="rounded-2xl border border-slate-200/80 bg-white/85 px-3 py-3 shadow-[0_10px_28px_-24px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-950/30">
                                     <div className="flex flex-col gap-2.5">
                                         <div className="flex items-start justify-between gap-3">
                                             <div className="min-w-0">
                                                 <div className="text-sm font-semibold text-slate-800 dark:text-slate-100">
                                                     {app.candidate_name || t('company.applications.labels.candidate', { defaultValue: 'Candidate' })}
                                                 </div>
-                                                <div className="mt-1 text-xs text-slate-500 space-y-1">
+                                                <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 space-y-1">
                                                     <div>{app.job_title || t('company.dashboard.table.position')}</div>
                                                     {app.candidateHeadline && (
                                                         <div className="text-[11px] text-slate-400">{app.candidateHeadline}</div>
@@ -149,7 +150,7 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                                             <select
                                                 value={app.status}
                                                 onChange={(e) => onStatusChange(app.id, e.target.value as CompanyApplicationRow['status'])}
-                                                className="text-xs px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+                                                className="rounded-full border border-slate-200 dark:border-slate-700 bg-white px-2.5 py-1 text-xs dark:bg-slate-900"
                                                 disabled={applicationsUpdating[app.id]}
                                             >
                                                 <option value="pending">{t('company.dashboard.status.pending')}</option>
@@ -178,13 +179,13 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                                         <div className="flex justify-end">
                                             <button
                                                 onClick={() => onOpenApplication(app.id)}
-                                                className={`text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+                                                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
                                                     selectedApplicationId === app.id
                                                         ? 'border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-900/20 dark:text-cyan-300'
                                                         : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300'
                                                 }`}
                                             >
-                                                {t('company.candidates.open_application', { defaultValue: 'Open' })}
+                                                {t('company.candidates.open_application', { defaultValue: 'Review' })}
                                             </button>
                                         </div>
                                     </div>
@@ -192,9 +193,9 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                             ))}
                         </div>
                     )}
-                </div>
+                </WorkspacePanel>
 
-                <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 space-y-3">
+                <WorkspacePanel className="p-3" bodyClassName="space-y-3">
                     <SectionHeader
                         title={t('company.candidates.application_review_title', { defaultValue: 'Application review' })}
                         subtitle={selectedApplicationDetail?.submitted_at
@@ -211,7 +212,7 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                     />
 
                     {applicationDetailLoading ? (
-                        <div className="text-sm text-slate-500">{t('common.loading') || 'Loading...'}</div>
+                        <div className="text-sm text-slate-500 dark:text-slate-400">{t('common.loading') || 'Loading...'}</div>
                     ) : selectedApplicationDetail ? (
                         <ApplicationDossierDetail
                             dossier={selectedApplicationDetail}
@@ -225,7 +226,7 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                             {t('company.applications.detail.select_prompt', { defaultValue: 'Select an application from the queue to review the full dossier.' })}
                         </div>
                     )}
-                </div>
+                </WorkspacePanel>
             </div>
         </div>
     );

@@ -233,28 +233,17 @@ export const generateAssessment = async (role: string, skills: string[], difficu
   try {
     const payload = await callAiExecute('generate_assessment', { role, skills, difficulty });
     return buildAssessment(payload?.assessment);
-  } catch (authError) {
-    try {
-      const response = await fetch(`${BACKEND_URL}/ai/execute-public`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'generate_assessment', params: { role, skills, difficulty } })
-      });
-      if (!response.ok) throw new Error(await parseErrorDetail(response, 'Assessment generation failed'));
-      const payload = await response.json();
-      return buildAssessment(payload?.assessment);
-    } catch (e) {
-      console.error('Assessment generation failed:', e, authError);
-      return {
-        id: crypto.randomUUID(),
-        title: 'Generování testu nebylo úspěšné',
-        role,
-        description: 'Služba pro generování testů je momentálně přetížená. Zkuste to prosím později.',
-        timeLimitSeconds: 600,
-        questions: [],
-        createdAt: new Date().toISOString()
-      };
-    }
+  } catch (e) {
+    console.error('Assessment generation failed:', e);
+    return {
+      id: crypto.randomUUID(),
+      title: 'Generování testu nebylo úspěšné',
+      role,
+      description: 'Služba pro generování testů je momentálně přetížená nebo není dostupná pro váš tarif. Zkuste to prosím později.',
+      timeLimitSeconds: 600,
+      questions: [],
+      createdAt: new Date().toISOString()
+    };
   }
 };
 

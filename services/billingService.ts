@@ -44,18 +44,20 @@ export const isSubscriptionExpired = (company: CompanyProfile): boolean => {
  */
 export const canCompanyUseFeature = (company: CompanyProfile, feature: PremiumFeature, _userEmail?: string): boolean => {
     // Basic rules for features
-    const tier = company.subscription?.tier || 'starter';
+    const tier = company.subscription?.tier || 'free';
 
     // Enterprise has everything
     if (tier === 'enterprise') return true;
 
     switch (feature) {
+        case 'COMPANY_AI_AD':
+            return tier === 'starter' || tier === 'growth' || tier === 'professional';
         case 'COMPANY_RECOMMENDATIONS':
             return tier === 'growth' || tier === 'professional'; // Enterprise already returned true above
         case 'COMPANY_UNLIMITED_JOBS':
             return false; // Only enterprise (line 50)
         default:
-            return true;
+            return false;
     }
 };
 

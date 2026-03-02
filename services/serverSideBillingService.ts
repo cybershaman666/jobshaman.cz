@@ -38,6 +38,7 @@ type SubscriptionStatus = {
   assessmentsAvailable: number;
   assessmentsUsed: number;
   jobPostingsAvailable: number;
+  jobPostingsUsed?: number;
   stripeSubscriptionId?: string;
   canceledAt?: string;
 };

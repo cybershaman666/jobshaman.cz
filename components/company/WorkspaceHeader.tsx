@@ -16,17 +16,17 @@ const WorkspaceHeader: React.FC<WorkspaceHeaderProps> = ({
   actions
 }) => {
   return (
-    <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+    <div className="rounded-[24px] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(6,182,212,0.12),_transparent_34%),linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.96))] p-4 shadow-[0_20px_48px_-36px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(6,182,212,0.18),_transparent_30%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(2,6,23,0.94))]">
       <div className="flex flex-col xl:flex-row gap-4 xl:items-center xl:justify-between">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-widest text-cyan-700 dark:border-cyan-900/30 dark:bg-cyan-950/20 dark:text-cyan-300">
+          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-white/85 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-700 backdrop-blur dark:border-cyan-900/30 dark:bg-slate-950/40 dark:text-cyan-300">
             {badgeIcon}
             {badgeLabel}
           </div>
-          <h2 className="mt-3 text-xl font-bold text-slate-900 dark:text-white">
+          <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950 dark:text-white">
             {title}
           </h2>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600 dark:text-slate-300">
             {subtitle}
           </p>
         </div>

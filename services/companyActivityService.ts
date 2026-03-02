@@ -24,6 +24,8 @@ export interface CreateCompanyActivityEventInput {
 let companyActivityApiUnavailable = false;
 
 const jsonHeaders = { 'Content-Type': 'application/json' };
+const shouldDisableCompanyActivityApi = (status: number): boolean =>
+    [404, 409, 500, 501, 502, 503].includes(status);
 
 const toJson = async <T>(response: Response): Promise<T> => {
     if (!response.ok) {
@@ -34,7 +36,10 @@ const toJson = async <T>(response: Response): Promise<T> => {
 };
 
 const markUnavailableIfNeeded = (error: unknown) => {
-    if (isMissingFeatureError(error)) {
+    if (
+        isMissingFeatureError(error) ||
+        (error instanceof ApiRequestError && shouldDisableCompanyActivityApi(error.status))
+    ) {
         companyActivityApiUnavailable = true;
     }
 };

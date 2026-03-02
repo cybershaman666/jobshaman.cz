@@ -83,7 +83,9 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
     onSaveOptimizedCv
 }) => {
     const { t, i18n } = useTranslation();
-    const isPremium = userProfile.subscription?.tier === 'premium';
+    const rawTier = String(userProfile.subscription?.tier || 'free').toLowerCase();
+    const normalizedTier = rawTier !== 'premium' && rawTier.endsWith('_premium') ? 'premium' : rawTier;
+    const isPremium = normalizedTier === 'premium';
     const [isOptimizingCv, setIsOptimizingCv] = useState(false);
     const [optimizedCvText, setOptimizedCvText] = useState('');
     const [optimizationImprovements, setOptimizationImprovements] = useState<string[]>([]);

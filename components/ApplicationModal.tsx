@@ -19,7 +19,58 @@ interface ApplicationModalProps {
 type Step = 'form' | 'submitting' | 'success';
 
 const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, onClose }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const locale = (i18n.language || 'cs').split('-')[0];
+  const jcfpmUiCopy = {
+    cs: {
+      shareDesc: 'Vyberte, kolik z výsledku JCFPM chcete sdílet s firmou. Vaše vlastní personalizace JHI zůstává aktivní tak jako tak.',
+      premiumDesc: 'Ve free verzi zůstává JCFPM jen pro vaše soukromé doporučování v JobShamanu. Premium odemkne sdílení s firmou a plný rozbor.',
+      missingDesc: 'JCFPM ještě nemáte dokončený, takže se s přihláškou odešle jen životopis a základní shrnutí profilu.',
+      noneDesc: 'JCFPM zůstane jen pro vaše interní doporučování v JobShamanu.',
+      premiumLocked: 'Premium: sdílení s firmou a plný rozbor',
+    },
+    en: {
+      shareDesc: 'Choose how much of your JCFPM result you want to share with the employer. Your own JHI personalization stays active either way.',
+      premiumDesc: 'In the free plan, JCFPM stays only in your private JobShaman recommendations. Premium unlocks employer sharing and the full analysis.',
+      missingDesc: 'You have not completed JCFPM yet, so only your CV and basic profile summary will be included with this application.',
+      noneDesc: 'JCFPM stays only in your internal JobShaman recommendations.',
+      premiumLocked: 'Premium: employer sharing and full analysis',
+    },
+    de: {
+      shareDesc: 'Wählen Sie, wie viel Ihres JCFPM-Ergebnisses Sie mit dem Arbeitgeber teilen möchten. Ihre eigene JHI-Personalisierung bleibt in jedem Fall aktiv.',
+      premiumDesc: 'Im Free-Tarif bleibt JCFPM nur in Ihren privaten JobShaman-Empfehlungen. Premium schaltet das Teilen mit Arbeitgebern und die vollständige Analyse frei.',
+      missingDesc: 'Sie haben JCFPM noch nicht abgeschlossen. Mit dieser Bewerbung werden daher nur Lebenslauf und eine kurze Profilzusammenfassung geteilt.',
+      noneDesc: 'JCFPM bleibt nur in Ihren internen JobShaman-Empfehlungen.',
+      premiumLocked: 'Premium: Teilen mit Arbeitgebern und volle Analyse',
+    },
+    at: {
+      shareDesc: 'Wählen Sie, wie viel Ihres JCFPM-Ergebnisses Sie mit dem Arbeitgeber teilen möchten. Ihre eigene JHI-Personalisierung bleibt in jedem Fall aktiv.',
+      premiumDesc: 'Im Free-Tarif bleibt JCFPM nur in Ihren privaten JobShaman-Empfehlungen. Premium schaltet das Teilen mit Arbeitgebern und die vollständige Analyse frei.',
+      missingDesc: 'Sie haben JCFPM noch nicht abgeschlossen. Mit dieser Bewerbung werden daher nur Lebenslauf und eine kurze Profilzusammenfassung geteilt.',
+      noneDesc: 'JCFPM bleibt nur in Ihren internen JobShaman-Empfehlungen.',
+      premiumLocked: 'Premium: Teilen mit Arbeitgebern und volle Analyse',
+    },
+    pl: {
+      shareDesc: 'Wybierz, ile wyniku JCFPM chcesz udostępnić pracodawcy. Twoja własna personalizacja JHI pozostanie aktywna niezależnie od wyboru.',
+      premiumDesc: 'W wersji free JCFPM zostaje tylko w Twoich prywatnych rekomendacjach JobShaman. Premium odblokowuje udostępnianie pracodawcy i pełną analizę.',
+      missingDesc: 'Nie ukończyłeś jeszcze JCFPM, więc z tym zgłoszeniem zostanie wysłane tylko CV i krótkie podsumowanie profilu.',
+      noneDesc: 'JCFPM pozostaje tylko w Twoich wewnętrznych rekomendacjach JobShaman.',
+      premiumLocked: 'Premium: udostępnianie pracodawcy i pełna analiza',
+    },
+    sk: {
+      shareDesc: 'Vyberte si, koľko z výsledku JCFPM chcete zdieľať so zamestnávateľom. Vaša vlastná personalizácia JHI zostane aktívna bez ohľadu na výber.',
+      premiumDesc: 'Vo free verzii zostáva JCFPM len vo vašich súkromných odporúčaniach v JobShamane. Premium odomkne zdieľanie so zamestnávateľom a plnú analýzu.',
+      missingDesc: 'JCFPM ešte nemáte dokončený, takže s touto žiadosťou odošleme len životopis a krátke zhrnutie profilu.',
+      noneDesc: 'JCFPM zostane len vo vašich interných odporúčaniach v JobShamane.',
+      premiumLocked: 'Premium: zdieľanie so zamestnávateľom a plná analýza',
+    }
+  }[locale] || {
+    shareDesc: 'Choose how much of your JCFPM result you want to share with the employer. Your own JHI personalization stays active either way.',
+    premiumDesc: 'In the free plan, JCFPM stays only in your private JobShaman recommendations. Premium unlocks employer sharing and the full analysis.',
+    missingDesc: 'You have not completed JCFPM yet, so only your CV and basic profile summary will be included with this application.',
+    noneDesc: 'JCFPM stays only in your internal JobShaman recommendations.',
+    premiumLocked: 'Premium: employer sharing and full analysis',
+  };
   const [step, setStep] = useState<Step>('form');
 
   // Form State
@@ -54,6 +105,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
 
   const showAiAssessment = !isManualLabor;
   const hasPremiumCoverLetter = effectiveTier === 'premium';
+  const hasPremiumJcfpmSharing = effectiveTier === 'premium';
   const selectedCv = cvDocuments.find(doc => doc.id === selectedCvId) || cvDocuments.find(doc => doc.isActive) || null;
   const jcfpmSnapshot = user.preferences?.jcfpm_v1 || null;
   const jcfpmAdjustment = user.preferences?.jcfpm_jhi_adjustment_v1 || null;
@@ -137,7 +189,8 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
     setStep('submitting');
 
     try {
-      const effectiveJcfpmShareLevel: ApplicationJcfpmShareLevel = jcfpmSnapshot ? jcfpmShareLevel : 'do_not_share';
+      const effectiveJcfpmShareLevel: ApplicationJcfpmShareLevel =
+        jcfpmSnapshot && hasPremiumJcfpmSharing ? jcfpmShareLevel : 'do_not_share';
       const sharedJcfpmPayload = buildEmployerVisibleJcfpmPayload(
         jcfpmSnapshot,
         effectiveJcfpmShareLevel,
@@ -566,11 +619,13 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
           <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-4 space-y-3">
             <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
               {jcfpmSnapshot
-                ? t('apply.jcfpm_sharing_desc', { defaultValue: 'Choose how much of your JCFPM result to share with the employer. Your own personalized JHI stays active either way.' })
-                : t('apply.jcfpm_sharing_missing_desc', { defaultValue: 'You have not completed JCFPM yet, so only your CV and profile summary will be shared with this application.' })}
+                ? hasPremiumJcfpmSharing
+                  ? t('apply.jcfpm_sharing_desc', { defaultValue: jcfpmUiCopy.shareDesc })
+                  : t('apply.jcfpm_sharing_premium_desc', { defaultValue: jcfpmUiCopy.premiumDesc })
+                : t('apply.jcfpm_sharing_missing_desc', { defaultValue: jcfpmUiCopy.missingDesc })}
             </p>
 
-            {jcfpmSnapshot ? (
+            {jcfpmSnapshot && hasPremiumJcfpmSharing ? (
               <div className="space-y-2">
                 <label className="flex items-start gap-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 cursor-pointer">
                   <input
@@ -622,11 +677,19 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                       {t('apply.jcfpm_share_none', { defaultValue: 'Do not share' })}
                     </span>
                     <span className="block text-xs text-slate-500 dark:text-slate-400">
-                      {t('apply.jcfpm_share_none_desc', { defaultValue: 'Keeps JCFPM only for your internal JobShaman personalization.' })}
+                      {t('apply.jcfpm_share_none_desc', { defaultValue: jcfpmUiCopy.noneDesc })}
                     </span>
                   </span>
                 </label>
               </div>
+            ) : jcfpmSnapshot ? (
+              <button
+                type="button"
+                onClick={() => alert(t('alerts.premium_only_feature'))}
+                className="inline-flex items-center gap-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-300"
+              >
+                {t('apply.jcfpm_sharing_premium_locked', { defaultValue: jcfpmUiCopy.premiumLocked })}
+              </button>
             ) : null}
           </div>
         </div>

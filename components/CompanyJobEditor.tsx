@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Markdown from 'markdown-to-jsx';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CheckCircle2, Copy, Eye, Loader2, PauseCircle, PlayCircle, RefreshCw, Save, Sparkles, UploadCloud, XCircle } from 'lucide-react';
@@ -19,7 +19,6 @@ import {
 } from '../services/companyJobDraftService';
 import { optimizeJobDescription } from '../services/geminiService';
 import { supabase } from '../services/supabaseService';
-import { formatJobDescription } from '../utils/formatters';
 
 type JobDraftTextSection =
   | 'role_summary'
@@ -34,6 +33,7 @@ interface CompanyJobEditorProps {
   jobs: Job[];
   userEmail?: string;
   seedJobId?: string | null;
+  createDraftSignal?: number;
   onSeedConsumed?: () => void;
   onJobLifecycleChange?: (
     jobId: string | number,
@@ -42,13 +42,13 @@ interface CompanyJobEditorProps {
   ) => void;
 }
 
-const TEXT_SECTIONS: Array<{ key: JobDraftTextSection; label: string; placeholder: string }> = [
-  { key: 'role_summary', label: 'Role Summary', placeholder: 'What is this role here to achieve in the next 12 months?' },
-  { key: 'team_intro', label: 'Team Intro', placeholder: 'Who will this person work with, and what is the team context?' },
-  { key: 'responsibilities', label: 'Responsibilities', placeholder: 'List the core responsibilities. One point per line works best.' },
-  { key: 'requirements', label: 'Requirements', placeholder: 'List the must-have capabilities. Be specific and avoid vague hype.' },
-  { key: 'nice_to_have', label: 'Nice to Have', placeholder: 'What would be helpful, but not required on day one?' },
-  { key: 'application_instructions', label: 'Application Details', placeholder: 'Explain how the hiring process works, what candidates should send, and what happens next.' }
+const TEXT_SECTIONS: Array<{ key: JobDraftTextSection }> = [
+  { key: 'role_summary' },
+  { key: 'team_intro' },
+  { key: 'responsibilities' },
+  { key: 'requirements' },
+  { key: 'nice_to_have' },
+  { key: 'application_instructions' }
 ];
 
 const DEFAULT_VALIDATION: JobValidationReport = {
@@ -58,6 +58,16 @@ const DEFAULT_VALIDATION: JobValidationReport = {
   transparencyScore: 0,
   clarityScore: 0
 };
+
+const ensureArray = <T,>(value: T[] | null | undefined): T[] => Array.isArray(value) ? value : [];
+
+const normalizeValidationReport = (value: Partial<JobValidationReport> | null | undefined): JobValidationReport => ({
+  blockingIssues: ensureArray(value?.blockingIssues),
+  warnings: ensureArray(value?.warnings),
+  suggestions: ensureArray(value?.suggestions),
+  transparencyScore: typeof value?.transparencyScore === 'number' ? value.transparencyScore : 0,
+  clarityScore: typeof value?.clarityScore === 'number' ? value.clarityScore : 0
+});
 
 const getLocalDraftStorageKey = (companyId?: string) => `jobshaman-company-job-drafts:${companyId || 'unknown'}`;
 const getLocalVersionStorageKey = (companyId?: string) => `jobshaman-company-job-versions:${companyId || 'unknown'}`;
@@ -119,23 +129,42 @@ const toDraftInput = (draft: JobDraft) => ({
   editor_state: draft.editor_state || null
 });
 
-const composePreviewMarkdown = (draft: JobDraft, companyName: string): string => {
+const composePreviewMarkdown = (
+  draft: JobDraft,
+  companyName: string,
+  labels: {
+    untitledRole: string;
+    company: string;
+    location: string;
+    workSetup: string;
+    contract: string;
+    compensation: string;
+    salaryTimeframeFallback: string;
+    roleSummary: string;
+    teamIntro: string;
+    responsibilities: string;
+    requirements: string;
+    niceToHave: string;
+    benefits: string;
+    applicationDetails: string;
+  }
+): string => {
   const sections: string[] = [
-    `# ${draft.title || 'Untitled role'}`,
-    `**Company:** ${companyName}`,
-    draft.location_public ? `**Location:** ${draft.location_public}` : '',
-    draft.work_model ? `**Work setup:** ${draft.work_model}` : '',
-    draft.contract_type ? `**Contract:** ${draft.contract_type}` : '',
+    `# ${draft.title || labels.untitledRole}`,
+    `**${labels.company}:** ${companyName}`,
+    draft.location_public ? `**${labels.location}:** ${draft.location_public}` : '',
+    draft.work_model ? `**${labels.workSetup}:** ${draft.work_model}` : '',
+    draft.contract_type ? `**${labels.contract}:** ${draft.contract_type}` : '',
     draft.salary_from || draft.salary_to
-      ? `**Compensation:** ${draft.salary_from || '—'} - ${draft.salary_to || '—'} ${draft.salary_currency || 'CZK'} / ${draft.salary_timeframe || 'month'}`
+      ? `**${labels.compensation}:** ${draft.salary_from || '—'} - ${draft.salary_to || '—'} ${draft.salary_currency || 'CZK'} / ${draft.salary_timeframe || labels.salaryTimeframeFallback}`
       : '',
-    draft.role_summary ? `## Role Summary\n${draft.role_summary}` : '',
-    draft.team_intro ? `## Team Intro\n${draft.team_intro}` : '',
-    draft.responsibilities ? `## Responsibilities\n${compactLines(draft.responsibilities).map((line) => `- ${line}`).join('\n')}` : '',
-    draft.requirements ? `## Requirements\n${compactLines(draft.requirements).map((line) => `- ${line}`).join('\n')}` : '',
-    draft.nice_to_have ? `## Nice to Have\n${compactLines(draft.nice_to_have).map((line) => `- ${line}`).join('\n')}` : '',
-    draft.benefits_structured?.length ? `## Benefits\n${draft.benefits_structured.map((line) => `- ${line}`).join('\n')}` : '',
-    draft.application_instructions ? `## Application Details\n${draft.application_instructions}` : ''
+    draft.role_summary ? `## ${labels.roleSummary}\n${draft.role_summary}` : '',
+    draft.team_intro ? `## ${labels.teamIntro}\n${draft.team_intro}` : '',
+    draft.responsibilities ? `## ${labels.responsibilities}\n${compactLines(draft.responsibilities).map((line) => `- ${line}`).join('\n')}` : '',
+    draft.requirements ? `## ${labels.requirements}\n${compactLines(draft.requirements).map((line) => `- ${line}`).join('\n')}` : '',
+    draft.nice_to_have ? `## ${labels.niceToHave}\n${compactLines(draft.nice_to_have).map((line) => `- ${line}`).join('\n')}` : '',
+    draft.benefits_structured?.length ? `## ${labels.benefits}\n${draft.benefits_structured.map((line) => `- ${line}`).join('\n')}` : '',
+    draft.application_instructions ? `## ${labels.applicationDetails}\n${draft.application_instructions}` : ''
   ];
 
   return sections.filter(Boolean).join('\n\n');
@@ -228,6 +257,19 @@ const createLocalDraftRecord = (
   } as JobDraft;
 };
 
+const normalizeDraft = (draft: JobDraft): JobDraft => ({
+  ...draft,
+  benefits_structured: ensureArray(draft.benefits_structured),
+  quality_report: normalizeValidationReport(draft.quality_report),
+  editor_state: draft.editor_state || { selected_section: 'role_summary' }
+});
+
+const normalizeDraftRows = (rows: JobDraft[] | null | undefined): JobDraft[] =>
+  ensureArray(rows).map(normalizeDraft);
+
+const normalizeVersionRows = (rows: JobVersion[] | null | undefined): JobVersion[] =>
+  ensureArray(rows);
+
 const createLocalDraftFromJob = (
   job: Job,
   companyProfile: CompanyProfile,
@@ -258,6 +300,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
   jobs,
   userEmail,
   seedJobId,
+  createDraftSignal = 0,
   onSeedConsumed,
   onJobLifecycleChange
 }) => {
@@ -277,22 +320,25 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [schemaStatus, setSchemaStatus] = useState<CompanySchemaRolloutStatus | null>(null);
   const [usesLocalFallback, setUsesLocalFallback] = useState(false);
+  const [highlightedDraftId, setHighlightedDraftId] = useState<string | null>(null);
   const [optimizingSection, setOptimizingSection] = useState<JobDraftTextSection | null>(null);
   const [pendingAiSection, setPendingAiSection] = useState<JobDraftTextSection | null>(null);
   const [pendingAiResult, setPendingAiResult] = useState<{ rewrittenText: string; removedCliches: string[]; improvedClarity: string } | null>(null);
+  const lastHandledCreateDraftSignal = useRef(0);
+  const highlightResetTimer = useRef<number | null>(null);
 
   const linkedJob = useMemo(
     () => jobs.find((item) => draft?.job_id != null && String(item.id) === String(draft.job_id)) || null,
     [jobs, draft?.job_id]
   );
 
-  const validation = draft?.quality_report || DEFAULT_VALIDATION;
+  const validation = normalizeValidationReport(draft?.quality_report || DEFAULT_VALIDATION);
   const activeSection = (draft?.editor_state?.selected_section as JobDraftTextSection | undefined) || 'role_summary';
   const localDraftStorageKey = useMemo(() => getLocalDraftStorageKey(companyProfile.id), [companyProfile.id]);
   const localVersionStorageKey = useMemo(() => getLocalVersionStorageKey(companyProfile.id), [companyProfile.id]);
 
   const loadLocalDrafts = (): JobDraft[] => {
-    const rows = readLocalJson<JobDraft[]>(localDraftStorageKey, []);
+    const rows = normalizeDraftRows(readLocalJson<JobDraft[]>(localDraftStorageKey, []));
     return rows.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
   };
 
@@ -334,7 +380,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     const loadDrafts = async () => {
       setLoadingDrafts(true);
       try {
-        const items = await listCompanyJobDrafts();
+        const items = normalizeDraftRows(await listCompanyJobDrafts());
         if (!active) return;
         setDrafts(items);
         if (!selectedDraftId && items[0]) {
@@ -380,7 +426,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     const loadVersions = async () => {
       setVersionsLoading(true);
       try {
-        const rows = await listJobVersions(draft.job_id as string | number);
+        const rows = normalizeVersionRows(await listJobVersions(draft.job_id as string | number));
         if (!active) return;
         setVersions(rows);
       } catch (error) {
@@ -401,7 +447,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     let active = true;
     const openSeedDraft = async () => {
       try {
-        const nextDraft = await createEditDraftFromJob(seedJobId);
+        const nextDraft = normalizeDraft(await createEditDraftFromJob(seedJobId));
         if (!active) return;
         setDrafts((prev) => {
           const withoutDuplicate = prev.filter((item) => item.id !== nextDraft.id);
@@ -414,7 +460,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
         if (isMissingFeatureError(error)) {
           const job = jobs.find((item) => String(item.id) === String(seedJobId));
           if (!job || !active) return;
-          const nextDraft = createLocalDraftFromJob(job, companyProfile, userEmail);
+          const nextDraft = normalizeDraft(createLocalDraftFromJob(job, companyProfile, userEmail));
           setUsesLocalFallback(true);
           upsertLocalDraft(nextDraft);
           setDrafts((prev) => [nextDraft, ...prev.filter((item) => item.id !== nextDraft.id)]);
@@ -436,12 +482,24 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
   }, [seedJobId, onSeedConsumed, jobs, companyProfile, userEmail]);
 
   const updateDraft = (next: JobDraft) => {
-    setDraft(next);
-    setSelectedDraftId(next.id);
-    setDrafts((prev) => [next, ...prev.filter((item) => item.id !== next.id)]);
-    if (usesLocalFallback || String(next.id).startsWith('local-')) {
-      upsertLocalDraft(next);
+    const normalized = normalizeDraft(next);
+    setDraft(normalized);
+    setSelectedDraftId(normalized.id);
+    setDrafts((prev) => [normalized, ...prev.filter((item) => item.id !== normalized.id)]);
+    if (usesLocalFallback || String(normalized.id).startsWith('local-')) {
+      upsertLocalDraft(normalized);
     }
+  };
+
+  const flashDraftHighlight = (draftId: string) => {
+    setHighlightedDraftId(draftId);
+    if (highlightResetTimer.current) {
+      window.clearTimeout(highlightResetTimer.current);
+    }
+    highlightResetTimer.current = window.setTimeout(() => {
+      setHighlightedDraftId((current) => (current === draftId ? null : current));
+      highlightResetTimer.current = null;
+    }, 2500);
   };
 
   const handleCreateDraft = async () => {
@@ -450,19 +508,22 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     setSaving(true);
     try {
       if (usesLocalFallback) {
-        const created = createLocalDraftRecord(companyProfile, userEmail);
+        const created = normalizeDraft(createLocalDraftRecord(companyProfile, userEmail));
         updateDraft(created);
+        flashDraftHighlight(created.id);
         setStatusMessage('Draft created in local compatibility mode.');
         return;
       }
-      const created = await createCompanyJobDraft(createBaseDraft(companyProfile, userEmail));
+      const created = normalizeDraft(await createCompanyJobDraft(createBaseDraft(companyProfile, userEmail)));
       updateDraft(created);
+      flashDraftHighlight(created.id);
       setStatusMessage('Draft created. You can save partial progress at any time.');
     } catch (error) {
       if (isMissingFeatureError(error)) {
         setUsesLocalFallback(true);
-        const created = createLocalDraftRecord(companyProfile, userEmail);
+        const created = normalizeDraft(createLocalDraftRecord(companyProfile, userEmail));
         updateDraft(created);
+        flashDraftHighlight(created.id);
         setStatusMessage('Draft API is not available here yet. Created a local compatibility draft instead.');
       } else {
         console.error('Failed to create job draft:', error);
@@ -473,9 +534,24 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     }
   };
 
+  useEffect(() => {
+    if (!createDraftSignal || createDraftSignal === lastHandledCreateDraftSignal.current) return;
+    lastHandledCreateDraftSignal.current = createDraftSignal;
+    void handleCreateDraft();
+  }, [createDraftSignal]);
+
+  useEffect(() => {
+    return () => {
+      if (highlightResetTimer.current) {
+        window.clearTimeout(highlightResetTimer.current);
+      }
+    };
+  }, []);
+
   const handleSelectDraft = (nextDraft: JobDraft) => {
-    setDraft(nextDraft);
-    setSelectedDraftId(nextDraft.id);
+    const normalized = normalizeDraft(nextDraft);
+    setDraft(normalized);
+    setSelectedDraftId(normalized.id);
     setPendingAiResult(null);
     setPendingAiSection(null);
     setStatusMessage(null);
@@ -651,7 +727,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
         const jobPayload = {
           title: nextDraft.title,
           company: companyProfile.name,
-          description: composePreviewMarkdown(nextDraft, companyProfile.name),
+          description: composePreviewMarkdown(nextDraft, companyProfile.name, previewLabels),
           location: nextDraft.location_public || nextDraft.workplace_address || 'Location not specified',
           salary_from: nextDraft.salary_from ?? null,
           salary_to: nextDraft.salary_to ?? null,
@@ -724,7 +800,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
         return;
       }
 
-      if (!draft.quality_report || draft.quality_report.blockingIssues.length > 0) {
+      if (!draft.quality_report || normalizeValidationReport(draft.quality_report).blockingIssues.length > 0) {
         const report = await validateCompanyJobDraft(draft.id);
         nextDraft = await updateCompanyJobDraft(draft.id, {
           ...toDraftInput(draft),
@@ -861,31 +937,48 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
     }
   };
 
-  const previewMarkdown = useMemo(() => (draft ? composePreviewMarkdown(draft, companyProfile.name) : ''), [draft, companyProfile.name]);
+  const previewLabels = useMemo(() => ({
+    untitledRole: t('company.job_editor.untitled_role', { defaultValue: 'Untitled role' }),
+    company: t('company.job_editor.preview_labels.company', { defaultValue: 'Company' }),
+    location: t('company.job_editor.preview_labels.location', { defaultValue: 'Location' }),
+    workSetup: t('company.job_editor.preview_labels.work_setup', { defaultValue: 'Work setup' }),
+    contract: t('company.job_editor.preview_labels.contract', { defaultValue: 'Contract' }),
+    compensation: t('company.job_editor.preview_labels.compensation', { defaultValue: 'Compensation' }),
+    salaryTimeframeFallback: t('company.job_editor.preview_labels.salary_timeframe_fallback', { defaultValue: 'month' }),
+    roleSummary: t('company.job_editor.section_labels.role_summary', { defaultValue: 'Role Summary' }),
+    teamIntro: t('company.job_editor.section_labels.team_intro', { defaultValue: 'Team Intro' }),
+    responsibilities: t('company.job_editor.section_labels.responsibilities', { defaultValue: 'Responsibilities' }),
+    requirements: t('company.job_editor.section_labels.requirements', { defaultValue: 'Requirements' }),
+    niceToHave: t('company.job_editor.section_labels.nice_to_have', { defaultValue: 'Nice to Have' }),
+    benefits: t('company.job_editor.benefits_label', { defaultValue: 'Benefits' }),
+    applicationDetails: t('company.job_editor.section_labels.application_instructions', { defaultValue: 'Application Details' })
+  }), [t]);
+
+  const previewMarkdown = useMemo(() => (draft ? composePreviewMarkdown(draft, companyProfile.name, previewLabels) : ''), [draft, companyProfile.name, previewLabels]);
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)_360px] gap-4 animate-in fade-in">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-[320px_minmax(0,1fr)_360px] animate-in fade-in">
       <div className="space-y-4">
-        <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
+        <div className="company-surface-elevated rounded-[24px] border border-slate-200/80 bg-[linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.96))] p-4 shadow-[0_22px_44px_-34px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-[linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(2,6,23,0.94))] space-y-3">
           <div className="flex items-center justify-between gap-2">
             <div>
-              <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                {t('company.job_editor.title', { defaultValue: 'Structured Job Editor' })}
+              <div className="text-base font-semibold tracking-tight text-slate-950 dark:text-white">
+                {t('company.job_editor.title', { defaultValue: 'Role studio' })}
               </div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">
-                {t('company.job_editor.subtitle', { defaultValue: 'Drafts, validation, preview, and publishing in one workflow.' })}
+              <div className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                {t('company.job_editor.subtitle', { defaultValue: 'Create, review, and publish a role from one calm workspace.' })}
               </div>
               {usesLocalFallback ? (
-                <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-200">
+                <div className="company-pill-surface mt-2 inline-flex items-center gap-2 rounded-full border border-amber-200/80 bg-white/80 px-2.5 py-1 text-[11px] font-semibold text-amber-800 dark:border-amber-900/30 dark:bg-slate-950/45 dark:text-amber-200">
                   <AlertTriangle size={12} />
-                  {t('company.job_editor.compat_mode', { defaultValue: 'Compatibility mode: local drafts + direct publish fallback' })}
+                  {t('company.job_editor.compat_mode', { defaultValue: 'Compatibility mode: local drafts and direct publish fallback' })}
                 </div>
               ) : null}
             </div>
             <button
               onClick={handleCreateDraft}
               disabled={saving}
-              className="inline-flex items-center gap-2 rounded-lg bg-cyan-600 px-3 py-2 text-xs font-semibold text-white hover:bg-cyan-500 disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-3.5 py-2 text-xs font-semibold text-white shadow-[0_14px_26px_-18px_rgba(15,23,42,0.9)] hover:bg-slate-800 disabled:opacity-50 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
             >
               {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
               {t('company.job_editor.new_draft', { defaultValue: 'New draft' })}
@@ -899,8 +992,8 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
           {loadingDrafts ? (
             <div className="text-sm text-slate-500 dark:text-slate-400">{t('common.loading') || 'Loading...'}</div>
           ) : drafts.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
-              {t('company.job_editor.no_drafts', { defaultValue: 'No drafts yet. Create one to start writing a structured job post.' })}
+            <div className="company-surface-soft rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/70 p-4 text-sm text-slate-500 dark:bg-slate-950/20 dark:text-slate-400">
+              {t('company.job_editor.no_drafts', { defaultValue: 'No drafts yet. Create one to start shaping your next role.' })}
             </div>
           ) : (
             <div className="space-y-2">
@@ -908,14 +1001,23 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                 <button
                   key={item.id}
                   onClick={() => handleSelectDraft(item)}
-                  className={`w-full rounded-xl border px-3 py-3 text-left transition-colors ${
-                    item.id === selectedDraftId
-                      ? 'border-cyan-200 bg-cyan-50 dark:border-cyan-800 dark:bg-cyan-900/20'
-                      : 'border-slate-200 bg-slate-50 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950/30 dark:hover:bg-slate-900'
+                  className={`w-full rounded-2xl border px-3 py-3 text-left transition-all ${
+                    highlightedDraftId === item.id
+                      ? 'border-emerald-300 bg-emerald-50 ring-2 ring-emerald-200 dark:border-emerald-700 dark:bg-emerald-900/20 dark:ring-emerald-900/40'
+                      : item.id === selectedDraftId
+                        ? 'border-cyan-200 bg-cyan-50 dark:border-cyan-800 dark:bg-cyan-900/20'
+                        : 'border-slate-200 bg-slate-50 hover:bg-slate-100 dark:border-slate-800 dark:bg-slate-950/30 dark:hover:bg-slate-900'
                   }`}
                 >
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
                     {item.title || t('company.job_editor.untitled_role', { defaultValue: 'Untitled role' })}
+                    </div>
+                    {highlightedDraftId === item.id ? (
+                      <span className="inline-flex items-center rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-200">
+                        {t('company.job_editor.new_badge', { defaultValue: 'New' })}
+                      </span>
+                    ) : null}
                   </div>
                   <div className="mt-1 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
                     <span>{item.status.replace(/_/g, ' ')}</span>
@@ -928,7 +1030,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
         </div>
 
         {schemaStatus ? (
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
+          <div className="company-surface rounded-[24px] border border-slate-200/80 bg-white/95 p-4 shadow-[0_20px_42px_-34px_rgba(15,23,42,0.42)] dark:border-slate-800 dark:bg-slate-900/92 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="text-sm font-semibold text-slate-900 dark:text-white">
                 Rollout schema check
@@ -947,7 +1049,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                 { label: 'job_drafts', probe: schemaStatus.job_drafts },
                 { label: 'job_versions', probe: schemaStatus.job_versions }
               ].map(({ label, probe }) => (
-                <div key={label} className="rounded-xl border border-slate-200 dark:border-slate-800 px-3 py-2">
+                <div key={label} className="company-surface-soft rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 px-3 py-2 dark:bg-slate-950/20">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium text-slate-800 dark:text-slate-100">{label}</span>
                     <span className={probe.ready ? 'text-emerald-600 dark:text-emerald-300' : 'text-rose-600 dark:text-rose-300'}>
@@ -965,7 +1067,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
         ) : null}
 
         {draft?.job_id ? (
-          <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
+          <div className="company-surface rounded-[24px] border border-slate-200/80 bg-white/95 p-4 shadow-[0_20px_42px_-34px_rgba(15,23,42,0.42)] dark:border-slate-800 dark:bg-slate-900/92 space-y-3">
             <div className="flex items-center justify-between gap-2">
               <div className="text-sm font-semibold text-slate-900 dark:text-white">
                 {t('company.job_editor.versions', { defaultValue: 'Versions' })}
@@ -979,7 +1081,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
             ) : (
               <div className="space-y-2">
                 {versions.slice(0, 5).map((version) => (
-                  <div key={version.id} className="rounded-xl border border-slate-200 dark:border-slate-800 px-3 py-2">
+                  <div key={version.id} className="company-surface-soft rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 px-3 py-2 dark:bg-slate-950/20">
                     <div className="text-sm font-medium text-slate-800 dark:text-slate-100">
                       {t('company.job_editor.version_label', { defaultValue: 'Version' })} {version.version_number}
                     </div>
@@ -999,26 +1101,26 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
 
       <div className="space-y-4">
         {!draft ? (
-          <div className="rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center text-slate-500 dark:text-slate-400">
-            {t('company.job_editor.empty_state', { defaultValue: 'Select an existing draft or create a new one to begin.' })}
+          <div className="company-surface rounded-[24px] border border-dashed border-slate-200 dark:border-slate-800 bg-white/90 p-8 text-center text-slate-500 shadow-[0_20px_42px_-34px_rgba(15,23,42,0.35)] dark:bg-slate-900/90 dark:text-slate-400">
+            {t('company.job_editor.empty_state', { defaultValue: 'Choose an existing draft or start a new one to begin.' })}
           </div>
         ) : (
           <>
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-4">
+            <div className="company-surface rounded-[24px] border border-slate-200/80 bg-white/95 p-4 shadow-[0_22px_44px_-34px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/92 space-y-4">
               <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {t('company.job_editor.role_basics', { defaultValue: 'Role Basics' })}
+                  <div className="text-base font-semibold tracking-tight text-slate-950 dark:text-white">
+                    {t('company.job_editor.role_basics', { defaultValue: 'Role essentials' })}
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    {t('company.job_editor.role_basics_desc', { defaultValue: 'Core publishing fields with explicit transparency checks.' })}
+                  <div className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.role_basics_desc', { defaultValue: 'The key details candidates expect to see right away.' })}
                   </div>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <button
                     onClick={handleSaveDraft}
                     disabled={saving}
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-50"
+                    className="company-pill-surface inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-50"
                   >
                     {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
                     {t('company.job_editor.save', { defaultValue: 'Save draft' })}
@@ -1026,7 +1128,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                   <button
                     onClick={handleValidateDraft}
                     disabled={validating}
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-50"
+                    className="company-pill-surface inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-50"
                   >
                     {validating ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
                     {t('company.job_editor.validate', { defaultValue: 'Validate' })}
@@ -1034,7 +1136,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                   <button
                     onClick={handlePublishDraft}
                     disabled={publishing}
-                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                    className="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white shadow-[0_14px_26px_-18px_rgba(5,150,105,0.7)] hover:bg-emerald-500 disabled:opacity-50"
                   >
                     {publishing ? <Loader2 size={14} className="animate-spin" /> : <UploadCloud size={14} />}
                     {draft.job_id
@@ -1045,114 +1147,130 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
               </div>
 
               {statusMessage && (
-                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300">
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/20 dark:text-emerald-300">
                   {statusMessage}
                 </div>
               )}
               {errorMessage && (
-                <div className="rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
+                <div className="rounded-2xl border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
                   {errorMessage}
                 </div>
               )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2 md:col-span-2">
-                  <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Role title</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.role_title', { defaultValue: 'Role title' })}
+                  </label>
                   <input
                     value={draft.title}
                     onChange={(e) => patchDraft({ title: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-base font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
-                    placeholder="Senior Product Designer"
+                    placeholder={t('company.job_editor.role_title_placeholder', { defaultValue: 'Senior Product Designer' })}
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Salary from</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.salary_from', { defaultValue: 'Salary from' })}
+                  </label>
                   <input
                     value={draft.salary_from ?? ''}
                     onChange={(e) => patchDraft({ salary_from: normalizeNumber(e.target.value) })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
-                    placeholder="60000"
+                    placeholder={t('company.job_editor.salary_from_placeholder', { defaultValue: '60000' })}
                     inputMode="numeric"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Salary to</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.salary_to', { defaultValue: 'Salary to' })}
+                  </label>
                   <input
                     value={draft.salary_to ?? ''}
                     onChange={(e) => patchDraft({ salary_to: normalizeNumber(e.target.value) })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
-                    placeholder="90000"
+                    placeholder={t('company.job_editor.salary_to_placeholder', { defaultValue: '90000' })}
                     inputMode="numeric"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Contract type</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.contract_type', { defaultValue: 'Contract type' })}
+                  </label>
                   <input
                     value={draft.contract_type || ''}
                     onChange={(e) => patchDraft({ contract_type: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
-                    placeholder="HPP"
+                    placeholder={t('company.job_editor.contract_type_placeholder', { defaultValue: 'HPP' })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Work setup</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.work_setup', { defaultValue: 'Work setup' })}
+                  </label>
                   <select
                     value={draft.work_model || 'On-site'}
                     onChange={(e) => patchDraft({ work_model: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
                   >
-                    <option value="On-site">On-site</option>
-                    <option value="Hybrid">Hybrid</option>
-                    <option value="Remote">Remote</option>
+                    <option value="On-site">{t('company.job_editor.work_setup_options.on_site', { defaultValue: 'On-site' })}</option>
+                    <option value="Hybrid">{t('company.job_editor.work_setup_options.hybrid', { defaultValue: 'Hybrid' })}</option>
+                    <option value="Remote">{t('company.job_editor.work_setup_options.remote', { defaultValue: 'Remote' })}</option>
                   </select>
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Public location</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.public_location', { defaultValue: 'Public location' })}
+                  </label>
                   <input
                     value={draft.location_public || ''}
                     onChange={(e) => patchDraft({ location_public: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
-                    placeholder="Prague / Hybrid"
+                    placeholder={t('company.job_editor.public_location_placeholder', { defaultValue: 'Prague / Hybrid' })}
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Workplace address</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.workplace_address', { defaultValue: 'Workplace address' })}
+                  </label>
                   <input
                     value={draft.workplace_address || ''}
                     onChange={(e) => patchDraft({ workplace_address: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
-                    placeholder={companyProfile.address || 'Office address'}
+                    placeholder={companyProfile.address || t('company.job_editor.workplace_address_placeholder', { defaultValue: 'Office address' })}
                   />
                 </div>
 
                 <div className="space-y-2 md:col-span-2">
-                  <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Contact email</label>
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.contact_email', { defaultValue: 'Contact email' })}
+                  </label>
                   <input
                     value={draft.contact_email || ''}
                     onChange={(e) => patchDraft({ contact_email: e.target.value })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
-                    placeholder={userEmail || 'jobs@company.com'}
+                    placeholder={userEmail || t('company.job_editor.contact_email_placeholder', { defaultValue: 'jobs@company.com' })}
                   />
                 </div>
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-4">
+            <div className="company-surface rounded-[24px] border border-slate-200/80 bg-white/95 p-4 shadow-[0_22px_44px_-34px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/92 space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                    {t('company.job_editor.sections', { defaultValue: 'Structured sections' })}
+                  <div className="text-base font-semibold tracking-tight text-slate-950 dark:text-white">
+                    {t('company.job_editor.sections', { defaultValue: 'Role story' })}
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
-                    {t('company.job_editor.sections_desc', { defaultValue: 'Write and improve one block at a time. AI suggestions stay section-specific.' })}
+                  <div className="text-xs leading-5 text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.sections_desc', { defaultValue: 'Shape each section separately so the final post stays clear and candidate-friendly.' })}
                   </div>
                 </div>
                 <button
                   onClick={() => setPreviewMode((prev) => !prev)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                  className="company-pill-surface inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                 >
                   <Eye size={14} />
                   {previewMode ? t('company.job_editor.hide_preview', { defaultValue: 'Hide preview' }) : t('company.job_editor.show_preview', { defaultValue: 'Show preview' })}
@@ -1161,12 +1279,16 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
 
               <div className="space-y-5">
                 {TEXT_SECTIONS.map((section) => (
-                  <div key={section.key} className="rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-3">
+                  <div key={section.key} className="company-surface-soft rounded-2xl border border-slate-200/80 bg-slate-50/40 p-4 space-y-3 dark:border-slate-800 dark:bg-slate-950/10">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <div className="text-sm font-semibold text-slate-800 dark:text-slate-100">{section.label}</div>
-                        <div className="text-[11px] text-slate-500 dark:text-slate-400">
-                          {draft.ai_suggestions?.[section.key] ? 'AI suggestion applied to this block.' : 'Structured text block'}
+                          <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                            {t(`company.job_editor.section_labels.${section.key}`, { defaultValue: section.key.replace(/_/g, ' ') })}
+                          </div>
+                          <div className="text-[11px] text-slate-500 dark:text-slate-400">
+                          {draft.ai_suggestions?.[section.key]
+                            ? t('company.job_editor.section_ai_polished', { defaultValue: 'Polished with AI support.' })
+                            : t('company.job_editor.section_human_hint', { defaultValue: 'Write this part in a clear, human tone.' })}
                         </div>
                       </div>
                       <button
@@ -1180,7 +1302,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                           void handleOptimizeSection(section.key);
                         }}
                         disabled={optimizingSection === section.key || !draft[section.key]?.trim()}
-                        className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-50"
+                        className="company-pill-surface inline-flex items-center gap-2 rounded-full border border-slate-200/80 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-50"
                       >
                         {optimizingSection === section.key ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
                         {t('company.job_editor.improve_section', { defaultValue: 'Improve this section' })}
@@ -1200,33 +1322,37 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                           ? 'border-cyan-200 bg-cyan-50/50 dark:border-cyan-800 dark:bg-cyan-950/10'
                           : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-950/40'
                       }`}
-                      placeholder={section.placeholder}
+                      placeholder={t(`company.job_editor.section_placeholders.${section.key}`, { defaultValue: '' })}
                     />
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-4">
-              <div className="text-sm font-semibold text-slate-900 dark:text-white">
-                {t('company.job_editor.benefits_title', { defaultValue: 'Benefits and final publish review' })}
+            <div className="company-surface rounded-[24px] border border-slate-200/80 bg-white/95 p-4 shadow-[0_22px_44px_-34px_rgba(15,23,42,0.45)] dark:border-slate-800 dark:bg-slate-900/92 space-y-4">
+              <div className="text-base font-semibold tracking-tight text-slate-950 dark:text-white">
+                {t('company.job_editor.benefits_title', { defaultValue: 'Benefits and final review' })}
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Benefits</label>
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                  {t('company.job_editor.benefits_label', { defaultValue: 'Benefits' })}
+                </label>
                 <textarea
                   value={(draft.benefits_structured || []).join('\n')}
                   onChange={(e) => patchDraft({ benefits_structured: compactLines(e.target.value) })}
                   className="min-h-[100px] w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
-                  placeholder="List one benefit per line."
+                  placeholder={t('company.job_editor.benefits_placeholder', { defaultValue: 'Add one benefit per line.' })}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">Change summary (for next version)</label>
+                <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                  {t('company.job_editor.change_summary_label', { defaultValue: 'What changed in this update?' })}
+                </label>
                 <input
                   value={changeSummary}
                   onChange={(e) => setChangeSummary(e.target.value)}
                   className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
-                  placeholder="What changed since the previous version?"
+                  placeholder={t('company.job_editor.change_summary_placeholder', { defaultValue: 'Summarize the changes for your team.' })}
                 />
               </div>
             </div>
@@ -1238,7 +1364,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
         {draft ? (
           <>
             {pendingAiResult && pendingAiSection ? (
-              <div className="rounded-2xl border border-indigo-200 bg-indigo-50 p-4 space-y-3 dark:border-indigo-900/40 dark:bg-indigo-950/20">
+              <div className="rounded-[24px] border border-indigo-200 bg-indigo-50 p-4 shadow-[0_20px_42px_-34px_rgba(99,102,241,0.45)] space-y-3 dark:border-indigo-900/40 dark:bg-indigo-950/20">
                 <div className="flex items-center justify-between gap-2">
                   <div className="text-sm font-semibold text-indigo-900 dark:text-indigo-200">
                     {t('company.job_editor.ai_suggestion', { defaultValue: 'AI suggestion ready' })}
@@ -1248,10 +1374,10 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                   </span>
                 </div>
                 <div className="text-sm text-slate-700 dark:text-slate-200">{pendingAiResult.improvedClarity}</div>
-                {pendingAiResult.removedCliches.length > 0 && (
+                {ensureArray(pendingAiResult.removedCliches).length > 0 && (
                   <div className="flex flex-wrap gap-2">
-                    {pendingAiResult.removedCliches.map((item) => (
-                      <span key={item} className="rounded-md border border-indigo-200 bg-white px-2 py-1 text-[11px] text-indigo-700 dark:border-indigo-900/40 dark:bg-slate-900 dark:text-indigo-300">
+                    {ensureArray(pendingAiResult.removedCliches).map((item) => (
+                      <span key={item} className="company-pill-surface rounded-md border border-indigo-200 bg-white px-2 py-1 text-[11px] text-indigo-700 dark:border-indigo-900/40 dark:bg-slate-900 dark:text-indigo-300">
                         {item}
                       </span>
                     ))}
@@ -1267,7 +1393,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                   </button>
                   <button
                     onClick={dismissAiSuggestion}
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="company-pill-surface inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                   >
                     <XCircle size={14} />
                     {t('company.job_editor.dismiss_ai', { defaultValue: 'Dismiss' })}
@@ -1276,18 +1402,18 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
               </div>
             ) : null}
 
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-4">
+            <div className="company-surface rounded-[24px] border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/92 p-4 space-y-4 shadow-[0_20px_42px_-34px_rgba(15,23,42,0.42)]">
               <div className="text-sm font-semibold text-slate-900 dark:text-white">
                 {t('company.job_editor.validation', { defaultValue: 'Validation and quality checks' })}
               </div>
 
               <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-3">
-                  <div className="text-[11px] uppercase tracking-widest text-slate-500">Transparency</div>
+                <div className="company-surface-soft rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/20 p-3">
+                  <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400">Transparency</div>
                   <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{validation.transparencyScore}</div>
                 </div>
-                <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-3">
-                  <div className="text-[11px] uppercase tracking-widest text-slate-500">Clarity</div>
+                <div className="company-surface-soft rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/20 p-3">
+                  <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400">Clarity</div>
                   <div className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">{validation.clarityScore}</div>
                 </div>
               </div>
@@ -1324,7 +1450,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                   )}
                 </div>
 
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/30">
+                <div className="company-surface-soft rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950/30">
                   <div className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                     {t('company.job_editor.suggestions', { defaultValue: 'Suggestions' })}
                   </div>
@@ -1341,29 +1467,29 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-4">
+            <div className="company-surface rounded-[24px] border border-slate-200 dark:border-slate-800 bg-white/95 dark:bg-slate-900/92 p-4 space-y-4 shadow-[0_20px_42px_-34px_rgba(15,23,42,0.42)]">
               <div className="flex items-center justify-between gap-2">
                 <div className="text-sm font-semibold text-slate-900 dark:text-white">
                   {t('company.job_editor.preview_panel', { defaultValue: 'Live preview' })}
                 </div>
                 {linkedJob && (
                   <span className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                    Live status: {String((linkedJob as any)?.status || 'active')}
+                    {t('company.job_editor.live_status', { defaultValue: 'Live status' })}: {String((linkedJob as any)?.status || 'active')}
                   </span>
                 )}
               </div>
 
               {previewMode ? (
-                <div className="max-h-[420px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/30">
-                  <article className="prose prose-slate max-w-none dark:prose-invert">
+                <div className="company-surface-soft max-h-[420px] overflow-y-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30 p-4">
+                  <article className="prose prose-slate max-w-none dark:prose-invert prose-headings:text-slate-950 dark:prose-headings:text-white prose-p:text-slate-700 dark:prose-p:text-slate-200 prose-strong:text-slate-900 dark:prose-strong:text-slate-100 prose-li:text-slate-700 dark:prose-li:text-slate-200">
                     <Markdown options={{ forceBlock: true }}>
-                      {formatJobDescription(previewMarkdown)}
+                      {previewMarkdown}
                     </Markdown>
                   </article>
                 </div>
               ) : (
-                <div className="rounded-xl border border-dashed border-slate-200 p-4 text-sm text-slate-500 dark:border-slate-800 dark:text-slate-400">
-                  Preview hidden. Use the toggle in the editor to reopen it.
+                <div className="company-surface-soft rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/20 p-4 text-sm text-slate-500 dark:text-slate-400">
+                  {t('company.job_editor.preview_hidden', { defaultValue: 'Preview is hidden. Use the toggle in the editor to show it again.' })}
                 </div>
               )}
 
@@ -1371,7 +1497,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                 <button
                   onClick={handleDuplicate}
                   disabled={!draft.job_id}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-50"
+                  className="company-pill-surface inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
                 >
                   <Copy size={14} />
                   {t('company.job_editor.duplicate', { defaultValue: 'Duplicate' })}
@@ -1379,7 +1505,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                 <button
                   onClick={() => handleLifecycleChange('paused')}
                   disabled={!draft.job_id}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-50"
+                  className="company-pill-surface inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
                 >
                   <PauseCircle size={14} />
                   {t('company.job_editor.pause', { defaultValue: 'Pause' })}
@@ -1387,7 +1513,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                 <button
                   onClick={() => handleLifecycleChange('active')}
                   disabled={!draft.job_id}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-50"
+                  className="company-pill-surface inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
                 >
                   <PlayCircle size={14} />
                   {t('company.job_editor.reopen', { defaultValue: 'Reopen' })}

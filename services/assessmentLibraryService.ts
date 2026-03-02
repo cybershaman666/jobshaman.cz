@@ -5,6 +5,9 @@ import { authenticatedFetch } from './csrfService';
 const jsonHeaders = { 'Content-Type': 'application/json' };
 let assessmentLibraryUnavailable = false;
 
+const shouldDisableAssessmentLibraryApi = (status: number): boolean =>
+  [404, 409, 500, 501, 502, 503].includes(status);
+
 export const listCompanyAssessmentLibrary = async (): Promise<Assessment[]> => {
   if (assessmentLibraryUnavailable) return [];
   try {
@@ -13,12 +16,13 @@ export const listCompanyAssessmentLibrary = async (): Promise<Assessment[]> => {
       headers: jsonHeaders
     });
     if (!response.ok) {
-      if ([404, 409, 501].includes(response.status)) assessmentLibraryUnavailable = true;
+      if (shouldDisableAssessmentLibraryApi(response.status)) assessmentLibraryUnavailable = true;
       return [];
     }
     const payload = await response.json();
     return Array.isArray(payload?.assessments) ? payload.assessments as Assessment[] : [];
   } catch {
+    assessmentLibraryUnavailable = true;
     return [];
   }
 };
@@ -32,12 +36,13 @@ export const duplicateCompanyAssessment = async (assessmentId: string): Promise<
       headers: jsonHeaders
     });
     if (!response.ok) {
-      if ([404, 409, 501].includes(response.status)) assessmentLibraryUnavailable = true;
+      if (shouldDisableAssessmentLibraryApi(response.status)) assessmentLibraryUnavailable = true;
       return null;
     }
     const payload = await response.json();
     return payload?.assessment || null;
   } catch {
+    assessmentLibraryUnavailable = true;
     return null;
   }
 };
@@ -54,9 +59,10 @@ export const updateCompanyAssessmentStatus = async (
       headers: jsonHeaders,
       body: JSON.stringify({ status })
     });
-    if ([404, 409, 501].includes(response.status)) assessmentLibraryUnavailable = true;
+    if (shouldDisableAssessmentLibraryApi(response.status)) assessmentLibraryUnavailable = true;
     return response.ok;
   } catch {
+    assessmentLibraryUnavailable = true;
     return false;
   }
 };

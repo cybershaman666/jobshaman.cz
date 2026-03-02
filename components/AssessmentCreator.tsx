@@ -7,7 +7,7 @@ import { useSceneCapability } from '../hooks/useSceneCapability';
 import SceneShell from './three/SceneShell';
 import BiophilicCockpitScene from './three/BiophilicCockpitScene';
 
-import { incrementAssessmentUsage, supabase } from '../services/supabaseService';
+import { supabase } from '../services/supabaseService';
 import { getRemainingAssessments } from '../services/billingService';
 import AnalyticsService from '../services/analyticsService';
 import PlanUpgradeModal from './PlanUpgradeModal';
@@ -356,10 +356,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                 }
             }
 
-            // Track usage for companies
             if (companyProfile?.id) {
-                await incrementAssessmentUsage(companyProfile.id);
-
                 // Track feature usage analytics
                 AnalyticsService.trackFeatureUsage({
                     companyId: companyProfile.id,

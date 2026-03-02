@@ -151,13 +151,13 @@ export const useCompanyActivityLog = (companyId?: string) => {
       const [{ data: invitationRows, error: invitationsError }, { data: resultRows, error: resultsError }] = await Promise.all([
         supabase
           .from('assessment_invitations')
-          .select('id,created_at,candidate_email,metadata,status,application_id,job_id')
+          .select('*')
           .eq('company_id', targetCompanyId)
           .order('created_at', { ascending: false })
           .limit(25),
         supabase
           .from('assessment_results')
-          .select('id,completed_at,role,application_id,job_id,assessment_id,invitation_id')
+          .select('*')
           .eq('company_id', targetCompanyId)
           .order('completed_at', { ascending: false })
           .limit(25)

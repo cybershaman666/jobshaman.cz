@@ -21,9 +21,9 @@ interface Props {
 
 const ENTRY_COPY: Record<string, any> = {
   cs: {
-    badge: 'Career Intelligence',
-    title: 'Career Fit & Potential',
-    description: 'Objevte své silné stránky a ideální kariérní směřování skrze 200+ psychometrických bodů. Získejte personalizovaný report a mapování na reálné role.',
+    badge: 'Kariérní profil',
+    title: 'Jaká práce vám sedí',
+    description: 'Krátký test, který pomůže pojmenovat vaše silné stránky, pracovní preference a typ rolí, ve kterých se budete cítit dlouhodobě dobře.',
     statDimensions: '12 dimenzí',
     statAiReadiness: 'Skóre adaptace na změny',
     statAnchors: 'Kariérní kotvy',
@@ -33,12 +33,14 @@ const ENTRY_COPY: Record<string, any> = {
     reset: 'Reset',
     deepDive: 'Deep Dive',
     unlockPremium: 'ODEMKNOUT PREMIUM',
+    unlockPremiumAnalysis: 'Odemknout plný rozbor',
+    viewBasicResults: 'Zobrazit základní výsledky',
     updatedAt: 'Aktualizováno',
   },
   en: {
-    badge: 'Career Intelligence',
-    title: 'Career Fit & Potential',
-    description: 'Discover your strengths and ideal career direction through 200+ psychometric signals. Get a personalized report and mapping to real roles.',
+    badge: 'Career profile',
+    title: 'What kind of work fits you',
+    description: 'A short test that helps name your strengths, work preferences, and the types of roles where you are most likely to do well long term.',
     statDimensions: '12 dimensions',
     statAiReadiness: 'Change adaptability score',
     statAnchors: 'Career anchors',
@@ -48,12 +50,14 @@ const ENTRY_COPY: Record<string, any> = {
     reset: 'Reset',
     deepDive: 'Deep Dive',
     unlockPremium: 'UNLOCK PREMIUM',
+    unlockPremiumAnalysis: 'Unlock full report',
+    viewBasicResults: 'View basic results',
     updatedAt: 'Updated',
   },
   de: {
-    badge: 'Career Intelligence',
-    title: 'Career Fit & Potential',
-    description: 'Entdecken Sie Ihre Stärken und die ideale Karriererichtung durch 200+ psychometrische Signale. Erhalten Sie einen personalisierten Bericht und eine Zuordnung zu realen Rollen.',
+    badge: 'Karriereprofil',
+    title: 'Welche Arbeit zu Ihnen passt',
+    description: 'Ein kurzer Test, der Ihre Stärken, Arbeitspräferenzen und die Rollen sichtbar macht, in denen Sie sich langfristig wohlfühlen können.',
     statDimensions: '12 Dimensionen',
     statAiReadiness: 'Anpassungsfähigkeit an Veränderungen',
     statAnchors: 'Karriereanker',
@@ -63,7 +67,60 @@ const ENTRY_COPY: Record<string, any> = {
     reset: 'Zurücksetzen',
     deepDive: 'Deep Dive',
     unlockPremium: 'PREMIUM FREISCHALTEN',
+    unlockPremiumAnalysis: 'Vollen Bericht freischalten',
+    viewBasicResults: 'Basis-Ergebnisse anzeigen',
     updatedAt: 'Aktualisiert',
+  },
+  at: {
+    badge: 'Karriereprofil',
+    title: 'Welche Arbeit zu Ihnen passt',
+    description: 'Ein kurzer Test, der Ihre Stärken, Arbeitspräferenzen und die Rollen sichtbar macht, in denen Sie sich langfristig wohlfühlen können.',
+    statDimensions: '12 Dimensionen',
+    statAiReadiness: 'Anpassungsfähigkeit an Veränderungen',
+    statAnchors: 'Karriereanker',
+    viewResults: 'Ergebnisse anzeigen',
+    resume: 'Test fortsetzen',
+    start: 'Test starten',
+    reset: 'Zurücksetzen',
+    deepDive: 'Deep Dive',
+    unlockPremium: 'PREMIUM FREISCHALTEN',
+    unlockPremiumAnalysis: 'Vollen Bericht freischalten',
+    viewBasicResults: 'Basis-Ergebnisse anzeigen',
+    updatedAt: 'Aktualisiert',
+  },
+  pl: {
+    badge: 'Profil kariery',
+    title: 'Jaka praca pasuje do Ciebie',
+    description: 'Krótki test, który pomaga nazwać Twoje mocne strony, preferencje w pracy i typy ról, w których możesz dobrze funkcjonować na dłuższą metę.',
+    statDimensions: '12 wymiarów',
+    statAiReadiness: 'Gotowość na zmiany',
+    statAnchors: 'Kotwice kariery',
+    viewResults: 'Zobacz wyniki',
+    resume: 'Wznów test',
+    start: 'Rozpocznij test',
+    reset: 'Resetuj',
+    deepDive: 'Deep Dive',
+    unlockPremium: 'ODBLOKUJ PREMIUM',
+    unlockPremiumAnalysis: 'Odblokuj pełną analizę',
+    viewBasicResults: 'Zobacz podstawowy wynik',
+    updatedAt: 'Zaktualizowano',
+  },
+  sk: {
+    badge: 'Kariérny profil',
+    title: 'Aká práca vám sedí',
+    description: 'Krátky test, ktorý pomôže pomenovať vaše silné stránky, pracovné preferencie a typ rolí, v ktorých sa môžete cítiť dlhodobo dobre.',
+    statDimensions: '12 dimenzií',
+    statAiReadiness: 'Pripravenosť na zmeny',
+    statAnchors: 'Kariérne kotvy',
+    viewResults: 'Zobraziť výsledky',
+    resume: 'Pokračovať v teste',
+    start: 'Spustiť test',
+    reset: 'Reset',
+    deepDive: 'Deep Dive',
+    unlockPremium: 'ODOMKNÚŤ PREMIUM',
+    unlockPremiumAnalysis: 'Odomknúť plný rozbor',
+    viewBasicResults: 'Zobraziť základný výsledok',
+    updatedAt: 'Aktualizované',
   },
 };
 
@@ -131,38 +188,18 @@ const JcfpmEntryCard: React.FC<Props> = ({
           </div>
 
           <div className="flex flex-col gap-3 min-w-[240px]">
-            {isPremium ? (
+            {hasSnapshot ? (
               <>
-                {hasSnapshot ? (
-                  <button
-                    type="button"
-                    onClick={onView}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-cyan-600/20 transition-all hover:bg-cyan-700 hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <FileText className="h-5 w-5" />
-                    {copy.viewResults}
-                  </button>
-                ) : hasDraft ? (
-                  <button
-                    type="button"
-                    onClick={onResume}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-teal-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-teal-600/20 transition-all hover:bg-teal-700 hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <Play className="h-5 w-5" />
-                    {copy.resume}
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={onStartCore}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-cyan-600/20 transition-all hover:bg-cyan-700 hover:scale-[1.02] active:scale-[0.98]"
-                  >
-                    <Play className="h-5 w-5" />
-                    {copy.start}
-                  </button>
-                )}
+                <button
+                  type="button"
+                  onClick={onView}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-cyan-600/20 transition-all hover:bg-cyan-700 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <FileText className="h-5 w-5" />
+                  {isPremium ? copy.viewResults : copy.viewBasicResults}
+                </button>
 
-                <div className="grid grid-cols-2 gap-2 mt-2">
+                <div className={`grid gap-2 mt-2 ${isPremium ? 'grid-cols-2' : 'grid-cols-1'}`}>
                   <button
                     type="button"
                     onClick={onRestart}
@@ -171,24 +208,68 @@ const JcfpmEntryCard: React.FC<Props> = ({
                     <RotateCcw className="h-3.5 w-3.5" />
                     {copy.reset}
                   </button>
-                  <button
-                    type="button"
-                    onClick={onStartDeep}
-                    className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-800/50 px-3 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 transition-all hover:bg-white dark:hover:bg-slate-800"
-                  >
-                    {copy.deepDive}
-                  </button>
+                  {isPremium ? (
+                    <button
+                      type="button"
+                      onClick={onStartDeep}
+                      className="flex items-center justify-center gap-2 rounded-xl border border-slate-200 dark:border-slate-800 bg-white/50 dark:bg-slate-800/50 px-3 py-2.5 text-xs font-bold text-slate-600 dark:text-slate-300 transition-all hover:bg-white dark:hover:bg-slate-800"
+                    >
+                      {copy.deepDive}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={onUpgrade}
+                      className="flex items-center justify-center gap-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-3 py-2.5 text-xs font-bold text-amber-700 dark:text-amber-400 transition-all hover:bg-amber-500/20"
+                    >
+                      <Lock className="h-3.5 w-3.5" />
+                      {copy.unlockPremiumAnalysis}
+                    </button>
+                  )}
                 </div>
               </>
+            ) : hasDraft ? (
+              <>
+                <button
+                  type="button"
+                  onClick={onResume}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-teal-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-teal-600/20 transition-all hover:bg-teal-700 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Play className="h-5 w-5" />
+                  {copy.resume}
+                </button>
+                {!isPremium && (
+                  <button
+                    type="button"
+                    onClick={onUpgrade}
+                    className="mt-2 flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-amber-500/50 bg-amber-500/10 px-6 py-4 text-sm font-black text-amber-700 dark:text-amber-400 transition-all hover:bg-amber-500/20 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Lock className="h-5 w-5" />
+                    {copy.unlockPremium}
+                  </button>
+                )}
+              </>
             ) : (
-              <button
-                type="button"
-                onClick={onUpgrade}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-amber-500/50 bg-amber-500/10 px-6 py-5 text-sm font-black text-amber-700 dark:text-amber-400 transition-all hover:bg-amber-500/20 hover:scale-[1.02] active:scale-[0.98]"
-              >
-                <Lock className="h-5 w-5" />
-                {copy.unlockPremium}
-              </button>
+              <>
+                <button
+                  type="button"
+                  onClick={onStartCore}
+                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-600 px-6 py-4 text-sm font-bold text-white shadow-lg shadow-cyan-600/20 transition-all hover:bg-cyan-700 hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <Play className="h-5 w-5" />
+                  {copy.start}
+                </button>
+                {!isPremium && (
+                  <button
+                    type="button"
+                    onClick={onUpgrade}
+                    className="mt-2 flex w-full items-center justify-center gap-3 rounded-2xl border-2 border-amber-500/50 bg-amber-500/10 px-6 py-4 text-sm font-black text-amber-700 dark:text-amber-400 transition-all hover:bg-amber-500/20 hover:scale-[1.02] active:scale-[0.98]"
+                  >
+                    <Lock className="h-5 w-5" />
+                    {copy.unlockPremium}
+                  </button>
+                )}
+              </>
             )}
             {hasSnapshot && lastUpdatedAt && (
               <div className="mt-2 text-center text-[11px] text-slate-500 dark:text-slate-500 font-medium">

@@ -459,6 +459,7 @@ export default function JcfpmFlow({
   const copy = FLOW_COPY[language] || FLOW_COPY.cs;
   const dimensions = buildDimensions(copy);
   const interludes = buildInterludes(copy);
+  const effectiveSection = isPremium ? section : 'basic';
 
   // State
   const [items, setItems] = useState<JcfpmItem[]>([]);
@@ -513,7 +514,7 @@ export default function JcfpmFlow({
       }
 
       // 1. Get seen pools from session/localStorage
-      const storageKey = `jcfpm_seen_pools_${section || 'standard'}`;
+      const storageKey = `jcfpm_seen_pools_${effectiveSection || 'standard'}`;
       let seenKeys: string[] = [];
       try {
         const stored = localStorage.getItem(storageKey);
@@ -523,8 +524,8 @@ export default function JcfpmFlow({
       }
 
       // 2. Sample items with exclusion support
-      const itemsPerDim = section === 'deep_dive' ? 5 : 3;
-      const sampled = sampleJcfpmItems(data, itemsPerDim, section, seenKeys);
+      const itemsPerDim = effectiveSection === 'deep_dive' ? 5 : 3;
+      const sampled = sampleJcfpmItems(data, itemsPerDim, effectiveSection, seenKeys);
 
       // 3. Update seen keys (keep a moving window of ~30-50 keys to eventually repeat but not soon)
       const sampledKeys = sampled.map(i => i.pool_key || i.id).filter(Boolean);
@@ -644,13 +645,6 @@ export default function JcfpmFlow({
   };
 
   // Check premium access
-  useEffect(() => {
-    if (status === 'question' && !isPremium && section === 'full') {
-      // In a real app we might block here, but for now we just log
-      console.warn('User is not premium but accessing full test');
-    }
-  }, [status, isPremium, section]);
-
   // Rendering helpers
   const currentItem = items[currentIndex];
   const currentDimension = currentItem?.dimension as JcfpmDimension;

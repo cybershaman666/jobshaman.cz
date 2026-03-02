@@ -38,26 +38,26 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
     const normalizedAnswers = normalizeAnswers(result.answers, result.feedback);
 
     return (
-        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm transition-all journey-panel-enter">
+        <div className="overflow-hidden rounded-[22px] border border-slate-200/80 bg-white/95 dark:bg-slate-900/92 dark:border-slate-800 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.42)] transition-all journey-panel-enter">
             <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                     <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-slate-900 dark:text-white">{result.role}</span>
+                        <span className="font-semibold tracking-tight text-slate-950 dark:text-white">{result.role}</span>
                         <span className="px-2 py-0.5 rounded-full text-xs bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">{result.difficulty}</span>
                     </div>
                     <div className="text-sm text-slate-500 dark:text-slate-400">
-                        Journey v1 profil •
+                        Candidate response summary •
                         {new Date(result.completed_at).toLocaleDateString()}
                     </div>
                     {(invitationContext?.candidate_email || invitationMeta?.job_title) && (
                         <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 flex flex-wrap gap-2">
                             {invitationMeta?.job_title && (
-                                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
+                                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800">
                                     {String(invitationMeta.job_title)}
                                 </span>
                             )}
                             {invitationContext?.candidate_email && (
-                                <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
+                                <span className="px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800">
                                     {invitationContext.candidate_email}
                                 </span>
                             )}
@@ -68,7 +68,7 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                 <div className="flex items-center gap-3">
                     <button
                         onClick={(e) => { e.stopPropagation(); onPreview(); }}
-                        className="px-3 py-2 hover:bg-cyan-50 dark:hover:bg-cyan-900/20 rounded-lg text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-300 transition-colors text-xs font-semibold inline-flex items-center gap-2 border border-slate-200 dark:border-slate-700"
+                        className="inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-3 py-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-cyan-50 hover:text-cyan-600 dark:hover:bg-cyan-900/20 dark:hover:text-cyan-300 transition-colors"
                         title={t('assessment.results.preview_title')}
                     >
                         <Eye size={20} />
@@ -79,20 +79,20 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                         <button
                             onClick={onEvaluate}
                             disabled={evaluating}
-                            className="px-4 py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors flex items-center gap-2"
+                            className="flex items-center gap-2 rounded-full bg-indigo-50 dark:bg-indigo-900/20 px-4 py-2 text-sm font-semibold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
                         >
                             {evaluating ? <Sparkles size={16} className="animate-spin" /> : <Sparkles size={16} />}
                             {evaluating ? t('assessment.results.evaluating') : t('assessment.results.ai_evaluate_btn')}
                         </button>
                     ) : (
-                        <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-bold uppercase tracking-wide border border-emerald-100 dark:border-emerald-800">
+                        <div className="flex items-center gap-2 rounded-full border border-emerald-100 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/20 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
                             <CheckCircle size={14} /> {t('assessment.results.evaluated')}
                         </div>
                     )}
 
                     <button
                         onClick={onToggleExpanded}
-                        className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-500 transition-colors"
+                        className="rounded-full p-2 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 transition-colors"
                     >
                         {expanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                     </button>
@@ -100,11 +100,11 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
             </div>
 
             {expanded && (
-                <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/50 p-4 animate-in slide-in-from-top-2">
+                <div className="border-t border-slate-200 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/50 p-4 animate-in slide-in-from-top-2">
                     {result.ai_evaluation ? (
                         <div className="grid md:grid-cols-2 gap-4">
                             <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-3">
-                                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 p-3">
+                                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 p-3">
                                     <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">
                                         {t('assessment.results.partner_recommendation')}
                                     </div>
@@ -112,7 +112,7 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                                         {result.ai_evaluation.recommendation || t('assessment.results.evaluated')}
                                     </div>
                                 </div>
-                                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 p-3">
+                                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 p-3">
                                     <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">
                                         {t('assessment.results.match_score_title')}
                                     </div>
@@ -120,7 +120,7 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                                         {result.ai_evaluation.skillMatchScore}/100
                                     </div>
                                 </div>
-                                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 p-3">
+                                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 p-3">
                                     <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">
                                         {t('assessment.results.completed_at_label', { defaultValue: 'Completed' })}
                                     </div>
@@ -136,16 +136,16 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                                 const finalProfile = journey.final_profile || {};
                                 const qualitySummary = journey.journey_trace?.response_quality?.summary || null;
                                 return (
-                                    <div className="md:col-span-2 rounded-xl border border-cyan-200 dark:border-cyan-800 bg-cyan-50/70 dark:bg-slate-900/55 p-4">
+                                    <div className="md:col-span-2 rounded-[22px] border border-cyan-200 dark:border-cyan-800 bg-cyan-50/70 dark:bg-slate-900/55 p-4 shadow-[0_16px_32px_-28px_rgba(6,182,212,0.35)]">
                                         <h4 className="text-xs font-bold text-cyan-700 dark:text-cyan-300 uppercase tracking-widest mb-2">{t('assessment.results.journey_highlights')}</h4>
                                         <div className="grid md:grid-cols-2 gap-3 text-sm text-slate-700 dark:text-slate-200">
                                             <div>
                                                 <div className="font-semibold text-cyan-800 dark:text-cyan-100">{t('assessment.results.journey_decision_pattern')}</div>
-                                                <div>Struktura {journey.decision_pattern?.structured_vs_improv ?? '-'} / Stakeholder {journey.decision_pattern?.stakeholder_orientation ?? '-'}</div>
+                                                <div>Structure {journey.decision_pattern?.structured_vs_improv ?? '-'} / Stakeholder {journey.decision_pattern?.stakeholder_orientation ?? '-'}</div>
                                             </div>
                                             <div>
                                                 <div className="font-semibold text-cyan-800 dark:text-cyan-100">{t('assessment.results.journey_energy_balance')}</div>
-                                                <div>{journey.energy_balance?.monthly_energy_hours_left ?? '-'} hodin energie/měsíc</div>
+                                                <div>{journey.energy_balance?.monthly_energy_hours_left ?? '-'} hours of energy / month</div>
                                             </div>
                                             <div>
                                                 <div className="font-semibold text-cyan-800 dark:text-cyan-100">{t('assessment.results.journey_transferable_strengths')}</div>
@@ -157,12 +157,12 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                                             </div>
                                         </div>
                                         {qualitySummary && (
-                                            <div className="mt-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/70 p-3">
+                                            <div className="mt-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/70 p-3">
                                                 <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-300">
-                                                    {t('assessment.results.quality_title', { defaultValue: 'Kvalita podkladů pro nábor' })}
+                                                    {t('assessment.results.quality_title', { defaultValue: 'Quality of hiring signal' })}
                                                 </div>
                                                 <div className="mt-1 text-sm text-slate-700 dark:text-slate-200">
-                                                    {t('assessment.results.quality_signal', { defaultValue: 'Signál' })} {qualitySummary.signal_quality}/100 • {t('assessment.results.quality_consistency', { defaultValue: 'Konzistence' })} {qualitySummary.consistency_index}/100 • {t('assessment.results.quality_depth', { defaultValue: 'Hloubka' })} {qualitySummary.response_depth_avg}/100
+                                                    {t('assessment.results.quality_signal', { defaultValue: 'Signal' })} {qualitySummary.signal_quality}/100 • {t('assessment.results.quality_consistency', { defaultValue: 'Consistency' })} {qualitySummary.consistency_index}/100 • {t('assessment.results.quality_depth', { defaultValue: 'Depth' })} {qualitySummary.response_depth_avg}/100
                                                 </div>
                                                 {Array.isArray(qualitySummary.follow_up_flags) && qualitySummary.follow_up_flags.length > 0 && (
                                                     <div className="mt-2 flex flex-wrap gap-1.5">
@@ -180,7 +180,7 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                             })()}
 
                             {result.ai_evaluation.recommendation && (
-                                <div className="md:col-span-2 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border border-amber-200 dark:border-amber-800 rounded-xl p-3 flex items-center gap-3">
+                                <div className="md:col-span-2 rounded-[22px] border border-amber-200 dark:border-amber-800 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 p-4 flex items-center gap-3">
                                     <div className="w-12 h-12 bg-amber-500 rounded-full flex items-center justify-center text-white shadow-lg flex-shrink-0">
                                         <Sparkles size={24} />
                                     </div>
@@ -194,15 +194,15 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                             )}
 
                             <div className="space-y-3">
-                                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 p-3">
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">{t('assessment.results.summary_title')}</h4>
+                                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 p-3">
+                                    <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">{t('assessment.results.summary_title')}</h4>
                                     <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed italic border-l-4 border-indigo-500 pl-4 py-1">
                                         "{result.ai_evaluation.summary}"
                                     </p>
                                 </div>
 
-                                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 p-3">
-                                    <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">{t('assessment.results.match_score_title')}</h4>
+                                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 p-3">
+                                    <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2">{t('assessment.results.match_score_title')}</h4>
                                     <div className="flex items-center gap-3">
                                         <div className="flex-1 h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
                                             <div
@@ -216,7 +216,7 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div className="bg-emerald-50/50 dark:bg-emerald-900/10 p-3 rounded-lg border border-emerald-100 dark:border-emerald-900/20">
+                                <div className="rounded-2xl border border-emerald-100 dark:border-emerald-900/20 bg-emerald-50/50 dark:bg-emerald-900/10 p-3">
                                     <h4 className="text-xs font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-widest mb-2 flex items-center gap-1">
                                         <CheckCircle size={12} /> {t('assessment.results.pros_title')}
                                     </h4>
@@ -230,7 +230,7 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                                     </ul>
                                 </div>
 
-                                <div className="bg-amber-50/50 dark:bg-amber-900/10 p-3 rounded-lg border border-amber-100 dark:border-amber-900/20">
+                                <div className="rounded-2xl border border-amber-100 dark:border-amber-900/20 bg-amber-50/50 dark:bg-amber-900/10 p-3">
                                     <h4 className="text-xs font-bold text-amber-700 dark:text-amber-400 uppercase tracking-widest mb-2 flex items-center gap-1">
                                         <AlertCircle size={12} /> {t('assessment.results.cons_title')}
                                     </h4>
@@ -250,7 +250,7 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                             <p className="text-slate-500 dark:text-slate-400 mb-4 text-sm">{t('assessment.results.not_evaluated_desc')}</p>
                             <button
                                 onClick={onEvaluate}
-                                className="px-6 py-2 bg-indigo-600 text-white rounded-lg font-bold hover:bg-indigo-500 transition-colors inline-flex items-center gap-2 shadow-lg shadow-indigo-500/20"
+                                className="inline-flex items-center gap-2 rounded-full bg-indigo-600 px-6 py-2 text-white font-bold hover:bg-indigo-500 transition-colors shadow-lg shadow-indigo-500/20"
                             >
                                 <Sparkles size={18} />
                                 {t('assessment.results.run_analysis_btn')}
@@ -259,15 +259,15 @@ const AssessmentResultCard: React.FC<AssessmentResultCardProps> = ({
                     )}
 
                     <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800">
-                        <h4 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-3">{t('assessment.results.detailed_answers')}</h4>
+                        <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3">{t('assessment.results.detailed_answers')}</h4>
                         <div className="grid gap-3 xl:grid-cols-2">
                             {normalizedAnswers.map((ans, idx) => (
-                                <div key={idx} className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
+                                <div key={idx} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-3">
                                     <div className="text-xs font-bold text-slate-400 mb-1">{t('assessment.results.question_label')} {idx + 1}</div>
                                     <div className="text-sm font-mono text-slate-700 dark:text-slate-300 mb-2">{ans.answer}</div>
 
                                     {result.ai_evaluation?.questionFeedback?.find(f => f.questionId === ans.questionId)?.feedback && (
-                                        <div className="mt-2 text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-950/30 p-2 rounded border border-indigo-100 dark:border-indigo-900/40 italic">
+                                        <div className="mt-2 rounded-2xl border border-indigo-100 dark:border-indigo-900/40 bg-indigo-50/50 dark:bg-indigo-950/30 p-2 text-xs text-indigo-600 dark:text-indigo-400 italic">
                                             🤖 {result.ai_evaluation.questionFeedback.find(f => f.questionId === ans.questionId)?.feedback}
                                         </div>
                                     )}

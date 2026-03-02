@@ -199,7 +199,7 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId, jobTitleFilter, can
         }
     };
 
-    if (loading) return <div className="p-4 text-center text-slate-500">{t('assessment.results.loading')}</div>;
+    if (loading) return <div className="p-4 text-center text-slate-500 dark:text-slate-400">{t('assessment.results.loading')}</div>;
 
     if (visibleResults.length === 0) return (
         <div className="p-8 text-center bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 mt-8">

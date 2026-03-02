@@ -1138,10 +1138,10 @@ export const getCompanySubscription = async (companyId: string) => {
 
         if (error) {
             console.warn('⚠️ Subscription fetch error:', error);
-            // Return default free tier on error to unblock UI
+            // Return a safe inactive fallback on error.
             return {
                 tier: 'free',
-                status: 'active',
+                status: 'inactive',
                 current_period_start: new Date().toISOString(),
                 current_period_end: null,
                 cancel_at_period_end: false,
@@ -1164,7 +1164,7 @@ export const getCompanySubscription = async (companyId: string) => {
             // Fallback if healing fails
             return {
                 tier: 'free',
-                status: 'active',
+                status: 'inactive',
                 current_period_start: new Date().toISOString(),
                 current_period_end: null,
                 cancel_at_period_end: false,
@@ -1179,7 +1179,7 @@ export const getCompanySubscription = async (companyId: string) => {
         // Fallback
         return {
             tier: 'free',
-            status: 'active',
+            status: 'inactive',
             current_period_start: new Date().toISOString(),
             created_at: new Date().toISOString()
         };
@@ -1220,12 +1220,12 @@ export const initializeCompanySubscription = async (companyId: string): Promise<
 
     const { data, error } = await supabase
         .from('subscriptions')
-        .insert({
-            company_id: companyId,
-            tier: 'trial',
-            status: 'active',
-            current_period_start: new Date().toISOString(),
-            current_period_end: trialEndDate.toISOString(),
+            .insert({
+                company_id: companyId,
+                tier: 'trial',
+                status: 'trialing',
+                current_period_start: new Date().toISOString(),
+                current_period_end: trialEndDate.toISOString(),
             stripe_subscription_id: `trial_${companyId.substring(0, 8)}`
         })
         .select()

@@ -25,7 +25,9 @@ const PremiumFeaturesPreview: React.FC<PremiumFeaturesPreviewProps> = ({
 }) => {
   const { t, i18n } = useTranslation();
   const price = getPremiumPriceDisplay(i18n.language || 'cs');
-  const isPremium = userProfile.subscription?.tier === 'premium';
+  const rawTier = String(userProfile.subscription?.tier || 'free').toLowerCase();
+  const normalizedTier = rawTier !== 'premium' && rawTier.endsWith('_premium') ? 'premium' : rawTier;
+  const isPremium = normalizedTier === 'premium';
 
   // If user is not logged in or has no id, show a simpler version
   const isIncomplete = !userProfile.isLoggedIn || !userProfile.id;

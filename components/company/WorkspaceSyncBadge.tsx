@@ -42,13 +42,13 @@ const WorkspaceSyncBadge: React.FC<WorkspaceSyncBadgeProps> = ({
 
   return (
     <div className={`flex flex-wrap items-center gap-2 ${className}`.trim()}>
-      <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-emerald-700 dark:border-emerald-900/30 dark:bg-emerald-950/20 dark:text-emerald-300">
+      <div className="rounded-full border border-emerald-200/80 bg-white/85 px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-emerald-700 shadow-sm backdrop-blur dark:border-emerald-900/30 dark:bg-slate-950/45 dark:text-emerald-300">
         {label}
       </div>
       {onRefresh && (
         <button
           onClick={onRefresh}
-          className="px-3 py-2 rounded-lg border border-emerald-200 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-950/20"
+          className="rounded-full border border-slate-200/80 bg-white/80 px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm backdrop-blur transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:hover:bg-slate-900"
         >
           {t('company.workspace.sync.refresh_now', { defaultValue: 'Refresh now' })}
         </button>

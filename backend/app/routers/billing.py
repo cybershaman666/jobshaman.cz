@@ -49,6 +49,22 @@ def _get_latest_subscription_by(column: str, value: str) -> dict | None:
     except Exception:
         return None
 
+
+def _count_company_active_jobs(company_id: str) -> int:
+    if not company_id:
+        return 0
+    try:
+        jobs_resp = supabase.table("jobs").select("id,status").eq("company_id", company_id).execute()
+        total = 0
+        for row in jobs_resp.data or []:
+            status = str((row or {}).get("status") or "active").lower()
+            if status in {"closed", "paused", "archived"}:
+                continue
+            total += 1
+        return total
+    except Exception:
+        return 0
+
 @router.get("/subscription-status")
 @limiter.limit("30/minute")
 async def get_subscription_status(request: Request, userId: str = Query(...), user: dict = Depends(get_current_user)):
@@ -62,7 +78,7 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
 
     tier_limits = {
         "free": {"assessments": 0, "job_postings": 1, "name": "Free"},
-        "premium": {"assessments": 0, "job_postings": 10, "name": "Premium"},
+        "premium": {"assessments": 0, "job_postings": 0, "name": "Premium"},
         "starter": {"assessments": 15, "job_postings": 3, "name": "Starter"},
         "growth": {"assessments": 60, "job_postings": 10, "name": "Growth"},
         "professional": {"assessments": 150, "job_postings": 20, "name": "Professional"},
@@ -70,7 +86,7 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
         "enterprise": {"assessments": 999999, "job_postings": 999, "name": "Enterprise"},
     }
 
-    sub_details = {"tier": "free", "status": "active"}
+    sub_details = {"tier": "free", "status": "inactive"}
     resolved_company_id = None
     resolved_is_company_context = False
 
@@ -117,9 +133,9 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
     if resolved_is_company_context:
         try:
             target_company_id = resolved_company_id or require_company_access(user, user.get("company_id"))
-            jobs_resp = supabase.table("jobs").select("id", count="exact").eq("company_id", target_company_id).execute()
-            real_job_count = jobs_resp.count if jobs_resp.count is not None else 0
-        except: real_job_count = 0
+            real_job_count = _count_company_active_jobs(target_company_id)
+        except:
+            real_job_count = 0
 
     # Fetch usage data from subscription_usage table
     stats = {"ai_assessments_used": 0, "active_jobs_count": 0}
@@ -154,11 +170,11 @@ async def get_subscription_status(request: Request, userId: str = Query(...), us
 async def verify_billing(billing_request: BillingVerificationRequest, request: Request, user: dict = Depends(verify_subscription)):
     feature_access = {
         "premium": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS"],
-        "starter": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS", "COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS"],
-        "growth": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS", "COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS"],
-        "professional": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS", "COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS"],
+        "starter": ["COMPANY_AI_AD"],
+        "growth": ["COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS"],
+        "professional": ["COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS"],
         "trial": [],
-        "enterprise": ["COVER_LETTER", "CV_OPTIMIZATION", "AI_JOB_ANALYSIS", "COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS", "COMPANY_UNLIMITED_JOBS"],
+        "enterprise": ["COMPANY_AI_AD", "COMPANY_RECOMMENDATIONS", "COMPANY_UNLIMITED_JOBS"],
         "free": [],
     }
 

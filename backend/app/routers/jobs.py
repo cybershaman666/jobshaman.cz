@@ -124,6 +124,99 @@ def _user_has_allowed_subscription(user: dict, allowed_tiers: set[str]) -> bool:
 
     return False
 
+
+def _user_has_direct_premium(user: dict) -> bool:
+    user_tier = (user.get("subscription_tier") or "").lower()
+    if user.get("is_subscription_active") and user_tier == "premium":
+        return True
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id:
+        return False
+    user_sub = _fetch_latest_subscription_by("user_id", user_id)
+    return bool(user_sub and _is_active_subscription(user_sub) and (user_sub.get("tier") or "").lower() == "premium")
+
+
+_COMPANY_TIER_JOB_LIMITS: dict[str, int] = {
+    "free": 1,
+    "trial": 1,
+    "starter": 3,
+    "growth": 10,
+    "professional": 20,
+    "enterprise": 999999,
+}
+
+
+def _require_company_tier(user: dict, company_id: str, allowed_tiers: set[str]) -> str:
+    fast_tier = (user.get("subscription_tier") or "").lower()
+    if company_id == str(user.get("company_id") or "") and user.get("is_subscription_active") and fast_tier in allowed_tiers:
+        return fast_tier
+
+    company_sub = _fetch_latest_subscription_by("company_id", company_id)
+    if not company_sub or not _is_active_subscription(company_sub):
+        raise HTTPException(status_code=403, detail="Active subscription required")
+
+    tier = (company_sub.get("tier") or "free").lower()
+    if tier not in allowed_tiers:
+        raise HTTPException(status_code=403, detail="Current plan does not include this feature")
+    return tier
+
+
+def _count_company_active_jobs(company_id: str, exclude_job_id=None) -> int:
+    if not supabase or not company_id:
+        return 0
+    resp = supabase.table("jobs").select("id,status").eq("company_id", company_id).execute()
+    rows = resp.data or []
+    normalized_exclude = _normalize_job_id(exclude_job_id) if exclude_job_id is not None else None
+    total = 0
+    for row in rows:
+        row_id = _normalize_job_id(row.get("id"))
+        if normalized_exclude is not None and row_id == normalized_exclude:
+            continue
+        status = str(row.get("status") or "active").lower()
+        if status in {"closed", "paused", "archived"}:
+            continue
+        total += 1
+    return total
+
+
+def _enforce_company_job_publish_limit(company_id: str, user: dict, existing_job_id=None) -> None:
+    tier = _require_company_tier(
+        user,
+        company_id,
+        {"free", "trial", "starter", "growth", "professional", "enterprise"},
+    )
+    limit = _COMPANY_TIER_JOB_LIMITS.get(tier, _COMPANY_TIER_JOB_LIMITS["free"])
+    active_jobs = _count_company_active_jobs(company_id, exclude_job_id=existing_job_id)
+    if active_jobs >= limit:
+        raise HTTPException(
+            status_code=403,
+            detail=f"Current plan allows up to {limit} active job postings",
+        )
+
+
+def _sync_company_active_jobs_usage(company_id: str) -> None:
+    if not supabase or not company_id:
+        return
+    company_sub = _fetch_latest_subscription_by("company_id", company_id)
+    subscription_id = str((company_sub or {}).get("id") or "")
+    if not subscription_id:
+        return
+    active_jobs = _count_company_active_jobs(company_id)
+    try:
+        usage_resp = (
+            supabase
+            .table("subscription_usage")
+            .select("id")
+            .eq("subscription_id", subscription_id)
+            .order("period_end", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if usage_resp.data:
+            supabase.table("subscription_usage").update({"active_jobs_count": active_jobs}).eq("id", usage_resp.data[0]["id"]).execute()
+    except Exception as exc:
+        print(f"⚠️ Failed to sync active job usage for company {company_id}: {exc}")
+
 def _normalize_job_id(job_id: str):
     return int(job_id) if str(job_id).isdigit() else job_id
 
@@ -1023,6 +1116,8 @@ async def create_job_application(
         raise HTTPException(status_code=400, detail="Invalid job ID")
 
     requested_share_level = _normalize_jcfpm_share_level(payload.jcfpm_share_level, _safe_dict(payload.shared_jcfpm_payload))
+    if requested_share_level != "do_not_share" and not _user_has_direct_premium(user):
+        requested_share_level = "do_not_share"
     cv_snapshot = _sanitize_cv_snapshot(payload.cv_snapshot)
     candidate_profile_snapshot = _sanitize_candidate_profile_snapshot(payload.candidate_profile_snapshot)
     shared_jcfpm_payload = _sanitize_jcfpm_payload(requested_share_level, payload.shared_jcfpm_payload)
@@ -1556,6 +1651,7 @@ async def publish_company_job_draft(
     }
 
     existing_job_id = _normalize_job_id(draft.get("job_id"))
+    _enforce_company_job_publish_limit(company_id, user, existing_job_id=existing_job_id)
     job_id = existing_job_id
     if job_id:
         _require_job_access(user, str(job_id))
@@ -1634,6 +1730,7 @@ async def publish_company_job_draft(
         subject_type="job",
         subject_id=str(job_id),
     )
+    _sync_company_active_jobs_usage(company_id)
 
     return {"status": "success", "job_id": job_id, "version_number": next_version, "validation": validation}
 
@@ -1792,6 +1889,7 @@ async def update_company_job_lifecycle(
         subject_type="job",
         subject_id=str(job_row.get("id") or job_id),
     )
+    _sync_company_active_jobs_usage(str(job_row.get("company_id") or ""))
     return {"status": "success"}
 
 
@@ -2117,9 +2215,9 @@ async def analyze_job(
 @router.post("/match-candidates")
 @limiter.limit("10/minute")
 async def match_candidates_service(request: Request, job_id: str = Query(...), user: dict = Depends(verify_subscription)):
-    _require_job_access(user, job_id)
-    if not user.get("is_subscription_active"):
-        raise HTTPException(status_code=403, detail="Active subscription required")
+    job_row = _require_job_access(user, job_id)
+    company_id = str(job_row.get("company_id") or "")
+    _require_company_tier(user, company_id, {"growth", "professional", "enterprise"})
     job_res = supabase.table("jobs").select("*").eq("id", job_id).single().execute()
     if not job_res.data: raise HTTPException(status_code=404, detail="Job not found")
     job = job_res.data

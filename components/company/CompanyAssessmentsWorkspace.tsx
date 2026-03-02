@@ -7,8 +7,10 @@ import AssessmentInvitationModal from '../AssessmentInvitationModal';
 import AssessmentResultsList from '../AssessmentResultsList';
 import MyInvitations from '../MyInvitations';
 import { openAssessmentPreviewPage } from '../../services/assessmentPreviewNavigation';
+import MetricCard from './MetricCard';
 import SectionHeader from './SectionHeader';
 import WorkspaceHeader from './WorkspaceHeader';
+import WorkspacePanel from './WorkspacePanel';
 import WorkspaceSyncBadge from './WorkspaceSyncBadge';
 
 interface AssessmentContext {
@@ -71,12 +73,12 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
 }) => {
     const { t } = useTranslation();
     return (
-        <div className="space-y-3 animate-in fade-in">
+        <div className="space-y-4 animate-in fade-in">
             <WorkspaceHeader
                 badgeIcon={<BrainCircuit size={12} />}
-                badgeLabel={t('company.dashboard.tabs.assessments')}
-                title={t('company.dashboard.tabs.assessments')}
-                subtitle={t('company.assessments_tab.desc')}
+                badgeLabel={t('company.dashboard.tabs.assessments', { defaultValue: 'Assessment hub' })}
+                title={t('company.dashboard.tabs.assessments', { defaultValue: 'Assessment hub' })}
+                subtitle={t('company.assessments_tab.desc', { defaultValue: 'Create reusable screening flows, invite candidates, and review results without losing context.' })}
                 actions={
                     <>
                         <WorkspaceSyncBadge
@@ -88,56 +90,40 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                         />
                         <button
                             onClick={onToggleInvitations}
-                            className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                            className="rounded-full border border-slate-200/80 bg-white/80 px-4 py-2.5 text-sm font-semibold text-slate-700 shadow-sm backdrop-blur transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-200 dark:hover:bg-slate-800"
                         >
                             {showInvitationsList ? t('company.assessments_tab.close_invites') : t('company.assessments_tab.manage_invites')}
                         </button>
                         <button
                             onClick={onOpenInvitationModal}
-                            className="px-3 py-2 rounded-lg bg-cyan-600 text-white text-sm font-semibold hover:bg-cyan-500"
+                            className="rounded-full bg-slate-950 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_16px_28px_-18px_rgba(15,23,42,0.9)] transition-colors hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-950 dark:hover:bg-white"
                         >
-                            {t('company.assessments_tab.invite_btn')}
+                            {t('company.assessments_tab.invite_btn', { defaultValue: 'Invite candidate' })}
                         </button>
                     </>
                 }
             />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-                    <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                        {t('company.assessment_library.title', { defaultValue: 'Saved assessment library' })}
-                    </div>
-                    <div className="mt-2 text-2xl font-bold text-slate-900 dark:text-white">{assessmentLibrary.length}</div>
-                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        {t('company.assessment_library.subtitle', { defaultValue: 'Reuse, duplicate, preview, and retire assessments without leaving this workspace.' })}
-                    </div>
-                </div>
-                <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-                    <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                        {t('company.assessment_library.linked_context', { defaultValue: 'Linked review context' })}
-                    </div>
-                    <div className="mt-2 text-base font-semibold text-slate-900 dark:text-white">
-                        {assessmentContext?.jobTitle || t('company.assessment_library.selected_role', { defaultValue: 'Selected role' })}
-                    </div>
-                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        {assessmentContext?.candidateEmail || t('company.workspace.timeline.empty', { defaultValue: 'Open an application dossier to pin a live review context here.' })}
-                    </div>
-                </div>
-                <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
-                    <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400">
-                        {t('company.assessments_tab.manage_invites')}
-                    </div>
-                    <div className="mt-2 text-base font-semibold text-slate-900 dark:text-white">
-                        {showInvitationsList ? t('company.assessments_tab.close_invites') : t('company.assessments_tab.invite_btn')}
-                    </div>
-                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        {t('company.assessment_library.invite_from_context', { defaultValue: 'Invite from this context' })}
-                    </div>
-                </div>
+                <MetricCard
+                    label={t('company.assessment_library.title', { defaultValue: 'Saved assessment flows' })}
+                    value={assessmentLibrary.length}
+                    hint={t('company.assessment_library.subtitle', { defaultValue: 'Reuse, duplicate, preview, and retire assessments without leaving this workspace.' })}
+                />
+                <MetricCard
+                    label={t('company.assessment_library.linked_context', { defaultValue: 'Linked review context' })}
+                    value={<span className="text-base font-semibold">{assessmentContext?.jobTitle || t('company.assessment_library.selected_role', { defaultValue: 'Selected role' })}</span>}
+                    hint={assessmentContext?.candidateEmail || t('company.workspace.timeline.empty', { defaultValue: 'Open an application dossier to pin a live review context here.' })}
+                />
+                <MetricCard
+                    label={t('company.assessments_tab.manage_invites', { defaultValue: 'Invites' })}
+                    value={<span className="text-base font-semibold">{showInvitationsList ? t('company.assessments_tab.close_invites') : t('company.assessments_tab.invite_btn')}</span>}
+                    hint={t('company.assessment_library.invite_from_context', { defaultValue: 'Invite from this context' })}
+                />
             </div>
 
             {assessmentContext && (
-                <div className="rounded-xl border border-cyan-200 bg-cyan-50/70 p-3 dark:border-cyan-900/30 dark:bg-cyan-950/20">
+                    <div className="rounded-[22px] border border-cyan-200/80 bg-cyan-50/75 p-4 shadow-[0_18px_36px_-30px_rgba(6,182,212,0.35)] dark:border-cyan-900/30 dark:bg-cyan-950/20">
                     <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
                         <div>
                             <div className="text-xs uppercase tracking-widest text-cyan-700 dark:text-cyan-300">{t('company.assessment_library.linked_context', { defaultValue: 'Linked review context' })}</div>
@@ -158,14 +144,14 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                             {assessmentContext.applicationId && (
                                 <button
                                     onClick={onBackToApplication}
-                                    className="px-3 py-1 rounded-md border border-slate-200 text-sm text-slate-700 hover:bg-white dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+                                    className="rounded-full border border-slate-200/80 bg-white px-3 py-1.5 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                                 >
                                     {t('company.assessment_library.back_to_application', { defaultValue: 'Back to application' })}
                                 </button>
                             )}
                             <button
                                 onClick={onOpenInvitationModal}
-                                className="px-3 py-1 rounded-md border border-cyan-200 text-sm text-cyan-700 hover:bg-white dark:border-cyan-900/30 dark:text-cyan-300 dark:hover:bg-slate-900"
+                                className="rounded-full border border-cyan-200/80 bg-white px-3 py-1.5 text-sm font-semibold text-cyan-700 transition-colors hover:bg-cyan-50 dark:border-cyan-900/30 dark:bg-slate-900 dark:text-cyan-300 dark:hover:bg-cyan-950/20"
                             >
                                 {t('company.assessment_library.invite_from_context', { defaultValue: 'Invite from this context' })}
                             </button>
@@ -176,7 +162,7 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
 
             <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,400px)_minmax(0,1fr)] gap-3">
                 <div className="space-y-3">
-                    <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+                    <WorkspacePanel className="p-3">
                         <SectionHeader
                             title={t('company.assessment_library.title', { defaultValue: 'Saved assessment library' })}
                             subtitle={t('company.assessment_library.subtitle', { defaultValue: 'Reuse, duplicate, preview, and retire assessments without leaving this workspace.' })}
@@ -225,14 +211,14 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                                                     </button>
                                                     <button
                                                         onClick={() => openAssessmentPreviewPage(item)}
-                                                        className="px-3 py-1.5 rounded-md border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                                                        className="px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
                                                     >
                                                         {t('company.workspace.actions.preview_assessment', { defaultValue: 'Preview' })}
                                                     </button>
                                                     <button
                                                         onClick={() => onDuplicateAssessment(item.id)}
                                                         disabled={busy}
-                                                        className="px-3 py-1.5 rounded-md border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-50"
+                                                        className="px-3 py-1.5 rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-50"
                                                     >
                                                         {t('company.job_editor.duplicate', { defaultValue: 'Duplicate' })}
                                                     </button>
@@ -250,17 +236,17 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                                 })}
                             </div>
                         )}
-                    </div>
+                    </WorkspacePanel>
 
                     {showInvitationsList && (
-                        <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+                        <WorkspacePanel className="p-3">
                             <MyInvitations forCompany />
-                        </div>
+                        </WorkspacePanel>
                     )}
                 </div>
 
                 <div className="space-y-3">
-                    <div className="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+                    <WorkspacePanel className="p-3">
                         <SectionHeader
                             title={t('company.applications.detail.related_assessments', { defaultValue: 'Related assessments' })}
                             subtitle={t('company.workspace.cards.recent_applications_desc', { defaultValue: 'Open a dossier, move status, or jump directly into the linked review flow.' })}
@@ -272,7 +258,7 @@ const CompanyAssessmentsWorkspace: React.FC<CompanyAssessmentsWorkspaceProps> = 
                             candidateEmailFilter={assessmentContext?.candidateEmail}
                             applicationIdFilter={assessmentContext?.applicationId}
                         />
-                    </div>
+                    </WorkspacePanel>
 
                     {showInvitationModal && (
                         <AssessmentInvitationModal

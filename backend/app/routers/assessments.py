@@ -39,6 +39,111 @@ def _safe_assessment_job_id(value: Any) -> int | None:
         return None
 
 
+def _find_existing_assessment_result(invitation_id: str) -> dict | None:
+    try:
+        response = (
+            supabase
+            .table('assessment_results')
+            .select('id,invitation_id,completed_at')
+            .eq('invitation_id', invitation_id)
+            .limit(1)
+            .execute()
+        )
+    except Exception:
+        return None
+    rows = response.data or []
+    if isinstance(rows, list) and rows:
+        return rows[0]
+    return None
+
+
+def _parse_iso_datetime(value: str | None) -> datetime | None:
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt
+    except Exception:
+        return None
+
+
+def _is_active_subscription(sub: Dict[str, Any] | None) -> bool:
+    if not sub:
+        return False
+    status = str(sub.get("status") or "").lower()
+    if status not in {"active", "trialing"}:
+        return False
+    expires_at = _parse_iso_datetime(sub.get("current_period_end"))
+    if not expires_at:
+        return True
+    return datetime.now(timezone.utc) <= expires_at
+
+
+_COMPANY_TIER_ASSESSMENT_LIMITS: Dict[str, int] = {
+    "free": 0,
+    "trial": 0,
+    "starter": 15,
+    "growth": 60,
+    "professional": 150,
+    "enterprise": 999999,
+}
+
+
+def _get_latest_company_subscription(company_id: str) -> Dict[str, Any] | None:
+    if not supabase or not company_id:
+        return None
+    try:
+        resp = (
+            supabase
+            .table("subscriptions")
+            .select("*")
+            .eq("company_id", company_id)
+            .order("updated_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    except Exception:
+        return None
+
+
+def _get_latest_usage_for_subscription(subscription_id: str) -> Dict[str, Any] | None:
+    if not supabase or not subscription_id:
+        return None
+    try:
+        resp = (
+            supabase
+            .table("subscription_usage")
+            .select("*")
+            .eq("subscription_id", subscription_id)
+            .order("period_end", desc=True)
+            .limit(1)
+            .execute()
+        )
+        return resp.data[0] if resp.data else None
+    except Exception:
+        return None
+
+
+def _require_company_assessment_capacity(company_id: str) -> str:
+    sub = _get_latest_company_subscription(company_id)
+    if not _is_active_subscription(sub):
+        raise HTTPException(status_code=403, detail="Active subscription required")
+
+    tier = str((sub or {}).get("tier") or "free").lower()
+    if tier not in {"starter", "growth", "professional", "enterprise"}:
+        raise HTTPException(status_code=403, detail="Current plan does not include assessment invites")
+
+    usage = _get_latest_usage_for_subscription(str((sub or {}).get("id") or ""))
+    used = int((usage or {}).get("ai_assessments_used") or 0)
+    limit = _COMPANY_TIER_ASSESSMENT_LIMITS.get(tier, 0)
+    if used >= limit:
+        raise HTTPException(status_code=403, detail="Assessment limit reached for the current billing period")
+    return tier
+
+
 def generate_invitation_token() -> str:
     return secrets.token_urlsafe(32)
 
@@ -267,13 +372,7 @@ async def create_assessment_invitation(invitation_req: AssessmentInvitationReque
     if not assessment_check.data:
         raise HTTPException(status_code=404, detail='Assessment not found')
 
-    tier_check = supabase.table('subscriptions').select('tier').eq('company_id', company_id).eq('status', 'active').execute()
-    if not tier_check.data:
-        raise HTTPException(status_code=403, detail='Active subscription required')
-
-    tier = tier_check.data[0].get('tier')
-    if tier not in ['starter', 'growth', 'professional', 'enterprise']:
-        raise HTTPException(status_code=403, detail='Tier not allowed to send invitations')
+    _require_company_assessment_capacity(company_id)
 
     invitation_token = generate_invitation_token()
     expires_at = datetime.now(timezone.utc) + timedelta(days=invitation_req.expires_in_days)
@@ -514,7 +613,13 @@ async def get_invitation_details(invitation_id: str, token: str = Query(...)):
     if datetime.now(timezone.utc) > expires_at:
         raise HTTPException(status_code=410, detail='Invitation has expired')
 
-    if invitation['status'] in ['completed', 'revoked']:
+    if invitation['status'] == 'completed':
+        existing_result = _find_existing_assessment_result(invitation_id)
+        if existing_result:
+            return {'status': 'success', 'result_id': existing_result.get('id'), 'deduplicated': True}
+        raise HTTPException(status_code=410, detail='Invitation is no longer valid')
+
+    if invitation['status'] == 'revoked':
         raise HTTPException(status_code=410, detail='Invitation is no longer valid')
 
     comp_resp = supabase.table('companies').select('name').eq('id', invitation['company_id']).execute()
@@ -538,7 +643,13 @@ async def submit_assessment_result(request: Request, invitation_id: str, result_
     if datetime.now(timezone.utc) > expires_at:
         raise HTTPException(status_code=410, detail='Invitation has expired')
 
-    if invitation['status'] in ['completed', 'revoked']:
+    if invitation['status'] == 'completed':
+        existing_result = _find_existing_assessment_result(invitation_id)
+        if existing_result:
+            return {'status': 'success', 'result_id': existing_result.get('id'), 'deduplicated': True}
+        raise HTTPException(status_code=410, detail='Invitation is no longer valid')
+
+    if invitation['status'] == 'revoked':
         raise HTTPException(status_code=410, detail='Invitation is no longer valid')
 
     answers = result_req.answers if isinstance(result_req.answers, dict) else {}
@@ -614,16 +725,45 @@ async def submit_assessment_result(request: Request, invitation_id: str, result_
         'journey_quality_index': quality_index,
     }
 
-    try:
-        result_response = supabase.table('assessment_results').insert(base_row).execute()
-    except Exception as exc:
-        if _is_missing_column_error(exc, 'application_id') or _is_missing_column_error(exc, 'job_id'):
-            fallback_row = dict(base_row)
-            fallback_row.pop('application_id', None)
-            fallback_row.pop('job_id', None)
-            result_response = supabase.table('assessment_results').insert(fallback_row).execute()
-        else:
-            raise
+    existing_result = _find_existing_assessment_result(invitation_id)
+    wrote_new_result = existing_result is None
+
+    if existing_result and existing_result.get('id'):
+        update_payload = dict(base_row)
+        update_payload.pop('invitation_id', None)
+        try:
+            result_response = (
+                supabase
+                .table('assessment_results')
+                .update(update_payload)
+                .eq('id', existing_result['id'])
+                .execute()
+            )
+        except Exception as exc:
+            if _is_missing_column_error(exc, 'application_id') or _is_missing_column_error(exc, 'job_id'):
+                fallback_payload = dict(update_payload)
+                fallback_payload.pop('application_id', None)
+                fallback_payload.pop('job_id', None)
+                result_response = (
+                    supabase
+                    .table('assessment_results')
+                    .update(fallback_payload)
+                    .eq('id', existing_result['id'])
+                    .execute()
+                )
+            else:
+                raise
+    else:
+        try:
+            result_response = supabase.table('assessment_results').insert(base_row).execute()
+        except Exception as exc:
+            if _is_missing_column_error(exc, 'application_id') or _is_missing_column_error(exc, 'job_id'):
+                fallback_row = dict(base_row)
+                fallback_row.pop('application_id', None)
+                fallback_row.pop('job_id', None)
+                result_response = supabase.table('assessment_results').insert(fallback_row).execute()
+            else:
+                raise
     if not result_response.data:
         raise HTTPException(status_code=500, detail='Failed to save results')
 
@@ -632,12 +772,17 @@ async def submit_assessment_result(request: Request, invitation_id: str, result_
         'completed_at': datetime.now(timezone.utc).isoformat(),
     }).eq('id', invitation_id).execute()
 
-    try:
-        supabase.rpc('increment_assessment_usage', {'company_id': invitation['company_id']}).execute()
-    except Exception:
-        pass
+    if wrote_new_result:
+        try:
+            supabase.rpc('increment_assessment_usage', {'company_id': invitation['company_id']}).execute()
+        except Exception:
+            pass
 
-    return {'status': 'success'}
+    result_id = None
+    if isinstance(result_response.data, list) and result_response.data:
+        result_id = result_response.data[0].get('id')
+
+    return {'status': 'success', 'result_id': result_id, 'deduplicated': not wrote_new_result}
 
 
 @router.get('/invitations')

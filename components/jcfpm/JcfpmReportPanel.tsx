@@ -1098,12 +1098,17 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
         <motion.div variants={itemVariants} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden mt-6">
           <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-gradient-to-r from-cyan-50 to-teal-50 dark:from-slate-800 dark:to-slate-900">
             <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              {locale === 'cs' ? 'Základní report (free)' : 'Basic report (free)'}
+              {({ cs: 'Základní výstup (free)', en: 'Basic results (free)', de: 'Basis-Ergebnis (free)', at: 'Basis-Ergebnis (free)', pl: 'Wynik podstawowy (free)', sk: 'Základný výsledok (free)' } as Record<string, string>)[locale] || 'Basic results (free)'}
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">
-              {locale === 'cs'
-                ? 'Rychlý náhled výsledků. Detailní interpretace a pokročilá analýza je v Premium.'
-                : 'Quick results preview. Detailed interpretation and advanced analysis are available in Premium.'}
+              {({
+                cs: 'Rychlý přehled toho nejdůležitějšího. Podrobný rozbor a hlubší interpretace jsou v Premium.',
+                en: 'A quick summary of the essentials. The full breakdown and deeper interpretation are available in Premium.',
+                de: 'Ein schneller Überblick über das Wichtigste. Die vollständige Auswertung und tiefere Interpretation gibt es in Premium.',
+                at: 'Ein schneller Überblick über das Wichtigste. Die vollständige Auswertung und tiefere Interpretation gibt es in Premium.',
+                pl: 'Szybki podgląd najważniejszych wyników. Pełny rozkład i głębsza interpretacja są dostępne w Premium.',
+                sk: 'Rýchly prehľad najdôležitejších výsledkov. Plný rozbor a hlbšia interpretácia sú dostupné v Premium.',
+              } as Record<string, string>)[locale] || 'A quick summary of the essentials. The full breakdown and deeper interpretation are available in Premium.'}
             </p>
           </div>
           <div className="p-6 grid gap-3">

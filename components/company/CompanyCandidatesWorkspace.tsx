@@ -5,6 +5,7 @@ import { Candidate, CandidateBenchmarkMetric, CandidateBenchmarkMetrics, Job } f
 import MetricCard from './MetricCard';
 import SectionHeader from './SectionHeader';
 import WorkspaceHeader from './WorkspaceHeader';
+import WorkspacePanel from './WorkspacePanel';
 import WorkspaceSyncBadge from './WorkspaceSyncBadge';
 
 interface CompanyCandidatesWorkspaceProps {
@@ -67,12 +68,12 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
     );
 
     return (
-        <div className="space-y-3 animate-in fade-in">
+        <div className="space-y-4 animate-in fade-in">
             <WorkspaceHeader
                 badgeIcon={<Users size={12} />}
-                badgeLabel={t('company.dashboard.tabs.candidates')}
-                title={t('company.dashboard.tabs.candidates')}
-                subtitle={t('company.workspace.cards.candidate_intelligence_desc', { defaultValue: 'A compact view of candidate flow quality without leaving the workspace.' })}
+                badgeLabel={t('company.dashboard.tabs.candidates', { defaultValue: 'Talent view' })}
+                title={t('company.dashboard.tabs.candidates', { defaultValue: 'Talent view' })}
+                subtitle={t('company.workspace.cards.candidate_intelligence_desc', { defaultValue: 'A quick read on candidate flow quality, coverage, and shortlist health.' })}
                 actions={
                     <>
                         <WorkspaceSyncBadge
@@ -82,7 +83,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                             loadingDefault="Syncing candidate signals..."
                             onRefresh={onRefresh}
                         />
-                        <div className="rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 min-w-[240px]">
+                        <div className="company-surface rounded-2xl border border-slate-200/80 bg-white/85 px-4 py-3 min-w-[240px] shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-950/50">
                             <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-1">
                                 {t('company.assessment_library.selected_role', { defaultValue: 'Selected role' })}
                             </div>
@@ -96,7 +97,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                                 ))}
                             </select>
                         </div>
-                        <div className="rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-3 text-xs text-slate-500 dark:text-slate-400 max-w-md">
+                        <div className="company-surface rounded-2xl border border-slate-200/80 bg-white/80 px-4 py-3 text-xs text-slate-500 shadow-sm backdrop-blur dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-400 max-w-md">
                             {isLoadingCandidateBenchmarks
                                 ? t('common.loading')
                                 : (candidateBenchmarks?.transparency?.note || t('company.candidates.benchmark.note', { defaultValue: 'Separate operational metrics without an aggregated quality index yet.' }))}
@@ -107,7 +108,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                 <MetricCard
-                    label={t('company.workspace.cards.candidate_count', { defaultValue: 'Candidate profiles' })}
+                    label={t('company.workspace.cards.candidate_count', { defaultValue: 'People in view' })}
                     value={candidates.length}
                     hint={selectedJob?.title || t('company.dashboard.table.position')}
                 />
@@ -131,7 +132,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                 )}
             </div>
 
-            <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800">
+            <WorkspacePanel className="p-3">
                 <SectionHeader
                     title={t('company.candidates.benchmark.assessment_coverage', { defaultValue: 'Assessment coverage' })}
                     subtitle={t('company.workspace.cards.candidate_coverage_desc', { defaultValue: 'Completed assessments compared with the total candidate pool for the selected role.' })}
@@ -142,11 +143,11 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                         ? `${assessmentMetric.coverage.assessed_candidates}/${assessmentMetric.coverage.total_candidates} (${formatPct(assessmentMetric.coverage.coverage_ratio)})`
                         : t('company.workspace.cards.candidate_coverage_empty', { defaultValue: 'No completed assessments yet' })}
                 </div>
-            </div>
+            </WorkspacePanel>
 
             {candidates.length === 0 ? (
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-5 text-center">
-                    <div className="w-16 h-16 bg-slate-100 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="company-surface rounded-[22px] border border-dashed border-slate-200 dark:border-slate-800 bg-white/90 p-6 text-center shadow-[0_18px_40px_-34px_rgba(15,23,42,0.35)] dark:bg-slate-900/90">
+                    <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
                         <Users size={28} className="text-slate-400" />
                     </div>
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">{t('company.candidates.no_candidates_title')}</h2>
@@ -157,18 +158,18 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
             ) : (
                 <div className="grid grid-cols-1 gap-3">
                     {candidates.map((candidate) => (
-                        <div key={candidate.id} className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600 transition-all relative overflow-hidden group">
+                        <div key={candidate.id} className="company-surface group relative overflow-hidden rounded-[22px] border border-slate-200/80 bg-white/95 p-4 shadow-[0_18px_40px_-34px_rgba(15,23,42,0.42)] transition-all hover:-translate-y-0.5 hover:border-slate-300 dark:border-slate-800 dark:bg-slate-900/92 dark:hover:border-slate-700">
                             <div className="flex flex-col md:flex-row gap-4">
                                 <div className="flex-1">
                                     <div className="flex items-center gap-3 mb-2">
                                         <h3 className="text-lg font-bold text-slate-900 dark:text-white group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{candidate.name}</h3>
-                                        <span className="px-2 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs rounded font-medium border border-slate-200 dark:border-slate-700">{candidate.role || (candidate as any).job_title}</span>
+                                        <span className="company-pill-surface rounded-full border border-slate-200 dark:border-slate-700 bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">{candidate.role || (candidate as any).job_title}</span>
                                     </div>
                                     <p className="text-slate-600 dark:text-slate-300 mb-3 max-w-2xl text-sm">{candidate.bio}</p>
 
                                     <div className="flex flex-wrap gap-2 mb-3">
                                         {candidate.skills.map((skill) => (
-                                            <span key={skill} className="px-2 py-1 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 text-xs rounded font-medium bg-slate-50 dark:bg-slate-950/50">
+                                            <span key={skill} className="company-pill-surface rounded-full border border-slate-200 dark:border-slate-700 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-500 dark:bg-slate-950/50 dark:text-slate-400">
                                                 {skill}
                                             </span>
                                         ))}
@@ -185,7 +186,7 @@ const CompanyCandidatesWorkspace: React.FC<CompanyCandidatesWorkspaceProps> = ({
                                     </div>
                                 </div>
 
-                                <div className="md:w-60 bg-slate-50 dark:bg-slate-950/50 rounded-lg p-3 border border-slate-200 dark:border-slate-800">
+                                <div className="company-surface-soft md:w-60 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50/85 p-3 dark:bg-slate-950/50">
                                     <h4 className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-3 font-mono">{t('company.candidates.risk_analysis')}</h4>
 
                                     <div className="mb-3">

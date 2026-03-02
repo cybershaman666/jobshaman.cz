@@ -1,5 +1,25 @@
 from fastapi.testclient import TestClient
 import pytest
+import sys
+import types
+
+if "pymongo" not in sys.modules:
+    pymongo_stub = types.ModuleType("pymongo")
+    pymongo_stub.ASCENDING = 1
+
+    class _MongoClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    pymongo_stub.MongoClient = _MongoClient
+    sys.modules["pymongo"] = pymongo_stub
+    collection_stub = types.ModuleType("pymongo.collection")
+
+    class _Collection:
+        pass
+
+    collection_stub.Collection = _Collection
+    sys.modules["pymongo.collection"] = collection_stub
 
 import backend.app.main as main
 import backend.app.routers.assessments as assessments_router
@@ -16,6 +36,7 @@ class MockSupabaseJourney:
         self._operation = None
         self._filters = {}
         self._insert_payload = None
+        self._update_payload = None
         self._tables = {
             'assessment_invitations': {
                 'inv_1': {
@@ -27,6 +48,9 @@ class MockSupabaseJourney:
                     'expires_at': '2099-01-01T00:00:00Z',
                     'status': 'pending',
                 }
+            },
+            'assessment_results': {
+                'by_invitation_id': {}
             }
         }
 
@@ -49,17 +73,43 @@ class MockSupabaseJourney:
         self._insert_payload = payload
         return self
 
-    def update(self, _payload):
+    def update(self, payload):
         self._operation = 'update'
+        self._update_payload = payload
+        return self
+
+    def limit(self, *_args, **_kwargs):
         return self
 
     def execute(self):
         if self._last_table == 'assessment_invitations' and self._operation == 'select':
             inv = self._tables['assessment_invitations'].get(self._filters.get('id'))
             return MockResponse(data=[inv] if inv else None)
+        if self._last_table == 'assessment_results' and self._operation == 'select':
+            inv_id = self._filters.get('invitation_id')
+            row = self._tables['assessment_results']['by_invitation_id'].get(inv_id)
+            return MockResponse(data=[row] if row else [])
         if self._last_table == 'assessment_results' and self._operation == 'insert':
-            return MockResponse(data=[{'id': 'res_1'}])
+            row = {'id': 'res_1', **(self._insert_payload or {})}
+            inv_id = row.get('invitation_id')
+            if inv_id:
+                self._tables['assessment_results']['by_invitation_id'][inv_id] = row
+            return MockResponse(data=[row])
+        if self._last_table == 'assessment_results' and self._operation == 'update':
+            row_id = self._filters.get('id')
+            for inv_id, row in list(self._tables['assessment_results']['by_invitation_id'].items()):
+                if row.get('id') == row_id:
+                    updated = {**row, **(self._update_payload or {})}
+                    self._tables['assessment_results']['by_invitation_id'][inv_id] = updated
+                    return MockResponse(data=[updated])
+            return MockResponse(data=[{'id': row_id, **(self._update_payload or {})}])
         if self._last_table == 'assessment_invitations' and self._operation == 'update':
+            inv_id = self._filters.get('id')
+            if inv_id and inv_id in self._tables['assessment_invitations']:
+                self._tables['assessment_invitations'][inv_id] = {
+                    **self._tables['assessment_invitations'][inv_id],
+                    **(self._update_payload or {}),
+                }
             return MockResponse(data=[{'ok': True}])
         return MockResponse(data=None)
 
@@ -139,3 +189,37 @@ def test_journey_submit_writes_canonical_fields(mock_supabase):
     assert isinstance(inserted['journey_payload'], dict)
     assert inserted['journey_quality_index'] is not None
     assert inserted['legacy_mapped'] is False
+
+
+def test_journey_submit_is_idempotent_for_completed_invitation(mock_supabase):
+    client = TestClient(main.app)
+
+    mock_supabase._tables['assessment_invitations']['inv_1']['status'] = 'completed'
+    mock_supabase._tables['assessment_results']['by_invitation_id']['inv_1'] = {
+        'id': 'res_existing',
+        'invitation_id': 'inv_1',
+        'completed_at': '2099-01-01T00:00:00Z',
+    }
+
+    payload = {
+        'invitation_id': 'inv_1',
+        'assessment_id': 'asm_1',
+        'role': 'Engineer',
+        'difficulty': 'Journey',
+        'questions_total': 2,
+        'time_spent_seconds': 120,
+        'answers': {
+            'journey_version': 'journey-v1',
+            'decision_pattern': {'structured_vs_improv': 65},
+            'energy_balance': {},
+            'cultural_orientation': {},
+            'final_profile': {}
+        },
+    }
+
+    res = client.post('/assessments/invitations/inv_1/submit?token=tok_1', json=payload)
+    assert res.status_code == 200
+    body = res.json()
+    assert body['status'] == 'success'
+    assert body['result_id'] == 'res_existing'
+    assert body['deduplicated'] is True

@@ -87,6 +87,78 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   onDeleteAccount
 }) => {
   const { t, i18n } = useTranslation();
+  const localeBase = (i18n.language || 'cs').split('-')[0];
+  const profilePremiumCopy = {
+    cs: {
+      aiGuideBadge: 'Prémiový pomocník',
+      aiGuideDesc: 'Jednou popište svůj pracovní příběh. AI z něj vytáhne silné stránky, doplní profil a připraví lepší základ pro CV.',
+      aiGuideStart: 'Spustit vedený průvodce',
+      aiGuideUpgrade: 'Premium odemkne AI průvodce i chytřejší úpravy CV.',
+      jcfpmSummary: '108 otázek • 12 dimenzí • základní výstup pro všechny • plný rozbor v Premium',
+      jcfpmBasicTitle: 'Základní výsledek je připravený',
+      jcfpmBasicDesc: 'Test už teď upravuje vaše interní doporučení JHI. Premium odemkne podrobný rozbor, vysvětlení změn a sdílení výsledků s firmou.',
+      jcfpmUnlock: 'Odemknout plný rozbor',
+    },
+    en: {
+      aiGuideBadge: 'Premium helper',
+      aiGuideDesc: 'Tell your work story once. AI pulls out your strengths, enriches your profile, and prepares a better CV starting point.',
+      aiGuideStart: 'Start guided setup',
+      aiGuideUpgrade: 'Premium unlocks the AI guide and smarter CV improvements.',
+      jcfpmSummary: '108 questions • 12 dimensions • basic results for everyone • full analysis in Premium',
+      jcfpmBasicTitle: 'Your basic result is ready',
+      jcfpmBasicDesc: 'The test already improves your internal JHI recommendations. Premium unlocks the full breakdown, explains what changed, and lets you share results with employers.',
+      jcfpmUnlock: 'Unlock full analysis',
+    },
+    de: {
+      aiGuideBadge: 'Premium-Helfer',
+      aiGuideDesc: 'Erzählen Sie Ihre berufliche Geschichte einmal. Die KI erkennt Stärken, ergänzt Ihr Profil und bereitet eine bessere Grundlage für Ihren Lebenslauf vor.',
+      aiGuideStart: 'Geführten Start öffnen',
+      aiGuideUpgrade: 'Premium schaltet den KI-Assistenten und intelligentere Lebenslauf-Verbesserungen frei.',
+      jcfpmSummary: '108 Fragen • 12 Dimensionen • Basis-Ergebnis für alle • volle Analyse in Premium',
+      jcfpmBasicTitle: 'Ihr Basis-Ergebnis ist bereit',
+      jcfpmBasicDesc: 'Der Test verbessert bereits Ihre internen JHI-Empfehlungen. Premium schaltet die vollständige Auswertung, die Erklärung der Änderungen und das Teilen mit Arbeitgebern frei.',
+      jcfpmUnlock: 'Volle Analyse freischalten',
+    },
+    at: {
+      aiGuideBadge: 'Premium-Helfer',
+      aiGuideDesc: 'Erzählen Sie Ihre berufliche Geschichte einmal. Die KI erkennt Stärken, ergänzt Ihr Profil und bereitet eine bessere Grundlage für Ihren Lebenslauf vor.',
+      aiGuideStart: 'Geführten Start öffnen',
+      aiGuideUpgrade: 'Premium schaltet den KI-Assistenten und intelligentere Lebenslauf-Verbesserungen frei.',
+      jcfpmSummary: '108 Fragen • 12 Dimensionen • Basis-Ergebnis für alle • volle Analyse in Premium',
+      jcfpmBasicTitle: 'Ihr Basis-Ergebnis ist bereit',
+      jcfpmBasicDesc: 'Der Test verbessert bereits Ihre internen JHI-Empfehlungen. Premium schaltet die vollständige Auswertung, die Erklärung der Änderungen und das Teilen mit Arbeitgebern frei.',
+      jcfpmUnlock: 'Volle Analyse freischalten',
+    },
+    pl: {
+      aiGuideBadge: 'Pomocnik Premium',
+      aiGuideDesc: 'Opowiedz raz swoją historię zawodową. AI wyciągnie mocne strony, uzupełni profil i przygotuje lepszą bazę do CV.',
+      aiGuideStart: 'Uruchom przewodnik',
+      aiGuideUpgrade: 'Premium odblokowuje przewodnik AI i inteligentniejsze ulepszenia CV.',
+      jcfpmSummary: '108 pytań • 12 wymiarów • podstawowy wynik dla wszystkich • pełna analiza w Premium',
+      jcfpmBasicTitle: 'Podstawowy wynik jest gotowy',
+      jcfpmBasicDesc: 'Test już teraz poprawia Twoje wewnętrzne rekomendacje JHI. Premium odblokowuje pełny rozkład, wyjaśnia zmiany i pozwala udostępnić wynik pracodawcom.',
+      jcfpmUnlock: 'Odblokuj pełną analizę',
+    },
+    sk: {
+      aiGuideBadge: 'Prémiový pomocník',
+      aiGuideDesc: 'Raz opíšte svoj pracovný príbeh. AI z neho vytiahne silné stránky, doplní profil a pripraví lepší základ pre CV.',
+      aiGuideStart: 'Spustiť sprievodcu',
+      aiGuideUpgrade: 'Premium odomkne AI sprievodcu aj inteligentnejšie úpravy CV.',
+      jcfpmSummary: '108 otázok • 12 dimenzií • základný výsledok pre všetkých • plná analýza v Premium',
+      jcfpmBasicTitle: 'Základný výsledok je pripravený',
+      jcfpmBasicDesc: 'Test už teraz zlepšuje vaše interné odporúčania JHI. Premium odomkne plný rozbor, vysvetlenie zmien a zdieľanie výsledkov so zamestnávateľom.',
+      jcfpmUnlock: 'Odomknúť plný rozbor',
+    }
+  }[localeBase] || {
+    aiGuideBadge: 'Premium helper',
+    aiGuideDesc: 'Tell your work story once. AI pulls out your strengths, enriches your profile, and prepares a better CV starting point.',
+    aiGuideStart: 'Start guided setup',
+    aiGuideUpgrade: 'Premium unlocks the AI guide and smarter CV improvements.',
+    jcfpmSummary: '108 questions • 12 dimensions • basic results for everyone • full analysis in Premium',
+    jcfpmBasicTitle: 'Your basic result is ready',
+    jcfpmBasicDesc: 'The test already improves your internal JHI recommendations. Premium unlocks the full breakdown, explains what changed, and lets you share results with employers.',
+    jcfpmUnlock: 'Unlock full analysis',
+  };
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [profilePhotoFailed, setProfilePhotoFailed] = useState(false);
   const [isUploadingCV, setIsUploadingCV] = useState(false);
@@ -258,10 +330,6 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const hasPremiumAccess = !!resolvedTier && resolvedTier !== 'free' && resolvedTier !== 'null' && resolvedTier !== 'undefined';
   const normalizedCandidateTier: 'free' | 'premium' = hasPremiumAccess ? 'premium' : 'free';
   const isPremium = normalizedCandidateTier === 'premium';
-  // temporary: unlock JCFPM test for all users (ignore premium flag)
-  // remove this override once the promotion period ends
-  const jcfpmOpenToAll = true; // set to `isPremium` to re-enable gating
-
   const premiumPrice = getPremiumPriceDisplay(i18n.language || 'cs');
   const aiCvParsingEnabled = String(import.meta.env.VITE_ENABLE_AI_CV_PARSER || 'true').toLowerCase() !== 'false';
 
@@ -1624,14 +1692,14 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     </div>
                     <div>
                       <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.ai_guide.title')}</h2>
-                      <p className="text-xs font-medium text-cyan-700 dark:text-cyan-300">{t('profile.ai_guide_core_badge', { defaultValue: 'Core Premium feature' })}</p>
+                      <p className="text-xs font-medium text-cyan-700 dark:text-cyan-300">{t('profile.ai_guide_core_badge', { defaultValue: profilePremiumCopy.aiGuideBadge })}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="p-6">
                   <p className="text-sm text-slate-700 dark:text-slate-300 mb-5">
-                    {t('profile.ai_guide_short_desc', { defaultValue: 'Dictate your story. AI reveals hidden strengths, enriches your profile, and creates a tailored CV.' })}
+                    {t('profile.ai_guide_short_desc', { defaultValue: profilePremiumCopy.aiGuideDesc })}
                   </p>
 
                   {isPremium ? (
@@ -1640,7 +1708,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       className="w-full px-5 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/30"
                     >
                       <Sparkles className="w-4 h-4" />
-                      {t('profile.ai_guide_start', { defaultValue: 'Start AI guide' })}
+                      {t('profile.ai_guide_start', { defaultValue: profilePremiumCopy.aiGuideStart })}
                     </button>
                   ) : (
                     <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4 flex items-center justify-between gap-4">
@@ -1649,7 +1717,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                           {t('alerts.premium_only_feature')}
                         </p>
                         <p className="text-xs text-slate-600 dark:text-slate-400">
-                          {t('profile.ai_guide_upgrade_hint', { defaultValue: 'Unlock AI guide and advanced CV optimization in Premium.' })}
+                          {t('profile.ai_guide_upgrade_hint', { defaultValue: profilePremiumCopy.aiGuideUpgrade })}
                         </p>
                       </div>
                       <button
@@ -2472,13 +2540,12 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   </span>
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400">
-                  108 položek • 12 dimenzí • základní report pro všechny • pokročilý report v Premium
+                  {profilePremiumCopy.jcfpmSummary}
                 </p>
               </div>
               <div className="p-6 space-y-4 bg-gradient-to-br from-emerald-50/80 via-sky-50/70 to-stone-50/80 dark:from-slate-900/70 dark:via-slate-900/80 dark:to-slate-950/80">
                 <JcfpmEntryCard
-                  // use override variable so non-premium users can also start the test
-                  isPremium={jcfpmOpenToAll}
+                  isPremium={isPremium}
                   sceneCapability={sceneCapability}
                   hasDraft={hasJcfpmDraft}
                   hasSnapshot={Boolean(jcfpmSnapshot)}
@@ -2512,7 +2579,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                     }
                   }}
                 />
-                {profile.preferences?.jcfpm_jhi_adjustment_v1 && (
+                {profile.preferences?.jcfpm_jhi_adjustment_v1 && isPremium && (
                   <div className="rounded-xl border border-cyan-200/70 dark:border-cyan-900/40 bg-white/80 dark:bg-slate-900/70 p-4">
                     <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
                       Jak test upravil JHI preference
@@ -2538,6 +2605,29 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
+                {profile.preferences?.jcfpm_jhi_adjustment_v1 && !isPremium && (
+                  <div className="rounded-xl border border-amber-200/70 dark:border-amber-900/40 bg-white/80 dark:bg-slate-900/70 p-4">
+                    <div className="text-sm font-semibold text-slate-900 dark:text-white mb-1">
+                      {t('profile.jcfpm.basic_result_active', { defaultValue: profilePremiumCopy.jcfpmBasicTitle })}
+                    </div>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                      {t('profile.jcfpm.basic_result_desc', {
+                        defaultValue: profilePremiumCopy.jcfpmBasicDesc
+                      })}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (profile.id) {
+                          redirectToCheckout('premium', profile.id);
+                        }
+                      }}
+                      className="mt-3 inline-flex items-center gap-2 rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-300"
+                    >
+                      {t('profile.jcfpm.unlock_premium_results', { defaultValue: profilePremiumCopy.jcfpmUnlock })}
+                    </button>
                   </div>
                 )}
               </div>
