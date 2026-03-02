@@ -1161,7 +1161,170 @@
         "low": "Niedrig",
         "medium": "Mittel"
       },
-      "salary_per_month": "/Monat"
+      "salary_per_month": "/Monat",
+      "benchmark": {
+        "insufficient_data": "Nicht genug Daten",
+        "data_summary": "Quelle: {{source}} • N={{sample}} • {{days}}d • Zuverlaessigkeit {{confidence}}"
+      },
+      "risk_score": "Score: {{value}}/100",
+      "risk_method": "Methode: {{value}}"
+    },
+    "workspace": {
+      "nav": "Workspace",
+      "badge": "Hiring-Workspace",
+      "title": "Eine operative Ansicht fuer Ihr Hiring-Team",
+      "subtitle": "Behalten Sie Live-Rollen im Blick, pruefen Sie die Kandidatenwarteschlange, verfolgen Sie die Assessment-Bereitschaft und wechseln Sie nur bei Bedarf in tiefere Tools.",
+      "actions": {
+        "new_role": "Job-Editor oeffnen",
+        "review_queue": "Review-Queue oeffnen",
+        "assessments": "Assessments oeffnen",
+        "open_full_queue": "Gesamte Queue oeffnen",
+        "open_dossier": "Dossier oeffnen",
+        "open_jobs": "Jobs oeffnen",
+        "open_assessment_library": "Bibliothek oeffnen",
+        "use_assessment": "Im Workflow nutzen",
+        "preview_assessment": "Vorschau",
+        "open_candidates": "Kandidaten oeffnen"
+      },
+      "metrics": {
+        "live_roles": "Live-Rollen",
+        "live_roles_hint": "Rollen, die aktuell fuer Kandidaten sichtbar oder aktiv sind.",
+        "review_queue": "Review-Queue",
+        "review_queue_hint": "Bewerbungen, die noch Recruiter-Aktionen oder einen Statuswechsel brauchen.",
+        "visibility": "Sichtbarkeit",
+        "visibility_hint": "{{count}} Bewerbungen erfasst • {{rate}}% durchschnittliche Conversion",
+        "candidate_health": "Kandidatenqualitaet",
+        "candidate_health_hint": "Shortlist-Effizienz im aktuellen Kandidatenfluss."
+      },
+      "queue": {
+        "title": "Recruiter-Aktionsqueue",
+        "subtitle": "Die naechsten Aktionen, die Hiring-Blocker am wahrscheinlichsten aufloesen.",
+        "review_job_title": "Rolle wartet auf Pruefung",
+        "review_job_detail": "{{title}} wartet noch auf eine Compliance-Pruefung, bevor die Rolle voll performen kann.",
+        "low_conversion_title": "Rolle mit niedriger Conversion",
+        "low_conversion_detail": "{{title}} bekommt Views, aber keine Bewerbungen. Optimieren Sie die Anzeige oder schicken Sie sie in die Pruefung.",
+        "application_title": "Bewerbung wartet auf Recruiter-Aktion",
+        "application_detail": "{{candidate}} hat sich auf {{job}} beworben und wartet in der Review-Queue.",
+        "assessment_title": "Assessment-Bibliothek ist leer",
+        "assessment_detail": "Erstellen oder speichern Sie mindestens ein wiederverwendbares Assessment, damit Recruiter Kandidaten schneller einladen koennen.",
+        "clear_title": "Keine dringenden Blocker",
+        "clear_detail": "Der zentrale Hiring-Workflow ist derzeit frei. Nutzen Sie den Workspace unten fuer das aktive Monitoring."
+      },
+      "cards": {
+        "recent_applications": "Neueste Bewerbungen",
+        "recent_applications_desc": "Oeffnen Sie ein Dossier, aendern Sie den Status oder wechseln Sie direkt in den verknuepften Review-Flow.",
+        "recent_applications_empty": "Noch keine Bewerbungen. Sobald Kandidaten reagieren, erscheinen sie zuerst hier.",
+        "live_roles": "Live-Rollen",
+        "live_roles_desc": "Ihre wichtigsten Rollen mit direktem Zugang zu Bearbeitung und Review.",
+        "assessment_library": "Assessment-Bibliothek",
+        "assessment_library_desc": "Wiederverwendbare Assessments, die Recruitern sofort zur Verfuegung stehen.",
+        "assessment_library_empty": "Noch keine gespeicherten Assessments. Erstellen Sie eines und das Team kann es sofort wiederverwenden.",
+        "candidate_intelligence": "Kandidaten-Insights",
+        "candidate_intelligence_desc": "Ein kompakter Blick auf die Qualitaet des Kandidatenflusses, ohne den Workspace zu verlassen.",
+        "candidate_count": "Kandidatenprofile",
+        "candidate_coverage": "Assessment-Abdeckung",
+        "candidate_coverage_empty": "Noch keine abgeschlossenen Assessments",
+        "shortlist_health": "Shortlist-Qualitaet",
+        "shortlist_health_empty": "Hier zeigen wir Benchmark-Qualitaet, sobald genug Recruiter- und Assessment-Daten vorliegen."
+      },
+      "labels": {
+        "cover_letter": "Anschreiben",
+        "applications": "Bewerbungen"
+      },
+      "timeline": {
+        "title": "Letzte Aktivitaeten",
+        "subtitle": "Ein kompakter Audit-Log fuer Rollen, Bewerbungen und Assessment-Aenderungen.",
+        "empty": "Aktivitaeten erscheinen hier, sobald das Team publiziert oder reviewed.",
+        "job_created": "Rolle veroeffentlicht",
+        "application_received": "Bewerbung eingegangen",
+        "assessment_saved": "Assessment gespeichert"
+      }
+    },
+    "jobs": {
+      "nav": "Jobs",
+      "title": "Jobs-Workspace",
+      "subtitle": "Verwalten Sie Live-Rollen, leiten Sie Kandidaten in die Review-Queue und publizieren Sie ueber strukturierte Drafts.",
+      "new_draft_cta": "Neuer Draft",
+      "empty": "Noch keine Live-Rollen. Starten Sie rechts mit einem strukturierten Draft.",
+      "open_applications": "Bewerbungen oeffnen"
+    },
+    "applications": {
+      "nav": "Bewerbungen",
+      "title": "Bewerbungs-Workspace",
+      "subtitle": "Pruefen Sie strukturierte Bewerbungsdossiers, aktualisieren Sie Status und sehen Sie den geteilten JCFPM-Kontext.",
+      "labels": {
+        "candidate": "Kandidat",
+        "full": "Voll",
+        "summary": "Kurzfassung"
+      },
+      "detail": {
+        "candidate": "Kandidat",
+        "documents": "Dokumente",
+        "no_email": "Keine E-Mail",
+        "no_cv": "Kein CV angehaengt",
+        "source": "Quelle",
+        "skills": "Skills",
+        "assessment_actions": "Assessment-Aktionen",
+        "related_assessments": "Verknuepfte Assessments",
+        "assessment_hint": "Beim Wechsel in die Assessments bleibt der verknuepfte Bewerbungskontext erhalten.",
+        "environment_fit": "Umfeld-Fit",
+        "top_dimensions": "Staerkste Dimensionen",
+        "select_prompt": "Waehlen Sie eine Bewerbung aus der Queue, um das vollstaendige Dossier zu sehen."
+      },
+      "metrics": {
+        "shared_jcfpm": "Geteiltes JCFPM",
+        "shared_jcfpm_hint": "Geteilte JCFPM-Signale sind direkt im Recruiter-Dossier sichtbar."
+      }
+    },
+    "assessment_library": {
+      "linked_context": "Verknuepfter Review-Kontext",
+      "selected_role": "Ausgewaehlte Rolle",
+      "back_to_application": "Zurueck zur Bewerbung",
+      "invite_from_context": "Aus diesem Kontext einladen",
+      "title": "Gespeicherte Assessment-Bibliothek",
+      "subtitle": "Wiederverwenden, duplizieren, pruefen und archivieren Sie Assessments direkt in diesem Workspace.",
+      "empty": "Noch keine gespeicherten Assessments. Erstellen Sie unten eines und es erscheint hier.",
+      "selected": "Ausgewaehlt",
+      "use": "Verwenden",
+      "assessment_id": "Assessment-ID",
+      "archive": "Archivieren"
+    },
+    "job_editor": {
+      "title": "Strukturierter Job-Editor",
+      "subtitle": "Drafts, Validierung, Vorschau und Publishing in einem Workflow.",
+      "compat_mode": "Kompatibilitaetsmodus: lokale Drafts + direkte Publish-Fallbacks",
+      "new_draft": "Neuer Draft",
+      "resume_draft": "Draft fortsetzen",
+      "no_drafts": "Noch keine Drafts. Erstellen Sie einen, um ein strukturiertes Job-Inserat zu verfassen.",
+      "untitled_role": "Unbenannte Rolle",
+      "versions": "Versionen",
+      "no_versions": "Noch keine veroeffentlichten Versionen.",
+      "version_label": "Version",
+      "empty_state": "Waehlen Sie einen vorhandenen Draft oder erstellen Sie einen neuen.",
+      "role_basics": "Rollen-Grundlagen",
+      "role_basics_desc": "Zentrale Publishing-Felder mit klaren Transparenzpruefungen.",
+      "save": "Draft speichern",
+      "validate": "Validieren",
+      "publish_update": "Update veroeffentlichen",
+      "publish": "Job veroeffentlichen",
+      "sections": "Strukturierte Bereiche",
+      "sections_desc": "Arbeiten Sie Block fuer Block. KI-Vorschlaege bleiben abschnittsspezifisch.",
+      "hide_preview": "Vorschau ausblenden",
+      "show_preview": "Vorschau anzeigen",
+      "improve_section": "Diesen Abschnitt verbessern",
+      "benefits_title": "Benefits und finaler Publish-Check",
+      "ai_suggestion": "KI-Vorschlag bereit",
+      "apply_ai": "Vorschlag anwenden",
+      "dismiss_ai": "Verwerfen",
+      "validation": "Validierung und Qualitaetschecks",
+      "blocking": "Blockierende Punkte",
+      "warnings": "Warnungen",
+      "suggestions": "Empfehlungen",
+      "preview_panel": "Live-Vorschau",
+      "duplicate": "Duplizieren",
+      "pause": "Pausieren",
+      "reopen": "Wieder oeffnen",
+      "close": "Schliessen"
     }
   },
   "common": {
@@ -2300,14 +2463,14 @@
         "4": "Formel: Entfernung × 5 CZK/km × 2 (Hin- und Rückweg)"
       },
       "public": {
-        "title": "Öffentlicher Verkehr",
         "1": "Satz: 2.5 CZK/km + Monatskarte",
         "2": "Ticket: abhängig von der Stadt",
         "3": "Prag: ~1,500 CZK/Monat (60 km/Monat frei)",
         "4": "Brünn: ~1,300 CZK/Monat",
         "5": "Pilsen: ~1,000 CZK/Monat",
         "6": "Zeit: 2.0 - 3.0 Min/km (Warten + Fahrt)",
-        "7": "Ideal für: große Städte mit gutem ÖPNV, stressarm"
+        "7": "Ideal für: große Städte mit gutem ÖPNV, stressarm",
+        "title": "Öffentlicher Verkehr"
       },
       "bike": {
         "1": "Satz: 0.05 CZK/km (nur Wartung)",

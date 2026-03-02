@@ -1119,7 +1119,170 @@
         "low": "Niskie",
         "medium": "Średnie"
       },
-      "salary_per_month": "/miesiąc"
+      "salary_per_month": "/miesiąc",
+      "benchmark": {
+        "insufficient_data": "Za malo danych",
+        "data_summary": "Zrodlo: {{source}} • N={{sample}} • {{days}}d • pewnosc {{confidence}}"
+      },
+      "risk_score": "Wynik: {{value}}/100",
+      "risk_method": "Metoda: {{value}}"
+    },
+    "workspace": {
+      "nav": "Workspace",
+      "badge": "Hiring workspace",
+      "title": "Jedno operacyjne miejsce pracy dla zespolu hiringowego",
+      "subtitle": "Sledz aktywne role, kolejke kandydatow, gotowosc assessmentow i przechodz do glebszych narzedzi tylko wtedy, gdy to potrzebne.",
+      "actions": {
+        "new_role": "Otworz edytor ogloszenia",
+        "review_queue": "Otworz kolejke review",
+        "assessments": "Otworz assessmenty",
+        "open_full_queue": "Otworz cala kolejke",
+        "open_dossier": "Otworz dossier",
+        "open_jobs": "Otworz oferty",
+        "open_assessment_library": "Otworz biblioteke",
+        "use_assessment": "Uzyj w workflow",
+        "preview_assessment": "Podglad",
+        "open_candidates": "Otworz kandydatow"
+      },
+      "metrics": {
+        "live_roles": "Aktywne role",
+        "live_roles_hint": "Role widoczne dla kandydatow lub aktywnie rotowane.",
+        "review_queue": "Kolejka review",
+        "review_queue_hint": "Aplikacje, ktore nadal wymagaja akcji rekrutera lub zmiany statusu.",
+        "visibility": "Widocznosc",
+        "visibility_hint": "{{count}} zebranych aplikacji • {{rate}}% sredniej konwersji",
+        "candidate_health": "Jakosc kandydatow",
+        "candidate_health_hint": "Skutecznosc shortlisty w obecnym przeplywie kandydatow."
+      },
+      "queue": {
+        "title": "Kolejka priorytetowych akcji",
+        "subtitle": "Kolejne kroki, ktore najszybciej odblokowuja hiring.",
+        "review_job_title": "Rola czeka na review",
+        "review_job_detail": "{{title}} nadal wymaga kontroli compliance, zanim zacznie dzialac na pelnych obrotach.",
+        "low_conversion_title": "Rola z niska konwersja",
+        "low_conversion_detail": "{{title}} zbiera wyswietlenia, ale nie ma aplikacji. Popraw ogloszenie albo skieruj je do review.",
+        "application_title": "Aplikacja czeka na rekrutera",
+        "application_detail": "{{candidate}} aplikuje na {{job}} i czeka w kolejce review.",
+        "assessment_title": "Biblioteka assessmentow jest pusta",
+        "assessment_detail": "Utworz lub zapisz przynajmniej jeden wielokrotnego uzytku assessment, aby rekruterzy szybciej zapraszali kandydatow.",
+        "clear_title": "Brak pilnych blokad",
+        "clear_detail": "Glowny workflow hiringowy jest teraz czysty. Uzyj ponizszego workspace do operacyjnego monitoringu."
+      },
+      "cards": {
+        "recent_applications": "Najnowsze aplikacje",
+        "recent_applications_desc": "Otworz dossier, zmien status lub przejdz bezposrednio do powiazanego review flow.",
+        "recent_applications_empty": "Brak aplikacji. Gdy kandydaci zaczna aplikowac, pojawia sie najpierw tutaj.",
+        "live_roles": "Aktywne role",
+        "live_roles_desc": "Najwazniejsze role z bezposrednim dostepem do edycji i review.",
+        "assessment_library": "Biblioteka assessmentow",
+        "assessment_library_desc": "Powtarzalne assessmenty dostepne dla rekruterow od razu.",
+        "assessment_library_empty": "Brak zapisanych assessmentow. Utworz jeden, a zespol bedzie mogl uzywac go od razu.",
+        "candidate_intelligence": "Przeglad kandydatow",
+        "candidate_intelligence_desc": "Zwarty widok jakosci przeplywu kandydatow bez opuszczania workspace.",
+        "candidate_count": "Profile kandydatow",
+        "candidate_coverage": "Pokrycie assessmentami",
+        "candidate_coverage_empty": "Brak zakonczonych assessmentow",
+        "shortlist_health": "Jakosc shortlisty",
+        "shortlist_health_empty": "Jakosc benchmarku pokazemy, gdy zbierze sie wiecej danych od rekruterow i assessmentow."
+      },
+      "labels": {
+        "cover_letter": "List motywacyjny",
+        "applications": "Aplikacje"
+      },
+      "timeline": {
+        "title": "Ostatnia aktywnosc",
+        "subtitle": "Zwarty log zmian dla rol, aplikacji i assessmentow.",
+        "empty": "Aktywnosc pojawi sie tutaj, gdy zespol zacznie publikowac lub reviewowac.",
+        "job_created": "Rola opublikowana",
+        "application_received": "Aplikacja odebrana",
+        "assessment_saved": "Assessment zapisany"
+      }
+    },
+    "jobs": {
+      "nav": "Oferty",
+      "title": "Workspace ofert",
+      "subtitle": "Zarzadzaj aktywnymi rolami, kieruj kandydatow do review i publikuj przez ustrukturyzowane drafty.",
+      "new_draft_cta": "Nowy draft",
+      "empty": "Brak aktywnych rol. Zacznij od utworzenia ustrukturyzowanego draftu po prawej stronie.",
+      "open_applications": "Otworz aplikacje"
+    },
+    "applications": {
+      "nav": "Aplikacje",
+      "title": "Workspace aplikacji",
+      "subtitle": "Przegladaj ustrukturyzowane dossier aplikacji, aktualizuj statusy i sprawdzaj udostepniony kontekst JCFPM.",
+      "labels": {
+        "candidate": "Kandydat",
+        "full": "Pelny",
+        "summary": "Podsumowanie"
+      },
+      "detail": {
+        "candidate": "Kandydat",
+        "documents": "Dokumenty",
+        "no_email": "Brak e-maila",
+        "no_cv": "Brak zalaczonego CV",
+        "source": "Zrodlo",
+        "skills": "Umiejetnosci",
+        "assessment_actions": "Akcje assessmentowe",
+        "related_assessments": "Powiazane assessmenty",
+        "assessment_hint": "Po przejsciu do assessmentow zachowany zostaje powiazany kontekst tej aplikacji.",
+        "environment_fit": "Dopasowanie do srodowiska",
+        "top_dimensions": "Najsilniejsze wymiary",
+        "select_prompt": "Wybierz aplikacje z kolejki, aby zobaczyc pelne dossier."
+      },
+      "metrics": {
+        "shared_jcfpm": "Udostepnione JCFPM",
+        "shared_jcfpm_hint": "Udostepnione sygnaly JCFPM sa widoczne bezposrednio w dossier rekrutera."
+      }
+    },
+    "assessment_library": {
+      "linked_context": "Powiazany kontekst review",
+      "selected_role": "Wybrana rola",
+      "back_to_application": "Wroc do aplikacji",
+      "invite_from_context": "Zaproś z tego kontekstu",
+      "title": "Zapisana biblioteka assessmentow",
+      "subtitle": "Uzywaj ponownie, duplikuj, podgladaj i archiwizuj assessmenty bez opuszczania workspace.",
+      "empty": "Brak zapisanych assessmentow. Wygeneruj jeden ponizej, a pojawi sie tutaj.",
+      "selected": "Wybrane",
+      "use": "Uzyj",
+      "assessment_id": "ID assessmentu",
+      "archive": "Archiwizuj"
+    },
+    "job_editor": {
+      "title": "Ustrukturyzowany edytor oferty",
+      "subtitle": "Drafty, walidacja, podglad i publikacja w jednym workflow.",
+      "compat_mode": "Tryb zgodnosci: lokalne drafty + bezposredni fallback publikacji",
+      "new_draft": "Nowy draft",
+      "resume_draft": "Wznow draft",
+      "no_drafts": "Brak draftow. Utworz jeden i zacznij pisac ustrukturyzowane ogloszenie.",
+      "untitled_role": "Rola bez nazwy",
+      "versions": "Wersje",
+      "no_versions": "Brak opublikowanych wersji.",
+      "version_label": "Wersja",
+      "empty_state": "Wybierz istniejacy draft albo utworz nowy.",
+      "role_basics": "Podstawy roli",
+      "role_basics_desc": "Kluczowe pola publikacji z jasnymi kontrolami przejrzystosci.",
+      "save": "Zapisz draft",
+      "validate": "Waliduj",
+      "publish_update": "Opublikuj aktualizacje",
+      "publish": "Opublikuj oferte",
+      "sections": "Sekcje strukturalne",
+      "sections_desc": "Pisz i poprawiaj blok po bloku. Sugestie AI pozostaja przypisane do sekcji.",
+      "hide_preview": "Ukryj podglad",
+      "show_preview": "Pokaz podglad",
+      "improve_section": "Popraw te sekcje",
+      "benefits_title": "Benefity i finalny przeglad publikacji",
+      "ai_suggestion": "Sugestia AI gotowa",
+      "apply_ai": "Zastosuj sugestie",
+      "dismiss_ai": "Odrzuc",
+      "validation": "Walidacja i kontrole jakosci",
+      "blocking": "Blokujace problemy",
+      "warnings": "Ostrzezenia",
+      "suggestions": "Sugestie",
+      "preview_panel": "Podglad na zywo",
+      "duplicate": "Duplikuj",
+      "pause": "Wstrzymaj",
+      "reopen": "Wznow",
+      "close": "Zamknij"
     }
   },
   "common": {
@@ -2316,14 +2479,14 @@
         "4": "Wzór: Odległość × 5 CZK/km × 2 (tam i z powrotem)"
       },
       "public": {
-        "title": "Transport publiczny",
         "1": "Stawka: 2.5 CZK/km + bilet miesięczny",
         "2": "Bilet: zależny od miasta",
         "3": "Praga: ~1,500 CZK/miesiąc (60 km/miesiąc gratis)",
         "4": "Brno: ~1,300 CZK/miesiąc",
         "5": "Pilzno: ~1,000 CZK/miesiąc",
         "6": "Czas: 2.0 - 3.0 min/km (czekanie + przejazd)",
-        "7": "Idealne dla: dużych miast z dobrą komunikacją"
+        "7": "Idealne dla: dużych miast z dobrą komunikacją",
+        "title": "Transport publiczny"
       },
       "bike": {
         "1": "Stawka: 0.05 CZK/km (tylko serwis)",

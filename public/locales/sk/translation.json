@@ -1167,7 +1167,170 @@
         "low": "Nízke",
         "medium": "Stredné"
       },
-      "salary_per_month": "/mesiac"
+      "salary_per_month": "/mesiac",
+      "benchmark": {
+        "insufficient_data": "Nedostatok dat",
+        "data_summary": "Zdroj: {{source}} • N={{sample}} • {{days}}d • spolahlivost {{confidence}}"
+      },
+      "risk_score": "Skore: {{value}}/100",
+      "risk_method": "Metoda: {{value}}"
+    },
+    "workspace": {
+      "nav": "Pracovny priestor",
+      "badge": "Hiring workspace",
+      "title": "Jedno operativne zobrazenie pre hiring tim",
+      "subtitle": "Sledujte aktivne role, kontrolujte front aplikacii, pripravene assessmenty a do hlbsich nastrojov chodte len vtedy, ked to naozaj treba.",
+      "actions": {
+        "new_role": "Otvorit editor pozicie",
+        "review_queue": "Otvorit review front",
+        "assessments": "Otvorit assessmenty",
+        "open_full_queue": "Otvorit cely front",
+        "open_dossier": "Otvorit dossier",
+        "open_jobs": "Otvorit pozicie",
+        "open_assessment_library": "Otvorit kniznicu",
+        "use_assessment": "Pouzit vo workflow",
+        "preview_assessment": "Nahlad",
+        "open_candidates": "Otvorit kandidatov"
+      },
+      "metrics": {
+        "live_roles": "Aktivne role",
+        "live_roles_hint": "Role, ktore su prave viditelne kandidatovi alebo aktivne bezia.",
+        "review_queue": "Review front",
+        "review_queue_hint": "Aplikacie, ktore este potrebuju akciu recruitera alebo posun stavu.",
+        "visibility": "Viditelnost",
+        "visibility_hint": "{{count}} zachytenych aplikacii • {{rate}}% priemerna konverzia",
+        "candidate_health": "Kvalita kandidatov",
+        "candidate_health_hint": "Efektivita shortlistu v aktualnom toku kandidatov."
+      },
+      "queue": {
+        "title": "Front prioritnych akcii",
+        "subtitle": "Najdolezitejsie dalsie kroky, ktore odblokuju hiring.",
+        "review_job_title": "Rola caka na kontrolu",
+        "review_job_detail": "{{title}} este potrebuje compliance kontrolu, aby mohla naplno fungovat.",
+        "low_conversion_title": "Rola s nizkou konverziou",
+        "low_conversion_detail": "{{title}} ma zobrazenia, ale nema aplikacie. Upravte inzerat alebo ho poslite do review.",
+        "application_title": "Aplikacia caka na recruitera",
+        "application_detail": "{{candidate}} sa prihlasil na {{job}} a caka vo fronte.",
+        "assessment_title": "Kniznica assessmentov je prazdna",
+        "assessment_detail": "Vytvorte alebo ulozte aspon jeden znovupouzitelny assessment, aby recruiteri vedeli pozvat kandidatov rychlejsie.",
+        "clear_title": "Ziadne urgentne blokery",
+        "clear_detail": "Zakladny hiring workflow je teraz cisty. Dolny workspace sluzi na operativny prehlad."
+      },
+      "cards": {
+        "recent_applications": "Najnovsie aplikacie",
+        "recent_applications_desc": "Otvorte dossier, zmente stav alebo prejdite priamo do naviazaneho review flow.",
+        "recent_applications_empty": "Zatial ziadne aplikacie. Ked kandidati zareaguju, objavia sa najprv tu.",
+        "live_roles": "Aktivne role",
+        "live_roles_desc": "Najdolezitejsie role s priamym pristupom k upravam a review.",
+        "assessment_library": "Kniznica assessmentov",
+        "assessment_library_desc": "Znovupouzitelne assessmenty, ktore maju recruiteri k dispozicii hned.",
+        "assessment_library_empty": "Zatial ziadne ulozene assessmenty. Vytvorte jeden a tim ho moze hned znovu pouzit.",
+        "candidate_intelligence": "Prehlad o kandidatov",
+        "candidate_intelligence_desc": "Kompaktny pohlad na kvalitu kandidatov bez odchodu z workspace.",
+        "candidate_count": "Profily kandidatov",
+        "candidate_coverage": "Pokrytie assessmentmi",
+        "candidate_coverage_empty": "Zatial ziadne dokoncene assessmenty",
+        "shortlist_health": "Kvalita shortlistu",
+        "shortlist_health_empty": "Benchmark kvality sa zobrazi, ked sa nazbiera dost dat od recruiterov a assessmentov."
+      },
+      "labels": {
+        "cover_letter": "Motivacny list",
+        "applications": "Aplikacie"
+      },
+      "timeline": {
+        "title": "Posledna aktivita",
+        "subtitle": "Kompaktny audit log pre role, aplikacie a zmeny assessmentov.",
+        "empty": "Aktivita sa objavi hned, ako tim zacne publikovat alebo reviewovat.",
+        "job_created": "Rola publikovana",
+        "application_received": "Aplikacia prijata",
+        "assessment_saved": "Assessment ulozeny"
+      }
+    },
+    "jobs": {
+      "nav": "Pozicie",
+      "title": "Workspace pozicii",
+      "subtitle": "Spravujte aktivne role, posuvajte kandidatov do review a publikujte cez strukturovane drafty.",
+      "new_draft_cta": "Novy draft",
+      "empty": "Zatial ziadne aktivne role. Zacnite vpravo vytvorenim strukturovaneho draftu.",
+      "open_applications": "Otvorit aplikacie"
+    },
+    "applications": {
+      "nav": "Aplikacie",
+      "title": "Workspace aplikacii",
+      "subtitle": "Kontrolujte strukturovane dossier aplikacii, aktualizujte stavy a sledujte zdielany JCFPM kontext.",
+      "labels": {
+        "candidate": "Kandidat",
+        "full": "Plny report",
+        "summary": "Zhrnutie"
+      },
+      "detail": {
+        "candidate": "Kandidat",
+        "documents": "Dokumenty",
+        "no_email": "Bez e-mailu",
+        "no_cv": "Nie je prilozeny zivotopis",
+        "source": "Zdroj",
+        "skills": "Skills",
+        "assessment_actions": "Akcie s assessmentom",
+        "related_assessments": "Suviasiace assessmenty",
+        "assessment_hint": "Pri prechode do assessmentov zostane naviazany kontext tejto aplikacie zachovany.",
+        "environment_fit": "Suhra s prostredim",
+        "top_dimensions": "Najsilnejsie dimenzie",
+        "select_prompt": "Vyberte aplikaciu z frontu a otvorte cele dossier."
+      },
+      "metrics": {
+        "shared_jcfpm": "Zdielane JCFPM",
+        "shared_jcfpm_hint": "Zdielane JCFPM signaly su viditelne priamo v recruiterskom dossier."
+      }
+    },
+    "assessment_library": {
+      "linked_context": "Prepojeny review kontext",
+      "selected_role": "Vybrana rola",
+      "back_to_application": "Spat na aplikaciu",
+      "invite_from_context": "Pozvat z tohto kontextu",
+      "title": "Ulozena kniznica assessmentov",
+      "subtitle": "Znovu pouzivajte, duplikujte, prehliadajte a odstavujte assessmenty bez opustenia workspace.",
+      "empty": "Zatial ziadne ulozene assessmenty. Vygenerujte jeden nizsie a objavi sa tu.",
+      "selected": "Vybrane",
+      "use": "Pouzit",
+      "assessment_id": "ID assessmentu",
+      "archive": "Archivovat"
+    },
+    "job_editor": {
+      "title": "Strukturovany editor pozicie",
+      "subtitle": "Drafty, validacia, nahlad a publikovanie v jednom workflow.",
+      "compat_mode": "Kompatibilny rezim: lokalne drafty + priamy publish fallback",
+      "new_draft": "Novy draft",
+      "resume_draft": "Pokracovat v drafte",
+      "no_drafts": "Zatial ziadne drafty. Vytvorte jeden a zacnite pisat strukturovany inzerat.",
+      "untitled_role": "Rola bez nazvu",
+      "versions": "Verzie",
+      "no_versions": "Zatial ziadne publikovane verzie.",
+      "version_label": "Verzia",
+      "empty_state": "Vyberte existujuci draft alebo vytvorte novy.",
+      "role_basics": "Zaklady roly",
+      "role_basics_desc": "Klucove publikacne polia s jasnymi kontrolami transparentnosti.",
+      "save": "Ulozit draft",
+      "validate": "Validovat",
+      "publish_update": "Publikovat update",
+      "publish": "Publikovat poziciu",
+      "sections": "Strukturovane sekcie",
+      "sections_desc": "Piste a zlepsujte blok po bloku. AI navrhy ostavaju viazane na konkretnu sekciu.",
+      "hide_preview": "Skryt nahlad",
+      "show_preview": "Zobrazit nahlad",
+      "improve_section": "Zlepsit tuto sekciu",
+      "benefits_title": "Benefity a finalny publish review",
+      "ai_suggestion": "AI navrh pripraveny",
+      "apply_ai": "Pouzit navrh",
+      "dismiss_ai": "Zamietnut",
+      "validation": "Validacia a kvalitativne kontroly",
+      "blocking": "Blokujuce body",
+      "warnings": "Upozornenia",
+      "suggestions": "Odporucania",
+      "preview_panel": "Zivy nahlad",
+      "duplicate": "Duplikovat",
+      "pause": "Pozastavit",
+      "reopen": "Znovu otvorit",
+      "close": "Zatvorit"
     }
   },
   "common": {
@@ -2328,14 +2491,14 @@
         "4": "Vzorec: Vzdialenosť × 5 CZK/km × 2 (tam aj späť)"
       },
       "public": {
-        "title": "Verejná doprava (MHD)",
         "1": "Sadzba: 2.5 CZK/km + mesačný lístok",
         "2": "Lístok: závisí od mesta",
         "3": "Praha: ~1,500 CZK/mesiac (60 km/mesiac zdarma)",
         "4": "Brno: ~1,300 CZK/mesiac",
         "5": "Plzeň: ~1,000 CZK/mesiac",
         "6": "Čas: 2.0 - 3.0 min/km (čakanie + jazda)",
-        "7": "Ideálne pre: veľké mestá s dobrou MHD, bez stresu"
+        "7": "Ideálne pre: veľké mestá s dobrou MHD, bez stresu",
+        "title": "Verejná doprava (MHD)"
       },
       "bike": {
         "1": "Sadzba: 0.05 CZK/km (len údržba)",

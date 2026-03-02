@@ -35,7 +35,11 @@ interface CompanyJobEditorProps {
   userEmail?: string;
   seedJobId?: string | null;
   onSeedConsumed?: () => void;
-  onJobLifecycleChange?: (jobId: string | number, status: 'active' | 'paused' | 'closed' | 'archived') => void;
+  onJobLifecycleChange?: (
+    jobId: string | number,
+    status: 'active' | 'paused' | 'closed' | 'archived',
+    options?: { skipAudit?: boolean; refreshJobs?: boolean }
+  ) => void;
 }
 
 const TEXT_SECTIONS: Array<{ key: JobDraftTextSection; label: string; placeholder: string }> = [
@@ -716,7 +720,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
         updateDraft(publishedDraft);
         setChangeSummary('');
         setStatusMessage(nextVersionNumber > 1 ? `Update published as version ${nextVersionNumber}.` : 'Job published successfully.');
-        onJobLifecycleChange?.(publishedJobId as string | number, 'active');
+        onJobLifecycleChange?.(publishedJobId as string | number, 'active', { skipAudit: true, refreshJobs: true });
         return;
       }
 
@@ -744,7 +748,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
       updateDraft(publishedDraft);
       setChangeSummary('');
       setStatusMessage(response.version_number > 1 ? `Update published as version ${response.version_number}.` : 'Job published successfully.');
-      onJobLifecycleChange?.(response.job_id, 'active');
+      onJobLifecycleChange?.(response.job_id, 'active', { skipAudit: true, refreshJobs: true });
     } catch (error) {
       if (isMissingFeatureError(error)) {
         setUsesLocalFallback(true);
@@ -818,16 +822,34 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
           return;
         }
         setStatusMessage(`Live job moved to ${status}.`);
-        onJobLifecycleChange?.(draft.job_id, status);
+        onJobLifecycleChange?.(draft.job_id, status, { skipAudit: false, refreshJobs: false });
         return;
       }
-      const ok = await updateCompanyJobLifecycle(draft.job_id, status);
-      if (!ok) {
+      const result = await updateCompanyJobLifecycle(draft.job_id, status);
+      if (!result.ok && result.via === 'unavailable') {
+        setUsesLocalFallback(true);
+        if (!supabase) {
+          setErrorMessage('Lifecycle API is not available on this backend yet.');
+          return;
+        }
+        const { error } = await supabase
+          .from('jobs')
+          .update({ status })
+          .eq('id', draft.job_id);
+        if (error) {
+          setErrorMessage('Lifecycle update failed.');
+          return;
+        }
+        setStatusMessage(`Live job moved to ${status}.`);
+        onJobLifecycleChange?.(draft.job_id, status, { skipAudit: false, refreshJobs: false });
+        return;
+      }
+      if (!result.ok) {
         setErrorMessage('Lifecycle update failed.');
         return;
       }
       setStatusMessage(`Live job moved to ${status}.`);
-      onJobLifecycleChange?.(draft.job_id, status);
+      onJobLifecycleChange?.(draft.job_id, status, { skipAudit: true, refreshJobs: false });
     } catch (error) {
       if (isMissingFeatureError(error)) {
         setUsesLocalFallback(true);
@@ -842,7 +864,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
   const previewMarkdown = useMemo(() => (draft ? composePreviewMarkdown(draft, companyProfile.name) : ''), [draft, companyProfile.name]);
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)_360px] gap-6 animate-in fade-in">
+    <div className="grid grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)_360px] gap-4 animate-in fade-in">
       <div className="space-y-4">
         <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
@@ -982,7 +1004,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
           </div>
         ) : (
           <>
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 space-y-5">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-4">
               <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
                 <div>
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">
@@ -1118,7 +1140,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 space-y-4">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-semibold text-slate-900 dark:text-white">
@@ -1185,7 +1207,7 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
               </div>
             </div>
 
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 space-y-4">
+            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 space-y-4">
               <div className="text-sm font-semibold text-slate-900 dark:text-white">
                 {t('company.job_editor.benefits_title', { defaultValue: 'Benefits and final publish review' })}
               </div>

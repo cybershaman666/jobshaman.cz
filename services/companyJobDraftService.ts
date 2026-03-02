@@ -26,6 +26,11 @@ export interface CompanySchemaRolloutStatus {
     job_versions: CompanySchemaProbe;
 }
 
+export interface JobLifecycleUpdateResult {
+    ok: boolean;
+    via: 'api' | 'unavailable' | 'failed';
+}
+
 export interface JobDraftUpsertInput {
     status?: JobDraft['status'];
     title?: string;
@@ -234,17 +239,28 @@ export const listJobVersions = async (jobId: string | number): Promise<JobVersio
 export const updateCompanyJobLifecycle = async (
     jobId: string | number,
     status: 'active' | 'paused' | 'closed' | 'archived'
-): Promise<boolean> => {
-    if (jobDraftApiUnavailable) return false;
-    const response = await authenticatedFetch(`${BACKEND_URL}/company/jobs/${jobId}/lifecycle`, {
-        method: 'PATCH',
-        headers: jsonHeaders,
-        body: JSON.stringify({ status })
-    });
-    if (!response.ok) {
-        markDraftApiUnavailableIfNeeded(new ApiRequestError(response.status, 'Job lifecycle API unavailable'));
+): Promise<JobLifecycleUpdateResult> => {
+    if (jobDraftApiUnavailable) {
+        return { ok: false, via: 'unavailable' };
     }
-    return response.ok;
+    try {
+        const response = await authenticatedFetch(`${BACKEND_URL}/company/jobs/${jobId}/lifecycle`, {
+            method: 'PATCH',
+            headers: jsonHeaders,
+            body: JSON.stringify({ status })
+        });
+        if (response.ok) {
+            return { ok: true, via: 'api' };
+        }
+        const missingFeature = [404, 409, 501].includes(response.status);
+        if (missingFeature) {
+            markDraftApiUnavailableIfNeeded(new ApiRequestError(response.status, 'Job lifecycle API unavailable'));
+            return { ok: false, via: 'unavailable' };
+        }
+        return { ok: false, via: 'failed' };
+    } catch {
+        return { ok: false, via: 'failed' };
+    }
 };
 
 export const fetchCompanySchemaRolloutStatus = async (): Promise<CompanySchemaRolloutStatus | null> => {

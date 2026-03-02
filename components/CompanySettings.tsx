@@ -28,6 +28,59 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
     const [members, setMembers] = useState<RecruiterMember[]>(profile.members || [
         { id: '1', name: 'Floki Shaman', email: 'floki@jobshaman.cz', role: 'admin', joinedAt: new Date().toISOString() }
     ]);
+    const profileReadinessFields = [
+        localProfile.name,
+        localProfile.ico,
+        localProfile.dic,
+        localProfile.website,
+        localProfile.legal_address,
+        localProfile.address,
+        (localProfile as any).field_of_business,
+        localProfile.philosophy
+    ];
+    const filledProfileFields = profileReadinessFields.filter((value) => String(value || '').trim().length > 0).length;
+    const profileReadinessPercent = Math.round((filledProfileFields / profileReadinessFields.length) * 100);
+    const valuesCount = Array.isArray(localProfile.values) ? localProfile.values.length : 0;
+    const summaryCards = [
+        {
+            id: 'profile',
+            label: t('company.settings.profile_readiness', { defaultValue: 'Profile readiness' }),
+            value: `${profileReadinessPercent}%`,
+            hint: t('company.settings.profile_readiness_hint', {
+                defaultValue: '{{filled}} of {{total}} core fields are filled.',
+                filled: filledProfileFields,
+                total: profileReadinessFields.length
+            })
+        },
+        {
+            id: 'brand',
+            label: t('company.settings.brand_readiness', { defaultValue: 'Brand readiness' }),
+            value: localProfile.logo_url
+                ? t('company.settings.ready_state', { defaultValue: 'Ready' })
+                : t('company.settings.logo_missing', { defaultValue: 'Missing logo' }),
+            hint: localProfile.logo_url
+                ? t('company.settings.brand_readiness_hint', { defaultValue: 'Logo is ready for job ads and recruiter views.' })
+                : t('company.settings.logo_hint')
+        },
+        {
+            id: 'team',
+            label: t('company.settings.team_access', { defaultValue: 'Team access' }),
+            value: `${members.length}`,
+            hint: t('company.settings.team_access_hint', {
+                defaultValue: '{{count}} recruiter seats currently configured.',
+                count: members.length
+            })
+        },
+        {
+            id: 'values',
+            label: t('company.settings.culture_signal', { defaultValue: 'Culture signal' }),
+            value: `${valuesCount}/5`,
+            hint: t('company.settings.culture_signal_hint', {
+                defaultValue: '{{count}} values are visible to candidates and AI matching.',
+                count: valuesCount
+            })
+        }
+    ];
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -112,30 +165,72 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
     };
 
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 animate-in fade-in">
+        <div className="grid grid-cols-1 xl:grid-cols-[260px_minmax(0,1fr)] gap-4 animate-in fade-in">
             {/* Sidebar Navigation */}
-            <div className="lg:col-span-1 space-y-2">
-                <button
-                    onClick={() => setActiveTab('dna')}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'dna' ? 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                >
-                    <Sparkles size={18} />
-                    {t('company.settings.dna')}
-                </button>
-                <button
-                    onClick={() => setActiveTab('team')}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${activeTab === 'team' ? 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
-                >
-                    <Users size={18} />
-                    {t('company.settings.team')}
-                </button>
+            <div className="space-y-3">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-3 shadow-sm xl:sticky xl:top-4">
+                    <div className="pb-3 border-b border-slate-200 dark:border-slate-800">
+                        <div className="inline-flex items-center gap-2 rounded-full bg-cyan-50 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-widest text-cyan-700 dark:bg-cyan-900/20 dark:text-cyan-300">
+                            <Sparkles size={12} />
+                            {t('company.settings.title')}
+                        </div>
+                        <h2 className="mt-3 text-lg font-bold text-slate-900 dark:text-white">
+                            {t('company.settings.workspace_title', { defaultValue: 'Company operating setup' })}
+                        </h2>
+                        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                            {t('company.settings.workspace_desc', { defaultValue: 'Keep company identity, recruiter access, and hiring defaults in one compact workspace.' })}
+                        </p>
+                    </div>
+                    <div className="pt-3 space-y-2">
+                        <button
+                            onClick={() => setActiveTab('dna')}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'dna' ? 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                        >
+                            <Sparkles size={17} />
+                            <div className="text-left">
+                                <div>{t('company.settings.dna')}</div>
+                                <div className="text-[11px] font-normal opacity-80">
+                                    {t('company.settings.dna_hint', { defaultValue: 'Brand, culture and legal identity' })}
+                                </div>
+                            </div>
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('team')}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === 'team' ? 'bg-cyan-50 dark:bg-cyan-900/20 text-cyan-700 dark:text-cyan-300' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}
+                        >
+                            <Users size={17} />
+                            <div className="text-left">
+                                <div>{t('company.settings.team')}</div>
+                                <div className="text-[11px] font-normal opacity-80">
+                                    {t('company.settings.team_hint', { defaultValue: 'Recruiter access and invite flow' })}
+                                </div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Content Area */}
-            <div className="lg:col-span-3 space-y-6">
+            <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                    {summaryCards.map((card) => (
+                        <div key={card.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                            <div className="text-[11px] uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-2">
+                                {card.label}
+                            </div>
+                            <div className="text-xl font-bold text-slate-900 dark:text-white">
+                                {card.value}
+                            </div>
+                            <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                                {card.hint}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
                 {activeTab === 'dna' && (
-                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm relative overflow-hidden">
-                        <div className="flex items-center gap-3 mb-6">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm relative overflow-hidden">
+                        <div className="flex items-center gap-3 mb-4">
                             <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-lg">
                                 <Target size={24} />
                             </div>
@@ -145,7 +240,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                             </div>
                         </div>
 
-                        <div className="space-y-6">
+                        <div className="space-y-4">
                             {/* Company Logo */}
                             <div>
                                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2 flex items-center gap-2">
@@ -383,8 +478,8 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                 )}
 
                 {activeTab === 'team' && (
-                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-6 shadow-sm">
-                        <div className="flex items-center justify-between mb-6">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm">
+                        <div className="flex items-center justify-between mb-4">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 rounded-lg">
                                     <Users size={24} />
@@ -412,7 +507,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                         </div>
 
                         {/* Invite Form */}
-                        <div className="bg-slate-50 dark:bg-slate-950/50 p-4 rounded-xl border border-slate-200 dark:border-slate-800 mb-6">
+                        <div className="bg-slate-50 dark:bg-slate-950/50 p-3 rounded-xl border border-slate-200 dark:border-slate-800 mb-4">
                             <label htmlFor="invite-email" className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">{t('company.settings.invite_colleague')}</label>
                             <div className="flex gap-2">
                                 <div className="relative flex-1">
@@ -439,7 +534,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                         </div>
 
                         {/* Members List */}
-                        <div className="space-y-3">
+                        <div className="space-y-2.5">
                             {members.map(member => (
                                 <div key={member.id} className="flex items-center justify-between p-3 rounded-lg border border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
                                     <div className="flex items-center gap-3">
@@ -469,7 +564,7 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                     </div>
                 )}
 
-                <div className="flex justify-end pt-4 border-t border-slate-200 dark:border-slate-800">
+                <div className="flex justify-end pt-3 border-t border-slate-200 dark:border-slate-800">
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
@@ -481,12 +576,12 @@ const CompanySettings: React.FC<CompanySettingsProps> = ({ profile, onSave, onDe
                 </div>
 
                 {/* Danger Zone */}
-                <div className="mt-12 pt-8 border-t border-slate-200 dark:border-slate-800">
+                <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800">
                     <h3 className="text-lg font-bold text-rose-600 mb-4 flex items-center gap-2">
                         <AlertCircle className="w-5 h-5" />
                         {t('profile.danger_zone_title') || 'Nebezpečná zóna'}
                     </h3>
-                    <div className="bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/20 rounded-xl p-6">
+                    <div className="bg-rose-50 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/20 rounded-xl p-4">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
                             <div>
                                 <h4 className="font-bold text-slate-900 dark:text-white mb-1">

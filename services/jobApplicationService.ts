@@ -3,6 +3,11 @@ import { authenticatedFetch } from './csrfService';
 import { supabase } from './supabaseService';
 import { ApplicationDossier, ApplicationJcfpmShareLevel, CompanyApplicationRow } from '../types';
 
+export interface MutationResult {
+    ok: boolean;
+    via: 'api' | 'fallback' | 'failed';
+}
+
 export interface CreateJobApplicationDetails {
     coverLetter?: string | null;
     cvDocumentId?: string | null;
@@ -103,8 +108,8 @@ export const fetchCompanyApplications = async (
 export const updateCompanyApplicationStatus = async (
     applicationId: string,
     status: string
-): Promise<boolean> => {
-    if (!applicationId) return false;
+): Promise<MutationResult> => {
+    if (!applicationId) return { ok: false, via: 'failed' };
     try {
         const response = await authenticatedFetch(
             `${BACKEND_URL}/company/applications/${applicationId}/status`,
@@ -114,7 +119,7 @@ export const updateCompanyApplicationStatus = async (
                 body: JSON.stringify({ status })
             }
         );
-        if (response.ok) return true;
+        if (response.ok) return { ok: true, via: 'api' };
         return await updateCompanyApplicationStatusFallback(applicationId, status);
     } catch {
         return await updateCompanyApplicationStatusFallback(applicationId, status);
@@ -238,11 +243,16 @@ const fetchCompanyApplicationDetailFallback = async (applicationId: string): Pro
     } as ApplicationDossier;
 };
 
-const updateCompanyApplicationStatusFallback = async (applicationId: string, status: string): Promise<boolean> => {
-    if (!supabase || !applicationId) return false;
+const updateCompanyApplicationStatusFallback = async (
+    applicationId: string,
+    status: string
+): Promise<MutationResult> => {
+    if (!supabase || !applicationId) return { ok: false, via: 'failed' };
     const { error } = await supabase
         .from('job_applications')
         .update({ status })
         .eq('id', applicationId);
-    return !error;
+    return error
+        ? { ok: false, via: 'failed' }
+        : { ok: true, via: 'fallback' };
 };

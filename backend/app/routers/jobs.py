@@ -253,6 +253,47 @@ def _safe_string_list(value, limit: int = 12) -> list[str]:
     return out
 
 
+def _serialize_company_activity_event(row: dict | None) -> dict:
+    source = row or {}
+    payload = source.get("payload")
+    return {
+        "id": source.get("id"),
+        "company_id": source.get("company_id"),
+        "event_type": source.get("event_type"),
+        "subject_type": source.get("subject_type"),
+        "subject_id": source.get("subject_id"),
+        "payload": payload if isinstance(payload, dict) else {},
+        "actor_user_id": source.get("actor_user_id"),
+        "created_at": source.get("created_at"),
+    }
+
+
+def _write_company_activity_log(
+    company_id: str,
+    event_type: str,
+    payload: dict | None = None,
+    actor_user_id: str | None = None,
+    subject_type: str | None = None,
+    subject_id: str | None = None,
+):
+    if not supabase or not company_id or not event_type:
+        return
+
+    try:
+        supabase.table("company_activity_log").insert({
+            "company_id": company_id,
+            "event_type": event_type,
+            "subject_type": subject_type or None,
+            "subject_id": subject_id or None,
+            "payload": payload if isinstance(payload, dict) else {},
+            "actor_user_id": actor_user_id or None,
+        }).execute()
+    except Exception as exc:
+        if _is_missing_table_error(exc, "company_activity_log"):
+            return
+        print(f"⚠️ Failed to write company activity log: {exc}")
+
+
 def _normalize_jcfpm_share_level(level: str | None, payload: dict | None = None) -> str:
     normalized = str(level or "").strip().lower()
     if normalized in {"summary", "full_report", "do_not_share"}:
@@ -551,7 +592,7 @@ def _require_job_access(user: dict, job_id: str):
     """Ensure the current user is authorized to manage the given job."""
     job_id_norm = _normalize_job_id(job_id)
 
-    job_resp = supabase.table("jobs").select("id, company_id").eq("id", job_id_norm).maybe_single().execute()
+    job_resp = supabase.table("jobs").select("id, company_id, title, status").eq("id", job_id_norm).maybe_single().execute()
     if not job_resp.data:
         raise HTTPException(status_code=404, detail="Job not found")
 
@@ -1206,6 +1247,18 @@ async def update_company_application_status(
         print(f"⚠️ Failed to update application status: {exc}")
         raise HTTPException(status_code=500, detail="Failed to update application status")
 
+    _write_company_activity_log(
+        company_id=str(row.get("company_id") or ""),
+        event_type="application_status_changed",
+        payload={
+            "application_id": application_id,
+            "status": payload.status,
+        },
+        actor_user_id=user.get("id") or user.get("auth_id"),
+        subject_type="application",
+        subject_id=application_id,
+    )
+
     return {"status": "success"}
 
 
@@ -1239,6 +1292,92 @@ async def get_company_rollout_schema_status(
         "job_versions": job_versions,
         "requested_by": user.get("id") or user.get("auth_id"),
     }
+
+
+@router.get("/company/activity-log")
+@limiter.limit("60/minute")
+async def list_company_activity_log(
+    request: Request,
+    company_id: str = Query(...),
+    limit: int = Query(50, ge=1, le=200),
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    require_company_access(user, company_id)
+    try:
+        resp = (
+            supabase
+            .table("company_activity_log")
+            .select("*")
+            .eq("company_id", company_id)
+            .order("created_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+    except Exception as exc:
+        if _is_missing_table_error(exc, "company_activity_log"):
+            raise HTTPException(status_code=409, detail="Company activity log unavailable")
+        raise HTTPException(status_code=500, detail="Failed to load company activity log")
+
+    rows = resp.data or []
+    return {
+        "company_id": company_id,
+        "events": [_serialize_company_activity_event(row) for row in rows],
+    }
+
+
+@router.post("/company/activity-log")
+@limiter.limit("60/minute")
+async def create_company_activity_log_event(
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+    body = await request.json()
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="Invalid payload")
+
+    company_id = str(body.get("company_id") or "").strip()
+    event_type = str(body.get("event_type") or "").strip()
+    if not company_id or not event_type:
+        raise HTTPException(status_code=400, detail="company_id and event_type are required")
+
+    require_company_access(user, company_id)
+
+    payload = body.get("payload")
+    insert_payload = {
+        "company_id": company_id,
+        "event_type": event_type,
+        "subject_type": str(body.get("subject_type") or "").strip() or None,
+        "subject_id": str(body.get("subject_id") or "").strip() or None,
+        "payload": payload if isinstance(payload, dict) else {},
+        "actor_user_id": user.get("id") or user.get("auth_id"),
+    }
+
+    try:
+        resp = (
+            supabase
+            .table("company_activity_log")
+            .insert(insert_payload)
+            .select("*")
+            .single()
+            .execute()
+        )
+    except Exception as exc:
+        if _is_missing_table_error(exc, "company_activity_log"):
+            raise HTTPException(status_code=409, detail="Company activity log unavailable")
+        raise HTTPException(status_code=500, detail="Failed to write company activity log")
+
+    row = resp.data if resp else None
+    if not row:
+        raise HTTPException(status_code=500, detail="Failed to write company activity log")
+    return {"event": _serialize_company_activity_event(row)}
 
 
 @router.post("/company/job-drafts")
@@ -1416,7 +1555,8 @@ async def publish_company_job_draft(
         "scraped_at": now_iso(),
     }
 
-    job_id = _normalize_job_id(draft.get("job_id"))
+    existing_job_id = _normalize_job_id(draft.get("job_id"))
+    job_id = existing_job_id
     if job_id:
         _require_job_access(user, str(job_id))
         job_resp = supabase.table("jobs").update(job_payload).eq("id", job_id).execute()
@@ -1481,6 +1621,19 @@ async def publish_company_job_draft(
         }).eq("id", draft_id).execute()
     except Exception as exc:
         print(f"⚠️ Failed to update draft after publish: {exc}")
+
+    _write_company_activity_log(
+        company_id=company_id,
+        event_type="job_updated" if existing_job_id else "job_published",
+        payload={
+            "job_id": str(job_id),
+            "job_title": str(job_payload.get("title") or ""),
+            "version_number": next_version,
+        },
+        actor_user_id=user.get("id") or user.get("auth_id"),
+        subject_type="job",
+        subject_id=str(job_id),
+    )
 
     return {"status": "success", "job_id": job_id, "version_number": next_version, "validation": validation}
 
@@ -1617,8 +1770,28 @@ async def update_company_job_lifecycle(
         raise HTTPException(status_code=503, detail="Database unavailable")
     if not verify_csrf_token_header(request, user):
         raise HTTPException(status_code=403, detail="CSRF validation failed")
-    _require_job_access(user, job_id)
+    job_row = _require_job_access(user, job_id)
     supabase.table("jobs").update({"status": payload.status}).eq("id", _normalize_job_id(job_id)).execute()
+
+    event_type = (
+        "job_closed" if payload.status == "closed"
+        else "job_paused" if payload.status == "paused"
+        else "job_archived" if payload.status == "archived"
+        else "job_reopened"
+    )
+    _write_company_activity_log(
+        company_id=str(job_row.get("company_id") or ""),
+        event_type=event_type,
+        payload={
+            "job_id": str(job_row.get("id") or job_id),
+            "job_title": str(job_row.get("title") or ""),
+            "previous_status": str(job_row.get("status") or "active"),
+            "next_status": payload.status,
+        },
+        actor_user_id=user.get("id") or user.get("auth_id"),
+        subject_type="job",
+        subject_id=str(job_row.get("id") or job_id),
+    )
     return {"status": "success"}
 
 
