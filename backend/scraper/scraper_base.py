@@ -12,6 +12,7 @@ import time
 from dotenv import load_dotenv
 from supabase import create_client, Client
 import os
+from pathlib import Path
 from urllib.parse import urljoin, urlparse, urlunparse, parse_qsl, urlencode
 import re
 from datetime import datetime
@@ -44,33 +45,61 @@ from geocoding import geocode_location
 
 # --- Environment Setup ---
 
-# Explicitly load .env from backend directory
-backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-env_path = os.path.join(backend_dir, '.env')
+def load_environment():
+    """
+    Robust environment variable loading.
+    1. Checks if SUPABASE_URL is already in env (e.g. Northflank).
+    2. If not, or if .env exists, tries to load it from multiple candidate paths.
+    """
+    # Candidate paths for .env
+    current_dir = Path.cwd()
+    script_dir = Path(__file__).resolve().parent
+    backend_dir = script_dir.parent
+    
+    candidates = [
+        backend_dir / ".env",
+        current_dir / ".env",
+        current_dir / "backend" / ".env",
+    ]
+    
+    # Also support .env.local if present
+    for base_path in list(candidates):
+        candidates.append(base_path.with_suffix(".env.local"))
 
-# Only print "Hledám .env" if we're likely in a local dev environment OR if SUPABASE_URL is missing
-if not os.getenv("SUPABASE_URL") or os.path.exists(env_path):
-    if os.path.exists(env_path):
-        print(f"🔍 Načítám .env soubor z: {env_path}")
-        load_dotenv(dotenv_path=env_path)
-    else:
-        # If in a container and no SUPABASE_URL, then warning is appropriate.
-        # Otherwise, if SUPABASE_URL is already there (e.g. Northflank), we don't need to spam.
-        if not os.getenv("SUPABASE_URL"):
-            print(f"⚠️ .env soubor nenalezen v {env_path}, zkouším výchozí umístění...")
-            load_dotenv()
-        else:
-            # Just call load_dotenv() silently to pick up any local overrides if they exist
-            load_dotenv()
+    env_loaded = False
+    for cp in candidates:
+        if cp.exists():
+            if not os.getenv("SUPABASE_URL"):
+                print(f"🔍 Načítám environment z: {cp}")
+            load_dotenv(dotenv_path=str(cp))
+            env_loaded = True
+            break
+            
+    if not env_loaded and not os.getenv("SUPABASE_URL"):
+        # Fallback to default load_dotenv() if no specific file found and env is empty
+        load_dotenv()
+
+load_environment()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+# Use SERVICE_KEY as primary, fallback to KEY (matching app/core/config.py)
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY")
 SCRAPER_HTTP_PROXY = os.getenv("SCRAPER_HTTP_PROXY") or os.getenv("SCRAPER_PROXY")
 SCRAPER_HTTPS_PROXY = os.getenv("SCRAPER_HTTPS_PROXY") or os.getenv("SCRAPER_PROXY")
 
 # Debug output
-print(f"   SUPABASE_URL: {'✅ NAČTENO' if SUPABASE_URL else '❌ CHYBÍ'}")
-print(f"   SUPABASE_SERVICE_KEY: {'✅ NAČTENO' if SUPABASE_SERVICE_KEY else '❌ CHYBÍ'}")
+if SUPABASE_URL:
+    print(f"   SUPABASE_URL: ✅ NAČTENO")
+else:
+    print(f"   SUPABASE_URL: ❌ CHYBÍ")
+
+if SUPABASE_SERVICE_KEY:
+    # Identify which key was used for debugging
+    key_source = "SERVICE_KEY" if os.getenv("SUPABASE_SERVICE_KEY") else "SUPABASE_KEY"
+    print(f"   SUPABASE_SERVICE_KEY: ✅ NAČTENO ({key_source})")
+else:
+    print(f"   SUPABASE_SERVICE_KEY: ❌ CHYBÍ (nenalezen SERVICE_KEY ani SUPABASE_KEY)")
+
 if SCRAPER_HTTP_PROXY or SCRAPER_HTTPS_PROXY:
     print("   SCRAPER_PROXY: ✅ NAČTENO")
 else:

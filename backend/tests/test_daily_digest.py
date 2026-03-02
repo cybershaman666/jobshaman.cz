@@ -2,10 +2,12 @@ from backend.app.services.daily_digest import (
     _candidate_has_matching_signal,
     _country_from_address,
     _country_from_coordinates,
+    _did_any_enabled_digest_channel_succeed,
     _digest_job_sort_key,
     _is_remote_job,
     _pick_personalized_digest_jobs,
     _resolve_digest_country_code,
+    _resolve_locale,
     _should_send_now,
 )
 import backend.app.services.daily_digest as daily_digest_module
@@ -68,6 +70,14 @@ def test_resolve_digest_country_uses_timezone_when_locale_missing():
     assert code == "CZ"
 
 
+def test_resolve_locale_prefers_country_default_for_conflicting_german_locale():
+    assert _resolve_locale("de", "CZ") == "cs"
+
+
+def test_resolve_locale_keeps_english_for_czech_user():
+    assert _resolve_locale("en", "CZ") == "en"
+
+
 def test_should_send_now_allows_second_send_same_day_after_time_shift(monkeypatch):
     tz = ZoneInfo("Europe/Prague")
     fixed_now = datetime(2026, 2, 22, 12, 35, tzinfo=tz)
@@ -99,6 +109,24 @@ def test_should_send_now_blocks_when_already_sent_in_current_window(monkeypatch)
     # Last digest already sent after today's 12:30 window started.
     last_sent_utc = "2026-02-22T11:31:00+00:00"
     assert _should_send_now(last_sent_utc, datetime.strptime("12:30", "%H:%M").time(), "Europe/Prague") is False
+
+
+def test_digest_delivery_succeeds_when_push_succeeds_even_if_email_fails():
+    assert _did_any_enabled_digest_channel_succeed(
+        email_enabled=True,
+        email_ok=False,
+        push_enabled=True,
+        push_ok=True,
+    ) is True
+
+
+def test_digest_delivery_fails_when_no_enabled_channel_succeeds():
+    assert _did_any_enabled_digest_channel_succeed(
+        email_enabled=True,
+        email_ok=False,
+        push_enabled=False,
+        push_ok=False,
+    ) is False
 
 
 def test_is_remote_job_does_not_treat_hybrid_as_fully_remote():

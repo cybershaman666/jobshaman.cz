@@ -5,6 +5,7 @@ import time
 from dotenv import load_dotenv
 from supabase import create_client, Client
 import os
+from pathlib import Path
 from urllib.parse import urljoin, urlparse
 import re
 from datetime import datetime
@@ -22,27 +23,51 @@ except Exception:
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from geocoding import geocode_location
 
-# --- 1. Načtení přístupů a inicializace klienta ---
+def load_environment():
+    """Robust environment variable loading matching scraper_base.py"""
+    current_dir = Path.cwd()
+    script_dir = Path(__file__).resolve().parent
+    backend_dir = script_dir.parent
+    
+    candidates = [
+        backend_dir / ".env",
+        current_dir / ".env",
+        current_dir / "backend" / ".env",
+    ]
+    
+    for base_path in list(candidates):
+        candidates.append(base_path.with_suffix(".env.local"))
 
-# Explicitly load .env from backend directory (fix for local development)
-backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-env_path = os.path.join(backend_dir, '.env')
-print(f"🔍 Hledám .env soubor v: {env_path}")
-if os.path.exists(env_path):
-    print(f"✅ .env soubor nalezen, načítám...")
-    load_dotenv(dotenv_path=env_path)
-else:
-    print(f"⚠️ .env soubor nenalezen v {env_path}, zkouším výchozí umístění...")
-    load_dotenv()
+    env_loaded = False
+    for cp in candidates:
+        if cp.exists():
+            if not os.getenv("SUPABASE_URL"):
+                print(f"🔍 Načítám environment z: {cp}")
+            load_dotenv(dotenv_path=str(cp))
+            env_loaded = True
+            break
+            
+    if not env_loaded and not os.getenv("SUPABASE_URL"):
+        load_dotenv()
+
+load_environment()
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 # Use SERVICE_KEY instead of ANON_KEY to bypass RLS policies
-# The service role key has full access to all tables and ignores row-level security
-SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY")
+# Fallback to SUPABASE_KEY if SERVICE_KEY is missing (matching config.py)
+SUPABASE_SERVICE_KEY = os.getenv("SUPABASE_SERVICE_KEY") or os.getenv("SUPABASE_KEY")
 
 # Debug output
-print(f"   SUPABASE_URL: {'✅ NAČTENO' if SUPABASE_URL else '❌ CHYBÍ'}")
-print(f"   SUPABASE_SERVICE_KEY: {'✅ NAČTENO' if SUPABASE_SERVICE_KEY else '❌ CHYBÍ'}")
+if SUPABASE_URL:
+    print(f"   SUPABASE_URL: ✅ NAČTENO")
+else:
+    print(f"   SUPABASE_URL: ❌ CHYBÍ")
+
+if SUPABASE_SERVICE_KEY:
+    key_source = "SERVICE_KEY" if os.getenv("SUPABASE_SERVICE_KEY") else "SUPABASE_KEY"
+    print(f"   SUPABASE_SERVICE_KEY: ✅ NAČTENO ({key_source})")
+else:
+    print(f"   SUPABASE_SERVICE_KEY: ❌ CHYBÍ")
 
 def _get_page_cap(default: int = 10):
     raw = os.getenv("SCRAPER_MAX_PAGES", str(default)).strip()

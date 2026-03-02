@@ -281,9 +281,20 @@ def _pick_personalized_digest_jobs(
 
 def _resolve_locale(preferred_locale: Optional[str], preferred_country_code: Optional[str]) -> str:
     normalized_locale = _normalize_locale_code(preferred_locale)
-    if normalized_locale:
-        return normalized_locale
     cc = (preferred_country_code or "").upper()
+    allowed_by_country = {
+        "CZ": {"cs", "sk", "en"},
+        "SK": {"sk", "cs", "en"},
+        "PL": {"pl", "en"},
+        "DE": {"de", "en"},
+        "AT": {"de", "en"},
+    }
+    if normalized_locale:
+        if not cc:
+            return normalized_locale
+        allowed = allowed_by_country.get(cc)
+        if not allowed or normalized_locale in allowed:
+            return normalized_locale
     if cc == "CZ":
         return "cs"
     if cc == "SK":
@@ -337,6 +348,15 @@ def _should_send_now(last_sent: Optional[str], digest_time: time, tz_name: str) 
 
     # If we missed the strict window and no digest was sent today, send on the next run.
     return now_local > window_end
+
+
+def _did_any_enabled_digest_channel_succeed(
+    email_enabled: bool,
+    email_ok: bool,
+    push_enabled: bool,
+    push_ok: bool,
+) -> bool:
+    return (email_enabled and email_ok) or (push_enabled and push_ok)
 
 
 def _candidate_location(candidate_profile) -> tuple[Optional[float], Optional[float]]:
@@ -957,9 +977,15 @@ def run_daily_job_digest() -> None:
                 except Exception as exc:
                     print(f"⚠️ Push digest failed for {user_id}: {exc}")
     
-            # Mark digest as sent only when the enabled channel actually succeeded.
-            # This prevents email-enabled users from being marked as "sent" when only push worked.
-            sent_successfully = (email_enabled and email_ok) or (push_enabled and push_ok and not email_enabled)
+            # Mark digest as sent when any enabled channel succeeds.
+            # With a shared "last_sent" timestamp, this avoids repeated push delivery
+            # when email is enabled but currently failing.
+            sent_successfully = _did_any_enabled_digest_channel_succeed(
+                email_enabled=email_enabled,
+                email_ok=email_ok,
+                push_enabled=push_enabled,
+                push_ok=push_ok,
+            )
     
             if sent_successfully:
                 try:
