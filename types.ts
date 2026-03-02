@@ -380,9 +380,158 @@ export interface CompanyApplicationRow {
   candidate_id: string;
   status: 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'hired';
   created_at?: string;
+  submitted_at?: string;
+  updated_at?: string;
   job_title?: string;
   candidate_name?: string;
   candidate_email?: string;
+  hasCoverLetter?: boolean;
+  hasCv?: boolean;
+  jcfpmShareLevel?: ApplicationJcfpmShareLevel;
+  hasJcfpm?: boolean;
+  candidateHeadline?: string;
+}
+
+export type ApplicationJcfpmShareLevel = 'summary' | 'full_report' | 'do_not_share';
+
+export interface EmployerVisibleJcfpmSummary {
+  schema_version: 'jcfpm-share-v1';
+  share_level: 'summary';
+  completed_at?: string;
+  confidence?: number;
+  archetype?: {
+    title: string;
+    title_en?: string;
+    description?: string;
+    description_en?: string;
+    icon?: string;
+  } | null;
+  top_dimensions: Array<{
+    dimension: JcfpmDimensionId;
+    percentile: number;
+    label?: string;
+  }>;
+  strengths: string[];
+  environment_fit_summary?: string[];
+  jhi_adjustment_summary?: Array<{
+    field: string;
+    from: number;
+    to: number;
+    reason: string;
+  }>;
+}
+
+export interface EmployerVisibleJcfpmFullReport extends Omit<EmployerVisibleJcfpmSummary, 'share_level'> {
+  share_level: 'full_report';
+  dimension_scores: Array<{
+    dimension: JcfpmDimensionId;
+    raw_score: number;
+    percentile: number;
+    percentile_band?: string;
+    label?: string;
+  }>;
+  fit_scores: Array<{
+    title: string;
+    fit_score: number;
+    salary_range?: string | null;
+    growth_potential?: string | null;
+    ai_impact?: string | null;
+    remote_friendly?: string | null;
+  }>;
+  narrative_summary?: {
+    ideal_environment?: string[];
+    development_areas?: string[];
+    next_steps?: string[];
+  };
+}
+
+export interface ApplicationDossier {
+  id: string;
+  job_id: string | number;
+  company_id?: string;
+  candidate_id?: string;
+  source?: string;
+  status: CompanyApplicationRow['status'];
+  submitted_at?: string;
+  updated_at?: string;
+  reviewed_at?: string;
+  reviewed_by?: string;
+  cover_letter?: string | null;
+  cv_document_id?: string | null;
+  cv_snapshot?: {
+    id?: string;
+    label?: string;
+    originalName?: string;
+    fileUrl?: string;
+  } | null;
+  candidate_profile_snapshot?: {
+    name?: string;
+    email?: string;
+    phone?: string;
+    jobTitle?: string;
+    linkedin?: string;
+    skills?: string[];
+    values?: string[];
+    preferredCountryCode?: string;
+  } | null;
+  jcfpm_share_level?: ApplicationJcfpmShareLevel;
+  shared_jcfpm_payload?: EmployerVisibleJcfpmSummary | EmployerVisibleJcfpmFullReport | null;
+  application_payload?: Record<string, unknown> | null;
+  job_title?: string;
+  candidate_name?: string;
+  candidate_email?: string;
+}
+
+export type JobDraftStatus = 'draft' | 'ready_for_publish' | 'published_linked' | 'archived';
+
+export interface JobValidationReport {
+  blockingIssues: string[];
+  warnings: string[];
+  suggestions: string[];
+  transparencyScore: number;
+  clarityScore: number;
+}
+
+export interface JobDraft {
+  id: string;
+  company_id: string;
+  job_id?: string | number | null;
+  status: JobDraftStatus;
+  title: string;
+  role_summary: string;
+  team_intro: string;
+  responsibilities: string;
+  requirements: string;
+  nice_to_have: string;
+  benefits_structured: string[];
+  salary_from?: number | null;
+  salary_to?: number | null;
+  salary_currency: string;
+  salary_timeframe: string;
+  contract_type?: string | null;
+  work_model?: string | null;
+  workplace_address?: string | null;
+  location_public?: string | null;
+  application_instructions: string;
+  contact_email?: string | null;
+  quality_report?: JobValidationReport | null;
+  ai_suggestions?: Record<string, unknown> | null;
+  editor_state?: Record<string, unknown> | null;
+  created_by?: string | null;
+  updated_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobVersion {
+  id: string;
+  job_id: string | number;
+  draft_id?: string | null;
+  version_number: number;
+  published_snapshot: Record<string, unknown>;
+  change_summary?: string | null;
+  published_by?: string | null;
+  published_at: string;
 }
 
 export enum ViewState {
@@ -703,6 +852,9 @@ export interface AssessmentResult {
   id: string;
   company_id: string;
   candidate_id?: string;
+  invitation_id?: string;
+  application_id?: string;
+  job_id?: string | number;
   assessment_id: string;
   role: string;
   difficulty: string;
@@ -1026,6 +1178,9 @@ export interface Assessment {
   id: string;
   title: string;
   role: string;
+  company_id?: string | null;
+  source_job_id?: string | number | null;
+  status?: 'active' | 'archived';
   description?: string;
   timeLimitSeconds?: number;
   questions: {

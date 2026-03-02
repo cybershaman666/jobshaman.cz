@@ -7,7 +7,7 @@ import { useSceneCapability } from '../hooks/useSceneCapability';
 import SceneShell from './three/SceneShell';
 import BiophilicCockpitScene from './three/BiophilicCockpitScene';
 
-import { incrementAssessmentUsage } from '../services/supabaseService';
+import { incrementAssessmentUsage, supabase } from '../services/supabaseService';
 import { getRemainingAssessments } from '../services/billingService';
 import AnalyticsService from '../services/analyticsService';
 import PlanUpgradeModal from './PlanUpgradeModal';
@@ -19,6 +19,7 @@ interface AssessmentCreatorProps {
     companyProfile?: CompanyProfile | null;
     jobs?: Job[];
     initialJobId?: string;
+    onAssessmentSaved?: (assessment: Assessment) => void;
 }
 
 interface DemoAssessmentTemplate {
@@ -29,7 +30,7 @@ interface DemoAssessmentTemplate {
     assessment: Assessment;
 }
 
-const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, jobs = [], initialJobId }) => {
+const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, jobs = [], initialJobId, onAssessmentSaved }) => {
     const { t, i18n } = useTranslation();
     const [role, setRole] = useState('');
     const [skills, setSkills] = useState('');
@@ -42,6 +43,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
     const [selectedDemoOutputId, setSelectedDemoOutputId] = useState<string>('demo-backend-senior');
     const [showDemoCenter, setShowDemoCenter] = useState(false);
     const [showThreePreview, setShowThreePreview] = useState<boolean>(FEATURE_ASSESSMENT_THREE);
+    const [savedAssessmentId, setSavedAssessmentId] = useState<string | null>(null);
     const demoUsesCockpit = false;
     const demoOutputRef = useRef<HTMLDivElement>(null);
     const sceneCapability = useSceneCapability();
@@ -317,6 +319,42 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
         try {
             const result = await generateAssessment(role, skills.split(','), difficulty);
             setAssessment(result);
+            setSavedAssessmentId(null);
+
+            if (supabase) {
+                try {
+                    let saveError: any = null;
+                    try {
+                        const response = await supabase
+                            .from('assessments')
+                            .insert({
+                                ...result,
+                                company_id: companyProfile?.id || null,
+                                source_job_id: selectedJobId ? Number(selectedJobId) : null,
+                                status: 'active'
+                            });
+                        saveError = response.error;
+                    } catch (error) {
+                        saveError = error;
+                    }
+
+                    if (saveError) {
+                        const fallbackResponse = await supabase
+                            .from('assessments')
+                            .insert(result as any);
+                        saveError = fallbackResponse.error;
+                    }
+
+                    if (!saveError) {
+                        setSavedAssessmentId(result.id);
+                        onAssessmentSaved?.(result);
+                    } else {
+                        console.error('Assessment save failed:', saveError);
+                    }
+                } catch (saveErr) {
+                    console.error('Assessment persistence error:', saveErr);
+                }
+            }
 
             // Track usage for companies
             if (companyProfile?.id) {
@@ -1341,6 +1379,11 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                 <div className="flex gap-2 mt-1">
                                     <span className="text-xs px-2 py-0.5 bg-cyan-500/20 text-cyan-600 dark:text-cyan-300 rounded font-medium border border-cyan-500/30">{assessment.role}</span>
                                     <span className="text-xs px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded font-medium border border-slate-300 dark:border-slate-700">{t('assessment_creator.ai_generated')}</span>
+                                    {savedAssessmentId && (
+                                        <span className="text-xs px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded font-medium border border-emerald-200 dark:border-emerald-900/30">
+                                            ID: {savedAssessmentId.slice(0, 8)}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                             <button className="text-slate-500 hover:text-cyan-600 dark:hover:text-cyan-400" title={t('assessment_creator.copy')}>

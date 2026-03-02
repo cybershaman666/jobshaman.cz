@@ -8,11 +8,15 @@ import { openAssessmentPreviewPage } from '../services/assessmentPreviewNavigati
 
 interface Props {
     companyId: string;
+    jobTitleFilter?: string;
+    candidateEmailFilter?: string;
+    applicationIdFilter?: string;
 }
 
-const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
+const AssessmentResultsList: React.FC<Props> = ({ companyId, jobTitleFilter, candidateEmailFilter, applicationIdFilter }) => {
     const { t } = useTranslation();
     const [results, setResults] = useState<AssessmentResult[]>([]);
+    const [invitationContextById, setInvitationContextById] = useState<Record<string, { candidate_email?: string; metadata?: Record<string, any> | null }>>({});
     const [loading, setLoading] = useState(true);
     const [evaluatingId, setEvaluatingId] = useState<string | null>(null);
     const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -79,13 +83,53 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
                 .order('completed_at', { ascending: false });
 
             if (error) throw error;
-            setResults(data as AssessmentResult[]);
+            const nextResults = data as AssessmentResult[];
+            setResults(nextResults);
+
+            const invitationIds = nextResults
+                .map((row) => row.invitation_id)
+                .filter((value): value is string => Boolean(value));
+
+            if (invitationIds.length > 0) {
+                const { data: invitationRows, error: invitationError } = await supabase
+                    .from('assessment_invitations')
+                    .select('id,candidate_email,metadata')
+                    .in('id', invitationIds);
+
+                if (invitationError) throw invitationError;
+
+                const nextContext = (invitationRows || []).reduce((acc: Record<string, { candidate_email?: string; metadata?: Record<string, any> | null }>, row: any) => {
+                    acc[String(row.id)] = {
+                        candidate_email: row?.candidate_email || undefined,
+                        metadata: (row?.metadata && typeof row.metadata === 'object') ? row.metadata : null
+                    };
+                    return acc;
+                }, {});
+                setInvitationContextById(nextContext);
+            } else {
+                setInvitationContextById({});
+            }
         } catch (e) {
             console.error("Failed to load assessment results:", e);
         } finally {
             setLoading(false);
         }
     };
+
+    const visibleResults = results.filter((result) => {
+        const invitationMeta = result.invitation_id ? invitationContextById[result.invitation_id]?.metadata || null : null;
+        const invitationEmail = result.invitation_id ? invitationContextById[result.invitation_id]?.candidate_email || '' : '';
+        const matchesJobTitle = jobTitleFilter
+            ? String(invitationMeta?.job_title || '').toLowerCase() === jobTitleFilter.toLowerCase()
+            : true;
+        const matchesCandidateEmail = candidateEmailFilter
+            ? invitationEmail.toLowerCase() === candidateEmailFilter.toLowerCase()
+            : true;
+        const matchesApplication = applicationIdFilter
+            ? String(result.application_id || invitationMeta?.application_id || '') === applicationIdFilter
+            : true;
+        return matchesJobTitle && matchesCandidateEmail && matchesApplication;
+    });
 
     const handleAiEvaluate = async (result: AssessmentResult) => {
         setEvaluatingId(result.id);
@@ -156,7 +200,7 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
 
     if (loading) return <div className="p-4 text-center text-slate-500">{t('assessment.results.loading')}</div>;
 
-    if (results.length === 0) return (
+    if (visibleResults.length === 0) return (
         <div className="p-8 text-center bg-slate-50 dark:bg-slate-900 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 mt-8">
             <FileText className="mx-auto h-12 w-12 text-slate-400 mb-2" />
             <h3 className="text-lg font-medium text-slate-900 dark:text-white">{t('assessment.results.no_results_title')}</h3>
@@ -168,11 +212,14 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
         <div className="space-y-4 mt-8">
             <h3 className="font-bold text-lg text-slate-900 dark:text-white flex items-center gap-2">
                 <FileText size={20} className="text-indigo-600" />
-                {t('assessment.results.title')} ({results.length})
+                {t('assessment.results.title')} ({visibleResults.length})
             </h3>
 
             <div className="grid gap-4">
-                {results.map(result => (
+                {visibleResults.map(result => {
+                    const invitationContext = result.invitation_id ? invitationContextById[result.invitation_id] : undefined;
+                    const invitationMeta = invitationContext?.metadata || null;
+                    return (
                     <div key={result.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm transition-all journey-panel-enter">
                         <div className="p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                             <div>
@@ -184,6 +231,20 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
                                     Journey v1 profil •
                                     {new Date(result.completed_at).toLocaleDateString()}
                                 </div>
+                                {(invitationContext?.candidate_email || invitationMeta?.job_title) && (
+                                    <div className="mt-1 text-xs text-slate-500 dark:text-slate-400 flex flex-wrap gap-2">
+                                        {invitationMeta?.job_title && (
+                                            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
+                                                {String(invitationMeta.job_title)}
+                                            </span>
+                                        )}
+                                        {invitationContext?.candidate_email && (
+                                            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">
+                                                {invitationContext.candidate_email}
+                                            </span>
+                                        )}
+                                    </div>
+                                )}
                             </div>
 
                             <div className="flex items-center gap-3">
@@ -375,7 +436,7 @@ const AssessmentResultsList: React.FC<Props> = ({ companyId }) => {
                             </div>
                         )}
                     </div>
-                ))}
+                )})}
             </div>
         </div>
     );

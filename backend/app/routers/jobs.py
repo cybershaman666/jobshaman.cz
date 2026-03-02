@@ -4,7 +4,7 @@ from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access, verify_supabase_token
-from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, JobInteractionStateSyncRequest, JobApplicationCreateRequest, JobApplicationStatusUpdateRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest
+from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, JobInteractionStateSyncRequest, JobApplicationCreateRequest, JobApplicationStatusUpdateRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest, JobDraftUpsertRequest, JobDraftPublishRequest, JobLifecycleUpdateRequest
 from ..models.responses import JobCheckResponse
 from ..services.legality import check_legality_rules
 from ..services.matching import calculate_candidate_match
@@ -229,6 +229,281 @@ def _filter_existing_job_ids(job_ids: set[str]) -> set[str]:
             print(f"⚠️ Failed to filter existing job IDs for sync: {exc}")
             return set()
     return existing
+
+
+def _is_missing_column_error(exc: Exception, column_name: str) -> bool:
+    msg = str(exc).lower()
+    return column_name.lower() in msg and ("does not exist" in msg or "column" in msg)
+
+
+def _safe_dict(value) -> dict:
+    return value if isinstance(value, dict) else {}
+
+
+def _safe_string_list(value, limit: int = 12) -> list[str]:
+    if not isinstance(value, list):
+        return []
+    out: list[str] = []
+    for item in value:
+        text = str(item or "").strip()
+        if text:
+            out.append(text[:300])
+        if len(out) >= limit:
+            break
+    return out
+
+
+def _normalize_jcfpm_share_level(level: str | None, payload: dict | None = None) -> str:
+    normalized = str(level or "").strip().lower()
+    if normalized in {"summary", "full_report", "do_not_share"}:
+        return normalized
+    if payload:
+        return "summary"
+    return "do_not_share"
+
+
+def _sanitize_cv_snapshot(raw) -> dict:
+    value = _safe_dict(raw)
+    return {
+        "id": str(value.get("id") or "").strip() or None,
+        "label": str(value.get("label") or "").strip() or None,
+        "originalName": str(value.get("originalName") or "").strip() or None,
+        "fileUrl": str(value.get("fileUrl") or "").strip() or None,
+    }
+
+
+def _sanitize_candidate_profile_snapshot(raw) -> dict:
+    value = _safe_dict(raw)
+    return {
+        "name": str(value.get("name") or "").strip() or None,
+        "email": str(value.get("email") or "").strip() or None,
+        "phone": str(value.get("phone") or "").strip() or None,
+        "jobTitle": str(value.get("jobTitle") or "").strip() or None,
+        "linkedin": str(value.get("linkedin") or "").strip() or None,
+        "skills": _safe_string_list(value.get("skills"), limit=12),
+        "values": _safe_string_list(value.get("values"), limit=8),
+        "preferredCountryCode": str(value.get("preferredCountryCode") or "").strip().upper() or None,
+    }
+
+
+def _sanitize_jcfpm_payload(level: str, raw) -> dict | None:
+    if level == "do_not_share":
+        return None
+
+    value = _safe_dict(raw)
+    base = {
+        "schema_version": "jcfpm-share-v1",
+        "share_level": level,
+        "completed_at": str(value.get("completed_at") or "").strip() or None,
+        "confidence": float(value.get("confidence") or 0) if value.get("confidence") is not None else None,
+        "archetype": _safe_dict(value.get("archetype")) or None,
+        "top_dimensions": [],
+        "strengths": _safe_string_list(value.get("strengths"), limit=6),
+        "environment_fit_summary": _safe_string_list(value.get("environment_fit_summary"), limit=5),
+        "jhi_adjustment_summary": [],
+    }
+
+    for item in (value.get("top_dimensions") or [])[:3]:
+        if not isinstance(item, dict):
+            continue
+        base["top_dimensions"].append({
+            "dimension": str(item.get("dimension") or "").strip()[:64],
+            "percentile": int(item.get("percentile") or 0),
+            "label": str(item.get("label") or "").strip()[:200] or None,
+        })
+
+    for item in (value.get("jhi_adjustment_summary") or [])[:6]:
+        if not isinstance(item, dict):
+            continue
+        base["jhi_adjustment_summary"].append({
+            "field": str(item.get("field") or "").strip()[:120],
+            "from": int(item.get("from") or 0),
+            "to": int(item.get("to") or 0),
+            "reason": str(item.get("reason") or "").strip()[:500],
+        })
+
+    if level != "full_report":
+        return base
+
+    full = {
+        **base,
+        "dimension_scores": [],
+        "fit_scores": [],
+        "narrative_summary": _safe_dict(value.get("narrative_summary")),
+    }
+    for item in (value.get("dimension_scores") or [])[:12]:
+        if not isinstance(item, dict):
+            continue
+        full["dimension_scores"].append({
+            "dimension": str(item.get("dimension") or "").strip()[:64],
+            "raw_score": float(item.get("raw_score") or 0),
+            "percentile": int(item.get("percentile") or 0),
+            "percentile_band": str(item.get("percentile_band") or "").strip()[:80] or None,
+            "label": str(item.get("label") or "").strip()[:200] or None,
+        })
+    for item in (value.get("fit_scores") or [])[:5]:
+        if not isinstance(item, dict):
+            continue
+        full["fit_scores"].append({
+            "title": str(item.get("title") or "").strip()[:200],
+            "fit_score": float(item.get("fit_score") or 0),
+            "salary_range": str(item.get("salary_range") or "").strip()[:120] or None,
+            "growth_potential": str(item.get("growth_potential") or "").strip()[:120] or None,
+            "ai_impact": str(item.get("ai_impact") or "").strip()[:120] or None,
+            "remote_friendly": str(item.get("remote_friendly") or "").strip()[:120] or None,
+        })
+    return full
+
+
+def _derive_candidate_headline(snapshot: dict | None) -> str | None:
+    data = _safe_dict(snapshot)
+    job_title = str(data.get("jobTitle") or "").strip()
+    skills = _safe_string_list(data.get("skills"), limit=3)
+    if job_title and skills:
+        return f"{job_title} • {', '.join(skills)}"
+    if job_title:
+        return job_title
+    if skills:
+        return ", ".join(skills)
+    return None
+
+
+def _serialize_company_application_row(row: dict) -> dict:
+    job = _safe_dict(row.get("jobs"))
+    profile = _safe_dict(row.get("profiles"))
+    candidate_snapshot = _safe_dict(row.get("candidate_profile_snapshot"))
+    jcfpm_share_level = _normalize_jcfpm_share_level(row.get("jcfpm_share_level"), _safe_dict(row.get("shared_jcfpm_payload")))
+    cover_letter = str(row.get("cover_letter") or "").strip()
+    cv_snapshot = _safe_dict(row.get("cv_snapshot"))
+    return {
+        "id": row.get("id"),
+        "job_id": row.get("job_id"),
+        "candidate_id": row.get("candidate_id"),
+        "status": row.get("status"),
+        "created_at": row.get("created_at"),
+        "submitted_at": row.get("submitted_at") or row.get("applied_at") or row.get("created_at"),
+        "updated_at": row.get("updated_at") or row.get("created_at"),
+        "job_title": job.get("title"),
+        "candidate_name": profile.get("full_name") or candidate_snapshot.get("name") or profile.get("email") or "Candidate",
+        "candidate_email": profile.get("email") or candidate_snapshot.get("email"),
+        "has_cover_letter": bool(cover_letter),
+        "has_cv": bool(cv_snapshot.get("fileUrl") or cv_snapshot.get("originalName") or row.get("cv_document_id")),
+        "jcfpm_share_level": jcfpm_share_level,
+        "has_jcfpm": jcfpm_share_level != "do_not_share" and bool(row.get("shared_jcfpm_payload")),
+        "candidate_headline": _derive_candidate_headline(candidate_snapshot),
+    }
+
+
+def _serialize_application_dossier(row: dict) -> dict:
+    base = _serialize_company_application_row(row)
+    base.update({
+        "company_id": row.get("company_id"),
+        "source": row.get("source"),
+        "reviewed_at": row.get("reviewed_at"),
+        "reviewed_by": row.get("reviewed_by"),
+        "cover_letter": row.get("cover_letter"),
+        "cv_document_id": row.get("cv_document_id"),
+        "cv_snapshot": _sanitize_cv_snapshot(row.get("cv_snapshot")),
+        "candidate_profile_snapshot": _sanitize_candidate_profile_snapshot(row.get("candidate_profile_snapshot")),
+        "shared_jcfpm_payload": _sanitize_jcfpm_payload(
+            _normalize_jcfpm_share_level(row.get("jcfpm_share_level"), _safe_dict(row.get("shared_jcfpm_payload"))),
+            row.get("shared_jcfpm_payload"),
+        ),
+        "application_payload": _safe_dict(row.get("application_payload")),
+    })
+    return base
+
+
+def _probe_schema_select(table_name: str, select_clause: str) -> dict:
+    if not supabase:
+        return {"ready": False, "sample_rows": 0, "issue": "supabase unavailable"}
+    try:
+        resp = supabase.table(table_name).select(select_clause).limit(2).execute()
+        return {
+            "ready": True,
+            "sample_rows": len(resp.data or []),
+            "issue": None,
+        }
+    except Exception as exc:
+        return {
+            "ready": False,
+            "sample_rows": 0,
+            "issue": str(exc)[:240],
+        }
+
+
+def _draft_to_validation_report(draft: dict) -> dict:
+    blocking: list[str] = []
+    warnings: list[str] = []
+    suggestions: list[str] = []
+
+    title = str(draft.get("title") or "").strip()
+    role_summary = str(draft.get("role_summary") or "").strip()
+    responsibilities = str(draft.get("responsibilities") or "").strip()
+    requirements = str(draft.get("requirements") or "").strip()
+    contact_email = str(draft.get("contact_email") or "").strip()
+    location_public = str(draft.get("location_public") or draft.get("workplace_address") or "").strip()
+    salary_from = draft.get("salary_from")
+    salary_to = draft.get("salary_to")
+    benefits = _safe_string_list(draft.get("benefits_structured"), limit=50)
+
+    if not title:
+        blocking.append("Missing title.")
+    if not role_summary:
+        blocking.append("Missing role summary.")
+    if not responsibilities:
+        blocking.append("Missing responsibilities.")
+    if not requirements:
+        blocking.append("Missing requirements.")
+    if not location_public:
+        blocking.append("Missing public location.")
+    if not contact_email:
+        blocking.append("Missing application contact email.")
+
+    if salary_from is None or salary_to is None:
+        warnings.append("Salary is not fully transparent.")
+    elif float(salary_to or 0) < float(salary_from or 0):
+        blocking.append("Salary max cannot be lower than salary min.")
+
+    if len(requirements) < 120:
+        warnings.append("Requirements section is still very short.")
+    if len(benefits) < 2:
+        warnings.append("Benefits are likely too vague or too thin.")
+    if len(role_summary) < 80:
+        suggestions.append("Expand the role summary to make the opportunity clearer.")
+    if len(responsibilities) < 180:
+        suggestions.append("Add more concrete day-to-day responsibilities.")
+    if len(requirements) < 180:
+        suggestions.append("Clarify must-have skills and expected experience.")
+
+    transparency_score = max(0, min(100, 100 - len(blocking) * 22 - len(warnings) * 8))
+    clarity_score = max(0, min(100, 45 + min(len(role_summary), 400) // 12 + min(len(responsibilities), 600) // 18))
+    return {
+        "blockingIssues": blocking,
+        "warnings": warnings,
+        "suggestions": suggestions,
+        "transparencyScore": transparency_score,
+        "clarityScore": clarity_score,
+    }
+
+
+def _compose_job_description_from_draft(draft: dict) -> str:
+    sections: list[str] = []
+    for heading, key in [
+        ("Role Summary", "role_summary"),
+        ("Team Intro", "team_intro"),
+        ("Responsibilities", "responsibilities"),
+        ("Requirements", "requirements"),
+        ("Nice to Have", "nice_to_have"),
+        ("How To Apply", "application_instructions"),
+    ]:
+        value = str(draft.get(key) or "").strip()
+        if value:
+            sections.append(f"### {heading}\n{value}")
+    benefits = _safe_string_list(draft.get("benefits_structured"), limit=20)
+    if benefits:
+        sections.append("### Benefits\n" + "\n".join([f"- {item}" for item in benefits]))
+    return "\n\n".join(sections).strip()
 
 def _coerce_job_analysis_payload(raw: dict) -> dict:
     summary = str(raw.get("summary") or "").strip()
@@ -706,11 +981,17 @@ async def create_job_application(
     if job_id is None:
         raise HTTPException(status_code=400, detail="Invalid job ID")
 
+    requested_share_level = _normalize_jcfpm_share_level(payload.jcfpm_share_level, _safe_dict(payload.shared_jcfpm_payload))
+    cv_snapshot = _sanitize_cv_snapshot(payload.cv_snapshot)
+    candidate_profile_snapshot = _sanitize_candidate_profile_snapshot(payload.candidate_profile_snapshot)
+    shared_jcfpm_payload = _sanitize_jcfpm_payload(requested_share_level, payload.shared_jcfpm_payload)
+    application_payload = _safe_dict(payload.metadata)
+
     try:
         existing = (
             supabase
             .table("job_applications")
-            .select("id,status,created_at")
+            .select("*")
             .eq("job_id", job_id)
             .eq("candidate_id", user_id)
             .order("created_at", desc=True)
@@ -719,7 +1000,12 @@ async def create_job_application(
         )
         if existing.data:
             row = existing.data[0]
-            return {"status": "exists", "application_id": row.get("id"), "created_at": row.get("created_at")}
+            return {
+                "status": "exists",
+                "application_id": row.get("id"),
+                "created_at": row.get("created_at"),
+                "application": _serialize_application_dossier(row),
+            }
     except Exception as exc:
         print(f"⚠️ Failed to check existing application: {exc}")
 
@@ -735,15 +1021,52 @@ async def create_job_application(
         "candidate_id": user_id,
         "company_id": company_id,
         "status": "pending",
+        "source": payload.source or "application_modal",
         "applied_at": now_iso(),
+        "submitted_at": now_iso(),
+        "updated_at": now_iso(),
+        "cover_letter": payload.cover_letter,
+        "cv_document_id": payload.cv_document_id,
+        "cv_snapshot": cv_snapshot,
+        "candidate_profile_snapshot": candidate_profile_snapshot,
+        "jcfpm_share_level": requested_share_level,
+        "shared_jcfpm_payload": shared_jcfpm_payload,
+        "application_payload": application_payload,
     }
     try:
         res = supabase.table("job_applications").insert(insert_payload).execute()
         app_id = None
+        row = None
         if res.data:
             app_id = res.data[0].get("id")
-        return {"status": "created", "application_id": app_id}
+            row = res.data[0]
+        return {"status": "created", "application_id": app_id, "application": _serialize_application_dossier(row or insert_payload)}
     except Exception as exc:
+        if any(_is_missing_column_error(exc, col) for col in [
+            "source",
+            "submitted_at",
+            "updated_at",
+            "cover_letter",
+            "cv_document_id",
+            "cv_snapshot",
+            "candidate_profile_snapshot",
+            "jcfpm_share_level",
+            "shared_jcfpm_payload",
+            "application_payload",
+        ]):
+            try:
+                fallback_payload = {
+                    "job_id": job_id,
+                    "candidate_id": user_id,
+                    "company_id": company_id,
+                    "status": "pending",
+                    "applied_at": now_iso(),
+                }
+                res = supabase.table("job_applications").insert(fallback_payload).execute()
+                app_id = res.data[0].get("id") if res.data else None
+                return {"status": "created", "application_id": app_id}
+            except Exception as fallback_exc:
+                print(f"⚠️ Fallback create application also failed: {fallback_exc}")
         print(f"⚠️ Failed to create application: {exc}")
         raise HTTPException(status_code=500, detail="Failed to create application")
 
@@ -761,35 +1084,87 @@ async def list_company_applications(
         raise HTTPException(status_code=503, detail="Database unavailable")
 
     require_company_access(user, company_id)
-    query = (
-        supabase
-        .table("job_applications")
-        .select("id,job_id,candidate_id,status,created_at,jobs(id,title),profiles(id,full_name,email)")
-        .eq("company_id", company_id)
-        .order("created_at", desc=True)
-        .limit(limit)
-    )
-    if job_id:
-        query = query.eq("job_id", _normalize_job_id(job_id))
+    try:
+        query = (
+            supabase
+            .table("job_applications")
+            .select("*,jobs(id,title),profiles(id,full_name,email)")
+            .eq("company_id", company_id)
+            .order("submitted_at", desc=True)
+            .limit(limit)
+        )
+        if job_id:
+            query = query.eq("job_id", _normalize_job_id(job_id))
+        resp = query.execute()
+    except Exception as exc:
+        if not _is_missing_column_error(exc, "submitted_at"):
+            raise HTTPException(status_code=500, detail="Failed to load company applications")
+        legacy_query = (
+            supabase
+            .table("job_applications")
+            .select("*,jobs(id,title),profiles(id,full_name,email)")
+            .eq("company_id", company_id)
+            .order("applied_at", desc=True)
+            .limit(limit)
+        )
+        if job_id:
+            legacy_query = legacy_query.eq("job_id", _normalize_job_id(job_id))
+        resp = legacy_query.execute()
 
-    resp = query.execute()
     rows = resp.data or []
     out = []
     for row in rows:
-        job = row.get("jobs") or {}
-        profile = row.get("profiles") or {}
-        out.append({
-            "id": row.get("id"),
-            "job_id": row.get("job_id"),
-            "candidate_id": row.get("candidate_id"),
-            "status": row.get("status"),
-            "created_at": row.get("created_at"),
-            "job_title": job.get("title"),
-            "candidate_name": profile.get("full_name") or profile.get("email") or "Candidate",
-            "candidate_email": profile.get("email"),
-        })
+        out.append(_serialize_company_application_row(row))
 
     return {"company_id": company_id, "applications": out}
+
+
+@router.get("/company/applications/{application_id}")
+@limiter.limit("60/minute")
+async def get_company_application_detail(
+    application_id: str,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    try:
+        resp = (
+            supabase
+            .table("job_applications")
+            .select("*,jobs(id,title),profiles(id,full_name,email)")
+            .eq("id", application_id)
+            .maybe_single()
+            .execute()
+        )
+    except Exception as exc:
+        if not any(_is_missing_column_error(exc, col) for col in [
+            "source",
+            "reviewed_at",
+            "reviewed_by",
+            "cover_letter",
+            "cv_document_id",
+            "cv_snapshot",
+            "candidate_profile_snapshot",
+            "jcfpm_share_level",
+            "shared_jcfpm_payload",
+            "application_payload",
+        ]):
+            raise HTTPException(status_code=500, detail="Failed to load application detail")
+        resp = (
+            supabase
+            .table("job_applications")
+            .select("*,jobs(id,title),profiles(id,full_name,email)")
+            .eq("id", application_id)
+            .maybe_single()
+            .execute()
+        )
+    row = resp.data if resp else None
+    if not row:
+        raise HTTPException(status_code=404, detail="Application not found")
+    require_company_access(user, str(row.get("company_id") or ""))
+    return {"application": _serialize_application_dossier(row)}
 
 
 @router.patch("/company/applications/{application_id}/status")
@@ -820,11 +1195,430 @@ async def update_company_application_status(
     require_company_access(user, str(row.get("company_id") or ""))
 
     try:
-        supabase.table("job_applications").update({"status": payload.status}).eq("id", application_id).execute()
+        try:
+            supabase.table("job_applications").update({"status": payload.status, "updated_at": now_iso(), "reviewed_at": now_iso()}).eq("id", application_id).execute()
+        except Exception as exc:
+            if _is_missing_column_error(exc, "updated_at") or _is_missing_column_error(exc, "reviewed_at"):
+                supabase.table("job_applications").update({"status": payload.status}).eq("id", application_id).execute()
+            else:
+                raise
     except Exception as exc:
         print(f"⚠️ Failed to update application status: {exc}")
         raise HTTPException(status_code=500, detail="Failed to update application status")
 
+    return {"status": "success"}
+
+
+@router.get("/company/schema/rollout-status")
+@limiter.limit("60/minute")
+async def get_company_rollout_schema_status(
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    job_applications = _probe_schema_select(
+        "job_applications",
+        "id,source,submitted_at,updated_at,cover_letter,cv_document_id,cv_snapshot,candidate_profile_snapshot,jcfpm_share_level,shared_jcfpm_payload,application_payload,reviewed_at,reviewed_by"
+    )
+    job_drafts = _probe_schema_select(
+        "job_drafts",
+        "id,job_id,status,title,updated_at"
+    )
+    job_versions = _probe_schema_select(
+        "job_versions",
+        "id,job_id,version_number,published_at"
+    )
+
+    return {
+        "checked_at": now_iso(),
+        "all_ready": bool(job_applications.get("ready") and job_drafts.get("ready") and job_versions.get("ready")),
+        "job_applications": job_applications,
+        "job_drafts": job_drafts,
+        "job_versions": job_versions,
+        "requested_by": user.get("id") or user.get("auth_id"),
+    }
+
+
+@router.post("/company/job-drafts")
+@limiter.limit("60/minute")
+async def create_company_job_draft(
+    payload: JobDraftUpsertRequest,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+    company_id = require_company_access(user, user.get("company_id"))
+    user_id = user.get("id") or user.get("auth_id")
+    body = payload.dict(exclude_none=True)
+    insert_payload = {
+        "company_id": company_id,
+        "created_by": user_id,
+        "updated_by": user_id,
+        **body,
+    }
+    resp = supabase.table("job_drafts").insert(insert_payload).execute()
+    if not resp.data:
+        raise HTTPException(status_code=500, detail="Failed to create job draft")
+    draft = resp.data[0]
+    draft["quality_report"] = _draft_to_validation_report(draft)
+    return {"draft": draft}
+
+
+@router.get("/company/job-drafts")
+@limiter.limit("60/minute")
+async def list_company_job_drafts(
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    company_id = require_company_access(user, user.get("company_id"))
+    resp = (
+        supabase
+        .table("job_drafts")
+        .select("*")
+        .eq("company_id", company_id)
+        .order("updated_at", desc=True)
+        .limit(200)
+        .execute()
+    )
+    drafts = resp.data or []
+    return {"drafts": drafts}
+
+
+@router.get("/company/job-drafts/{draft_id}")
+@limiter.limit("60/minute")
+async def get_company_job_draft(
+    draft_id: str,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    resp = supabase.table("job_drafts").select("*").eq("id", draft_id).maybe_single().execute()
+    draft = resp.data if resp else None
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    require_company_access(user, str(draft.get("company_id") or ""))
+    if not draft.get("quality_report"):
+        draft["quality_report"] = _draft_to_validation_report(draft)
+    return {"draft": draft}
+
+
+@router.patch("/company/job-drafts/{draft_id}")
+@limiter.limit("60/minute")
+async def update_company_job_draft(
+    draft_id: str,
+    payload: JobDraftUpsertRequest,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+    current_resp = supabase.table("job_drafts").select("*").eq("id", draft_id).maybe_single().execute()
+    current = current_resp.data if current_resp else None
+    if not current:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    require_company_access(user, str(current.get("company_id") or ""))
+    body = payload.dict(exclude_none=True)
+    next_draft = {**current, **body}
+    next_quality = _draft_to_validation_report(next_draft)
+    update_payload = {
+        **body,
+        "updated_by": user.get("id") or user.get("auth_id"),
+        "updated_at": now_iso(),
+        "quality_report": next_quality,
+    }
+    resp = supabase.table("job_drafts").update(update_payload).eq("id", draft_id).execute()
+    draft = (resp.data or [None])[0] or {**next_draft, **update_payload}
+    draft["quality_report"] = next_quality
+    return {"draft": draft}
+
+
+@router.post("/company/job-drafts/{draft_id}/validate")
+@limiter.limit("60/minute")
+async def validate_company_job_draft(
+    draft_id: str,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    current_resp = supabase.table("job_drafts").select("*").eq("id", draft_id).maybe_single().execute()
+    draft = current_resp.data if current_resp else None
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    require_company_access(user, str(draft.get("company_id") or ""))
+    report = _draft_to_validation_report(draft)
+    try:
+        supabase.table("job_drafts").update({
+            "quality_report": report,
+            "status": "ready_for_publish" if not report["blockingIssues"] else draft.get("status") or "draft",
+            "updated_at": now_iso(),
+        }).eq("id", draft_id).execute()
+    except Exception:
+        pass
+    return {"validation": report}
+
+
+@router.post("/company/job-drafts/{draft_id}/publish")
+@limiter.limit("30/minute")
+async def publish_company_job_draft(
+    draft_id: str,
+    payload: JobDraftPublishRequest,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+    current_resp = supabase.table("job_drafts").select("*").eq("id", draft_id).maybe_single().execute()
+    draft = current_resp.data if current_resp else None
+    if not draft:
+        raise HTTPException(status_code=404, detail="Draft not found")
+    company_id = require_company_access(user, str(draft.get("company_id") or ""))
+    validation = _draft_to_validation_report(draft)
+    if validation["blockingIssues"]:
+        raise HTTPException(status_code=400, detail={"validation": validation})
+
+    company_name = "Company"
+    try:
+        company_resp = supabase.table("companies").select("name").eq("id", company_id).maybe_single().execute()
+        company_name = str((company_resp.data or {}).get("name") or company_name)
+    except Exception:
+        pass
+
+    job_payload = {
+        "title": draft.get("title"),
+        "company": company_name,
+        "description": _compose_job_description_from_draft(draft),
+        "location": draft.get("location_public") or draft.get("workplace_address") or "Location not specified",
+        "salary_from": draft.get("salary_from"),
+        "salary_to": draft.get("salary_to"),
+        "salary_currency": draft.get("salary_currency") or "CZK",
+        "salary_timeframe": draft.get("salary_timeframe") or "month",
+        "benefits": _safe_string_list(draft.get("benefits_structured"), limit=50),
+        "contact_email": draft.get("contact_email"),
+        "workplace_address": draft.get("workplace_address"),
+        "company_id": company_id,
+        "contract_type": draft.get("contract_type"),
+        "work_type": draft.get("work_model"),
+        "source": "jobshaman.cz",
+        "scraped_at": now_iso(),
+    }
+
+    job_id = _normalize_job_id(draft.get("job_id"))
+    if job_id:
+        _require_job_access(user, str(job_id))
+        job_resp = supabase.table("jobs").update(job_payload).eq("id", job_id).execute()
+        job_row = (job_resp.data or [None])[0] or {"id": job_id}
+    else:
+        job_resp = supabase.table("jobs").insert(job_payload).execute()
+        job_row = (job_resp.data or [None])[0]
+        if not job_row:
+            raise HTTPException(status_code=500, detail="Failed to publish draft")
+        job_id = _normalize_job_id(job_row.get("id"))
+
+    next_version = 1
+    try:
+        version_resp = (
+            supabase
+            .table("job_versions")
+            .select("version_number")
+            .eq("job_id", job_id)
+            .order("version_number", desc=True)
+            .limit(1)
+            .execute()
+        )
+        if version_resp.data:
+            next_version = int(version_resp.data[0].get("version_number") or 0) + 1
+    except Exception:
+        next_version = 1
+
+    snapshot = {
+        "title": job_payload["title"],
+        "description": job_payload["description"],
+        "location": job_payload["location"],
+        "salary_from": job_payload["salary_from"],
+        "salary_to": job_payload["salary_to"],
+        "salary_currency": job_payload["salary_currency"],
+        "salary_timeframe": job_payload["salary_timeframe"],
+        "contract_type": job_payload["contract_type"],
+        "work_type": job_payload["work_type"],
+        "benefits": job_payload["benefits"],
+        "source_draft_id": draft_id,
+    }
+
+    try:
+        supabase.table("job_versions").insert({
+            "job_id": job_id,
+            "draft_id": draft_id,
+            "version_number": next_version,
+            "published_snapshot": snapshot,
+            "change_summary": payload.change_summary,
+            "published_by": user.get("id") or user.get("auth_id"),
+            "published_at": now_iso(),
+        }).execute()
+    except Exception as exc:
+        print(f"⚠️ Failed to persist job version: {exc}")
+
+    try:
+        supabase.table("job_drafts").update({
+            "job_id": job_id,
+            "status": "published_linked",
+            "quality_report": validation,
+            "updated_by": user.get("id") or user.get("auth_id"),
+            "updated_at": now_iso(),
+        }).eq("id", draft_id).execute()
+    except Exception as exc:
+        print(f"⚠️ Failed to update draft after publish: {exc}")
+
+    return {"status": "success", "job_id": job_id, "version_number": next_version, "validation": validation}
+
+
+@router.post("/company/jobs/{job_id}/edit-draft")
+@limiter.limit("30/minute")
+async def create_edit_draft_from_job(
+    job_id: str,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+    job_row = _require_job_access(user, job_id)
+    company_id = str(job_row.get("company_id") or "")
+    source_resp = supabase.table("jobs").select("*").eq("id", _normalize_job_id(job_id)).maybe_single().execute()
+    source = source_resp.data if source_resp else None
+    if not source:
+        raise HTTPException(status_code=404, detail="Job not found")
+    benefits = source.get("benefits")
+    if not isinstance(benefits, list):
+        benefits = []
+    draft_payload = {
+        "company_id": company_id,
+        "job_id": _normalize_job_id(job_id),
+        "status": "draft",
+        "title": source.get("title") or "",
+        "role_summary": source.get("description") or "",
+        "responsibilities": source.get("description") or "",
+        "requirements": "",
+        "nice_to_have": "",
+        "benefits_structured": benefits,
+        "salary_from": source.get("salary_from"),
+        "salary_to": source.get("salary_to"),
+        "salary_currency": source.get("salary_currency") or source.get("currency") or "CZK",
+        "salary_timeframe": source.get("salary_timeframe") or "month",
+        "contract_type": source.get("contract_type"),
+        "work_model": source.get("work_type") or source.get("work_model"),
+        "workplace_address": source.get("workplace_address") or source.get("location"),
+        "location_public": source.get("location"),
+        "contact_email": source.get("contact_email"),
+        "created_by": user.get("id") or user.get("auth_id"),
+        "updated_by": user.get("id") or user.get("auth_id"),
+    }
+    resp = supabase.table("job_drafts").insert(draft_payload).execute()
+    if not resp.data:
+        raise HTTPException(status_code=500, detail="Failed to create edit draft")
+    draft = resp.data[0]
+    draft["quality_report"] = _draft_to_validation_report(draft)
+    return {"draft": draft}
+
+
+@router.get("/company/jobs/{job_id}/versions")
+@limiter.limit("60/minute")
+async def list_job_versions(
+    job_id: str,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    _require_job_access(user, job_id)
+    resp = (
+        supabase
+        .table("job_versions")
+        .select("*")
+        .eq("job_id", _normalize_job_id(job_id))
+        .order("version_number", desc=True)
+        .limit(50)
+        .execute()
+    )
+    return {"versions": resp.data or []}
+
+
+@router.post("/company/jobs/{job_id}/duplicate")
+@limiter.limit("30/minute")
+async def duplicate_job_into_draft(
+    job_id: str,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+    _require_job_access(user, job_id)
+    source_resp = supabase.table("jobs").select("*").eq("id", _normalize_job_id(job_id)).maybe_single().execute()
+    source = source_resp.data if source_resp else None
+    if not source:
+        raise HTTPException(status_code=404, detail="Job not found")
+    company_id = str(source.get("company_id") or "")
+    benefits = source.get("benefits")
+    if not isinstance(benefits, list):
+        benefits = []
+    resp = supabase.table("job_drafts").insert({
+        "company_id": company_id,
+        "status": "draft",
+        "title": f"{str(source.get('title') or '').strip()} (Copy)".strip(),
+        "role_summary": source.get("description") or "",
+        "responsibilities": source.get("description") or "",
+        "requirements": "",
+        "nice_to_have": "",
+        "benefits_structured": benefits,
+        "salary_from": source.get("salary_from"),
+        "salary_to": source.get("salary_to"),
+        "salary_currency": source.get("salary_currency") or source.get("currency") or "CZK",
+        "salary_timeframe": source.get("salary_timeframe") or "month",
+        "contract_type": source.get("contract_type"),
+        "work_model": source.get("work_type") or source.get("work_model"),
+        "workplace_address": source.get("workplace_address") or source.get("location"),
+        "location_public": source.get("location"),
+        "contact_email": source.get("contact_email"),
+        "created_by": user.get("id") or user.get("auth_id"),
+        "updated_by": user.get("id") or user.get("auth_id"),
+    }).execute()
+    if not resp.data:
+        raise HTTPException(status_code=500, detail="Failed to duplicate job into draft")
+    draft = resp.data[0]
+    draft["quality_report"] = _draft_to_validation_report(draft)
+    return {"draft": draft}
+
+
+@router.patch("/company/jobs/{job_id}/lifecycle")
+@limiter.limit("30/minute")
+async def update_company_job_lifecycle(
+    job_id: str,
+    payload: JobLifecycleUpdateRequest,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+    _require_job_access(user, job_id)
+    supabase.table("jobs").update({"status": payload.status}).eq("id", _normalize_job_id(job_id)).execute()
     return {"status": "success"}
 
 

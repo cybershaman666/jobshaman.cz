@@ -3,6 +3,7 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from statistics import mean
 from typing import Any, Dict, List
+from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
@@ -15,12 +16,27 @@ from ..models.requests import (
     AssessmentInvitationRequest,
     AssessmentJourneyAnalyzeAnswerRequest,
     AssessmentJourneyFinalizeRequest,
+    AssessmentLibraryStatusUpdateRequest,
     AssessmentRealtimeSignalsRequest,
     AssessmentResultRequest,
 )
 from ..services.email import send_email
 
 router = APIRouter()
+
+
+def _is_missing_column_error(exc: Exception, column_name: str) -> bool:
+    msg = str(exc).lower()
+    return column_name.lower() in msg and ("does not exist" in msg or "column" in msg)
+
+
+def _safe_assessment_job_id(value: Any) -> int | None:
+    try:
+        if value is None or value == "":
+            return None
+        return int(value)
+    except Exception:
+        return None
 
 
 def generate_invitation_token() -> str:
@@ -268,7 +284,7 @@ async def create_assessment_invitation(invitation_req: AssessmentInvitationReque
         if cand_resp.data:
             candidate_id = cand_resp.data[0]['id']
 
-    invitation_response = supabase.table('assessment_invitations').insert({
+    base_payload = {
         'company_id': company_id,
         'assessment_id': invitation_req.assessment_id,
         'candidate_id': candidate_id,
@@ -277,7 +293,20 @@ async def create_assessment_invitation(invitation_req: AssessmentInvitationReque
         'invitation_token': invitation_token,
         'expires_at': expires_at.isoformat(),
         'metadata': invitation_req.metadata or {},
-    }).execute()
+        'application_id': invitation_req.application_id,
+        'job_id': invitation_req.job_id,
+    }
+
+    try:
+        invitation_response = supabase.table('assessment_invitations').insert(base_payload).execute()
+    except Exception as exc:
+        if _is_missing_column_error(exc, 'application_id') or _is_missing_column_error(exc, 'job_id'):
+            fallback_payload = dict(base_payload)
+            fallback_payload.pop('application_id', None)
+            fallback_payload.pop('job_id', None)
+            invitation_response = supabase.table('assessment_invitations').insert(fallback_payload).execute()
+        else:
+            raise
 
     if not invitation_response.data:
         raise HTTPException(status_code=500, detail='Failed to create invitation')
@@ -295,6 +324,177 @@ async def create_assessment_invitation(invitation_req: AssessmentInvitationReque
         pass
 
     return {'status': 'success', 'invitation_id': invitation_id, 'invitation_token': invitation_token}
+
+
+@router.get('/company-library')
+@limiter.limit('60/minute')
+async def list_company_assessment_library(request: Request, user: dict = Depends(get_current_user)):
+    if not supabase:
+        raise HTTPException(status_code=503, detail='Database unavailable')
+
+    company_id = require_company_access(user, user.get('company_id'))
+    if not company_id:
+        raise HTTPException(status_code=401, detail='User not authenticated')
+
+    rows: List[Dict[str, Any]] = []
+    try:
+        resp = (
+            supabase
+            .table('assessments')
+            .select('*')
+            .eq('company_id', company_id)
+            .order('createdAt', desc=True)
+            .limit(50)
+            .execute()
+        )
+        rows = resp.data or []
+    except Exception as exc:
+        if not _is_missing_column_error(exc, 'company_id'):
+            raise HTTPException(status_code=500, detail=f'Failed to list company assessments: {exc}')
+
+        known_ids: List[str] = []
+        try:
+            inv_resp = (
+                supabase
+                .table('assessment_invitations')
+                .select('assessment_id')
+                .eq('company_id', company_id)
+                .order('created_at', desc=True)
+                .limit(50)
+                .execute()
+            )
+            for row in inv_resp.data or []:
+                assessment_id = str((row or {}).get('assessment_id') or '').strip()
+                if assessment_id and assessment_id not in known_ids:
+                    known_ids.append(assessment_id)
+        except Exception:
+            pass
+
+        try:
+            result_resp = (
+                supabase
+                .table('assessment_results')
+                .select('assessment_id')
+                .eq('company_id', company_id)
+                .order('completed_at', desc=True)
+                .limit(50)
+                .execute()
+            )
+            for row in result_resp.data or []:
+                assessment_id = str((row or {}).get('assessment_id') or '').strip()
+                if assessment_id and assessment_id not in known_ids:
+                    known_ids.append(assessment_id)
+        except Exception:
+            pass
+
+        if known_ids:
+            lib_resp = (
+                supabase
+                .table('assessments')
+                .select('*')
+                .in_('id', known_ids[:50])
+                .execute()
+            )
+            rows = lib_resp.data or []
+
+    return {'assessments': rows}
+
+
+@router.post('/company-library/{assessment_id}/duplicate')
+@limiter.limit('60/minute')
+async def duplicate_company_assessment(
+    assessment_id: str,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail='Database unavailable')
+
+    company_id = require_company_access(user, user.get('company_id'))
+    if not company_id:
+        raise HTTPException(status_code=401, detail='User not authenticated')
+
+    source_row = None
+    try:
+        resp = (
+            supabase
+            .table('assessments')
+            .select('*')
+            .eq('id', assessment_id)
+            .eq('company_id', company_id)
+            .maybe_single()
+            .execute()
+        )
+        source_row = resp.data if resp else None
+    except Exception as exc:
+        if not _is_missing_column_error(exc, 'company_id'):
+            raise HTTPException(status_code=500, detail=f'Failed to load assessment: {exc}')
+        resp = (
+            supabase
+            .table('assessments')
+            .select('*')
+            .eq('id', assessment_id)
+            .maybe_single()
+            .execute()
+        )
+        source_row = resp.data if resp else None
+
+    if not source_row:
+        raise HTTPException(status_code=404, detail='Assessment not found')
+
+    copy_payload = {k: v for k, v in source_row.items() if k not in {'id'}}
+    copy_payload['id'] = str(uuid4())
+    copy_payload['title'] = f"{str(source_row.get('title') or source_row.get('role') or 'Assessment')} (Copy)"
+    copy_payload['createdAt'] = datetime.now(timezone.utc).isoformat()
+    copy_payload['company_id'] = company_id
+    copy_payload['status'] = 'active'
+    copy_payload['updated_at'] = datetime.now(timezone.utc).isoformat()
+
+    try:
+        insert_resp = supabase.table('assessments').insert(copy_payload).execute()
+    except Exception as exc:
+        if _is_missing_column_error(exc, 'company_id') or _is_missing_column_error(exc, 'status') or _is_missing_column_error(exc, 'updated_at'):
+            fallback_payload = {k: v for k, v in copy_payload.items() if k not in {'company_id', 'status', 'updated_at', 'source_job_id'}}
+            insert_resp = supabase.table('assessments').insert(fallback_payload).execute()
+        else:
+            raise HTTPException(status_code=500, detail=f'Failed to duplicate assessment: {exc}')
+
+    if not insert_resp.data:
+        raise HTTPException(status_code=500, detail='Failed to duplicate assessment')
+
+    return {'assessment': insert_resp.data[0]}
+
+
+@router.patch('/company-library/{assessment_id}/status')
+@limiter.limit('60/minute')
+async def update_company_assessment_status(
+    assessment_id: str,
+    payload: AssessmentLibraryStatusUpdateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail='Database unavailable')
+
+    company_id = require_company_access(user, user.get('company_id'))
+    if not company_id:
+        raise HTTPException(status_code=401, detail='User not authenticated')
+
+    try:
+        (
+            supabase
+            .table('assessments')
+            .update({'status': payload.status, 'updated_at': datetime.now(timezone.utc).isoformat()})
+            .eq('id', assessment_id)
+            .eq('company_id', company_id)
+            .execute()
+        )
+    except Exception as exc:
+        if _is_missing_column_error(exc, 'status') or _is_missing_column_error(exc, 'updated_at') or _is_missing_column_error(exc, 'company_id'):
+            raise HTTPException(status_code=409, detail='Assessment library schema upgrade required')
+        raise HTTPException(status_code=500, detail=f'Failed to update assessment status: {exc}')
+
+    return {'status': 'success'}
 
 
 @router.get('/invitations/{invitation_id}')
@@ -378,11 +578,18 @@ async def submit_assessment_result(request: Request, invitation_id: str, result_
         }
 
     quality_index = _journey_quality_index(journey_payload)
+    invitation_metadata = invitation.get('metadata') if isinstance(invitation.get('metadata'), dict) else {}
+    application_id = invitation.get('application_id') or invitation_metadata.get('application_id')
+    job_id = invitation.get('job_id')
+    if job_id is None:
+        job_id = _safe_assessment_job_id(invitation_metadata.get('job_id'))
 
     base_row = {
         'company_id': invitation['company_id'],
         'candidate_id': invitation['candidate_id'],
         'invitation_id': invitation_id,
+        'application_id': application_id,
+        'job_id': job_id,
         'assessment_id': result_req.assessment_id,
         'role': result_req.role,
         'difficulty': result_req.difficulty,
@@ -407,7 +614,16 @@ async def submit_assessment_result(request: Request, invitation_id: str, result_
         'journey_quality_index': quality_index,
     }
 
-    result_response = supabase.table('assessment_results').insert(base_row).execute()
+    try:
+        result_response = supabase.table('assessment_results').insert(base_row).execute()
+    except Exception as exc:
+        if _is_missing_column_error(exc, 'application_id') or _is_missing_column_error(exc, 'job_id'):
+            fallback_row = dict(base_row)
+            fallback_row.pop('application_id', None)
+            fallback_row.pop('job_id', None)
+            result_response = supabase.table('assessment_results').insert(fallback_row).execute()
+        else:
+            raise
     if not result_response.data:
         raise HTTPException(status_code=500, detail='Failed to save results')
 

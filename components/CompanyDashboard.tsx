@@ -1,72 +1,43 @@
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import Markdown from 'markdown-to-jsx';
-import { Job, Candidate, AIAdOptimizationResult, CompanyProfile, CandidateBenchmarkMetric, CandidateBenchmarkMetrics, CompanyApplicationRow } from '../types';
-import { optimizeJobDescription } from '../services/geminiService';
-import { publishJob } from '../services/jobPublishService';
-import { canCompanyUseFeature, canCompanyPostJob } from '../services/billingService';
-import { supabase, incrementAdOptimizationUsage, incrementJobPosting } from '../services/supabaseService';
-import AnalyticsService from '../services/analyticsService';
+import { Assessment, Job, Candidate, CompanyProfile, CandidateBenchmarkMetric, CandidateBenchmarkMetrics, CompanyApplicationRow, ApplicationDossier } from '../types';
+import { supabase } from '../services/supabaseService';
 import { getSubscriptionStatus } from '../services/serverSideBillingService';
-import { formatJobDescription } from '../utils/formatters';
-import BullshitMeter from './BullshitMeter';
 import CompanySettings from './CompanySettings';
+import CompanyJobEditor from './CompanyJobEditor';
 import AssessmentCreator from './AssessmentCreator';
-import BenefitInsights from './BenefitInsights';
 import PlanUpgradeModal from './PlanUpgradeModal';
 import AssessmentInvitationModal from './AssessmentInvitationModal';
 import MyInvitations from './MyInvitations';
 import AssessmentResultsList from './AssessmentResultsList';
 import { fetchCandidateBenchmarkMetrics, fetchCompanyCandidates } from '../services/benchmarkService';
-import { fetchCompanyApplications, updateCompanyApplicationStatus } from '../services/jobApplicationService';
+import { fetchCompanyApplicationDetail, fetchCompanyApplications, updateCompanyApplicationStatus } from '../services/jobApplicationService';
 import { fetchCompanyJobViews } from '../services/companyDashboardService';
+import { updateCompanyJobLifecycle } from '../services/companyJobDraftService';
+import { duplicateCompanyAssessment, listCompanyAssessmentLibrary, updateCompanyAssessmentStatus } from '../services/assessmentLibraryService';
+import { openAssessmentPreviewPage } from '../services/assessmentPreviewNavigation';
 import {
     Briefcase,
     Users,
     TrendingUp,
     PenTool,
-    Sparkles,
     CheckCircle,
     Search,
-    Settings,
-    Mail,
     DollarSign,
     Clock,
     Zap,
     Filter,
     TrendingDown,
-    Bold,
-    Italic,
-    List,
-    Heading,
-    Link as LinkIcon,
-    Quote,
-    Code,
-    Smile,
     Eye,
     Edit,
     X,
     Trash2,
-    LayoutTemplate,
-    RefreshCw,
     Crown,
     MoreVertical,
     Info,
     BrainCircuit
 } from 'lucide-react';
-
-// Curated Emojis for Job Ads
-const JOB_EMOJIS = [
-    '🚀', '⭐', '💼', '✅', '🔥', '💰', '🎯', '📍', '📈', '🤝',
-    '🎓', '💡', '⏰', '🌍', '💻', '🎉', '🛡️', '🏆', '🦄', '⚖️'
-];
-
-const COMMON_BENEFITS = [
-    'home_office', '5_weeks_holiday', 'multisport', 'meal_allowance',
-    'flex_hours', 'laptop_private', 'phone_private', 'sick_days',
-    'education', 'snacks'
-];
 
 interface CompanyDashboardProps {
     companyProfile?: CompanyProfile | null;
@@ -77,11 +48,12 @@ interface CompanyDashboardProps {
 
 const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: propProfile, userEmail, onDeleteAccount, onProfileUpdate }) => {
     const { t, i18n } = useTranslation();
-    const [activeTab, setActiveTab] = useState<'overview' | 'create-ad' | 'candidates' | 'settings' | 'assessments'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'jobs' | 'applications' | 'candidates' | 'settings' | 'assessments'>('overview');
     const [showUpgradeModal, setShowUpgradeModal] = useState<{ open: boolean, feature?: string }>({ open: false });
     const [showInvitationModal, setShowInvitationModal] = useState(false);
     const [showInvitationsList, setShowInvitationsList] = useState(false);
     const [activeDropdownJobId, setActiveDropdownJobId] = useState<string | null>(null);
+    const [editorSeedJobId, setEditorSeedJobId] = useState<string | null>(null);
 
     useEffect(() => {
         try {
@@ -105,28 +77,25 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     const [applications, setApplications] = useState<CompanyApplicationRow[]>([]);
     const [applicationsLoading, setApplicationsLoading] = useState(false);
     const [applicationsUpdating, setApplicationsUpdating] = useState<Record<string, boolean>>({});
+    const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
+    const [selectedApplicationDetail, setSelectedApplicationDetail] = useState<ApplicationDossier | null>(null);
+    const [applicationDetailLoading, setApplicationDetailLoading] = useState(false);
+    const [assessmentContext, setAssessmentContext] = useState<{
+        jobId?: string;
+        jobTitle?: string;
+        candidateEmail?: string;
+        candidateId?: string;
+        candidateName?: string;
+        applicationId?: string;
+        assessmentId?: string;
+        assessmentName?: string;
+    } | null>(null);
+    const [assessmentLibrary, setAssessmentLibrary] = useState<Assessment[]>([]);
+    const [assessmentLibraryLoading, setAssessmentLibraryLoading] = useState(false);
+    const [assessmentLibraryBusyId, setAssessmentLibraryBusyId] = useState<string | null>(null);
 
     // Subscription state
     const [subscription, setSubscription] = useState<any>(null);
-
-    const [adDraft, setAdDraft] = useState('');
-    const [jobTitle, setJobTitle] = useState('');
-    const [jobSalaryMin, setJobSalaryMin] = useState<string>('');
-    const [jobSalaryMax, setJobSalaryMax] = useState<string>('');
-    const [jobBenefits, setJobBenefits] = useState<string>('');
-    const [contactEmail, setContactEmail] = useState(userEmail || '');
-    const [workplaceAddress, setWorkplaceAddress] = useState(propProfile?.address || '');
-    const [contractType, setContractType] = useState('HPP');
-    const [workType, setWorkType] = useState('On-site');
-    const [workingHours, setWorkingHours] = useState('');
-    const [optimizationResult, setOptimizationResult] = useState<AIAdOptimizationResult | null>(null);
-    const [isOptimizing, setIsOptimizing] = useState(false);
-    const [isPublishing, setIsPublishing] = useState(false);
-    const [viewMode, setViewMode] = useState<'write' | 'preview'>('write');
-    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-
-    // Editor Ref
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const [assessmentJobId, setAssessmentJobId] = useState<string | undefined>(undefined);
 
@@ -160,6 +129,21 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
 
         loadSubscription();
     }, [companyProfile?.id]);
+
+    useEffect(() => {
+        let active = true;
+        const loadAssessmentLibrary = async () => {
+            if (!companyProfile?.id || activeTab !== 'assessments') return;
+            setAssessmentLibraryLoading(true);
+            const rows = await listCompanyAssessmentLibrary();
+            if (active) {
+                setAssessmentLibrary(rows.filter((item) => item.status !== 'archived'));
+                setAssessmentLibraryLoading(false);
+            }
+        };
+        loadAssessmentLibrary();
+        return () => { active = false; };
+    }, [companyProfile?.id, activeTab]);
 
     // GUARD: If no profile (and we are expecting one), show loading or empty state
     // This satisfies TypeScript because subsequent code knows companyProfile is not null
@@ -259,133 +243,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         document.addEventListener('click', handleClickOutside);
         return () => document.removeEventListener('click', handleClickOutside);
     }, []);
-
-    const handlePublish = async () => {
-        if (!jobTitle.trim() || !adDraft.trim()) {
-            alert(t('company.ad_editor.fill_required'));
-            return;
-        }
-
-        // Job Limit Check
-        const { allowed, reason } = canCompanyPostJob(effectiveCompanyProfile, userEmail);
-
-        if (!allowed) {
-            // Track upgrade trigger
-            AnalyticsService.trackUpgradeTrigger({
-                companyId: companyProfile?.id,
-                feature: 'JOB_POSTING',
-                currentTier: effectiveCompanyProfile?.subscription?.tier || 'starter',
-                reason: reason || 'Job posting limit exceeded'
-            });
-
-            setShowUpgradeModal({ open: true, feature: t('company_extra.features.more_than_5') });
-            return;
-        }
-
-        setIsPublishing(true);
-        try {
-            await publishJob({
-                title: jobTitle,
-                company: companyProfile.name,
-                description: adDraft + (workingHours ? `\n\n**Očekávaný úvazek:** ${workingHours}` : ''),
-                location: workplaceAddress || companyProfile.address || 'Česká republika',
-                salary_from: jobSalaryMin ? Number(jobSalaryMin) : undefined,
-                salary_to: jobSalaryMax ? Number(jobSalaryMax) : undefined,
-                benefits: jobBenefits ? jobBenefits.split(',').map(b => b.trim()).filter(b => b) : [],
-                contact_email: contactEmail,
-                workplace_address: workplaceAddress,
-                company_id: companyProfile.id,
-                contract_type: contractType,
-                work_type: workType
-            });
-
-            // Increment job posting usage count
-            if (companyProfile.id) {
-                await incrementJobPosting(companyProfile.id);
-            }
-
-            alert(t('company.ad_editor.publish_success'));
-            if (isRealUser) {
-                setAdDraft('');
-                setJobTitle('');
-            }
-        } catch (e) {
-            console.error(e);
-            alert(t('company.ad_editor.publish_error'));
-        } finally {
-            setIsPublishing(false);
-        }
-    };
-
-    const handleOptimize = async () => {
-        // Feature Gating
-        if (!canCompanyUseFeature(effectiveCompanyProfile, 'COMPANY_AI_AD', userEmail)) {
-            // Track upgrade trigger
-            AnalyticsService.trackUpgradeTrigger({
-                companyId: companyProfile?.id,
-                feature: 'COMPANY_AI_AD',
-                currentTier: effectiveCompanyProfile?.subscription?.tier || 'starter',
-                reason: 'AI ad optimization feature access denied'
-            });
-
-            setShowUpgradeModal({ open: true, feature: t('company_extra.features.ai_optimization') });
-            return;
-        }
-
-        setIsOptimizing(true);
-        try {
-            const result = await optimizeJobDescription(adDraft, companyProfile);
-            setOptimizationResult(result);
-            if (result) {
-                setViewMode('write');
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setIsOptimizing(false);
-        }
-    };
-
-    const applyOptimization = async () => {
-        if (optimizationResult) {
-            setAdDraft(optimizationResult.rewrittenText);
-            setOptimizationResult(null);
-
-            // Track usage for companies
-            if (companyProfile?.id) {
-                await incrementAdOptimizationUsage(companyProfile.id);
-
-                // Track feature usage analytics
-                AnalyticsService.trackFeatureUsage({
-                    companyId: companyProfile.id,
-                    feature: 'AI_AD_OPTIMIZATION',
-                    tier: effectiveCompanyProfile.subscription?.tier || 'starter'
-                });
-            }
-        }
-    };
-
-    const insertFormat = (before: string, after: string) => {
-        if (!textareaRef.current) return;
-        const start = textareaRef.current.selectionStart;
-        const end = textareaRef.current.selectionEnd;
-        const text = adDraft;
-        const newText = text.substring(0, start) + before + text.substring(start, end) + after + text.substring(end);
-        setAdDraft(newText);
-
-        // Restore focus and selection
-        setTimeout(() => {
-            if (textareaRef.current) {
-                textareaRef.current.focus();
-                textareaRef.current.setSelectionRange(start + before.length, end + before.length);
-            }
-        }, 0);
-    };
-
-    const insertEmoji = (emoji: string) => {
-        insertFormat(emoji, '');
-        setShowEmojiPicker(false);
-    };
 
     useEffect(() => {
         let active = true;
@@ -564,7 +421,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     useEffect(() => {
         let active = true;
         const loadApplications = async () => {
-            if (!companyProfile?.id || activeTab !== 'candidates') return;
+            if (!companyProfile?.id || activeTab !== 'applications') return;
             setApplicationsLoading(true);
             const jobId = selectedJobId || undefined;
             const rows = await fetchCompanyApplications(companyProfile.id, jobId, 500);
@@ -583,8 +440,18 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         const ok = await updateCompanyApplicationStatus(applicationId, status);
         if (ok) {
             setApplications(prev => prev.map(app => app.id === applicationId ? { ...app, status } : app));
+            setSelectedApplicationDetail(prev => prev && prev.id === applicationId ? { ...prev, status } : prev);
         }
         setApplicationsUpdating(prev => ({ ...prev, [applicationId]: false }));
+    };
+
+    const openApplicationDetail = async (applicationId: string) => {
+        if (!applicationId) return;
+        setSelectedApplicationId(applicationId);
+        setApplicationDetailLoading(true);
+        const detail = await fetchCompanyApplicationDetail(applicationId);
+        setSelectedApplicationDetail(detail);
+        setApplicationDetailLoading(false);
     };
 
     const formatPct = (value: number | null | undefined): string => {
@@ -621,41 +488,48 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     const handleEditJob = (jobId: string) => {
         const job = jobs.find(j => j.id === jobId);
         if (job) {
-            setJobTitle(job.title);
-            setAdDraft(job.description);
-            setActiveTab('create-ad');
+            setEditorSeedJobId(jobId);
+            setSelectedJobId(jobId);
+            setActiveTab('jobs');
             setActiveDropdownJobId(null);
         }
+    };
+
+    const handleOpenApplications = (jobId: string) => {
+        setSelectedJobId(jobId);
+        setSelectedApplicationId(null);
+        setSelectedApplicationDetail(null);
+        setActiveTab('applications');
+        setActiveDropdownJobId(null);
+    };
+
+    const updateJobLifecycleWithFallback = async (
+        jobId: string,
+        status: 'active' | 'paused' | 'closed' | 'archived'
+    ): Promise<boolean> => {
+        const ok = await updateCompanyJobLifecycle(jobId, status);
+        if (ok) return true;
+        if (!supabase) return false;
+        const { error } = await supabase
+            .from('jobs')
+            .update({ status })
+            .eq('id', jobId);
+        return !error;
     };
 
     const handleDeleteJob = async (jobId: string) => {
         if (confirm(t('company.dashboard.actions.confirm_delete'))) {
             try {
-                // Optimistic update
-                setJobs(jobs.filter(job => job.id !== jobId));
-                setActiveDropdownJobId(null);
-
-                // Backend call
-                if (supabase) {
-                    await supabase.from('jobs').delete().eq('id', jobId);
-                } else {
-                    // Fallback or explicit API service call if supabase client is not preferred directly
-                    // But wait, we should use the service.
-                    // The imports show: import { publishJob } from '../services/jobPublishService';
-                    // Let's see if deleteJob is exported. 
-                    // Assuming direct Supabase usage given line 160: const { data: realJobs } = await supabase...
-                    // However, we should be consistent.
-                    // Main.py has @app.delete("/jobs/{job_id}"), which implies we should use an API call for consistency 
-                    // with CSRF protection if we go through the text endpoint, OR Supabase direct call if allowed.
-                    // The backend enforces RLS using authenticated user.
-                    // Let's check jobPublishService first.
+                const ok = await updateJobLifecycleWithFallback(jobId, 'archived');
+                if (!ok) {
+                    alert(t('common.error_occurred'));
+                    return;
                 }
+                setJobs((prev) => prev.filter(job => job.id !== jobId));
+                setActiveDropdownJobId(null);
             } catch (error) {
-                console.error("Failed to delete job:", error);
+                console.error("Failed to archive job:", error);
                 alert(t('common.error_occurred'));
-                // Rollback
-                // setJobs(prev => [...prev, deletedJob]); // Complex to rollback without proper state management
-                // For now, reloading data would be safer or just alert.
             }
         }
     };
@@ -663,17 +537,18 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     const handleCloseJob = async (jobId: string) => {
         if (confirm(t('company.dashboard.actions.confirm_close'))) {
             try {
-                // Optimistic update
-                setJobs(jobs.map(job =>
-                    job.id === jobId ? { ...job, status: 'closed' } : job
+                const ok = await updateJobLifecycleWithFallback(jobId, 'closed');
+                if (!ok) {
+                    alert(t('common.error_occurred'));
+                    return;
+                }
+                setJobs((prev) => prev.map(job =>
+                    job.id === jobId ? { ...job, status: 'closed' as any } : job
                 ));
                 setActiveDropdownJobId(null);
-
-                if (supabase) {
-                    await supabase.from('jobs').update({ status: 'closed' }).eq('id', jobId);
-                }
             } catch (error) {
                 console.error("Failed to close job:", error);
+                alert(t('common.error_occurred'));
             }
         }
     };
@@ -683,27 +558,79 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
     };
 
     const handleCreateAssessmentFromJob = (jobId: string) => {
+        const linkedJob = jobs.find((job) => job.id === jobId);
         setAssessmentJobId(jobId);
+        setAssessmentContext((prev) => ({
+            ...prev,
+            jobId,
+            jobTitle: linkedJob?.title || prev?.jobTitle,
+        }));
         setActiveTab('assessments');
         setActiveDropdownJobId(null);
     };
 
-    const toggleBenefit = (benefitKey: string) => {
-        // Translate key to string for storage (temporary until we store keys)
-        // Ideally we would store keys, but for now user wants string list.
-        // We will fetch translation here? No, we need to store the value.
-        // Actually best practice is to store keys or standard values.
-        // Let's assume we store the localized string for now to match current "comma separated string" behavior
-        // OR better: Append the translated string.
+    const handleCreateAssessmentFromApplication = () => {
+        if (!selectedApplicationDetail) return;
+        setAssessmentJobId(String(selectedApplicationDetail.job_id));
+        setAssessmentContext((prev) => ({
+            ...prev,
+            jobId: String(selectedApplicationDetail.job_id),
+            jobTitle: selectedApplicationDetail.job_title || prev?.jobTitle,
+            candidateEmail: selectedApplicationDetail.candidate_profile_snapshot?.email || selectedApplicationDetail.candidate_email || prev?.candidateEmail,
+            candidateId: selectedApplicationDetail.candidate_id || prev?.candidateId,
+            candidateName: selectedApplicationDetail.candidate_profile_snapshot?.name || selectedApplicationDetail.candidate_name || prev?.candidateName,
+            applicationId: selectedApplicationDetail.id,
+        }));
+        setActiveTab('assessments');
+    };
 
-        const benefitLabel = t(`company.benefits.${benefitKey}`);
-        const currentBenefits = jobBenefits.split(',').map(b => b.trim()).filter(b => b);
+    const handleInviteCandidateFromApplication = () => {
+        if (!selectedApplicationDetail) return;
+        handleCreateAssessmentFromApplication();
+        setShowInvitationModal(true);
+    };
 
-        if (currentBenefits.includes(benefitLabel)) {
-            setJobBenefits(currentBenefits.filter(b => b !== benefitLabel).join(', '));
-        } else {
-            setJobBenefits([...currentBenefits, benefitLabel].join(', '));
+    const handleUseSavedAssessment = (assessment: Assessment) => {
+        setAssessmentContext((prev) => ({
+            ...(prev || {}),
+            assessmentId: assessment.id,
+            assessmentName: assessment.title,
+            jobTitle: prev?.jobTitle || assessment.role,
+        }));
+    };
+
+    const handleDuplicateAssessment = async (assessmentId: string) => {
+        if (!assessmentId) return;
+        setAssessmentLibraryBusyId(assessmentId);
+        const duplicated = await duplicateCompanyAssessment(assessmentId);
+        if (duplicated) {
+            setAssessmentLibrary((prev) => [duplicated, ...prev]);
+            handleUseSavedAssessment(duplicated);
         }
+        setAssessmentLibraryBusyId(null);
+    };
+
+    const handleArchiveAssessment = async (assessmentId: string) => {
+        if (!assessmentId) return;
+        setAssessmentLibraryBusyId(assessmentId);
+        const ok = await updateCompanyAssessmentStatus(assessmentId, 'archived');
+        if (ok) {
+            setAssessmentLibrary((prev) => prev.filter((item) => item.id !== assessmentId));
+            setAssessmentContext((prev) => (
+                prev?.assessmentId === assessmentId
+                    ? { ...prev, assessmentId: undefined, assessmentName: undefined }
+                    : prev
+            ));
+        }
+        setAssessmentLibraryBusyId(null);
+    };
+
+    const handleEditorLifecycleChange = (jobId: string | number, status: 'active' | 'paused' | 'closed' | 'archived') => {
+        setJobs((prev) => prev.map((job) => (
+            String(job.id) === String(jobId)
+                ? { ...(job as any), status }
+                : job
+        )));
     };
 
     const renderOverview = () => {
@@ -826,7 +753,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             {t('company.dashboard.empty_state_desc')}
                         </p>
                         <button
-                            onClick={() => setActiveTab('create-ad')}
+                            onClick={() => setActiveTab('jobs')}
                             className="px-8 py-3 bg-cyan-600 text-white font-bold rounded-xl shadow-lg hover:bg-cyan-500 transition-colors flex items-center gap-2"
                         >
                             <PenTool size={20} />
@@ -844,7 +771,7 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             </div>
                             <div className="flex items-center gap-3">
                                 <button
-                                    onClick={() => setActiveTab('create-ad')}
+                                    onClick={() => setActiveTab('jobs')}
                                     className="px-4 py-2 bg-cyan-600 text-white font-bold rounded-lg shadow-sm hover:bg-cyan-500 transition-colors flex items-center gap-2"
                                 >
                                     <PenTool size={18} />
@@ -1106,6 +1033,13 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                                                                 <BrainCircuit size={14} />
                                                                                 {t('company.dashboard.actions.create_assessment')}
                                                                             </button>
+                                                                            <button
+                                                                                onClick={() => handleOpenApplications(job.id)}
+                                                                                className="w-full text-left px-3 py-2 text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors flex items-center gap-2"
+                                                                            >
+                                                                                <Users size={14} />
+                                                                                {t('company.jobs.open_applications', { defaultValue: 'Open applications' })}
+                                                                            </button>
                                                                             <div className="border-t border-slate-200 dark:border-slate-700"></div>
                                                                             <button
                                                                                 onClick={() => handleEditJob(job.id)}
@@ -1176,333 +1110,444 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
         );
     };
 
-    const renderCreateAd = () => (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[calc(100vh-200px)] min-h-[600px] animate-in slide-in-from-right-4">
-            <div className="lg:col-span-8 flex flex-col h-full bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden order-2 lg:order-1">
-                <div className="p-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-950/50">
-                    <h3 className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2">
-                        <PenTool size={16} /> {t('company.ad_editor.title')}
-                    </h3>
-                    <span className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">{t('company.ad_editor.tone_prefix')} <span className="font-semibold text-slate-700 dark:text-slate-300">{companyProfile.tone}</span></span>
-                </div>
+    const renderJobs = () => {
+        const visibleJobs = jobs.filter((job) => String((job as any).status || 'active') !== 'archived');
 
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
-                    <label htmlFor="job-title" className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.position_name')}</label>
-                    <input
-                        id="job-title"
-                        name="job-title"
-                        type="text"
-                        value={jobTitle}
-                        onChange={(e) => setJobTitle(e.target.value)}
-                        placeholder={t('company.ad_editor.placeholder_title')}
-                        className="w-full text-xl font-bold bg-transparent border-none focus:ring-0 p-0 text-slate-900 dark:text-white placeholder:text-slate-300 dark:placeholder:text-slate-700"
-                    />
-                </div>
-
-                <div className="flex-1 flex flex-col min-h-0 relative">
-
-                    <div className="flex items-center gap-1 p-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 sticky top-0 z-10">
-                        <button onClick={() => setViewMode(viewMode === 'write' ? 'preview' : 'write')} className={`p-1.5 rounded transition-colors flex items-center gap-2 px-3 text-xs font-bold ${viewMode === 'preview' ? 'bg-cyan-100 text-cyan-700 dark:bg-cyan-500/20 dark:text-cyan-300' : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'}`} title={t('company.ad_editor.switch_preview')}>
-                            {viewMode === 'preview' ? <Eye size={16} /> : <LayoutTemplate size={16} />}
-                            {viewMode === 'preview' ? t('company.ad_editor.preview') : t('company.ad_editor.editor')}
-                        </button>
-                        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
-
-                        <button onClick={() => insertFormat('**', '**')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.bold')}>
-                            <Bold size={16} />
-                        </button>
-                        <button onClick={() => insertFormat('*', '*')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.italic')}>
-                            <Italic size={16} />
-                        </button>
-                        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
-                        <button onClick={() => insertFormat('\n### ', '\n')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.heading')}>
-                            <Heading size={16} />
-                        </button>
-                        <button onClick={() => insertFormat('\n- ', '')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.list')}>
-                            <List size={16} />
-                        </button>
-                        <button onClick={() => insertFormat('\n> ', '\n')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.quote')}>
-                            <Quote size={16} />
-                        </button>
-                        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
-
-                        <div className="relative">
-                            <button
-                                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                                className={`p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors ${showEmojiPicker ? 'bg-slate-100 dark:bg-slate-800 text-cyan-500' : ''}`}
-                                title={t('company.ad_editor.emoji')}
-                            >
-                                <Smile size={16} />
-                            </button>
-
-                            {showEmojiPicker && (
-                                <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg shadow-xl p-3 z-50 grid grid-cols-5 gap-1 animate-in zoom-in-95">
-                                    {JOB_EMOJIS.map(emoji => (
-                                        <button
-                                            key={emoji}
-                                            onClick={() => insertEmoji(emoji)}
-                                            className="h-9 w-9 flex items-center justify-center text-lg hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
-                                        >
-                                            {emoji}
-                                        </button>
-                                    ))}
+        return (
+            <div className="space-y-6 animate-in fade-in">
+                <div className="grid grid-cols-1 xl:grid-cols-[380px_minmax(0,1fr)] gap-6">
+                    <div className="space-y-4">
+                        <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-5">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                                        {t('company.jobs.title', { defaultValue: 'Jobs workspace' })}
+                                    </h2>
+                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                                        {t('company.jobs.subtitle', { defaultValue: 'Manage live roles, route candidates into review, and publish through structured drafts.' })}
+                                    </p>
                                 </div>
-                            )}
-                        </div>
-
-                        <div className="w-px h-4 bg-slate-200 dark:bg-slate-700 mx-1"></div>
-                        <button onClick={() => insertFormat('[', '](url)')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.link')}>
-                            <LinkIcon size={16} />
-                        </button>
-                        <button onClick={() => insertFormat('`', '`')} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-600 dark:text-slate-400 transition-colors" title={t('company.ad_editor.code')}>
-                            <Code size={16} />
-                        </button>
-                    </div>
-
-                    {viewMode === 'write' ? (
-                        <textarea
-                            id="job-description"
-                            name="job-description"
-                            ref={textareaRef}
-                            className="flex-1 w-full p-6 resize-none focus:outline-none text-slate-800 dark:text-slate-200 font-mono text-base leading-relaxed bg-white dark:bg-slate-900 placeholder:text-slate-400 dark:placeholder:text-slate-600"
-                            value={adDraft}
-                            onChange={(e) => setAdDraft(e.target.value)}
-                            placeholder={t('company.ad_editor.placeholder_description')}
-                        />
-                    ) : (
-                        <div className="flex-1 w-full p-8 overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950/30">
-                            <article className="prose prose-slate dark:prose-invert max-w-none text-slate-700 dark:text-slate-300">
-                                <Markdown options={{ forceBlock: true }}>{formatJobDescription(adDraft)}</Markdown>
-                            </article>
-                        </div>
-                    )}
-
-                    <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/30 flex justify-end gap-3">
-                        <div className="hidden sm:flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mr-auto">
-                            <Settings size={14} />
-                            {t('company.ad_editor.profile_label')} {companyProfile.name}
-                        </div>
-                        <button
-                            onClick={handleOptimize}
-                            disabled={isOptimizing}
-                            className="flex items-center gap-2 px-4 py-2 text-slate-600 dark:text-slate-400 font-medium hover:bg-slate-200 dark:hover:bg-slate-800 rounded-lg transition-colors border border-slate-200 dark:border-slate-800 shadow-sm disabled:opacity-50"
-                        >
-                            {isOptimizing ? <Sparkles className="animate-spin" size={18} /> : <Sparkles size={18} />}
-                            {isOptimizing ? t('company.ad_editor.analyzing') : t('company.ad_editor.ai_noise_btn')}
-                        </button>
-
-                        <button
-                            onClick={handlePublish}
-                            disabled={isPublishing}
-                            className="flex items-center gap-2 bg-cyan-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-cyan-500 transition-all shadow-lg shadow-cyan-600/20 disabled:opacity-50"
-                        >
-                            {isPublishing ? <RefreshCw className="animate-spin" size={18} /> : <Zap size={18} />}
-                            {isPublishing ? t('company.ad_editor.publishing') : t('company.ad_editor.publish_btn')}
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div className="lg:col-span-4 space-y-4 overflow-y-auto pr-2 custom-scrollbar order-1 lg:order-2 h-full">
-
-                {/* Helper Fields Card */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden p-4 space-y-4">
-                    <h3 className="font-bold text-slate-700 dark:text-slate-200 text-sm flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
-                        <Settings size={14} /> {t('company.ad_editor.settings_title')}
-                    </h3>
-
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label htmlFor="salary-min" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.salary_min')}</label>
-                            <div className="relative">
-                                <input
-                                    id="salary-min"
-                                    name="salary-min"
-                                    type="number"
-                                    value={jobSalaryMin}
-                                    onChange={(e) => setJobSalaryMin(e.target.value)}
-                                    placeholder="0"
-                                    className="w-full p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
-                                />
-                            </div>
-                        </div>
-                        <div>
-                            <label htmlFor="salary-max" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.salary_max')}</label>
-                            <div className="relative">
-                                <input
-                                    id="salary-max"
-                                    name="salary-max"
-                                    type="number"
-                                    value={jobSalaryMax}
-                                    onChange={(e) => setJobSalaryMax(e.target.value)}
-                                    placeholder="0"
-                                    className="w-full p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* NEW FIELDS: Contract Type & Work Type */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label htmlFor="contract-type" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('filters.contract_type')}</label>
-                            <select
-                                id="contract-type"
-                                value={contractType}
-                                onChange={(e) => setContractType(e.target.value)}
-                                className="w-full p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
-                            >
-                                <option value="HPP">{t('job.contract_types.hpp')}</option>
-                                <option value="IČO">{t('job.contract_types.ico')}</option>
-                                <option value="DPP">{t('job.contract_types.dpp')}</option>
-                                <option value="DPČ">{t('job.contract_types.dpc')}</option>
-                                <option value="Internship">{t('company.ad_editor.internship')}</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label htmlFor="work-type" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('filters.job_type')}</label>
-                            <select
-                                id="work-type"
-                                value={workType}
-                                onChange={(e) => setWorkType(e.target.value)}
-                                className="w-full p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
-                            >
-                                <option value="On-site">{t('filters.job_types.on_site')}</option>
-                                <option value="Hybrid">{t('filters.job_types.hybrid')}</option>
-                                <option value="Remote">{t('filters.job_types.remote')}</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="working-hours" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.working_hours')}</label>
-                        <div className="relative">
-                            <Clock size={14} className="absolute left-3 top-2.5 text-slate-400" />
-                            <input
-                                id="working-hours"
-                                type="text"
-                                value={workingHours}
-                                onChange={(e) => setWorkingHours(e.target.value)}
-                                placeholder={t('company.ad_editor.working_hours_placeholder')}
-                                className="w-full pl-9 p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="workplace-address" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.address')}</label>
-                        <div className="relative">
-                            <Briefcase size={14} className="absolute left-3 top-2.5 text-slate-400" />
-                            <input
-                                id="workplace-address"
-                                name="workplace-address"
-                                type="text"
-                                value={workplaceAddress}
-                                onChange={(e) => setWorkplaceAddress(e.target.value)}
-                                placeholder={t('company.settings.address_placeholder')}
-                                className="w-full pl-9 p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="contact-email" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">{t('company.ad_editor.contact_email')}</label>
-                        <div className="relative">
-                            <Mail size={14} className="absolute left-3 top-2.5 text-slate-400" />
-                            <input
-                                id="contact-email"
-                                name="contact-email"
-                                type="email"
-                                value={contactEmail}
-                                onChange={(e) => setContactEmail(e.target.value)}
-                                placeholder="email@company.com"
-                                className="w-full pl-9 p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
-                            />
-                        </div>
-                    </div>
-
-                    <div>
-                        <label htmlFor="job-benefits" className="block text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">{t('company.ad_editor.benefits')}</label>
-
-                        <div className="flex flex-wrap gap-1.5 mb-2">
-                            {COMMON_BENEFITS.map(key => {
-                                const label = t(`company.benefits.${key}`);
-                                const isActive = jobBenefits.includes(label);
-                                return (
-                                    <button
-                                        key={key}
-                                        type="button"
-                                        onClick={() => toggleBenefit(key)}
-                                        className={`px-2 py-1 text-xs rounded-md border transition-colors ${isActive ? 'bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border-cyan-200 dark:border-cyan-800 font-medium' : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900'}`}
-                                    >
-                                        {isActive && <CheckCircle size={10} className="inline mr-1" />}
-                                        {label}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        <div className="relative">
-                            <Sparkles size={14} className="absolute left-3 top-2.5 text-slate-400" />
-                            <input
-                                id="job-benefits"
-                                name="job-benefits"
-                                type="text"
-                                value={jobBenefits}
-                                onChange={(e) => setJobBenefits(e.target.value)}
-                                placeholder={t('company.ad_editor.benefits_placeholder')}
-                                className="w-full pl-9 p-2 text-sm bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg"
-                            />
-                        </div>
-                        <p className="text-[10px] text-slate-400 mt-1">{t('company.ad_editor.benefits_hint')}</p>
-                    </div>
-                </div>
-                {optimizationResult && (
-                    <div className="bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900 rounded-xl p-6 animate-in zoom-in-95 shadow-sm">
-                        <div className="flex items-center gap-2 text-emerald-600 dark:text-emerald-400 mb-4">
-                            <CheckCircle size={20} />
-                            <h3 className="font-bold">{t('company.ad_editor.optimization_title')}</h3>
-                        </div>
-
-                        <div className="space-y-4">
-                            <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                                <span className="text-xs font-bold text-rose-500 dark:text-rose-400 uppercase block mb-1">{t('company.ad_editor.what_removed')}</span>
-                                <div className="flex flex-wrap gap-1">
-                                    {optimizationResult.removedCliches.map((w, i) => (
-                                        <span key={i} className="text-xs bg-rose-500/10 text-rose-500 dark:text-rose-400 px-2 py-0.5 rounded border border-rose-500/20 line-through">
-                                            {w}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
-                                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase block mb-1">{t('company.ad_editor.why_better')}</span>
-                                <p className="text-sm text-slate-600 dark:text-slate-300">{optimizationResult.improvedClarity}</p>
-                            </div>
-
-                            <div className="border-t border-emerald-200 dark:border-emerald-900/50 pt-4">
                                 <button
-                                    onClick={applyOptimization}
-                                    className="w-full py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-500 transition-colors shadow-sm"
+                                    onClick={() => {
+                                        setEditorSeedJobId(null);
+                                        setActiveTab('jobs');
+                                    }}
+                                    className="px-3 py-2 bg-cyan-600 text-white text-sm font-semibold rounded-lg hover:bg-cyan-500 transition-colors"
                                 >
-                                    {t('company.ad_editor.use_text_btn')}
+                                    {t('company.jobs.new_draft_cta', { defaultValue: 'New draft' })}
                                 </button>
                             </div>
                         </div>
+
+                        {visibleJobs.length === 0 ? (
+                            <div className="bg-white dark:bg-slate-900 rounded-xl border border-dashed border-slate-200 dark:border-slate-800 p-6 text-sm text-slate-500 dark:text-slate-400">
+                                {t('company.jobs.empty', { defaultValue: 'No live roles yet. Start by creating a structured draft on the right.' })}
+                            </div>
+                        ) : (
+                            <div className="space-y-3">
+                                {visibleJobs.map((job) => {
+                                    const stats = jobStats[job.id] || { views: 0, applicants: 0 };
+                                    const lifecycleStatus = String((job as any).status || 'active');
+                                    const isClosed = lifecycleStatus === 'closed';
+                                    const isPaused = lifecycleStatus === 'paused';
+                                    return (
+                                        <div key={job.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 space-y-3">
+                                            <div className="flex items-start justify-between gap-3">
+                                                <div>
+                                                    <div className="text-sm font-semibold text-slate-900 dark:text-white">{job.title}</div>
+                                                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                                        {job.location} • {job.company}
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1">
+                                                    <span className={`px-2 py-1 rounded text-[10px] font-semibold uppercase tracking-wider ${
+                                                        isClosed
+                                                            ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300'
+                                                            : isPaused
+                                                                ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                                                                : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                                                    }`}>
+                                                        {lifecycleStatus}
+                                                    </span>
+                                                    {job.legality_status && (
+                                                        <span className="px-2 py-1 rounded text-[10px] font-semibold uppercase tracking-wider bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                                            {job.legality_status}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="grid grid-cols-3 gap-2 text-xs">
+                                                <div className="rounded-lg bg-slate-50 dark:bg-slate-950/30 p-2">
+                                                    <div className="text-slate-500">Views</div>
+                                                    <div className="font-semibold text-slate-900 dark:text-white">{stats.views}</div>
+                                                </div>
+                                                <div className="rounded-lg bg-slate-50 dark:bg-slate-950/30 p-2">
+                                                    <div className="text-slate-500">Applications</div>
+                                                    <div className="font-semibold text-slate-900 dark:text-white">{stats.applicants}</div>
+                                                </div>
+                                                <div className="rounded-lg bg-slate-50 dark:bg-slate-950/30 p-2">
+                                                    <div className="text-slate-500">Conversion</div>
+                                                    <div className="font-semibold text-slate-900 dark:text-white">
+                                                        {stats.views > 0 ? `${((stats.applicants / stats.views) * 100).toFixed(1)}%` : '0.0%'}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-wrap gap-2">
+                                                <button
+                                                    onClick={() => handleEditJob(job.id)}
+                                                    className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                                >
+                                                    {t('company.dashboard.actions.edit')}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleOpenApplications(job.id)}
+                                                    className="px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800"
+                                                >
+                                                    {t('company.jobs.open_applications', { defaultValue: 'Open applications' })}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleCreateAssessmentFromJob(job.id)}
+                                                    className="px-3 py-2 rounded-lg border border-cyan-200 text-xs font-semibold text-cyan-700 hover:bg-cyan-50 dark:border-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-950/20"
+                                                >
+                                                    {t('company.dashboard.actions.create_assessment')}
+                                                </button>
+                                                {isClosed ? (
+                                                    <button
+                                                        onClick={async () => {
+                                                            const ok = await updateJobLifecycleWithFallback(job.id, 'active');
+                                                            if (!ok) {
+                                                                alert(t('common.error_occurred'));
+                                                                return;
+                                                            }
+                                                            handleEditorLifecycleChange(job.id, 'active');
+                                                        }}
+                                                        className="px-3 py-2 rounded-lg border border-emerald-200 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-950/20"
+                                                    >
+                                                        {t('company.job_editor.reopen', { defaultValue: 'Reopen' })}
+                                                    </button>
+                                                ) : (
+                                                    <button
+                                                        onClick={() => handleCloseJob(job.id)}
+                                                        className="px-3 py-2 rounded-lg border border-amber-200 text-xs font-semibold text-amber-700 hover:bg-amber-50 dark:border-amber-900/30 dark:text-amber-300 dark:hover:bg-amber-950/20"
+                                                    >
+                                                        {t('company.dashboard.actions.close')}
+                                                    </button>
+                                                )}
+                                                <button
+                                                    onClick={() => handleDeleteJob(job.id)}
+                                                    className="px-3 py-2 rounded-lg border border-rose-200 text-xs font-semibold text-rose-700 hover:bg-rose-50 dark:border-rose-900/30 dark:text-rose-300 dark:hover:bg-rose-950/20"
+                                                >
+                                                    {t('company.dashboard.actions.delete')}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    <CompanyJobEditor
+                        companyProfile={companyProfile}
+                        jobs={visibleJobs}
+                        userEmail={userEmail}
+                        seedJobId={editorSeedJobId}
+                        onSeedConsumed={() => setEditorSeedJobId(null)}
+                        onJobLifecycleChange={handleEditorLifecycleChange}
+                    />
+                </div>
+            </div>
+        );
+    };
+
+    const renderApplications = () => (
+        <div className="space-y-6 animate-in fade-in">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                <div>
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
+                        {t('company.applications.title', { defaultValue: 'Applications workspace' })}
+                    </h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        {t('company.applications.subtitle', { defaultValue: 'Review structured application dossiers, update statuses, and inspect shared JCFPM context.' })}
+                    </p>
+                </div>
+                <div className="flex items-center gap-3 w-full lg:w-auto">
+                    <div className="p-2 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-lg">
+                        <Briefcase size={20} />
+                    </div>
+                    <select
+                        value={selectedJobId}
+                        onChange={(e) => setSelectedJobId(e.target.value)}
+                        className="bg-transparent font-semibold text-slate-900 dark:text-slate-200 focus:outline-none cursor-pointer border-none ring-0 min-w-[220px]"
+                    >
+                        {jobs.map(job => (
+                            <option key={job.id} value={job.id} className="bg-white dark:bg-slate-900">{job.title}</option>
+                        ))}
+                    </select>
+                </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                        {t('company.candidates.applications_title', { defaultValue: 'Applications' })}
+                    </h3>
+                    {applicationsLoading && (
+                        <span className="text-xs text-slate-500">{t('common.loading') || 'Načítám...'}</span>
+                    )}
+                </div>
+                {applications.length === 0 && !applicationsLoading ? (
+                    <div className="text-sm text-slate-500">
+                        {t('company.candidates.applications_empty', { defaultValue: 'Zatím žádné aplikace pro vybranou pozici.' })}
+                    </div>
+                ) : (
+                    <div className="space-y-2">
+                        {applications.map((app) => (
+                            <div key={app.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2">
+                                <div className="text-sm">
+                                    <div className="font-semibold text-slate-800 dark:text-slate-100">
+                                        {app.candidate_name || 'Candidate'}
+                                    </div>
+                                    <div className="text-xs text-slate-500 space-y-1">
+                                        <div>
+                                            {app.job_title || t('company.dashboard.table.position')}
+                                        </div>
+                                        {app.candidateHeadline && (
+                                            <div className="text-[11px] text-slate-400">
+                                                {app.candidateHeadline}
+                                            </div>
+                                        )}
+                                        <div className="flex flex-wrap gap-2 text-[11px]">
+                                            {app.hasCv && <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800">CV</span>}
+                                            {app.hasCoverLetter && <span className="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800">Cover letter</span>}
+                                            {app.hasJcfpm && (
+                                                <span className="px-1.5 py-0.5 rounded bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
+                                                    JCFPM: {app.jcfpmShareLevel === 'full_report' ? 'Full' : 'Summary'}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <button
+                                        onClick={() => openApplicationDetail(app.id)}
+                                        className={`text-xs px-2.5 py-1 rounded border transition-colors ${
+                                            selectedApplicationId === app.id
+                                                ? 'border-cyan-200 bg-cyan-50 text-cyan-700 dark:border-cyan-800 dark:bg-cyan-900/20 dark:text-cyan-300'
+                                                : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300'
+                                        }`}
+                                    >
+                                        {t('company.candidates.open_application', { defaultValue: 'Open' })}
+                                    </button>
+                                    <select
+                                        value={app.status}
+                                        onChange={(e) => handleApplicationStatusChange(app.id, e.target.value as CompanyApplicationRow['status'])}
+                                        className="text-xs px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
+                                        disabled={applicationsUpdating[app.id]}
+                                    >
+                                        <option value="pending">{t('company.dashboard.status.pending')}</option>
+                                        <option value="reviewed">{t('company.dashboard.status.approved', { defaultValue: 'Reviewed' })}</option>
+                                        <option value="shortlisted">{t('company.dashboard.status.shortlisted', { defaultValue: 'Shortlisted' })}</option>
+                                        <option value="rejected">{t('company.dashboard.status.refused', { defaultValue: 'Rejected' })}</option>
+                                        <option value="hired">{t('company.dashboard.status.hired', { defaultValue: 'Hired' })}</option>
+                                    </select>
+                                    {applicationsUpdating[app.id] && (
+                                        <span className="text-[11px] text-slate-400">{t('common.saving', { defaultValue: 'Ukládám…' })}</span>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 )}
-
-                <BullshitMeter metrics={{
-                    score: adDraft.toLowerCase().includes('ninja') || adDraft.toLowerCase().includes('rockstar') ? 85 : 20,
-                    flags: adDraft.toLowerCase().includes('ninja') ? ['Ninja', 'Hype', 'Grind'] : [],
-                    tone: adDraft.toLowerCase().includes('ninja') ? 'Hype-heavy' : 'Professional',
-                    level: (adDraft.toLowerCase().includes('ninja') || adDraft.toLowerCase().includes('rockstar')) ? 'high' : 'low',
-                    keywords: adDraft.toLowerCase().includes('ninja') ? ['Ninja', 'Hype', 'Grind'] : []
-                }} variant="dark" />
-
-                <BenefitInsights />
             </div>
+
+            {(applicationDetailLoading || selectedApplicationDetail) && (
+                <div className="bg-white dark:bg-slate-900 p-5 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
+                    <div className="flex items-center justify-between gap-3">
+                        <div>
+                            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
+                                {t('company.candidates.application_review_title', { defaultValue: 'Application review' })}
+                            </h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {selectedApplicationDetail?.submitted_at
+                                    ? new Date(selectedApplicationDetail.submitted_at).toLocaleString(i18n.language === 'cs' ? 'cs-CZ' : 'en-US')
+                                    : t('company.candidates.application_review_desc', { defaultValue: 'Structured dossier for recruiter review.' })}
+                            </p>
+                        </div>
+                        {selectedApplicationDetail && (
+                            <button
+                                onClick={() => {
+                                    setSelectedApplicationId(null);
+                                    setSelectedApplicationDetail(null);
+                                }}
+                                className="p-2 text-slate-400 hover:text-slate-700 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800"
+                            >
+                                <X size={16} />
+                            </button>
+                        )}
+                    </div>
+
+                    {applicationDetailLoading ? (
+                        <div className="text-sm text-slate-500">{t('common.loading') || 'Loading...'}</div>
+                    ) : selectedApplicationDetail ? (
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+                                    <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">Candidate</div>
+                                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                                        {selectedApplicationDetail.candidate_profile_snapshot?.name || selectedApplicationDetail.candidate_name || 'Candidate'}
+                                    </div>
+                                    <div className="text-sm text-slate-600 dark:text-slate-300">
+                                        {selectedApplicationDetail.candidate_profile_snapshot?.email || selectedApplicationDetail.candidate_email || 'No email'}
+                                    </div>
+                                    {selectedApplicationDetail.candidate_profile_snapshot?.phone && (
+                                        <div className="text-sm text-slate-600 dark:text-slate-300">
+                                            {selectedApplicationDetail.candidate_profile_snapshot.phone}
+                                        </div>
+                                    )}
+                                    {selectedApplicationDetail.candidate_profile_snapshot?.jobTitle && (
+                                        <div className="text-xs text-slate-500 mt-2">
+                                            {selectedApplicationDetail.candidate_profile_snapshot.jobTitle}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+                                    <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">Documents</div>
+                                    <div className="text-sm text-slate-700 dark:text-slate-200">
+                                        {selectedApplicationDetail.cv_snapshot?.originalName || selectedApplicationDetail.cv_snapshot?.label || 'No CV attached'}
+                                    </div>
+                                    {selectedApplicationDetail.cv_snapshot?.fileUrl && (
+                                        <a
+                                            href={selectedApplicationDetail.cv_snapshot.fileUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="inline-block mt-2 text-xs text-cyan-600 dark:text-cyan-400 hover:underline"
+                                        >
+                                            {t('company.candidates.open_cv', { defaultValue: 'Open CV' })}
+                                        </a>
+                                    )}
+                                    <div className="text-xs text-slate-500 mt-2">
+                                        Source: {selectedApplicationDetail.source || 'application_modal'}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {selectedApplicationDetail.candidate_profile_snapshot?.skills?.length ? (
+                                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+                                    <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">Skills</div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedApplicationDetail.candidate_profile_snapshot.skills.map((skill) => (
+                                            <span key={skill} className="px-2 py-1 text-xs rounded-md bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300">
+                                                {skill}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            {selectedApplicationDetail.cover_letter ? (
+                                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+                                    <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">Cover letter</div>
+                                    <div className="text-sm text-slate-700 dark:text-slate-200 whitespace-pre-wrap leading-relaxed">
+                                        {selectedApplicationDetail.cover_letter}
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+                                <div className="text-xs uppercase tracking-widest text-slate-500 mb-3">Assessment actions</div>
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        onClick={handleCreateAssessmentFromApplication}
+                                        className="px-3 py-2 rounded-lg border border-cyan-200 text-xs font-semibold text-cyan-700 hover:bg-cyan-50 dark:border-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-950/20"
+                                    >
+                                        Create assessment for this role
+                                    </button>
+                                    <button
+                                        onClick={handleInviteCandidateFromApplication}
+                                        className="px-3 py-2 rounded-lg border border-emerald-200 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 dark:border-emerald-900/30 dark:text-emerald-300 dark:hover:bg-emerald-950/20"
+                                    >
+                                        Invite this candidate
+                                    </button>
+                                </div>
+                                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                                    Moves you into the assessments workspace with this application context attached.
+                                </p>
+                            </div>
+
+                            {selectedApplicationDetail.shared_jcfpm_payload ? (
+                                <div className="rounded-lg border border-cyan-200 dark:border-cyan-900/40 bg-cyan-50/70 dark:bg-cyan-950/20 p-4 space-y-3">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <div className="text-xs uppercase tracking-widest text-cyan-700 dark:text-cyan-300">JCFPM</div>
+                                        <div className="text-[11px] text-cyan-700 dark:text-cyan-300">
+                                            {selectedApplicationDetail.jcfpm_share_level === 'full_report' ? 'Extended report' : 'Summary'}
+                                        </div>
+                                    </div>
+                                    {selectedApplicationDetail.shared_jcfpm_payload.archetype?.title && (
+                                        <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                                            {selectedApplicationDetail.shared_jcfpm_payload.archetype.title}
+                                        </div>
+                                    )}
+                                    {selectedApplicationDetail.shared_jcfpm_payload.strengths?.length ? (
+                                        <div>
+                                            <div className="text-xs text-slate-500 mb-2">Strengths</div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {selectedApplicationDetail.shared_jcfpm_payload.strengths.map((item) => (
+                                                    <span key={item} className="px-2 py-1 text-xs rounded-md bg-white/80 dark:bg-slate-900/70 text-slate-700 dark:text-slate-200 border border-cyan-100 dark:border-cyan-900/40">
+                                                        {item}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : null}
+                                    {selectedApplicationDetail.shared_jcfpm_payload.environment_fit_summary?.length ? (
+                                        <div>
+                                            <div className="text-xs text-slate-500 mb-2">Environment fit</div>
+                                            <ul className="space-y-1 text-sm text-slate-700 dark:text-slate-200">
+                                                {selectedApplicationDetail.shared_jcfpm_payload.environment_fit_summary.map((item) => (
+                                                    <li key={item}>• {item}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    ) : null}
+                                    {selectedApplicationDetail.shared_jcfpm_payload.top_dimensions?.length ? (
+                                        <div>
+                                            <div className="text-xs text-slate-500 mb-2">Top dimensions</div>
+                                            <div className="space-y-1 text-sm text-slate-700 dark:text-slate-200">
+                                                {selectedApplicationDetail.shared_jcfpm_payload.top_dimensions.map((item) => (
+                                                    <div key={`${item.dimension}-${item.percentile}`} className="flex items-center justify-between">
+                                                        <span>{item.label || item.dimension}</span>
+                                                        <span className="text-xs text-slate-500">{Math.round(item.percentile)}th pct</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ) : null}
+                                </div>
+                            ) : (
+                                <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
+                                    {t('company.candidates.no_jcfpm_shared', { defaultValue: 'No JCFPM result was shared with this application.' })}
+                                </div>
+                            )}
+
+                            <div className="rounded-lg border border-slate-200 dark:border-slate-800 p-4">
+                                <div className="text-xs uppercase tracking-widest text-slate-500 mb-2">Related assessments</div>
+                                <AssessmentResultsList
+                                    companyId={companyProfile.id || ''}
+                                    applicationIdFilter={selectedApplicationDetail.id}
+                                    candidateEmailFilter={selectedApplicationDetail.candidate_profile_snapshot?.email || selectedApplicationDetail.candidate_email || undefined}
+                                />
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="text-sm text-slate-500">
+                            {t('company.candidates.application_detail_unavailable', { defaultValue: 'Application details are not available yet.' })}
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 
@@ -1625,54 +1670,6 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                     )}
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-                    <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
-                            {t('company.candidates.applications_title', { defaultValue: 'Applications' })}
-                        </h3>
-                        {applicationsLoading && (
-                            <span className="text-xs text-slate-500">{t('common.loading') || 'Načítám...'}</span>
-                        )}
-                    </div>
-                    {applications.length === 0 && !applicationsLoading ? (
-                        <div className="text-sm text-slate-500">
-                            {t('company.candidates.applications_empty', { defaultValue: 'Zatím žádné aplikace pro vybranou pozici.' })}
-                        </div>
-                    ) : (
-                        <div className="space-y-2">
-                            {applications.map((app) => (
-                                <div key={app.id} className="flex flex-col md:flex-row md:items-center md:justify-between gap-2 border border-slate-200 dark:border-slate-800 rounded-lg px-3 py-2">
-                                    <div className="text-sm">
-                                        <div className="font-semibold text-slate-800 dark:text-slate-100">
-                                            {app.candidate_name || 'Candidate'}
-                                        </div>
-                                        <div className="text-xs text-slate-500">
-                                            {app.job_title || t('company.dashboard.table.position')}
-                                        </div>
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                        <select
-                                            value={app.status}
-                                            onChange={(e) => handleApplicationStatusChange(app.id, e.target.value as CompanyApplicationRow['status'])}
-                                            className="text-xs px-2 py-1 rounded border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900"
-                                            disabled={applicationsUpdating[app.id]}
-                                        >
-                                            <option value="pending">{t('company.dashboard.status.pending')}</option>
-                                            <option value="reviewed">{t('company.dashboard.status.approved', { defaultValue: 'Reviewed' })}</option>
-                                            <option value="shortlisted">{t('company.dashboard.status.shortlisted', { defaultValue: 'Shortlisted' })}</option>
-                                            <option value="rejected">{t('company.dashboard.status.refused', { defaultValue: 'Rejected' })}</option>
-                                            <option value="hired">{t('company.dashboard.status.hired', { defaultValue: 'Hired' })}</option>
-                                        </select>
-                                        {applicationsUpdating[app.id] && (
-                                            <span className="text-[11px] text-slate-400">{t('common.saving', { defaultValue: 'Ukládám…' })}</span>
-                                        )}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-
                 <div className="grid grid-cols-1 gap-4">
                     {candidates.map(candidate => {
                         return (
@@ -1779,10 +1776,16 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         {t('company.dashboard.tabs.dna_culture')}
                     </button>
                     <button
-                        onClick={() => setActiveTab('create-ad')}
-                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'create-ad' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                        onClick={() => setActiveTab('jobs')}
+                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'jobs' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
                     >
-                        {t('company.dashboard.tabs.ai_editor')}
+                        {t('company.jobs.nav', { defaultValue: 'Jobs' })}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('applications')}
+                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors whitespace-nowrap ${activeTab === 'applications' ? 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white'}`}
+                    >
+                        {t('company.applications.nav', { defaultValue: 'Applications' })}
                     </button>
                     <button
                         onClick={() => setActiveTab('assessments')}
@@ -1803,7 +1806,8 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
             <div className="min-h-[500px]">
                 {activeTab === 'overview' && renderOverview()}
                 {activeTab === 'settings' && effectiveCompanyProfile && <CompanySettings profile={effectiveCompanyProfile} onSave={onProfileUpdate || (() => { })} onDeleteAccount={onDeleteAccount} />}
-                {activeTab === 'create-ad' && renderCreateAd()}
+                {activeTab === 'jobs' && renderJobs()}
+                {activeTab === 'applications' && renderApplications()}
                 {activeTab === 'assessments' && (
                     <div>
                         <div className="flex items-center justify-between mb-4">
@@ -1814,6 +1818,121 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             </div>
                         </div>
 
+                        {assessmentContext && (
+                            <div className="mb-6 rounded-xl border border-cyan-200 bg-cyan-50/70 p-4 dark:border-cyan-900/30 dark:bg-cyan-950/20">
+                                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                                    <div>
+                                        <div className="text-xs uppercase tracking-widest text-cyan-700 dark:text-cyan-300">Linked review context</div>
+                                        <div className="mt-1 text-sm text-slate-800 dark:text-slate-100 font-semibold">
+                                            {assessmentContext.jobTitle || 'Selected role'}
+                                        </div>
+                                        <div className="mt-1 text-xs text-slate-600 dark:text-slate-300 flex flex-wrap gap-2">
+                                            {assessmentContext.candidateName && <span>{assessmentContext.candidateName}</span>}
+                                            {assessmentContext.candidateEmail && <span>{assessmentContext.candidateEmail}</span>}
+                                            {assessmentContext.assessmentId && (
+                                                <span className="px-2 py-0.5 rounded bg-white/70 dark:bg-slate-900/40 border border-cyan-100 dark:border-cyan-900/30">
+                                                    Assessment ID: {assessmentContext.assessmentId.slice(0, 8)}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {assessmentContext.applicationId && (
+                                            <button
+                                                onClick={() => setActiveTab('applications')}
+                                                className="px-3 py-1 rounded-md border border-slate-200 text-sm text-slate-700 hover:bg-white dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-900"
+                                            >
+                                                Back to application
+                                            </button>
+                                        )}
+                                        <button
+                                            onClick={() => setShowInvitationModal(true)}
+                                            className="px-3 py-1 rounded-md border border-cyan-200 text-sm text-cyan-700 hover:bg-white dark:border-cyan-900/30 dark:text-cyan-300 dark:hover:bg-slate-900"
+                                        >
+                                            Invite from this context
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="mb-6 rounded-xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+                            <div className="flex items-center justify-between gap-3 mb-3">
+                                <div>
+                                    <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                                        Saved assessment library
+                                    </div>
+                                    <div className="text-xs text-slate-500 dark:text-slate-400">
+                                        Reuse, duplicate, preview, and retire assessments without leaving this workspace.
+                                    </div>
+                                </div>
+                                {assessmentLibraryLoading && (
+                                    <div className="text-xs text-slate-500 dark:text-slate-400">{t('common.loading') || 'Loading...'}</div>
+                                )}
+                            </div>
+
+                            {assessmentLibrary.length === 0 && !assessmentLibraryLoading ? (
+                                <div className="text-sm text-slate-500 dark:text-slate-400">
+                                    No saved assessments yet. Generate one below and it will appear here.
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    {assessmentLibrary.map((item) => {
+                                        const isActiveAssessment = assessmentContext?.assessmentId === item.id;
+                                        const busy = assessmentLibraryBusyId === item.id;
+                                        return (
+                                            <div key={item.id} className="rounded-lg border border-slate-200 dark:border-slate-800 px-3 py-3">
+                                                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+                                                    <div>
+                                                        <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                                                            {item.title}
+                                                        </div>
+                                                        <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                                                            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">{item.role}</span>
+                                                            <span className="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">ID: {item.id.slice(0, 8)}</span>
+                                                            {isActiveAssessment && (
+                                                                <span className="px-2 py-0.5 rounded bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
+                                                                    Selected
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex flex-wrap gap-2">
+                                                        <button
+                                                            onClick={() => handleUseSavedAssessment(item)}
+                                                            className="px-3 py-1.5 rounded-md border border-cyan-200 text-xs font-semibold text-cyan-700 hover:bg-cyan-50 dark:border-cyan-900/30 dark:text-cyan-300 dark:hover:bg-cyan-950/20"
+                                                        >
+                                                            Use
+                                                        </button>
+                                                        <button
+                                                            onClick={() => openAssessmentPreviewPage(item)}
+                                                            className="px-3 py-1.5 rounded-md border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+                                                        >
+                                                            Preview
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleDuplicateAssessment(item.id)}
+                                                            disabled={busy}
+                                                            className="px-3 py-1.5 rounded-md border border-slate-200 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-50"
+                                                        >
+                                                            Duplicate
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleArchiveAssessment(item.id)}
+                                                            disabled={busy}
+                                                            className="px-3 py-1.5 rounded-md border border-rose-200 text-xs font-semibold text-rose-700 hover:bg-rose-50 dark:border-rose-900/30 dark:text-rose-300 dark:hover:bg-rose-950/20 disabled:opacity-50"
+                                                        >
+                                                            Archive
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+
                         {showInvitationsList && (
                             <div className="mb-6">
                                 <MyInvitations forCompany />
@@ -1821,7 +1940,12 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                         )}
 
                         <div className="mb-6">
-                            <AssessmentResultsList companyId={companyProfile.id || ''} />
+                            <AssessmentResultsList
+                                companyId={companyProfile.id || ''}
+                                jobTitleFilter={assessmentContext?.jobTitle}
+                                candidateEmailFilter={assessmentContext?.candidateEmail}
+                                applicationIdFilter={assessmentContext?.applicationId}
+                            />
                         </div>
 
                         {showInvitationModal && (
@@ -1829,6 +1953,18 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                                 companyId={companyProfile?.id || ''}
                                 onClose={() => setShowInvitationModal(false)}
                                 onSent={() => setShowInvitationsList(true)}
+                                initialAssessmentId={assessmentContext?.assessmentId}
+                                initialCandidateEmail={assessmentContext?.candidateEmail}
+                                initialCandidateId={assessmentContext?.candidateId || null}
+                                initialApplicationId={assessmentContext?.applicationId || null}
+                                initialJobId={assessmentContext?.jobId || null}
+                                initialJobTitle={assessmentContext?.jobTitle}
+                                initialAssessmentName={assessmentContext?.assessmentName}
+                                initialMetadata={assessmentContext ? {
+                                    application_id: assessmentContext.applicationId || null,
+                                    job_id: assessmentContext.jobId || null,
+                                    candidate_name: assessmentContext.candidateName || null
+                                } : null}
                             />
                         )}
 
@@ -1836,6 +1972,15 @@ const CompanyDashboard: React.FC<CompanyDashboardProps> = ({ companyProfile: pro
                             companyProfile={effectiveCompanyProfile || null}
                             jobs={jobs}
                             initialJobId={assessmentJobId}
+                            onAssessmentSaved={(assessment) => {
+                                setAssessmentLibrary((prev) => [assessment, ...prev.filter((item) => item.id !== assessment.id)]);
+                                setAssessmentContext((prev) => ({
+                                    ...(prev || {}),
+                                    assessmentId: assessment.id,
+                                    assessmentName: assessment.title,
+                                    jobTitle: prev?.jobTitle || assessment.role
+                                }));
+                            }}
                         />
                     </div>
                 )}

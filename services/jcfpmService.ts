@@ -1,6 +1,6 @@
 import { BACKEND_URL } from '../constants';
 import { supabase } from './supabaseService';
-import { JcfpmItem, JcfpmSnapshotV1, JcfpmDimensionId, JcfpmJhiAdjustmentV1 } from '../types';
+import { JcfpmItem, JcfpmSnapshotV1, JcfpmDimensionId, JcfpmJhiAdjustmentV1, EmployerVisibleJcfpmFullReport, EmployerVisibleJcfpmSummary, ApplicationJcfpmShareLevel } from '../types';
 
 const DIMENSIONS = [
   'd1_cognitive',
@@ -977,6 +977,65 @@ export const mapJcfpmToJhiPreferences = (
   current: import('../types').JHIPreferences
 ): import('../types').JHIPreferences => {
   return mapJcfpmToJhiPreferencesWithExplanation(snapshot, current).preferences;
+};
+
+export const buildEmployerVisibleJcfpmPayload = (
+  snapshot: JcfpmSnapshotV1 | null | undefined,
+  shareLevel: ApplicationJcfpmShareLevel,
+  adjustment?: JcfpmJhiAdjustmentV1 | null
+): EmployerVisibleJcfpmSummary | EmployerVisibleJcfpmFullReport | null => {
+  if (!snapshot || shareLevel === 'do_not_share') return null;
+
+  const sortedDimensions = [...(snapshot.dimension_scores || [])]
+    .sort((a, b) => (b.percentile || 0) - (a.percentile || 0));
+
+  const base: EmployerVisibleJcfpmSummary = {
+    schema_version: 'jcfpm-share-v1',
+    share_level: 'summary',
+    completed_at: snapshot.completed_at,
+    confidence: snapshot.confidence,
+    archetype: snapshot.archetype || null,
+    top_dimensions: sortedDimensions.slice(0, 3).map((row) => ({
+      dimension: row.dimension,
+      percentile: row.percentile,
+      label: row.label,
+    })),
+    strengths: (snapshot.ai_report?.strengths || []).slice(0, 5),
+    environment_fit_summary: (snapshot.ai_report?.ideal_environment || []).slice(0, 4),
+    jhi_adjustment_summary: (adjustment?.changes || []).slice(0, 6).map((change) => ({
+      field: change.field,
+      from: change.from,
+      to: change.to,
+      reason: change.reason_i18n?.en || change.reason,
+    })),
+  };
+
+  if (shareLevel !== 'full_report') return base;
+
+  return {
+    ...base,
+    share_level: 'full_report',
+    dimension_scores: sortedDimensions.slice(0, 12).map((row) => ({
+      dimension: row.dimension,
+      raw_score: row.raw_score,
+      percentile: row.percentile,
+      percentile_band: row.percentile_band,
+      label: row.label,
+    })),
+    fit_scores: (snapshot.fit_scores || []).slice(0, 5).map((row) => ({
+      title: row.title,
+      fit_score: row.fit_score,
+      salary_range: row.salary_range,
+      growth_potential: row.growth_potential,
+      ai_impact: row.ai_impact,
+      remote_friendly: row.remote_friendly,
+    })),
+    narrative_summary: {
+      ideal_environment: (snapshot.ai_report?.ideal_environment || []).slice(0, 4),
+      development_areas: (snapshot.ai_report?.development_areas || []).slice(0, 4),
+      next_steps: (snapshot.ai_report?.next_steps || []).slice(0, 4),
+    },
+  };
 };
 
 let globalJcfpmItemsCache: JcfpmItem[] | null = null;

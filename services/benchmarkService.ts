@@ -61,7 +61,7 @@ export const fetchCandidateBenchmarkMetrics = async (
         }
     }
 
-    throw lastError || new Error('Candidate benchmark endpoint unavailable');
+    return createEmptyCandidateBenchmarkMetrics(companyId, jobId, windowDays, lastError?.message || 'Candidate benchmark endpoint unavailable');
 };
 
 export const fetchCompanyCandidates = async (
@@ -100,3 +100,60 @@ export const fetchCompanyCandidates = async (
 
     throw lastError || new Error('Company candidates endpoint unavailable');
 };
+
+const createEmptyCandidateMetric = (
+    metric: 'assessment_avg' | 'shortlist_rate' | 'hire_rate',
+    windowDays: number,
+    reason: string
+) => ({
+    metric,
+    value: null,
+    peer_value: null,
+    delta_vs_peer: null,
+    sample_size: 0,
+    source_name: 'fallback',
+    source_mode: 'internal_only' as const,
+    data_window_days: windowDays,
+    updated_at: new Date().toISOString(),
+    confidence_score: 0,
+    confidence_tier: 'low' as const,
+    confidence_components: {
+        sample_size_component: 0,
+        variance_component: 0,
+        recency_component: 0
+    },
+    insufficient_data: true,
+    fallback_reason: reason,
+    numerator: 0,
+    denominator: 0,
+    median: null,
+    coverage: {
+        assessed_candidates: 0,
+        total_candidates: 0,
+        coverage_ratio: null
+    }
+});
+
+const createEmptyCandidateBenchmarkMetrics = (
+    companyId: string,
+    jobId: string | undefined,
+    windowDays: number,
+    reason: string
+): CandidateBenchmarkMetrics => ({
+    company_id: companyId,
+    job_id: jobId ? Number(jobId) || null : null,
+    peer_group: {
+        hiring_volume_band: 'small',
+        peer_company_count: 0
+    },
+    assessment: createEmptyCandidateMetric('assessment_avg', windowDays, reason),
+    shortlist_rate: createEmptyCandidateMetric('shortlist_rate', windowDays, reason),
+    hire_rate: createEmptyCandidateMetric('hire_rate', windowDays, reason),
+    transparency: {
+        source_name: 'fallback',
+        source_mode: 'internal_only',
+        data_window_days: windowDays,
+        updated_at: new Date().toISOString(),
+        note: 'Benchmark data is temporarily unavailable. Showing an insufficient-data state instead of failing the workspace.'
+    }
+});

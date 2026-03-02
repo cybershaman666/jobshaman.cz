@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Job, UserProfile, CVDocument } from '../types';
+import { ApplicationJcfpmShareLevel, Job, UserProfile, CVDocument } from '../types';
 import { X, Upload, FileText, Wand2, CheckCircle, Send, Loader2, BrainCircuit, User, Mail, Phone, Linkedin, Link as LinkIcon, Crown } from 'lucide-react';
 import { generateCoverLetter } from '../services/geminiService';
 import { sendEmail, EmailTemplates } from '../services/emailService';
 import { supabase, trackAnalyticsEvent, getUserCVDocuments, updateUserCVSelection } from '../services/supabaseService';
 import { createJobApplication } from '../services/jobApplicationService';
 import { getSubscriptionStatus } from '../services/serverSideBillingService';
+import { buildEmployerVisibleJcfpmPayload } from '../services/jcfpmService';
 
 interface ApplicationModalProps {
   job: Job;
@@ -37,6 +38,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
 
   const [cvFile, setCvFile] = useState<File | null>(null);
   const [coverLetter, setCoverLetter] = useState('');
+  const [jcfpmShareLevel, setJcfpmShareLevel] = useState<ApplicationJcfpmShareLevel>('summary');
 
   // AI State
   const [aiPrompt, setAiPrompt] = useState('');
@@ -53,6 +55,8 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
   const showAiAssessment = !isManualLabor;
   const hasPremiumCoverLetter = effectiveTier === 'premium';
   const selectedCv = cvDocuments.find(doc => doc.id === selectedCvId) || cvDocuments.find(doc => doc.isActive) || null;
+  const jcfpmSnapshot = user.preferences?.jcfpm_v1 || null;
+  const jcfpmAdjustment = user.preferences?.jcfpm_jhi_adjustment_v1 || null;
 
   useEffect(() => {
     let isMounted = true;
@@ -133,6 +137,110 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
     setStep('submitting');
 
     try {
+      const effectiveJcfpmShareLevel: ApplicationJcfpmShareLevel = jcfpmSnapshot ? jcfpmShareLevel : 'do_not_share';
+      const sharedJcfpmPayload = buildEmployerVisibleJcfpmPayload(
+        jcfpmSnapshot,
+        effectiveJcfpmShareLevel,
+        jcfpmAdjustment
+      );
+      const selectedCvSnapshot = useSavedCv
+        ? {
+            id: selectedCv?.id || null,
+            label: selectedCv?.label || selectedCv?.originalName || null,
+            originalName: selectedCv?.originalName || null,
+            fileUrl: selectedCv?.fileUrl || null
+          }
+        : (cvFile ? {
+            label: cvFile.name,
+            originalName: cvFile.name,
+            fileUrl: null
+          } : null);
+      const candidateProfileSnapshot = {
+        name: [formData.firstName, formData.lastName].filter(Boolean).join(' ').trim() || user.name,
+        email: formData.email || user.email || '',
+        phone: formData.phone || user.phone || '',
+        jobTitle: user.jobTitle || '',
+        linkedin: formData.linkedin || user.preferences?.linkedIn || '',
+        skills: Array.isArray(user.skills) ? user.skills.slice(0, 12) : [],
+        values: Array.isArray(user.values) ? user.values.slice(0, 8) : [],
+        preferredCountryCode: user.preferredCountryCode || ''
+      };
+      let recorded = false;
+
+      try {
+        const backendResult = await createJobApplication(
+          job.id,
+          'application_modal',
+          {
+            cover_letter_present: Boolean(coverLetter?.trim()),
+            has_saved_cv: Boolean(useSavedCv && selectedCvSnapshot),
+            has_uploaded_cv: Boolean(!useSavedCv && cvFile),
+            jcfpm_share_level: effectiveJcfpmShareLevel
+          },
+          {
+            coverLetter: coverLetter ? coverLetter.slice(0, 2000) : null,
+            cvDocumentId: useSavedCv ? selectedCvId : null,
+            cvSnapshot: selectedCvSnapshot,
+            candidateProfileSnapshot,
+            jcfpmShareLevel: effectiveJcfpmShareLevel,
+            sharedJcfpmPayload
+          }
+        );
+        recorded = !!backendResult;
+      } catch {
+        recorded = false;
+      }
+
+      if (!recorded && supabase) {
+        try {
+          await supabase.from('job_applications').insert({
+            job_id: job.id,
+            candidate_id: user.id || null,
+            company_id: job.company_id,
+            applied_at: new Date().toISOString(),
+            submitted_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+            source: 'application_modal',
+            cover_letter: coverLetter || null,
+            cv_document_id: useSavedCv ? selectedCvId : null,
+            cv_snapshot: selectedCvSnapshot,
+            candidate_profile_snapshot: candidateProfileSnapshot,
+            jcfpm_share_level: effectiveJcfpmShareLevel,
+            shared_jcfpm_payload: sharedJcfpmPayload,
+            application_payload: {
+              manual_contact_fields: {
+                first_name: formData.firstName,
+                last_name: formData.lastName,
+                linkedin: formData.linkedin || null
+              }
+            },
+            status: 'pending'
+          });
+          recorded = true;
+        } catch (dbErr) {
+          console.error('Failed to record enriched application in DB:', dbErr);
+          try {
+            await supabase.from('job_applications').insert({
+              job_id: job.id,
+              candidate_id: user.id || null,
+              company_id: job.company_id,
+              applied_at: new Date().toISOString(),
+              cover_letter: coverLetter || null,
+              status: 'pending'
+            });
+            recorded = true;
+          } catch (legacyDbErr) {
+            console.error('Failed to record legacy application in DB:', legacyDbErr);
+          }
+        }
+      }
+
+      if (!recorded) {
+        alert(t('alerts.application_send_error'));
+        setStep('form');
+        return;
+      }
+
       // Use environment variable for recipient email, with fallback
       const recipientEmail = import.meta.env.VITE_CONTACT_EMAIL || 'floki@jobshaman.cz';
 
@@ -142,7 +250,8 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
         coverLetter,
         cvFile: cvFile ? cvFile.name : null,
         cvSelectedName: selectedCv?.originalName || selectedCv?.label || null,
-        cvSelectedUrl: selectedCv?.fileUrl || null
+        cvSelectedUrl: selectedCv?.fileUrl || null,
+        jcfpmShareLevel: effectiveJcfpmShareLevel
       };
 
       const emailResult = await sendEmail({
@@ -150,55 +259,26 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
         ...EmailTemplates.jobApplication(applicationPayload, job)
       });
 
-      if (emailResult.success) {
-        let recorded = false;
-        try {
-          const backendResult = await createJobApplication(job.id, 'application_modal', {
-            cover_letter: coverLetter ? coverLetter.slice(0, 2000) : null
-          });
-          recorded = !!backendResult;
-        } catch {
-          recorded = false;
-        }
-
-        if (!recorded && supabase) {
-          try {
-            await supabase.from('job_applications').insert({
-              job_id: job.id,
-              candidate_id: user.id || null, // Might be anonymous
-              company_id: job.company_id,
-              applied_at: new Date().toISOString(),
-              cover_letter: coverLetter,
-              status: 'pending'
-            });
-            recorded = true;
-          } catch (dbErr) {
-            console.error('Failed to record application in DB:', dbErr);
-          }
-        }
-
-        if (recorded) {
-          // Track analytics event
-          await trackAnalyticsEvent({
-            event_type: 'job_application',
-            user_id: user.id,
-            company_id: job.company_id,
-            metadata: {
-              job_id: job.id,
-              job_title: job.title
-            }
-          });
-        }
-
-        // Simulate API call delay for UI feedback
-        setTimeout(() => {
-          setStep('success');
-        }, 1500);
-      } else {
+      if (!emailResult.success) {
         console.error('Failed to send application email:', emailResult.error);
-        alert(t('alerts.application_send_failed'));
-        setStep('form');
       }
+
+      await trackAnalyticsEvent({
+        event_type: 'application_submitted',
+        user_id: user.id,
+        company_id: job.company_id,
+        metadata: {
+          job_id: job.id,
+          job_title: job.title,
+          jcfpm_share_level: effectiveJcfpmShareLevel,
+          has_cover_letter: Boolean(coverLetter?.trim())
+        }
+      });
+
+      // Simulate API call delay for UI feedback
+      setTimeout(() => {
+        setStep('success');
+      }, 1500);
     } catch (error) {
       console.error('Application error:', error);
       alert(t('alerts.application_send_error'));
@@ -466,7 +546,92 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
           />
         </div>
 
-        {/* 4. AI Assessment Link (Conditional) */}
+        {/* 4. JCFPM Sharing */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 font-mono">
+              {t('apply.jcfpm_sharing', { defaultValue: 'JCFPM sharing' })}
+            </h3>
+            <span className={`text-[11px] font-semibold px-2 py-1 rounded-full border ${
+              jcfpmSnapshot
+                ? 'border-emerald-200 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300'
+                : 'border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400'
+            }`}>
+              {jcfpmSnapshot
+                ? t('apply.jcfpm_available', { defaultValue: 'Result available' })
+                : t('apply.jcfpm_missing', { defaultValue: 'No result available' })}
+            </span>
+          </div>
+
+          <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/40 p-4 space-y-3">
+            <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+              {jcfpmSnapshot
+                ? t('apply.jcfpm_sharing_desc', { defaultValue: 'Choose how much of your JCFPM result to share with the employer. Your own personalized JHI stays active either way.' })
+                : t('apply.jcfpm_sharing_missing_desc', { defaultValue: 'You have not completed JCFPM yet, so only your CV and profile summary will be shared with this application.' })}
+            </p>
+
+            {jcfpmSnapshot ? (
+              <div className="space-y-2">
+                <label className="flex items-start gap-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="jcfpm-share-level"
+                    value="summary"
+                    checked={jcfpmShareLevel === 'summary'}
+                    onChange={() => setJcfpmShareLevel('summary')}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">
+                      {t('apply.jcfpm_share_summary', { defaultValue: 'Share summary' })}
+                    </span>
+                    <span className="block text-xs text-slate-500 dark:text-slate-400">
+                      {t('apply.jcfpm_share_summary_desc', { defaultValue: 'Sends archetype, top dimensions, strengths, environment fit, and a concise JHI adjustment summary.' })}
+                    </span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="jcfpm-share-level"
+                    value="full_report"
+                    checked={jcfpmShareLevel === 'full_report'}
+                    onChange={() => setJcfpmShareLevel('full_report')}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">
+                      {t('apply.jcfpm_share_full', { defaultValue: 'Share extended report' })}
+                    </span>
+                    <span className="block text-xs text-slate-500 dark:text-slate-400">
+                      {t('apply.jcfpm_share_full_desc', { defaultValue: 'Adds dimension scores and a richer narrative summary, without exposing raw test answers.' })}
+                    </span>
+                  </span>
+                </label>
+                <label className="flex items-start gap-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="jcfpm-share-level"
+                    value="do_not_share"
+                    checked={jcfpmShareLevel === 'do_not_share'}
+                    onChange={() => setJcfpmShareLevel('do_not_share')}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">
+                      {t('apply.jcfpm_share_none', { defaultValue: 'Do not share' })}
+                    </span>
+                    <span className="block text-xs text-slate-500 dark:text-slate-400">
+                      {t('apply.jcfpm_share_none_desc', { defaultValue: 'Keeps JCFPM only for your internal JobShaman personalization.' })}
+                    </span>
+                  </span>
+                </label>
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        {/* 5. AI Assessment Link (Conditional) */}
         {showAiAssessment && (
           <div className="bg-indigo-50 dark:bg-indigo-500/5 p-4 rounded-xl border border-indigo-200 dark:border-indigo-500/20 flex flex-col sm:flex-row items-start gap-4">
             <div className="bg-indigo-100 dark:bg-indigo-500/10 p-2 rounded-lg text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/20">

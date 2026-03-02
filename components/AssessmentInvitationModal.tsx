@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BACKEND_URL } from '../constants';
 import { authenticatedFetch } from '../services/csrfService';
@@ -7,17 +7,75 @@ interface Props {
   companyId: string;
   onClose: () => void;
   onSent?: () => void;
+  initialAssessmentId?: string;
+  initialCandidateEmail?: string;
+  initialCandidateId?: string | null;
+  initialApplicationId?: string | null;
+  initialJobId?: string | number | null;
+  initialJobTitle?: string;
+  initialAssessmentName?: string;
+  initialMetadata?: Record<string, unknown> | null;
 }
 
-const AssessmentInvitationModal: React.FC<Props> = ({ companyId, onClose, onSent }) => {
+const AssessmentInvitationModal: React.FC<Props> = ({
+  companyId,
+  onClose,
+  onSent,
+  initialAssessmentId,
+  initialCandidateEmail,
+  initialCandidateId,
+  initialApplicationId,
+  initialJobId,
+  initialJobTitle,
+  initialAssessmentName,
+  initialMetadata
+}) => {
   const { t } = useTranslation();
-  const [assessmentId, setAssessmentId] = useState('');
-  const [candidateEmail, setCandidateEmail] = useState('');
-  const [jobTitle, setJobTitle] = useState('');
-  const [assessmentName, setAssessmentName] = useState('');
+  const [assessmentOptions, setAssessmentOptions] = useState<Array<{ id: string; title: string; role?: string }>>([]);
+  const [loadingOptions, setLoadingOptions] = useState(false);
+  const [assessmentId, setAssessmentId] = useState(initialAssessmentId || '');
+  const [candidateEmail, setCandidateEmail] = useState(initialCandidateEmail || '');
+  const [jobTitle, setJobTitle] = useState(initialJobTitle || '');
+  const [assessmentName, setAssessmentName] = useState(initialAssessmentName || '');
   const [expiresInDays, setExpiresInDays] = useState<number>(30);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setAssessmentId(initialAssessmentId || '');
+    setCandidateEmail(initialCandidateEmail || '');
+    setJobTitle(initialJobTitle || '');
+    setAssessmentName(initialAssessmentName || '');
+  }, [initialAssessmentId, initialCandidateEmail, initialJobTitle, initialAssessmentName]);
+
+  useEffect(() => {
+    let active = true;
+    const loadAssessmentOptions = async () => {
+      setLoadingOptions(true);
+      try {
+        const res = await authenticatedFetch(`${BACKEND_URL}/assessments/company-library`, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        if (!res.ok) return;
+        const data = await res.json().catch(() => ({}));
+        if (!active || !Array.isArray(data?.assessments)) return;
+        setAssessmentOptions(
+          data.assessments.map((item: any) => ({
+            id: String(item?.id || ''),
+            title: String(item?.title || item?.role || 'Assessment'),
+            role: item?.role ? String(item.role) : undefined
+          })).filter((item: { id: string }) => item.id)
+        );
+      } catch (fetchError) {
+        console.error('Failed to load assessment library:', fetchError);
+      } finally {
+        if (active) setLoadingOptions(false);
+      }
+    };
+    loadAssessmentOptions();
+    return () => { active = false; };
+  }, [companyId]);
 
   const handleSend = async () => {
     setError(null);
@@ -34,10 +92,16 @@ const AssessmentInvitationModal: React.FC<Props> = ({ companyId, onClose, onSent
         body: JSON.stringify({
           assessment_id: assessmentId,
           candidate_email: candidateEmail,
-          candidate_id: null,
+          candidate_id: initialCandidateId || null,
+          application_id: initialApplicationId || null,
+          job_id: initialJobId != null ? Number(initialJobId) : null,
           company_id: companyId,
           expires_in_days: expiresInDays,
-          metadata: { assessment_name: assessmentName, job_title: jobTitle }
+          metadata: {
+            ...(initialMetadata || {}),
+            assessment_name: assessmentName,
+            job_title: jobTitle
+          }
         })
       });
 
@@ -65,6 +129,31 @@ const AssessmentInvitationModal: React.FC<Props> = ({ companyId, onClose, onSent
         </div>
 
         <div className="grid grid-cols-1 gap-3">
+          {assessmentOptions.length > 0 && (
+            <>
+              <label className="text-sm text-slate-500">{t('assessment_invitation_modal.saved_assessments', { defaultValue: 'Saved assessments' })}</label>
+              <select
+                className="input"
+                value={assessmentId}
+                onChange={(e) => {
+                  const nextId = e.target.value;
+                  setAssessmentId(nextId);
+                  const picked = assessmentOptions.find((item) => item.id === nextId);
+                  if (picked && !assessmentName) {
+                    setAssessmentName(picked.title);
+                  }
+                }}
+              >
+                <option value="">{loadingOptions ? t('common.loading', { defaultValue: 'Loading...' }) : t('assessment_invitation_modal.select_saved', { defaultValue: 'Select a saved assessment' })}</option>
+                {assessmentOptions.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.title}{item.role ? ` • ${item.role}` : ''}
+                  </option>
+                ))}
+              </select>
+            </>
+          )}
+
           <label className="text-sm text-slate-500">{t('assessment_invitation_modal.assessment_id')}</label>
           <input className="input" value={assessmentId} onChange={e => setAssessmentId(e.target.value)} placeholder={t('assessment_invitation_modal.assessment_id_placeholder')} />
 

@@ -56,6 +56,8 @@ class AssessmentInvitationRequest(BaseModel):
     assessment_id: str
     candidate_email: str
     candidate_id: Optional[str] = None
+    application_id: Optional[str] = None
+    job_id: Optional[int] = None
     expires_in_days: int = 30
     metadata: Optional[dict] = None
 
@@ -68,6 +70,10 @@ class AssessmentResultRequest(BaseModel):
     time_spent_seconds: int
     answers: dict
     feedback: Optional[str] = None
+
+
+class AssessmentLibraryStatusUpdateRequest(BaseModel):
+    status: Literal["active", "archived"]
 
 
 class AssessmentJourneyAnalyzeAnswerRequest(BaseModel):
@@ -141,9 +147,47 @@ class JobApplicationCreateRequest(BaseModel):
     job_id: int
     source: Optional[str] = None
     metadata: Optional[dict] = None
+    cover_letter: Optional[str] = Field(default=None, max_length=10000)
+    cv_document_id: Optional[str] = Field(default=None, max_length=128)
+    cv_snapshot: Optional[dict] = None
+    candidate_profile_snapshot: Optional[dict] = None
+    jcfpm_share_level: Optional[Literal["summary", "full_report", "do_not_share"]] = None
+    shared_jcfpm_payload: Optional[dict] = None
 
 class JobApplicationStatusUpdateRequest(BaseModel):
     status: str = Field(..., pattern=r"^(pending|reviewed|shortlisted|rejected|hired)$")
+
+
+class JobDraftUpsertRequest(BaseModel):
+    status: Optional[Literal["draft", "ready_for_publish", "published_linked", "archived"]] = None
+    title: Optional[str] = Field(default=None, max_length=200)
+    role_summary: Optional[str] = Field(default=None, max_length=5000)
+    team_intro: Optional[str] = Field(default=None, max_length=5000)
+    responsibilities: Optional[str] = Field(default=None, max_length=15000)
+    requirements: Optional[str] = Field(default=None, max_length=15000)
+    nice_to_have: Optional[str] = Field(default=None, max_length=10000)
+    benefits_structured: Optional[List[str]] = Field(default=None, max_length=50)
+    salary_from: Optional[float] = Field(default=None, ge=0)
+    salary_to: Optional[float] = Field(default=None, ge=0)
+    salary_currency: Optional[str] = Field(default=None, max_length=8)
+    salary_timeframe: Optional[str] = Field(default=None, max_length=32)
+    contract_type: Optional[str] = Field(default=None, max_length=64)
+    work_model: Optional[str] = Field(default=None, max_length=64)
+    workplace_address: Optional[str] = Field(default=None, max_length=500)
+    location_public: Optional[str] = Field(default=None, max_length=500)
+    application_instructions: Optional[str] = Field(default=None, max_length=5000)
+    contact_email: Optional[str] = Field(default=None, max_length=320)
+    quality_report: Optional[dict] = None
+    ai_suggestions: Optional[dict] = None
+    editor_state: Optional[dict] = None
+
+
+class JobDraftPublishRequest(BaseModel):
+    change_summary: Optional[str] = Field(default=None, max_length=1000)
+
+
+class JobLifecycleUpdateRequest(BaseModel):
+    status: Literal["active", "paused", "closed", "archived"]
 
 class AdminSubscriptionUpdateRequest(BaseModel):
     subscription_id: Optional[str] = None
