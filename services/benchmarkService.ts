@@ -10,7 +10,9 @@ const shouldDisableBackendPath = (status: number): boolean =>
 const toJsonOrThrow = async <T>(response: Response): Promise<T> => {
     if (!response.ok) {
         const detail = await response.text().catch(() => '');
-        throw new Error(detail || `Benchmark request failed: ${response.status}`);
+        const error = new Error(detail || `Benchmark request failed: ${response.status}`) as Error & { status?: number };
+        error.status = response.status;
+        throw error;
     }
     return response.json() as Promise<T>;
 };

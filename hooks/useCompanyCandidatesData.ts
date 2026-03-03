@@ -180,6 +180,19 @@ export const useCompanyCandidatesData = (
       setCandidates(backendCandidates);
       setLastCandidatesSyncAt(new Date().toISOString());
     } catch (error) {
+      const status = typeof error === 'object' && error && 'status' in error
+        ? Number((error as { status?: number }).status)
+        : null;
+      const message = error instanceof Error ? error.message : String(error || '');
+      const isNetworkLikeFailure = error instanceof TypeError
+        || /failed to fetch/i.test(message)
+        || /networkerror/i.test(message)
+        || /company candidates endpoint unavailable/i.test(message);
+      if (status === 401 || status === 403 || isNetworkLikeFailure) {
+        console.warn('Candidate API unavailable or denied; skipping direct Supabase fallback to avoid misleading self-data.', error);
+        setCandidates([]);
+        return;
+      }
       console.warn('Candidate API loading failed, trying direct Supabase fallback:', error);
       try {
         const fallbackCandidates = await fetchCompanyCandidatesFallback(t);

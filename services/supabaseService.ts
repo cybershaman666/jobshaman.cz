@@ -766,21 +766,114 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
     let retryCount = 0;
     const maxRetries = 2;
 
+    const fetchCompanyRows = async (column: 'owner_id' | 'created_by' | 'id', value: string) => {
+        const { data, error } = await supabase
+            .from('companies')
+            .select(`
+                *,
+                subscriptions:subscriptions!companies_subscription_id_fkey (
+                    *
+                )
+            `)
+            .eq(column, value)
+            .limit(1);
+        return { data, error };
+    };
+
+    const fetchCompanyById = async (companyId: string) => {
+        const { data, error } = await supabase
+            .from('companies')
+            .select(`
+                *,
+                subscriptions:subscriptions!companies_subscription_id_fkey (
+                    *
+                )
+            `)
+            .eq('id', companyId)
+            .limit(1);
+        return { data, error };
+    };
+
+    const hydrateCompany = async (company: any) => {
+        const rawSubscription = company.subscriptions?.[0];
+
+        let rawUsage = null;
+        if (rawSubscription?.id) {
+            const { data: usageData } = await supabase
+                .from('subscription_usage')
+                .select('*')
+                .eq('subscription_id', rawSubscription.id)
+                .order('period_end', { ascending: false })
+                .limit(1)
+                .single();
+
+            rawUsage = usageData;
+        }
+
+        const subscription = rawSubscription ? {
+            tier: rawSubscription.tier,
+            expiresAt: rawSubscription.current_period_end,
+            status: rawSubscription.status,
+            usage: rawUsage ? {
+                activeJobsCount: rawUsage.active_jobs_count || 0,
+                aiAssessmentsUsed: rawUsage.ai_assessments_used || 0,
+                adOptimizationsUsed: rawUsage.ad_optimizations_used || 0
+            } : {
+                activeJobsCount: 0,
+                aiAssessmentsUsed: 0,
+                adOptimizationsUsed: 0
+            }
+        } : null;
+
+        return {
+            ...company,
+            subscription
+        };
+    };
+
     while (retryCount <= maxRetries) {
         try {
-            // Combined query for company -> subscriptions (using explicit FK)
-            const { data, error } = await supabase
-                .from('companies')
-                .select(`
-                    *,
-                    subscriptions:subscriptions!companies_subscription_id_fkey (
-                        *
-                    )
-                `)
-                .eq('owner_id', userId);
+            const attempts: Array<() => Promise<{ data: any[] | null; error: any }>> = [
+                () => fetchCompanyRows('owner_id', userId),
+                () => fetchCompanyRows('created_by', userId),
+                () => fetchCompanyRows('id', userId),
+            ];
+
+            let data: any[] | null = null;
+            let error: any = null;
+
+            for (const fetchAttempt of attempts) {
+                const result = await fetchAttempt();
+                if (result.error) {
+                    error = result.error;
+                    break;
+                }
+                if (Array.isArray(result.data) && result.data.length > 0) {
+                    data = result.data;
+                    break;
+                }
+            }
+
+            if (!data || data.length === 0) {
+                const { data: membershipRows, error: membershipError } = await supabase
+                    .from('company_members')
+                    .select('company_id')
+                    .eq('user_id', userId)
+                    .limit(1);
+
+                if (membershipError) {
+                    error = membershipError;
+                } else if (membershipRows?.[0]?.company_id) {
+                    const memberCompany = await fetchCompanyById(String(membershipRows[0].company_id));
+                    if (memberCompany.error) {
+                        error = memberCompany.error;
+                    } else {
+                        data = memberCompany.data;
+                    }
+                }
+            }
 
             if (error) {
-                // ... same error handling as before ...
                 noteSupabaseNetworkFailure('getRecruiterCompany', error);
                 if (isLikelySupabaseNetworkError(error)) {
                     return null;
@@ -796,42 +889,7 @@ export const getRecruiterCompany = async (userId: string): Promise<any> => {
 
             if (!data || data.length === 0) return null;
 
-            const company = data[0];
-            const rawSubscription = company.subscriptions?.[0];
-
-            // Step 2: Fetch usage separately if subscription exists
-            let rawUsage = null;
-            if (rawSubscription?.id) {
-                const { data: usageData } = await supabase
-                    .from('subscription_usage')
-                    .select('*')
-                    .eq('subscription_id', rawSubscription.id)
-                    .order('period_end', { ascending: false })
-                    .limit(1)
-                    .single();
-
-                rawUsage = usageData;
-            }
-
-            const subscription = rawSubscription ? {
-                tier: rawSubscription.tier,
-                expiresAt: rawSubscription.current_period_end,
-                status: rawSubscription.status,
-                usage: rawUsage ? {
-                    activeJobsCount: rawUsage.active_jobs_count || 0,
-                    aiAssessmentsUsed: rawUsage.ai_assessments_used || 0,
-                    adOptimizationsUsed: rawUsage.ad_optimizations_used || 0
-                } : {
-                    activeJobsCount: 0,
-                    aiAssessmentsUsed: 0,
-                    adOptimizationsUsed: 0
-                }
-            } : null;
-
-            return {
-                ...company,
-                subscription
-            };
+            return hydrateCompany(data[0]);
         } catch (error: any) {
             noteSupabaseNetworkFailure('getRecruiterCompany.catch', error);
             if (isLikelySupabaseNetworkError(error)) return null;

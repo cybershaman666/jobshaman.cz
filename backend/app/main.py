@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 from slowapi.errors import RateLimitExceeded
 from slowapi import _rate_limit_exceeded_handler
-from starlette.responses import JSONResponse
+from starlette.responses import JSONResponse, Response
 try:
     import sentry_sdk
     from sentry_sdk.integrations.fastapi import FastApiIntegration
@@ -55,6 +55,7 @@ base_origins = [
 _ALLOWED_ORIGIN_REGEX = (
     r"^https?://([a-z0-9-]+\.)?jobshaman\.(cz|com)(:\d+)?$"
     r"|^https?://jobshaman(-[a-z0-9-]+)?\.vercel\.app(:\d+)?$"
+    r"|^https?://(localhost|127\.0\.0\.1)(:\d+)?$"
 )
 
 
@@ -89,6 +90,29 @@ def _is_allowed_origin(origin: str | None) -> bool:
         return False
     return normalized_origin in ALLOWED_ORIGINS or bool(_origin_regex.match(normalized_origin))
 
+
+def _apply_cors_headers(
+    response: Response,
+    origin: str | None,
+    *,
+    preflight: bool = False,
+    request_headers: str | None = None,
+) -> Response:
+    if not _is_allowed_origin(origin):
+        return response
+
+    normalized_origin = _normalize_origin(origin)
+    response.headers["Access-Control-Allow-Origin"] = normalized_origin
+    response.headers["Vary"] = "Origin"
+    response.headers["Access-Control-Allow-Credentials"] = "true"
+
+    if preflight:
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = request_headers or "*"
+        response.headers["Access-Control-Max-Age"] = "600"
+
+    return response
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=ALLOWED_ORIGINS,
@@ -100,6 +124,25 @@ app.add_middleware(
 
 _origin_regex = re.compile(_ALLOWED_ORIGIN_REGEX, re.IGNORECASE)
 
+
+@app.middleware("http")
+async def ensure_preflight_cors(request: Request, call_next):
+    origin = request.headers.get("origin")
+    access_control_request_method = request.headers.get("access-control-request-method")
+
+    if request.method.upper() == "OPTIONS" and access_control_request_method:
+        if _is_allowed_origin(origin):
+            return _apply_cors_headers(
+                Response(status_code=204),
+                origin,
+                preflight=True,
+                request_headers=request.headers.get("access-control-request-headers"),
+            )
+        return Response(status_code=204)
+
+    response = await call_next(request)
+    return _apply_cors_headers(response, origin)
+
 @app.middleware("http")
 async def add_cors_on_error(request: Request, call_next):
     try:
@@ -107,11 +150,7 @@ async def add_cors_on_error(request: Request, call_next):
     except HTTPException as exc:
         origin = request.headers.get("origin")
         response = JSONResponse({"detail": exc.detail}, status_code=exc.status_code, headers=getattr(exc, "headers", None))
-        if _is_allowed_origin(origin):
-            response.headers["Access-Control-Allow-Origin"] = _normalize_origin(origin)
-            response.headers["Vary"] = "Origin"
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-        return response
+        return _apply_cors_headers(response, origin)
     except Exception as exc:
         print(f"🔥 Unhandled error: {exc}")
         print(traceback.format_exc())
@@ -123,11 +162,7 @@ async def add_cors_on_error(request: Request, call_next):
             {"detail": detail, "path": str(request.url.path)},
             status_code=500
         )
-        if _is_allowed_origin(origin):
-            response.headers["Access-Control-Allow-Origin"] = _normalize_origin(origin)
-            response.headers["Vary"] = "Origin"
-            response.headers["Access-Control-Allow-Credentials"] = "true"
-        return response
+        return _apply_cors_headers(response, origin)
 
 @app.middleware("http")
 async def add_custom_headers(request: Request, call_next):

@@ -82,6 +82,10 @@ def verify_supabase_token(token: str) -> dict:
                 # Find all companies owned by user
                 owner_resp = supabase.table("companies").select("id, name").eq("owner_id", user_id).execute()
                 owned_companies = owner_resp.data or []
+
+                # Legacy fallback: some older company rows only populated created_by
+                created_by_resp = supabase.table("companies").select("id, name").eq("created_by", user_id).execute()
+                created_companies = created_by_resp.data or []
                 
                 # Find all companies where user is a member
                 member_resp = supabase.table("company_members").select("company_id, companies(name)").eq("user_id", user_id).execute()
@@ -89,8 +93,14 @@ def verify_supabase_token(token: str) -> dict:
                 
                 all_associations = []
                 for c in owned_companies:
-                    all_associations.append({"id": c["id"], "name": c.get("name"), "type": "owner"})
-                    authorized_ids.append(c["id"])
+                    if c["id"] not in authorized_ids:
+                        all_associations.append({"id": c["id"], "name": c.get("name"), "type": "owner"})
+                        authorized_ids.append(c["id"])
+
+                for c in created_companies:
+                    if c["id"] not in authorized_ids:
+                        all_associations.append({"id": c["id"], "name": c.get("name"), "type": "owner"})
+                        authorized_ids.append(c["id"])
                 
                 for m in member_companies:
                     if m["company_id"] not in authorized_ids:

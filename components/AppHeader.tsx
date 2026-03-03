@@ -12,6 +12,7 @@ import {
     ChevronDown
 } from 'lucide-react';
 import { ViewState, UserProfile, CompanyProfile } from '../types';
+import { getRecruiterCompany } from '../services/supabaseService';
 import SubscriptionStatusBadge from './SubscriptionStatusBadge';
 
 import { useTranslation } from 'react-i18next';
@@ -24,6 +25,7 @@ interface AppHeaderProps {
     setShowCompanyLanding: (show: boolean) => void;
     userProfile: UserProfile;
     companyProfile: CompanyProfile | null;
+    setCompanyProfile: (profile: CompanyProfile | null) => void;
     handleAuthAction: (mode?: 'login' | 'register') => void;
     toggleTheme: () => void;
     theme: 'light' | 'dark';
@@ -39,6 +41,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
     setShowCompanyLanding,
     userProfile,
     companyProfile,
+    setCompanyProfile,
     handleAuthAction,
     toggleTheme,
     theme,
@@ -80,6 +83,45 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         }
 
         i18n.changeLanguage(lng);
+    };
+
+    const handleBusinessClick = async () => {
+        if (showCompanyLanding) {
+            setShowCompanyLanding(false);
+            setViewState(ViewState.LIST);
+            return;
+        }
+
+        if (!userProfile.isLoggedIn) {
+            setShowCompanyLanding(true);
+            return;
+        }
+
+        if (userProfile.role !== 'recruiter') {
+            setShowCompanyLanding(true);
+            return;
+        }
+
+        if (companyProfile) {
+            setViewState(ViewState.COMPANY_DASHBOARD);
+            return;
+        }
+
+        if (userProfile.id) {
+            try {
+                const resolvedCompany = await getRecruiterCompany(userProfile.id);
+                if (resolvedCompany) {
+                    setCompanyProfile(resolvedCompany);
+                    setIsOnboardingCompany(false);
+                    setViewState(ViewState.COMPANY_DASHBOARD);
+                    return;
+                }
+            } catch (error) {
+                console.warn('Failed to resolve recruiter company before onboarding:', error);
+            }
+        }
+
+        setIsOnboardingCompany(true);
     };
 
     return (
@@ -150,25 +192,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                     {canShowBusinessMenu && (
                         <button
                             onClick={() => {
-                                if (showCompanyLanding) {
-                                    setShowCompanyLanding(false);
-                                    setViewState(ViewState.LIST);
-                                } else if (userProfile.isLoggedIn) {
-                                    if (userProfile.role === 'recruiter') {
-                                        // Regular recruiter/company
-                                        if (companyProfile) {
-                                            setViewState(ViewState.COMPANY_DASHBOARD);
-                                        } else {
-                                            // Recruiter but no company - go to onboarding
-                                            setIsOnboardingCompany(true);
-                                        }
-                                    } else {
-                                        // Not logged in as recruiter, show company landing
-                                        setShowCompanyLanding(true);
-                                    }
-                                } else {
-                                    setShowCompanyLanding(true);
-                                }
+                                void handleBusinessClick();
                             }}
                             className={`px-3 py-1.5 rounded-md text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}
                         >
@@ -360,22 +384,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         {canShowBusinessMenu && (
                             <button
                                 onClick={() => {
-                                    if (showCompanyLanding) {
-                                        setShowCompanyLanding(false);
-                                        setViewState(ViewState.LIST);
-                                    } else if (userProfile.isLoggedIn) {
-                                        if (userProfile.role === 'recruiter') {
-                                            if (companyProfile) {
-                                                setViewState(ViewState.COMPANY_DASHBOARD);
-                                            } else {
-                                                setIsOnboardingCompany(true);
-                                            }
-                                        } else {
-                                            setShowCompanyLanding(true);
-                                        }
-                                    } else {
-                                        setShowCompanyLanding(true);
-                                    }
+                                    void handleBusinessClick();
                                     setMobileMenuOpen(false);
                                 }}
                                 className={`w-full text-left px-3 py-2 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD ? 'bg-white dark:bg-cyan-500/15 text-slate-900 dark:text-cyan-200 shadow-sm dark:ring-1 dark:ring-cyan-500/40' : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'}`}

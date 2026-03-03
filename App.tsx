@@ -2289,6 +2289,7 @@ export default function App() {
                     setShowCompanyLanding={setShowCompanyLanding}
                     userProfile={userProfile}
                     companyProfile={companyProfile}
+                    setCompanyProfile={setCompanyProfile}
                     handleAuthAction={handleAuthAction}
                     toggleTheme={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
                     theme={theme}
