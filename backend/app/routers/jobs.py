@@ -1,4 +1,5 @@
 import os
+import re
 from typing import Any
 from fastapi import APIRouter, Request, Depends, HTTPException, Query, BackgroundTasks
 from uuid import uuid4
@@ -726,7 +727,55 @@ def _compose_job_description_from_draft(draft: dict) -> str:
     benefits = _safe_string_list(draft.get("benefits_structured"), limit=20)
     if benefits:
         sections.append("### Benefits\n" + "\n".join([f"- {item}" for item in benefits]))
-    return "\n\n".join(sections).strip()
+    return _prepend_hiring_stage_marker("\n\n".join(sections).strip(), draft)
+
+
+_HIRING_STAGE_PATTERN = re.compile(r"^\s*<!--\s*jobshaman:hiring_stage=([a-z_]+)\s*-->\s*", re.IGNORECASE)
+_ALLOWED_HIRING_STAGES = {
+    "collecting_cvs",
+    "reviewing_first_10",
+    "shortlisting",
+    "final_interviews",
+    "offer_stage",
+}
+
+
+def _normalize_hiring_stage(raw: Any) -> str | None:
+    if not isinstance(raw, str):
+        return None
+    normalized = raw.strip().lower()
+    if normalized in _ALLOWED_HIRING_STAGES:
+        return normalized
+    return None
+
+
+def _extract_hiring_stage_from_description(raw_description: Any) -> tuple[str | None, str]:
+    description = str(raw_description or "")
+    match = _HIRING_STAGE_PATTERN.match(description)
+    if not match:
+        return None, description
+    stage = _normalize_hiring_stage(match.group(1))
+    cleaned = description[match.end():].lstrip()
+    return stage, cleaned
+
+
+def _get_draft_hiring_stage(draft: dict) -> str | None:
+    editor_state = draft.get("editor_state")
+    if isinstance(editor_state, dict):
+        stage = _normalize_hiring_stage(editor_state.get("hiring_stage"))
+        if stage:
+            return stage
+    return _normalize_hiring_stage(draft.get("hiring_stage"))
+
+
+def _prepend_hiring_stage_marker(description: str, draft: dict) -> str:
+    hiring_stage = _get_draft_hiring_stage(draft)
+    if not hiring_stage:
+        return description
+    marker = f"<!-- jobshaman:hiring_stage={hiring_stage} -->"
+    if not description:
+        return marker
+    return f"{marker}\n\n{description}"
 
 def _coerce_job_analysis_payload(raw: dict) -> dict:
     summary = str(raw.get("summary") or "").strip()
@@ -2233,6 +2282,7 @@ async def create_edit_draft_from_job(
     source = source_resp.data if source_resp else None
     if not source:
         raise HTTPException(status_code=404, detail="Job not found")
+    extracted_hiring_stage, cleaned_description = _extract_hiring_stage_from_description(source.get("description"))
     benefits = source.get("benefits")
     if not isinstance(benefits, list):
         benefits = []
@@ -2241,8 +2291,8 @@ async def create_edit_draft_from_job(
         "job_id": _normalize_job_id(job_id),
         "status": "draft",
         "title": source.get("title") or "",
-        "role_summary": source.get("description") or "",
-        "responsibilities": source.get("description") or "",
+        "role_summary": cleaned_description,
+        "responsibilities": cleaned_description,
         "requirements": "",
         "nice_to_have": "",
         "benefits_structured": benefits,
@@ -2255,6 +2305,10 @@ async def create_edit_draft_from_job(
         "workplace_address": source.get("workplace_address") or source.get("location"),
         "location_public": source.get("location"),
         "contact_email": source.get("contact_email"),
+        "editor_state": {
+            "selected_section": "role_summary",
+            "hiring_stage": extracted_hiring_stage or "collecting_cvs",
+        },
         "created_by": user.get("id") or user.get("auth_id"),
         "updated_by": user.get("id") or user.get("auth_id"),
     }
@@ -2305,6 +2359,7 @@ async def duplicate_job_into_draft(
     if not source:
         raise HTTPException(status_code=404, detail="Job not found")
     company_id = str(source.get("company_id") or "")
+    extracted_hiring_stage, cleaned_description = _extract_hiring_stage_from_description(source.get("description"))
     benefits = source.get("benefits")
     if not isinstance(benefits, list):
         benefits = []
@@ -2312,8 +2367,8 @@ async def duplicate_job_into_draft(
         "company_id": company_id,
         "status": "draft",
         "title": f"{str(source.get('title') or '').strip()} (Copy)".strip(),
-        "role_summary": source.get("description") or "",
-        "responsibilities": source.get("description") or "",
+        "role_summary": cleaned_description,
+        "responsibilities": cleaned_description,
         "requirements": "",
         "nice_to_have": "",
         "benefits_structured": benefits,
@@ -2326,6 +2381,10 @@ async def duplicate_job_into_draft(
         "workplace_address": source.get("workplace_address") or source.get("location"),
         "location_public": source.get("location"),
         "contact_email": source.get("contact_email"),
+        "editor_state": {
+            "selected_section": "role_summary",
+            "hiring_stage": extracted_hiring_stage or "collecting_cvs",
+        },
         "created_by": user.get("id") or user.get("auth_id"),
         "updated_by": user.get("id") or user.get("auth_id"),
     }).execute()

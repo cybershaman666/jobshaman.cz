@@ -1,5 +1,5 @@
 import { supabase, isSupabaseConfigured, isSupabaseNetworkCooldownActive, noteSupabaseNetworkFailure } from './supabaseService';
-import { Job, JHI, JHIPreferences, TaxProfile } from '../types';
+import { Job, JHI, JHIPreferences, JobHiringStage, TaxProfile } from '../types';
 import { contextualRelevanceScorer, ContextualRelevanceScorer } from './contextualRelevanceService';
 import { calculateJHI } from '../utils/jhiCalculator';
 import { matchesIcoKeywords, matchesFullTimeKeywords, matchesPartTimeKeywords, matchesBrigadaKeywords } from '../utils/contractType';
@@ -201,6 +201,36 @@ const formatDescription = (desc?: string): string => {
     return desc.replace(/<[^>]*>/g, '').trim();
 };
 
+const HIRING_STAGE_PATTERN = /^\s*<!--\s*jobshaman:hiring_stage=([a-z_]+)\s*-->\s*/i;
+
+const normalizeJobHiringStage = (raw: unknown): JobHiringStage | undefined => {
+    if (typeof raw !== 'string') return undefined;
+    const normalized = raw.trim().toLowerCase();
+    if (
+        normalized === 'collecting_cvs' ||
+        normalized === 'reviewing_first_10' ||
+        normalized === 'shortlisting' ||
+        normalized === 'final_interviews' ||
+        normalized === 'offer_stage'
+    ) {
+        return normalized as JobHiringStage;
+    }
+    return undefined;
+};
+
+const extractHiringStageMetadata = (desc?: string): { description: string; hiringStage?: JobHiringStage } => {
+    const source = desc || '';
+    const match = HIRING_STAGE_PATTERN.exec(source);
+    if (!match) {
+        return { description: source };
+    }
+    const hiringStage = normalizeJobHiringStage(match[1]);
+    return {
+        description: source.slice(match[0].length).trimStart(),
+        hiringStage
+    };
+};
+
 const BENEFIT_PATTERNS = [
     { regex: /flexibiln[íi]|pružn[áa] prac|flexible|flexibel|gleitzeit|elastyczn/i, label: 'Flexibilní pracovní doba' },
     { regex: /dovolen[áa] [5-9]|5 t[ýy]dn[ůu]|25 dn[ůu]|weeks of vacation|urlaub|urlop/i, label: '5 týdnů dovolené' },
@@ -245,7 +275,9 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
     if (scrapedJob.work_type) uniqueTags.push(scrapedJob.work_type);
     if (scrapedJob.education_level) uniqueTags.push(scrapedJob.education_level);
 
-    const fullDesc = scrapedJob.description || 'Popis pozice není k dispozici.';
+    const extractedDescription = extractHiringStageMetadata(scrapedJob.description);
+    const hiringStage = normalizeJobHiringStage((scrapedJob as any)?.hiring_stage) || extractedDescription.hiringStage;
+    const fullDesc = extractedDescription.description || 'Popis pozice není k dispozici.';
 
     const jhi = includeJhi
         ? calculateJHI({
@@ -266,6 +298,7 @@ const transformJob = (scrapedJob: any, includeJhi: boolean = true): Job => {
         type: jobType,
         salaryRange,
         description: fullDesc,
+        hiring_stage: hiringStage,
         postedAt: getRelativeTime(scrapedJob.scraped_at),
         scrapedAt: scrapedJob.scraped_at,
         source: scrapedJob.source || 'Scraper',

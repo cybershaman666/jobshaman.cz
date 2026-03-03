@@ -240,6 +240,25 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
         return labelMap[key] || raw;
     };
 
+    const getHiringStageLabel = (stage?: Job['hiring_stage'] | null): string | null => {
+        switch (stage) {
+            case 'collecting_cvs':
+                return t('job.hiring_stage.collecting_cvs', { defaultValue: 'Collecting CVs' });
+            case 'reviewing_first_10':
+                return t('job.hiring_stage.reviewing_first_10', { defaultValue: 'Reviewing first 10 candidates' });
+            case 'shortlisting':
+                return t('job.hiring_stage.shortlisting', { defaultValue: 'Shortlisting' });
+            case 'final_interviews':
+                return t('job.hiring_stage.final_interviews', { defaultValue: 'Final interviews' });
+            case 'offer_stage':
+                return t('job.hiring_stage.offer_stage', { defaultValue: 'Offer stage' });
+            default:
+                return null;
+        }
+    };
+
+    const hiringStageLabel = getHiringStageLabel(selectedJob?.hiring_stage);
+
     const handleShare = async () => {
         if (!selectedJob) return;
 
@@ -651,6 +670,23 @@ const JobDetailView: React.FC<JobDetailViewProps> = ({
                                 setShowFinancialMethodology={setShowFinancialMethodology}
                                 getTransportIcon={getTransportIcon}
                             />
+
+                            {hiringStageLabel && (
+                                <div className="rounded-xl border border-cyan-200 bg-cyan-50 p-5 dark:border-cyan-900/40 dark:bg-cyan-950/20">
+                                    <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:text-cyan-300">
+                                        {t('job.hiring_stage.label', { defaultValue: 'Hiring status' })}
+                                    </div>
+                                    <div className="mt-2 flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-white">
+                                        <Briefcase size={16} className="text-cyan-600 dark:text-cyan-300" />
+                                        <span>{hiringStageLabel}</span>
+                                    </div>
+                                    <div className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
+                                        {t('job.hiring_stage.helper', {
+                                            defaultValue: 'The employer updates this to show whether they are still collecting CVs or already moving candidates deeper into the process.'
+                                        })}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* Benefits Section */}
                             {selectedJob.benefits && selectedJob.benefits.length > 0 && (

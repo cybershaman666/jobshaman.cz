@@ -103,6 +103,25 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
     return rtf.format(-Math.floor(diffSeconds / 604800), 'week');
   };
 
+  const getHiringStageLabel = (stage?: Job['hiring_stage'] | null): string | null => {
+    switch (stage) {
+      case 'collecting_cvs':
+        return t('job.hiring_stage.collecting_cvs', { defaultValue: 'Collecting CVs' });
+      case 'reviewing_first_10':
+        return t('job.hiring_stage.reviewing_first_10', { defaultValue: 'Reviewing first 10 candidates' });
+      case 'shortlisting':
+        return t('job.hiring_stage.shortlisting', { defaultValue: 'Shortlisting' });
+      case 'final_interviews':
+        return t('job.hiring_stage.final_interviews', { defaultValue: 'Final interviews' });
+      case 'offer_stage':
+        return t('job.hiring_stage.offer_stage', { defaultValue: 'Offer stage' });
+      default:
+        return null;
+    }
+  };
+
+  const hiringStageLabel = getHiringStageLabel(job.hiring_stage);
+
 
 
   const handleSaveClick = (e: React.MouseEvent) => {
@@ -195,6 +214,12 @@ const JobCard: React.FC<JobCardProps> = ({ job, onClick, isSelected, isSaved, on
       <div className="flex justify-between items-center mb-4">
         {/* Left Side Badges */}
         <div className="flex items-center gap-2 flex-wrap">
+          {hiringStageLabel && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-cyan-50 text-cyan-700 border border-cyan-200 dark:bg-cyan-950/30 dark:text-cyan-200 dark:border-cyan-800/70">
+              <Briefcase size={11} className="flex-shrink-0" />
+              <span>{hiringStageLabel}</span>
+            </div>
+          )}
           {distanceBadge}
 
           {hasTransparentSalary && (

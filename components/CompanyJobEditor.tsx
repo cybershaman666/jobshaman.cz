@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import Markdown from 'markdown-to-jsx';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CheckCircle2, Copy, Eye, Loader2, PauseCircle, PlayCircle, RefreshCw, Save, Sparkles, UploadCloud, XCircle } from 'lucide-react';
-import { CompanyProfile, Job, JobDraft, JobValidationReport, JobVersion } from '../types';
+import { CompanyProfile, Job, JobDraft, JobHiringStage, JobValidationReport, JobVersion } from '../types';
 import {
   createCompanyJobDraft,
   createEditDraftFromJob,
@@ -105,6 +105,38 @@ const compactLines = (value: string): string[] =>
     .map((line) => line.trim())
     .filter(Boolean);
 
+const DEFAULT_HIRING_STAGE: JobHiringStage = 'collecting_cvs';
+
+const HIRING_STAGE_OPTIONS: Array<{ value: JobHiringStage; label: string }> = [
+  { value: 'collecting_cvs', label: 'Collecting CVs' },
+  { value: 'reviewing_first_10', label: 'Reviewing first 10 candidates' },
+  { value: 'shortlisting', label: 'Shortlisting' },
+  { value: 'final_interviews', label: 'Final interviews' },
+  { value: 'offer_stage', label: 'Offer stage' }
+];
+
+const normalizeHiringStage = (value: unknown): JobHiringStage | null => {
+  if (typeof value !== 'string') return null;
+  const normalized = value.trim().toLowerCase();
+  if (
+    normalized === 'collecting_cvs' ||
+    normalized === 'reviewing_first_10' ||
+    normalized === 'shortlisting' ||
+    normalized === 'final_interviews' ||
+    normalized === 'offer_stage'
+  ) {
+    return normalized as JobHiringStage;
+  }
+  return null;
+};
+
+const attachHiringStageMetadata = (description: string, hiringStage?: JobHiringStage | null): string => {
+  const normalizedStage = normalizeHiringStage(hiringStage) || DEFAULT_HIRING_STAGE;
+  const marker = `<!-- jobshaman:hiring_stage=${normalizedStage} -->`;
+  const trimmedDescription = description.trim();
+  return trimmedDescription ? `${marker}\n\n${trimmedDescription}` : marker;
+};
+
 const toDraftInput = (draft: JobDraft) => ({
   status: draft.status,
   title: draft.title,
@@ -126,7 +158,11 @@ const toDraftInput = (draft: JobDraft) => ({
   contact_email: draft.contact_email || null,
   quality_report: draft.quality_report || null,
   ai_suggestions: draft.ai_suggestions || null,
-  editor_state: draft.editor_state || null
+  editor_state: {
+    ...((draft.editor_state || {}) as Record<string, unknown>),
+    selected_section: ((draft.editor_state || {}) as Record<string, unknown>).selected_section || 'role_summary',
+    hiring_stage: normalizeHiringStage(draft.hiring_stage) || DEFAULT_HIRING_STAGE
+  }
 });
 
 const composePreviewMarkdown = (
@@ -188,8 +224,10 @@ const createBaseDraft = (companyProfile: CompanyProfile, userEmail?: string): Pa
   contact_email: userEmail || '',
   status: 'draft',
   editor_state: {
-    selected_section: 'role_summary'
-  }
+    selected_section: 'role_summary',
+    hiring_stage: DEFAULT_HIRING_STAGE
+  },
+  hiring_stage: DEFAULT_HIRING_STAGE
 });
 
 const createLocalValidationReport = (draft: JobDraft): JobValidationReport => {
@@ -252,17 +290,28 @@ const createLocalDraftRecord = (
     salary_currency: seed?.salary_currency || 'CZK',
     salary_timeframe: seed?.salary_timeframe || 'monthly',
     application_instructions: seed?.application_instructions ?? '',
+    hiring_stage: normalizeHiringStage(seed?.hiring_stage) || DEFAULT_HIRING_STAGE,
     created_at: seed?.created_at || now,
     updated_at: now,
   } as JobDraft;
 };
 
-const normalizeDraft = (draft: JobDraft): JobDraft => ({
-  ...draft,
-  benefits_structured: ensureArray(draft.benefits_structured),
-  quality_report: normalizeValidationReport(draft.quality_report),
-  editor_state: draft.editor_state || { selected_section: 'role_summary' }
-});
+const normalizeDraft = (draft: JobDraft): JobDraft => {
+  const editorState = ((draft.editor_state || {}) as Record<string, unknown>);
+  const hiringStage = normalizeHiringStage(draft.hiring_stage ?? editorState.hiring_stage) || DEFAULT_HIRING_STAGE;
+
+  return {
+    ...draft,
+    hiring_stage: hiringStage,
+    benefits_structured: ensureArray(draft.benefits_structured),
+    quality_report: normalizeValidationReport(draft.quality_report),
+    editor_state: {
+      ...editorState,
+      selected_section: editorState.selected_section || 'role_summary',
+      hiring_stage: hiringStage
+    }
+  };
+};
 
 const normalizeDraftRows = (rows: JobDraft[] | null | undefined): JobDraft[] =>
   ensureArray(rows).map(normalizeDraft);
@@ -293,6 +342,7 @@ const createLocalDraftFromJob = (
   location_public: job.location || '',
   application_instructions: '',
   contact_email: userEmail || '',
+  hiring_stage: job.hiring_stage || DEFAULT_HIRING_STAGE,
 });
 
 const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
@@ -727,7 +777,10 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
         const jobPayload = {
           title: nextDraft.title,
           company: companyProfile.name,
-          description: composePreviewMarkdown(nextDraft, companyProfile.name, previewLabels),
+          description: attachHiringStageMetadata(
+            composePreviewMarkdown(nextDraft, companyProfile.name, previewLabels),
+            nextDraft.hiring_stage
+          ),
           location: nextDraft.location_public || nextDraft.workplace_address || 'Location not specified',
           salary_from: nextDraft.salary_from ?? null,
           salary_to: nextDraft.salary_to ?? null,
@@ -1168,6 +1221,28 @@ const CompanyJobEditor: React.FC<CompanyJobEditorProps> = ({
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-base font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
                     placeholder={t('company.job_editor.role_title_placeholder', { defaultValue: 'Senior Product Designer' })}
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.hiring_stage', { defaultValue: 'Hiring status' })}
+                  </label>
+                  <select
+                    value={draft.hiring_stage || DEFAULT_HIRING_STAGE}
+                    onChange={(e) => patchDraft({ hiring_stage: e.target.value as JobHiringStage })}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white"
+                  >
+                    {HIRING_STAGE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {t(`company.job_editor.hiring_stage.${option.value}`, { defaultValue: option.label })}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="text-[11px] leading-5 text-slate-500 dark:text-slate-400">
+                    {t('company.job_editor.hiring_stage_desc', {
+                      defaultValue: 'Candidates will see where the process currently is and whether you are still actively reviewing.'
+                    })}
+                  </div>
                 </div>
 
                 <div className="space-y-2">

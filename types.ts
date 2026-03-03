@@ -237,6 +237,13 @@ export interface SalaryEstimate {
   currency: string;
 }
 
+export type JobHiringStage =
+  | 'collecting_cvs'
+  | 'reviewing_first_10'
+  | 'shortlisting'
+  | 'final_interviews'
+  | 'offer_stage';
+
 export interface Job {
   id: string;
   company_id?: string;
@@ -285,6 +292,7 @@ export interface Job {
   legality_reasons?: string[];
   country_code?: string;
   language_code?: string;
+  hiring_stage?: JobHiringStage | null;
 }
 
 export interface JobRecommendationBreakdown {
@@ -587,6 +595,7 @@ export interface JobDraft {
   location_public?: string | null;
   application_instructions: string;
   contact_email?: string | null;
+  hiring_stage?: JobHiringStage | null;
   quality_report?: JobValidationReport | null;
   ai_suggestions?: Record<string, unknown> | null;
   editor_state?: Record<string, unknown> | null;
