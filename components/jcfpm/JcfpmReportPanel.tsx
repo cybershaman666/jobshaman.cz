@@ -1130,13 +1130,13 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
           {/* 🔮 Archetype Hero Section */}
           <motion.div
             variants={itemVariants}
-            className="relative overflow-hidden rounded-[2.5rem] border border-white/20 shadow-2xl bg-white/5 backdrop-blur-xl group"
+            className="relative overflow-hidden rounded-[2.5rem] border border-slate-200/80 dark:border-white/20 shadow-2xl bg-gradient-to-br from-white via-cyan-50/70 to-teal-50/70 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 backdrop-blur-xl group"
           >
-            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-teal-500/10 opacity-50 group-hover:opacity-70 transition-opacity duration-700" />
+            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 via-transparent to-teal-500/10 opacity-60 group-hover:opacity-80 transition-opacity duration-700" />
             <div className="relative p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 md:gap-12">
               <div className="shrink-0 relative">
                 <div className="absolute inset-0 bg-cyan-500/20 blur-3xl rounded-full" />
-                <div className="relative w-32 h-32 md:w-40 md:h-40 bg-white/10 backdrop-blur-2xl rounded-[2rem] border border-white/30 flex items-center justify-center shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500">
+                <div className="relative w-32 h-32 md:w-40 md:h-40 bg-white/80 dark:bg-white/10 backdrop-blur-2xl rounded-[2rem] border border-white/70 dark:border-white/30 flex items-center justify-center shadow-2xl transform rotate-3 hover:rotate-0 transition-transform duration-500">
                   {React.createElement(
                     (DIM_ICONS as any)[archetype.icon.toLowerCase()] ||
                     (archetype.icon === 'Rocket' ? Rocket :
@@ -1151,13 +1151,13 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
                 </div>
               </div>
               <div className="flex-1 text-center md:text-left space-y-4">
-                <div className="inline-flex px-4 py-1.5 rounded-full bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-bold uppercase tracking-widest animate-pulse">
+                <div className="inline-flex px-4 py-1.5 rounded-full bg-cyan-500/15 dark:bg-cyan-500/20 border border-cyan-500/30 text-cyan-700 dark:text-cyan-300 text-xs font-bold uppercase tracking-widest animate-pulse">
                   {labels.archetypeTitle}
                 </div>
-                <h1 className="text-4xl md:text-5xl font-black text-white italic tracking-tighter uppercase leading-none">
+                <h1 className="text-4xl md:text-5xl font-black text-slate-900 dark:text-white italic tracking-tighter uppercase leading-none">
                   {locale === 'en' ? archetype.title_en : archetype.title}
                 </h1>
-                <p className="text-lg md:text-xl text-white/70 font-medium leading-relaxed max-w-2xl">
+                <p className="text-lg md:text-xl text-slate-600 dark:text-white/70 font-medium leading-relaxed max-w-2xl">
                   {locale === 'en' ? archetype.description_en : archetype.description}
                 </p>
               </div>
@@ -1165,7 +1165,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
           </motion.div>
 
           {/* 🚀 AI Interpretation Cards */}
-          <motion.div variants={itemVariants} className="bg-white/5 backdrop-blur-lg rounded-2xl border border-white/10 shadow-xl overflow-hidden mt-6 print:mt-0 print:border-none print:shadow-none">
+          <motion.div variants={itemVariants} className="mt-6 overflow-hidden rounded-[2rem] border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-cyan-50/40 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 backdrop-blur-lg shadow-[0_24px_60px_-32px_rgba(15,23,42,0.28)] print:mt-0 print:border-none print:shadow-none">
             <div className="bg-gradient-to-r from-cyan-50 to-teal-50 dark:from-slate-800 dark:to-slate-850 px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between print:bg-none print:border-b-2 print:border-slate-900">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-cyan-600 text-white rounded-lg shadow-sm print:bg-black">
@@ -1276,7 +1276,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
           </motion.div>
 
           {(bigFive || temperament) && (
-            <motion.div variants={itemVariants} className="mt-8 bg-white/5 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-8 shadow-2xl jcfpm-avoid-break print:border-slate-300 print:shadow-none text-white">
+            <motion.div variants={itemVariants} className="mt-8 rounded-[2.5rem] border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-cyan-50/30 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 p-8 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.3)] jcfpm-avoid-break print:border-slate-300 print:shadow-none">
               <div className="flex items-center justify-between gap-4 mb-5">
                 <div className="flex items-center gap-2 text-slate-800 dark:text-slate-100 font-bold text-lg print:text-black">
                   <BarChart3 className="w-5 h-5 text-cyan-500 print:text-black" />
@@ -1342,9 +1342,9 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
                   <motion.div
                     whileHover={{ y: -8, scale: 1.02 }}
                     key={`${role.title}-${idx}`}
-                    className="jcfpm-avoid-break bg-white/5 backdrop-blur-md rounded-3xl border border-white/10 p-6 shadow-xl transition-all flex flex-col h-full print:border-slate-300 print:shadow-none group overflow-hidden"
+                    className="jcfpm-avoid-break relative rounded-3xl border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-cyan-50/35 dark:from-slate-950/60 dark:via-slate-900/75 dark:to-slate-950/70 p-6 shadow-[0_20px_50px_-30px_rgba(15,23,42,0.28)] transition-all flex flex-col h-full print:border-slate-300 print:shadow-none group overflow-hidden"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/8 via-transparent to-teal-500/8 opacity-70 group-hover:opacity-100 transition-opacity" />
                     <div className="relative z-10 h-full flex flex-col">
                       <div className="flex justify-between items-start mb-3">
                         <h4 className="font-bold text-slate-800 dark:text-slate-100 line-clamp-2 leading-tight print:text-black">{role.title}</h4>
@@ -1362,7 +1362,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
                         {role.remote_friendly && <span className="bg-teal-50 dark:bg-teal-500/10 text-teal-700 dark:text-teal-400 text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded border border-teal-100 dark:border-teal-900/30 print:border-slate-300 print:text-black">Remote: {role.remote_friendly}</span>}
                       </div>
 
-                      <div className="text-xs text-slate-400 mt-auto pt-3 border-t border-white/5 print:border-slate-200 print:text-black">
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-auto pt-3 border-t border-slate-200/80 dark:border-white/5 print:border-slate-200 print:text-black">
                         {aiReportResolved.top_roles.find(tr => tr.title === role.title)?.reason || labels.roleFallback}
                       </div>
                     </div>
@@ -1374,7 +1374,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
 
           {/* 🕸 Radar & Bridge section */}
           <motion.div variants={itemVariants} className="mt-8 grid lg:grid-cols-[1.2fr_1fr] gap-8 print:grid-cols-1 jcfpm-page-break-before">
-            <div className="jcfpm-avoid-break bg-white/5 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-8 shadow-2xl print:border-slate-300 print:shadow-none text-white">
+            <div className="jcfpm-avoid-break rounded-[2.5rem] border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-cyan-50/25 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 p-8 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.3)] print:border-slate-300 print:shadow-none">
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center gap-2 print:text-black">
                 <Activity className="w-5 h-5 text-cyan-500 print:text-black" />
                 {labels.radarTitle}
@@ -1407,7 +1407,7 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
               </div>
             </div>
 
-            <div className="jcfpm-avoid-break bg-white/5 backdrop-blur-xl rounded-[2.5rem] border border-white/10 p-8 shadow-2xl flex flex-col print:border-slate-300 print:shadow-none print:mt-6 text-white">
+            <div className="jcfpm-avoid-break rounded-[2.5rem] border border-slate-200/80 dark:border-white/10 bg-gradient-to-br from-white via-slate-50 to-teal-50/25 dark:from-slate-950/70 dark:via-slate-900/80 dark:to-slate-950/70 p-8 shadow-[0_28px_70px_-36px_rgba(15,23,42,0.3)] flex flex-col print:border-slate-300 print:shadow-none print:mt-6">
               <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 mb-2 flex items-center gap-2 print:text-black">
                 <ShieldCheck className="w-5 h-5 text-cyan-500 print:text-black" />
                 {labels.alignmentTitle}
@@ -1447,8 +1447,8 @@ const JcfpmReportPanel: React.FC<Props> = ({ snapshot, showAdvancedReport = true
 
           {/* 📚 Detailed Analysis Accordion List */}
           <motion.div variants={itemVariants} className="mt-8 jcfpm-page-break-before px-2">
-            <h3 className="text-xl font-black text-white italic uppercase tracking-tighter mb-6 flex items-center gap-3 print:text-black">
-              <Crosshair className="w-6 h-6 text-cyan-400 print:text-black" />
+            <h3 className="text-xl font-black text-slate-900 dark:text-white italic uppercase tracking-tighter mb-6 flex items-center gap-3 print:text-black">
+              <Crosshair className="w-6 h-6 text-cyan-500 dark:text-cyan-400 print:text-black" />
               {labels.detailedAnalysis}
             </h3>
             <motion.div variants={containerVariants}>

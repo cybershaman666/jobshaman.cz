@@ -41,13 +41,50 @@ function cn(...classes: (string | boolean | undefined)[]) {
 const normalizeRenderableSnapshot = (value: unknown): JcfpmSnapshotV1 | null => {
   if (!value || typeof value !== 'object') return null;
   const candidate = value as Record<string, any>;
-  if (!Array.isArray(candidate.dimension_scores)) return null;
-  if (!Array.isArray(candidate.fit_scores)) return null;
-  const completedAt = candidate.completed_at || candidate.completedAt;
+  const dimensionScores = Array.isArray(candidate.dimension_scores)
+    ? candidate.dimension_scores
+    : Array.isArray(candidate.dimensionScores)
+      ? candidate.dimensionScores
+      : [];
+  if (!dimensionScores.length) return null;
+
+  const fitScores = Array.isArray(candidate.fit_scores)
+    ? candidate.fit_scores
+    : Array.isArray(candidate.fitScores)
+      ? candidate.fitScores
+      : [];
+
+  const subdimensionScores = Array.isArray(candidate.subdimension_scores)
+    ? candidate.subdimension_scores
+    : Array.isArray(candidate.subdimensionScores)
+      ? candidate.subdimensionScores
+      : [];
+
+  const completedAt = candidate.completed_at || candidate.completedAt || candidate.created_at || candidate.createdAt;
   if (typeof completedAt !== 'string' || !completedAt) return null;
+
+  const percentileSummary = candidate.percentile_summary && typeof candidate.percentile_summary === 'object'
+    ? candidate.percentile_summary
+    : dimensionScores.reduce((acc: Record<string, number>, row: any) => {
+        const key = String(row?.dimension || '').trim();
+        if (key) acc[key] = Number(row?.percentile || 0);
+        return acc;
+      }, {});
+
   return {
     ...candidate,
+    schema_version: candidate.schema_version || 'jcfpm-v1',
     completed_at: completedAt,
+    responses: candidate.responses && typeof candidate.responses === 'object' ? candidate.responses : {},
+    item_ids: Array.isArray(candidate.item_ids) ? candidate.item_ids : [],
+    variant_seed: candidate.variant_seed || candidate.variantSeed || undefined,
+    dimension_scores: dimensionScores,
+    subdimension_scores: subdimensionScores,
+    fit_scores: fitScores,
+    ai_report: candidate.ai_report ?? candidate.aiReport ?? null,
+    percentile_summary: percentileSummary,
+    confidence: typeof candidate.confidence === 'number' ? candidate.confidence : Number(candidate.confidence || 0),
+    archetype: candidate.archetype ?? null,
   } as JcfpmSnapshotV1;
 };
 

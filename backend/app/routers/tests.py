@@ -58,6 +58,41 @@ def _merge_snapshots(base_snapshot: Dict[str, Any], incoming_snapshot: Dict[str,
         for row in (incoming_snapshot.get("dimension_scores") or [])
         if isinstance(row, dict) and row.get("dimension")
     }
+    if not tested_dims:
+        return incoming_snapshot
+
+    by_dim: Dict[str, dict] = {}
+    for row in (base_snapshot.get("dimension_scores") or []):
+        if isinstance(row, dict) and row.get("dimension"):
+            by_dim[str(row["dimension"])] = row
+    for row in (incoming_snapshot.get("dimension_scores") or []):
+        if isinstance(row, dict) and row.get("dimension"):
+            by_dim[str(row["dimension"])] = row
+    merged_scores = [by_dim[dim] for dim in JCFPM_DIMENSIONS if dim in by_dim]
+
+    merged_percentiles = dict(base_snapshot.get("percentile_summary") or {})
+    merged_percentiles.update(incoming_snapshot.get("percentile_summary") or {})
+
+    merged_item_ids = list(dict.fromkeys([
+        *(base_snapshot.get("item_ids") or []),
+        *(incoming_snapshot.get("item_ids") or []),
+    ]))
+
+    return {
+        **base_snapshot,
+        "completed_at": incoming_snapshot.get("completed_at") or base_snapshot.get("completed_at"),
+        "responses": {
+            **(base_snapshot.get("responses") or {}),
+            **(incoming_snapshot.get("responses") or {}),
+        },
+        "item_ids": merged_item_ids,
+        "variant_seed": incoming_snapshot.get("variant_seed") or base_snapshot.get("variant_seed"),
+        "dimension_scores": merged_scores,
+        "percentile_summary": merged_percentiles,
+        "confidence": incoming_snapshot.get("confidence", base_snapshot.get("confidence")),
+        "fit_scores": (base_snapshot.get("fit_scores") or incoming_snapshot.get("fit_scores") or []),
+        "ai_report": base_snapshot.get("ai_report") or incoming_snapshot.get("ai_report"),
+    }
 
 
 def _is_renderable_jcfpm_snapshot(snapshot: Any) -> bool:
@@ -104,6 +139,7 @@ def _snapshot_from_result_row(row: Dict[str, Any]) -> Dict[str, Any] | None:
 
 
 def _load_jcfpm_preferences(user_id: str) -> Dict[str, Any]:
+    profile_prefs: Dict[str, Any] = {}
     for table_name in ("profiles", "candidate_profiles"):
         try:
             resp = (
@@ -115,10 +151,15 @@ def _load_jcfpm_preferences(user_id: str) -> Dict[str, Any]:
             )
             prefs = (resp.data or {}).get("preferences") if resp and resp.data else {}
             if isinstance(prefs, dict):
-                return prefs
+                if table_name == "profiles":
+                    profile_prefs = prefs
+                    if prefs.get("jcfpm_v1") is not None:
+                        return prefs
+                elif prefs.get("jcfpm_v1") is not None:
+                    return prefs
         except Exception:
             continue
-    return {}
+    return profile_prefs
 
 
 def _persist_jcfpm_preferences(user_id: str, prefs: Dict[str, Any]) -> None:
@@ -132,41 +173,6 @@ def _persist_jcfpm_preferences(user_id: str, prefs: Dict[str, Any]) -> None:
         supabase.table("candidate_profiles").update({"preferences": prefs}).eq("id", user_id).execute()
     except Exception:
         pass
-    if not tested_dims:
-        return incoming_snapshot
-
-    by_dim: Dict[str, dict] = {}
-    for row in (base_snapshot.get("dimension_scores") or []):
-        if isinstance(row, dict) and row.get("dimension"):
-            by_dim[str(row["dimension"])] = row
-    for row in (incoming_snapshot.get("dimension_scores") or []):
-        if isinstance(row, dict) and row.get("dimension"):
-            by_dim[str(row["dimension"])] = row
-    merged_scores = [by_dim[dim] for dim in JCFPM_DIMENSIONS if dim in by_dim]
-
-    merged_percentiles = dict(base_snapshot.get("percentile_summary") or {})
-    merged_percentiles.update(incoming_snapshot.get("percentile_summary") or {})
-
-    merged_item_ids = list(dict.fromkeys([
-        *(base_snapshot.get("item_ids") or []),
-        *(incoming_snapshot.get("item_ids") or []),
-    ]))
-
-    return {
-        **base_snapshot,
-        "completed_at": incoming_snapshot.get("completed_at") or base_snapshot.get("completed_at"),
-        "responses": {
-            **(base_snapshot.get("responses") or {}),
-            **(incoming_snapshot.get("responses") or {}),
-        },
-        "item_ids": merged_item_ids,
-        "variant_seed": incoming_snapshot.get("variant_seed") or base_snapshot.get("variant_seed"),
-        "dimension_scores": merged_scores,
-        "percentile_summary": merged_percentiles,
-        "confidence": incoming_snapshot.get("confidence", base_snapshot.get("confidence")),
-        "fit_scores": (base_snapshot.get("fit_scores") or incoming_snapshot.get("fit_scores") or []),
-        "ai_report": base_snapshot.get("ai_report") or incoming_snapshot.get("ai_report"),
-    }
 
 
 @router.get("/tests/jcfpm/items")
