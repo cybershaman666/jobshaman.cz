@@ -158,6 +158,11 @@ class JobApplicationStatusUpdateRequest(BaseModel):
     status: str = Field(..., pattern=r"^(pending|reviewed|shortlisted|rejected|hired)$")
 
 
+class ApplicationMessageCreateRequest(BaseModel):
+    body: Optional[str] = Field(default=None, max_length=5000)
+    attachments: Optional[List[dict]] = Field(default=None, max_length=5)
+
+
 class JobDraftUpsertRequest(BaseModel):
     status: Optional[Literal["draft", "ready_for_publish", "published_linked", "archived"]] = None
     title: Optional[str] = Field(default=None, max_length=200)

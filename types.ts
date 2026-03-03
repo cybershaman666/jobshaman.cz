@@ -253,6 +253,7 @@ export interface Job {
   scrapedAt?: string; // ISO Timestamp for sorting
   source: string;
   url?: string; // Original job posting URL
+  contact_email?: string | null;
   jhi: JHI;
   noiseMetrics: NoiseMetrics;
   transparency: TransparencyMetrics;
@@ -386,7 +387,7 @@ export interface CompanyApplicationRow {
   id: string;
   job_id: string | number;
   candidate_id: string;
-  status: 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'hired';
+  status: 'pending' | 'reviewed' | 'shortlisted' | 'rejected' | 'hired' | 'withdrawn';
   created_at?: string;
   submitted_at?: string;
   updated_at?: string;
@@ -493,6 +494,65 @@ export interface ApplicationDossier {
   job_title?: string;
   candidate_name?: string;
   candidate_email?: string;
+}
+
+export interface CandidateApplicationJobSnapshot {
+  title?: string | null;
+  company?: string | null;
+  location?: string | null;
+  url?: string | null;
+  source?: string | null;
+  contact_email?: string | null;
+}
+
+export interface CandidateApplicationSummary {
+  id: string;
+  job_id: string | number;
+  company_id?: string;
+  status: CompanyApplicationRow['status'];
+  submitted_at?: string;
+  updated_at?: string;
+  source?: string;
+  has_cover_letter?: boolean;
+  has_cv?: boolean;
+  has_jcfpm?: boolean;
+  jcfpm_share_level?: ApplicationJcfpmShareLevel;
+  company_name?: string | null;
+  company_website?: string | null;
+  job_snapshot?: CandidateApplicationJobSnapshot | null;
+}
+
+export interface CandidateApplicationDetail extends CandidateApplicationSummary {
+  reviewed_at?: string;
+  reviewed_by?: string;
+  cover_letter?: string | null;
+  cv_document_id?: string | null;
+  cv_snapshot?: ApplicationDossier['cv_snapshot'];
+  candidate_profile_snapshot?: ApplicationDossier['candidate_profile_snapshot'];
+  shared_jcfpm_payload?: ApplicationDossier['shared_jcfpm_payload'];
+  application_payload?: Record<string, unknown> | null;
+}
+
+export interface ApplicationMessageAttachment {
+  name: string;
+  url: string;
+  path?: string | null;
+  size?: number | null;
+  content_type?: string | null;
+}
+
+export interface ApplicationMessage {
+  id: string;
+  application_id: string;
+  company_id?: string | null;
+  candidate_id?: string | null;
+  sender_user_id?: string | null;
+  sender_role: 'candidate' | 'recruiter';
+  body: string;
+  attachments: ApplicationMessageAttachment[];
+  created_at: string;
+  read_by_candidate_at?: string | null;
+  read_by_company_at?: string | null;
 }
 
 export type JobDraftStatus = 'draft' | 'ready_for_publish' | 'published_linked' | 'archived';

@@ -19,6 +19,7 @@ _APP_URL = "https://jobshaman.cz"
 _DIGEST_WINDOW_MINUTES = 20
 _DIGEST_LOOKBACK_HOURS = 36
 _REMOTE_ONLY_FLAGS = ["remote", "remote-first", "work from home", "home office", "homeoffice", "fully remote"]
+_PROCESS_DIGEST_LAST_SENT_AT: dict[str, str] = {}
 _TIMEZONE_TO_COUNTRY = {
     "Europe/Prague": "CZ",
     "Europe/Bratislava": "SK",
@@ -110,6 +111,84 @@ def _profile_obj(candidate_profile):
     if isinstance(candidate_profile, list):
         return candidate_profile[0] if candidate_profile else None
     return candidate_profile if isinstance(candidate_profile, dict) else None
+
+
+def _candidate_preferences(candidate_profile) -> dict:
+    profile = _profile_obj(candidate_profile)
+    if not isinstance(profile, dict):
+        return {}
+    preferences = profile.get("preferences")
+    return preferences if isinstance(preferences, dict) else {}
+
+
+def _parse_iso_timestamp(value: Optional[str]) -> Optional[datetime]:
+    if not value:
+        return None
+    try:
+        parsed = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed.astimezone(timezone.utc)
+    except Exception:
+        return None
+
+
+def _candidate_digest_last_sent(candidate_profile) -> Optional[str]:
+    preferences = _candidate_preferences(candidate_profile)
+    system = preferences.get("system")
+    if isinstance(system, dict):
+        for key in ("dailyDigestLastSentAt", "daily_digest_last_sent_at", "digest_last_sent_at"):
+            value = system.get(key)
+            if isinstance(value, str) and value.strip():
+                return value.strip()
+    for key in ("dailyDigestLastSentAt", "daily_digest_last_sent_at"):
+        value = preferences.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return None
+
+
+def _resolve_last_sent_marker(user_id: str, profile_last_sent: Optional[str], candidate_profile) -> Optional[str]:
+    candidates = [
+        str(profile_last_sent or "").strip() or None,
+        _candidate_digest_last_sent(candidate_profile),
+        _PROCESS_DIGEST_LAST_SENT_AT.get(str(user_id or "").strip()),
+    ]
+    latest_dt: Optional[datetime] = None
+    latest_value: Optional[str] = None
+    for candidate in candidates:
+        parsed = _parse_iso_timestamp(candidate)
+        if not parsed:
+            continue
+        if latest_dt is None or parsed > latest_dt:
+            latest_dt = parsed
+            latest_value = parsed.isoformat()
+    return latest_value
+
+
+def _persist_digest_last_sent(user_id: str, candidate_profile, sent_at_iso: str) -> None:
+    uid = str(user_id or "").strip()
+    if not uid:
+        return
+
+    _PROCESS_DIGEST_LAST_SENT_AT[uid] = sent_at_iso
+
+    try:
+        supabase.table("profiles").update({"daily_digest_last_sent_at": sent_at_iso}).eq("id", uid).execute()
+    except Exception as exc:
+        print(f"⚠️ Failed to update daily_digest_last_sent_at for {uid}: {exc}")
+
+    try:
+        preferences = dict(_candidate_preferences(candidate_profile))
+        system = preferences.get("system")
+        if not isinstance(system, dict):
+            system = {}
+        system = dict(system)
+        system["dailyDigestLastSentAt"] = sent_at_iso
+        preferences["system"] = system
+        supabase.table("candidate_profiles").update({"preferences": preferences}).eq("id", uid).execute()
+    except Exception as exc:
+        print(f"⚠️ Failed to persist digest fallback marker for {uid}: {exc}")
 
 
 def _normalize_locale_code(locale: Optional[str]) -> str:
@@ -803,7 +882,7 @@ def run_daily_job_digest() -> None:
             .select(
                 "id,email,full_name,preferred_locale,preferred_country_code,daily_digest_enabled,daily_digest_last_sent_at,"
                 "daily_digest_time,daily_digest_timezone,daily_digest_push_enabled,"
-                "candidate_profiles(lat,lng,address,job_title,skills,cv_text,cv_ai_text)"
+                "candidate_profiles(lat,lng,address,job_title,skills,cv_text,cv_ai_text,tax_profile,preferences)"
             )
             .eq("role", "candidate")
             .execute()
@@ -829,19 +908,26 @@ def run_daily_job_digest() -> None:
     
             digest_time = _parse_digest_time(str(row.get("daily_digest_time") or "") or None)
             digest_tz = str(row.get("daily_digest_timezone") or _DEFAULT_TZ)
-            last_sent = str(row.get("daily_digest_last_sent_at") or "") or None
+            candidate_profile = row.get("candidate_profiles")
+            last_sent = _resolve_last_sent_marker(
+                user_id=user_id,
+                profile_last_sent=str(row.get("daily_digest_last_sent_at") or "") or None,
+                candidate_profile=candidate_profile,
+            )
             if not _should_send_now(last_sent, digest_time, digest_tz):
                 print(
                     f"⏭️ [Digest] outside window user={user_id}: "
                     f"time={digest_time}, tz={digest_tz}, last_sent={last_sent}"
                 )
                 continue
-    
-            candidate_profile = row.get("candidate_profiles")
+
             c_lat, c_lng = _candidate_location(candidate_profile)
             c_address = _candidate_address(candidate_profile)
+            profile_obj = _profile_obj(candidate_profile)
+            tax_profile = profile_obj.get("tax_profile") if isinstance(profile_obj, dict) and isinstance(profile_obj.get("tax_profile"), dict) else {}
+            tax_country_code = str(tax_profile.get("countryCode") or tax_profile.get("country_code") or "").strip().upper() or None
             digest_country_code = _resolve_digest_country_code(
-                preferred_country_code=str(row.get("preferred_country_code") or "") or None,
+                preferred_country_code=str(row.get("preferred_country_code") or "").strip().upper() or tax_country_code,
                 preferred_locale=str(row.get("preferred_locale") or "") or None,
                 candidate_profile=candidate_profile,
                 c_lat=c_lat,
@@ -1011,10 +1097,7 @@ def run_daily_job_digest() -> None:
             )
     
             if sent_successfully:
-                try:
-                    supabase.table("profiles").update({"daily_digest_last_sent_at": now_utc_iso}).eq("id", user_id).execute()
-                except Exception as exc:
-                    print(f"⚠️ Failed to update daily_digest_last_sent_at for {user_id}: {exc}")
+                _persist_digest_last_sent(user_id=user_id, candidate_profile=candidate_profile, sent_at_iso=now_utc_iso)
             else:
                 print(
                     f"⚠️ Digest not marked as sent for {user_id}: "

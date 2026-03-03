@@ -184,7 +184,20 @@ export const useUserProfile = () => {
                                 user.email,
                                 name,
                                 role,
-                                user.user_metadata?.avatar_url || user.user_metadata?.picture || undefined
+                                user.user_metadata?.avatar_url || user.user_metadata?.picture || undefined,
+                                typeof user.user_metadata?.preferred_locale === 'string' ? user.user_metadata.preferred_locale : undefined,
+                                typeof user.user_metadata?.daily_digest_timezone === 'string' ? user.user_metadata.daily_digest_timezone : undefined,
+                                {
+                                    preferredCountryCode:
+                                        typeof user.user_metadata?.preferred_country_code === 'string'
+                                            ? user.user_metadata.preferred_country_code
+                                            : undefined,
+                                    dailyDigestEnabled: Boolean(user.user_metadata?.daily_digest_enabled),
+                                    dailyDigestTimezone:
+                                        typeof user.user_metadata?.daily_digest_timezone === 'string'
+                                            ? user.user_metadata.daily_digest_timezone
+                                            : undefined,
+                                }
                             );
                             profile = await getUserProfile(userId); // Retry fetch
                             console.log('✅ [SessionRestoration] Fallback profile created and loaded:', profile?.id);

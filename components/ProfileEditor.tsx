@@ -32,7 +32,6 @@ import { authenticatedFetch } from '../services/csrfService';
 import { BACKEND_URL } from '../constants';
 import { FEATURE_HAPPINESS_AUDIT_THREE } from '../constants';
 import PremiumFeaturesPreview from './PremiumFeaturesPreview';
-import MyInvitations from './MyInvitations';
 import AIGuidedProfileWizard from './AIGuidedProfileWizard';
 import CVManager from './CVManager';
 import { redirectToCheckout } from '../services/stripeService';
@@ -71,7 +70,8 @@ interface ProfileEditorProps {
   onDeleteAccount?: () => Promise<boolean>;
 }
 
-const SavedJobsPage = lazy(() => import('./SavedJobsPage'));
+const ProfileJobManager = lazy(() => import('./ProfileJobManager'));
+type ProfileTabKey = 'personal' | 'cv' | 'jcfpm' | 'settings' | 'saved';
 
 const ProfileEditor: React.FC<ProfileEditorProps> = ({
   profile,
@@ -159,12 +159,48 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     jcfpmBasicDesc: 'The test already improves your internal JHI recommendations. Premium unlocks the full breakdown, explains what changed, and lets you share results with employers.',
     jcfpmUnlock: 'Unlock full analysis',
   };
+  const profileCountryCopy = {
+    cs: {
+      label: 'Preferovaná země pro nabídky',
+      help: 'Používá se pro doporučování práce a cílení denního digestu, pokud adresa chybí nebo je jen přibližná.',
+      countries: { CZ: 'Česko', SK: 'Slovensko', PL: 'Polsko', DE: 'Německo', AT: 'Rakousko' },
+    },
+    en: {
+      label: 'Preferred country for jobs',
+      help: 'Used for job recommendations and daily digest targeting when your address is missing or approximate.',
+      countries: { CZ: 'Czechia', SK: 'Slovakia', PL: 'Poland', DE: 'Germany', AT: 'Austria' },
+    },
+    de: {
+      label: 'Bevorzugtes Land für Jobs',
+      help: 'Wird für Job-Empfehlungen und den täglichen Digest verwendet, wenn Ihre Adresse fehlt oder nur ungefähr ist.',
+      countries: { CZ: 'Tschechien', SK: 'Slowakei', PL: 'Polen', DE: 'Deutschland', AT: 'Österreich' },
+    },
+    at: {
+      label: 'Bevorzugtes Land für Jobs',
+      help: 'Wird für Job-Empfehlungen und den täglichen Digest verwendet, wenn Ihre Adresse fehlt oder nur ungefähr ist.',
+      countries: { CZ: 'Tschechien', SK: 'Slowakei', PL: 'Polen', DE: 'Deutschland', AT: 'Österreich' },
+    },
+    pl: {
+      label: 'Preferowany kraj ofert',
+      help: 'Używane do rekomendacji ofert i kierowania dziennego digestu, gdy adres jest brakujący lub tylko przybliżony.',
+      countries: { CZ: 'Czechy', SK: 'Słowacja', PL: 'Polska', DE: 'Niemcy', AT: 'Austria' },
+    },
+    sk: {
+      label: 'Preferovaná krajina pre ponuky',
+      help: 'Používa sa na odporúčanie práce a cielenie denného digestu, keď adresa chýba alebo je len približná.',
+      countries: { CZ: 'Česko', SK: 'Slovensko', PL: 'Poľsko', DE: 'Nemecko', AT: 'Rakúsko' },
+    },
+  }[localeBase] || {
+    label: 'Preferred country for jobs',
+    help: 'Used for job recommendations and daily digest targeting when your address is missing or approximate.',
+    countries: { CZ: 'Czechia', SK: 'Slovakia', PL: 'Poland', DE: 'Germany', AT: 'Austria' },
+  };
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [profilePhotoFailed, setProfilePhotoFailed] = useState(false);
   const [isUploadingCV, setIsUploadingCV] = useState(false);
   const [isRepairingPhoto, setIsRepairingPhoto] = useState(false);
   const [editingSection, setEditingSection] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'profile' | 'saved'>('profile');
+  const [activeTab, setActiveTab] = useState<ProfileTabKey>('personal');
   const [savedJobsSearchTerm, setSavedJobsSearchTerm] = useState('');
   const [savedJobsFallback, setSavedJobsFallback] = useState<Job[]>([]);
   const [showAIGuide, setShowAIGuide] = useState(false);
@@ -358,6 +394,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       email: sourceProfile.email || '',
       phone: sourceProfile.phone || '',
       address: sourceProfile.address || '',
+      preferredCountryCode: sourceProfile.preferredCountryCode || sourceProfile.taxProfile?.countryCode || 'CZ',
       linkedIn: sourceProfile.preferences?.linkedIn || (sourceProfile as any).linkedIn || '',
       portfolio: sourceProfile.preferences?.portfolio || (sourceProfile as any).portfolio || '',
       github: sourceProfile.preferences?.github || (sourceProfile as any).github || ''
@@ -410,6 +447,190 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   }, [activeTab, savedJobs, savedJobIds]);
 
   const displaySavedJobs = savedJobs.length > 0 ? savedJobs : savedJobsFallback;
+  const profileTabs: Array<{
+    key: ProfileTabKey;
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+  }> = [
+    { key: 'personal', icon: User, label: t('profile.personal_info', { defaultValue: 'Osobní údaje' }) },
+    { key: 'cv', icon: FileText, label: t('profile.cv_section', { defaultValue: 'CV' }) },
+    { key: 'jcfpm', icon: Sparkles, label: 'JCFPM' },
+    { key: 'settings', icon: Bell, label: t('profile.settings_title', { defaultValue: 'Email a nastavení' }) },
+    { key: 'saved', icon: Bookmark, label: t('profile.job_hub.title', { defaultValue: 'Správa nabídek' }) },
+  ];
+  const isPersonalTab = activeTab === 'personal';
+  const isCvTab = activeTab === 'cv';
+  const isJcfpmTab = activeTab === 'jcfpm';
+  const isSettingsTab = activeTab === 'settings';
+
+  const renderAiGuidePanel = isCvTab ? (
+    <div className="h-full rounded-2xl border border-cyan-200/80 dark:border-cyan-800/60 bg-gradient-to-br from-cyan-50 via-white to-sky-50 dark:from-cyan-950/30 dark:via-slate-900 dark:to-slate-950 shadow-xl overflow-hidden">
+      <div className="border-b border-cyan-200/80 dark:border-cyan-800/60 bg-white/70 dark:bg-cyan-950/10 px-5 py-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="inline-flex items-center gap-2 rounded-full border border-amber-300/80 bg-amber-100 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+            <Sparkles className="h-3.5 w-3.5" />
+            Premium
+          </div>
+          <span className="inline-flex items-center rounded-full border border-cyan-200 bg-cyan-100 px-2.5 py-1 text-[11px] font-semibold text-cyan-800 dark:border-cyan-800 dark:bg-cyan-900/30 dark:text-cyan-300">
+            {t('profile.ai_guide_core_badge', { defaultValue: profilePremiumCopy.aiGuideBadge })}
+          </span>
+        </div>
+        <h2 className="mt-3 text-xl font-semibold text-slate-900 dark:text-white">
+          {t('profile.ai_guide.title')}
+        </h2>
+        <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+          {t('profile.ai_guide_short_desc', { defaultValue: profilePremiumCopy.aiGuideDesc })}
+        </p>
+      </div>
+
+      <div className="p-5 space-y-5">
+        <div className="flex flex-wrap gap-2">
+          {[
+            t('profile.ai_guide.value_1', { defaultValue: 'Vytáhne silné stránky a skryté talenty' }),
+            t('profile.ai_guide.value_2', { defaultValue: 'Doplní profil a připraví lepší CV základ' }),
+            t('profile.ai_guide.value_3', { defaultValue: 'Pomůže s prémiovým positioningem pro firmy' })
+          ].map((item) => (
+            <div key={item} className="rounded-full border border-white/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/70 px-3 py-1.5 text-[11px] font-medium text-slate-700 dark:text-slate-300">
+              {item}
+            </div>
+          ))}
+        </div>
+
+        <div className="rounded-2xl border border-cyan-200/80 dark:border-cyan-900/40 bg-white/80 dark:bg-slate-900/70 p-4">
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            {t('profile.ai_guide_long_desc', {
+              defaultValue: 'Nadiktujte svůj příběh a AI z něj sestaví použitelný profilový narativ, doporučení pro CV i konkrétní text, který můžete dál ručně ladit.'
+            })}
+          </p>
+
+          <div className="mt-4">
+            {isPremium ? (
+              <button
+                onClick={() => setShowAIGuide(true)}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-500/30 transition-colors hover:bg-cyan-700"
+              >
+                <Sparkles className="h-4 w-4" />
+                {t('profile.ai_guide_start', { defaultValue: profilePremiumCopy.aiGuideStart })}
+              </button>
+            ) : (
+              <div className="space-y-3 rounded-xl border border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-900/20 p-4">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white">
+                    {t('alerts.premium_only_feature')}
+                  </p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400">
+                    {t('profile.ai_guide_upgrade_hint', { defaultValue: profilePremiumCopy.aiGuideUpgrade })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    if (profile.id) {
+                      redirectToCheckout('premium', profile.id);
+                    }
+                  }}
+                  className="inline-flex w-full items-center justify-center rounded-lg bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-cyan-500/30 transition-colors hover:bg-cyan-700"
+                >
+                  {`${t('premium.upgrade_btn_short')} • ${premiumPrice.eurMonthlyLabel}`}
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white/90 dark:bg-slate-900/70 p-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                {t('profile.ai_cv_editor.title', { defaultValue: 'Saved AI CV text' })}
+              </h3>
+              <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
+                {t('profile.ai_cv_editor.desc', { defaultValue: 'You can edit and save AI CV text manually to avoid repeated AI generation.' })}
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setEditableCvAiText(profile.cvText || '')}
+                type="button"
+                className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                {t('profile.ai_cv_editor.load_cv', { defaultValue: 'Load base CV text' })}
+              </button>
+              <button
+                onClick={() => setEditableCvAiText('')}
+                type="button"
+                className="rounded-md border border-slate-300 px-2.5 py-1.5 text-xs dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                {t('app.clear', { defaultValue: 'Clear' })}
+              </button>
+            </div>
+          </div>
+
+          <textarea
+            value={editableCvAiText}
+            onChange={(e) => setEditableCvAiText(e.target.value)}
+            rows={5}
+            className="mt-4 w-full rounded-xl border border-slate-300 px-3 py-3 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-600 dark:bg-slate-700 dark:text-white"
+            placeholder={t('profile.ai_cv_editor.placeholder', { defaultValue: 'Paste or edit your AI CV text here...' })}
+          />
+
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {t('profile.ai_cv_editor.count', { defaultValue: '{{count}} characters', count: editableCvAiText.length })}
+            </span>
+            <button
+              type="button"
+              disabled={isSavingCvAiText}
+              onClick={async () => {
+                if (!profile.id) return;
+                setIsSavingCvAiText(true);
+                try {
+                  await Promise.resolve(onChange({ ...profile, cvAiText: editableCvAiText.trim() }, true));
+                  if (onRefreshProfile) {
+                    await onRefreshProfile();
+                  }
+                  alert(t('profile.ai_cv_editor.saved', { defaultValue: 'AI CV text saved.' }));
+                } catch (error) {
+                  console.error('Saving AI CV text failed:', error);
+                  alert(t('profile.save_error'));
+                } finally {
+                  setIsSavingCvAiText(false);
+                }
+              }}
+              className="inline-flex items-center justify-center rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:opacity-60 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200"
+            >
+              {isSavingCvAiText
+                ? t('profile.ai_cv_editor.saving', { defaultValue: 'Saving...' })
+                : t('profile.ai_cv_editor.save', { defaultValue: 'Save AI CV text' })}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  ) : null;
+
+  const renderTransportPanel = isSettingsTab ? (
+    <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+            <MapPin className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.transport_pref')}</h2>
+        </div>
+      </div>
+
+      <div className="p-6">
+        <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+          {t('profile.transport_desc')}
+        </p>
+        <TransportModeSelector
+          selectedMode={profile.transportMode || 'public'}
+          onModeChange={(mode: TransportMode) => onChange({ ...profile, transportMode: mode })}
+          compact={true}
+        />
+      </div>
+    </div>
+  ) : null;
 
   useEffect(() => {
     if (!FEATURE_HAPPINESS_AUDIT_THREE || !isPremium) return;
@@ -642,6 +863,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
       email: nextPersonal.email,
       phone: nextPersonal.phone,
       address: nextPersonal.address,
+      preferredCountryCode: nextPersonal.preferredCountryCode,
       preferences: {
         ...profile.preferences,
         linkedIn: nextPersonal.linkedIn,
@@ -1113,44 +1335,40 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         </div>
 
         {/* Tabs */}
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-1">
-          <div className="flex gap-1">
-            <button
-              onClick={() => setActiveTab('profile')}
-              className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${activeTab === 'profile'
-                ? 'bg-cyan-600 text-white shadow-md'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
-                }`}
-            >
-              <User className="w-4 h-4" />
-              <span>{t('profile.title')}</span>
-            </button>
-            <button
-              onClick={() => setActiveTab('saved')}
-              className={`flex-1 flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 sm:py-3 rounded-lg font-medium text-sm sm:text-base transition-all ${activeTab === 'saved'
-                ? 'bg-cyan-600 text-white shadow-md'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-700'
-                }`}
-            >
-              <Bookmark className="w-4 h-4" />
-              <span>{t('profile.saved_jobs', { count: displaySavedJobs.length })}</span>
-            </button>
+        <div className="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/95 dark:bg-slate-800/95 shadow-lg p-2">
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
+            {profileTabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`rounded-xl border px-3 py-3 text-left transition-all ${isActive
+                    ? 'border-cyan-500 bg-gradient-to-br from-cyan-600 to-sky-600 text-white shadow-lg shadow-cyan-500/20'
+                    : 'border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 hover:border-cyan-300 hover:bg-white dark:hover:bg-slate-800'
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`rounded-lg p-2 ${isActive ? 'bg-white/15' : 'bg-cyan-100 dark:bg-cyan-900/30'}`}>
+                      <Icon className={`h-4 w-4 ${isActive ? 'text-white' : 'text-cyan-600 dark:text-cyan-400'}`} />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold leading-tight">{tab.label}</div>
+                    </div>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'profile' ? (
+        {activeTab !== 'saved' ? (
           <>
 
-            {/* Candidate Invitations (if logged in) */}
-            {profile.isLoggedIn && (
-              <div className="max-w-6xl mx-auto py-4">
-                <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-6">
-                  <MyInvitations />
-                </div>
-              </div>
-            )}
-
+            {isPersonalTab && (
+              <>
             {/* Personal Information Section */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
@@ -1304,7 +1522,16 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 </div>
               </div>
             </div>
+              </>
+            )}
 
+            {isCvTab && (
+              <>
+            <div className="grid grid-cols-1 2xl:grid-cols-5 gap-6 items-start">
+              <div className="2xl:col-span-2">
+                {renderAiGuidePanel}
+              </div>
+              <div className="2xl:col-span-3">
             {/* CV Upload Section */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
@@ -1376,7 +1603,13 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 )}
               </div>
             </div>
+              </div>
+            </div>
+              </>
+            )}
 
+            {isCvTab && (
+              <>
             {/* Work Experience Section */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
@@ -1682,145 +1915,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 )}
               </div>
             </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-              <div className="bg-gradient-to-br from-cyan-50 to-white dark:from-cyan-950/30 dark:to-slate-900 rounded-xl shadow-xl border-2 border-cyan-200/80 dark:border-cyan-800/60 overflow-hidden">
-                <div className="border-b border-cyan-200 dark:border-cyan-800 p-4 bg-cyan-50/70 dark:bg-cyan-950/20">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-cyan-200 dark:bg-cyan-900/40 rounded-lg">
-                      <Sparkles className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-                    </div>
-                    <div>
-                      <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.ai_guide.title')}</h2>
-                      <p className="text-xs font-medium text-cyan-700 dark:text-cyan-300">{t('profile.ai_guide_core_badge', { defaultValue: profilePremiumCopy.aiGuideBadge })}</p>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  <p className="text-sm text-slate-700 dark:text-slate-300 mb-5">
-                    {t('profile.ai_guide_short_desc', { defaultValue: profilePremiumCopy.aiGuideDesc })}
-                  </p>
-
-                  {isPremium ? (
-                    <button
-                      onClick={() => setShowAIGuide(true)}
-                      className="w-full px-5 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/30"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      {t('profile.ai_guide_start', { defaultValue: profilePremiumCopy.aiGuideStart })}
-                    </button>
-                  ) : (
-                    <div className="bg-cyan-50 dark:bg-cyan-900/20 border border-cyan-200 dark:border-cyan-800 rounded-lg p-4 flex items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900 dark:text-white">
-                          {t('alerts.premium_only_feature')}
-                        </p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400">
-                          {t('profile.ai_guide_upgrade_hint', { defaultValue: profilePremiumCopy.aiGuideUpgrade })}
-                        </p>
-                      </div>
-                      <button
-                        onClick={() => {
-                          if (profile.id) {
-                            redirectToCheckout('premium', profile.id);
-                          }
-                        }}
-                        className="px-3 py-2 bg-cyan-600 text-white rounded-lg text-sm font-semibold hover:bg-cyan-700 shadow-md shadow-cyan-500/30"
-                      >
-                        {t('premium.upgrade_btn_short')}
-                      </button>
-                    </div>
-                  )}
-
-                  <div className="mt-6 pt-6 border-t border-cyan-200 dark:border-cyan-800">
-                    <div className="flex items-center justify-between gap-3 mb-3">
-                      <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
-                        {t('profile.ai_cv_editor.title', { defaultValue: 'Saved AI CV text' })}
-                      </h3>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => setEditableCvAiText(profile.cvText || '')}
-                          type="button"
-                          className="px-2.5 py-1.5 text-xs rounded-md border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        >
-                          {t('profile.ai_cv_editor.load_cv', { defaultValue: 'Load base CV text' })}
-                        </button>
-                        <button
-                          onClick={() => setEditableCvAiText('')}
-                          type="button"
-                          className="px-2.5 py-1.5 text-xs rounded-md border border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800"
-                        >
-                          {t('app.clear', { defaultValue: 'Clear' })}
-                        </button>
-                      </div>
-                    </div>
-                    <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
-                      {t('profile.ai_cv_editor.desc', { defaultValue: 'You can edit and save AI CV text manually to avoid repeated AI generation.' })}
-                    </p>
-                    <textarea
-                      value={editableCvAiText}
-                      onChange={(e) => setEditableCvAiText(e.target.value)}
-                      rows={9}
-                      className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
-                      placeholder={t('profile.ai_cv_editor.placeholder', { defaultValue: 'Paste or edit your AI CV text here...' })}
-                    />
-                    <div className="mt-3 flex items-center justify-between gap-3">
-                      <span className="text-xs text-slate-500 dark:text-slate-400">
-                        {t('profile.ai_cv_editor.count', { defaultValue: '{{count}} characters', count: editableCvAiText.length })}
-                      </span>
-                      <button
-                        type="button"
-                        disabled={isSavingCvAiText}
-                        onClick={async () => {
-                          if (!profile.id) return;
-                          setIsSavingCvAiText(true);
-                          try {
-                            await Promise.resolve(onChange({ ...profile, cvAiText: editableCvAiText.trim() }, true));
-                            if (onRefreshProfile) {
-                              await onRefreshProfile();
-                            }
-                            alert(t('profile.ai_cv_editor.saved', { defaultValue: 'AI CV text saved.' }));
-                          } catch (error) {
-                            console.error('Saving AI CV text failed:', error);
-                            alert(t('profile.save_error'));
-                          } finally {
-                            setIsSavingCvAiText(false);
-                          }
-                        }}
-                        className="px-3 py-2 bg-cyan-600 text-white rounded-lg text-sm font-semibold hover:bg-cyan-700 shadow-md shadow-cyan-500/30 disabled:opacity-60"
-                      >
-                        {isSavingCvAiText
-                          ? t('profile.ai_cv_editor.saving', { defaultValue: 'Saving...' })
-                          : t('profile.ai_cv_editor.save', { defaultValue: 'Save AI CV text' })}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
-                <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
-                      <MapPin className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-                    </div>
-                    <h2 className="text-xl font-semibold text-slate-900 dark:text-white">{t('profile.transport_pref')}</h2>
-                  </div>
-                </div>
-
-                <div className="p-6">
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
-                    {t('profile.transport_desc')}
-                  </p>
-                  <TransportModeSelector
-                    selectedMode={profile.transportMode || 'public'}
-                    onModeChange={(mode: TransportMode) => onChange({ ...profile, transportMode: mode })}
-                    compact={true}
-                  />
-                </div>
-              </div>
-            </div>
+              </>
+            )}
 
             {showAIGuide && (
               <AIGuidedProfileWizard
@@ -1837,6 +1933,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               />
             )}
 
+            {isSettingsTab && (
+              <>
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center gap-3">
@@ -1895,6 +1993,26 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                    {profileCountryCopy.label}
+                  </label>
+                  <select
+                    value={formData.personal.preferredCountryCode}
+                    onChange={(e) => handlePersonalInfoChange('preferredCountryCode', e.target.value)}
+                    className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:bg-slate-700 dark:text-white"
+                  >
+                    <option value="CZ">{profileCountryCopy.countries.CZ}</option>
+                    <option value="SK">{profileCountryCopy.countries.SK}</option>
+                    <option value="PL">{profileCountryCopy.countries.PL}</option>
+                    <option value="DE">{profileCountryCopy.countries.DE}</option>
+                    <option value="AT">{profileCountryCopy.countries.AT}</option>
+                  </select>
+                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    {profileCountryCopy.help}
+                  </p>
+                </div>
+
                 <div className="flex flex-wrap items-center gap-3">
                   <div className="text-xs text-slate-500">
                     {pushSupported
@@ -1922,6 +2040,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 </div>
               </div>
             </div>
+
+            {renderTransportPanel}
 
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
@@ -2083,6 +2203,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                       {activeJhiConstraintsCount > 0 ? ` · ${activeJhiConstraintsCount} ${t('profile.jhi.constraints.label', { defaultValue: 'omezení' })}` : ''}
                     </p>
                   </div>
+                  <span className="ml-auto inline-flex items-center rounded-full border border-amber-300/80 bg-amber-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                    Premium
+                  </span>
                 </div>
               </div>
               <div className="p-6 space-y-4">
@@ -2244,17 +2367,22 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                         {t('happiness_audit_3d.subtitle', { defaultValue: 'Life-Sustainability Orbit + Career Anchor vs Drift' })}
                       </p>
                     </div>
-                    <button
-                      onClick={() => setEnableLive3D((prev) => !prev)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${enableLive3D
+                    <div className="flex items-center gap-2">
+                      <span className="inline-flex items-center rounded-full border border-amber-300/80 bg-amber-100 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800 dark:border-amber-700 dark:bg-amber-900/30 dark:text-amber-300">
+                        Premium
+                      </span>
+                      <button
+                        onClick={() => setEnableLive3D((prev) => !prev)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border ${enableLive3D
                         ? 'bg-cyan-600 text-white border-cyan-500'
                         : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 border-slate-300 dark:border-slate-700'
                         }`}
-                    >
-                      {enableLive3D
-                        ? t('happiness_audit_3d.live_on', { defaultValue: 'Enable live 3D: ON' })
-                        : t('happiness_audit_3d.live_off', { defaultValue: 'Enable live 3D: OFF' })}
-                    </button>
+                      >
+                        {enableLive3D
+                          ? t('happiness_audit_3d.live_on', { defaultValue: 'Enable live 3D: ON' })
+                          : t('happiness_audit_3d.live_off', { defaultValue: 'Enable live 3D: OFF' })}
+                      </button>
+                    </div>
                   </div>
                 </div>
                 <div className="p-6 space-y-4">
@@ -2531,6 +2659,10 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
             )}
 
+              </>
+            )}
+
+            {isJcfpmTab && (
             <div id="jcfpm-card" className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
@@ -2630,6 +2762,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 )}
               </div>
             </div>
+            )}
 
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 p-4 sm:p-6">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
@@ -2656,7 +2789,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               )}
             </div>
 
-            {profile.isLoggedIn && (
+            {isSettingsTab && profile.isLoggedIn && (
               <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 overflow-hidden">
                 <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                   <div className="flex items-center gap-3">
@@ -2725,6 +2858,8 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
             )}
 
+            {isSettingsTab && (
+              <>
             {/* Danger Zone */}
             <div className="bg-white dark:bg-slate-800 rounded-xl shadow-lg border-2 border-red-200 dark:border-red-900/30 overflow-hidden">
               <div className="border-b border-red-100 dark:border-red-900/20 p-4 bg-red-50/50 dark:bg-red-900/10">
@@ -2755,9 +2890,11 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             <div className="mt-8">
               <PremiumFeaturesPreview userProfile={profileWithResolvedSubscription} />
             </div>
+              </>
+            )}
           </>
         ) : (
-          <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
+          <div className="w-full">
             <Suspense
               fallback={
                 <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-6 text-sm text-slate-600 dark:text-slate-300">
@@ -2765,14 +2902,14 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 </div>
               }
             >
-              <SavedJobsPage
+              <ProfileJobManager
+                userProfile={profile}
                 savedJobs={displaySavedJobs}
                 savedJobIds={savedJobIds}
                 onToggleSave={onToggleSave || (() => { })}
                 onJobSelect={onJobSelect || (() => { })}
                 onApplyToJob={onApplyToJob || (() => { })}
                 selectedJobId={selectedJobId || null}
-                userProfile={profile}
                 searchTerm={savedJobsSearchTerm}
                 onSearchChange={setSavedJobsSearchTerm}
               />

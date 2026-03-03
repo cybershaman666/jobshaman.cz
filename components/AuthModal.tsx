@@ -16,6 +16,16 @@ interface AuthModalProps {
 
 const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defaultMode = 'login' }) => {
     const { t, i18n } = useTranslation();
+    const resolveDefaultCountry = (): 'CZ' | 'SK' | 'PL' | 'DE' | 'AT' => {
+        const locale = String(i18n.language || '').toLowerCase();
+        if (locale.startsWith('sk')) return 'SK';
+        if (locale.startsWith('pl')) return 'PL';
+        if (locale.startsWith('de')) {
+            const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+            return tz === 'Europe/Vienna' ? 'AT' : 'DE';
+        }
+        return 'CZ';
+    };
     const [mode, setMode] = useState<'login' | 'register' | 'reset'>(defaultMode);
     const [loading, setLoading] = useState(false);
     const [oauthLoading, setOauthLoading] = useState<null | 'google' | 'linkedin_oidc'>(null);
@@ -27,8 +37,17 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
         email: '',
         password: '',
         confirmPassword: '',
-        fullName: ''
+        fullName: '',
+        preferredCountryCode: resolveDefaultCountry(),
+        wantsDigestEmail: false
     });
+    const countryOptions = [
+        { code: 'CZ', label: t('countries.cz', { defaultValue: 'Česko' }) },
+        { code: 'SK', label: t('countries.sk', { defaultValue: 'Slovensko' }) },
+        { code: 'PL', label: t('countries.pl', { defaultValue: 'Polsko' }) },
+        { code: 'DE', label: t('countries.de', { defaultValue: 'Německo' }) },
+        { code: 'AT', label: t('countries.at', { defaultValue: 'Rakousko' }) }
+    ];
 
     const isLogin = mode === 'login';
     const isResetMode = mode === 'reset';
@@ -41,6 +60,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
             setAwaitingConfirmation(false);
             if (defaultMode === 'reset') {
                 setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+            } else if (defaultMode === 'register') {
+                setFormData(prev => ({
+                    ...prev,
+                    preferredCountryCode: prev.preferredCountryCode || resolveDefaultCountry(),
+                    wantsDigestEmail: Boolean(prev.wantsDigestEmail)
+                }));
             }
         }
     }, [isOpen, defaultMode]);
@@ -87,7 +112,12 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                     formData.password,
                     formData.fullName,
                     i18n.language,
-                    Intl.DateTimeFormat().resolvedOptions().timeZone
+                    Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    {
+                        preferredCountryCode: formData.preferredCountryCode,
+                        dailyDigestEnabled: formData.wantsDigestEmail,
+                        dailyDigestTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+                    }
                 );
                 if (result.error) throw result.error;
                 userData = result.data?.user;
@@ -283,6 +313,34 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                         </div>
                     )}
 
+                    {!isLogin && !isResetMode && (
+                        <div>
+                            <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">
+                                {t('auth.preferred_country', { defaultValue: 'Země pro nabídky' })}
+                            </label>
+                            <select
+                                required
+                                className="w-full p-3 bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-900 dark:text-white focus:ring-2 focus:ring-cyan-500 focus:outline-none"
+                                value={formData.preferredCountryCode}
+                                onChange={e => setFormData({
+                                    ...formData,
+                                    preferredCountryCode: e.target.value as 'CZ' | 'SK' | 'PL' | 'DE' | 'AT'
+                                })}
+                            >
+                                {countryOptions.map((country) => (
+                                    <option key={country.code} value={country.code}>
+                                        {country.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                                {t('auth.preferred_country_help', {
+                                    defaultValue: 'Použijeme ji pro cílení doporučení a denního digestu. Později ji můžete změnit v profilu.'
+                                })}
+                            </p>
+                        </div>
+                    )}
+
                     {!isResetMode && (
                         <div>
                             <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">{t('auth.email')}</label>
@@ -350,6 +408,27 @@ const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess, defau
                                 />
                             </div>
                         </div>
+                    )}
+
+                    {!isLogin && !isResetMode && (
+                        <label className="flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-300">
+                            <input
+                                type="checkbox"
+                                checked={formData.wantsDigestEmail}
+                                onChange={e => setFormData({ ...formData, wantsDigestEmail: e.target.checked })}
+                                className="mt-0.5 h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                            />
+                            <span>
+                                <span className="block font-semibold text-slate-900 dark:text-white">
+                                    {t('auth.digest_consent_title', { defaultValue: 'Souhlasím se zasíláním emailového digestu' })}
+                                </span>
+                                <span className="block mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                    {t('auth.digest_consent_help', {
+                                        defaultValue: 'Jen pokud toto zapnete, budeme vám posílat denní přehled pracovních nabídek. Nastavení můžete kdykoli změnit v profilu.'
+                                    })}
+                                </span>
+                            </span>
+                        </label>
                     )}
 
                     <button

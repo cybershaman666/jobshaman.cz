@@ -1,6 +1,11 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApplicationDossier } from '../../types';
+import {
+    fetchCompanyApplicationMessages,
+    sendCompanyApplicationMessage
+} from '../../services/jobApplicationService';
+import ApplicationMessageCenter from '../ApplicationMessageCenter';
 import AssessmentResultsList from '../AssessmentResultsList';
 import SectionHeader from './SectionHeader';
 
@@ -242,6 +247,21 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                     candidateEmailFilter={dossier.candidate_profile_snapshot?.email || dossier.candidate_email || undefined}
                 />
             </div>
+
+            <ApplicationMessageCenter
+                applicationId={dossier.id}
+                storageOwnerId={companyId}
+                viewerRole="recruiter"
+                heading={t('company.applications.detail.messages_title', { defaultValue: 'Internal message thread' })}
+                subtitle={t('company.applications.detail.messages_desc', {
+                    defaultValue: 'Use asynchronous internal messages for clarifications, document requests, and follow-up without live chat pressure.'
+                })}
+                emptyText={t('company.applications.detail.messages_empty', {
+                    defaultValue: 'No internal messages yet. Start the thread when you need additional information or want to share a document.'
+                })}
+                fetchMessages={fetchCompanyApplicationMessages}
+                sendMessage={sendCompanyApplicationMessage}
+            />
         </div>
     );
 };

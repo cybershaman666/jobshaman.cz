@@ -1,7 +1,14 @@
 import { BACKEND_URL } from '../constants';
 import { authenticatedFetch } from './csrfService';
 import { supabase } from './supabaseService';
-import { ApplicationDossier, ApplicationJcfpmShareLevel, CompanyApplicationRow } from '../types';
+import {
+    ApplicationDossier,
+    ApplicationJcfpmShareLevel,
+    ApplicationMessage,
+    CandidateApplicationDetail,
+    CandidateApplicationSummary,
+    CompanyApplicationRow
+} from '../types';
 let companyApplicationsApiUnavailable = false;
 
 const shouldDisableCompanyApplicationsApi = (status: number): boolean =>
@@ -10,6 +17,17 @@ const shouldDisableCompanyApplicationsApi = (status: number): boolean =>
 export interface MutationResult {
     ok: boolean;
     via: 'api' | 'fallback' | 'failed';
+}
+
+export interface ApplicationMessageCreatePayload {
+    body?: string | null;
+    attachments?: Array<{
+        name: string;
+        url: string;
+        path?: string | null;
+        size?: number | null;
+        content_type?: string | null;
+    }>;
 }
 
 export interface CreateJobApplicationDetails {
@@ -34,6 +52,23 @@ export interface CreateJobApplicationDetails {
     jcfpmShareLevel?: ApplicationJcfpmShareLevel;
     sharedJcfpmPayload?: Record<string, any> | null;
 }
+
+const mapCandidateApplication = (row: any): CandidateApplicationSummary => ({
+    id: String(row?.id || ''),
+    job_id: row?.job_id,
+    company_id: row?.company_id ?? undefined,
+    status: row?.status ?? 'pending',
+    submitted_at: row?.submitted_at ?? row?.created_at ?? row?.applied_at,
+    updated_at: row?.updated_at ?? row?.submitted_at ?? row?.created_at ?? row?.applied_at,
+    source: row?.source ?? undefined,
+    has_cover_letter: Boolean(row?.has_cover_letter ?? row?.cover_letter),
+    has_cv: Boolean(row?.has_cv ?? row?.cv_snapshot?.fileUrl ?? row?.cv_snapshot?.originalName ?? row?.cv_document_id),
+    has_jcfpm: Boolean(row?.has_jcfpm ?? row?.shared_jcfpm_payload),
+    jcfpm_share_level: row?.jcfpm_share_level ?? row?.jcfpmShareLevel ?? 'do_not_share',
+    company_name: row?.company_name ?? undefined,
+    company_website: row?.company_website ?? undefined,
+    job_snapshot: row?.job_snapshot ?? undefined,
+});
 
 export const createJobApplication = async (
     jobId: string | number,
@@ -87,6 +122,167 @@ export const fetchCompanyApplicationDetail = async (
     } catch {
         companyApplicationsApiUnavailable = true;
         return await fetchCompanyApplicationDetailFallback(applicationId);
+    }
+};
+
+export const fetchCandidateApplications = async (
+    limit: number = 80
+): Promise<CandidateApplicationSummary[]> => {
+    try {
+        const response = await authenticatedFetch(
+            `${BACKEND_URL}/jobs/applications/me?limit=${Math.max(1, Math.min(200, Math.floor(limit || 80)))}`,
+            { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+        );
+        if (!response.ok) return [];
+        const payload = await response.json();
+        if (!Array.isArray(payload?.applications)) return [];
+        return payload.applications.map(mapCandidateApplication);
+    } catch {
+        return [];
+    }
+};
+
+export const fetchCandidateApplicationDetail = async (
+    applicationId: string
+): Promise<CandidateApplicationDetail | null> => {
+    if (!applicationId) return null;
+    try {
+        const response = await authenticatedFetch(
+            `${BACKEND_URL}/jobs/applications/${applicationId}`,
+            { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+        );
+        if (!response.ok) return null;
+        const payload = await response.json();
+        if (!payload?.application) return null;
+        return {
+            ...mapCandidateApplication(payload.application),
+            reviewed_at: payload.application.reviewed_at ?? null,
+            reviewed_by: payload.application.reviewed_by ?? null,
+            cover_letter: payload.application.cover_letter ?? null,
+            cv_document_id: payload.application.cv_document_id ?? null,
+            cv_snapshot: payload.application.cv_snapshot ?? null,
+            candidate_profile_snapshot: payload.application.candidate_profile_snapshot ?? null,
+            shared_jcfpm_payload: payload.application.shared_jcfpm_payload ?? null,
+            application_payload: payload.application.application_payload ?? null,
+        } as CandidateApplicationDetail;
+    } catch {
+        return null;
+    }
+};
+
+export const withdrawCandidateApplication = async (
+    applicationId: string
+): Promise<MutationResult> => {
+    if (!applicationId) return { ok: false, via: 'failed' };
+    try {
+        const response = await authenticatedFetch(
+            `${BACKEND_URL}/jobs/applications/${applicationId}/withdraw`,
+            { method: 'POST', headers: { 'Content-Type': 'application/json' } }
+        );
+        if (response.ok) return { ok: true, via: 'api' };
+        return { ok: false, via: 'failed' };
+    } catch {
+        return { ok: false, via: 'failed' };
+    }
+};
+
+const mapApplicationMessage = (row: any): ApplicationMessage => ({
+    id: String(row?.id || ''),
+    application_id: String(row?.application_id || ''),
+    company_id: row?.company_id ?? null,
+    candidate_id: row?.candidate_id ?? null,
+    sender_user_id: row?.sender_user_id ?? null,
+    sender_role: row?.sender_role === 'candidate' ? 'candidate' : 'recruiter',
+    body: String(row?.body || ''),
+    attachments: Array.isArray(row?.attachments) ? row.attachments : [],
+    created_at: row?.created_at ?? new Date().toISOString(),
+    read_by_candidate_at: row?.read_by_candidate_at ?? null,
+    read_by_company_at: row?.read_by_company_at ?? null,
+});
+
+export const fetchCandidateApplicationMessages = async (
+    applicationId: string
+): Promise<ApplicationMessage[]> => {
+    if (!applicationId) return [];
+    try {
+        const response = await authenticatedFetch(
+            `${BACKEND_URL}/jobs/applications/${applicationId}/messages`,
+            { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+        );
+        if (!response.ok) return [];
+        const payload = await response.json();
+        if (!Array.isArray(payload?.messages)) return [];
+        return payload.messages.map(mapApplicationMessage);
+    } catch {
+        return [];
+    }
+};
+
+export const sendCandidateApplicationMessage = async (
+    applicationId: string,
+    payload: ApplicationMessageCreatePayload
+): Promise<ApplicationMessage | null> => {
+    if (!applicationId) return null;
+    try {
+        const response = await authenticatedFetch(
+            `${BACKEND_URL}/jobs/applications/${applicationId}/messages`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    body: payload.body || null,
+                    attachments: payload.attachments || []
+                })
+            }
+        );
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data?.message ? mapApplicationMessage(data.message) : null;
+    } catch {
+        return null;
+    }
+};
+
+export const fetchCompanyApplicationMessages = async (
+    applicationId: string
+): Promise<ApplicationMessage[]> => {
+    if (!applicationId) return [];
+    try {
+        const response = await authenticatedFetch(
+            `${BACKEND_URL}/company/applications/${applicationId}/messages`,
+            { method: 'GET', headers: { 'Content-Type': 'application/json' } }
+        );
+        if (!response.ok) return [];
+        const payload = await response.json();
+        if (!Array.isArray(payload?.messages)) return [];
+        return payload.messages.map(mapApplicationMessage);
+    } catch {
+        return [];
+    }
+};
+
+export const sendCompanyApplicationMessage = async (
+    applicationId: string,
+    payload: ApplicationMessageCreatePayload
+): Promise<ApplicationMessage | null> => {
+    if (!applicationId) return null;
+    try {
+        const response = await authenticatedFetch(
+            `${BACKEND_URL}/company/applications/${applicationId}/messages`,
+            {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    body: payload.body || null,
+                    attachments: payload.attachments || []
+                })
+            }
+        );
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data?.message ? mapApplicationMessage(data.message) : null;
+    } catch {
+        return null;
     }
 };
 

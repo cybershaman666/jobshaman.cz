@@ -4,7 +4,7 @@ import { geocodeWithCaching, normalizeAddress } from './geocodingService';
 import { createDefaultJHIPreferences, createDefaultTaxProfileByCountry } from './profileDefaults';
 import { BACKEND_URL } from '../constants';
 export { supabase };
-import { UserProfile, CompanyProfile, CVDocument } from '../types';
+import { ApplicationMessageAttachment, UserProfile, CompanyProfile, CVDocument } from '../types';
 
 const SUPABASE_NETWORK_COOLDOWN_MS = 60_000;
 let supabaseNetworkCooldownUntil = 0;
@@ -13,6 +13,7 @@ let lastProfileMissingWarnAt = 0;
 const ANALYTICS_NETWORK_COOLDOWN_MS = 120_000;
 let analyticsNetworkCooldownUntil = 0;
 let lastAnalyticsNetworkLogAt = 0;
+const APPLICATION_MESSAGE_BUCKET = 'application-message-files';
 
 const isLikelySupabaseNetworkError = (error: any): boolean => {
     const msg = String(error?.message || error || '').toLowerCase();
@@ -189,8 +190,26 @@ export const requestPasswordResetEmail = async (email: string): Promise<void> =>
     if (error) throw error;
 };
 
-export const signUpWithEmail = async (email: string, pass: string, fullName: string, locale?: string, timezone?: string) => {
+export interface CandidateProfileSeed {
+    preferredCountryCode?: 'CZ' | 'SK' | 'PL' | 'DE' | 'AT' | string | null;
+    dailyDigestEnabled?: boolean;
+    dailyDigestTimezone?: string | null;
+}
+
+export const signUpWithEmail = async (
+    email: string,
+    pass: string,
+    fullName: string,
+    locale?: string,
+    timezone?: string,
+    profileSeed?: CandidateProfileSeed
+) => {
     if (!supabase) throw new Error("Supabase not configured");
+    const resolvedPreferredCountryCode = profileSeed?.preferredCountryCode
+        ? toSupportedCountryCode(profileSeed.preferredCountryCode)
+        : null;
+    const dailyDigestEnabled = Boolean(profileSeed?.dailyDigestEnabled);
+    const dailyDigestTimezone = profileSeed?.dailyDigestTimezone || timezone || null;
 
     // 1. Sign Up
     const { data, error } = await supabase.auth.signUp({
@@ -199,6 +218,10 @@ export const signUpWithEmail = async (email: string, pass: string, fullName: str
         options: {
             data: {
                 full_name: fullName,
+                preferred_locale: locale || null,
+                preferred_country_code: resolvedPreferredCountryCode,
+                daily_digest_enabled: dailyDigestEnabled,
+                daily_digest_timezone: dailyDigestTimezone,
             }
         }
     });
@@ -215,7 +238,12 @@ export const signUpWithEmail = async (email: string, pass: string, fullName: str
             'candidate',
             data.user.user_metadata?.avatar_url || data.user.user_metadata?.picture || undefined,
             locale,
-            timezone
+            timezone,
+            {
+                preferredCountryCode: resolvedPreferredCountryCode,
+                dailyDigestEnabled,
+                dailyDigestTimezone,
+            }
         );
     } else if (data.user) {
         console.log('📧 Email confirmation required. Profile will be created on first login.');
@@ -296,7 +324,8 @@ export const createBaseProfile = async (
     role: string = 'candidate',
     avatarUrl?: string,
     preferredLocale?: string,
-    preferredTimezone?: string
+    preferredTimezone?: string,
+    profileSeed?: CandidateProfileSeed
 ) => {
     if (!supabase) throw new Error("Supabase not configured");
 
@@ -311,6 +340,12 @@ export const createBaseProfile = async (
         throw new Error(msg);
     }
 
+    const resolvedPreferredCountryCode = profileSeed?.preferredCountryCode
+        ? toSupportedCountryCode(profileSeed.preferredCountryCode)
+        : null;
+    const dailyDigestEnabled = Boolean(profileSeed?.dailyDigestEnabled);
+    const dailyDigestTimezone = profileSeed?.dailyDigestTimezone || preferredTimezone || null;
+
     const { error } = await supabase
         .from('profiles')
         .insert({
@@ -322,7 +357,11 @@ export const createBaseProfile = async (
             subscription_tier: 'free',
             created_at: new Date().toISOString(),
             preferred_locale: preferredLocale || null,
-            daily_digest_timezone: preferredTimezone || null,
+            preferred_country_code: resolvedPreferredCountryCode,
+            daily_digest_enabled: dailyDigestEnabled,
+            daily_digest_timezone: dailyDigestTimezone,
+            daily_digest_push_enabled: false,
+            daily_digest_last_sent_at: null,
         });
 
     if (error) {
@@ -2014,6 +2053,51 @@ export const uploadCVDocument = async (
         throw error;
     }
 }
+
+export const uploadApplicationMessageAttachment = async (
+    ownerId: string,
+    file: File
+): Promise<ApplicationMessageAttachment> => {
+    if (!supabase) throw new Error('Supabase not configured');
+
+    const validation = validateFileUpload(file);
+    if (!validation.isValid) {
+        throw new Error(validation.error || 'Invalid file');
+    }
+
+    const safeFileName = `application-messages/${generateSafeFileName(ownerId || 'anon', file.name, validation.extension!)}`;
+    const { error: uploadError } = await supabase.storage
+        .from(APPLICATION_MESSAGE_BUCKET)
+        .upload(safeFileName, file, {
+            contentType: file.type,
+            cacheControl: '3600',
+            upsert: false
+        });
+
+    if (uploadError) {
+        throw new Error(`Upload failed: ${uploadError.message}`);
+    }
+
+    let url = '';
+    try {
+        const signed = await supabase.storage.from(APPLICATION_MESSAGE_BUCKET).createSignedUrl(safeFileName, 60 * 60 * 24 * 180);
+        url = signed.data?.signedUrl || '';
+    } catch {
+        url = '';
+    }
+    if (!url) {
+        const { data } = supabase.storage.from(APPLICATION_MESSAGE_BUCKET).getPublicUrl(safeFileName);
+        url = data.publicUrl;
+    }
+
+    return {
+        name: sanitizeFileName(file.name),
+        url,
+        path: safeFileName,
+        size: file.size,
+        content_type: file.type || null
+    };
+};
 
 // SECURITY: File validation function
 function validateFileUpload(file: File): { isValid: boolean; extension?: string; error?: string } {

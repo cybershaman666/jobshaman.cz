@@ -4,7 +4,7 @@ from uuid import uuid4
 from datetime import datetime, timedelta, timezone
 from ..core.limiter import limiter
 from ..core.security import get_current_user, verify_subscription, verify_csrf_token_header, require_company_access, verify_supabase_token
-from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, JobInteractionStateSyncRequest, JobApplicationCreateRequest, JobApplicationStatusUpdateRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest, JobDraftUpsertRequest, JobDraftPublishRequest, JobLifecycleUpdateRequest
+from ..models.requests import JobCheckRequest, JobStatusUpdateRequest, JobInteractionRequest, JobInteractionStateSyncRequest, JobApplicationCreateRequest, JobApplicationStatusUpdateRequest, ApplicationMessageCreateRequest, HybridJobSearchRequest, HybridJobSearchV2Request, JobAnalyzeRequest, JobDraftUpsertRequest, JobDraftPublishRequest, JobLifecycleUpdateRequest
 from ..models.responses import JobCheckResponse
 from ..services.legality import check_legality_rules
 from ..services.matching import calculate_candidate_match
@@ -543,6 +543,96 @@ def _serialize_application_dossier(row: dict) -> dict:
         "application_payload": _safe_dict(row.get("application_payload")),
     })
     return base
+
+
+def _extract_candidate_job_snapshot(row: dict) -> dict:
+    job = _safe_dict(row.get("jobs"))
+    application_payload = _safe_dict(row.get("application_payload"))
+    return {
+        "title": job.get("title") or application_payload.get("job_title"),
+        "company": job.get("company") or application_payload.get("job_company"),
+        "location": job.get("location") or application_payload.get("job_location"),
+        "url": job.get("url") or application_payload.get("job_url"),
+        "source": job.get("source") or application_payload.get("job_source"),
+        "contact_email": job.get("contact_email") or application_payload.get("job_contact_email"),
+    }
+
+
+def _serialize_candidate_application_row(row: dict) -> dict:
+    base = _serialize_application_dossier(row)
+    company = _safe_dict(row.get("companies"))
+    job_snapshot = _extract_candidate_job_snapshot(row)
+    return {
+        "id": base.get("id"),
+        "job_id": base.get("job_id"),
+        "company_id": base.get("company_id"),
+        "status": base.get("status"),
+        "submitted_at": base.get("submitted_at"),
+        "updated_at": base.get("updated_at"),
+        "reviewed_at": base.get("reviewed_at"),
+        "reviewed_by": base.get("reviewed_by"),
+        "source": base.get("source"),
+        "has_cover_letter": base.get("has_cover_letter"),
+        "has_cv": base.get("has_cv"),
+        "has_jcfpm": base.get("has_jcfpm"),
+        "jcfpm_share_level": base.get("jcfpm_share_level"),
+        "cover_letter": base.get("cover_letter"),
+        "cv_document_id": base.get("cv_document_id"),
+        "cv_snapshot": base.get("cv_snapshot"),
+        "candidate_profile_snapshot": base.get("candidate_profile_snapshot"),
+        "shared_jcfpm_payload": base.get("shared_jcfpm_payload"),
+        "application_payload": base.get("application_payload"),
+        "company_name": company.get("name") or application_payload.get("job_company"),
+        "company_website": company.get("website"),
+        "job_snapshot": job_snapshot,
+    }
+
+
+def _sanitize_application_message_attachments(raw: Any) -> list[dict]:
+    if not isinstance(raw, list):
+        return []
+    attachments: list[dict] = []
+    for item in raw[:5]:
+        if not isinstance(item, dict):
+            continue
+        name = str(item.get("name") or "").strip()
+        url = str(item.get("url") or "").strip()
+        if not name or not url:
+            continue
+        attachment = {
+            "name": name[:255],
+            "url": url[:2000],
+        }
+        path = str(item.get("path") or "").strip()
+        if path:
+            attachment["path"] = path[:500]
+        try:
+            size = int(item.get("size")) if item.get("size") is not None else None
+        except Exception:
+            size = None
+        if size is not None:
+            attachment["size"] = max(0, min(size, 20 * 1024 * 1024))
+        content_type = str(item.get("content_type") or item.get("contentType") or "").strip()
+        if content_type:
+            attachment["content_type"] = content_type[:160]
+        attachments.append(attachment)
+    return attachments
+
+
+def _serialize_application_message(row: dict) -> dict:
+    return {
+        "id": str(row.get("id") or ""),
+        "application_id": str(row.get("application_id") or ""),
+        "company_id": row.get("company_id"),
+        "candidate_id": row.get("candidate_id"),
+        "sender_user_id": row.get("sender_user_id"),
+        "sender_role": "candidate" if str(row.get("sender_role") or "").lower() == "candidate" else "recruiter",
+        "body": str(row.get("body") or ""),
+        "attachments": _sanitize_application_message_attachments(row.get("attachments")),
+        "created_at": row.get("created_at"),
+        "read_by_candidate_at": row.get("read_by_candidate_at"),
+        "read_by_company_at": row.get("read_by_company_at"),
+    }
 
 
 def _probe_schema_select(table_name: str, select_clause: str) -> dict:
@@ -1204,6 +1294,284 @@ async def create_job_application(
         raise HTTPException(status_code=500, detail="Failed to create application")
 
 
+@router.get("/jobs/applications/me")
+@limiter.limit("60/minute")
+async def list_my_job_applications(
+    request: Request,
+    limit: int = Query(80, ge=1, le=200),
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    select_clause = "*,jobs(id,title,company,location,url,source,contact_email),companies(id,name,website)"
+    fallback_select_clause = "*,jobs(id,title,company,location,url,source),companies(id,name,website)"
+    try:
+        resp = (
+            supabase
+            .table("job_applications")
+            .select(select_clause)
+            .eq("candidate_id", user_id)
+            .order("submitted_at", desc=True)
+            .limit(limit)
+            .execute()
+        )
+    except Exception as exc:
+        candidate_select_clause = fallback_select_clause if _is_missing_column_error(exc, "contact_email") else select_clause
+        if not (_is_missing_column_error(exc, "submitted_at") or _is_missing_column_error(exc, "contact_email")):
+            raise HTTPException(status_code=500, detail="Failed to load candidate applications")
+        order_column = "applied_at" if _is_missing_column_error(exc, "submitted_at") else "submitted_at"
+        resp = (
+            supabase
+            .table("job_applications")
+            .select(candidate_select_clause)
+            .eq("candidate_id", user_id)
+            .order(order_column, desc=True)
+            .limit(limit)
+            .execute()
+        )
+
+    rows = resp.data or []
+    return {"applications": [_serialize_candidate_application_row(row) for row in rows]}
+
+
+@router.get("/jobs/applications/{application_id}")
+@limiter.limit("60/minute")
+async def get_my_job_application_detail(
+    application_id: str,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    try:
+        resp = (
+            supabase
+            .table("job_applications")
+            .select("*,jobs(id,title,company,location,url,source,contact_email),companies(id,name,website)")
+            .eq("id", application_id)
+            .eq("candidate_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+    except Exception as exc:
+        if not _is_missing_column_error(exc, "contact_email"):
+            raise HTTPException(status_code=500, detail="Failed to load application detail")
+        resp = (
+            supabase
+            .table("job_applications")
+            .select("*,jobs(id,title,company,location,url,source),companies(id,name,website)")
+            .eq("id", application_id)
+            .eq("candidate_id", user_id)
+            .maybe_single()
+            .execute()
+        )
+    row = resp.data if resp else None
+    if not row:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    return {"application": _serialize_candidate_application_row(row)}
+
+
+@router.post("/jobs/applications/{application_id}/withdraw")
+@limiter.limit("30/minute")
+async def withdraw_my_job_application(
+    application_id: str,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    resp = (
+        supabase
+        .table("job_applications")
+        .select("id,candidate_id,company_id,status")
+        .eq("id", application_id)
+        .eq("candidate_id", user_id)
+        .maybe_single()
+        .execute()
+    )
+    row = resp.data if resp else None
+    if not row:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    current_status = str(row.get("status") or "pending")
+    if current_status in {"withdrawn", "rejected", "hired"}:
+        return {"status": current_status}
+
+    try:
+        try:
+            supabase.table("job_applications").update({
+                "status": "withdrawn",
+                "updated_at": now_iso(),
+            }).eq("id", application_id).eq("candidate_id", user_id).execute()
+        except Exception as exc:
+            if _is_missing_column_error(exc, "updated_at"):
+                supabase.table("job_applications").update({
+                    "status": "withdrawn",
+                }).eq("id", application_id).eq("candidate_id", user_id).execute()
+            else:
+                raise
+    except Exception as exc:
+        print(f"⚠️ Failed to withdraw application: {exc}")
+        raise HTTPException(status_code=500, detail="Failed to withdraw application")
+
+    _write_company_activity_log(
+        company_id=str(row.get("company_id") or ""),
+        event_type="application_withdrawn",
+        payload={
+            "application_id": application_id,
+            "status": "withdrawn",
+        },
+        actor_user_id=user_id,
+        subject_type="application",
+        subject_id=application_id,
+    )
+
+    return {"status": "withdrawn"}
+
+
+@router.get("/jobs/applications/{application_id}/messages")
+@limiter.limit("60/minute")
+async def list_my_application_messages(
+    application_id: str,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    app_resp = (
+        supabase
+        .table("job_applications")
+        .select("id,candidate_id")
+        .eq("id", application_id)
+        .eq("candidate_id", user_id)
+        .maybe_single()
+        .execute()
+    )
+    app_row = app_resp.data if app_resp else None
+    if not app_row:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    try:
+        resp = (
+            supabase
+            .table("application_messages")
+            .select("*")
+            .eq("application_id", application_id)
+            .order("created_at", desc=False)
+            .execute()
+        )
+    except Exception as exc:
+        if _is_missing_table_error(exc, "application_messages"):
+            return {"messages": []}
+        raise HTTPException(status_code=500, detail="Failed to load messages")
+
+    rows = [r for r in (resp.data or []) if isinstance(r, dict)]
+    unread_ids = [str(r.get("id") or "") for r in rows if str(r.get("sender_role") or "") == "recruiter" and not r.get("read_by_candidate_at")]
+    if unread_ids:
+        try:
+            supabase.table("application_messages").update({"read_by_candidate_at": now_iso()}).in_("id", unread_ids).execute()
+        except Exception:
+            pass
+        for row in rows:
+            if str(row.get("id") or "") in unread_ids:
+                row["read_by_candidate_at"] = now_iso()
+
+    return {"messages": [_serialize_application_message(row) for row in rows]}
+
+
+@router.post("/jobs/applications/{application_id}/messages")
+@limiter.limit("60/minute")
+async def create_my_application_message(
+    application_id: str,
+    payload: ApplicationMessageCreateRequest,
+    request: Request,
+    user: dict = Depends(get_current_user),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+    user_id = user.get("id") or user.get("auth_id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="User not authenticated")
+
+    app_resp = (
+        supabase
+        .table("job_applications")
+        .select("id,candidate_id,company_id")
+        .eq("id", application_id)
+        .eq("candidate_id", user_id)
+        .maybe_single()
+        .execute()
+    )
+    app_row = app_resp.data if app_resp else None
+    if not app_row:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    body = str(payload.body or "").strip()
+    attachments = _sanitize_application_message_attachments(payload.attachments)
+    if not body and not attachments:
+        raise HTTPException(status_code=400, detail="Message body or attachment required")
+
+    insert_payload = {
+        "application_id": application_id,
+        "company_id": app_row.get("company_id"),
+        "candidate_id": user_id,
+        "sender_user_id": user_id,
+        "sender_role": "candidate",
+        "body": body,
+        "attachments": attachments,
+        "created_at": now_iso(),
+        "read_by_candidate_at": now_iso(),
+        "read_by_company_at": None,
+    }
+    try:
+        resp = supabase.table("application_messages").insert(insert_payload).execute()
+    except Exception as exc:
+        if _is_missing_table_error(exc, "application_messages"):
+            raise HTTPException(status_code=503, detail="Messaging not available")
+        raise HTTPException(status_code=500, detail="Failed to send message")
+
+    row = (resp.data or [insert_payload])[0]
+    _write_company_activity_log(
+        company_id=str(app_row.get("company_id") or ""),
+        event_type="application_message_from_candidate",
+        payload={
+            "application_id": application_id,
+            "message_id": str(row.get("id") or ""),
+            "has_attachments": bool(attachments),
+        },
+        actor_user_id=user_id,
+        subject_type="application",
+        subject_id=application_id,
+    )
+    return {"message": _serialize_application_message(row)}
+
+
 @router.get("/company/applications")
 @limiter.limit("60/minute")
 async def list_company_applications(
@@ -1298,6 +1666,127 @@ async def get_company_application_detail(
         raise HTTPException(status_code=404, detail="Application not found")
     require_company_access(user, str(row.get("company_id") or ""))
     return {"application": _serialize_application_dossier(row)}
+
+
+@router.get("/company/applications/{application_id}/messages")
+@limiter.limit("60/minute")
+async def list_company_application_messages(
+    application_id: str,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+
+    app_resp = (
+        supabase
+        .table("job_applications")
+        .select("id,company_id")
+        .eq("id", application_id)
+        .maybe_single()
+        .execute()
+    )
+    app_row = app_resp.data if app_resp else None
+    if not app_row:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    require_company_access(user, str(app_row.get("company_id") or ""))
+
+    try:
+        resp = (
+            supabase
+            .table("application_messages")
+            .select("*")
+            .eq("application_id", application_id)
+            .order("created_at", desc=False)
+            .execute()
+        )
+    except Exception as exc:
+        if _is_missing_table_error(exc, "application_messages"):
+            return {"messages": []}
+        raise HTTPException(status_code=500, detail="Failed to load messages")
+
+    rows = [r for r in (resp.data or []) if isinstance(r, dict)]
+    unread_ids = [str(r.get("id") or "") for r in rows if str(r.get("sender_role") or "") == "candidate" and not r.get("read_by_company_at")]
+    if unread_ids:
+        try:
+            supabase.table("application_messages").update({"read_by_company_at": now_iso()}).in_("id", unread_ids).execute()
+        except Exception:
+            pass
+        for row in rows:
+            if str(row.get("id") or "") in unread_ids:
+                row["read_by_company_at"] = now_iso()
+
+    return {"messages": [_serialize_application_message(row) for row in rows]}
+
+
+@router.post("/company/applications/{application_id}/messages")
+@limiter.limit("60/minute")
+async def create_company_application_message(
+    application_id: str,
+    payload: ApplicationMessageCreateRequest,
+    request: Request,
+    user: dict = Depends(verify_subscription),
+):
+    if not supabase:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    if not verify_csrf_token_header(request, user):
+        raise HTTPException(status_code=403, detail="CSRF validation failed")
+
+    app_resp = (
+        supabase
+        .table("job_applications")
+        .select("id,company_id,candidate_id")
+        .eq("id", application_id)
+        .maybe_single()
+        .execute()
+    )
+    app_row = app_resp.data if app_resp else None
+    if not app_row:
+        raise HTTPException(status_code=404, detail="Application not found")
+
+    company_id = str(app_row.get("company_id") or "")
+    require_company_access(user, company_id)
+
+    body = str(payload.body or "").strip()
+    attachments = _sanitize_application_message_attachments(payload.attachments)
+    if not body and not attachments:
+        raise HTTPException(status_code=400, detail="Message body or attachment required")
+
+    sender_user_id = user.get("id") or user.get("auth_id")
+    insert_payload = {
+        "application_id": application_id,
+        "company_id": app_row.get("company_id"),
+        "candidate_id": app_row.get("candidate_id"),
+        "sender_user_id": sender_user_id,
+        "sender_role": "recruiter",
+        "body": body,
+        "attachments": attachments,
+        "created_at": now_iso(),
+        "read_by_candidate_at": None,
+        "read_by_company_at": now_iso(),
+    }
+    try:
+        resp = supabase.table("application_messages").insert(insert_payload).execute()
+    except Exception as exc:
+        if _is_missing_table_error(exc, "application_messages"):
+            raise HTTPException(status_code=503, detail="Messaging not available")
+        raise HTTPException(status_code=500, detail="Failed to send message")
+
+    row = (resp.data or [insert_payload])[0]
+    _write_company_activity_log(
+        company_id=company_id,
+        event_type="application_message_from_company",
+        payload={
+            "application_id": application_id,
+            "message_id": str(row.get("id") or ""),
+            "has_attachments": bool(attachments),
+        },
+        actor_user_id=str(sender_user_id or ""),
+        subject_type="application",
+        subject_id=application_id,
+    )
+    return {"message": _serialize_application_message(row)}
 
 
 @router.patch("/company/applications/{application_id}/status")

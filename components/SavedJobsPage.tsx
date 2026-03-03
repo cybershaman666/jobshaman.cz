@@ -43,19 +43,23 @@ const SavedJobsPage: React.FC<SavedJobsPageProps> = ({
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-950">
+    <div className="min-h-0 flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-950 dark:to-slate-900">
       {/* Header */}
-      <div className="flex-shrink-0 p-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
+      <div className="flex-shrink-0 border-b border-slate-200/80 bg-white/90 p-6 backdrop-blur dark:border-slate-800 dark:bg-slate-900/80">
+        <div className="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="rounded-xl bg-cyan-100 p-2.5 dark:bg-cyan-900/30">
               <Bookmark className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+            <div className="min-w-0">
+              <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:border-cyan-900/40 dark:bg-cyan-950/20 dark:text-cyan-300">
+                <Bookmark className="w-3.5 h-3.5" />
+                {t('saved_jobs_page.badge', { defaultValue: 'Watchlist' })}
+              </div>
+              <h1 className="mt-3 truncate text-2xl font-bold text-slate-900 dark:text-white">
                 {t('saved_jobs_page.title')}
               </h1>
-              <p className="text-sm text-slate-600 dark:text-slate-400">
+              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
                 {t('saved_jobs_page.count', { count: savedJobs.length })}
               </p>
             </div>
@@ -64,7 +68,7 @@ const SavedJobsPage: React.FC<SavedJobsPageProps> = ({
           {savedJobs.length > 0 && (
             <button
               onClick={handleRemoveAllSaved}
-              className="text-sm text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-medium transition-colors"
+              className="rounded-xl border border-rose-200 bg-white px-3 py-2 text-sm font-semibold text-rose-600 transition-colors hover:bg-rose-50 dark:border-rose-900/40 dark:bg-slate-900 dark:text-rose-300 dark:hover:bg-rose-950/20"
             >
               {t('saved_jobs_page.remove_all')}
             </button>
@@ -85,7 +89,7 @@ const SavedJobsPage: React.FC<SavedJobsPageProps> = ({
             onChange={(e) => onSearchChange(e.target.value)}
             placeholder={t('saved_jobs_page.search_placeholder')}
             aria-label={t('saved_jobs_page.search_placeholder')}
-            className="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 dark:text-white"
+            className="w-full rounded-xl border border-slate-200 bg-slate-100 py-2.5 pl-10 pr-4 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
           />
         </div>
       </div>
@@ -127,42 +131,45 @@ const SavedJobsPage: React.FC<SavedJobsPageProps> = ({
           <div className="h-full overflow-y-auto custom-scrollbar p-6">
             <div className="grid grid-cols-1 gap-4">
               {filteredSavedJobs.map((job) => (
-                <div key={job.id} className="relative group min-w-0">
-                  <JobCard
-                    job={job}
-                    onClick={() => onJobSelect(job.id)}
-                    isSelected={selectedJobId === job.id}
-                    isSaved={true}
-                    onToggleSave={() => onToggleSave(job.id)}
-                    userProfile={userProfile}
-                  />
-
-                  <div className="mt-2 flex gap-2">
-                    <button
+                <div
+                  key={job.id}
+                  className="min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                >
+                  <div className="relative min-w-0">
+                    <JobCard
+                      job={job}
                       onClick={() => onJobSelect(job.id)}
-                      className="flex-1 px-3 py-2 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
-                    >
-                      {t('job.details') || 'Detail'}
-                    </button>
-                    <button
-                      onClick={() => onApplyToJob(job)}
-                      className="flex-1 px-3 py-2 text-sm font-semibold rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 transition-colors"
-                    >
-                      {t('app.i_am_interested') || 'Mám zájem'}
-                    </button>
+                      isSelected={selectedJobId === job.id}
+                      isSaved={true}
+                      onToggleSave={() => onToggleSave(job.id)}
+                      userProfile={userProfile}
+                    />
                   </div>
-                  
-                  {/* Quick remove button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onToggleSave(job.id);
-                    }}
-                    className="absolute top-2 right-2 p-2 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-50 dark:hover:bg-red-900/20 hover:border-red-200 dark:hover:border-red-800"
-                    title={t('saved_jobs_page.remove_from_saved')}
-                  >
-                    <X className="w-4 h-4 text-slate-400 hover:text-red-500" />
-                  </button>
+
+                  <div className="border-t border-slate-200 bg-slate-50 px-3 py-3 dark:border-slate-800 dark:bg-slate-950/40">
+                    <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                      <button
+                        onClick={() => onJobSelect(job.id)}
+                        className="min-w-0 px-3 py-2 text-sm font-semibold rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                      >
+                        <span className="block truncate">{t('job.details') || 'Detail'}</span>
+                      </button>
+                      <button
+                        onClick={() => onApplyToJob(job)}
+                        className="min-w-0 px-3 py-2 text-sm font-semibold rounded-lg bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 hover:bg-slate-800 dark:hover:bg-slate-200 transition-colors"
+                      >
+                        <span className="block truncate">{t('app.i_am_interested') || 'Mám zájem'}</span>
+                      </button>
+                      <button
+                        onClick={() => onToggleSave(job.id)}
+                        className="min-w-0 inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-semibold rounded-lg border border-rose-200 dark:border-rose-900/40 bg-white dark:bg-slate-900 text-rose-600 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/20 transition-colors"
+                        title={t('saved_jobs_page.remove_from_saved')}
+                      >
+                        <X className="w-4 h-4 flex-shrink-0" />
+                        <span className="block truncate">{t('saved_jobs_page.remove_from_saved')}</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>

@@ -221,12 +221,19 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
         preferredCountryCode: user.preferredCountryCode || ''
       };
       let recorded = false;
+      let applicationStatus: 'created' | 'exists' | null = null;
 
       try {
         const backendResult = await createJobApplication(
           job.id,
           'application_modal',
           {
+            job_title: job.title,
+            job_company: job.company,
+            job_location: job.location,
+            job_url: job.url || null,
+            job_source: job.source || null,
+            job_contact_email: job.contact_email || null,
             cover_letter_present: Boolean(coverLetter?.trim()),
             has_saved_cv: Boolean(useSavedCv && selectedCvSnapshot),
             has_uploaded_cv: Boolean(!useSavedCv && cvFile),
@@ -241,6 +248,7 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
             sharedJcfpmPayload
           }
         );
+        applicationStatus = backendResult?.status === 'exists' ? 'exists' : (backendResult?.status === 'created' ? 'created' : null);
         recorded = !!backendResult;
       } catch {
         recorded = false;
@@ -263,6 +271,12 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
             jcfpm_share_level: effectiveJcfpmShareLevel,
             shared_jcfpm_payload: sharedJcfpmPayload,
             application_payload: {
+              job_title: job.title,
+              job_company: job.company,
+              job_location: job.location,
+              job_url: job.url || null,
+              job_source: job.source || null,
+              job_contact_email: job.contact_email || null,
               manual_contact_fields: {
                 first_name: formData.firstName,
                 last_name: formData.lastName,
@@ -293,6 +307,11 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
       if (!recorded) {
         alert(t('alerts.application_send_error'));
         setStep('form');
+        return;
+      }
+
+      if (applicationStatus === 'exists') {
+        setStep('success');
         return;
       }
 
