@@ -58,6 +58,49 @@ def _merge_snapshots(base_snapshot: Dict[str, Any], incoming_snapshot: Dict[str,
         for row in (incoming_snapshot.get("dimension_scores") or [])
         if isinstance(row, dict) and row.get("dimension")
     }
+
+
+def _is_renderable_jcfpm_snapshot(snapshot: Any) -> bool:
+    if not isinstance(snapshot, dict):
+        return False
+    completed_at = snapshot.get("completed_at") or snapshot.get("completedAt")
+    return bool(
+        completed_at
+        and isinstance(snapshot.get("dimension_scores"), list)
+        and isinstance(snapshot.get("fit_scores"), list)
+    )
+
+
+def _snapshot_from_result_row(row: Dict[str, Any]) -> Dict[str, Any] | None:
+    if not isinstance(row, dict):
+        return None
+    dimension_scores = row.get("dimension_scores") if isinstance(row.get("dimension_scores"), list) else []
+    fit_scores = row.get("fit_scores") if isinstance(row.get("fit_scores"), list) else []
+    if not dimension_scores:
+        return None
+    completed_at = str(row.get("created_at") or "").strip()
+    if not completed_at:
+        return None
+    percentile_summary = {
+        str(item.get("dimension")): float(item.get("percentile") or 0)
+        for item in dimension_scores
+        if isinstance(item, dict) and item.get("dimension")
+    }
+    return {
+        "schema_version": str(row.get("version") or "jcfpm-v1"),
+        "completed_at": completed_at,
+        "responses": row.get("raw_responses") if isinstance(row.get("raw_responses"), dict) else {},
+        "item_ids": [],
+        "variant_seed": None,
+        "dimension_scores": dimension_scores,
+        "subdimension_scores": [],
+        "traits": None,
+        "fit_scores": fit_scores,
+        "ai_report": row.get("ai_report") if isinstance(row.get("ai_report"), dict) else None,
+        "percentile_summary": percentile_summary,
+        "confidence": float(row.get("confidence") or 0.75),
+        "archetype": None,
+    }
     if not tested_dims:
         return incoming_snapshot
 
@@ -301,4 +344,23 @@ async def jcfpm_latest(request: Request):
     if not isinstance(prefs, dict):
         prefs = {}
     snapshot = prefs.get("jcfpm_v1")
+    if _is_renderable_jcfpm_snapshot(snapshot):
+        return {"snapshot": snapshot}
+
+    try:
+        result_resp = (
+            supabase.table("jcfpm_results")
+            .select("created_at,raw_responses,dimension_scores,fit_scores,ai_report,version")
+            .eq("user_id", user_id)
+            .order("created_at", desc=True)
+            .limit(1)
+            .execute()
+        )
+        result_rows = [row for row in (result_resp.data or []) if isinstance(row, dict)]
+        fallback_snapshot = _snapshot_from_result_row(result_rows[0]) if result_rows else None
+        if fallback_snapshot:
+            return {"snapshot": fallback_snapshot}
+    except Exception:
+        pass
+
     return {"snapshot": snapshot}

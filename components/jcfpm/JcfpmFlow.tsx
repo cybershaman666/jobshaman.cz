@@ -38,6 +38,19 @@ function cn(...classes: (string | boolean | undefined)[]) {
   return classes.filter(Boolean).join(' ');
 }
 
+const normalizeRenderableSnapshot = (value: unknown): JcfpmSnapshotV1 | null => {
+  if (!value || typeof value !== 'object') return null;
+  const candidate = value as Record<string, any>;
+  if (!Array.isArray(candidate.dimension_scores)) return null;
+  if (!Array.isArray(candidate.fit_scores)) return null;
+  const completedAt = candidate.completed_at || candidate.completedAt;
+  if (typeof completedAt !== 'string' || !completedAt) return null;
+  return {
+    ...candidate,
+    completed_at: completedAt,
+  } as JcfpmSnapshotV1;
+};
+
 // --- Constants & Types ---
 
 type JcfpmDimension =
@@ -509,11 +522,11 @@ export default function JcfpmFlow({
   const [items, setItems] = useState<JcfpmItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
-  const [status, setStatus] = useState<'loading' | 'intro' | 'interlude' | 'question' | 'saving' | 'error' | 'premium_check' | 'finished' | 'report'>('premium_check');
+  const [status, setStatus] = useState<'loading' | 'intro' | 'interlude' | 'question' | 'saving' | 'error' | 'finished' | 'report'>('loading');
   const [error, setError] = useState<string | null>(null);
   const [showSound, setShowSound] = useState(true);
   const [timeLeft, setTimeLeft] = useState<number>(0);
-  const [snapshot, setSnapshot] = useState<JcfpmSnapshotV1 | null>(initialSnapshot || null);
+  const [snapshot, setSnapshot] = useState<JcfpmSnapshotV1 | null>(normalizeRenderableSnapshot(initialSnapshot));
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const confettiRef = useRef<ReturnType<typeof confetti.create> | null>(null);
@@ -603,16 +616,17 @@ export default function JcfpmFlow({
   };
 
   const initializeFlow = async () => {
+    setStatus('loading');
     const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
     const mode = params?.get('mode') || 'auto';
     const shouldForceStart = mode === 'start' || mode === 'restart' || mode === 'resume';
     const shouldForceReport = mode === 'report';
     const hasDraft = Boolean(readJcfpmDraft(userId));
 
-    let nextSnapshot = initialSnapshot || null;
+    let nextSnapshot = normalizeRenderableSnapshot(initialSnapshot);
     if (!nextSnapshot) {
       try {
-        nextSnapshot = await fetchLatestJcfpm();
+        nextSnapshot = normalizeRenderableSnapshot(await fetchLatestJcfpm());
       } catch {
         nextSnapshot = null;
       }
@@ -624,6 +638,12 @@ export default function JcfpmFlow({
 
     if (shouldForceReport && nextSnapshot) {
       setStatus('report');
+      return;
+    }
+
+    if (shouldForceReport) {
+      setStatus('error');
+      setError(copy.errors.generic);
       return;
     }
 
