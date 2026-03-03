@@ -101,6 +101,37 @@ def _snapshot_from_result_row(row: Dict[str, Any]) -> Dict[str, Any] | None:
         "confidence": float(row.get("confidence") or 0.75),
         "archetype": None,
     }
+
+
+def _load_jcfpm_preferences(user_id: str) -> Dict[str, Any]:
+    for table_name in ("profiles", "candidate_profiles"):
+        try:
+            resp = (
+                supabase.table(table_name)
+                .select("preferences")
+                .eq("id", user_id)
+                .maybe_single()
+                .execute()
+            )
+            prefs = (resp.data or {}).get("preferences") if resp and resp.data else {}
+            if isinstance(prefs, dict):
+                return prefs
+        except Exception:
+            continue
+    return {}
+
+
+def _persist_jcfpm_preferences(user_id: str, prefs: Dict[str, Any]) -> None:
+    try:
+        supabase.table("profiles").update({"preferences": prefs}).eq("id", user_id).execute()
+        return
+    except Exception:
+        pass
+
+    try:
+        supabase.table("candidate_profiles").update({"preferences": prefs}).eq("id", user_id).execute()
+    except Exception:
+        pass
     if not tested_dims:
         return incoming_snapshot
 
@@ -297,16 +328,7 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
 
     # Persist only for authenticated users.
     if user_id:
-        prof_resp = (
-            supabase.table("candidate_profiles")
-            .select("preferences")
-            .eq("id", user_id)
-            .maybe_single()
-            .execute()
-        )
-        prefs = (prof_resp.data or {}).get("preferences") if prof_resp and prof_resp.data else {}
-        if not isinstance(prefs, dict):
-            prefs = {}
+        prefs = _load_jcfpm_preferences(str(user_id))
         existing_snapshot = prefs.get("jcfpm_v1")
         if isinstance(existing_snapshot, dict) and not is_full_submission:
             snapshot = _merge_snapshots(existing_snapshot, snapshot)
@@ -320,7 +342,7 @@ async def jcfpm_submit(payload: JcfpmSubmitRequest, request: Request):
             "version": "jcfpm-v1",
         }).execute()
         prefs["jcfpm_v1"] = snapshot
-        supabase.table("candidate_profiles").update({"preferences": prefs}).eq("id", user_id).execute()
+        _persist_jcfpm_preferences(str(user_id), prefs)
 
     return {"snapshot": snapshot}
 
@@ -333,16 +355,7 @@ async def jcfpm_latest(request: Request):
     if not user_id:
         return {"snapshot": None}
 
-    prof_resp = (
-        supabase.table("candidate_profiles")
-        .select("preferences")
-        .eq("id", user_id)
-        .maybe_single()
-        .execute()
-    )
-    prefs = (prof_resp.data or {}).get("preferences") if prof_resp and prof_resp.data else {}
-    if not isinstance(prefs, dict):
-        prefs = {}
+    prefs = _load_jcfpm_preferences(str(user_id))
     snapshot = prefs.get("jcfpm_v1")
     if _is_renderable_jcfpm_snapshot(snapshot):
         return {"snapshot": snapshot}
