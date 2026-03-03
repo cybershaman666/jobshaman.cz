@@ -977,30 +977,47 @@ async def get_company_candidate_benchmarks(
     require_company_access(user, company_id)
     parsed_job_id = _parse_job_id(job_id) if job_id else None
     since_iso = _to_iso(_utc_now() - timedelta(days=window_days))
+    try:
+        apps_query = (
+            supabase
+            .table("job_applications")
+            .select("candidate_id,status,created_at,job_id,company_id")
+            .eq("company_id", company_id)
+            .gte("created_at", since_iso)
+        )
+        if parsed_job_id is not None:
+            apps_query = apps_query.eq("job_id", parsed_job_id)
+        apps_resp = apps_query.execute()
+        applications = apps_resp.data or []
+    except Exception:
+        applications = []
 
-    apps_query = (
-        supabase
-        .table("job_applications")
-        .select("candidate_id,status,created_at,job_id,company_id")
-        .eq("company_id", company_id)
-        .gte("created_at", since_iso)
-    )
-    if parsed_job_id is not None:
-        apps_query = apps_query.eq("job_id", parsed_job_id)
-    apps_resp = apps_query.execute()
-    applications = apps_resp.data or []
-
-    ass_query = (
-        supabase
-        .table("assessment_results")
-        .select("candidate_id,journey_quality_index,journey_payload,decision_pattern,energy_balance,cultural_orientation,completed_at,job_id,company_id")
-        .eq("company_id", company_id)
-        .gte("completed_at", since_iso)
-    )
-    if parsed_job_id is not None:
-        ass_query = ass_query.eq("job_id", parsed_job_id)
-    ass_resp = ass_query.execute()
-    assessments = ass_resp.data or []
+    try:
+        ass_query = (
+            supabase
+            .table("assessment_results")
+            .select("candidate_id,journey_quality_index,journey_payload,decision_pattern,energy_balance,cultural_orientation,completed_at,job_id,company_id")
+            .eq("company_id", company_id)
+            .gte("completed_at", since_iso)
+        )
+        if parsed_job_id is not None:
+            ass_query = ass_query.eq("job_id", parsed_job_id)
+        ass_resp = ass_query.execute()
+        assessments = ass_resp.data or []
+    except Exception:
+        try:
+            fallback_ass_query = (
+                supabase
+                .table("assessment_results")
+                .select("candidate_id,journey_quality_index,journey_payload,decision_pattern,energy_balance,cultural_orientation,completed_at,job_id")
+                .gte("completed_at", since_iso)
+            )
+            if parsed_job_id is not None:
+                fallback_ass_query = fallback_ass_query.eq("job_id", parsed_job_id)
+            ass_resp = fallback_ass_query.execute()
+            assessments = ass_resp.data or []
+        except Exception:
+            assessments = []
 
     now = _utc_now()
 
@@ -1050,15 +1067,18 @@ async def get_company_candidate_benchmarks(
     avg_ass_recency = mean(assessment_recency) if assessment_recency else float(window_days)
 
     # Peer benchmark by hiring volume band
-    all_apps_resp = (
-        supabase
-        .table("job_applications")
-        .select("company_id,status,created_at")
-        .gte("created_at", since_iso)
-        .limit(10000)
-        .execute()
-    )
-    all_apps = all_apps_resp.data or []
+    try:
+        all_apps_resp = (
+            supabase
+            .table("job_applications")
+            .select("company_id,status,created_at")
+            .gte("created_at", since_iso)
+            .limit(10000)
+            .execute()
+        )
+        all_apps = all_apps_resp.data or []
+    except Exception:
+        all_apps = []
 
     company_counts: Dict[str, Dict[str, int]] = {}
     for row in all_apps:
@@ -1092,15 +1112,18 @@ async def get_company_candidate_benchmarks(
     peer_hire_median = median(peer_hire_rates) if peer_hire_rates else None
 
     # Peer assessment benchmark
-    all_assess_resp = (
-        supabase
-        .table("assessment_results")
-        .select("company_id,journey_quality_index,journey_payload,decision_pattern,energy_balance,cultural_orientation,completed_at")
-        .gte("completed_at", since_iso)
-        .limit(10000)
-        .execute()
-    )
-    all_assess = all_assess_resp.data or []
+    try:
+        all_assess_resp = (
+            supabase
+            .table("assessment_results")
+            .select("company_id,journey_quality_index,journey_payload,decision_pattern,energy_balance,cultural_orientation,completed_at")
+            .gte("completed_at", since_iso)
+            .limit(10000)
+            .execute()
+        )
+        all_assess = all_assess_resp.data or []
+    except Exception:
+        all_assess = []
 
     scores_by_company: Dict[str, List[float]] = {}
     for row in all_assess:

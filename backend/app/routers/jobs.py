@@ -563,6 +563,7 @@ def _serialize_candidate_application_row(row: dict) -> dict:
     base = _serialize_application_dossier(row)
     company = _safe_dict(row.get("companies"))
     job_snapshot = _extract_candidate_job_snapshot(row)
+    application_payload = _safe_dict(base.get("application_payload"))
     return {
         "id": base.get("id"),
         "job_id": base.get("job_id"),
@@ -1586,6 +1587,7 @@ async def list_company_applications(
         raise HTTPException(status_code=503, detail="Database unavailable")
 
     require_company_access(user, company_id)
+    resp = None
     try:
         query = (
             supabase
@@ -1599,19 +1601,21 @@ async def list_company_applications(
             query = query.eq("job_id", _normalize_job_id(job_id))
         resp = query.execute()
     except Exception as exc:
-        if not _is_missing_column_error(exc, "submitted_at"):
-            raise HTTPException(status_code=500, detail="Failed to load company applications")
-        legacy_query = (
-            supabase
-            .table("job_applications")
-            .select("*,jobs(id,title),profiles(id,full_name,email)")
-            .eq("company_id", company_id)
-            .order("applied_at", desc=True)
-            .limit(limit)
-        )
-        if job_id:
-            legacy_query = legacy_query.eq("job_id", _normalize_job_id(job_id))
-        resp = legacy_query.execute()
+        try:
+            order_column = "applied_at" if _is_missing_column_error(exc, "submitted_at") else "created_at"
+            legacy_query = (
+                supabase
+                .table("job_applications")
+                .select("*")
+                .eq("company_id", company_id)
+                .order(order_column, desc=True)
+                .limit(limit)
+            )
+            if job_id:
+                legacy_query = legacy_query.eq("job_id", _normalize_job_id(job_id))
+            resp = legacy_query.execute()
+        except Exception:
+            return {"company_id": company_id, "applications": []}
 
     rows = resp.data or []
     out = []
@@ -1641,27 +1645,17 @@ async def get_company_application_detail(
             .execute()
         )
     except Exception as exc:
-        if not any(_is_missing_column_error(exc, col) for col in [
-            "source",
-            "reviewed_at",
-            "reviewed_by",
-            "cover_letter",
-            "cv_document_id",
-            "cv_snapshot",
-            "candidate_profile_snapshot",
-            "jcfpm_share_level",
-            "shared_jcfpm_payload",
-            "application_payload",
-        ]):
+        try:
+            resp = (
+                supabase
+                .table("job_applications")
+                .select("*")
+                .eq("id", application_id)
+                .maybe_single()
+                .execute()
+            )
+        except Exception:
             raise HTTPException(status_code=500, detail="Failed to load application detail")
-        resp = (
-            supabase
-            .table("job_applications")
-            .select("*,jobs(id,title),profiles(id,full_name,email)")
-            .eq("id", application_id)
-            .maybe_single()
-            .execute()
-        )
     row = resp.data if resp else None
     if not row:
         raise HTTPException(status_code=404, detail="Application not found")

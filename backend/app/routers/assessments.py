@@ -448,8 +448,23 @@ async def list_company_assessment_library(request: Request, user: dict = Depends
         )
         rows = resp.data or []
     except Exception as exc:
+        if _is_missing_column_error(exc, 'createdAt'):
+            try:
+                resp = (
+                    supabase
+                    .table('assessments')
+                    .select('*')
+                    .eq('company_id', company_id)
+                    .order('created_at', desc=True)
+                    .limit(50)
+                    .execute()
+                )
+                rows = resp.data or []
+                return {'assessments': rows}
+            except Exception as nested_exc:
+                exc = nested_exc
         if not _is_missing_column_error(exc, 'company_id'):
-            raise HTTPException(status_code=500, detail=f'Failed to list company assessments: {exc}')
+            return {'assessments': []}
 
         known_ids: List[str] = []
         try:
