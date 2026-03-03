@@ -165,9 +165,7 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                                             {app.hasCoverLetter && <span className="px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">{t('company.workspace.labels.cover_letter', { defaultValue: 'Cover letter' })}</span>}
                                             {app.hasJcfpm && (
                                                 <span className="px-2 py-1 rounded bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
-                                                    JCFPM: {app.jcfpmShareLevel === 'full_report'
-                                                        ? t('company.applications.labels.full', { defaultValue: 'Full' })
-                                                        : t('company.applications.labels.summary', { defaultValue: 'Summary' })}
+                                                    JCFPM: {t('company.applications.labels.summary', { defaultValue: 'Shared' })}
                                                 </span>
                                             )}
                                             {applicationsUpdating[app.id] && (

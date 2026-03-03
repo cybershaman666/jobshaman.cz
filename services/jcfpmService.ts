@@ -1,6 +1,6 @@
 import { BACKEND_URL } from '../constants';
 import { supabase } from './supabaseService';
-import { JcfpmItem, JcfpmSnapshotV1, JcfpmDimensionId, JcfpmJhiAdjustmentV1, EmployerVisibleJcfpmFullReport, EmployerVisibleJcfpmSummary, ApplicationJcfpmShareLevel } from '../types';
+import { JcfpmItem, JcfpmSnapshotV1, JcfpmDimensionId, JcfpmJhiAdjustmentV1, EmployerVisibleJcfpmSummary, ApplicationJcfpmShareLevel } from '../types';
 
 const DIMENSIONS = [
   'd1_cognitive',
@@ -983,11 +983,22 @@ export const buildEmployerVisibleJcfpmPayload = (
   snapshot: JcfpmSnapshotV1 | null | undefined,
   shareLevel: ApplicationJcfpmShareLevel,
   adjustment?: JcfpmJhiAdjustmentV1 | null
-): EmployerVisibleJcfpmSummary | EmployerVisibleJcfpmFullReport | null => {
+): EmployerVisibleJcfpmSummary | null => {
   if (!snapshot || shareLevel === 'do_not_share') return null;
 
   const sortedDimensions = [...(snapshot.dimension_scores || [])]
     .sort((a, b) => (b.percentile || 0) - (a.percentile || 0));
+  const pctByDim = new Map(
+    (snapshot.dimension_scores || []).map((row) => [row.dimension, Math.round(row.percentile || 0)])
+  );
+  const comparisonSignals = [
+    { key: 'analytical', label: 'Analytical structure', score: pctByDim.get('d1_cognitive') || 0 },
+    { key: 'collaboration', label: 'Collaboration', score: pctByDim.get('d2_social') || 0 },
+    { key: 'drive', label: 'Drive', score: pctByDim.get('d3_motivational') || 0 },
+    { key: 'execution', label: 'Execution stamina', score: pctByDim.get('d4_energy') || 0 },
+    { key: 'adaptability', label: 'Adaptability', score: pctByDim.get('d6_ai_readiness') || 0 },
+    { key: 'judgement', label: 'Judgement', score: pctByDim.get('d12_moral_compass') || 0 },
+  ];
 
   const base: EmployerVisibleJcfpmSummary = {
     schema_version: 'jcfpm-share-v1',
@@ -1008,34 +1019,10 @@ export const buildEmployerVisibleJcfpmPayload = (
       to: change.to,
       reason: change.reason_i18n?.en || change.reason,
     })),
+    comparison_signals: comparisonSignals,
   };
 
-  if (shareLevel !== 'full_report') return base;
-
-  return {
-    ...base,
-    share_level: 'full_report',
-    dimension_scores: sortedDimensions.slice(0, 12).map((row) => ({
-      dimension: row.dimension,
-      raw_score: row.raw_score,
-      percentile: row.percentile,
-      percentile_band: row.percentile_band,
-      label: row.label,
-    })),
-    fit_scores: (snapshot.fit_scores || []).slice(0, 5).map((row) => ({
-      title: row.title,
-      fit_score: row.fit_score,
-      salary_range: row.salary_range,
-      growth_potential: row.growth_potential,
-      ai_impact: row.ai_impact,
-      remote_friendly: row.remote_friendly,
-    })),
-    narrative_summary: {
-      ideal_environment: (snapshot.ai_report?.ideal_environment || []).slice(0, 4),
-      development_areas: (snapshot.ai_report?.development_areas || []).slice(0, 4),
-      next_steps: (snapshot.ai_report?.next_steps || []).slice(0, 4),
-    },
-  };
+  return base;
 };
 
 let globalJcfpmItemsCache: JcfpmItem[] | null = null;

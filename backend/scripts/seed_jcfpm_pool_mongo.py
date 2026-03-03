@@ -20,6 +20,9 @@ REQUIRED_FIELDS = {
     "sort_order",
 }
 
+SUPPORTED_LOCALES = ("cs", "en", "de", "pl", "sk")
+LOCALE_FALLBACK_CHAIN = ("en", "de", "cs")
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Seed JCFPM pool into MongoDB")
@@ -39,7 +42,45 @@ def load_items(path: str) -> list[dict]:
     data = json.loads(Path(path).read_text(encoding="utf-8"))
     if not isinstance(data, list):
         raise ValueError("Source JSON must contain a list")
-    return data
+    return [normalize_i18n(item) for item in data]
+
+
+def _pick_locale_value(values: dict, preferred: str | None = None):
+    if preferred and values.get(preferred) is not None:
+        return values[preferred]
+    for locale in LOCALE_FALLBACK_CHAIN:
+        if values.get(locale) is not None:
+            return values[locale]
+    for value in values.values():
+        if value is not None:
+            return value
+    return None
+
+
+def _complete_locale_map(raw: object, fallback: object = None) -> dict:
+    localized = raw if isinstance(raw, dict) else {}
+    result = dict(localized)
+    if fallback is not None and result.get("cs") is None:
+        result["cs"] = fallback
+    seed_value = _pick_locale_value(result)
+    for locale in SUPPORTED_LOCALES:
+        if result.get(locale) is None:
+            result[locale] = _pick_locale_value(result, preferred=locale) or seed_value or fallback
+    return result
+
+
+def normalize_i18n(item: dict) -> dict:
+    normalized = dict(item)
+    normalized["prompt_i18n"] = _complete_locale_map(item.get("prompt_i18n"), item.get("prompt"))
+
+    if item.get("subdimension") is not None or item.get("subdimension_i18n") is not None:
+        normalized["subdimension_i18n"] = _complete_locale_map(item.get("subdimension_i18n"), item.get("subdimension"))
+
+    if item.get("payload_i18n") is not None:
+        payload_fallback = item.get("payload")
+        normalized["payload_i18n"] = _complete_locale_map(item.get("payload_i18n"), payload_fallback)
+
+    return normalized
 
 
 def validate_items(items: list[dict]) -> None:
@@ -73,6 +114,21 @@ def validate_items(items: list[dict]) -> None:
         pool_variant.add(key)
         pool_keys.add(pool_key)
         dimensions.add(str(item["dimension"]))
+
+        prompt_i18n = item.get("prompt_i18n")
+        if not isinstance(prompt_i18n, dict):
+            raise ValueError(f"Item {item_id} missing prompt_i18n")
+        missing_locales = [locale for locale in SUPPORTED_LOCALES if prompt_i18n.get(locale) is None]
+        if missing_locales:
+            raise ValueError(f"Item {item_id} missing prompt_i18n locales: {missing_locales}")
+
+        payload_i18n = item.get("payload_i18n")
+        if payload_i18n is not None:
+            if not isinstance(payload_i18n, dict):
+                raise ValueError(f"Item {item_id} has invalid payload_i18n")
+            missing_payload_locales = [locale for locale in SUPPORTED_LOCALES if payload_i18n.get(locale) is None]
+            if missing_payload_locales:
+                raise ValueError(f"Item {item_id} missing payload_i18n locales: {missing_payload_locales}")
 
     expected_dims = {
         "d1_cognitive",

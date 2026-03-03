@@ -70,6 +70,30 @@ def test_resolve_digest_country_uses_timezone_when_locale_missing():
     assert code == "CZ"
 
 
+def test_resolve_digest_country_prefers_locale_over_vienna_timezone():
+    code = _resolve_digest_country_code(
+        preferred_country_code=None,
+        preferred_locale="cs",
+        candidate_profile={"address": ""},
+        c_lat=None,
+        c_lng=None,
+        digest_timezone="Europe/Vienna",
+    )
+    assert code == "CZ"
+
+
+def test_resolve_digest_country_prefers_address_over_vienna_timezone():
+    code = _resolve_digest_country_code(
+        preferred_country_code=None,
+        preferred_locale=None,
+        candidate_profile={"address": "Brno, Czechia"},
+        c_lat=None,
+        c_lng=None,
+        digest_timezone="Europe/Vienna",
+    )
+    assert code == "CZ"
+
+
 def test_resolve_locale_prefers_country_default_for_conflicting_german_locale():
     assert _resolve_locale("de", "CZ") == "cs"
 
@@ -290,3 +314,90 @@ def test_pick_personalized_digest_jobs_skips_it_roles_when_profile_is_driver():
 
     assert len(picks) == 1
     assert picks[0]["id"] == "job-driver-1"
+
+
+def test_run_daily_job_digest_retries_without_language_restriction(monkeypatch):
+    class _Query:
+        def __init__(self, table_name, payload=None):
+            self.table_name = table_name
+            self.payload = payload
+
+        def select(self, *_args, **_kwargs):
+            return self
+
+        def eq(self, *_args, **_kwargs):
+            return self
+
+        def update(self, payload):
+            self.payload = payload
+            return self
+
+        def execute(self):
+            if self.table_name == "profiles" and self.payload is None:
+                return type(
+                    "Resp",
+                    (),
+                    {
+                        "data": [
+                            {
+                                "id": "user-1",
+                                "email": "candidate@example.com",
+                                "full_name": "Candidate",
+                                "preferred_locale": "cs",
+                                "preferred_country_code": "CZ",
+                                "daily_digest_enabled": True,
+                                "daily_digest_last_sent_at": None,
+                                "daily_digest_time": "10:00",
+                                "daily_digest_timezone": "UTC",
+                                "daily_digest_push_enabled": False,
+                                "candidate_profiles": {
+                                    "address": "Brno, Czechia",
+                                    "job_title": "",
+                                    "skills": [],
+                                    "cv_text": "",
+                                    "cv_ai_text": "",
+                                },
+                            }
+                        ]
+                    },
+                )()
+            return type("Resp", (), {"data": []})()
+
+    class _SupabaseStub:
+        def table(self, name):
+            return _Query(name)
+
+    relaxed_calls = []
+    sent_jobs = []
+
+    def _relaxed_stub(country_code=None, allowed_language_codes=None, **_kwargs):
+        relaxed_calls.append((country_code, allowed_language_codes))
+        if allowed_language_codes is None and country_code == "CZ":
+            return [
+                {
+                    "id": "job-1",
+                    "title": "Operator vyroby",
+                    "company": "Factory",
+                    "location": "Brno",
+                    "match_score": None,
+                    "detail_url": "https://jobshaman.cz/jobs/job-1",
+                }
+            ]
+        return []
+
+    def _email_stub(**kwargs):
+        sent_jobs.append(kwargs["jobs"])
+        return True
+
+    monkeypatch.setattr(daily_digest_module, "supabase", _SupabaseStub())
+    monkeypatch.setattr(daily_digest_module, "_should_send_now", lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(daily_digest_module, "_fetch_newest_local_jobs", lambda **_kwargs: [])
+    monkeypatch.setattr(daily_digest_module, "_fetch_newest_jobs_relaxed", _relaxed_stub)
+    monkeypatch.setattr(daily_digest_module, "send_daily_digest_email", _email_stub)
+    monkeypatch.setattr(daily_digest_module, "is_push_configured", lambda: False)
+
+    daily_digest_module.run_daily_job_digest()
+
+    assert relaxed_calls == [("CZ", {"cs", "sk"}), ("CZ", None)]
+    assert len(sent_jobs) == 1
+    assert sent_jobs[0][0]["id"] == "job-1"

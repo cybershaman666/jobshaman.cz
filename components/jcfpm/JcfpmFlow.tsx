@@ -22,11 +22,15 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import confetti from 'canvas-confetti';
-import { JcfpmItem } from '../../types';
+import { JcfpmItem, JcfpmSnapshotV1 } from '../../types';
 import {
   fetchJcfpmItems,
-  sampleJcfpmItems
+  fetchLatestJcfpm,
+  sampleJcfpmItems,
+  submitJcfpm
 } from '../../services/jcfpmService';
+import { clearJcfpmDraft, readJcfpmDraft, writeJcfpmDraft } from '../../services/jcfpmSessionState';
+import JcfpmReportPanel from './JcfpmReportPanel';
 
 // --- Local Utilities ---
 
@@ -149,6 +153,44 @@ const isLowPowerDevice = () => {
   if (typeof nav.deviceMemory === 'number' && nav.deviceMemory <= 4) return true;
   if (typeof nav.hardwareConcurrency === 'number' && nav.hardwareConcurrency <= 4) return true;
   return false;
+};
+
+const resolveLocale = (language: string) => {
+  const normalized = String(language || 'cs').trim().toLowerCase();
+  const base = normalized.split('-')[0];
+  if (base === 'at') return 'de';
+  return base || 'cs';
+};
+
+const resolveLocalizedField = (localized: Record<string, any> | null | undefined, fallback: any, language: string) => {
+  if (localized && typeof localized === 'object') {
+    if (localized[language] != null) return localized[language];
+    for (const key of ['en', 'de', 'cs']) {
+      if (localized[key] != null) return localized[key];
+    }
+  }
+  return fallback;
+};
+
+const mergeLocalizedPayload = (base: any, override: any): any => {
+  if (override == null) return base;
+  if (Array.isArray(base) || Array.isArray(override)) return override;
+  if (!base || typeof base !== 'object' || typeof override !== 'object') return override;
+  const merged: Record<string, any> = { ...base };
+  Object.keys(override).forEach((key) => {
+    merged[key] = mergeLocalizedPayload(base?.[key], override[key]);
+  });
+  return merged;
+};
+
+const localizeItem = (item: JcfpmItem, language: string): JcfpmItem => {
+  const payloadOverride = resolveLocalizedField(item.payload_i18n as any, null, language);
+  return {
+    ...item,
+    prompt: resolveLocalizedField(item.prompt_i18n as any, item.prompt, language),
+    subdimension: resolveLocalizedField(item.subdimension_i18n as any, item.subdimension, language),
+    payload: mergeLocalizedPayload(item.payload, payloadOverride),
+  };
 };
 
 const FLOW_COPY: any = {
@@ -441,6 +483,7 @@ interface JcfpmFlowProps {
   userId: string;
   isPremium: boolean;
   section: string;
+  initialSnapshot?: JcfpmSnapshotV1 | null;
   theme: 'light' | 'dark';
   onPersist: (snapshot: any) => Promise<void>;
   onClose: () => void;
@@ -450,12 +493,13 @@ export default function JcfpmFlow({
   userId,
   isPremium,
   section,
+  initialSnapshot,
   theme: appTheme,
   onPersist,
   onClose
 }: JcfpmFlowProps) {
   const { i18n } = useTranslation();
-  const language = (i18n.language || 'cs') as string;
+  const language = resolveLocale(i18n.language || 'cs');
   const copy = FLOW_COPY[language] || FLOW_COPY.cs;
   const dimensions = buildDimensions(copy);
   const interludes = buildInterludes(copy);
@@ -465,10 +509,11 @@ export default function JcfpmFlow({
   const [items, setItems] = useState<JcfpmItem[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, any>>({});
-  const [status, setStatus] = useState<'loading' | 'intro' | 'interlude' | 'question' | 'saving' | 'error' | 'premium_check' | 'finished'>('premium_check');
+  const [status, setStatus] = useState<'loading' | 'intro' | 'interlude' | 'question' | 'saving' | 'error' | 'premium_check' | 'finished' | 'report'>('premium_check');
   const [error, setError] = useState<string | null>(null);
   const [showSound, setShowSound] = useState(true);
   const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [snapshot, setSnapshot] = useState<JcfpmSnapshotV1 | null>(initialSnapshot || null);
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const confettiRef = useRef<ReturnType<typeof confetti.create> | null>(null);
@@ -487,7 +532,7 @@ export default function JcfpmFlow({
         confettiRef.current = null;
       }
     }
-    fetchQuestions();
+    void initializeFlow();
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (celebrationTimeoutRef.current) clearTimeout(celebrationTimeoutRef.current);
@@ -502,7 +547,7 @@ export default function JcfpmFlow({
   };
   const lowPowerMode = isLowPowerDevice();
 
-  const fetchQuestions = async () => {
+  const fetchQuestions = async (resumeDraft = false) => {
     try {
       setStatus('loading');
       const data = await fetchJcfpmItems();
@@ -537,12 +582,57 @@ export default function JcfpmFlow({
       }
 
       setItems(sampled);
+
+      const draft = resumeDraft ? readJcfpmDraft(userId) : null;
+      if (draft && draft.responses && Object.keys(draft.responses).length > 0) {
+        setAnswers(draft.responses);
+        setCurrentIndex(Math.max(0, Math.min(sampled.length - 1, draft.stepIndex || 0)));
+        setStatus('question');
+        startTimer();
+        return;
+      }
+
+      setCurrentIndex(0);
+      setAnswers({});
       setStatus('intro');
     } catch (err: any) {
       console.error('JCFPM Fetch Error:', err);
       setStatus('error');
       setError(err.message);
     }
+  };
+
+  const initializeFlow = async () => {
+    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
+    const mode = params?.get('mode') || 'auto';
+    const shouldForceStart = mode === 'start' || mode === 'restart' || mode === 'resume';
+    const shouldForceReport = mode === 'report';
+    const hasDraft = Boolean(readJcfpmDraft(userId));
+
+    let nextSnapshot = initialSnapshot || null;
+    if (!nextSnapshot) {
+      try {
+        nextSnapshot = await fetchLatestJcfpm();
+      } catch {
+        nextSnapshot = null;
+      }
+    }
+
+    if (nextSnapshot) {
+      setSnapshot(nextSnapshot);
+    }
+
+    if (shouldForceReport && nextSnapshot) {
+      setStatus('report');
+      return;
+    }
+
+    if (!shouldForceStart && nextSnapshot && !hasDraft && effectiveSection !== 'deep_dive') {
+      setStatus('report');
+      return;
+    }
+
+    await fetchQuestions(mode === 'resume' || (!shouldForceStart && hasDraft));
   };
 
   const handleStart = () => {
@@ -560,7 +650,18 @@ export default function JcfpmFlow({
   const handleAnswer = (value: any) => {
     const currentItem = items[currentIndex];
     // Use .id instead of ._id as it's normalized in the service
-    setAnswers(prev => ({ ...prev, [currentItem.id]: value }));
+    setAnswers(prev => {
+      const nextAnswers = { ...prev, [currentItem.id]: value };
+      writeJcfpmDraft(
+        {
+          stepIndex: Math.min(currentIndex + 1, Math.max(0, items.length - 1)),
+          responses: nextAnswers,
+          updatedAt: new Date().toISOString(),
+        },
+        userId
+      );
+      return nextAnswers;
+    });
     nextStep();
   };
 
@@ -588,19 +689,19 @@ export default function JcfpmFlow({
     setStatus('saving');
 
     try {
-      // Create a snapshot of the results
-      const snapshot = {
-        userId,
+      const savedSnapshot = await submitJcfpm(
         answers,
-        completedAt: new Date().toISOString(),
-        timeSpentSeconds: timeLeft,
-        schema_version: '1.0',
-        confidence: 0.95 // Placeholder for now
-      };
+        items.map((item) => item.id),
+      );
+      if (!savedSnapshot) {
+        throw new Error(copy.errors.generic);
+      }
+      clearJcfpmDraft(userId);
+      setSnapshot(savedSnapshot);
 
       // Call the parent's onPersist handler
       if (onPersist) {
-        await onPersist(snapshot);
+        await onPersist(savedSnapshot);
       }
 
       if (celebrationTimeoutRef.current) clearTimeout(celebrationTimeoutRef.current);
@@ -647,6 +748,7 @@ export default function JcfpmFlow({
   // Check premium access
   // Rendering helpers
   const currentItem = items[currentIndex];
+  const localizedItem = currentItem ? localizeItem(currentItem, language) : null;
   const currentDimension = currentItem?.dimension as JcfpmDimension;
   const theme = DIMENSION_THEMES[currentDimension] || DIMENSION_THEMES.d1_cognitive;
 
@@ -671,7 +773,9 @@ export default function JcfpmFlow({
         <h2 className="text-xl font-bold mb-2">Ups!</h2>
         <p className="text-slate-400 mb-6">{error || copy.errors.generic}</p>
         <button
-          onClick={fetchQuestions}
+          onClick={() => {
+            void fetchQuestions(false);
+          }}
           className="px-6 py-2 border border-slate-700 rounded-xl text-slate-300 hover:bg-slate-800 transition-colors"
         >
           Zkusit znovu
@@ -704,6 +808,37 @@ export default function JcfpmFlow({
             Spustit test
           </button>
         </div>
+      </div>
+    );
+  }
+
+  if (status === 'report' && snapshot) {
+    return (
+      <div className="mx-auto w-full max-w-6xl space-y-4">
+        <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white/90 px-4 py-3 shadow-sm dark:border-slate-800 dark:bg-slate-900/90">
+          <div>
+            <div className="text-sm font-semibold text-slate-900 dark:text-white">{copy.reportLabel}</div>
+            <div className="text-xs text-slate-500 dark:text-slate-400">{snapshot.completed_at}</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={async () => {
+                clearJcfpmDraft(userId);
+                await fetchQuestions(false);
+              }}
+              className="rounded-xl border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              {copy.restart || 'Restart'}
+            </button>
+            <button
+              onClick={onClose}
+              className="rounded-xl bg-slate-900 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-white"
+            >
+              {copy.close}
+            </button>
+          </div>
+        </div>
+        <JcfpmReportPanel snapshot={snapshot} showAdvancedReport={isPremium} />
       </div>
     );
   }
@@ -810,11 +945,11 @@ export default function JcfpmFlow({
             >
               <div className="text-center space-y-4 max-w-2xl mx-auto">
                 <h2 className="text-2xl sm:text-3xl font-bold text-white leading-tight">
-                  {currentItem.prompt_i18n?.[language] || currentItem.prompt}
+                  {localizedItem?.prompt || currentItem.prompt}
                 </h2>
-                {(currentItem.subdimension_i18n?.[language] || currentItem.subdimension) && (
+                {(localizedItem?.subdimension || currentItem.subdimension) && (
                   <p className="text-white/50 italic text-sm">
-                    {currentItem.subdimension_i18n?.[language] || currentItem.subdimension}
+                    {localizedItem?.subdimension || currentItem.subdimension}
                   </p>
                 )}
               </div>
@@ -858,13 +993,13 @@ export default function JcfpmFlow({
                 {/* Basic support for MCQ / Scenarios if they slip in */}
                 {(currentItem.item_type === 'mcq' || currentItem.item_type === 'scenario_choice') && (
                   <div className="grid grid-cols-1 gap-4">
-                    {(currentItem.payload?.options as any[] | undefined)?.map((opt: any) => (
+                    {(localizedItem?.payload?.options as any[] | undefined)?.map((opt: any) => (
                       <button
                         key={opt.id || opt.text}
                         onClick={() => handleAnswer(opt.id || opt.text)}
                         className="p-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/10 text-white text-left transition-all"
                       >
-                        {opt.text_i18n?.[language] || opt.text || opt.label}
+                        {resolveLocalizedField(opt.text_i18n, opt.text || opt.label, language)}
                       </button>
                     ))}
                   </div>

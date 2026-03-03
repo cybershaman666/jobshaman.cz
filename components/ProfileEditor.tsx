@@ -2552,26 +2552,24 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                   lastUpdatedAt={jcfpmSnapshot?.completed_at}
                   onResume={() => {
                     const lng = (i18n.language || 'cs').split('-')[0];
-                    window.location.href = `/${lng}/profile/jcfpm`;
+                    window.location.href = `/${lng}/profile/jcfpm?mode=resume`;
                   }}
                   onRestart={() => {
                     clearJcfpmDraft(profile.id);
                     const lng = (i18n.language || 'cs').split('-')[0];
-                    window.location.href = `/${lng}/profile/jcfpm`;
+                    window.location.href = `/${lng}/profile/jcfpm?mode=restart`;
                   }}
                   onStartCore={() => {
-                    // We could pass query params if we want to preserve section, 
-                    // but for now let's keep it simple.
                     const lng = (i18n.language || 'cs').split('-')[0];
-                    window.location.href = `/${lng}/profile/jcfpm`;
+                    window.location.href = `/${lng}/profile/jcfpm?mode=start`;
                   }}
                   onStartDeep={() => {
                     const lng = (i18n.language || 'cs').split('-')[0];
-                    window.location.href = `/${lng}/profile/jcfpm?section=deep_dive`;
+                    window.location.href = `/${lng}/profile/jcfpm?section=deep_dive&mode=start`;
                   }}
                   onView={() => {
                     const lng = (i18n.language || 'cs').split('-')[0];
-                    window.location.href = `/${lng}/profile/jcfpm`;
+                    window.location.href = `/${lng}/profile/jcfpm?mode=report`;
                   }}
                   onUpgrade={() => {
                     if (profile.id) {

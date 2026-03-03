@@ -10,7 +10,6 @@ import BiophilicCockpitScene from './three/BiophilicCockpitScene';
 import { supabase } from '../services/supabaseService';
 import { getRemainingAssessments } from '../services/billingService';
 import AnalyticsService from '../services/analyticsService';
-import PlanUpgradeModal from './PlanUpgradeModal';
 import { openAssessmentPreviewPage } from '../services/assessmentPreviewNavigation';
 import { BrainCircuit, Loader2, Code, FileText, CheckCircle, Copy, BarChart3, Eye, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -37,7 +36,6 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
     const [difficulty, setDifficulty] = useState('Senior');
     const [isGenerating, setIsGenerating] = useState(false);
     const [assessment, setAssessment] = useState<Assessment | null>(null);
-    const [showUpgradeModal, setShowUpgradeModal] = useState(false);
     const [selectedJobId, setSelectedJobId] = useState(initialJobId || '');
     const [isExtracting, setIsExtracting] = useState(false);
     const [selectedDemoOutputId, setSelectedDemoOutputId] = useState<string>('demo-backend-senior');
@@ -832,7 +830,7 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
             {/* Usage Display */}
             {companyProfile && (
                 <div className="lg:col-span-2 mb-4">
-                    <div className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-950/20 dark:to-blue-950/20 border border-cyan-200 dark:border-cyan-700 rounded-xl p-4 flex items-center justify-between">
+                    <div className="bg-gradient-to-r from-cyan-50 to-blue-50 dark:from-cyan-950/20 dark:to-blue-950/20 border border-cyan-200 dark:border-cyan-700 rounded-xl p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 rounded-lg">
                                 <BarChart3 size={20} />
@@ -852,12 +850,9 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                                 </div>
                             </div>
                         </div>
-                        <button
-                            onClick={() => setShowUpgradeModal(true)}
-                            className="px-4 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold rounded-lg transition-colors shadow-sm whitespace-nowrap"
-                        >
-                            {t('assessment_creator.more_credits')}
-                        </button>
+                        <div className="rounded-xl border border-cyan-200/80 bg-white/80 px-3 py-2 text-xs font-semibold text-cyan-700 shadow-sm dark:border-cyan-900/30 dark:bg-slate-950/50 dark:text-cyan-300">
+                            {t('assessment_creator.included_in_plan', { defaultValue: 'AI assessments are fully included in the monthly plan.' })}
+                        </div>
                     </div>
                 </div>
             )}
@@ -1426,13 +1421,6 @@ const AssessmentCreator: React.FC<AssessmentCreatorProps> = ({ companyProfile, j
                     </div>
                 )}
             </div>
-
-            <PlanUpgradeModal
-                isOpen={showUpgradeModal}
-                onClose={() => setShowUpgradeModal(false)}
-                feature="AI Assessment"
-                companyProfile={companyProfile || { id: 'guest', name: 'Guest' } as any}
-            />
         </div>
     );
 };

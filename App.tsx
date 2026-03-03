@@ -1922,6 +1922,7 @@ export default function App() {
                             userId={userProfile.id || 'guest'}
                             isPremium={userProfile.subscription?.tier === 'premium'}
                             section={sectionParam}
+                            initialSnapshot={userProfile.preferences?.jcfpm_v1 || null}
                             theme={theme}
                             onPersist={async (snapshot: any) => {
                                 console.log('JCFPM Persist:', snapshot);

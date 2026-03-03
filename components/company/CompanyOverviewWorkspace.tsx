@@ -125,11 +125,14 @@ const CompanyOverviewWorkspace: React.FC<Props> = ({
                     <CompanyWorkspaceHero
                         applicationsLoading={applicationsLoading}
                         applicationsLastSyncedAt={applicationsLastSyncedAt}
+                        liveRolesCount={visibleJobs.length}
+                        reviewQueueCount={openApplicationsCount}
+                        savedAssessmentsCount={assessmentLibrary.length}
                         onRefreshApplications={onRefreshApplications}
                         onOpenJobs={onOpenJobs}
                         onOpenApplications={onOpenApplications}
-                    onOpenAssessments={onOpenAssessments}
-                />
+                        onOpenAssessments={onOpenAssessments}
+                    />
 
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
                     <MetricCard

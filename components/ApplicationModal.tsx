@@ -23,53 +23,53 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
   const locale = (i18n.language || 'cs').split('-')[0];
   const jcfpmUiCopy = {
     cs: {
-      shareDesc: 'Vyberte, kolik z výsledku JCFPM chcete sdílet s firmou. Vaše vlastní personalizace JHI zůstává aktivní tak jako tak.',
-      premiumDesc: 'Ve free verzi zůstává JCFPM jen pro vaše soukromé doporučování v JobShamanu. Premium odemkne sdílení s firmou a plný rozbor.',
+      shareDesc: 'Pokud JCFPM nasdílíte, firma dostane jen kompaktní srovnávací profil pro hiring rozhodnutí. Osobní narativní rozbor zůstává jen vám.',
+      premiumDesc: 'Ve free verzi zůstává JCFPM jen pro vaše soukromé doporučování v JobShamanu. Premium odemkne sdílení stručného profilu s firmou.',
       missingDesc: 'JCFPM ještě nemáte dokončený, takže se s přihláškou odešle jen životopis a základní shrnutí profilu.',
       noneDesc: 'JCFPM zůstane jen pro vaše interní doporučování v JobShamanu.',
-      premiumLocked: 'Premium: sdílení s firmou a plný rozbor',
+      premiumLocked: 'Premium: sdílení s firmou',
     },
     en: {
-      shareDesc: 'Choose how much of your JCFPM result you want to share with the employer. Your own JHI personalization stays active either way.',
-      premiumDesc: 'In the free plan, JCFPM stays only in your private JobShaman recommendations. Premium unlocks employer sharing and the full analysis.',
+      shareDesc: 'If you share JCFPM, the employer only receives a compact comparison profile for hiring decisions. Your personal narrative report stays private.',
+      premiumDesc: 'In the free plan, JCFPM stays only in your private JobShaman recommendations. Premium unlocks sharing a concise employer profile.',
       missingDesc: 'You have not completed JCFPM yet, so only your CV and basic profile summary will be included with this application.',
       noneDesc: 'JCFPM stays only in your internal JobShaman recommendations.',
-      premiumLocked: 'Premium: employer sharing and full analysis',
+      premiumLocked: 'Premium: employer sharing',
     },
     de: {
-      shareDesc: 'Wählen Sie, wie viel Ihres JCFPM-Ergebnisses Sie mit dem Arbeitgeber teilen möchten. Ihre eigene JHI-Personalisierung bleibt in jedem Fall aktiv.',
-      premiumDesc: 'Im Free-Tarif bleibt JCFPM nur in Ihren privaten JobShaman-Empfehlungen. Premium schaltet das Teilen mit Arbeitgebern und die vollständige Analyse frei.',
+      shareDesc: 'Wenn Sie JCFPM teilen, erhält der Arbeitgeber nur ein kompaktes Vergleichsprofil für Hiring-Entscheidungen. Ihr persönlicher Bericht bleibt privat.',
+      premiumDesc: 'Im Free-Tarif bleibt JCFPM nur in Ihren privaten JobShaman-Empfehlungen. Premium schaltet das Teilen eines kompakten Arbeitgeber-Profils frei.',
       missingDesc: 'Sie haben JCFPM noch nicht abgeschlossen. Mit dieser Bewerbung werden daher nur Lebenslauf und eine kurze Profilzusammenfassung geteilt.',
       noneDesc: 'JCFPM bleibt nur in Ihren internen JobShaman-Empfehlungen.',
-      premiumLocked: 'Premium: Teilen mit Arbeitgebern und volle Analyse',
+      premiumLocked: 'Premium: Teilen mit Arbeitgebern',
     },
     at: {
-      shareDesc: 'Wählen Sie, wie viel Ihres JCFPM-Ergebnisses Sie mit dem Arbeitgeber teilen möchten. Ihre eigene JHI-Personalisierung bleibt in jedem Fall aktiv.',
-      premiumDesc: 'Im Free-Tarif bleibt JCFPM nur in Ihren privaten JobShaman-Empfehlungen. Premium schaltet das Teilen mit Arbeitgebern und die vollständige Analyse frei.',
+      shareDesc: 'Wenn Sie JCFPM teilen, erhält der Arbeitgeber nur ein kompaktes Vergleichsprofil für Hiring-Entscheidungen. Ihr persönlicher Bericht bleibt privat.',
+      premiumDesc: 'Im Free-Tarif bleibt JCFPM nur in Ihren privaten JobShaman-Empfehlungen. Premium schaltet das Teilen eines kompakten Arbeitgeber-Profils frei.',
       missingDesc: 'Sie haben JCFPM noch nicht abgeschlossen. Mit dieser Bewerbung werden daher nur Lebenslauf und eine kurze Profilzusammenfassung geteilt.',
       noneDesc: 'JCFPM bleibt nur in Ihren internen JobShaman-Empfehlungen.',
-      premiumLocked: 'Premium: Teilen mit Arbeitgebern und volle Analyse',
+      premiumLocked: 'Premium: Teilen mit Arbeitgebern',
     },
     pl: {
-      shareDesc: 'Wybierz, ile wyniku JCFPM chcesz udostępnić pracodawcy. Twoja własna personalizacja JHI pozostanie aktywna niezależnie od wyboru.',
-      premiumDesc: 'W wersji free JCFPM zostaje tylko w Twoich prywatnych rekomendacjach JobShaman. Premium odblokowuje udostępnianie pracodawcy i pełną analizę.',
+      shareDesc: 'Jeśli udostępnisz JCFPM, pracodawca otrzyma tylko zwięzły profil porównawczy do decyzji hiringowych. Twój pełny raport pozostaje prywatny.',
+      premiumDesc: 'W wersji free JCFPM zostaje tylko w Twoich prywatnych rekomendacjach JobShaman. Premium odblokowuje udostępnianie zwięzłego profilu pracodawcy.',
       missingDesc: 'Nie ukończyłeś jeszcze JCFPM, więc z tym zgłoszeniem zostanie wysłane tylko CV i krótkie podsumowanie profilu.',
       noneDesc: 'JCFPM pozostaje tylko w Twoich wewnętrznych rekomendacjach JobShaman.',
-      premiumLocked: 'Premium: udostępnianie pracodawcy i pełna analiza',
+      premiumLocked: 'Premium: udostępnianie pracodawcy',
     },
     sk: {
-      shareDesc: 'Vyberte si, koľko z výsledku JCFPM chcete zdieľať so zamestnávateľom. Vaša vlastná personalizácia JHI zostane aktívna bez ohľadu na výber.',
-      premiumDesc: 'Vo free verzii zostáva JCFPM len vo vašich súkromných odporúčaniach v JobShamane. Premium odomkne zdieľanie so zamestnávateľom a plnú analýzu.',
+      shareDesc: 'Ak JCFPM zdieľate, firma dostane len kompaktný porovnávací profil pre hiring rozhodnutie. Váš osobný plný report zostáva súkromný.',
+      premiumDesc: 'Vo free verzii zostáva JCFPM len vo vašich súkromných odporúčaniach v JobShamane. Premium odomkne zdieľanie stručného profilu s firmou.',
       missingDesc: 'JCFPM ešte nemáte dokončený, takže s touto žiadosťou odošleme len životopis a krátke zhrnutie profilu.',
       noneDesc: 'JCFPM zostane len vo vašich interných odporúčaniach v JobShamane.',
-      premiumLocked: 'Premium: zdieľanie so zamestnávateľom a plná analýza',
+      premiumLocked: 'Premium: zdieľanie so zamestnávateľom',
     }
   }[locale] || {
-    shareDesc: 'Choose how much of your JCFPM result you want to share with the employer. Your own JHI personalization stays active either way.',
-    premiumDesc: 'In the free plan, JCFPM stays only in your private JobShaman recommendations. Premium unlocks employer sharing and the full analysis.',
+    shareDesc: 'If you share JCFPM, the employer only receives a compact comparison profile for hiring decisions. Your personal narrative report stays private.',
+    premiumDesc: 'In the free plan, JCFPM stays only in your private JobShaman recommendations. Premium unlocks sharing a concise employer profile.',
     missingDesc: 'You have not completed JCFPM yet, so only your CV and basic profile summary will be included with this application.',
     noneDesc: 'JCFPM stays only in your internal JobShaman recommendations.',
-    premiumLocked: 'Premium: employer sharing and full analysis',
+    premiumLocked: 'Premium: employer sharing',
   };
   const [step, setStep] = useState<Step>('form');
 
@@ -189,8 +189,10 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
     setStep('submitting');
 
     try {
-      const effectiveJcfpmShareLevel: ApplicationJcfpmShareLevel =
+      const requestedShareLevel: ApplicationJcfpmShareLevel =
         jcfpmSnapshot && hasPremiumJcfpmSharing ? jcfpmShareLevel : 'do_not_share';
+      const effectiveJcfpmShareLevel: ApplicationJcfpmShareLevel =
+        requestedShareLevel === 'full_report' ? 'summary' : requestedShareLevel;
       const sharedJcfpmPayload = buildEmployerVisibleJcfpmPayload(
         jcfpmSnapshot,
         effectiveJcfpmShareLevel,
@@ -632,34 +634,16 @@ const ApplicationModal: React.FC<ApplicationModalProps> = ({ job, user, isOpen, 
                     type="radio"
                     name="jcfpm-share-level"
                     value="summary"
-                    checked={jcfpmShareLevel === 'summary'}
+                    checked={jcfpmShareLevel === 'summary' || jcfpmShareLevel === 'full_report'}
                     onChange={() => setJcfpmShareLevel('summary')}
                     className="mt-1"
                   />
                   <span>
                     <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">
-                      {t('apply.jcfpm_share_summary', { defaultValue: 'Share summary' })}
+                      {t('apply.jcfpm_share_summary', { defaultValue: 'Share hiring profile' })}
                     </span>
                     <span className="block text-xs text-slate-500 dark:text-slate-400">
-                      {t('apply.jcfpm_share_summary_desc', { defaultValue: 'Sends archetype, top dimensions, strengths, environment fit, and a concise JHI adjustment summary.' })}
-                    </span>
-                  </span>
-                </label>
-                <label className="flex items-start gap-3 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    name="jcfpm-share-level"
-                    value="full_report"
-                    checked={jcfpmShareLevel === 'full_report'}
-                    onChange={() => setJcfpmShareLevel('full_report')}
-                    className="mt-1"
-                  />
-                  <span>
-                    <span className="block text-sm font-semibold text-slate-800 dark:text-slate-100">
-                      {t('apply.jcfpm_share_full', { defaultValue: 'Share extended report' })}
-                    </span>
-                    <span className="block text-xs text-slate-500 dark:text-slate-400">
-                      {t('apply.jcfpm_share_full_desc', { defaultValue: 'Adds dimension scores and a richer narrative summary, without exposing raw test answers.' })}
+                      {t('apply.jcfpm_share_summary_desc', { defaultValue: 'Sends only a compact comparison signal: archetype, top dimensions, strengths, key work-style signals, and a concise JHI adjustment summary.' })}
                     </span>
                   </span>
                 </label>

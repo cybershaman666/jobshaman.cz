@@ -472,10 +472,6 @@ def _resolve_digest_country_code(
     if by_coordinates:
         return by_coordinates
 
-    tz_country = _TIMEZONE_TO_COUNTRY.get(str(digest_timezone or "").strip())
-    if tz_country:
-        return tz_country
-
     locale = str(preferred_locale or "").strip().lower()
     if locale.startswith("cs"):
         return "CZ"
@@ -489,7 +485,13 @@ def _resolve_digest_country_code(
 
     profile_obj = _profile_obj(candidate_profile)
     if isinstance(profile_obj, dict):
-        return _country_from_address(profile_obj.get("address"))
+        by_address = _country_from_address(profile_obj.get("address"))
+        if by_address:
+            return by_address
+
+    tz_country = _TIMEZONE_TO_COUNTRY.get(str(digest_timezone or "").strip())
+    if tz_country:
+        return tz_country
     return None
 
 
@@ -670,6 +672,7 @@ def _fetch_role_focused_jobs(
                 "title": job.get("title") or "",
                 "company": job.get("company") or "",
                 "location": job.get("location") or "",
+                "country_code": job.get("country_code") or "",
                 "match_score": None,
                 "detail_url": f"{_APP_URL}/jobs/{job_id}",
             }
@@ -904,6 +907,26 @@ def run_daily_job_digest() -> None:
                     digest_jobs = _fetch_newest_jobs_relaxed(
                         country_code=digest_country_code,
                         allowed_language_codes=allowed_languages,
+                        limit=_DIGEST_MAX_JOBS,
+                    )
+                if not digest_jobs and allowed_languages:
+                    print(
+                        f"⚠️ [Digest] language-filtered fallback returned 0 jobs for user={user_id}; "
+                        "retrying without language restriction."
+                    )
+                    digest_jobs = _fetch_newest_jobs_relaxed(
+                        country_code=digest_country_code,
+                        allowed_language_codes=None,
+                        limit=_DIGEST_MAX_JOBS,
+                    )
+                if not digest_jobs and digest_country_code:
+                    print(
+                        f"⚠️ [Digest] country fallback returned 0 jobs for user={user_id}; "
+                        "retrying across all countries."
+                    )
+                    digest_jobs = _fetch_newest_jobs_relaxed(
+                        country_code=None,
+                        allowed_language_codes=None,
                         limit=_DIGEST_MAX_JOBS,
                     )
     

@@ -425,9 +425,35 @@ def _sanitize_jcfpm_payload(level: str, raw) -> dict | None:
         return None
 
     value = _safe_dict(raw)
+    dimension_percentiles = {
+        str(item.get("dimension") or "").strip(): int(item.get("percentile") or 0)
+        for item in (value.get("dimension_scores") or [])
+        if isinstance(item, dict)
+    }
+    comparison_signals = []
+    existing_signals = value.get("comparison_signals") or []
+    if isinstance(existing_signals, list) and existing_signals:
+        for item in existing_signals[:6]:
+            if not isinstance(item, dict):
+                continue
+            comparison_signals.append({
+                "key": str(item.get("key") or "").strip()[:64],
+                "label": str(item.get("label") or "").strip()[:120],
+                "score": int(item.get("score") or 0),
+            })
+    elif dimension_percentiles:
+        comparison_signals = [
+            {"key": "analytical", "label": "Analytical structure", "score": int(dimension_percentiles.get("d1_cognitive") or 0)},
+            {"key": "collaboration", "label": "Collaboration", "score": int(dimension_percentiles.get("d2_social") or 0)},
+            {"key": "drive", "label": "Drive", "score": int(dimension_percentiles.get("d3_motivational") or 0)},
+            {"key": "execution", "label": "Execution stamina", "score": int(dimension_percentiles.get("d4_energy") or 0)},
+            {"key": "adaptability", "label": "Adaptability", "score": int(dimension_percentiles.get("d6_ai_readiness") or 0)},
+            {"key": "judgement", "label": "Judgement", "score": int(dimension_percentiles.get("d12_moral_compass") or 0)},
+        ]
+
     base = {
         "schema_version": "jcfpm-share-v1",
-        "share_level": level,
+        "share_level": "summary",
         "completed_at": str(value.get("completed_at") or "").strip() or None,
         "confidence": float(value.get("confidence") or 0) if value.get("confidence") is not None else None,
         "archetype": _safe_dict(value.get("archetype")) or None,
@@ -435,6 +461,7 @@ def _sanitize_jcfpm_payload(level: str, raw) -> dict | None:
         "strengths": _safe_string_list(value.get("strengths"), limit=6),
         "environment_fit_summary": _safe_string_list(value.get("environment_fit_summary"), limit=5),
         "jhi_adjustment_summary": [],
+        "comparison_signals": comparison_signals,
     }
 
     for item in (value.get("top_dimensions") or [])[:3]:
@@ -456,37 +483,7 @@ def _sanitize_jcfpm_payload(level: str, raw) -> dict | None:
             "reason": str(item.get("reason") or "").strip()[:500],
         })
 
-    if level != "full_report":
-        return base
-
-    full = {
-        **base,
-        "dimension_scores": [],
-        "fit_scores": [],
-        "narrative_summary": _safe_dict(value.get("narrative_summary")),
-    }
-    for item in (value.get("dimension_scores") or [])[:12]:
-        if not isinstance(item, dict):
-            continue
-        full["dimension_scores"].append({
-            "dimension": str(item.get("dimension") or "").strip()[:64],
-            "raw_score": float(item.get("raw_score") or 0),
-            "percentile": int(item.get("percentile") or 0),
-            "percentile_band": str(item.get("percentile_band") or "").strip()[:80] or None,
-            "label": str(item.get("label") or "").strip()[:200] or None,
-        })
-    for item in (value.get("fit_scores") or [])[:5]:
-        if not isinstance(item, dict):
-            continue
-        full["fit_scores"].append({
-            "title": str(item.get("title") or "").strip()[:200],
-            "fit_score": float(item.get("fit_score") or 0),
-            "salary_range": str(item.get("salary_range") or "").strip()[:120] or None,
-            "growth_potential": str(item.get("growth_potential") or "").strip()[:120] or None,
-            "ai_impact": str(item.get("ai_impact") or "").strip()[:120] or None,
-            "remote_friendly": str(item.get("remote_friendly") or "").strip()[:120] or None,
-        })
-    return full
+    return base
 
 
 def _derive_candidate_headline(snapshot: dict | None) -> str | None:

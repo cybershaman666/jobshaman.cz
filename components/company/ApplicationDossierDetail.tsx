@@ -155,9 +155,7 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                     <div className="flex items-center justify-between gap-2">
                         <div className="text-xs uppercase tracking-widest text-cyan-700 dark:text-cyan-300">Profile fit signal</div>
                         <div className="text-[11px] text-cyan-700 dark:text-cyan-300">
-                            {dossier.jcfpm_share_level === 'full_report'
-                                ? t('company.applications.labels.full', { defaultValue: 'Full' })
-                                : t('company.applications.labels.summary', { defaultValue: 'Summary' })}
+                            {t('company.applications.labels.summary', { defaultValue: 'Shared' })}
                         </div>
                     </div>
                     {dossier.shared_jcfpm_payload.archetype?.title && (
@@ -185,6 +183,31 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                                     <li key={item}>• {item}</li>
                                 ))}
                             </ul>
+                        </div>
+                    ) : null}
+                    {dossier.shared_jcfpm_payload.comparison_signals?.length ? (
+                        <div>
+                            <div className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                                {t('company.applications.detail.comparison_signals', { defaultValue: 'Comparable signals' })}
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {dossier.shared_jcfpm_payload.comparison_signals.map((item) => (
+                                    <div key={`${item.key}-${item.score}`} className="rounded-xl border border-cyan-100 dark:border-cyan-900/30 bg-white/75 dark:bg-slate-900/40 px-3 py-2">
+                                        <div className="text-[11px] uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+                                            {item.label}
+                                        </div>
+                                        <div className="mt-1 flex items-center justify-between gap-2">
+                                            <div className="h-1.5 flex-1 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                                                <div
+                                                    className="h-full rounded-full bg-cyan-500"
+                                                    style={{ width: `${Math.max(6, Math.min(100, item.score || 0))}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">{item.score}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     ) : null}
                     {dossier.shared_jcfpm_payload.top_dimensions?.length ? (

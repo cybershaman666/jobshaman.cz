@@ -371,6 +371,14 @@ export interface Candidate {
     impact_points: number;
   }>;
   flightRiskMethodVersion?: string;
+  hasJcfpm?: boolean;
+  jcfpmShareLevel?: ApplicationJcfpmShareLevel;
+  jcfpmSharedAt?: string;
+  jcfpmComparisonSignals?: Array<{
+    key: string;
+    label: string;
+    score: number;
+  }>;
   values: string[];
 }
 
@@ -418,6 +426,11 @@ export interface EmployerVisibleJcfpmSummary {
     from: number;
     to: number;
     reason: string;
+  }>;
+  comparison_signals?: Array<{
+    key: string;
+    label: string;
+    score: number;
   }>;
 }
 

@@ -110,6 +110,15 @@ def _parse_dt(value: Any) -> Optional[datetime]:
         return None
 
 
+def _normalize_jcfpm_share_level(level: Any, payload: Any = None) -> str:
+    normalized = str(level or "").strip().lower()
+    if normalized in {"summary", "full_report", "do_not_share"}:
+        return normalized
+    if isinstance(payload, dict) and payload:
+        return "summary"
+    return "do_not_share"
+
+
 def _normalize_timeframe_to_monthly(amount: float, timeframe: Optional[str]) -> float:
     tf = str(timeframe or "").strip().lower()
     if tf in {"year", "yearly", "annual"}:
@@ -1289,6 +1298,7 @@ async def get_company_candidates(
 
     apps_by_candidate: Dict[str, Dict[str, int]] = {}
     assessments_by_candidate: Dict[str, int] = {}
+    shared_jcfpm_by_candidate: Dict[str, Dict[str, Any]] = {}
 
     def _chunk(values: List[str], size: int) -> List[List[str]]:
         return [values[i:i + size] for i in range(0, len(values), size)]
@@ -1335,6 +1345,46 @@ async def get_company_candidates(
                 continue
             assessments_by_candidate[cid] = assessments_by_candidate.get(cid, 0) + 1
 
+        company_apps_resp = (
+            supabase
+            .table("job_applications")
+            .select("candidate_id,jcfpm_share_level,shared_jcfpm_payload,submitted_at,updated_at,created_at")
+            .eq("company_id", company_id)
+            .in_("candidate_id", chunk_ids)
+            .limit(10000)
+            .execute()
+        )
+        for app in (company_apps_resp.data or []):
+            cid = str(app.get("candidate_id") or "")
+            if not cid:
+                continue
+            share_level = _normalize_jcfpm_share_level(app.get("jcfpm_share_level"), app.get("shared_jcfpm_payload"))
+            shared_payload = app.get("shared_jcfpm_payload") if isinstance(app.get("shared_jcfpm_payload"), dict) else {}
+            has_jcfpm = share_level != "do_not_share" and bool(shared_payload)
+            if not has_jcfpm:
+                continue
+
+            current = shared_jcfpm_by_candidate.get(cid)
+            current_rank = 2 if current and current.get("jcfpm_share_level") == "full_report" else 1 if current and current.get("has_jcfpm") else 0
+            next_rank = 2 if share_level == "full_report" else 1
+            if current and current_rank > next_rank:
+                continue
+
+            shared_jcfpm_by_candidate[cid] = {
+                "has_jcfpm": True,
+                "jcfpm_share_level": share_level,
+                "jcfpm_shared_at": str(app.get("updated_at") or app.get("submitted_at") or app.get("created_at") or ""),
+                "comparison_signals": [
+                    {
+                        "key": str(item.get("key") or "").strip()[:64],
+                        "label": str(item.get("label") or "").strip()[:120],
+                        "score": int(item.get("score") or 0),
+                    }
+                    for item in (shared_payload.get("comparison_signals") or [])[:6]
+                    if isinstance(item, dict)
+                ],
+            }
+
     def _name_from_row(row: Dict[str, Any]) -> str:
         full = str(row.get("full_name") or "").strip()
         if full:
@@ -1377,6 +1427,13 @@ async def get_company_candidates(
         mapped["flightRiskScore"] = risk["score"]
         mapped["flightRiskBreakdown"] = risk["breakdown"]
         mapped["flightRiskMethodVersion"] = risk["method_version"]
+        shared_jcfpm = shared_jcfpm_by_candidate.get(cid)
+        mapped["hasJcfpm"] = bool(shared_jcfpm and shared_jcfpm.get("has_jcfpm"))
+        mapped["jcfpmShareLevel"] = str(shared_jcfpm.get("jcfpm_share_level") or "do_not_share") if shared_jcfpm else "do_not_share"
+        if shared_jcfpm and shared_jcfpm.get("jcfpm_shared_at"):
+            mapped["jcfpmSharedAt"] = shared_jcfpm.get("jcfpm_shared_at")
+        if shared_jcfpm and shared_jcfpm.get("comparison_signals"):
+            mapped["jcfpmComparisonSignals"] = shared_jcfpm.get("comparison_signals")
         if mapped["id"]:
             candidates.append(mapped)
 
