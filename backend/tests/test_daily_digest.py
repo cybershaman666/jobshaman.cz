@@ -220,6 +220,142 @@ def test_pick_personalized_digest_jobs_falls_back_to_nonlocal_ai_matches():
     assert picks[1]["match_score"] == 96
 
 
+def test_persist_digest_last_sent_updates_profiles_and_candidate_fallback(monkeypatch):
+    updates = []
+    original_process_markers = dict(daily_digest_module._PROCESS_DIGEST_LAST_SENT_AT)
+    daily_digest_module._PROCESS_DIGEST_LAST_SENT_AT.clear()
+
+    class _Query:
+        def __init__(self, table_name):
+            self.table_name = table_name
+            self.payload = None
+            self.filters = {}
+
+        def update(self, payload):
+            self.payload = payload
+            return self
+
+        def eq(self, column, value):
+            self.filters[column] = value
+            return self
+
+        def select(self, _columns):
+            return self
+
+        def execute(self):
+            updates.append(
+                {
+                    "table": self.table_name,
+                    "payload": self.payload,
+                    "filters": dict(self.filters),
+                }
+            )
+            return type("Resp", (), {"data": [{"id": self.filters.get("id")}]} )()
+
+    class _SupabaseStub:
+        def table(self, name):
+            return _Query(name)
+
+    monkeypatch.setattr(daily_digest_module, "supabase", _SupabaseStub())
+
+    sent_at = "2026-03-04T09:15:00+00:00"
+    daily_digest_module._persist_digest_last_sent(
+        user_id="user-1",
+        candidate_profile={"preferences": {"existing": True}},
+        sent_at_iso=sent_at,
+    )
+
+    assert daily_digest_module._PROCESS_DIGEST_LAST_SENT_AT["user-1"] == sent_at
+    assert updates[0] == {
+        "table": "profiles",
+        "payload": {"daily_digest_last_sent_at": sent_at},
+        "filters": {"id": "user-1"},
+    }
+    assert updates[1]["table"] == "candidate_profiles"
+    assert updates[1]["filters"] == {"id": "user-1"}
+    assert updates[1]["payload"]["preferences"]["existing"] is True
+    assert updates[1]["payload"]["preferences"]["system"]["dailyDigestLastSentAt"] == sent_at
+
+    daily_digest_module._PROCESS_DIGEST_LAST_SENT_AT.clear()
+    daily_digest_module._PROCESS_DIGEST_LAST_SENT_AT.update(original_process_markers)
+
+
+def test_run_daily_job_digest_backfills_profile_last_sent_from_fallback(monkeypatch):
+    profile_updates = []
+
+    class _Query:
+        def __init__(self, table_name):
+            self.table_name = table_name
+            self.payload = None
+            self.filters = {}
+
+        def select(self, _columns):
+            return self
+
+        def eq(self, column, value):
+            self.filters[column] = value
+            return self
+
+        def update(self, payload):
+            self.payload = payload
+            return self
+
+        def execute(self):
+            if self.table_name == "profiles" and self.payload is None:
+                return type(
+                    "Resp",
+                    (),
+                    {
+                        "data": [
+                            {
+                                "id": "user-1",
+                                "email": "candidate@example.com",
+                                "full_name": "Candidate",
+                                "preferred_locale": "cs",
+                                "preferred_country_code": "CZ",
+                                "daily_digest_enabled": True,
+                                "daily_digest_last_sent_at": None,
+                                "daily_digest_time": "10:00",
+                                "daily_digest_timezone": "UTC",
+                                "daily_digest_push_enabled": False,
+                                "candidate_profiles": {
+                                    "preferences": {
+                                        "system": {
+                                            "dailyDigestLastSentAt": "2026-03-04T08:00:00+00:00"
+                                        }
+                                    }
+                                },
+                            }
+                        ]
+                    },
+                )()
+            if self.table_name == "profiles" and self.payload is not None:
+                profile_updates.append(
+                    {
+                        "payload": self.payload,
+                        "filters": dict(self.filters),
+                    }
+                )
+                return type("Resp", (), {"data": [{"id": self.filters.get("id")}]} )()
+            return type("Resp", (), {"data": []})()
+
+    class _SupabaseStub:
+        def table(self, name):
+            return _Query(name)
+
+    monkeypatch.setattr(daily_digest_module, "supabase", _SupabaseStub())
+    monkeypatch.setattr(daily_digest_module, "_should_send_now", lambda *_args, **_kwargs: False)
+
+    daily_digest_module.run_daily_job_digest()
+
+    assert profile_updates == [
+        {
+            "payload": {"daily_digest_last_sent_at": "2026-03-04T08:00:00+00:00"},
+            "filters": {"id": "user-1"},
+        }
+    ]
+
+
 def test_pick_personalized_digest_jobs_filters_incompatible_language():
     recs = [
         {

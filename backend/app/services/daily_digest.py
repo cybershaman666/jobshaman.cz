@@ -166,18 +166,42 @@ def _resolve_last_sent_marker(user_id: str, profile_last_sent: Optional[str], ca
     return latest_value
 
 
-def _persist_digest_last_sent(user_id: str, candidate_profile, sent_at_iso: str) -> None:
+def _response_rows(resp: Any) -> list[dict]:
+    data = getattr(resp, "data", None)
+    if isinstance(data, list):
+        return [row for row in data if isinstance(row, dict)]
+    if isinstance(data, dict):
+        return [data]
+    return []
+
+
+def _update_profile_digest_last_sent(user_id: str, sent_at_iso: str) -> bool:
     uid = str(user_id or "").strip()
     if not uid:
-        return
-
-    _PROCESS_DIGEST_LAST_SENT_AT[uid] = sent_at_iso
-
+        return False
     try:
-        supabase.table("profiles").update({"daily_digest_last_sent_at": sent_at_iso}).eq("id", uid).execute()
+        resp = (
+            supabase.table("profiles")
+            .update({"daily_digest_last_sent_at": sent_at_iso})
+            .eq("id", uid)
+            .select("id")
+            .execute()
+        )
+        if _response_rows(resp):
+            return True
+        print(
+            f"⚠️ Failed to update daily_digest_last_sent_at for {uid}: "
+            "no profile row was updated."
+        )
     except Exception as exc:
         print(f"⚠️ Failed to update daily_digest_last_sent_at for {uid}: {exc}")
+    return False
 
+
+def _persist_candidate_digest_last_sent(user_id: str, candidate_profile, sent_at_iso: str) -> bool:
+    uid = str(user_id or "").strip()
+    if not uid:
+        return False
     try:
         preferences = dict(_candidate_preferences(candidate_profile))
         system = preferences.get("system")
@@ -186,9 +210,52 @@ def _persist_digest_last_sent(user_id: str, candidate_profile, sent_at_iso: str)
         system = dict(system)
         system["dailyDigestLastSentAt"] = sent_at_iso
         preferences["system"] = system
-        supabase.table("candidate_profiles").update({"preferences": preferences}).eq("id", uid).execute()
+        resp = (
+            supabase.table("candidate_profiles")
+            .update({"preferences": preferences})
+            .eq("id", uid)
+            .select("id")
+            .execute()
+        )
+        if _response_rows(resp):
+            return True
+        print(
+            f"⚠️ Failed to persist digest fallback marker for {uid}: "
+            "no candidate profile row was updated."
+        )
     except Exception as exc:
         print(f"⚠️ Failed to persist digest fallback marker for {uid}: {exc}")
+    return False
+
+
+def _sync_profile_last_sent_if_stale(
+    user_id: str,
+    profile_last_sent: Optional[str],
+    resolved_last_sent: Optional[str],
+) -> None:
+    uid = str(user_id or "").strip()
+    if not uid or not resolved_last_sent:
+        return
+
+    profile_dt = _parse_iso_timestamp(str(profile_last_sent or "").strip() or None)
+    resolved_dt = _parse_iso_timestamp(resolved_last_sent)
+    if not resolved_dt:
+        return
+    if profile_dt and profile_dt >= resolved_dt:
+        return
+
+    _update_profile_digest_last_sent(uid, resolved_dt.isoformat())
+
+
+def _persist_digest_last_sent(user_id: str, candidate_profile, sent_at_iso: str) -> None:
+    uid = str(user_id or "").strip()
+    if not uid:
+        return
+
+    _PROCESS_DIGEST_LAST_SENT_AT[uid] = sent_at_iso
+
+    _update_profile_digest_last_sent(uid, sent_at_iso)
+    _persist_candidate_digest_last_sent(uid, candidate_profile, sent_at_iso)
 
 
 def _normalize_locale_code(locale: Optional[str]) -> str:
@@ -909,10 +976,16 @@ def run_daily_job_digest() -> None:
             digest_time = _parse_digest_time(str(row.get("daily_digest_time") or "") or None)
             digest_tz = str(row.get("daily_digest_timezone") or _DEFAULT_TZ)
             candidate_profile = row.get("candidate_profiles")
+            profile_last_sent = str(row.get("daily_digest_last_sent_at") or "") or None
             last_sent = _resolve_last_sent_marker(
                 user_id=user_id,
-                profile_last_sent=str(row.get("daily_digest_last_sent_at") or "") or None,
+                profile_last_sent=profile_last_sent,
                 candidate_profile=candidate_profile,
+            )
+            _sync_profile_last_sent_if_stale(
+                user_id=user_id,
+                profile_last_sent=profile_last_sent,
+                resolved_last_sent=last_sent,
             )
             if not _should_send_now(last_sent, digest_time, digest_tz):
                 print(
