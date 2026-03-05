@@ -2,11 +2,25 @@ import { BACKEND_URL } from '../constants';
 import { ApplicationMessageAttachment, UploadSession } from '../types';
 import { authenticatedFetch } from './csrfService';
 
-const ALLOWED_TYPES = new Set([
+export const SUPPORTED_ATTACHMENT_MIME_TYPES = [
   'application/pdf',
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/rtf',
   'text/plain',
+  'text/markdown',
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/heic',
+  'image/heif',
+  'application/zip',
+  'application/x-zip-compressed',
   'audio/mpeg',
   'audio/mp3',
   'audio/mp4',
@@ -15,7 +29,40 @@ const ALLOWED_TYPES = new Set([
   'audio/wav',
   'audio/x-wav',
   'audio/ogg',
-]);
+];
+
+export const SUPPORTED_ATTACHMENT_EXTENSIONS = [
+  '.pdf',
+  '.doc',
+  '.docx',
+  '.ppt',
+  '.pptx',
+  '.xls',
+  '.xlsx',
+  '.rtf',
+  '.txt',
+  '.md',
+  '.jpg',
+  '.jpeg',
+  '.png',
+  '.webp',
+  '.gif',
+  '.heic',
+  '.heif',
+  '.zip',
+  '.mp3',
+  '.m4a',
+  '.webm',
+  '.wav',
+  '.ogg',
+];
+
+export const EXTERNAL_ATTACHMENT_ACCEPT = [
+  ...SUPPORTED_ATTACHMENT_EXTENSIONS,
+  ...SUPPORTED_ATTACHMENT_MIME_TYPES,
+].join(',');
+
+const ALLOWED_TYPES = new Set(SUPPORTED_ATTACHMENT_MIME_TYPES);
 
 const MAX_SIZE_BY_KIND: Record<'attachment' | 'audio' | 'candidate_document', number> = {
   attachment: 10 * 1024 * 1024,

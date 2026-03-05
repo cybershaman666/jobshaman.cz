@@ -7,6 +7,7 @@ interface WelcomePageProps {
   compact?: boolean;
   onTryFree?: () => void;
   onBrowseOffers?: () => void;
+  onOpenDemo?: () => void;
   totalJobsCount?: number;
   todayNewJobsCount?: number;
   selectedBlogPostSlug: string | null;
@@ -17,6 +18,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
   compact = false,
   onTryFree,
   onBrowseOffers,
+  onOpenDemo,
   totalJobsCount = 0,
   todayNewJobsCount = 0,
   selectedBlogPostSlug,
@@ -271,6 +273,14 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     onBrowseOffers?.();
   };
 
+  const handleOpenDemo = () => {
+    if (onOpenDemo) {
+      onOpenDemo();
+      return;
+    }
+    handlePrimary();
+  };
+
   if (compact) {
     const previewTitle = previewStep === 'company' ? copy.previewCompanyTitle : copy.previewCandidateTitle;
     const previewLines = previewStep === 'company' ? copy.previewCompanyLines : copy.previewCandidateLines;
@@ -293,6 +303,7 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     ];
     const compactPromptLabel = isCsLike ? 'Jak bys k tomu přistoupil?' : 'How would you approach it?';
     const compactReactionCta = isCsLike ? 'Reagovat' : 'Open handshake';
+    const compactDemoCta = isCsLike ? 'Vyzkoušet demo' : 'Try demo';
     const compactSupportText = isCsLike
       ? 'Reakcí zahájíš dialog s tímto týmem. Podklady zůstávají volitelné. Zbývají ti 2 aktivní sloty z 5.'
       : 'Your reply opens a private dialogue with this team. Supporting documents stay optional and you still have 2 of 5 active slots left.';
@@ -347,13 +358,21 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                     {copy.previewFooter}
                   </p>
                 </div>
-                <button
-                  onClick={handlePrimary}
-                  className="hidden sm:inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-bold text-white shadow-[0_16px_28px_-18px_rgba(249,115,22,0.65)] hover:bg-orange-400 transition-colors"
-                >
-                  {compactReactionCta}
-                  <ArrowRight size={16} />
-                </button>
+                <div className="hidden sm:flex items-center gap-2">
+                  <button
+                    onClick={handleOpenDemo}
+                    className="inline-flex items-center justify-center rounded-xl border border-slate-300/80 dark:border-slate-700 bg-white/75 dark:bg-slate-950/35 px-3.5 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200"
+                  >
+                    {compactDemoCta}
+                  </button>
+                  <button
+                    onClick={handlePrimary}
+                    className="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-500 px-4 py-2 text-sm font-bold text-white shadow-[0_16px_28px_-18px_rgba(249,115,22,0.65)] hover:bg-orange-400 transition-colors"
+                  >
+                    {compactReactionCta}
+                    <ArrowRight size={16} />
+                  </button>
+                </div>
                   </div>
                 </div>
 
@@ -468,6 +487,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                 >
                   {compactReactionCta}
                 </button>
+                <button
+                  onClick={handleOpenDemo}
+                  className="mt-2 inline-flex w-full items-center justify-center rounded-xl border border-slate-300/80 dark:border-slate-700 bg-white/70 dark:bg-slate-950/35 px-4 py-2.5 text-sm font-semibold text-slate-700 dark:text-slate-200"
+                >
+                  {compactDemoCta}
+                </button>
                 <div className="mt-2 rounded-[0.9rem] border border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-950/25 px-3 py-2 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
                   {compactSupportText}
                 </div>
@@ -550,6 +575,12 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                 className="inline-flex items-center justify-center rounded-2xl border border-slate-300/80 dark:border-slate-700 px-7 py-3.5 text-sm font-semibold bg-white/70 dark:bg-slate-950/40"
               >
                 {copy.secondaryCta}
+              </button>
+              <button
+                onClick={handleOpenDemo}
+                className="inline-flex items-center justify-center rounded-2xl border border-cyan-300/70 dark:border-cyan-700 bg-cyan-50/85 dark:bg-cyan-950/25 px-7 py-3.5 text-sm font-semibold text-cyan-700 dark:text-cyan-300"
+              >
+                {isCsLike ? 'Vyzkoušet demo inzerát' : 'Try demo listing'}
               </button>
             </div>
 

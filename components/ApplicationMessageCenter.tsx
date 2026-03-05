@@ -5,6 +5,7 @@ import { Loader2, Mail, Paperclip, Send } from 'lucide-react';
 import { DialogueMessage, DialogueMessageAttachment } from '../types';
 import { DialogueMessageCreatePayload } from '../services/jobApplicationService';
 import { uploadApplicationMessageAttachment } from '../services/supabaseService';
+import { EXTERNAL_ATTACHMENT_ACCEPT } from '../services/externalAssetService';
 
 interface ApplicationMessageCenterProps {
   dialogueId?: string | null;
@@ -13,6 +14,12 @@ interface ApplicationMessageCenterProps {
   heading?: string;
   subtitle?: string;
   emptyText?: string;
+  initialDraft?: string;
+  composerPlaceholder?: string;
+  sendButtonLabel?: string;
+  allowAttachments?: boolean;
+  showAttachmentPlaceholderWhenDisabled?: boolean;
+  visualVariant?: 'default' | 'immersive';
   viewerRole: 'candidate' | 'recruiter';
   dialogueStatus?: string | null;
   dialogueDeadlineAt?: string | null;
@@ -31,6 +38,12 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
   heading,
   subtitle,
   emptyText,
+  initialDraft,
+  composerPlaceholder,
+  sendButtonLabel,
+  allowAttachments = true,
+  showAttachmentPlaceholderWhenDisabled = false,
+  visualVariant = 'default',
   viewerRole,
   dialogueStatus,
   dialogueDeadlineAt,
@@ -95,6 +108,14 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
     };
   }, [resolvedDialogueId, fetchMessages, t]);
 
+  useEffect(() => {
+    setDraft((current) => {
+      if (!resolvedDialogueId) return current;
+      if (current.trim().length > 0) return current;
+      return initialDraft || '';
+    });
+  }, [resolvedDialogueId, initialDraft]);
+
   const formatDate = (value: string) => {
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return value;
@@ -108,7 +129,7 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
   };
 
   const handleAttachClick = () => {
-    if (!canSend) return;
+    if (!allowAttachments || !canSend) return;
     fileInputRef.current?.click();
   };
 
@@ -147,20 +168,23 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
   const handleSend = async () => {
     if (!resolvedDialogueId || sending || !canSend) return;
     const body = draft.trim();
-    if (!body && attachments.length === 0) return;
+    const outgoingAttachments = allowAttachments ? attachments : [];
+    if (!body && outgoingAttachments.length === 0) return;
 
     setSending(true);
     try {
       const message = await sendMessage(resolvedDialogueId, {
         body,
-        attachments
+        attachments: outgoingAttachments
       });
       if (!message) {
         throw new Error('Message not sent');
       }
       setMessages((current) => [...current, message]);
       setDraft('');
-      setAttachments([]);
+      if (allowAttachments) {
+        setAttachments([]);
+      }
     } catch (err) {
       console.error('Failed to send dialogue message:', err);
       window.alert(
@@ -173,12 +197,23 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
     }
   };
 
+  const resolveAttachmentHref = (attachment: DialogueMessageAttachment): string => {
+    return String(attachment.url || attachment.download_url || '').trim();
+  };
+
+  const resolveAttachmentName = (attachment: DialogueMessageAttachment): string => {
+    const raw = String(attachment.name || attachment.filename || '').trim();
+    if (raw) return raw;
+    return t('application.messages.attachment_fallback_name', { defaultValue: 'Příloha' });
+  };
+
   const isOwnMessage = (message: DialogueMessage) => message.sender_role === viewerRole;
   const normalizedStatus = String(dialogueStatus || 'pending').toLowerCase();
   const isActiveDialogue = ['pending', 'reviewed', 'shortlisted'].includes(normalizedStatus);
   const canSend = isActiveDialogue;
   const languagePrefix = String(i18n.language || 'en').split('-')[0].toLowerCase();
   const isCsLike = languagePrefix === 'cs' || languagePrefix === 'sk';
+  const isImmersive = visualVariant === 'immersive';
   const resolvedTimeoutHours = (() => {
     const value = Number(dialogueTimeoutHours);
     if (Number.isFinite(value) && value > 0) {
@@ -291,12 +326,34 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
   };
 
   const timingMeta = getTimingMeta();
+  const rootClassName = isImmersive
+    ? 'company-surface-elevated rounded-[1.15rem] border border-slate-200/80 bg-[radial-gradient(circle_at_top_left,_rgba(6,182,212,0.12),_transparent_34%),linear-gradient(180deg,_rgba(255,255,255,0.98),_rgba(248,250,252,0.94))] p-4 shadow-[0_24px_48px_-36px_rgba(15,23,42,0.45)] backdrop-blur dark:border-slate-800 dark:bg-[radial-gradient(circle_at_top_left,_rgba(6,182,212,0.18),_transparent_30%),linear-gradient(180deg,_rgba(15,23,42,0.98),_rgba(2,6,23,0.94))]'
+    : 'rounded-[1.05rem] border border-slate-200 bg-white/92 p-4 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-900/80';
+  const guaranteeClassName = isImmersive
+    ? 'mt-4 rounded-[0.95rem] border border-slate-200/80 bg-white/80 px-4 py-3 dark:border-slate-700 dark:bg-slate-950/45'
+    : 'mt-4 rounded-[0.95rem] border border-slate-200 bg-slate-50/85 px-4 py-3 dark:border-slate-700 dark:bg-slate-950/35';
+  const ownMessageClassName = isImmersive
+    ? 'border-cyan-200/80 bg-[linear-gradient(160deg,_rgba(236,254,255,0.9),_rgba(224,242,254,0.68))] shadow-[0_14px_26px_-24px_rgba(6,182,212,0.45)] dark:border-cyan-900/40 dark:bg-[linear-gradient(160deg,_rgba(8,47,73,0.32),_rgba(12,74,110,0.2))]'
+    : 'border-cyan-200 bg-cyan-50/70 dark:border-cyan-900/40 dark:bg-cyan-950/10';
+  const otherMessageClassName = isImmersive
+    ? 'border-slate-200/80 bg-[linear-gradient(160deg,_rgba(255,255,255,0.95),_rgba(241,245,249,0.86))] shadow-[0_14px_28px_-24px_rgba(15,23,42,0.28)] dark:border-slate-700 dark:bg-[linear-gradient(160deg,_rgba(15,23,42,0.74),_rgba(2,6,23,0.6))]'
+    : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-950/40';
+  const composerClassName = isImmersive
+    ? 'mt-4 rounded-[1rem] border border-slate-200/80 bg-white/80 p-3.5 dark:border-slate-700 dark:bg-slate-950/45'
+    : 'mt-4 rounded-[1rem] border border-slate-200 bg-slate-50/90 p-3.5 dark:border-slate-700 dark:bg-slate-950/40';
+  const sendButtonClassName = isImmersive
+    ? 'inline-flex items-center gap-2 rounded-[0.95rem] bg-[linear-gradient(135deg,_rgba(8,145,178,0.96),_rgba(14,116,144,0.96))] px-4 py-2 text-sm font-semibold text-white transition-colors hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60'
+    : 'inline-flex items-center gap-2 rounded-[0.95rem] bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200';
+  const badgeClassName = isImmersive
+    ? 'inline-flex items-center gap-2 rounded-full border border-cyan-200/80 bg-white/85 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:border-cyan-900/40 dark:bg-slate-950/40 dark:text-cyan-300'
+    : 'inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:border-cyan-900/40 dark:bg-cyan-950/20 dark:text-cyan-300';
+  const showDemoAttachmentPlaceholder = !allowAttachments && showAttachmentPlaceholderWhenDisabled;
 
   return (
-    <div className="rounded-[1.05rem] border border-slate-200 bg-white/92 p-4 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.45)] dark:border-slate-700 dark:bg-slate-900/80">
+    <div className={rootClassName}>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:border-cyan-900/40 dark:bg-cyan-950/20 dark:text-cyan-300">
+          <div className={badgeClassName}>
             <Mail className="h-3.5 w-3.5" />
             {heading || t('application.messages.badge', { defaultValue: 'Interní zprávy' })}
           </div>
@@ -308,7 +365,7 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
         </div>
       </div>
 
-      <div className="mt-4 rounded-[0.95rem] border border-slate-200 bg-slate-50/85 px-4 py-3 dark:border-slate-700 dark:bg-slate-950/35">
+      <div className={guaranteeClassName}>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
             {t('application.messages.reaction_guarantee_title', { defaultValue: isCsLike ? 'Garance reakce' : 'Reaction guarantee' })}
@@ -380,8 +437,8 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
                   key={message.id}
                   className={`rounded-[1rem] border p-3.5 ${
                     own
-                      ? 'border-cyan-200 bg-cyan-50/70 dark:border-cyan-900/40 dark:bg-cyan-950/10'
-                      : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-950/40'
+                      ? ownMessageClassName
+                      : otherMessageClassName
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
@@ -402,23 +459,44 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
                   {message.attachments.length > 0 && (
                     <div className="mt-3 flex flex-wrap gap-2">
                       {message.attachments.map((attachment, index) => (
-                        <a
-                          key={`${attachment.url}-${index}`}
-                          href={attachment.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-                        >
-                          <Paperclip className="h-3.5 w-3.5" />
-                          {attachment.name}
-                          {attachment.kind === 'audio' && (
-                            <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
-                              {attachment.transcript_status === 'ready'
-                                ? t('application.messages.transcript_ready', { defaultValue: 'Transcript ready' })
-                                : t('application.messages.transcript_pending', { defaultValue: 'Transcript pending' })}
-                            </span>
-                          )}
-                        </a>
+                        (() => {
+                          const href = resolveAttachmentHref(attachment);
+                          const attachmentName = resolveAttachmentName(attachment);
+                          const className = 'inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800';
+                          const content = (
+                            <>
+                              <Paperclip className="h-3.5 w-3.5" />
+                              {attachmentName}
+                              {attachment.kind === 'audio' && (
+                                <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:bg-slate-800 dark:text-slate-300">
+                                  {attachment.transcript_status === 'ready'
+                                    ? t('application.messages.transcript_ready', { defaultValue: 'Transcript ready' })
+                                    : t('application.messages.transcript_pending', { defaultValue: 'Transcript pending' })}
+                                </span>
+                              )}
+                            </>
+                          );
+
+                          if (!href) {
+                            return (
+                              <span key={`${attachmentName}-${index}`} className={className}>
+                                {content}
+                              </span>
+                            );
+                          }
+
+                          return (
+                            <a
+                              key={`${href}-${index}`}
+                              href={href}
+                              target="_blank"
+                              rel="noreferrer"
+                              className={className}
+                            >
+                              {content}
+                            </a>
+                          );
+                        })()
                       ))}
                     </div>
                   )}
@@ -429,19 +507,19 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
         )}
       </div>
 
-      <div className="mt-4 rounded-[1rem] border border-slate-200 bg-slate-50/90 p-3.5 dark:border-slate-700 dark:bg-slate-950/40">
+      <div className={composerClassName}>
         <textarea
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           rows={4}
-          placeholder={t('application.messages.placeholder', {
+          placeholder={composerPlaceholder || t('application.messages.placeholder', {
             defaultValue: 'Napište interní zprávu k této přihlášce…'
           })}
           disabled={!canSend}
           className="w-full resize-none rounded-[0.95rem] border border-slate-200 bg-white px-3 py-3 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:border-slate-700 dark:bg-slate-900 dark:text-white dark:focus:border-cyan-700 dark:focus:ring-cyan-900/40 dark:[color-scheme:dark]"
         />
 
-        {attachments.length > 0 && (
+        {allowAttachments && attachments.length > 0 && (
           <div className="mt-3 flex flex-wrap gap-2">
             {attachments.map((attachment, index) => (
               <button
@@ -458,40 +536,77 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
           </div>
         )}
 
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <input
-              ref={fileInputRef}
-              type="file"
-              className="hidden"
-              multiple
-              onChange={handleFilesSelected}
-              accept=".pdf,.doc,.docx,.txt,.mp3,.m4a,.webm,.wav,.ogg,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,audio/mpeg,audio/mp4,audio/x-m4a,audio/webm,audio/wav,audio/x-wav,audio/ogg"
-            />
+        {showDemoAttachmentPlaceholder ? (
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <button
+                type="button"
+                disabled
+                aria-disabled="true"
+                aria-label={t('application.messages.attach', { defaultValue: 'Přiložit soubor' })}
+                title={t('application.messages.attach', { defaultValue: 'Přiložit soubor' })}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-[0.7rem] border border-slate-200 bg-slate-100 text-slate-500 cursor-not-allowed dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
+              >
+                <Paperclip className="h-4 w-4" />
+              </button>
+
+              <button
+                type="button"
+                onClick={handleSend}
+                disabled={!canSend || sending || uploading || (!draft.trim() && (!allowAttachments || attachments.length === 0))}
+                className={sendButtonClassName}
+              >
+                {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                {sendButtonLabel || t('application.messages.send', { defaultValue: 'Odeslat zprávu' })}
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              {t('application.messages.attach_disabled_demo_hint', {
+                defaultValue: 'V demu je upload vypnutý. V ostrém flow lze posílat dokumenty, obrázky i návrhy smluv.',
+              })}
+            </div>
+          </div>
+        ) : (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              {allowAttachments ? (
+                <>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    className="hidden"
+                    multiple
+                    onChange={handleFilesSelected}
+                    accept={EXTERNAL_ATTACHMENT_ACCEPT}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleAttachClick}
+                    disabled={!canSend || uploading || attachments.length >= 5}
+                    className="inline-flex items-center gap-2 rounded-[0.95rem] border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+                    {t('application.messages.attach', { defaultValue: 'Přiložit soubor' })}
+                  </button>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    {t('application.messages.attach_hint', { defaultValue: 'PDF, DOCX, PPTX, XLSX, obrázky, TXT/MD nebo krátké audio. Hodí se i pro návrh smlouvy v PDF.' })}
+                  </span>
+                </>
+              ) : null}
+            </div>
+
             <button
               type="button"
-              onClick={handleAttachClick}
-              disabled={!canSend || uploading || attachments.length >= 5}
-              className="inline-flex items-center gap-2 rounded-[0.95rem] border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+              onClick={handleSend}
+              disabled={!canSend || sending || uploading || (!draft.trim() && (!allowAttachments || attachments.length === 0))}
+              className={sendButtonClassName}
             >
-              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
-              {t('application.messages.attach', { defaultValue: 'Přiložit soubor' })}
+              {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {sendButtonLabel || t('application.messages.send', { defaultValue: 'Odeslat zprávu' })}
             </button>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
-              {t('application.messages.attach_hint', { defaultValue: 'PDF, DOC, DOCX, TXT nebo krátké audio. Soubory se ukládají mimo hlavní databázové úložiště.' })}
-            </span>
           </div>
-
-          <button
-            type="button"
-            onClick={handleSend}
-            disabled={!canSend || sending || uploading || (!draft.trim() && attachments.length === 0)}
-            className="inline-flex items-center gap-2 rounded-[0.95rem] bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-slate-100 dark:text-slate-900 dark:hover:bg-slate-200"
-          >
-            {sending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            {t('application.messages.send', { defaultValue: 'Odeslat zprávu' })}
-          </button>
-        </div>
+        )}
       </div>
     </div>
   );

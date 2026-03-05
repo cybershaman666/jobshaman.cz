@@ -67,6 +67,33 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         { code: 'sk', name: 'SK', flagCode: 'sk' }
     ];
 
+    const getLocalePrefix = () => {
+        const supported: string[] = (i18n.options.supportedLngs || []) as string[];
+        const parts = window.location.pathname.split('/').filter(Boolean);
+        if (parts.length > 0 && supported.includes(parts[0])) {
+            return `/${parts[0]}`;
+        }
+        const fallback = (i18n.language || 'cs').split('-')[0];
+        return `/${fallback}`;
+    };
+
+    const isDemoHandshakeRoute = () => {
+        const supported: string[] = (i18n.options.supportedLngs || []) as string[];
+        const parts = window.location.pathname.split('/').filter(Boolean);
+        if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
+        return parts[0] === 'demo-handshake';
+    };
+
+    const leaveDemoHandshakeRoute = (targetPath?: string): boolean => {
+        if (!isDemoHandshakeRoute()) return false;
+        const localePrefix = getLocalePrefix();
+        const normalizedTarget = targetPath
+            ? `${localePrefix}/${targetPath.replace(/^\/+/, '')}`.replace(/\/+$/, '')
+            : `${localePrefix}/`;
+        window.location.assign(normalizedTarget);
+        return true;
+    };
+
     const changeLanguage = (lng: string) => {
         try {
             // Update URL to include language prefix without reloading
@@ -131,6 +158,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                 <div
                     className="flex items-center gap-2 cursor-pointer group flex-shrink-0"
                     onClick={() => {
+                        if (leaveDemoHandshakeRoute()) return;
                         setViewState(ViewState.LIST);
                         setSelectedJobId(null);
                         setShowCompanyLanding(false);
@@ -165,6 +193,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         <>
                             <button
                                 onClick={() => { 
+                                    if (leaveDemoHandshakeRoute()) return;
                                     onIntentionalListClick?.();
                                     setViewState(ViewState.LIST); 
                                     setSelectedJobId(null); 
@@ -176,6 +205,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                             <button
                                 onClick={() => { 
                                     if (userProfile.isLoggedIn) {
+                                        if (leaveDemoHandshakeRoute('profil')) return;
                                         setViewState(ViewState.PROFILE);
                                     } else {
                                         handleAuthAction('login');
@@ -192,6 +222,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                     {canShowBusinessMenu && (
                         <button
                             onClick={() => {
+                                const businessTarget = userProfile.isLoggedIn && userProfile.role === 'recruiter'
+                                    ? 'company-dashboard'
+                                    : 'pro-firmy';
+                                if (leaveDemoHandshakeRoute(businessTarget)) return;
                                 void handleBusinessClick();
                             }}
                             className={`px-3 py-1.5 rounded-full text-sm font-bold transition-all whitespace-nowrap flex items-center gap-1.5 ${showCompanyLanding || viewState === ViewState.COMPANY_DASHBOARD ? 'bg-white/14 text-white ring-1 ring-white/18' : 'text-slate-300 hover:text-white hover:bg-white/8'}`}
@@ -358,6 +392,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                             <>
                                 <button
                                     onClick={() => { 
+                                        if (leaveDemoHandshakeRoute()) {
+                                            setMobileMenuOpen(false);
+                                            return;
+                                        }
                                         onIntentionalListClick?.();
                                         setViewState(ViewState.LIST); 
                                         setSelectedJobId(null);
@@ -370,6 +408,10 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                                 <button
                                     onClick={() => { 
                                         if (userProfile.isLoggedIn) {
+                                            if (leaveDemoHandshakeRoute('profil')) {
+                                                setMobileMenuOpen(false);
+                                                return;
+                                            }
                                             setViewState(ViewState.PROFILE);
                                         } else {
                                             handleAuthAction('login');
@@ -386,6 +428,13 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         {canShowBusinessMenu && (
                             <button
                                 onClick={() => {
+                                    const businessTarget = userProfile.isLoggedIn && userProfile.role === 'recruiter'
+                                        ? 'company-dashboard'
+                                        : 'pro-firmy';
+                                    if (leaveDemoHandshakeRoute(businessTarget)) {
+                                        setMobileMenuOpen(false);
+                                        return;
+                                    }
                                     void handleBusinessClick();
                                     setMobileMenuOpen(false);
                                 }}

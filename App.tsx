@@ -120,6 +120,7 @@ const JobDetailView = lazy(() => import('./components/JobDetailView'));
 const MobileSwipeJobBrowser = lazy(() => import('./components/MobileSwipeJobBrowser'));
 const InvitationLanding = lazy(() => import('./pages/InvitationLanding'));
 const AssessmentPreviewPage = lazy(() => import('./pages/AssessmentPreviewPage'));
+const DemoHandshakePage = lazy(() => import('./pages/DemoHandshakePage'));
 const JcfpmFlow = lazy(() => import('./components/jcfpm/JcfpmFlow'));
 
 // JHI and formatting utilities now imported from utils/
@@ -1249,6 +1250,7 @@ export default function App() {
                 || base === 'enterprise'
                 || base === 'assessment'
                 || base === 'assessment-preview'
+                || base === 'demo-handshake'
                 || base === 'admin'
                 || base === 'digest';
             if (isExternalPage) return;
@@ -2084,6 +2086,27 @@ export default function App() {
                 </div>
             );
         }
+        if (normalizedPath === '/demo-handshake') {
+            return (
+                <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+                    <DemoHandshakePage
+                        onRegister={() => {
+                            const lng = getLocalePrefix();
+                            setShowCompanyLanding(false);
+                            setSelectedJobId(null);
+                            setSelectedBlogPostSlug(null);
+                            setViewState(ViewState.LIST);
+                            window.history.pushState({}, '', `/${lng}/`);
+                            handleAuthAction('register');
+                        }}
+                        onBrowseRoles={() => {
+                            const lng = getLocalePrefix();
+                            window.location.assign(`/${lng}/`);
+                        }}
+                    />
+                </div>
+            );
+        }
         if (normalizedPath.startsWith('/assessment/')) {
             return (
                 <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
@@ -2528,6 +2551,10 @@ export default function App() {
                                                 onBrowseOffers={() => {
                                                     setViewState(ViewState.LIST);
                                                     setSelectedJobId(null);
+                                                }}
+                                                onOpenDemo={() => {
+                                                    const lng = getLocalePrefix();
+                                                    window.location.assign(`/${lng}/demo-handshake`);
                                                 }}
                                                 totalJobsCount={welcomeActiveJobsCount ?? totalCount}
                                                 todayNewJobsCount={welcomeTodayReviewedCount ?? todayNewJobsCount}

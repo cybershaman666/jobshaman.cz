@@ -98,7 +98,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
           setDialogueCapacity(null);
           setDialoguesError(
             t('profile.job_hub.load_failed', {
-              defaultValue: 'Nepodařilo se načíst přehled handshake dialogů.'
+              defaultValue: 'Nepodařilo se načíst přehled dialogových vláken.'
             })
           );
         }
@@ -205,7 +205,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
 
     const confirmed = window.confirm(
       t('profile.job_hub.withdraw_confirm', {
-        defaultValue: 'Opravdu chcete tento handshake uzavřít?'
+        defaultValue: 'Opravdu chcete tento dialog uzavřít?'
       })
     );
     if (!confirmed) return;
@@ -243,7 +243,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
       console.error('Failed to withdraw application:', error);
       window.alert(
         t('profile.job_hub.withdraw_failed', {
-          defaultValue: 'Handshake se nepodařilo uzavřít.'
+          defaultValue: 'Dialog se nepodařilo uzavřít.'
         })
       );
     } finally {
@@ -361,7 +361,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
       case 'withdrawn':
       case 'closed_withdrawn':
         return {
-          label: t('profile.job_hub.close_reason_withdrawn', { defaultValue: 'Handshake jste uzavřeli vy.' }),
+          label: t('profile.job_hub.close_reason_withdrawn', { defaultValue: 'Dialog jste uzavřeli vy.' }),
           className: 'bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
         };
       case 'closed_role_filled':
@@ -771,7 +771,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
             dialogueIsOverdue={Boolean(activeDetail.dialogue_is_overdue)}
             heading={t('profile.job_hub.messages_title', { defaultValue: 'Komunikace s firmou' })}
             subtitle={t('profile.job_hub.messages_desc', {
-              defaultValue: 'Asynchronní vlákno pro doplnění podkladů, dokumentů a další komunikaci k tomuto handshaku.'
+              defaultValue: 'Asynchronní vlákno pro doplnění podkladů, dokumentů a další komunikaci k tomuto dialogu.'
             })}
             emptyText={t('profile.job_hub.messages_empty', {
               defaultValue: 'Zatím tu nejsou žádné zprávy. Pokud firma něco doplní nebo budete chtít poslat dokument, objeví se to zde.'
@@ -791,14 +791,14 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
           <div>
             <div className="inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/80 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-700 dark:border-cyan-900/50 dark:bg-cyan-950/30 dark:text-cyan-300">
               <Briefcase className="h-3.5 w-3.5" />
-              {t('profile.job_hub.badge', { defaultValue: 'Handshake hub' })}
+              {t('profile.job_hub.badge', { defaultValue: 'Dialogové centrum' })}
             </div>
             <h2 className="mt-3 text-2xl font-semibold text-slate-900 dark:text-white">
-              {t('profile.job_hub.title', { defaultValue: 'Správa rolí a handshake dialogů' })}
+              {t('profile.job_hub.title', { defaultValue: 'Správa rolí a úvodních dialogů' })}
             </h2>
             <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
               {t('profile.job_hub.desc', {
-                defaultValue: 'Na jednom místě vidíte otevřené handshaky, co přesně bylo sdíleno, a můžete se vracet k asynchronnímu dialogu s firmami.'
+                defaultValue: 'Na jednom místě vidíte otevřené dialogy, co přesně bylo sdíleno, a můžete se vracet k asynchronní komunikaci s firmami.'
               })}
             </p>
             <div className="mt-3 inline-flex items-center gap-2 rounded-full border border-cyan-200 bg-white/80 px-3 py-1.5 text-xs font-medium text-cyan-700 dark:border-cyan-900/40 dark:bg-cyan-950/25 dark:text-cyan-300">
@@ -810,7 +810,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                     limit: dialogueCapacity.limit
                   })
                 : t('profile.job_hub.capacity_inline_fallback', {
-                    defaultValue: 'Kapacita handshake dialogů se právě načítá'
+                    defaultValue: 'Kapacita dialogových vláken se právě načítá'
                   })}
             </div>
           </div>
@@ -830,7 +830,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
             </div>
             <div className="col-span-2 rounded-[0.95rem] border border-slate-200/80 bg-white/90 px-4 py-3 dark:border-slate-700 dark:bg-slate-900/70 sm:col-span-1">
               <div className="text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400">
-                {t('profile.job_hub.metrics.capacity', { defaultValue: 'Handshake sloty' })}
+                {t('profile.job_hub.metrics.capacity', { defaultValue: 'Dialogové sloty' })}
               </div>
               <div className="mt-1 text-2xl font-semibold text-slate-900 dark:text-white">
                 {dialogueCapacity ? `${dialogueCapacity.active}/${dialogueCapacity.limit}` : activeCount}
@@ -861,7 +861,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                   </div>
                   <div>
                     <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
-                      {t('profile.job_hub.applications_title', { defaultValue: 'Otevřené handshaky' })}
+                      {t('profile.job_hub.applications_title', { defaultValue: 'Otevřené dialogy' })}
                     </h3>
                     <p className="text-sm text-slate-500 dark:text-slate-400">
                       {t('profile.job_hub.applications_desc', {
@@ -881,7 +881,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
             <div className="p-6">
               <div className="mb-5">
                 <label htmlFor="application-search" className="sr-only">
-                  {t('profile.job_hub.search_placeholder', { defaultValue: 'Hledat v handshacích' })}
+                  {t('profile.job_hub.search_placeholder', { defaultValue: 'Hledat v dialozích' })}
                 </label>
                 <div className="relative">
                   <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -890,7 +890,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                     type="text"
                   value={dialogueSearch}
                     onChange={(event) => setDialogueSearch(event.target.value)}
-                    placeholder={t('profile.job_hub.search_placeholder', { defaultValue: 'Hledat v handshacích' })}
+                    placeholder={t('profile.job_hub.search_placeholder', { defaultValue: 'Hledat v dialozích' })}
                     className="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none transition focus:border-cyan-400 focus:ring-2 focus:ring-cyan-200 dark:border-slate-700 dark:bg-slate-950/40 dark:text-white dark:focus:border-cyan-700 dark:focus:ring-cyan-900/40"
                   />
                 </div>
@@ -899,7 +899,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
               {loadingDialogues ? (
                 <div className="flex items-center gap-3 text-sm text-slate-500 dark:text-slate-400">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  {t('profile.job_hub.loading', { defaultValue: 'Načítám vaše handshaky…' })}
+                  {t('profile.job_hub.loading', { defaultValue: 'Načítám vaše dialogy…' })}
                 </div>
               ) : dialoguesError ? (
                 <div className="rounded-[0.95rem] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/20 dark:text-rose-300">
@@ -913,12 +913,12 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                   <h4 className="mt-4 text-lg font-semibold text-slate-900 dark:text-white">
                     {dialogueSearch
                       ? t('profile.job_hub.empty_search_title', { defaultValue: 'Nic neodpovídá hledání' })
-                      : t('profile.job_hub.empty_title', { defaultValue: 'Zatím tu nejsou žádné handshaky' })}
+                      : t('profile.job_hub.empty_title', { defaultValue: 'Zatím tu nejsou žádné dialogy' })}
                   </h4>
                   <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">
                     {dialogueSearch
                       ? t('profile.job_hub.empty_search_desc', { defaultValue: 'Zkuste jiný název pozice, firmu nebo lokalitu.' })
-                      : t('profile.job_hub.empty_desc', { defaultValue: 'Jakmile otevřete první handshake, objeví se zde přehled celé interakce.' })}
+                      : t('profile.job_hub.empty_desc', { defaultValue: 'Jakmile otevřete první dialog, objeví se zde přehled celé interakce.' })}
                   </p>
                 </div>
               ) : (
@@ -972,7 +972,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                               className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
                             >
                               <Eye className="h-4 w-4" />
-                              {t('profile.job_hub.review_sent', { defaultValue: 'Otevřít handshake' })}
+                              {t('profile.job_hub.review_sent', { defaultValue: 'Otevřít dialog' })}
                             </button>
                             {dialogue.job_snapshot?.contact_email && (
                               <button
@@ -1005,7 +1005,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
                               ) : (
                                 <Trash2 className="h-4 w-4" />
                               )}
-                              {t('profile.job_hub.withdraw', { defaultValue: 'Uzavřít handshake' })}
+                              {t('profile.job_hub.withdraw', { defaultValue: 'Uzavřít dialog' })}
                             </button>
                           </div>
                         </div>

@@ -102,7 +102,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         sectionTitle: 'Podklady a CV',
         sectionIntro: 'CV je tady jen volitelný podpůrný dokument. Můžete si uložit klasické CV, AI draft nebo další materiály pro chvíli, kdy si firma vyžádá kontext navíc.',
         uploadedTitle: 'Podklad je připravený',
-        uploadedDesc: 'Dokument zůstane připravený jako volitelný kontext pro budoucí handshaky.',
+        uploadedDesc: 'Dokument zůstane připravený jako volitelný kontext pro budoucí dialogy.',
         replaceLabel: 'Nahradit dokument',
         emptyTitle: 'Přidat CV nebo podpůrný dokument',
         emptyDesc: 'Uložte si sem životopis nebo doplňující dokument pro firmy, které chtějí další kontext.',
@@ -121,7 +121,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         sectionTitle: 'Supporting context and CV',
         sectionIntro: 'Your CV is optional supporting context here. Keep a resume, AI draft, or other background material ready for teams that ask for extra detail.',
         uploadedTitle: 'Supporting document is ready',
-        uploadedDesc: 'This file stays available as optional context for future handshakes.',
+        uploadedDesc: 'This file stays available as optional context for future dialogues.',
         replaceLabel: 'Replace document',
         emptyTitle: 'Add a CV or supporting document',
         emptyDesc: 'Store a resume or extra background file here for teams that ask for more context.',
@@ -505,7 +505,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
     {
       key: 'saved',
       icon: Bookmark,
-      label: t('profile.job_hub.badge', { defaultValue: 'Handshake hub' }),
+      label: t('profile.job_hub.badge', { defaultValue: 'Dialogové centrum' }),
       caption: t('profile.job_hub.tab_caption', { defaultValue: 'Dialogy a sloty' })
     },
   ];
