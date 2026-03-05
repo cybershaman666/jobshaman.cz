@@ -252,7 +252,10 @@ _DIALOGUE_TERMINAL_STATUSES: set[str] = {
     "closed_withdrawn",
     "closed_role_filled",
 }
-_CANDIDATE_ACTIVE_DIALOGUE_LIMIT: int = 5
+_CANDIDATE_TIER_DIALOGUE_LIMITS: dict[str, int] = {
+    "free": 3,
+    "premium": 10,
+}
 _DIALOGUE_RESPONSE_TIMEOUT_HOURS: int = 72
 _ROLE_DIALOGUE_PREVIEW_LIMIT: int = max(1, int(os.getenv("ROLE_DIALOGUE_PREVIEW_LIMIT", "25")))
 
@@ -592,9 +595,20 @@ def _count_candidate_active_dialogues(candidate_id: str) -> int:
         return 0
 
 
+def _resolve_candidate_dialogue_limit(candidate_id: str) -> int:
+    if not candidate_id:
+        return _CANDIDATE_TIER_DIALOGUE_LIMITS["free"]
+    candidate_sub = _fetch_latest_subscription_by("user_id", candidate_id)
+    if candidate_sub and _is_active_subscription(candidate_sub):
+        candidate_tier = str(candidate_sub.get("tier") or "").strip().lower()
+        if candidate_tier == "premium":
+            return _CANDIDATE_TIER_DIALOGUE_LIMITS["premium"]
+    return _CANDIDATE_TIER_DIALOGUE_LIMITS["free"]
+
+
 def _serialize_candidate_dialogue_capacity(candidate_id: str) -> dict[str, int]:
     used = _count_candidate_active_dialogues(candidate_id)
-    limit = _CANDIDATE_ACTIVE_DIALOGUE_LIMIT
+    limit = _resolve_candidate_dialogue_limit(candidate_id)
     return {
         "active": used,
         "limit": limit,
@@ -604,10 +618,11 @@ def _serialize_candidate_dialogue_capacity(candidate_id: str) -> dict[str, int]:
 
 def _enforce_candidate_dialogue_limit(candidate_id: str) -> None:
     current_active = _count_candidate_active_dialogues(candidate_id)
-    if current_active >= _CANDIDATE_ACTIVE_DIALOGUE_LIMIT:
+    limit = _resolve_candidate_dialogue_limit(candidate_id)
+    if current_active >= limit:
         raise HTTPException(
             status_code=403,
-            detail=f"Candidate limit reached: maximum {_CANDIDATE_ACTIVE_DIALOGUE_LIMIT} active dialogues",
+            detail=f"Candidate limit reached: maximum {limit} active dialogues",
         )
 
 

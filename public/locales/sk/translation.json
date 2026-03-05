@@ -3680,7 +3680,7 @@
     "thread_next_label": "Ďalší krok",
     "thread_next_value": "Krátka nadväzujúca otázka od firmy",
     "thread_capacity_label": "Kapacita",
-    "thread_capacity_value": "1 aktívne vlákno z 5",
+    "thread_capacity_value": "1 aktívne vlákno z 10",
     "candidate_followup_fallback": "Začal(a) by som auditom odovzdávania zmien a potom zaviedol(a) jednoduchý checklist.",
     "live_thread_badge": "Živý mini thread",
     "live_thread_hint": "Nižšie vidíš rovnaký princíp ako v reálnom dialógu: správa firmy -> tvoja reakcia -> nadviazanie.",

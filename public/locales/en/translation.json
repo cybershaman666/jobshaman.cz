@@ -3768,7 +3768,7 @@
     "thread_next_label": "Next step",
     "thread_next_value": "Short follow-up question from company",
     "thread_capacity_label": "Capacity",
-    "thread_capacity_value": "1 active thread out of 5",
+    "thread_capacity_value": "1 active thread out of 10",
     "candidate_followup_fallback": "I would start with a shift handoff audit and follow with a lightweight checklist.",
     "live_thread_badge": "Live mini thread",
     "live_thread_hint": "Below you see the same principle as in live dialogue: company message -> your response -> follow-up.",

@@ -2009,18 +2009,26 @@ export default function App() {
     };
 
     const companyDialogueCapacity = companyProfile ? getCompanyDialogueCapacity(companyProfile) : null;
+    const isCandidateDiscovery = userProfile.role !== 'recruiter';
+    const isPremiumCandidate = Boolean(
+        isCandidateDiscovery &&
+        userProfile.isLoggedIn &&
+        (userProfile.subscription?.tier || '').toLowerCase() === 'premium'
+    );
+    const discoveryCandidateDefaultLimit = isCandidateDiscovery ? (isPremiumCandidate ? 10 : 3) : null;
     const discoverySlotsUsed = userProfile.role === 'recruiter'
         ? (companyDialogueCapacity?.used ?? null)
-        : (candidateDialogueCapacity?.active ?? null);
+        : (candidateDialogueCapacity?.active ?? (isCandidateDiscovery ? 0 : null));
     const discoverySlotsLimit = userProfile.role === 'recruiter'
         ? (companyDialogueCapacity?.limit ?? null)
-        : (candidateDialogueCapacity?.limit ?? null);
+        : (candidateDialogueCapacity?.limit ?? discoveryCandidateDefaultLimit);
     const discoverySlotsLimitLabel = discoverySlotsLimit == null
         ? null
         : (discoverySlotsLimit >= 999999 ? '∞' : discoverySlotsLimit.toLocaleString(i18n.language));
     const discoverySlotsUsedLabel = discoverySlotsUsed == null
         ? null
         : discoverySlotsUsed.toLocaleString(i18n.language);
+    const showDiscoveryCapacityHint = isCandidateDiscovery && !isPremiumCandidate;
 
     const discoveryShortReplyCount = userProfile.role === 'recruiter'
         ? companyDialogueCounts.active
@@ -2438,20 +2446,20 @@ export default function App() {
                                     </div>
 
                                     <div className="lg:col-span-3 min-h-0 flex flex-col gap-2 lg:gap-3">
-                                        <div className="hidden lg:block rounded-[1rem] border border-slate-200/80 dark:border-slate-800 bg-[linear-gradient(140deg,rgba(255,255,255,0.92),rgba(239,246,255,0.86))] dark:bg-[linear-gradient(140deg,rgba(15,23,42,0.9),rgba(12,74,110,0.28))] px-3.5 py-2.5 shadow-[0_12px_24px_-30px_rgba(15,23,42,0.24)]">
+                                        <div className="hidden lg:block rounded-[1rem] border border-slate-200/80 dark:border-slate-800 bg-[linear-gradient(140deg,rgba(255,255,255,0.92),rgba(239,246,255,0.86))] dark:bg-[linear-gradient(140deg,rgba(15,23,42,0.9),rgba(12,74,110,0.28))] px-3 py-2 shadow-[0_12px_24px_-30px_rgba(15,23,42,0.24)]">
                                             <div className="flex items-start justify-between gap-3">
                                                 <div>
                                                     <div className="text-[12px] font-semibold uppercase tracking-[0.1em] text-slate-700 dark:text-slate-200">
                                                         {isCsLike ? 'Digitální první kontakt' : t('home.discovery.badge', { defaultValue: 'Digital first contact' })}
                                                     </div>
-                                                    <div className="mt-0.5 text-[16px] font-bold text-slate-900 dark:text-white leading-snug">
+                                                    <div className="mt-0.5 text-[15px] font-bold text-slate-900 dark:text-white leading-snug">
                                                         {t('home.discovery.title', {
                                                             defaultValue: isCsLike
                                                                 ? 'Reaguj na skutečnou týmovou výzvu, ne na hlučný nábor.'
                                                                 : 'React to a real team problem, not a noisy funnel.'
                                                         })}
                                                     </div>
-                                                    <div className="mt-1 text-[13px] text-slate-700 dark:text-slate-200 leading-relaxed">
+                                                    <div className="mt-0.5 text-[12px] text-slate-700 dark:text-slate-200 leading-snug">
                                                         {t('home.discovery.meta', {
                                                             defaultValue: isCsLike
                                                                 ? 'Role ukáže pravdu jako první. Tvoje reakce otevře soukromý dialog bez zbytečného tlaku.'
@@ -2459,27 +2467,36 @@ export default function App() {
                                                         })}
                                                     </div>
                                                 </div>
-                                                <div className="rounded-lg border border-white/70 dark:border-white/10 bg-white/70 dark:bg-slate-950/30 px-3 py-1.5 text-right shrink-0">
+                                                <div className="rounded-lg border border-white/70 dark:border-white/10 bg-white/70 dark:bg-slate-950/30 px-2.5 py-1 text-right shrink-0 max-w-[230px]">
                                                     <div className="text-[12px] font-semibold uppercase tracking-[0.08em] text-slate-600 dark:text-slate-300">
                                                         {t('home.discovery.slots_label', { defaultValue: isCsLike ? 'Aktivní dialogy' : 'Active dialogues' })}
                                                     </div>
-                                                    <div className="text-[18px] font-bold text-slate-900 dark:text-white">
+                                                    <div className="text-[16px] font-bold text-slate-900 dark:text-white">
                                                         {dialogueMetricsLoading && (!discoverySlotsUsedLabel || !discoverySlotsLimitLabel)
                                                             ? '…'
                                                             : `${discoverySlotsUsedLabel ?? '—'} / ${discoverySlotsLimitLabel ?? '—'}`}
                                                     </div>
+                                                    {showDiscoveryCapacityHint && (
+                                                        <div className="mt-1.5 border-t border-amber-200/80 dark:border-amber-900/40 pt-1.5 text-left">
+                                                            <div className="flex flex-wrap items-center gap-1">
+                                                                <span className="inline-flex items-center rounded-md border border-amber-300/80 dark:border-amber-700/60 bg-amber-100/90 dark:bg-amber-950/45 px-1.5 py-0.5 text-[10px] font-semibold text-amber-900 dark:text-amber-100">
+                                                                    {isCsLike ? 'Premium 10 dialogů' : 'Premium 10 dialogues'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
-                                            <div className="mt-2 grid grid-cols-2 gap-1.5">
-                                                <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/78 dark:bg-slate-950/28 px-2.5 py-1.5">
-                                                    <div className="text-[15px] font-bold text-blue-600 dark:text-blue-300 leading-none">{discoveryShortReplyCount.toLocaleString(i18n.language)}</div>
-                                                    <div className="mt-0.5 text-[12px] font-semibold text-slate-900 dark:text-white leading-snug">
+                                            <div className="mt-1.5 grid grid-cols-2 gap-1">
+                                                <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/78 dark:bg-slate-950/28 px-2 py-1">
+                                                    <div className="text-[14px] font-bold text-blue-600 dark:text-blue-300 leading-none">{discoveryShortReplyCount.toLocaleString(i18n.language)}</div>
+                                                    <div className="mt-0.5 text-[11px] font-semibold text-slate-900 dark:text-white leading-snug">
                                                         {t('home.discovery.step_short_reply', { defaultValue: isCsLike ? 'Krátká reakce' : 'Short reply' })}
                                                     </div>
                                                 </div>
-                                                <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/78 dark:bg-slate-950/28 px-2.5 py-1.5">
-                                                    <div className="text-[15px] font-bold text-blue-600 dark:text-blue-300 leading-none">{discoveryClearStateCount.toLocaleString(i18n.language)}</div>
-                                                    <div className="mt-0.5 text-[12px] font-semibold text-slate-900 dark:text-white leading-snug">
+                                                <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/78 dark:bg-slate-950/28 px-2 py-1">
+                                                    <div className="text-[14px] font-bold text-blue-600 dark:text-blue-300 leading-none">{discoveryClearStateCount.toLocaleString(i18n.language)}</div>
+                                                    <div className="mt-0.5 text-[11px] font-semibold text-slate-900 dark:text-white leading-snug">
                                                         {t('home.discovery.step_clear_state', { defaultValue: isCsLike ? 'Jasný stav' : 'Clear state' })}
                                                     </div>
                                                 </div>

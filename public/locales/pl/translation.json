@@ -3704,7 +3704,7 @@
     "thread_next_label": "Następny krok",
     "thread_next_value": "Krótkie pytanie uzupełniające od firmy",
     "thread_capacity_label": "Pojemność",
-    "thread_capacity_value": "1 aktywny wątek z 5",
+    "thread_capacity_value": "1 aktywny wątek z 10",
     "candidate_followup_fallback": "Zacząłbym od audytu przekazywania zmian, a potem wdrożył prostą checklistę.",
     "live_thread_badge": "Mini wątek na żywo",
     "live_thread_hint": "Poniżej widzisz ten sam mechanizm co w realnym dialogu: wiadomość firmy -> Twoja reakcja -> kolejny krok.",

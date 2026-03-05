@@ -3809,7 +3809,7 @@
     "thread_next_label": "Nächster Schritt",
     "thread_next_value": "Kurze Rückfrage des Unternehmens",
     "thread_capacity_label": "Kapazität",
-    "thread_capacity_value": "1 aktiver Thread von 5",
+    "thread_capacity_value": "1 aktiver Thread von 10",
     "candidate_followup_fallback": "Ich würde mit einem Audit der Schichtübergaben starten und danach eine kurze Checkliste einführen.",
     "live_thread_badge": "Live-Mini-Thread",
     "live_thread_hint": "Unten sehen Sie das gleiche Prinzip wie im Live-Dialog: Firmennachricht -> Ihre Reaktion -> Follow-up.",

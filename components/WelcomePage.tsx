@@ -305,8 +305,8 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
     const compactReactionCta = isCsLike ? 'Reagovat' : 'Open handshake';
     const compactDemoCta = isCsLike ? 'Vyzkoušet demo' : 'Try demo';
     const compactSupportText = isCsLike
-      ? 'Reakcí zahájíš dialog s tímto týmem. Podklady zůstávají volitelné. Zbývají ti 2 aktivní sloty z 5.'
-      : 'Your reply opens a private dialogue with this team. Supporting documents stay optional and you still have 2 of 5 active slots left.';
+      ? 'Reakcí zahájíš dialog s tímto týmem. Podklady zůstávají volitelné. Zbývají ti 2 aktivní sloty z 10.'
+      : 'Your reply opens a private dialogue with this team. Supporting documents stay optional and you still have 2 of 10 active slots left.';
     const compactIntroLine = isCsLike
       ? 'Zapojíš se do smysluplného dialogu místo střelby naslepo.'
       : 'Join a meaningful dialogue instead of firing blind applications.';

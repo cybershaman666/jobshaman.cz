@@ -3848,7 +3848,7 @@
     "thread_next_label": "Další krok",
     "thread_next_value": "Krátký navazující dotaz od firmy",
     "thread_capacity_label": "Kapacita",
-    "thread_capacity_value": "1 aktivní vlákno z 5",
+    "thread_capacity_value": "1 aktivní vlákno z 10",
     "candidate_followup_fallback": "Navrhl(a) bych první audit předávání směn a navazující checklist.",
     "live_thread_badge": "Živý mini thread",
     "live_thread_hint": "Níže vidíš stejný princip jako v reálném dialogu: zpráva firmy -> tvoje reakce -> navázání.",
