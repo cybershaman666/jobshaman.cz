@@ -52,109 +52,109 @@ const CompanyLandingPage: React.FC<CompanyLandingPageProps> = ({ onRegister, onR
 
   const copy = useMemo(() => (isCsLike ? {
     badge: 'Handshake hiring pro firmy',
-    title: 'Nehledate dalsi ATS. Potrebujete lepsi prvni kontakt.',
-    subtitle: 'JobShaman nahrazuje mrtve CV a nekonecny funnel omezenym oboustrannym dialogem. Firma nejdriv ukaze pravdu o roli a pak dostane odpoved, ktera ukaze zpusob premysleni kandidata.',
-    primaryCta: 'Otevrit firemni workspace',
-    secondaryCta: 'Domluvit demo',
-    login: 'Prihlasit se',
-    recommended: 'Doporuceno',
+    title: 'Nehledáte další ATS. Potřebujete lepší první kontakt.',
+    subtitle: 'JobShaman nahrazuje mrtvé CV a nekonečný funnel omezeným oboustranným dialogem. Firma nejdřív ukáže pravdu o roli a pak dostane odpověď, která ukáže způsob přemýšlení kandidáta.',
+    primaryCta: 'Otevřít firemní workspace',
+    secondaryCta: 'Vyzkoušet demo',
+    login: 'Přihlásit se',
+    recommended: 'Doporučeno',
     roleTruth: 'Pravda o roli',
     asyncFirst: 'Async first',
-    valuePills: ['Role Canvas misto inzeratu', 'Dialogue Inbox misto application tabulky', 'Sloty misto nekonecneho funnelu'],
-    rolePreviewLabel: 'Role Canvas preview',
-    rolePreviewTitle: 'Pred otevrenim role musi firma rict pravdu.',
+    valuePills: ['Role Canvas místo inzerátu', 'Dialogue Inbox místo application tabulky', 'Sloty místo nekonečného funnelu'],
+    rolePreviewLabel: 'Ukázka Role Canvas',
+    rolePreviewTitle: 'Ještě před otevřením role firma otevřeně popíše realitu týmu.',
     rolePreviewItems: [
-      'Co je na teto roli skutecne tezke?',
-      'Jaky typ cloveka tady selze?',
-      'Jak pozname uspech po 6 mesicich?',
-      'Ktere 2 situace chceme otevrit v handshake?'
+      'Co je na této roli skutečně těžké?',
+      'Jaký typ člověka tady selže?',
+      'Jak poznáme úspěch po 6 měsících?',
+      'Které 2 situace chceme otevřít v handshake?'
     ],
-    comparisonTitle: 'Co se meni v praxi',
-    comparisonOld: 'Stary hiring',
+    comparisonTitle: 'Co se mění v praxi',
+    comparisonOld: 'Starý hiring',
     comparisonNew: 'Handshake hiring',
     comparisonRows: [
-      ['Job post a CV screening', 'Role Canvas a kratky oboustranny dialog'],
-      ['100+ uchazecu v jednom funnelu', 'Omezena kapacita a aktivni sloty'],
-      ['Video, pitch a sebeprezentace', 'Text-first odpoved, audio jen volitelne'],
-      ['Ghosting a nejasne stavy', 'Open, In Review, Shortlisted, Closed s duvodem']
+      ['Job post a CV screening', 'Role Canvas a krátký oboustranný dialog'],
+      ['100+ uchazečů v jednom funnelu', 'Omezená kapacita a aktivní sloty'],
+      ['Video, pitch a sebeprezentace', 'Text-first odpověď, audio jen volitelně'],
+      ['Ghosting a nejasné stavy', 'Open, In Review, Shortlisted, Closed s důvodem']
     ],
     systemTitle: 'Core system platformy',
     systemCards: [
       {
         title: 'Role Engine',
-        body: 'Pozice neni jen text. Je to strukturovany objekt s kontextem tymu, hodnotami, realistickymi situacemi a definici uspechu.'
+        body: 'Pozice není jen text. Je to strukturovaný objekt s kontextem týmu, hodnotami, realistickými situacemi a definicí úspěchu.'
       },
       {
         title: 'Dialogue Engine',
-        body: 'Misto seznamu aplikaci pracujete s vlakny. Kazde vlakno ma jasny tah, shrnuti a status.'
+        body: 'Místo seznamu aplikací pracujete s vlákny. Každé vlákno má jasný tah, shrnutí a status.'
       },
       {
         title: 'Slot-based capacity',
-        body: 'Kazda role ma limit otevrenych dialogu. To drzi kvalitu a chrani recruiter time.'
+        body: 'Každá role má limit otevřených dialogů. To drží kvalitu a chrání recruiter time.'
       },
       {
         title: 'Transparent closure',
-        body: 'Kazdy uzavreny dialog ma duvod. Platforma nema prostor pro "seen" a pasivni ignoraci.'
+        body: 'Každý uzavřený dialog má důvod. Platforma nemá prostor pro "seen" a pasivní ignoraci.'
       }
     ],
-    pricingTitle: 'Monetizace je v souladu s chovanim',
-    pricingLead: 'Neplatite za CV databazi ani za pocet zobrazeni. Platite za kapacitu, kterou opravdu pouzivate.',
+    pricingTitle: 'Monetizace je v souladu s chováním',
+    pricingLead: 'Neplatíte za CV databázi ani za počet zobrazení. Platíte za kapacitu, kterou opravdu používáte.',
     pricingPlans: [
       {
         name: 'Starter',
-        price: '249 EUR / mesic',
-        note: 'Pro prvni hiring procesy',
-        features: ['3 otevreni roli mesicne', '12 aktivnich dialogue slotu', 'Role Canvas + Dialogue Inbox']
+        price: '249 EUR / měsíc',
+        note: 'Pro první hiring procesy',
+        features: ['3 otevření rolí měsíčně', '12 aktivních dialogue slotů', 'Role Canvas + Dialogue Inbox']
       },
       {
         name: 'Growth',
-        price: '599 EUR / mesic',
-        note: 'Pro aktivni hiring tym',
-        features: ['10 otevreni roli mesicne', '40 aktivnich dialogue slotu', 'Prioritni SLA a workflow prehled'],
+        price: '599 EUR / měsíc',
+        note: 'Pro aktivní hiring tým',
+        features: ['10 otevření rolí měsíčně', '40 aktivních dialogue slotů', 'Prioritní SLA a workflow přehled'],
         highlighted: true
       },
       {
         name: 'Professional',
-        price: '899 EUR / mesic',
-        note: 'Pro vice recruiteru a vyssi throughput',
-        features: ['25 otevreni roli mesicne', '100 aktivnich dialogue slotu', 'Rozsirene decision signaly a billing kontrola']
+        price: '899 EUR / měsíc',
+        note: 'Pro více recruiterů a vyšší throughput',
+        features: ['25 otevření rolí měsíčně', '100 aktivních dialogue slotů', 'Rozšířené decision signály a billing kontrola']
       },
       {
         name: 'Enterprise',
         price: 'Custom',
-        note: 'Pro komplexni hiring provoz',
-        features: ['Custom limity', 'Success fee volitelne', 'Integrace a custom rollout']
+        note: 'Pro komplexní hiring provoz',
+        features: ['Custom limity', 'Success fee volitelně', 'Integrace a custom rollout']
       }
     ] as PlanCard[],
-    faqTitle: 'Co firmy resi nejcasteji',
+    faqTitle: 'Co firmy řeší nejčastěji',
     faqItems: [
       {
-        q: 'Co kdyz nechceme menit cely hiring proces naraz?',
-        a: 'Nemusite. Handshake muze byt prvni vrstva pred dalsimi assessmenty. Menime zacatek funnelu, ne nutne vsechno ostatni v prvni fazi.'
+        q: 'Co když nechceme měnit celý hiring proces naráz?',
+        a: 'Nemusíte. Handshake může být první vrstva před dalšími assessmenty. Měníme začátek funnelu, ne nutně všechno ostatní v první fázi.'
       },
       {
-        q: 'Proc nejsou v centru CV a video?',
-        a: 'CV zustava jako doplnek. Video zveda stres, bias a performativnost. Core handshake ma byt rychly, soukromy a nizkostresovy.'
+        q: 'Proč nejsou v centru CV a video?',
+        a: 'CV zůstává jako doplněk. Video zvedá stres, bias a performativnost. Core handshake má být rychlý, soukromý a nízkostresový.'
       },
       {
-        q: 'Jak AI pomaha bez toho, aby rozhodovala?',
-        a: 'AI shrnuje vlakna, vytahuje signal a pripravuje explainable scorecard. Stav kandidata porad meni clovek.'
+        q: 'Jak AI pomáhá bez toho, aby rozhodovala?',
+        a: 'AI shrnuje vlákna, vytahuje signál a připravuje explainable scorecard. Stav kandidáta pořád mění člověk.'
       },
       {
-        q: 'Proc jsou dulezite sloty?',
-        a: 'Bez limitu se z dialogu stane dalsi zahlceny inbox. Sloty drzi tempo, pozornost a kvalitu odpovedi na obou stranach.'
+        q: 'Proč jsou důležité sloty?',
+        a: 'Bez limitu se z dialogu stane další zahlcený inbox. Sloty drží tempo, pozornost a kvalitu odpovědí na obou stranách.'
       }
     ],
-    finalTitle: 'Vratte do vyberu lidi lidsky faktor a pravdu.',
-    finalBody: 'Misto dalsiho CV funnelu otevrite prostredi, kde se da delat rychly a ferovy prvni kontakt bez zbytecneho tlaku.',
-    finalPrimary: 'Zacit s role canvas',
-    finalSecondary: 'Prihlasit se do firmy'
+    finalTitle: 'Vraťte do výběru lidí lidský faktor a pravdu.',
+    finalBody: 'Místo dalšího CV funnelu otevřete prostředí, kde se dá dělat rychlý a férový první kontakt bez zbytečného tlaku.',
+    finalPrimary: 'Začít s role canvas',
+    finalSecondary: 'Přihlásit se do firmy'
   } : {
     badge: 'Handshake hiring for companies',
     title: 'You do not need another ATS. You need a better first contact.',
     subtitle: 'JobShaman replaces dead CV funnels with limited two-way dialogue. The company shows the truth about the role first, then gets a response that reveals how the candidate actually thinks.',
     primaryCta: 'Open company workspace',
-    secondaryCta: 'Book a demo',
+    secondaryCta: 'Try demo',
     login: 'Log in',
     recommended: 'Recommended',
     roleTruth: 'Role truth',

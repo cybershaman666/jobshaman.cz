@@ -121,6 +121,7 @@ const MobileSwipeJobBrowser = lazy(() => import('./components/MobileSwipeJobBrow
 const InvitationLanding = lazy(() => import('./pages/InvitationLanding'));
 const AssessmentPreviewPage = lazy(() => import('./pages/AssessmentPreviewPage'));
 const DemoHandshakePage = lazy(() => import('./pages/DemoHandshakePage'));
+const DemoCompanyHandshakePage = lazy(() => import('./pages/DemoCompanyHandshakePage'));
 const JcfpmFlow = lazy(() => import('./components/jcfpm/JcfpmFlow'));
 
 // JHI and formatting utilities now imported from utils/
@@ -1251,6 +1252,7 @@ export default function App() {
                 || base === 'assessment'
                 || base === 'assessment-preview'
                 || base === 'demo-handshake'
+                || base === 'demo-company-handshake'
                 || base === 'admin'
                 || base === 'digest';
             if (isExternalPage) return;
@@ -1394,8 +1396,10 @@ export default function App() {
     const backendWakeRetryRef = useRef(false);
     const backendRetryCountRef = useRef(0);
     const backendRetryTimerRef = useRef<number | null>(null);
+    const backendRetryStartTimerRef = useRef<number | null>(null);
     const BACKEND_RETRY_MAX = 8; // total tries
     const BACKEND_RETRY_DELAY_MS = 3000; // 3s between tries
+    const BACKEND_RETRY_INITIAL_DELAY_MS = 4500; // avoid brief "flash" polling on transient hiccups
 
     // UI state for showing the waiting hint
     const [backendPolling, setBackendPolling] = useState(false);
@@ -1430,6 +1434,10 @@ export default function App() {
                 clearTimeout(backendRetryTimerRef.current);
                 backendRetryTimerRef.current = null;
             }
+            if (backendRetryStartTimerRef.current) {
+                clearTimeout(backendRetryStartTimerRef.current);
+                backendRetryStartTimerRef.current = null;
+            }
             return;
         }
 
@@ -1437,11 +1445,6 @@ export default function App() {
         if (backendWakeRetryRef.current || isLoadingJobs || filteredJobsRef.current.length > 0) {
             return;
         }
-
-        console.log('Backend wake retry: starting polling to wait for backend wake-up');
-        backendWakeRetryRef.current = true;
-        setBackendPolling(true);
-        backendRetryCountRef.current = 0;
 
         const runPoll = async () => {
             if (!backendWakeRetryRef.current) return;
@@ -1472,11 +1475,26 @@ export default function App() {
             backendRetryTimerRef.current = window.setTimeout(runPoll, BACKEND_RETRY_DELAY_MS);
         };
 
-        runPoll();
+        // Start polling with a short delay so transient 500s do not cause a visible "flash" in UI.
+        backendRetryStartTimerRef.current = window.setTimeout(() => {
+            // Re-check guards right before polling starts.
+            if (backendWakeRetryRef.current || isLoadingJobs || filteredJobsRef.current.length > 0) {
+                return;
+            }
+            console.log('Backend wake retry: starting polling to wait for backend wake-up');
+            backendWakeRetryRef.current = true;
+            setBackendPolling(true);
+            backendRetryCountRef.current = 0;
+            void runPoll();
+        }, BACKEND_RETRY_INITIAL_DELAY_MS);
 
         return () => {
             backendWakeRetryRef.current = false;
             setBackendPolling(false);
+            if (backendRetryStartTimerRef.current) {
+                clearTimeout(backendRetryStartTimerRef.current);
+                backendRetryStartTimerRef.current = null;
+            }
             if (backendRetryTimerRef.current) {
                 clearTimeout(backendRetryTimerRef.current);
                 backendRetryTimerRef.current = null;
@@ -2107,6 +2125,31 @@ export default function App() {
                 </div>
             );
         }
+        if (normalizedPath === '/demo-company-handshake') {
+            return (
+                <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
+                    <DemoCompanyHandshakePage
+                        onRegister={() => {
+                            const lng = getLocalePrefix();
+                            setShowCompanyLanding(true);
+                            setSelectedJobId(null);
+                            setSelectedBlogPostSlug(null);
+                            setViewState(ViewState.LIST);
+                            window.history.pushState({}, '', `/${lng}/pro-firmy`);
+                            setIsCompanyRegistrationOpen(true);
+                        }}
+                        onBackToCompanyLanding={() => {
+                            const lng = getLocalePrefix();
+                            setShowCompanyLanding(true);
+                            setSelectedJobId(null);
+                            setSelectedBlogPostSlug(null);
+                            setViewState(ViewState.LIST);
+                            window.location.assign(`/${lng}/pro-firmy`);
+                        }}
+                    />
+                </div>
+            );
+        }
         if (normalizedPath.startsWith('/assessment/')) {
             return (
                 <div className="col-span-1 lg:col-span-12 h-full overflow-hidden">
@@ -2143,7 +2186,14 @@ export default function App() {
                 <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar">
                     <CompanyLandingPage
                         onRegister={() => setIsCompanyRegistrationOpen(true)}
-                        onRequestDemo={() => alert(t('app.demo_alert'))}
+                        onRequestDemo={() => {
+                            const lng = getLocalePrefix();
+                            setShowCompanyLanding(false);
+                            setSelectedJobId(null);
+                            setSelectedBlogPostSlug(null);
+                            setViewState(ViewState.LIST);
+                            window.location.assign(`/${lng}/demo-company-handshake`);
+                        }}
                         onLogin={handleAuthAction}
                     />
                 </div>

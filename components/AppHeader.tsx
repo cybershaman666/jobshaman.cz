@@ -81,7 +81,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
         const supported: string[] = (i18n.options.supportedLngs || []) as string[];
         const parts = window.location.pathname.split('/').filter(Boolean);
         if (parts.length > 0 && supported.includes(parts[0])) parts.shift();
-        return parts[0] === 'demo-handshake';
+        return parts[0] === 'demo-handshake' || parts[0] === 'demo-company-handshake';
     };
 
     const leaveDemoHandshakeRoute = (targetPath?: string): boolean => {
