@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Depends, HTTPException, Query
 from datetime import datetime, timezone, timedelta
 import json
 from collections import defaultdict
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 import re
 import traceback
 
@@ -441,6 +441,569 @@ async def admin_search(
         print(f"⚠️ Admin search unexpected failure: {exc}")
         print(traceback.format_exc())
         return {"items": []}
+
+
+@router.get("/admin/crm/entity-detail")
+async def admin_crm_entity_detail(
+    request: Request,
+    user: dict = Depends(get_current_user),
+    kind: str = Query(..., pattern="^(company|user)$"),
+    entity_id: str = Query(..., min_length=8, max_length=64),
+):
+    require_admin_user(user)
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database unavailable")
+
+    now = datetime.now(timezone.utc)
+    last_30_iso = (now - timedelta(days=30)).isoformat()
+
+    def _safe_count(table_name: str, filters: List[tuple[str, str, Any]]) -> int:
+        try:
+            q = supabase.table(table_name).select("id", count="exact")
+            for op, field, value in filters:
+                if op == "eq":
+                    q = q.eq(field, value)
+                elif op == "gte":
+                    q = q.gte(field, value)
+                elif op == "in":
+                    q = q.in_(field, value)
+                elif op == "not_null":
+                    q = q.not_.is_(field, "null")
+            resp = q.execute()
+            return resp.count or 0
+        except Exception:
+            return 0
+
+    def _safe_select_single(table_name: str, select_attempts: List[str], filter_field: str, filter_value: str) -> Optional[dict]:
+        for select_expr in select_attempts:
+            try:
+                resp = (
+                    supabase.table(table_name)
+                    .select(select_expr)
+                    .eq(filter_field, filter_value)
+                    .maybe_single()
+                    .execute()
+                )
+                if resp and isinstance(resp.data, dict):
+                    return resp.data
+            except Exception:
+                continue
+        return None
+
+    def _safe_rows(
+        table_name: str,
+        select_expr: str,
+        filters: List[tuple[str, str, Any]],
+        order_field: Optional[str] = None,
+        desc: bool = True,
+        limit: int = 20,
+    ) -> List[dict]:
+        try:
+            q = supabase.table(table_name).select(select_expr)
+            for op, field, value in filters:
+                if op == "eq":
+                    q = q.eq(field, value)
+                elif op == "gte":
+                    q = q.gte(field, value)
+                elif op == "in":
+                    q = q.in_(field, value)
+            if order_field:
+                q = q.order(order_field, desc=desc)
+            q = q.limit(limit)
+            resp = q.execute()
+            rows = resp.data or []
+            return [row for row in rows if isinstance(row, dict)]
+        except Exception:
+            return []
+
+    def _titleize(value: str) -> str:
+        if not value:
+            return "event"
+        return str(value).replace("_", " ").strip()
+
+    def _append_timeline(
+        timeline: List[dict],
+        *,
+        entry_id: str,
+        category: str,
+        event_type: str,
+        title: str,
+        detail: str = "",
+        timestamp: Optional[str] = None,
+        severity: str = "info",
+    ) -> None:
+        if not timestamp:
+            return
+        timeline.append({
+            "id": entry_id,
+            "category": category,
+            "type": event_type,
+            "title": title,
+            "detail": detail,
+            "timestamp": timestamp,
+            "severity": severity,
+        })
+
+    if kind == "company":
+        entity = _safe_select_single(
+            "companies",
+            [
+                "id,name,industry,description,website,created_at,owner_id,contact_email,contact_phone,company_size",
+                "id,name,industry,description,website,created_at,owner_id",
+                "id,name,industry,created_at,owner_id",
+                "id,name,created_at",
+            ],
+            "id",
+            entity_id,
+        )
+        if not entity:
+            raise HTTPException(status_code=404, detail="Company not found")
+
+        try:
+            sub_resp = (
+                supabase.table("subscriptions")
+                .select("*")
+                .eq("company_id", entity_id)
+                .maybe_single()
+                .execute()
+            )
+            subscription = sub_resp.data if sub_resp else None
+        except Exception:
+            subscription = None
+
+        jobs_total = _safe_count("jobs", [("eq", "company_id", entity_id)])
+        jobs_recent_30 = _safe_count("jobs", [("eq", "company_id", entity_id), ("gte", "created_at", last_30_iso)])
+        active_jobs = _safe_count("jobs", [("eq", "company_id", entity_id), ("eq", "status", "active")])
+        paused_jobs = _safe_count("jobs", [("eq", "company_id", entity_id), ("eq", "status", "paused")])
+        closed_jobs = _safe_count("jobs", [("eq", "company_id", entity_id), ("eq", "status", "closed")])
+        if active_jobs == 0 and paused_jobs == 0 and closed_jobs == 0:
+            # Fallback for older schemas without explicit status.
+            active_jobs = _safe_count("jobs", [("eq", "company_id", entity_id), ("eq", "is_active", True)])
+            closed_jobs = _safe_count("jobs", [("eq", "company_id", entity_id), ("eq", "is_active", False)])
+
+        applications_total = _safe_count("job_applications", [("eq", "company_id", entity_id)])
+        applications_recent_30 = _safe_count("job_applications", [("eq", "company_id", entity_id), ("gte", "created_at", last_30_iso)])
+        application_status_counts: Dict[str, int] = {}
+        for status_key in ["pending", "reviewed", "shortlisted", "rejected", "hired", "withdrawn", "timeout", "closed"]:
+            application_status_counts[status_key] = _safe_count(
+                "job_applications",
+                [("eq", "company_id", entity_id), ("eq", "status", status_key)],
+            )
+
+        company_members = _safe_count("company_members", [("eq", "company_id", entity_id), ("eq", "is_active", True)])
+        if company_members == 0:
+            company_members = _safe_count("company_members", [("eq", "company_id", entity_id)])
+
+        application_messages_total = _safe_count("application_messages", [("eq", "company_id", entity_id)])
+
+        recent_jobs = []
+        for select_expr in [
+            "id,title,status,created_at,updated_at,location",
+            "id,title,is_active,created_at,updated_at,location",
+            "id,title,created_at,updated_at,location",
+        ]:
+            try:
+                resp = (
+                    supabase.table("jobs")
+                    .select(select_expr)
+                    .eq("company_id", entity_id)
+                    .order("updated_at", desc=True)
+                    .limit(8)
+                    .execute()
+                )
+                recent_jobs = resp.data or []
+                break
+            except Exception:
+                continue
+
+        recent_applications = []
+        for order_field, select_expr in [
+            ("submitted_at", "id,job_id,status,submitted_at,created_at,candidate_id,source"),
+            ("created_at", "id,job_id,status,created_at,candidate_id,source"),
+        ]:
+            try:
+                resp = (
+                    supabase.table("job_applications")
+                    .select(select_expr)
+                    .eq("company_id", entity_id)
+                    .order(order_field, desc=True)
+                    .limit(8)
+                    .execute()
+                )
+                recent_applications = resp.data or []
+                break
+            except Exception:
+                continue
+
+        activity_log_available = True
+        activity_log = []
+        try:
+            resp = (
+                supabase.table("company_activity_log")
+                .select("id,event_type,subject_type,subject_id,payload,actor_user_id,created_at")
+                .eq("company_id", entity_id)
+                .order("created_at", desc=True)
+                .limit(10)
+                .execute()
+            )
+            activity_log = resp.data or []
+        except Exception:
+            activity_log_available = False
+
+        subscription_audit_available = True
+        subscription_audit_rows: List[dict] = []
+        if subscription and subscription.get("id"):
+            try:
+                subscription_audit_rows = (
+                    supabase.table("admin_subscription_audit")
+                    .select("id,action,before,after,admin_email,created_at")
+                    .eq("subscription_id", subscription.get("id"))
+                    .order("created_at", desc=True)
+                    .limit(20)
+                    .execute()
+                    .data
+                    or []
+                )
+            except Exception as e:
+                if _is_missing_admin_audit_table_error(e):
+                    _log_audit_table_missing_once(e)
+                    subscription_audit_available = False
+                else:
+                    subscription_audit_rows = []
+
+        recent_messages = _safe_rows(
+            "application_messages",
+            "id,application_id,sender_role,created_at",
+            [("eq", "company_id", entity_id)],
+            order_field="created_at",
+            limit=12,
+        )
+
+        timeline: List[dict] = []
+        for row in subscription_audit_rows:
+            before = row.get("before") or {}
+            after = row.get("after") or {}
+            before_tier = (before or {}).get("tier")
+            after_tier = (after or {}).get("tier")
+            before_status = (before or {}).get("status")
+            after_status = (after or {}).get("status")
+            changes = []
+            if before_tier != after_tier and (before_tier or after_tier):
+                changes.append(f"tier: {before_tier or '-'} -> {after_tier or '-'}")
+            if before_status != after_status and (before_status or after_status):
+                changes.append(f"status: {before_status or '-'} -> {after_status or '-'}")
+            _append_timeline(
+                timeline,
+                entry_id=f"audit:{row.get('id')}",
+                category="subscription",
+                event_type=str(row.get("action") or "update"),
+                title=f"Subscription {_titleize(str(row.get('action') or 'update'))}",
+                detail=f"{'; '.join(changes)}{(' | by ' + str(row.get('admin_email'))) if row.get('admin_email') else ''}",
+                timestamp=row.get("created_at"),
+                severity="info",
+            )
+
+        for row in activity_log:
+            _append_timeline(
+                timeline,
+                entry_id=f"activity:{row.get('id')}",
+                category="activity",
+                event_type=str(row.get("event_type") or "activity"),
+                title=_titleize(str(row.get("event_type") or "activity")),
+                detail=f"{row.get('subject_type') or 'record'} #{row.get('subject_id') or '-'}",
+                timestamp=row.get("created_at"),
+                severity="info",
+            )
+
+        for row in recent_applications:
+            status_value = str(row.get("status") or "pending")
+            severity = "success" if status_value in ["hired", "shortlisted"] else ("danger" if status_value in ["rejected", "timeout", "closed"] else "info")
+            _append_timeline(
+                timeline,
+                entry_id=f"application:{row.get('id')}",
+                category="application",
+                event_type=status_value,
+                title=f"Handshake {status_value}",
+                detail=f"job #{row.get('job_id') or '-'}",
+                timestamp=row.get("submitted_at") or row.get("created_at"),
+                severity=severity,
+            )
+
+        for row in recent_jobs:
+            job_status = row.get("status")
+            if not job_status:
+                job_status = "active" if row.get("is_active") else "inactive"
+            _append_timeline(
+                timeline,
+                entry_id=f"job:{row.get('id')}",
+                category="job",
+                event_type=str(job_status),
+                title=f"Role {_titleize(str(job_status))}",
+                detail=str(row.get("title") or f"job #{row.get('id')}"),
+                timestamp=row.get("updated_at") or row.get("created_at"),
+                severity="info",
+            )
+
+        for row in recent_messages:
+            sender_role = str(row.get("sender_role") or "unknown")
+            _append_timeline(
+                timeline,
+                entry_id=f"message:{row.get('id')}",
+                category="message",
+                event_type=sender_role,
+                title=f"Message from {sender_role}",
+                detail=f"application #{row.get('application_id') or '-'}",
+                timestamp=row.get("created_at"),
+                severity="info",
+            )
+
+        timeline = sorted(
+            timeline,
+            key=lambda item: _parse_iso_datetime(item.get("timestamp") or "") or datetime.fromtimestamp(0, tz=timezone.utc),
+            reverse=True,
+        )[:50]
+        timeline_categories = sorted({item.get("category") for item in timeline if item.get("category")})
+
+        return {
+            "kind": "company",
+            "entity": entity,
+            "subscription": subscription,
+            "metrics": {
+                "jobs_total": jobs_total,
+                "jobs_recent_30d": jobs_recent_30,
+                "jobs_active": active_jobs,
+                "jobs_paused": paused_jobs,
+                "jobs_closed": closed_jobs,
+                "applications_total": applications_total,
+                "applications_recent_30d": applications_recent_30,
+                "company_members": company_members,
+                "application_messages_total": application_messages_total,
+            },
+            "breakdowns": {
+                "application_status": application_status_counts,
+            },
+            "recent": {
+                "jobs": recent_jobs,
+                "applications": recent_applications,
+                "activity": activity_log,
+            },
+            "timeline": timeline,
+            "timeline_categories": timeline_categories,
+            "flags": {
+                "activity_log_available": activity_log_available,
+                "subscription_audit_available": subscription_audit_available,
+            },
+        }
+
+    # kind == "user"
+    entity = _safe_select_single(
+        "profiles",
+        [
+            "id,email,full_name,role,created_at,preferred_country_code,daily_digest_enabled,daily_digest_push_enabled,daily_digest_time,daily_digest_timezone,daily_digest_last_sent_at",
+            "id,email,name,role,created_at,preferred_country_code,daily_digest_enabled,daily_digest_push_enabled,daily_digest_time,daily_digest_timezone,daily_digest_last_sent_at",
+            "id,email,full_name,role,created_at",
+            "id,email,name,role,created_at",
+            "id,email,created_at",
+        ],
+        "id",
+        entity_id,
+    )
+    if not entity:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    try:
+        sub_resp = (
+            supabase.table("subscriptions")
+            .select("*")
+            .eq("user_id", entity_id)
+            .maybe_single()
+            .execute()
+        )
+        subscription = sub_resp.data if sub_resp else None
+    except Exception:
+        subscription = None
+
+    applications_total = _safe_count("job_applications", [("eq", "candidate_id", entity_id)])
+    applications_recent_30 = _safe_count("job_applications", [("eq", "candidate_id", entity_id), ("gte", "created_at", last_30_iso)])
+    interactions_total = _safe_count("job_interactions", [("eq", "user_id", entity_id)])
+    interactions_recent_30 = _safe_count("job_interactions", [("eq", "user_id", entity_id), ("gte", "created_at", last_30_iso)])
+    opens_recent_30 = _safe_count("job_interactions", [("eq", "user_id", entity_id), ("eq", "event_type", "open_detail"), ("gte", "created_at", last_30_iso)])
+    applies_recent_30 = _safe_count("job_interactions", [("eq", "user_id", entity_id), ("eq", "event_type", "apply_click"), ("gte", "created_at", last_30_iso)])
+    saves_recent_30 = _safe_count("job_interactions", [("eq", "user_id", entity_id), ("in", "event_type", ["save", "unsave"]), ("gte", "created_at", last_30_iso)])
+
+    user_application_status_counts: Dict[str, int] = {}
+    for status_key in ["pending", "reviewed", "shortlisted", "rejected", "hired", "withdrawn", "timeout", "closed"]:
+        user_application_status_counts[status_key] = _safe_count(
+            "job_applications",
+            [("eq", "candidate_id", entity_id), ("eq", "status", status_key)],
+        )
+
+    owned_companies = _safe_count("companies", [("eq", "owner_id", entity_id)])
+    member_companies = _safe_count("company_members", [("eq", "user_id", entity_id), ("eq", "is_active", True)])
+    if member_companies == 0:
+        member_companies = _safe_count("company_members", [("eq", "user_id", entity_id)])
+
+    recent_applications = []
+    for order_field, select_expr in [
+        ("submitted_at", "id,job_id,company_id,status,submitted_at,created_at,source"),
+        ("created_at", "id,job_id,company_id,status,created_at,source"),
+    ]:
+        try:
+            resp = (
+                supabase.table("job_applications")
+                .select(select_expr)
+                .eq("candidate_id", entity_id)
+                .order(order_field, desc=True)
+                .limit(8)
+                .execute()
+            )
+            recent_applications = resp.data or []
+            break
+        except Exception:
+            continue
+
+    recent_interactions = []
+    try:
+        resp = (
+            supabase.table("job_interactions")
+            .select("id,job_id,event_type,created_at")
+            .eq("user_id", entity_id)
+            .order("created_at", desc=True)
+            .limit(12)
+            .execute()
+        )
+        recent_interactions = resp.data or []
+    except Exception:
+        recent_interactions = []
+
+    recent_messages = _safe_rows(
+        "application_messages",
+        "id,application_id,sender_role,created_at",
+        [("eq", "candidate_id", entity_id)],
+        order_field="created_at",
+        limit=12,
+    )
+
+    subscription_audit_available = True
+    subscription_audit_rows: List[dict] = []
+    if subscription and subscription.get("id"):
+        try:
+            subscription_audit_rows = (
+                supabase.table("admin_subscription_audit")
+                .select("id,action,before,after,admin_email,created_at")
+                .eq("subscription_id", subscription.get("id"))
+                .order("created_at", desc=True)
+                .limit(20)
+                .execute()
+                .data
+                or []
+            )
+        except Exception as e:
+            if _is_missing_admin_audit_table_error(e):
+                _log_audit_table_missing_once(e)
+                subscription_audit_available = False
+            else:
+                subscription_audit_rows = []
+
+    timeline: List[dict] = []
+    for row in subscription_audit_rows:
+        before = row.get("before") or {}
+        after = row.get("after") or {}
+        before_tier = (before or {}).get("tier")
+        after_tier = (after or {}).get("tier")
+        before_status = (before or {}).get("status")
+        after_status = (after or {}).get("status")
+        changes = []
+        if before_tier != after_tier and (before_tier or after_tier):
+            changes.append(f"tier: {before_tier or '-'} -> {after_tier or '-'}")
+        if before_status != after_status and (before_status or after_status):
+            changes.append(f"status: {before_status or '-'} -> {after_status or '-'}")
+        _append_timeline(
+            timeline,
+            entry_id=f"audit:{row.get('id')}",
+            category="subscription",
+            event_type=str(row.get("action") or "update"),
+            title=f"Subscription {_titleize(str(row.get('action') or 'update'))}",
+            detail=f"{'; '.join(changes)}{(' | by ' + str(row.get('admin_email'))) if row.get('admin_email') else ''}",
+            timestamp=row.get("created_at"),
+            severity="info",
+        )
+
+    for row in recent_applications:
+        status_value = str(row.get("status") or "pending")
+        severity = "success" if status_value in ["hired", "shortlisted"] else ("danger" if status_value in ["rejected", "timeout", "closed"] else "info")
+        _append_timeline(
+            timeline,
+            entry_id=f"application:{row.get('id')}",
+            category="application",
+            event_type=status_value,
+            title=f"Handshake {status_value}",
+            detail=f"job #{row.get('job_id') or '-'}",
+            timestamp=row.get("submitted_at") or row.get("created_at"),
+            severity=severity,
+        )
+
+    for row in recent_interactions:
+        event_type = str(row.get("event_type") or "interaction")
+        _append_timeline(
+            timeline,
+            entry_id=f"interaction:{row.get('id')}",
+            category="interaction",
+            event_type=event_type,
+            title=_titleize(event_type),
+            detail=f"job #{row.get('job_id') or '-'}",
+            timestamp=row.get("created_at"),
+            severity="info",
+        )
+
+    for row in recent_messages:
+        sender_role = str(row.get("sender_role") or "unknown")
+        _append_timeline(
+            timeline,
+            entry_id=f"message:{row.get('id')}",
+            category="message",
+            event_type=sender_role,
+            title=f"Message from {sender_role}",
+            detail=f"application #{row.get('application_id') or '-'}",
+            timestamp=row.get("created_at"),
+            severity="info",
+        )
+
+    timeline = sorted(
+        timeline,
+        key=lambda item: _parse_iso_datetime(item.get("timestamp") or "") or datetime.fromtimestamp(0, tz=timezone.utc),
+        reverse=True,
+    )[:50]
+    timeline_categories = sorted({item.get("category") for item in timeline if item.get("category")})
+
+    return {
+        "kind": "user",
+        "entity": entity,
+        "subscription": subscription,
+        "metrics": {
+            "applications_total": applications_total,
+            "applications_recent_30d": applications_recent_30,
+            "interactions_total": interactions_total,
+            "interactions_recent_30d": interactions_recent_30,
+            "open_detail_recent_30d": opens_recent_30,
+            "apply_click_recent_30d": applies_recent_30,
+            "save_events_recent_30d": saves_recent_30,
+            "owned_companies": owned_companies,
+            "member_companies": member_companies,
+        },
+        "breakdowns": {
+            "application_status": user_application_status_counts,
+        },
+        "recent": {
+            "applications": recent_applications,
+            "interactions": recent_interactions,
+        },
+        "timeline": timeline,
+        "timeline_categories": timeline_categories,
+        "flags": {
+            "subscription_audit_available": subscription_audit_available,
+        },
+    }
 
 
 @router.get("/admin/jcfpm/job-roles")

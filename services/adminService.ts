@@ -89,6 +89,21 @@ export async function getAdminSubscriptionAudit(subscriptionId: string, limit: n
   return response.json();
 }
 
+export async function getAdminCrmEntityDetail(kind: 'company' | 'user', entityId: string) {
+  const params = new URLSearchParams({ kind, entity_id: entityId });
+  const response = await authenticatedFetch(`${BACKEND_URL}/admin/crm/entity-detail?${params.toString()}`, {
+    method: 'GET',
+    headers: { 'Content-Type': 'application/json' }
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || 'Failed to load CRM entity detail');
+  }
+
+  return response.json();
+}
+
 export async function getAdminStats() {
   const response = await authenticatedFetch(`${BACKEND_URL}/admin/stats`, {
     method: 'GET',

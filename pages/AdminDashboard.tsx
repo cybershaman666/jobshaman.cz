@@ -5,9 +5,11 @@ import {
   Bell,
   Brain,
   Building2,
+  Clock3,
   Download,
   Globe,
   Layers,
+  Mail,
   RefreshCcw,
   Search,
   Settings,
@@ -21,12 +23,16 @@ import {
   createAdminJobRole,
   deleteAdminJobRole,
   getAdminAiQuality,
+  getAdminCrmEntityDetail,
   getAdminJobRoles,
   getAdminNotifications,
+  getAdminSubscriptionAudit,
   getAdminStats,
   getAdminSubscriptions,
+  getAdminUserDigest,
   updateAdminJobRole,
   updateAdminSubscription,
+  updateAdminUserDigest,
 } from '../services/adminService';
 import { useTranslation } from 'react-i18next';
 import {
@@ -49,7 +55,19 @@ interface AdminDashboardProps {
   userProfile: UserProfile;
 }
 
-type ViewMode = 'overview' | 'operations' | 'jcfpm';
+type ViewMode = 'overview' | 'operations' | 'crm' | 'jcfpm';
+type CrmEntityKind = 'company' | 'user';
+
+type CrmRecord = {
+  key: string;
+  entityKind: CrmEntityKind;
+  entityId: string;
+  label: string;
+  secondary?: string;
+  subscription?: any | null;
+  subscriptionId?: string | null;
+  source: 'subscription' | 'lookup';
+};
 
 const TIERS = ['free', 'premium', 'starter', 'growth', 'professional', 'trial', 'enterprise'];
 const STATUSES = ['active', 'trialing', 'inactive', 'canceled'];
@@ -85,6 +103,32 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     title: '', d1: '', d2: '', d3: '', d4: '', d5: '', d6: '',
     salary_range: '', growth_potential: '', ai_impact: '', ai_intensity: 'medium', remote_friendly: '',
   });
+  const [crmQuery, setCrmQuery] = useState('');
+  const [crmKind, setCrmKind] = useState<'all' | CrmEntityKind>('all');
+  const [crmLoading, setCrmLoading] = useState(false);
+  const [crmRecords, setCrmRecords] = useState<CrmRecord[]>([]);
+  const [selectedCrmKey, setSelectedCrmKey] = useState<string | null>(null);
+  const [crmDraft, setCrmDraft] = useState({
+    tier: 'free',
+    status: 'inactive',
+    set_trial_days: '',
+    set_trial_until: ''
+  });
+  const [crmSaving, setCrmSaving] = useState(false);
+  const [crmDigest, setCrmDigest] = useState<any | null>(null);
+  const [crmDigestDraft, setCrmDigestDraft] = useState({
+    daily_digest_enabled: true,
+    daily_digest_push_enabled: false,
+    daily_digest_time: '07:30',
+    daily_digest_timezone: 'Europe/Prague'
+  });
+  const [crmDigestSaving, setCrmDigestSaving] = useState(false);
+  const [crmAuditLoading, setCrmAuditLoading] = useState(false);
+  const [crmAuditItems, setCrmAuditItems] = useState<any[]>([]);
+  const [crmAuditAvailable, setCrmAuditAvailable] = useState(true);
+  const [crmDetailLoading, setCrmDetailLoading] = useState(false);
+  const [crmEntityDetail, setCrmEntityDetail] = useState<any | null>(null);
+  const [crmTimelineFilter, setCrmTimelineFilter] = useState<string>('all');
 
   const formatDate = (value?: string) => {
     if (!value) return '—';
@@ -96,6 +140,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const formatNumber = (value?: number) => new Intl.NumberFormat(i18n.language).format(value || 0);
   const formatPercent = (value?: number) => `${num(value).toFixed(2)}%`;
   const formatUsd = (value?: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 4 }).format(num(value));
+  const panelClass = 'rounded-[1.08rem] border border-slate-200/80 bg-white/90 p-4 shadow-[0_20px_40px_-34px_rgba(15,23,42,0.26)] backdrop-blur-sm dark:border-slate-800/80 dark:bg-slate-900/80';
+  const panelSoftClass = 'rounded-[0.95rem] border border-slate-200/80 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-900/50';
+  const inputClass = 'w-full rounded-[0.82rem] border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 dark:focus:ring-cyan-900/30';
 
   const handleAuthError = (message: string) => {
     const lower = String(message || '').toLowerCase();
@@ -172,6 +219,94 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     }
   };
 
+  const toCrmRecordFromSubscription = (sub: any): CrmRecord => {
+    const entityKind: CrmEntityKind = sub.company_id ? 'company' : 'user';
+    const entityId = String(sub.company_id || sub.user_id || sub.id);
+    const label = sub.companies?.name || sub.profiles?.full_name || sub.profiles?.email || sub.id;
+    const secondary = entityKind === 'company'
+      ? `${sub.companies?.industry || t('admin_dashboard.entity.company', { defaultValue: 'Company' })} • ${sub.tier || 'free'}`
+      : `${sub.profiles?.email || entityId} • ${sub.tier || 'free'}`;
+
+    return {
+      key: `sub:${sub.id}`,
+      entityKind,
+      entityId,
+      label,
+      secondary,
+      subscription: sub,
+      subscriptionId: sub.id,
+      source: 'subscription',
+    };
+  };
+
+  const loadCrmWorkspace = async () => {
+    setCrmLoading(true);
+    setError(null);
+    try {
+      const normalizedQuery = crmQuery.trim();
+      const subscriptionPromise = getAdminSubscriptions({
+        q: normalizedQuery || undefined,
+        kind: crmKind === 'all' ? undefined : crmKind,
+        limit: 120,
+        offset: 0,
+      });
+
+      const lookupPromises: Promise<any>[] = [];
+      if (normalizedQuery.length >= 2) {
+        if (crmKind === 'all') {
+          lookupPromises.push(adminSearch(normalizedQuery, 'company'));
+          lookupPromises.push(adminSearch(normalizedQuery, 'user'));
+        } else {
+          lookupPromises.push(adminSearch(normalizedQuery, crmKind));
+        }
+      }
+
+      const [subscriptionData, ...lookupData] = await Promise.all([subscriptionPromise, ...lookupPromises]);
+      const subscriptionRows: CrmRecord[] = (subscriptionData?.items || []).map((sub: any) => toCrmRecordFromSubscription(sub));
+      const entityToRecord = new Map<string, CrmRecord>();
+
+      subscriptionRows.forEach((row) => {
+        entityToRecord.set(`${row.entityKind}:${row.entityId}`, row);
+      });
+
+      lookupData.forEach((packet) => {
+        (packet?.items || []).forEach((item: any) => {
+          const entityKind = item.kind === 'company' ? 'company' : 'user';
+          const entityId = String(item.id || '');
+          if (!entityId) return;
+          const mapKey = `${entityKind}:${entityId}`;
+          if (entityToRecord.has(mapKey)) return;
+          entityToRecord.set(mapKey, {
+            key: `lookup:${entityKind}:${entityId}`,
+            entityKind,
+            entityId,
+            label: item.label || entityId,
+            secondary: item.secondary || '',
+            subscription: null,
+            subscriptionId: null,
+            source: 'lookup',
+          });
+        });
+      });
+
+      const records = Array.from(entityToRecord.values()).sort((a, b) => {
+        const aWeight = a.subscription ? 0 : 1;
+        const bWeight = b.subscription ? 0 : 1;
+        if (aWeight !== bWeight) return aWeight - bWeight;
+        return a.label.localeCompare(b.label, i18n.language || 'cs');
+      });
+
+      setCrmRecords(records);
+      setSelectedCrmKey((prev) => (prev && records.some((row) => row.key === prev) ? prev : records[0]?.key || null));
+    } catch (err: any) {
+      handleAuthError(err?.message || 'Failed to load CRM workspace');
+      setCrmRecords([]);
+      setSelectedCrmKey(null);
+    } finally {
+      setCrmLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!userProfile?.isLoggedIn) return;
     loadOverview();
@@ -186,6 +321,97 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     if (!userProfile?.isLoggedIn || view !== 'jcfpm') return;
     loadJobRoles();
   }, [userProfile?.isLoggedIn, view, jobRolesQuery]);
+
+  useEffect(() => {
+    if (!userProfile?.isLoggedIn || view !== 'crm') return;
+    loadCrmWorkspace();
+  }, [userProfile?.isLoggedIn, view, crmKind]);
+
+  const selectedCrmRecord = useMemo(
+    () => crmRecords.find((row) => row.key === selectedCrmKey) || null,
+    [crmRecords, selectedCrmKey]
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const hydrateCrmDetail = async () => {
+      if (!selectedCrmRecord) {
+        setCrmDigest(null);
+        setCrmAuditItems([]);
+        setCrmAuditAvailable(true);
+        setCrmEntityDetail(null);
+        return;
+      }
+
+      const sub = selectedCrmRecord.subscription;
+      setCrmTimelineFilter('all');
+      setCrmDraft({
+        tier: sub?.tier || 'free',
+        status: sub?.status || 'inactive',
+        set_trial_days: '',
+        set_trial_until: ''
+      });
+
+      setCrmDetailLoading(true);
+      try {
+        const detail = await getAdminCrmEntityDetail(selectedCrmRecord.entityKind, selectedCrmRecord.entityId);
+        if (!cancelled) {
+          setCrmEntityDetail(detail || null);
+        }
+      } catch {
+        if (!cancelled) setCrmEntityDetail(null);
+      } finally {
+        if (!cancelled) setCrmDetailLoading(false);
+      }
+
+      if (selectedCrmRecord.entityKind === 'user') {
+        try {
+          const digest = await getAdminUserDigest(selectedCrmRecord.entityId);
+          if (!cancelled) {
+            setCrmDigest(digest);
+            setCrmDigestDraft({
+              daily_digest_enabled: Boolean(digest?.daily_digest_enabled),
+              daily_digest_push_enabled: Boolean(digest?.daily_digest_push_enabled),
+              daily_digest_time: digest?.daily_digest_time || '07:30',
+              daily_digest_timezone: digest?.daily_digest_timezone || 'Europe/Prague'
+            });
+          }
+        } catch {
+          if (!cancelled) setCrmDigest(null);
+        }
+      } else {
+        setCrmDigest(null);
+      }
+
+      if (sub?.id) {
+        setCrmAuditLoading(true);
+        try {
+          const audit = await getAdminSubscriptionAudit(sub.id, 20);
+          if (!cancelled) {
+            setCrmAuditItems(audit?.items || []);
+            setCrmAuditAvailable(audit?.audit_available !== false);
+          }
+        } catch {
+          if (!cancelled) {
+            setCrmAuditItems([]);
+            setCrmAuditAvailable(false);
+          }
+        } finally {
+          if (!cancelled) setCrmAuditLoading(false);
+        }
+      } else {
+        setCrmAuditItems([]);
+        setCrmAuditAvailable(true);
+      }
+    };
+
+    hydrateCrmDetail();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedCrmRecord]);
 
   const kpis = useMemo(() => {
     const users = stats?.users || {};
@@ -231,6 +457,59 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   const ctrByScoring = aiQuality?.ctr_by_scoring_version || [];
   const scoreDistribution = aiQuality?.score_distribution || { lt_40: 0, '40_60': 0, '60_80': 0, gte_80: 0 };
   const strategyCounts = aiQuality?.selection_strategy_counts || {};
+  const crmSummary = useMemo(() => {
+    const companies = crmRecords.filter((row) => row.entityKind === 'company').length;
+    const users = crmRecords.filter((row) => row.entityKind === 'user').length;
+    const subscribed = crmRecords.filter((row) => Boolean(row.subscription)).length;
+    const trialing = crmRecords.filter((row) => row.subscription?.status === 'trialing').length;
+    return {
+      total: crmRecords.length,
+      companies,
+      users,
+      subscribed,
+      trialing,
+    };
+  }, [crmRecords]);
+  const crmMetricCards = useMemo(() => {
+    const metrics = crmEntityDetail?.metrics || {};
+    const isCompany = crmEntityDetail?.kind === 'company';
+    const items = isCompany
+      ? [
+        { label: t('admin_dashboard.crm.metrics.jobs_active', { defaultValue: 'Aktivní role' }), value: metrics.jobs_active },
+        { label: t('admin_dashboard.crm.metrics.jobs_total', { defaultValue: 'Role celkem' }), value: metrics.jobs_total },
+        { label: t('admin_dashboard.crm.metrics.applications_total', { defaultValue: 'Handshake celkem' }), value: metrics.applications_total },
+        { label: t('admin_dashboard.crm.metrics.members', { defaultValue: 'Členové workspace' }), value: metrics.company_members },
+        { label: t('admin_dashboard.crm.metrics.jobs_recent', { defaultValue: 'Nové role 30d' }), value: metrics.jobs_recent_30d },
+        { label: t('admin_dashboard.crm.metrics.applications_recent', { defaultValue: 'Handshake 30d' }), value: metrics.applications_recent_30d },
+      ]
+      : [
+        { label: t('admin_dashboard.crm.metrics.applications_total', { defaultValue: 'Handshake celkem' }), value: metrics.applications_total },
+        { label: t('admin_dashboard.crm.metrics.applications_recent', { defaultValue: 'Handshake 30d' }), value: metrics.applications_recent_30d },
+        { label: t('admin_dashboard.crm.metrics.interactions_total', { defaultValue: 'Interakce celkem' }), value: metrics.interactions_total },
+        { label: t('admin_dashboard.crm.metrics.interactions_recent', { defaultValue: 'Interakce 30d' }), value: metrics.interactions_recent_30d },
+        { label: t('admin_dashboard.crm.metrics.apply_clicks', { defaultValue: 'Apply click 30d' }), value: metrics.apply_click_recent_30d },
+        { label: t('admin_dashboard.crm.metrics.member_companies', { defaultValue: 'Firmy v členství' }), value: metrics.member_companies },
+      ];
+
+    return items.map((item) => ({ ...item, value: Number(item.value) || 0 }));
+  }, [crmEntityDetail, t]);
+  const crmApplicationStatusBreakdown = useMemo(() => {
+    const raw = crmEntityDetail?.breakdowns?.application_status || {};
+    return Object.entries(raw)
+      .map(([key, value]) => ({ key, value: Number(value) || 0 }))
+      .filter((row) => row.value > 0)
+      .sort((a, b) => b.value - a.value);
+  }, [crmEntityDetail]);
+  const crmTimelineCategories = useMemo(() => {
+    const raw = crmEntityDetail?.timeline_categories || [];
+    return Array.isArray(raw) ? raw.filter((value) => typeof value === 'string' && value.length > 0) : [];
+  }, [crmEntityDetail]);
+  const crmTimelineEntries = useMemo(() => {
+    const raw = crmEntityDetail?.timeline || [];
+    const entries = Array.isArray(raw) ? raw : [];
+    if (crmTimelineFilter === 'all') return entries;
+    return entries.filter((item: any) => item?.category === crmTimelineFilter);
+  }, [crmEntityDetail, crmTimelineFilter]);
 
   const exportInvestorPack = () => {
     const payload = {
@@ -321,6 +600,65 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     }
   };
 
+  const handleCrmSaveSubscription = async () => {
+    if (!selectedCrmRecord || crmSaving) return;
+    const currentSub = selectedCrmRecord.subscription;
+    const payload: any = {};
+
+    if (currentSub?.id) {
+      payload.subscription_id = currentSub.id;
+    } else {
+      payload.target_type = selectedCrmRecord.entityKind;
+      payload.target_id = selectedCrmRecord.entityId;
+    }
+
+    const normalizedTier = String(crmDraft.tier || '').trim();
+    const normalizedStatus = String(crmDraft.status || '').trim();
+    const normalizedTrialDays = String(crmDraft.set_trial_days || '').trim();
+    const normalizedTrialUntil = String(crmDraft.set_trial_until || '').trim();
+
+    if (normalizedTier && normalizedTier !== currentSub?.tier) payload.tier = normalizedTier;
+    if (normalizedStatus && normalizedStatus !== currentSub?.status) payload.status = normalizedStatus;
+    if (normalizedTrialDays) payload.set_trial_days = Number(normalizedTrialDays);
+    if (normalizedTrialUntil) payload.set_trial_until = normalizedTrialUntil;
+
+    if (!currentSub && !payload.tier && !payload.status && !payload.set_trial_days && !payload.set_trial_until) {
+      payload.tier = 'free';
+      payload.status = 'inactive';
+    }
+
+    if (Object.keys(payload).length <= 1) return;
+
+    setCrmSaving(true);
+    try {
+      await updateAdminSubscription(payload);
+      await Promise.all([loadCrmWorkspace(), loadSubscriptions()]);
+    } catch (err: any) {
+      handleAuthError(err?.message || 'Failed to save CRM subscription');
+    } finally {
+      setCrmSaving(false);
+    }
+  };
+
+  const handleCrmDigestSave = async () => {
+    if (!selectedCrmRecord || selectedCrmRecord.entityKind !== 'user' || crmDigestSaving) return;
+    setCrmDigestSaving(true);
+    try {
+      const updated = await updateAdminUserDigest(selectedCrmRecord.entityId, crmDigestDraft);
+      setCrmDigest(updated);
+      setCrmDigestDraft({
+        daily_digest_enabled: Boolean(updated?.daily_digest_enabled),
+        daily_digest_push_enabled: Boolean(updated?.daily_digest_push_enabled),
+        daily_digest_time: updated?.daily_digest_time || '07:30',
+        daily_digest_timezone: updated?.daily_digest_timezone || 'Europe/Prague'
+      });
+    } catch (err: any) {
+      handleAuthError(err?.message || 'Failed to update digest settings');
+    } finally {
+      setCrmDigestSaving(false);
+    }
+  };
+
   const handleCreateRole = async () => {
     try {
       await createAdminJobRole({
@@ -384,7 +722,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     return (
       <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950">
         <div className="max-w-3xl mx-auto px-4 py-12">
-          <div className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center">
+          <div className="rounded-[1.15rem] border border-slate-200/80 bg-white/90 p-8 text-center shadow-[0_20px_40px_-34px_rgba(15,23,42,0.26)] dark:border-slate-800/80 dark:bg-slate-900/80">
             <h2 className="text-2xl font-black text-slate-900 dark:text-white">{t('admin_dashboard.auth.admin_zone')}</h2>
             <p className="mt-2 text-sm text-slate-500">{t('admin_dashboard.auth.login_required')}</p>
           </div>
@@ -397,7 +735,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
     return (
       <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950">
         <div className="max-w-3xl mx-auto px-4 py-12">
-          <div className="rounded-3xl border border-rose-200 dark:border-rose-900 bg-white dark:bg-slate-900 p-8 text-center">
+          <div className="rounded-[1.15rem] border border-rose-200 bg-white/90 p-8 text-center shadow-[0_20px_40px_-34px_rgba(15,23,42,0.26)] dark:border-rose-900 dark:bg-slate-900/80">
             <h2 className="text-2xl font-black text-rose-700 dark:text-rose-300">{t('admin_dashboard.auth.access_denied')}</h2>
             <p className="mt-2 text-sm text-slate-500">{t('admin_dashboard.auth.no_admin_rights')}</p>
           </div>
@@ -407,30 +745,30 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
   }
 
   return (
-    <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar bg-slate-50 dark:bg-slate-950">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-5">
-        <section className="rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm">
+    <div className="col-span-1 lg:col-span-12 h-full overflow-y-auto custom-scrollbar bg-slate-100/80 dark:bg-slate-950">
+      <div className="mx-auto max-w-[1680px] space-y-5 px-4 py-6 sm:px-6 lg:px-8">
+        <section className="overflow-hidden rounded-[1.35rem] border border-cyan-200/80 bg-gradient-to-br from-slate-950 via-cyan-900 to-sky-800 p-5 shadow-[0_28px_54px_-38px_rgba(8,47,73,0.7)] dark:border-cyan-700/40">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <div className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-400 font-semibold mb-2">
+              <div className="mb-2 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-cyan-100">
                 <Layers size={14} />
                 {t('admin_dashboard.cockpit')}
               </div>
-              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">{t('admin_dashboard.title')}</h1>
-              <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              <h1 className="text-2xl font-black text-white sm:text-3xl">{t('admin_dashboard.title')}</h1>
+              <p className="mt-1 text-sm text-cyan-50/90">
                 {t('admin_dashboard.description')}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={loadOverview}
-                className="inline-flex items-center gap-2 rounded-xl bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500 transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-white/20"
               >
                 <RefreshCcw size={15} /> {t('admin_dashboard.refresh')}
               </button>
               <button
                 onClick={exportInvestorPack}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:border-cyan-400 hover:text-cyan-600 transition-colors"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition-colors hover:bg-cyan-50"
               >
                 <Download size={15} /> {t('admin_dashboard.export_pack')}
               </button>
@@ -442,17 +780,18 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                     // noop
                   }
                 }}
-                className="inline-flex items-center gap-2 rounded-xl border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200"
+                className="inline-flex items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-4 py-2 text-sm font-semibold text-white"
               >
                 <Activity size={15} /> {t('admin_dashboard.backend_ping')}
               </button>
             </div>
           </div>
 
-          <div className="mt-5 flex flex-wrap gap-2">
+          <div className="mt-5 grid grid-cols-2 gap-2 md:grid-cols-4">
             {([
               { id: 'overview', label: t('admin_dashboard.tabs.overview'), icon: BarChart3 },
               { id: 'operations', label: t('admin_dashboard.tabs.operations'), icon: Settings },
+              { id: 'crm', label: t('admin_dashboard.tabs.crm', { defaultValue: 'CRM' }), icon: Users },
               { id: 'jcfpm', label: t('admin_dashboard.tabs.jcfpm'), icon: Sparkles },
             ] as const).map((tab) => {
               const Icon = tab.icon;
@@ -461,16 +800,16 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 <button
                   key={tab.id}
                   onClick={() => setView(tab.id)}
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition-colors ${active
-                    ? 'bg-cyan-600 text-white'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:text-cyan-600'}`}
+                  className={`inline-flex items-center justify-center gap-2 rounded-[0.95rem] px-4 py-2 text-sm font-semibold transition-colors ${active
+                    ? 'bg-white text-slate-900'
+                    : 'border border-white/30 bg-white/10 text-cyan-50 hover:bg-white/20'}`}
                 >
                   <Icon size={14} /> {tab.label}
                 </button>
               );
             })}
           </div>
-          {error && <p className="mt-3 text-sm text-rose-600">{error}</p>}
+          {error && <p className="mt-3 text-sm text-rose-200">{error}</p>}
         </section>
 
         {view === 'overview' && (
@@ -479,7 +818,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               {kpis.map((kpi) => {
                 const Icon = kpi.icon;
                 return (
-                  <article key={kpi.label} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
+                  <article key={kpi.label} className={panelClass}>
                     <div className="flex items-center justify-between">
                       <div className="text-xs uppercase tracking-[0.16em] text-slate-500">{kpi.label}</div>
                       <Icon size={16} className="text-cyan-600" />
@@ -492,7 +831,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             </section>
 
             <section className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm h-[400px] flex flex-col">
+              <article className={`${panelClass} h-[400px] flex flex-col`}>
                 <div className="flex items-center gap-2 mb-4">
                   <Globe size={16} className="text-cyan-600" />
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100">{t('admin_dashboard.sections.traffic_trend')}</h3>
@@ -521,7 +860,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 )}
               </article>
 
-              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm h-[400px] flex flex-col">
+              <article className={`${panelClass} h-[400px] flex flex-col`}>
                 <div className="flex items-center gap-2 mb-4">
                   <Brain size={16} className="text-cyan-600" />
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100">{t('admin_dashboard.sections.ai_token_trend')}</h3>
@@ -551,7 +890,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             </section>
 
             <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm xl:col-span-2">
+              <article className={`${panelClass} xl:col-span-2`}>
                 <div className="flex items-center gap-2 mb-4">
                   <BarChart3 size={16} className="text-cyan-600" />
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100">{t('admin_dashboard.sections.recommendation_performance')}</h3>
@@ -582,7 +921,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 </div>
               </article>
 
-              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm flex flex-col min-h-[300px]">
+              <article className={`${panelClass} flex flex-col min-h-[300px]`}>
                 <div className="flex items-center gap-2 mb-4">
                   <Users size={16} className="text-cyan-600" />
                   <h3 className="font-semibold text-slate-800 dark:text-slate-100">{t('admin_dashboard.sections.score_distribution')}</h3>
@@ -615,7 +954,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
             </section>
 
             <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
+              <article className={panelClass}>
                 <div className="font-semibold mb-3 text-sm">{t('admin_dashboard.sections.top_countries')}</div>
                 <div className="space-y-1 text-xs">
                   {topCountries.length === 0 && <p className="text-slate-500">No data</p>}
@@ -628,7 +967,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 </div>
               </article>
 
-              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
+              <article className={panelClass}>
                 <div className="font-semibold mb-3 text-sm">{t('admin_dashboard.sections.top_devices')}</div>
                 <div className="space-y-1 text-xs">
                   {topDevices.length === 0 && <p className="text-slate-500">No data</p>}
@@ -641,7 +980,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
                 </div>
               </article>
 
-              <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
+              <article className={panelClass}>
                 <div className="font-semibold mb-3 text-sm">{t('admin_dashboard.sections.top_models_cost')}</div>
                 <div className="space-y-1 text-xs max-h-40 overflow-auto pr-1">
                   {modelUsage.length === 0 && <p className="text-slate-500">No data</p>}
@@ -655,7 +994,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               </article>
             </section>
 
-            <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
+            <section className={panelClass}>
               <div className="flex items-center gap-2 mb-3">
                 <Bell size={16} className="text-cyan-600" />
                 <h3 className="font-semibold">{t('admin_dashboard.sections.notifications')}</h3>
@@ -681,7 +1020,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
 
         {view === 'operations' && (
           <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-            <article className="xl:col-span-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
+            <article className={`xl:col-span-2 ${panelClass}`}>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold">{t('admin_dashboard.operations.title')}</h3>
                 <span className="text-xs text-slate-500">{formatNumber(totalSubscriptions)} {t('admin_dashboard.operations.total')}</span>
@@ -744,7 +1083,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               </div>
             </article>
 
-            <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
+            <article className={panelClass}>
               <h3 className="font-semibold mb-3">{t('admin_dashboard.sections.admin_search')}</h3>
               <div className="space-y-2">
                 <select
@@ -778,9 +1117,466 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
           </section>
         )}
 
+        {view === 'crm' && (
+          <>
+            <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              {[
+                { label: t('admin_dashboard.crm.total_entities', { defaultValue: 'CRM entity' }), value: crmSummary.total },
+                { label: t('admin_dashboard.crm.companies', { defaultValue: 'Firmy' }), value: crmSummary.companies },
+                { label: t('admin_dashboard.crm.users', { defaultValue: 'Uživatelé' }), value: crmSummary.users },
+                { label: t('admin_dashboard.crm.with_subscription', { defaultValue: 'S předplatným' }), value: crmSummary.subscribed },
+                { label: t('admin_dashboard.crm.trialing', { defaultValue: 'Trialing' }), value: crmSummary.trialing },
+              ].map((item) => (
+                <article key={item.label} className={panelClass}>
+                  <div className="text-[11px] uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">{item.label}</div>
+                  <div className="mt-1 text-2xl font-black text-slate-900 dark:text-white">{formatNumber(item.value)}</div>
+                </article>
+              ))}
+            </section>
+
+            <section className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+              <article className={`xl:col-span-5 ${panelClass}`}>
+                <div className="mb-3 flex flex-col gap-2 sm:flex-row">
+                  <div className="relative flex-1">
+                    <Search size={14} className="pointer-events-none absolute left-3 top-2.5 text-slate-400" />
+                    <input
+                      value={crmQuery}
+                      onChange={(e) => setCrmQuery(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          loadCrmWorkspace();
+                        }
+                      }}
+                      placeholder={t('admin_dashboard.crm.search_placeholder', { defaultValue: 'Hledat firmu nebo uživatele…' })}
+                      className={`${inputClass} pl-9`}
+                    />
+                  </div>
+                  <select
+                    value={crmKind}
+                    onChange={(e) => setCrmKind(e.target.value as 'all' | CrmEntityKind)}
+                    className={inputClass}
+                  >
+                    <option value="all">{t('admin_dashboard.crm.kind_all', { defaultValue: 'Vše' })}</option>
+                    <option value="company">{t('admin_dashboard.entity.company')}</option>
+                    <option value="user">{t('admin_dashboard.entity.user')}</option>
+                  </select>
+                  <button
+                    onClick={loadCrmWorkspace}
+                    className="inline-flex items-center justify-center gap-2 rounded-[0.82rem] bg-cyan-600 px-3 py-2 text-sm font-semibold text-white hover:bg-cyan-500"
+                  >
+                    <RefreshCcw size={14} />
+                    {t('admin_dashboard.refresh')}
+                  </button>
+                </div>
+
+                <div className="max-h-[640px] space-y-2 overflow-auto pr-1">
+                  {crmLoading && (
+                    <div className={panelSoftClass}>
+                      <p className="text-sm text-slate-500">{t('admin_dashboard.search.searching')}</p>
+                    </div>
+                  )}
+                  {!crmLoading && crmRecords.length === 0 && (
+                    <div className={panelSoftClass}>
+                      <p className="text-sm text-slate-500">{t('admin_dashboard.common.no_data')}</p>
+                    </div>
+                  )}
+                  {!crmLoading && crmRecords.map((record) => {
+                    const selected = selectedCrmKey === record.key;
+                    const sub = record.subscription;
+                    return (
+                      <button
+                        key={record.key}
+                        type="button"
+                        onClick={() => setSelectedCrmKey(record.key)}
+                        className={`w-full rounded-[0.95rem] border p-3 text-left transition-colors ${selected
+                          ? 'border-cyan-400 bg-cyan-50/80 dark:border-cyan-700 dark:bg-cyan-900/20'
+                          : 'border-slate-200 dark:border-slate-800 bg-slate-50/75 dark:bg-slate-900/45 hover:border-cyan-300'}`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold text-slate-900 dark:text-slate-100">{record.label}</div>
+                            <div className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">{record.secondary || record.entityId}</div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1">
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${record.entityKind === 'company'
+                              ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300'
+                              : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'}`}>
+                              {record.entityKind}
+                            </span>
+                            {sub ? (
+                              <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${sub.status === 'active'
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300'
+                                : sub.status === 'trialing'
+                                  ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300'
+                                  : 'bg-slate-200 text-slate-700 dark:bg-slate-700 dark:text-slate-200'}`}>
+                                {sub.status}
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+                                no sub
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </article>
+
+              <article className={`xl:col-span-7 ${panelClass}`}>
+                {!selectedCrmRecord ? (
+                  <div className={`${panelSoftClass} flex min-h-[260px] items-center justify-center`}>
+                    <p className="text-sm text-slate-500">
+                      {t('admin_dashboard.crm.select_entity', { defaultValue: 'Vyberte záznam vlevo pro detail CRM.' })}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div>
+                        <h3 className="text-xl font-bold text-slate-900 dark:text-white">{selectedCrmRecord.label}</h3>
+                        <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{selectedCrmRecord.secondary || selectedCrmRecord.entityId}</p>
+                        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-1 font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                            <Building2 size={12} />
+                            {selectedCrmRecord.entityKind === 'company'
+                              ? t('admin_dashboard.entity.company')
+                              : t('admin_dashboard.entity.user')}
+                          </span>
+                          {selectedCrmRecord.subscriptionId && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-cyan-100 px-2.5 py-1 font-semibold text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300">
+                              sub #{selectedCrmRecord.subscriptionId.slice(0, 8)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <button
+                        onClick={loadCrmWorkspace}
+                        className="inline-flex items-center gap-2 rounded-[0.85rem] border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 hover:border-cyan-300 hover:text-cyan-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200"
+                      >
+                        <RefreshCcw size={14} />
+                        {t('admin_dashboard.refresh')}
+                      </button>
+                    </div>
+
+                    <div className={panelSoftClass}>
+                      <div className="mb-2 flex items-center justify-between">
+                        <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {t('admin_dashboard.crm.entity_overview', { defaultValue: 'Souhrn entity' })}
+                        </div>
+                        {crmDetailLoading && (
+                          <span className="text-xs text-slate-500">{t('app.loading')}</span>
+                        )}
+                      </div>
+                      {!crmDetailLoading && !crmEntityDetail ? (
+                        <p className="text-sm text-slate-500">{t('admin_dashboard.common.no_data')}</p>
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-2 gap-2 xl:grid-cols-3">
+                            {crmMetricCards.map((item) => (
+                              <div key={item.label} className="rounded-lg border border-slate-200/80 bg-white/80 p-2 dark:border-slate-700 dark:bg-slate-900/70">
+                                <div className="text-[11px] leading-tight text-slate-500 dark:text-slate-400">{item.label}</div>
+                                <div className="mt-1 text-lg font-bold text-slate-900 dark:text-white">{formatNumber(item.value)}</div>
+                              </div>
+                            ))}
+                          </div>
+                          {crmApplicationStatusBreakdown.length > 0 && (
+                            <div className="mt-3">
+                              <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                {t('admin_dashboard.crm.application_status_breakdown', { defaultValue: 'Statusy handshake' })}
+                              </div>
+                              <div className="flex flex-wrap gap-1.5">
+                                {crmApplicationStatusBreakdown.map((item) => (
+                                  <span
+                                    key={item.key}
+                                    className="inline-flex items-center gap-1 rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200"
+                                  >
+                                    {item.key}: {formatNumber(item.value)}
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          <div className="mt-3 grid grid-cols-1 gap-2 lg:grid-cols-2">
+                            {crmEntityDetail?.recent?.jobs?.length > 0 && (
+                              <div className="rounded-lg border border-slate-200/80 bg-white/80 p-2 dark:border-slate-700 dark:bg-slate-900/70">
+                                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                  {t('admin_dashboard.crm.recent_jobs', { defaultValue: 'Poslední role' })}
+                                </div>
+                                <div className="space-y-1.5">
+                                  {crmEntityDetail.recent.jobs.slice(0, 5).map((job: any) => (
+                                    <div key={job.id} className="text-xs">
+                                      <div className="truncate font-semibold text-slate-800 dark:text-slate-100">{job.title || `#${job.id}`}</div>
+                                      <div className="text-slate-500">{job.status || (job.is_active ? 'active' : 'inactive')} • {formatDate(job.updated_at || job.created_at)}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {crmEntityDetail?.recent?.applications?.length > 0 && (
+                              <div className="rounded-lg border border-slate-200/80 bg-white/80 p-2 dark:border-slate-700 dark:bg-slate-900/70">
+                                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                  {t('admin_dashboard.crm.recent_applications', { defaultValue: 'Poslední handshaky' })}
+                                </div>
+                                <div className="space-y-1.5">
+                                  {crmEntityDetail.recent.applications.slice(0, 5).map((app: any) => (
+                                    <div key={app.id} className="text-xs">
+                                      <div className="font-semibold text-slate-800 dark:text-slate-100">#{String(app.job_id || app.id).slice(0, 10)}</div>
+                                      <div className="text-slate-500">{app.status || 'pending'} • {formatDate(app.submitted_at || app.created_at)}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {crmEntityDetail?.recent?.interactions?.length > 0 && (
+                              <div className="rounded-lg border border-slate-200/80 bg-white/80 p-2 dark:border-slate-700 dark:bg-slate-900/70">
+                                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                  {t('admin_dashboard.crm.recent_interactions', { defaultValue: 'Poslední interakce' })}
+                                </div>
+                                <div className="space-y-1.5">
+                                  {crmEntityDetail.recent.interactions.slice(0, 5).map((evt: any) => (
+                                    <div key={evt.id || `${evt.job_id}-${evt.created_at}`} className="text-xs">
+                                      <div className="font-semibold text-slate-800 dark:text-slate-100">{evt.event_type || 'event'}</div>
+                                      <div className="text-slate-500">job #{evt.job_id || '—'} • {formatDate(evt.created_at)}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {crmEntityDetail?.recent?.activity?.length > 0 && (
+                              <div className="rounded-lg border border-slate-200/80 bg-white/80 p-2 dark:border-slate-700 dark:bg-slate-900/70">
+                                <div className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                                  {t('admin_dashboard.crm.recent_activity', { defaultValue: 'Aktivita firmy' })}
+                                </div>
+                                <div className="space-y-1.5">
+                                  {crmEntityDetail.recent.activity.slice(0, 5).map((item: any) => (
+                                    <div key={item.id || `${item.event_type}-${item.created_at}`} className="text-xs">
+                                      <div className="font-semibold text-slate-800 dark:text-slate-100">{item.event_type || 'event'}</div>
+                                      <div className="text-slate-500">{formatDate(item.created_at)}</div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className={panelSoftClass}>
+                      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {t('admin_dashboard.crm.timeline', { defaultValue: 'Timeline událostí' })}
+                        </div>
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                          {formatNumber(crmTimelineEntries.length)} {t('admin_dashboard.crm.timeline_items', { defaultValue: 'událostí' })}
+                        </div>
+                      </div>
+
+                      <div className="mb-2 flex flex-wrap gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setCrmTimelineFilter('all')}
+                          className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${crmTimelineFilter === 'all'
+                            ? 'bg-cyan-600 text-white'
+                            : 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'}`}
+                        >
+                          {t('admin_dashboard.crm.timeline_all', { defaultValue: 'Vše' })}
+                        </button>
+                        {crmTimelineCategories.map((category) => (
+                          <button
+                            key={category}
+                            type="button"
+                            onClick={() => setCrmTimelineFilter(category)}
+                            className={`rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors ${crmTimelineFilter === category
+                              ? 'bg-cyan-600 text-white'
+                              : 'bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600'}`}
+                          >
+                            {category}
+                          </button>
+                        ))}
+                      </div>
+
+                      {crmTimelineEntries.length === 0 ? (
+                        <p className="text-sm text-slate-500">{t('admin_dashboard.common.no_data')}</p>
+                      ) : (
+                        <div className="max-h-64 space-y-1.5 overflow-auto pr-1">
+                          {crmTimelineEntries.slice(0, 40).map((item: any) => {
+                            const severity = String(item?.severity || 'info');
+                            const toneClass = severity === 'danger'
+                              ? 'border-rose-200 bg-rose-50/70 dark:border-rose-900 dark:bg-rose-900/20'
+                              : severity === 'success'
+                                ? 'border-emerald-200 bg-emerald-50/70 dark:border-emerald-900 dark:bg-emerald-900/20'
+                                : 'border-slate-200 bg-white/80 dark:border-slate-700 dark:bg-slate-900/75';
+                            return (
+                              <div
+                                key={item.id || `${item.category}-${item.timestamp}-${item.type}`}
+                                className={`rounded-lg border p-2 text-xs ${toneClass}`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="min-w-0">
+                                    <div className="truncate font-semibold text-slate-800 dark:text-slate-100">{item.title || item.type || 'event'}</div>
+                                    {item.detail ? (
+                                      <div className="mt-0.5 truncate text-slate-500 dark:text-slate-400">{item.detail}</div>
+                                    ) : null}
+                                  </div>
+                                  <div className="shrink-0 text-[10px] text-slate-500 dark:text-slate-400">
+                                    {formatDate(item.timestamp)}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className={panelSoftClass}>
+                      <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                        <Clock3 size={15} className="text-cyan-600 dark:text-cyan-300" />
+                        {t('admin_dashboard.crm.subscription', { defaultValue: 'Předplatné' })}
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
+                        <select
+                          value={crmDraft.tier}
+                          onChange={(e) => setCrmDraft((prev) => ({ ...prev, tier: e.target.value }))}
+                          className={inputClass}
+                        >
+                          {TIERS.map((x) => <option key={x} value={x}>{x}</option>)}
+                        </select>
+                        <select
+                          value={crmDraft.status}
+                          onChange={(e) => setCrmDraft((prev) => ({ ...prev, status: e.target.value }))}
+                          className={inputClass}
+                        >
+                          {STATUSES.map((x) => <option key={x} value={x}>{x}</option>)}
+                        </select>
+                        <input
+                          value={crmDraft.set_trial_days}
+                          onChange={(e) => setCrmDraft((prev) => ({ ...prev, set_trial_days: e.target.value }))}
+                          placeholder={t('admin_dashboard.operations.trial_days')}
+                          className={inputClass}
+                        />
+                        <input
+                          value={crmDraft.set_trial_until}
+                          onChange={(e) => setCrmDraft((prev) => ({ ...prev, set_trial_until: e.target.value }))}
+                          placeholder="2026-12-31T23:59:59Z"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <button
+                          onClick={handleCrmSaveSubscription}
+                          disabled={crmSaving}
+                          className="inline-flex items-center gap-2 rounded-[0.85rem] bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-500 disabled:opacity-60"
+                        >
+                          {crmSaving ? t('app.saving') : t('admin_dashboard.operations.save')}
+                        </button>
+                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                          {selectedCrmRecord.subscription?.current_period_end
+                            ? `${t('admin_dashboard.crm.period_end', { defaultValue: 'Konec období' })}: ${formatDate(selectedCrmRecord.subscription.current_period_end)}`
+                            : t('admin_dashboard.crm.no_subscription_period', { defaultValue: 'Bez aktivního období.' })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {selectedCrmRecord.entityKind === 'user' && (
+                      <div className={panelSoftClass}>
+                        <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          <Mail size={15} className="text-cyan-600 dark:text-cyan-300" />
+                          {t('admin_dashboard.crm.digest', { defaultValue: 'Digest notifikace uživatele' })}
+                        </div>
+                        {!crmDigest ? (
+                          <p className="text-sm text-slate-500">{t('admin_dashboard.common.no_data')}</p>
+                        ) : (
+                          <>
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                              <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(crmDigestDraft.daily_digest_enabled)}
+                                  onChange={(e) => setCrmDigestDraft((prev) => ({ ...prev, daily_digest_enabled: e.target.checked }))}
+                                />
+                                {t('profile.digest_email', { defaultValue: 'Denní digest e‑mailem' })}
+                              </label>
+                              <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(crmDigestDraft.daily_digest_push_enabled)}
+                                  onChange={(e) => setCrmDigestDraft((prev) => ({ ...prev, daily_digest_push_enabled: e.target.checked }))}
+                                />
+                                {t('profile.digest_push', { defaultValue: 'Denní digest jako push' })}
+                              </label>
+                            </div>
+                            <div className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
+                              <input
+                                type="time"
+                                value={crmDigestDraft.daily_digest_time}
+                                onChange={(e) => setCrmDigestDraft((prev) => ({ ...prev, daily_digest_time: e.target.value }))}
+                                className={inputClass}
+                              />
+                              <input
+                                value={crmDigestDraft.daily_digest_timezone}
+                                onChange={(e) => setCrmDigestDraft((prev) => ({ ...prev, daily_digest_timezone: e.target.value }))}
+                                className={inputClass}
+                                placeholder="Europe/Prague"
+                              />
+                            </div>
+                            <div className="mt-3">
+                              <button
+                                onClick={handleCrmDigestSave}
+                                disabled={crmDigestSaving}
+                                className="inline-flex items-center gap-2 rounded-[0.85rem] bg-cyan-600 px-4 py-2 text-sm font-semibold text-white hover:bg-cyan-500 disabled:opacity-60"
+                              >
+                                {crmDigestSaving ? t('app.saving') : t('admin_dashboard.operations.save')}
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    )}
+
+                    <div className={panelSoftClass}>
+                      <div className="mb-2 flex items-center justify-between">
+                        <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                          {t('admin_dashboard.crm.audit', { defaultValue: 'Audit změn předplatného' })}
+                        </div>
+                        {!crmAuditAvailable && (
+                          <span className="text-xs text-amber-600 dark:text-amber-300">
+                            {t('admin_dashboard.crm.audit_unavailable', { defaultValue: 'Audit tabulka není dostupná.' })}
+                          </span>
+                        )}
+                      </div>
+                      {crmAuditLoading ? (
+                        <p className="text-sm text-slate-500">{t('app.loading')}</p>
+                      ) : crmAuditItems.length === 0 ? (
+                        <p className="text-sm text-slate-500">{t('admin_dashboard.common.no_data')}</p>
+                      ) : (
+                        <div className="max-h-48 space-y-2 overflow-auto pr-1">
+                          {crmAuditItems.map((item: any) => (
+                            <div key={item.id || `${item.created_at}-${item.action}`} className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/80 p-2 text-xs">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="font-semibold text-slate-800 dark:text-slate-100">{item.action}</span>
+                                <span className="text-slate-500">{formatDate(item.created_at)}</span>
+                              </div>
+                              <div className="mt-1 text-slate-500">{item.admin_email || item.admin_user_id || 'admin'}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </article>
+            </section>
+          </>
+        )}
+
         {view === 'jcfpm' && (
           <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-            <article className="xl:col-span-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm">
+            <article className={`xl:col-span-2 ${panelClass}`}>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-semibold">{t('admin_dashboard.jcfpm.title')}</h3>
                 <input
@@ -818,7 +1614,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ userProfile }) => {
               </div>
             </article>
 
-            <article className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm text-xs">
+            <article className={`${panelClass} text-xs`}>
               <h3 className="font-semibold mb-3 text-sm">{t('admin_dashboard.jcfpm.create_title')}</h3>
               <div className="space-y-2">
                 <div className="space-y-1">
