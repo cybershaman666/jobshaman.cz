@@ -280,14 +280,18 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
   };
 
   const getStatusLabel = (status: CandidateDialogueStatus): string => {
+    const languagePrefix = String(i18n.language || 'en').split('-')[0].toLowerCase();
+    const isCsLike = languagePrefix === 'cs' || languagePrefix === 'sk';
     switch (status) {
       case 'reviewed':
-        return t('profile.job_hub.status_reviewed', { defaultValue: 'Prohlédnuto' });
+        return t('profile.job_hub.status_reviewed', { defaultValue: isCsLike ? 'Přečteno' : 'Read' });
       case 'shortlisted':
-        return t('profile.job_hub.status_shortlisted', { defaultValue: 'Ve výběru' });
+        return t('profile.job_hub.status_shortlisted', { defaultValue: isCsLike ? 'Chceme pokračovat' : 'We want to continue' });
       case 'rejected':
       case 'closed_rejected':
-        return t('profile.job_hub.status_rejected', { defaultValue: 'Firma nepokračuje' });
+        return t('profile.job_hub.status_rejected', {
+          defaultValue: isCsLike ? 'Děkujeme, ale hledáme jiný přístup' : 'Thanks, we are choosing a different direction'
+        });
       case 'hired':
         return t('profile.job_hub.status_hired', { defaultValue: 'Přijato' });
       case 'withdrawn':
@@ -300,7 +304,9 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
       case 'closed':
         return t('profile.job_hub.status_closed', { defaultValue: 'Uzavřeno' });
       default:
-        return t('profile.job_hub.status_pending', { defaultValue: 'Odesláno' });
+        return t('profile.job_hub.status_pending', {
+          defaultValue: isCsLike ? 'Čeká na první reakci firmy' : 'Waiting for first company response'
+        });
     }
   };
 
@@ -440,6 +446,29 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
     };
   };
 
+  const getResponseSlaHint = (
+    dialogue: Pick<DialogueSummary, 'dialogue_timeout_hours'>
+  ): string => {
+    const rawHours = Number(dialogue.dialogue_timeout_hours);
+    const resolvedHours = Number.isFinite(rawHours) && rawHours > 0 ? Math.max(1, Math.round(rawHours)) : 48;
+    const languagePrefix = String(i18n.language || 'en').split('-')[0].toLowerCase();
+    const isCsLike = languagePrefix === 'cs' || languagePrefix === 'sk';
+    const windowLabel =
+      resolvedHours % 24 === 0
+        ? t('profile.job_hub.response_sla_days', {
+            defaultValue: isCsLike ? '{{count}} dní' : '{{count}} days',
+            count: Math.max(1, Math.round(resolvedHours / 24))
+          })
+        : t('profile.job_hub.response_sla_hours', {
+            defaultValue: isCsLike ? '{{count}} hodin' : '{{count}} hours',
+            count: resolvedHours
+          });
+    return t('profile.job_hub.response_sla_hint', {
+      defaultValue: isCsLike ? 'Firma odpovídá obvykle do {{window}}' : 'Company usually replies within {{window}}',
+      window: windowLabel
+    });
+  };
+
   const renderDialogueSignals = (dialogue: DialogueSummary) => {
     const timingMeta = getDialogueTimingMeta(dialogue);
     const closeReasonMeta = getDialogueClosedReasonMeta(dialogue);
@@ -455,6 +484,9 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
             {closeReasonMeta.label}
           </span>
         )}
+        <span className="rounded-full bg-sky-100 px-2.5 py-1 text-xs font-medium text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+          {getResponseSlaHint(dialogue)}
+        </span>
         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
           {dialogue.has_cover_letter
             ? t('profile.job_hub.cover_letter_yes', { defaultValue: 'Motivační dopis odeslán' })
@@ -733,6 +765,7 @@ const ProfileJobManager: React.FC<ProfileJobManagerProps> = ({
             viewerRole="candidate"
             dialogueStatus={activeDetail.status}
             dialogueDeadlineAt={activeDetail.dialogue_deadline_at || null}
+            dialogueTimeoutHours={activeDetail.dialogue_timeout_hours ?? null}
             dialogueCurrentTurn={activeDetail.dialogue_current_turn || null}
             dialogueClosedReason={activeDetail.dialogue_closed_reason || null}
             dialogueIsOverdue={Boolean(activeDetail.dialogue_is_overdue)}

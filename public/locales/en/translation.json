@@ -53,7 +53,11 @@
       "slots_label": "Active dialogues",
       "step_role_truth": "Role truth",
       "step_short_reply": "Short reply",
-      "step_clear_state": "Clear state"
+      "step_clear_state": "Clear state",
+      "step_role_truth_recruiter": "Role opens",
+      "step_role_truth_candidate": "Roles in list",
+      "step_role_truth_help_recruiter": "How many roles you opened in this period.",
+      "step_role_truth_help_candidate": "Number of roles currently loaded in the list."
     }
   },
   "filters": {
@@ -861,7 +865,16 @@
       "bike": "Bike",
       "walk": "Walk"
     },
-    "year_placeholder": "např. 2020"
+    "year_placeholder": "např. 2020",
+    "job_hub": {
+      "status_reviewed": "Read",
+      "status_shortlisted": "We want to continue",
+      "status_rejected": "Thanks, we are choosing a different direction",
+      "status_pending": "Waiting for first company response",
+      "response_sla_days": "{{count}} days",
+      "response_sla_hours": "{{count}} hours",
+      "response_sla_hint": "Company usually replies within {{window}}"
+    }
   },
   "cv_manager": {
     "title": "CV Library",
@@ -1172,7 +1185,17 @@
       "metrics": {
         "shared_jcfpm": "Shared JCFPM",
         "shared_jcfpm_hint": "Shared JCFPM signals are visible directly inside recruiter dossiers."
-      }
+      },
+      "response_state_read": "Read",
+      "response_state_continue": "We want to continue",
+      "response_state_declined": "Thanks, different direction",
+      "response_state_pending": "Waiting for first response",
+      "reaction_sla_days": "{{count}} days",
+      "reaction_sla_hours": "{{count}} hours",
+      "reaction_sla_hint": "Candidates see first-response expectation within {{window}}.",
+      "response_sla_days": "{{count}} days",
+      "response_sla_hours": "{{count}} hours",
+      "response_sla_hint_inline": "Response SLA: {{window}}"
     },
     "assessment_library": {
       "linked_context": "Linked review context",
@@ -3626,5 +3649,22 @@
   },
   "ai_advisory": {
     "default": "AI recommendation only. Final decision remains with a human."
+  },
+  "application": {
+    "messages": {
+      "sla_days": "within {{count}} days",
+      "sla_hours": "within {{count}} hours",
+      "guarantee_read": "Read",
+      "guarantee_continue": "We want to continue",
+      "guarantee_declined": "Thanks, but we are choosing a different direction",
+      "awaiting_company": "Waiting for the first company response",
+      "awaiting_recruiter": "Waiting for your first response",
+      "auto_closed": "Auto-closed without response",
+      "closed_simple": "Dialogue closed",
+      "in_progress": "In progress",
+      "reaction_guarantee_title": "Reaction guarantee",
+      "reaction_sla_candidate": "Companies usually respond {{window}}.",
+      "reaction_sla_recruiter": "Candidates see response expectation {{window}}."
+    }
   }
 }

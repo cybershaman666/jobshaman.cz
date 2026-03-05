@@ -517,6 +517,39 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   const profileCompactInputClass = 'w-full rounded-[0.9rem] border border-slate-300 bg-white/90 px-3 py-2 text-slate-900 outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-200 dark:border-slate-600 dark:bg-slate-700/90 dark:text-white dark:focus:ring-cyan-900/40 dark:[color-scheme:dark]';
   const profileIconButtonClass = 'rounded-[0.9rem] p-2 text-slate-500 transition-colors hover:bg-cyan-50 hover:text-cyan-600 dark:text-slate-400 dark:hover:bg-cyan-900/20 dark:hover:text-cyan-400';
   const profilePrimaryButtonClass = 'inline-flex items-center justify-center gap-2 rounded-[0.95rem] bg-cyan-600 px-5 py-2.5 font-medium text-white shadow-[0_18px_32px_-24px_rgba(6,182,212,0.34)] transition-colors hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60';
+  const profileSurfaceClass = 'overflow-hidden rounded-[1.18rem] border border-slate-200/80 bg-white/92 shadow-[0_24px_48px_-36px_rgba(15,23,42,0.24)] backdrop-blur-sm dark:border-slate-700/80 dark:bg-slate-800/92';
+
+  const profileHeroCopy = isCsLikeProfile
+    ? {
+      eyebrow: 'Profil kandidáta',
+      subtitle: 'Udržujte profil připravený pro první kontakt. Jasný kontext, stručné podklady a aktualizované preference.',
+      readiness: 'Připravenost profilu',
+      sections: 'Aktivní sekce',
+      docs: 'Podklady'
+    }
+    : {
+      eyebrow: 'Candidate profile',
+      subtitle: 'Keep your profile ready for first contact: clear context, concise supporting docs, and up-to-date preferences.',
+      readiness: 'Profile readiness',
+      sections: 'Active sections',
+      docs: 'Documents'
+    };
+
+  const profileSignals = [
+    Boolean(formData.personal.name?.trim()),
+    Boolean(formData.personal.jobTitle?.trim()),
+    Boolean(formData.personal.email?.trim()),
+    Boolean(formData.personal.phone?.trim()),
+    Boolean(formData.personal.address?.trim()),
+    formData.experience.length > 0,
+    formData.education.length > 0,
+    formData.skills.length > 0,
+    Boolean(profile.cvUrl),
+    Boolean(editableCvAiText.trim())
+  ];
+  const profileReadinessScore = Math.round((profileSignals.filter(Boolean).length / profileSignals.length) * 100);
+  const profileTotalSections = [formData.experience.length, formData.education.length, formData.skills.length].reduce((sum, value) => sum + value, 0);
+  const profileDocumentsReady = [Boolean(profile.cvUrl), Boolean(editableCvAiText.trim())].filter(Boolean).length;
 
   const renderAiGuidePanel = isCvTab ? (
     <div className="h-full overflow-hidden rounded-[1.05rem] border border-cyan-200/80 bg-gradient-to-br from-cyan-50 via-white to-sky-50 shadow-[0_22px_42px_-34px_rgba(8,145,178,0.28)] dark:border-cyan-800/60 dark:from-cyan-950/30 dark:via-slate-900 dark:to-slate-950">
@@ -664,7 +697,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   ) : null;
 
   const renderTransportPanel = isSettingsTab ? (
-    <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
+    <div className={profileSurfaceClass}>
       <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
         <div className="flex items-center gap-3">
           <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
@@ -1318,27 +1351,33 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
-      <div className="max-w-6xl mx-auto py-8 space-y-6">
+    <div className="relative min-h-screen overflow-x-clip bg-slate-100/80 dark:bg-slate-950">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-[-18rem] top-[-10rem] h-[28rem] w-[28rem] rounded-full bg-cyan-300/20 blur-3xl dark:bg-cyan-500/15" />
+        <div className="absolute right-[-14rem] top-[8rem] h-[24rem] w-[24rem] rounded-full bg-sky-200/30 blur-3xl dark:bg-sky-500/10" />
+        <div className="absolute bottom-[-12rem] left-[30%] h-[24rem] w-[24rem] rounded-full bg-emerald-200/20 blur-3xl dark:bg-emerald-500/10" />
+      </div>
+
+      <div className="relative mx-auto w-full max-w-[1720px] space-y-6 px-3 pb-10 pt-6 sm:px-5 lg:px-8">
         {/* Header */}
-        <div className="rounded-[1.05rem] border border-slate-200 bg-white/95 p-4 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95 sm:p-6">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="overflow-hidden rounded-[1.3rem] border border-cyan-200/70 bg-gradient-to-br from-slate-950 via-cyan-900 to-sky-800 p-5 text-white shadow-[0_32px_56px_-38px_rgba(8,47,73,0.62)] dark:border-cyan-700/40 sm:p-7">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
             <div className="flex w-full items-start gap-4 sm:w-auto sm:items-center">
               <div className="relative">
                 {profile.photo && !profilePhotoFailed ? (
                   <img
                     src={profile.photo}
                     alt="Profile"
-                    className="w-20 h-20 rounded-full object-cover border-2 border-cyan-500"
+                    className="h-20 w-20 rounded-full border border-white/35 object-cover ring-2 ring-white/35 sm:h-24 sm:w-24"
                     onError={() => setProfilePhotoFailed(true)}
                   />
                 ) : (
-                  <div className="w-20 h-20 rounded-full bg-slate-200 dark:bg-slate-700 border-2 border-slate-300 dark:border-slate-600 flex items-center justify-center">
-                    <Camera size={32} className="text-slate-400" />
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/35 bg-white/15 ring-2 ring-white/30 sm:h-24 sm:w-24">
+                    <Camera size={32} className="text-cyan-100/90" />
                   </div>
                 )}
 
-                <label className="absolute bottom-0 right-0 bg-cyan-600 text-white rounded-full p-2 cursor-pointer hover:bg-cyan-700 transition-colors">
+                <label className="absolute bottom-0 right-0 cursor-pointer rounded-full border border-white/45 bg-cyan-500 p-2 text-white transition-colors hover:bg-cyan-400">
                   <input
                     type="file"
                     accept="image/*"
@@ -1351,17 +1390,23 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
 
               <div className="min-w-0">
-                <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white break-words">
+                <span className="inline-flex items-center rounded-full border border-white/30 bg-white/10 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-cyan-100">
+                  {profileHeroCopy.eyebrow}
+                </span>
+                <h1 className="mt-2 break-words text-2xl font-semibold text-white sm:text-3xl">
                   {profile.name || t('profile.placeholder_name')}
                 </h1>
-                <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 break-words">
+                <p className="break-words text-sm text-cyan-100/90 sm:text-base">
                   {profile.jobTitle || t('profile.placeholder_job')}
+                </p>
+                <p className="mt-2 max-w-2xl text-xs text-cyan-100/80 sm:text-sm">
+                  {profileHeroCopy.subtitle}
                 </p>
                 {isExternalProfilePhotoUrl(profile.photo) && (
                   <button
                     onClick={handlePhotoRepair}
                     disabled={isRepairingPhoto}
-                    className="mt-2 inline-flex items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors"
+                    className="mt-2 inline-flex items-center gap-2 rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-cyan-50 transition-colors hover:bg-white/20"
                   >
                     {isRepairingPhoto ? t('profile.photo_uploading') : t('profile.photo_repair')}
                   </button>
@@ -1369,19 +1414,36 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
             </div>
 
-            <button
-              onClick={handleSaveClick}
-              disabled={isSavingProfile}
-              className={`${profilePrimaryButtonClass} w-full sm:w-auto px-6 py-3`}
-            >
-              <Save size={18} />
-              {isSavingProfile ? t('app.saving') : t('profile.save_profile')}
-            </button>
+            <div className="w-full max-w-[34rem] space-y-3 lg:w-auto">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="rounded-[0.9rem] border border-white/25 bg-white/10 p-3">
+                  <div className="min-w-0 break-words text-[10px] leading-tight text-cyan-100/85">{profileHeroCopy.readiness}</div>
+                  <div className="mt-1 text-xl font-semibold text-white">{profileReadinessScore}%</div>
+                </div>
+                <div className="rounded-[0.9rem] border border-white/25 bg-white/10 p-3">
+                  <div className="min-w-0 break-words text-[10px] leading-tight text-cyan-100/85">{profileHeroCopy.sections}</div>
+                  <div className="mt-1 text-xl font-semibold text-white">{profileTotalSections}</div>
+                </div>
+                <div className="rounded-[0.9rem] border border-white/25 bg-white/10 p-3">
+                  <div className="min-w-0 break-words text-[10px] leading-tight text-cyan-100/85">{profileHeroCopy.docs}</div>
+                  <div className="mt-1 text-xl font-semibold text-white">{profileDocumentsReady}/2</div>
+                </div>
+              </div>
+
+              <button
+                onClick={handleSaveClick}
+                disabled={isSavingProfile}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-[0.98rem] border border-white/35 bg-white px-6 py-3 font-semibold text-slate-900 shadow-[0_18px_34px_-24px_rgba(15,23,42,0.42)] transition-colors hover:bg-cyan-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Save size={18} />
+                {isSavingProfile ? t('app.saving') : t('profile.save_profile')}
+              </button>
+            </div>
           </div>
           {saveFeedback && (
-            <div className={`mt-3 text-sm font-medium flex items-center gap-2 ${saveFeedback.type === 'success'
-              ? 'text-emerald-700 dark:text-emerald-300'
-              : 'text-rose-700 dark:text-rose-300'
+            <div className={`mt-4 flex items-center gap-2 text-sm font-medium ${saveFeedback.type === 'success'
+              ? 'text-emerald-200'
+              : 'text-rose-200'
               }`}>
               <CheckCircle size={16} />
               <span>{saveFeedback.text}</span>
@@ -1390,7 +1452,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
         </div>
 
         {/* Tabs */}
-        <div className="rounded-[1.05rem] border border-slate-200 bg-white/95 p-2 shadow-[0_18px_36px_-30px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
+        <div className={`${profileSurfaceClass} p-2.5`}>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-5">
             {profileTabs.map((tab) => {
               const Icon = tab.icon;
@@ -1399,9 +1461,9 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
                 <button
                   key={tab.key}
                   onClick={() => setActiveTab(tab.key)}
-                  className={`rounded-[0.95rem] border px-3 py-3 text-left transition-all ${isActive
-                    ? 'border-cyan-500 bg-gradient-to-br from-cyan-600 to-sky-600 text-white shadow-[0_18px_34px_-26px_rgba(6,182,212,0.32)]'
-                    : 'border-slate-200 dark:border-slate-700 bg-slate-50/80 dark:bg-slate-900/60 text-slate-700 dark:text-slate-300 hover:border-cyan-300 hover:bg-white dark:hover:bg-slate-800'
+                  className={`rounded-[1rem] border px-3 py-3 text-left transition-all ${isActive
+                    ? 'border-cyan-500 bg-gradient-to-br from-cyan-600 to-sky-600 text-white shadow-[0_20px_36px_-28px_rgba(6,182,212,0.4)]'
+                    : 'border-slate-200/85 bg-slate-50/90 text-slate-700 hover:-translate-y-[1px] hover:border-cyan-300 hover:bg-white dark:border-slate-700 dark:bg-slate-900/60 dark:text-slate-300 dark:hover:bg-slate-800'
                     }`}
                 >
                   <div className="flex items-center gap-3">
@@ -1430,7 +1492,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             {isPersonalTab && (
               <>
             {/* Personal Information Section */}
-            <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
+            <div className={profileSurfaceClass}>
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -1593,7 +1655,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
               <div className="2xl:col-span-3">
             {/* Supporting Context Section */}
-            <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
+            <div className={profileSurfaceClass}>
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-start gap-3">
                   <div className="rounded-lg bg-cyan-100 p-2 dark:bg-cyan-900/30">
@@ -1679,7 +1741,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             {isCvTab && (
               <>
             {/* Work Experience Section */}
-            <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
+            <div className={profileSurfaceClass}>
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -1798,7 +1860,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             </div>
 
             {/* Education Section */}
-            <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
+            <div className={profileSurfaceClass}>
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -1917,7 +1979,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             </div>
 
             {/* Skills Section */}
-            <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
+            <div className={profileSurfaceClass}>
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
@@ -2003,7 +2065,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
             {isSettingsTab && (
               <>
-            <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
+            <div className={profileSurfaceClass}>
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
@@ -2111,7 +2173,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
 
             {renderTransportPanel}
 
-            <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
+            <div className={profileSurfaceClass}>
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
@@ -2258,7 +2320,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
+            <div className={profileSurfaceClass}>
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">
@@ -2424,7 +2486,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             </div>
 
             {FEATURE_HAPPINESS_AUDIT_THREE && (
-              <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
+              <div className={profileSurfaceClass}>
                 <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                   <div className="flex items-center justify-between gap-3">
                     <div>
@@ -2743,7 +2805,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             )}
 
             {isJcfpmTab && (
-            <div id="jcfpm-card" className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
+            <div id="jcfpm-card" className={profileSurfaceClass}>
               <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                 <h2 className="text-lg font-semibold text-slate-900 dark:text-white">
                   Career Fit & Potential Test
@@ -2870,7 +2932,7 @@ const ProfileEditor: React.FC<ProfileEditorProps> = ({
             </div>
 
             {isSettingsTab && profile.isLoggedIn && (
-              <div className="overflow-hidden rounded-[1.05rem] border border-slate-200 bg-white/95 shadow-[0_20px_38px_-32px_rgba(15,23,42,0.22)] dark:border-slate-700 dark:bg-slate-800/95">
+              <div className={profileSurfaceClass}>
                 <div className="border-b border-slate-200 dark:border-slate-700 p-4 bg-slate-50/50 dark:bg-slate-900/50">
                   <div className="flex items-center gap-3">
                     <div className="p-2 bg-cyan-100 dark:bg-cyan-900/30 rounded-lg">

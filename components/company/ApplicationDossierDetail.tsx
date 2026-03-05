@@ -379,6 +379,7 @@ const ApplicationDossierDetail: React.FC<ApplicationDossierDetailProps> = ({
                 viewerRole="recruiter"
                 dialogueStatus={dialogue.status}
                 dialogueDeadlineAt={dialogue.dialogue_deadline_at || null}
+                dialogueTimeoutHours={dialogue.dialogue_timeout_hours ?? null}
                 dialogueCurrentTurn={dialogue.dialogue_current_turn || null}
                 dialogueClosedReason={dialogue.dialogue_closed_reason || null}
                 dialogueIsOverdue={Boolean(dialogue.dialogue_is_overdue)}

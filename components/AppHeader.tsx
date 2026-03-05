@@ -266,7 +266,7 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         </select>
                         <button
                             onClick={toggleTheme}
-                            className="p-2 text-slate-500 hover:text-slate-900 dark:hover:white transition-colors"
+                            className="p-2 text-slate-300 hover:text-white transition-colors"
                             title={t('header.toggle_theme')}
                         >
                             {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
@@ -307,22 +307,24 @@ const AppHeader: React.FC<AppHeaderProps> = ({
                         {userProfile.isLoggedIn ? (
                             <div className="flex items-center gap-3 pl-2">
                                 <div
-                                    className="w-8 h-8 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-xs font-bold text-slate-500"
+                                    className="w-9 h-9 rounded-full p-[1px] bg-white/25 ring-1 ring-white/25 shadow-[0_2px_10px_-6px_rgba(15,23,42,0.8)]"
                                     title={t('nav.profile')}
                                 >
-                                    {userProfile.photo && !avatarFailed ? (
-                                        <img
-                                            src={userProfile.photo}
-                                            alt={userProfile.name}
-                                            className="w-full h-full object-cover"
-                                            onError={() => setAvatarFailed(true)}
-                                        />
-                                    ) : (
-                                        <span>{userProfile.name?.charAt(0) || 'U'}</span>
-                                    )}
+                                    <div className="h-full w-full rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-200">
+                                        {userProfile.photo && !avatarFailed ? (
+                                            <img
+                                                src={userProfile.photo}
+                                                alt={userProfile.name}
+                                                className="w-full h-full rounded-full object-cover object-center"
+                                                onError={() => setAvatarFailed(true)}
+                                            />
+                                        ) : (
+                                            <span>{userProfile.name?.charAt(0) || 'U'}</span>
+                                        )}
+                                    </div>
                                 </div>
                                 <div className="text-right hidden md:block">
-                                    <div className="text-sm font-bold text-slate-900 dark:text-white leading-none mb-1">{userProfile.name}</div>
+                                    <div className="text-sm font-bold text-white leading-none mb-1">{userProfile.name}</div>
                                     <div className="flex items-center gap-2">
                                         <SubscriptionStatusBadge userId={subscriptionSubjectId} />
                                     </div>

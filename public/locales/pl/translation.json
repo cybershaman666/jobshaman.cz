@@ -53,7 +53,11 @@
       "slots_label": "Aktywne dialogi",
       "step_role_truth": "Prawda roli",
       "step_short_reply": "Krótka reakcja",
-      "step_clear_state": "Jasny status"
+      "step_clear_state": "Jasny status",
+      "step_role_truth_recruiter": "Otwarcia ról",
+      "step_role_truth_candidate": "Role na liście",
+      "step_role_truth_help_recruiter": "Ile razy otwarto rolę w tym okresie.",
+      "step_role_truth_help_candidate": "Liczba ról aktualnie załadowanych na liście."
     }
   },
   "filters": {
@@ -861,7 +865,16 @@
       "bike": "Rower",
       "walk": "Pieszo"
     },
-    "year_placeholder": "např. 2020"
+    "year_placeholder": "např. 2020",
+    "job_hub": {
+      "status_reviewed": "Przeczytane",
+      "status_shortlisted": "Chcemy kontynuować",
+      "status_rejected": "Dziękujemy, ale wybieramy inne podejście",
+      "status_pending": "Oczekiwanie na pierwszą odpowiedź firmy",
+      "response_sla_days": "{{count}} dni",
+      "response_sla_hours": "{{count}} godzin",
+      "response_sla_hint": "Firma zwykle odpowiada w ciągu {{window}}"
+    }
   },
   "cv_manager": {
     "title": "Zarządzanie CV",
@@ -1337,7 +1350,17 @@
       "metrics": {
         "shared_jcfpm": "Udostepnione JCFPM",
         "shared_jcfpm_hint": "Udostepnione sygnaly JCFPM sa widoczne bezposrednio w dossier rekrutera."
-      }
+      },
+      "response_state_read": "Przeczytane",
+      "response_state_continue": "Chcemy kontynuować",
+      "response_state_declined": "Dziękujemy, wybieramy inny kierunek",
+      "response_state_pending": "Oczekiwanie na pierwszą odpowiedź",
+      "reaction_sla_days": "{{count}} dni",
+      "reaction_sla_hours": "{{count}} godzin",
+      "reaction_sla_hint": "Kandydaci widzą oczekiwany czas pierwszej odpowiedzi: {{window}}.",
+      "response_sla_days": "{{count}} dni",
+      "response_sla_hours": "{{count}} godzin",
+      "response_sla_hint_inline": "SLA odpowiedzi: {{window}}"
     },
     "assessment_library": {
       "linked_context": "Powiazany kontekst review",
@@ -3562,5 +3585,22 @@
   },
   "ai_advisory": {
     "default": "AI recommendation only. Ostateczna decyzja należy do człowieka."
+  },
+  "application": {
+    "messages": {
+      "sla_days": "w ciągu {{count}} dni",
+      "sla_hours": "w ciągu {{count}} godzin",
+      "guarantee_read": "Przeczytane",
+      "guarantee_continue": "Chcemy kontynuować",
+      "guarantee_declined": "Dziękujemy, ale wybieramy inne podejście",
+      "awaiting_company": "Oczekiwanie na pierwszą odpowiedź firmy",
+      "awaiting_recruiter": "Oczekiwanie na Twoją pierwszą odpowiedź",
+      "auto_closed": "Automatycznie zamknięte bez odpowiedzi",
+      "closed_simple": "Dialog zamknięty",
+      "in_progress": "W toku",
+      "reaction_guarantee_title": "Gwarancja reakcji",
+      "reaction_sla_candidate": "Firmy zwykle odpowiadają {{window}}.",
+      "reaction_sla_recruiter": "Kandydat widzi oczekiwany czas odpowiedzi: {{window}}."
+    }
   }
 }

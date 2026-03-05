@@ -53,7 +53,11 @@
       "slots_label": "Aktive Dialoge",
       "step_role_truth": "Rollenwahrheit",
       "step_short_reply": "Kurze Reaktion",
-      "step_clear_state": "Klarer Status"
+      "step_clear_state": "Klarer Status",
+      "step_role_truth_recruiter": "Rollen-Öffnungen",
+      "step_role_truth_candidate": "Rollen in der Liste",
+      "step_role_truth_help_recruiter": "Wie oft Sie in diesem Zeitraum eine Rolle geöffnet haben.",
+      "step_role_truth_help_candidate": "Anzahl der aktuell in der Liste geladenen Rollen."
     }
   },
   "filters": {
@@ -861,7 +865,16 @@
       "bike": "Fahrrad",
       "walk": "Zu Fuß"
     },
-    "year_placeholder": "např. 2020"
+    "year_placeholder": "např. 2020",
+    "job_hub": {
+      "status_reviewed": "Gelesen",
+      "status_shortlisted": "Wir möchten fortfahren",
+      "status_rejected": "Danke, wir wählen einen anderen Ansatz",
+      "status_pending": "Warten auf die erste Rückmeldung des Unternehmens",
+      "response_sla_days": "{{count}} Tage",
+      "response_sla_hours": "{{count}} Stunden",
+      "response_sla_hint": "Unternehmen antwortet normalerweise innerhalb von {{window}}"
+    }
   },
   "cv_manager": {
     "title": "Lebenslauf-Verwaltung",
@@ -1379,7 +1392,17 @@
       "metrics": {
         "shared_jcfpm": "Geteiltes JCFPM",
         "shared_jcfpm_hint": "Geteilte JCFPM-Signale sind direkt im Recruiter-Dossier sichtbar."
-      }
+      },
+      "response_state_read": "Gelesen",
+      "response_state_continue": "Wir möchten fortfahren",
+      "response_state_declined": "Danke, anderer Ansatz",
+      "response_state_pending": "Warten auf erste Rückmeldung",
+      "reaction_sla_days": "{{count}} Tage",
+      "reaction_sla_hours": "{{count}} Stunden",
+      "reaction_sla_hint": "Kandidat:innen sehen eine erwartete Erstreaktion innerhalb von {{window}}.",
+      "response_sla_days": "{{count}} Tage",
+      "response_sla_hours": "{{count}} Stunden",
+      "response_sla_hint_inline": "Antwort-SLA: {{window}}"
     },
     "assessment_library": {
       "linked_context": "Verknuepfter Review-Kontext",
@@ -3667,5 +3690,22 @@
     "cta_finalize": "Zusammenfassendes Profil erstellen",
     "cta_complete": "Reise abschließen",
     "map_title": "Wegkarte"
+  },
+  "application": {
+    "messages": {
+      "sla_days": "innerhalb von {{count}} Tagen",
+      "sla_hours": "innerhalb von {{count}} Stunden",
+      "guarantee_read": "Gelesen",
+      "guarantee_continue": "Wir möchten fortfahren",
+      "guarantee_declined": "Danke, wir wählen einen anderen Ansatz",
+      "awaiting_company": "Warten auf die erste Rückmeldung des Unternehmens",
+      "awaiting_recruiter": "Warten auf Ihre erste Rückmeldung",
+      "auto_closed": "Automatisch ohne Antwort geschlossen",
+      "closed_simple": "Dialog geschlossen",
+      "in_progress": "In Bearbeitung",
+      "reaction_guarantee_title": "Reaktionsgarantie",
+      "reaction_sla_candidate": "Unternehmen antworten normalerweise {{window}}.",
+      "reaction_sla_recruiter": "Kandidat:innen sehen eine Antworterwartung von {{window}}."
+    }
   }
 }

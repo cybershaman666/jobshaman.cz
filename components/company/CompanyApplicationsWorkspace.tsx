@@ -71,6 +71,8 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
     onInviteCandidateFromApplication
 }) => {
     const { t, i18n } = useTranslation();
+    const languagePrefix = String(i18n.language || 'en').split('-')[0].toLowerCase();
+    const isCsLike = languagePrefix === 'cs' || languagePrefix === 'sk';
     const resolvedDialogues = dialogues ?? applications;
     const resolvedDialoguesLoading = dialoguesLoading ?? applicationsLoading;
     const resolvedDialoguesUpdating = dialoguesUpdating ?? applicationsUpdating;
@@ -82,16 +84,36 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
     const handleInviteCandidate = onInviteCandidateFromDialogue || onInviteCandidateFromApplication;
     const sharedJcfpmCount = resolvedDialogues.filter((dialogue) => dialogue.hasJcfpm).length;
     const openDialogues = resolvedDialogues.filter((dialogue) => ['pending', 'reviewed', 'shortlisted'].includes(String(dialogue.status || 'pending')));
+    const resolvedResponseSlaHours = (() => {
+        const detailHours = Number(resolvedSelectedDialogueDetail?.dialogue_timeout_hours);
+        if (Number.isFinite(detailHours) && detailHours > 0) return Math.max(1, Math.round(detailHours));
+        const firstOpen = openDialogues.find((item) => Number(item.dialogue_timeout_hours) > 0);
+        const openHours = Number(firstOpen?.dialogue_timeout_hours);
+        if (Number.isFinite(openHours) && openHours > 0) return Math.max(1, Math.round(openHours));
+        return 48;
+    })();
+    const responseSlaLabel =
+        resolvedResponseSlaHours % 24 === 0
+            ? t('company.applications.reaction_sla_days', {
+                defaultValue: isCsLike ? '{{count}} dní' : '{{count}} days',
+                count: Math.max(1, Math.round(resolvedResponseSlaHours / 24))
+            })
+            : t('company.applications.reaction_sla_hours', {
+                defaultValue: isCsLike ? '{{count}} hodin' : '{{count}} hours',
+                count: resolvedResponseSlaHours
+            });
 
     const getStatusLabel = (status: CompanyApplicationRow['status']) => {
         switch (status) {
             case 'reviewed':
-                return t('company.dashboard.status.approved', { defaultValue: 'Reviewed' });
+                return t('company.applications.response_state_read', { defaultValue: isCsLike ? 'Přečteno' : 'Read' });
             case 'shortlisted':
-                return t('company.dashboard.status.shortlisted', { defaultValue: 'Shortlisted' });
+                return t('company.applications.response_state_continue', { defaultValue: isCsLike ? 'Chceme pokračovat' : 'Continue' });
             case 'rejected':
             case 'closed_rejected':
-                return t('company.dashboard.status.refused', { defaultValue: 'Rejected' });
+                return t('company.applications.response_state_declined', {
+                    defaultValue: isCsLike ? 'Děkujeme, ale hledáme jiný přístup' : 'Thanks, different direction'
+                });
             case 'hired':
                 return t('company.dashboard.status.hired', { defaultValue: 'Hired' });
             case 'withdrawn':
@@ -104,7 +126,9 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
             case 'closed':
                 return t('company.applications.status.closed', { defaultValue: 'Closed' });
             default:
-                return t('company.dashboard.status.pending', { defaultValue: 'Pending' });
+                return t('company.applications.response_state_pending', {
+                    defaultValue: isCsLike ? 'Čeká na první reakci' : 'Waiting for first response'
+                });
         }
     };
 
@@ -234,6 +258,27 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
         };
     };
 
+    const getResponseSlaHint = (
+        item: Pick<CompanyApplicationRow, 'dialogue_timeout_hours'>
+    ): string => {
+        const rawHours = Number(item.dialogue_timeout_hours);
+        const resolvedHours = Number.isFinite(rawHours) && rawHours > 0 ? Math.max(1, Math.round(rawHours)) : 48;
+        const windowLabel =
+            resolvedHours % 24 === 0
+                ? t('company.applications.response_sla_days', {
+                    defaultValue: isCsLike ? '{{count}} dní' : '{{count}} days',
+                    count: Math.max(1, Math.round(resolvedHours / 24))
+                })
+                : t('company.applications.response_sla_hours', {
+                    defaultValue: isCsLike ? '{{count}} hodin' : '{{count}} hours',
+                    count: resolvedHours
+                });
+        return t('company.applications.response_sla_hint_inline', {
+            defaultValue: isCsLike ? 'SLA reakce: {{window}}' : 'Response SLA: {{window}}',
+            window: windowLabel
+        });
+    };
+
     return (
         <div className="space-y-4 animate-in fade-in">
             <WorkspaceHeader
@@ -305,6 +350,14 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                         ) : undefined}
                         className="mb-3"
                     />
+                    <div className="mb-3 rounded-[0.9rem] border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-800 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-300">
+                        {t('company.applications.reaction_sla_hint', {
+                            defaultValue: isCsLike
+                                ? 'Kandidát vidí očekávání první reakce do {{window}}.'
+                                : 'Candidates see first-response expectation within {{window}}.',
+                            window: responseSlaLabel
+                        })}
+                    </div>
                     {resolvedDialogues.length === 0 && !resolvedDialoguesLoading ? (
                         <div className="rounded-[1rem] border border-dashed border-slate-200 dark:border-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400">
                             {t('company.candidates.applications_empty', { defaultValue: 'No dialogues for the selected role yet.' })}
@@ -336,10 +389,10 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                                                     className="rounded-full border border-slate-200 dark:border-slate-700 bg-white px-2.5 py-1 text-xs dark:bg-slate-900 dark:[color-scheme:dark]"
                                                     disabled={resolvedDialoguesUpdating[dialogue.id]}
                                                 >
-                                                    <option value="pending">{t('company.dashboard.status.pending')}</option>
-                                                    <option value="reviewed">{t('company.dashboard.status.approved', { defaultValue: 'Reviewed' })}</option>
-                                                    <option value="shortlisted">{t('company.dashboard.status.shortlisted', { defaultValue: 'Shortlisted' })}</option>
-                                                    <option value="rejected">{t('company.dashboard.status.refused', { defaultValue: 'Rejected' })}</option>
+                                                    <option value="pending">{t('company.applications.response_state_pending', { defaultValue: isCsLike ? 'Čeká na první reakci' : 'Waiting for first response' })}</option>
+                                                    <option value="reviewed">{t('company.applications.response_state_read', { defaultValue: isCsLike ? 'Přečteno' : 'Read' })}</option>
+                                                    <option value="shortlisted">{t('company.applications.response_state_continue', { defaultValue: isCsLike ? 'Chceme pokračovat' : 'We want to continue' })}</option>
+                                                    <option value="rejected">{t('company.applications.response_state_declined', { defaultValue: isCsLike ? 'Děkujeme, ale hledáme jiný přístup' : 'Thanks, different direction' })}</option>
                                                     <option value="hired">{t('company.dashboard.status.hired', { defaultValue: 'Hired' })}</option>
                                                 </select>
                                             ) : (
@@ -359,6 +412,9 @@ const CompanyApplicationsWorkspace: React.FC<CompanyApplicationsWorkspaceProps> 
                                                     {closeReasonMeta.label}
                                                 </span>
                                             )}
+                                            <span className="rounded-full bg-sky-100 px-2 py-1 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300">
+                                                {getResponseSlaHint(dialogue)}
+                                            </span>
                                             {dialogue.hasCv && <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">CV</span>}
                                             {dialogue.hasCoverLetter && <span className="rounded-full bg-slate-100 px-2 py-1 dark:bg-slate-800">{t('company.workspace.labels.cover_letter', { defaultValue: 'Cover letter' })}</span>}
                                             {dialogue.hasJcfpm && (

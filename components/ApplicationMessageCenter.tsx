@@ -16,6 +16,7 @@ interface ApplicationMessageCenterProps {
   viewerRole: 'candidate' | 'recruiter';
   dialogueStatus?: string | null;
   dialogueDeadlineAt?: string | null;
+  dialogueTimeoutHours?: number | null;
   dialogueCurrentTurn?: 'candidate' | 'company' | null;
   dialogueClosedReason?: string | null;
   dialogueIsOverdue?: boolean;
@@ -33,6 +34,7 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
   viewerRole,
   dialogueStatus,
   dialogueDeadlineAt,
+  dialogueTimeoutHours,
   dialogueCurrentTurn,
   dialogueClosedReason,
   dialogueIsOverdue,
@@ -175,6 +177,53 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
   const normalizedStatus = String(dialogueStatus || 'pending').toLowerCase();
   const isActiveDialogue = ['pending', 'reviewed', 'shortlisted'].includes(normalizedStatus);
   const canSend = isActiveDialogue;
+  const languagePrefix = String(i18n.language || 'en').split('-')[0].toLowerCase();
+  const isCsLike = languagePrefix === 'cs' || languagePrefix === 'sk';
+  const resolvedTimeoutHours = (() => {
+    const value = Number(dialogueTimeoutHours);
+    if (Number.isFinite(value) && value > 0) {
+      return Math.max(1, Math.round(value));
+    }
+    return 48;
+  })();
+  const responseSlaLabel =
+    resolvedTimeoutHours % 24 === 0
+      ? t('application.messages.sla_days', {
+          defaultValue: isCsLike ? 'do {{count}} dnů' : 'within {{count}} days',
+          count: Math.max(1, Math.round(resolvedTimeoutHours / 24))
+        })
+      : t('application.messages.sla_hours', {
+          defaultValue: isCsLike ? 'do {{count}} hodin' : 'within {{count}} hours',
+          count: resolvedTimeoutHours
+        });
+  const responseOutcomeLabels = {
+    read: t('application.messages.guarantee_read', { defaultValue: isCsLike ? 'Přečteno' : 'Read' }),
+    continue: t('application.messages.guarantee_continue', { defaultValue: isCsLike ? 'Chceme pokračovat' : 'We want to continue' }),
+    declined: t('application.messages.guarantee_declined', {
+      defaultValue: isCsLike ? 'Děkujeme, ale hledáme jiný přístup' : 'Thanks, but we are choosing a different direction'
+    })
+  };
+  const activeOutcomeKey: 'read' | 'continue' | 'declined' | null = (() => {
+    if (normalizedStatus === 'reviewed') return 'read';
+    if (normalizedStatus === 'shortlisted' || normalizedStatus === 'hired') return 'continue';
+    if (normalizedStatus === 'rejected' || normalizedStatus === 'closed_rejected') return 'declined';
+    return null;
+  })();
+  const responseStateLabel = (() => {
+    if (activeOutcomeKey) return responseOutcomeLabels[activeOutcomeKey];
+    if (normalizedStatus === 'pending') {
+      return viewerRole === 'candidate'
+        ? t('application.messages.awaiting_company', { defaultValue: isCsLike ? 'Čeká na první reakci firmy' : 'Waiting for the first company response' })
+        : t('application.messages.awaiting_recruiter', { defaultValue: isCsLike ? 'Čeká na vaši první reakci' : 'Waiting for your first response' });
+    }
+    if (normalizedStatus === 'closed_timeout') {
+      return t('application.messages.auto_closed', { defaultValue: isCsLike ? 'Automaticky uzavřeno bez odpovědi' : 'Auto-closed without response' });
+    }
+    if (!canSend) {
+      return t('application.messages.closed_simple', { defaultValue: isCsLike ? 'Dialog uzavřen' : 'Dialogue closed' });
+    }
+    return t('application.messages.in_progress', { defaultValue: isCsLike ? 'Probíhá' : 'In progress' });
+  })();
 
   const getTimingMeta = (): { label: string; className: string } | null => {
     const closedReason = String(dialogueClosedReason || '').trim().toLowerCase();
@@ -256,6 +305,46 @@ const ApplicationMessageCenter: React.FC<ApplicationMessageCenterProps> = ({
               {subtitle}
             </p>
           )}
+        </div>
+      </div>
+
+      <div className="mt-4 rounded-[0.95rem] border border-slate-200 bg-slate-50/85 px-4 py-3 dark:border-slate-700 dark:bg-slate-950/35">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-xs font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">
+            {t('application.messages.reaction_guarantee_title', { defaultValue: isCsLike ? 'Garance reakce' : 'Reaction guarantee' })}
+          </div>
+          <span className="inline-flex rounded-full border border-sky-200 bg-sky-50 px-2.5 py-1 text-xs font-semibold text-sky-700 dark:border-sky-900/40 dark:bg-sky-950/20 dark:text-sky-300">
+            {responseStateLabel}
+          </span>
+        </div>
+        <p className="mt-2 text-xs text-slate-600 dark:text-slate-300">
+          {viewerRole === 'candidate'
+            ? t('application.messages.reaction_sla_candidate', {
+                defaultValue: isCsLike
+                  ? 'Firma odpovídá obvykle {{window}}.'
+                  : 'Companies usually respond {{window}}.',
+                window: responseSlaLabel
+              })
+            : t('application.messages.reaction_sla_recruiter', {
+                defaultValue: isCsLike
+                  ? 'Kandidát vidí očekávání odpovědi {{window}}.'
+                  : 'Candidates see response expectation {{window}}.',
+                window: responseSlaLabel
+              })}
+        </p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {(Object.keys(responseOutcomeLabels) as Array<'read' | 'continue' | 'declined'>).map((key) => (
+            <span
+              key={key}
+              className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${
+                activeOutcomeKey === key
+                  ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300'
+                  : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'
+              }`}
+            >
+              {responseOutcomeLabels[key]}
+            </span>
+          ))}
         </div>
       </div>
 

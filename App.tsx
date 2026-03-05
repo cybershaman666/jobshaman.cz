@@ -1989,12 +1989,6 @@ export default function App() {
     };
 
     const companyDialogueCapacity = companyProfile ? getCompanyDialogueCapacity(companyProfile) : null;
-    const recruiterRoleTruthCount = Number(
-        companyProfile?.subscription?.usage?.roleOpensUsed
-        ?? companyProfile?.subscription?.usage?.activeJobsCount
-        ?? 0
-    );
-
     const discoverySlotsUsed = userProfile.role === 'recruiter'
         ? (companyDialogueCapacity?.used ?? null)
         : (candidateDialogueCapacity?.active ?? null);
@@ -2008,9 +2002,6 @@ export default function App() {
         ? null
         : discoverySlotsUsed.toLocaleString(i18n.language);
 
-    const discoveryRoleTruthCount = userProfile.role === 'recruiter'
-        ? recruiterRoleTruthCount
-        : Math.max(0, jobsForDisplay.length);
     const discoveryShortReplyCount = userProfile.role === 'recruiter'
         ? companyDialogueCounts.active
         : candidateDialogueCounts.active;
@@ -2156,7 +2147,7 @@ export default function App() {
 
         if (viewState === ViewState.PROFILE) {
             return (
-                <div className="col-span-1 lg:col-span-12 max-w-4xl mx-auto w-full pb-6 px-1">
+                <div className="col-span-1 lg:col-span-12 w-full pb-6 px-1">
                     {userProfile.isLoggedIn
                         && userProfile.role !== 'recruiter'
                         && !isActivationComplete(candidateActivationState)
@@ -2406,13 +2397,7 @@ export default function App() {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className="mt-2 grid grid-cols-3 gap-1.5">
-                                                <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/78 dark:bg-slate-950/28 px-2.5 py-1.5">
-                                                    <div className="text-[15px] font-bold text-blue-600 dark:text-blue-300 leading-none">{discoveryRoleTruthCount.toLocaleString(i18n.language)}</div>
-                                                    <div className="mt-0.5 text-[12px] font-semibold text-slate-900 dark:text-white leading-snug">
-                                                        {t('home.discovery.step_role_truth', { defaultValue: isCsLike ? 'Pravda role' : 'Role truth' })}
-                                                    </div>
-                                                </div>
+                                            <div className="mt-2 grid grid-cols-2 gap-1.5">
                                                 <div className="rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white/78 dark:bg-slate-950/28 px-2.5 py-1.5">
                                                     <div className="text-[15px] font-bold text-blue-600 dark:text-blue-300 leading-none">{discoveryShortReplyCount.toLocaleString(i18n.language)}</div>
                                                     <div className="mt-0.5 text-[12px] font-semibold text-slate-900 dark:text-white leading-snug">

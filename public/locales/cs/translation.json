@@ -53,7 +53,11 @@
       "slots_label": "Aktivní dialogy",
       "step_role_truth": "Pravda role",
       "step_short_reply": "Krátká reakce",
-      "step_clear_state": "Jasný stav"
+      "step_clear_state": "Jasný stav",
+      "step_role_truth_recruiter": "Otevření rolí",
+      "step_role_truth_candidate": "Role v seznamu",
+      "step_role_truth_help_recruiter": "Kolikrát jste v tomto období otevřeli roli.",
+      "step_role_truth_help_candidate": "Počet rolí aktuálně načtených v seznamu."
     }
   },
   "filters": {
@@ -865,7 +869,16 @@
         "better_with_context": "Výstup je přesnější, protože průvodce měl dostatek kontextu napříč více oblastmi."
       }
     },
-    "skills_count": "Skills count"
+    "skills_count": "Skills count",
+    "job_hub": {
+      "status_reviewed": "Přečteno",
+      "status_shortlisted": "Chceme pokračovat",
+      "status_rejected": "Děkujeme, ale hledáme jiný přístup",
+      "status_pending": "Čeká na první reakci firmy",
+      "response_sla_days": "{{count}} dní",
+      "response_sla_hours": "{{count}} hodin",
+      "response_sla_hint": "Firma odpovídá obvykle do {{window}}"
+    }
   },
   "cv_manager": {
     "title": "Správa životopisů",
@@ -1226,7 +1239,17 @@
       "metrics": {
         "shared_jcfpm": "Sdílené JCFPM",
         "shared_jcfpm_hint": "Sdílené JCFPM signály jsou vidět přímo v recruiterském dossier."
-      }
+      },
+      "response_state_read": "Přečteno",
+      "response_state_continue": "Chceme pokračovat",
+      "response_state_declined": "Děkujeme, ale hledáme jiný přístup",
+      "response_state_pending": "Čeká na první reakci",
+      "reaction_sla_days": "{{count}} dní",
+      "reaction_sla_hours": "{{count}} hodin",
+      "reaction_sla_hint": "Kandidát vidí očekávání první reakce do {{window}}.",
+      "response_sla_days": "{{count}} dní",
+      "response_sla_hours": "{{count}} hodin",
+      "response_sla_hint_inline": "SLA reakce: {{window}}"
     },
     "assessment_library": {
       "linked_context": "Navázaný review kontext",
@@ -3706,5 +3729,22 @@
   },
   "ai_advisory": {
     "default": "AI recommendation only. Finální rozhodnutí je na člověku."
+  },
+  "application": {
+    "messages": {
+      "sla_days": "do {{count}} dnů",
+      "sla_hours": "do {{count}} hodin",
+      "guarantee_read": "Přečteno",
+      "guarantee_continue": "Chceme pokračovat",
+      "guarantee_declined": "Děkujeme, ale hledáme jiný přístup",
+      "awaiting_company": "Čeká na první reakci firmy",
+      "awaiting_recruiter": "Čeká na vaši první reakci",
+      "auto_closed": "Automaticky uzavřeno bez odpovědi",
+      "closed_simple": "Dialog uzavřen",
+      "in_progress": "Probíhá",
+      "reaction_guarantee_title": "Garance reakce",
+      "reaction_sla_candidate": "Firma odpovídá obvykle {{window}}.",
+      "reaction_sla_recruiter": "Kandidát vidí očekávání odpovědi {{window}}."
+    }
   }
 }

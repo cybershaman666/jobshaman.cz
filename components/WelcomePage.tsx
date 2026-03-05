@@ -135,6 +135,13 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
       'Jak bys to řešil v prvním týdnu?',
       'Text je hlavní. Audio je volitelné.',
       'Žádná veřejná soutěž, jen jasný stav dialogu.'
+    ],
+    microScenarioBadge: 'Moment první odpovědi',
+    microScenarioTitle: 'První odpověď firmy je důkaz, že to není další černá díra.',
+    microScenarioMessages: [
+      { speaker: 'Firma', text: 'Co je na téhle roli opravdu těžké?' },
+      { speaker: 'Kandidát', text: 'Nejdřív bych zmapoval předávání informací mezi směnami…' },
+      { speaker: 'Firma', text: 'Přesně tohle je náš problém. Pojďme to probrat.' }
     ]
   } : {
     badge: 'A calmer way to change jobs',
@@ -245,6 +252,13 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
       'How would you handle X or Y?',
       'Text first. Audio optional. No camera.',
       'One thread. Clear status. No public competition.'
+    ],
+    microScenarioBadge: 'First response moment',
+    microScenarioTitle: 'The first company reply proves this is not another black hole.',
+    microScenarioMessages: [
+      { speaker: 'Company', text: 'What is actually hard about this role?' },
+      { speaker: 'Candidate', text: 'First I would map shift handoff gaps across the teams…' },
+      { speaker: 'Company', text: 'That is exactly our issue. Let us continue.' }
     ]
   };
   const [previewStep, setPreviewStep] = useState<'company' | 'candidate'>('company');
@@ -274,8 +288,8 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
         ? ['Člověk dává šanci', 'Rozhodující slovo má člověk, ne počet kliknutí.']
         : ['Human stays in control', 'AI summarizes signal, but people still decide.'],
       isCsLike
-        ? ['Průběžný feedback', 'Vždy vidíš stav a dostaneš zpětnou vazbu.']
-        : ['Ongoing feedback', 'Every thread has a state, a deadline, and a closure reason.']
+        ? ['Konec ghostingu', 'Další aktivní dialog se odemkne až po reakci firmy i kandidáta. Bez reakce se vlákno uzavře.']
+        : ['End of ghosting', 'A new active dialogue unlocks only after both company and candidate respond. No response closes the thread.']
     ];
     const compactPromptLabel = isCsLike ? 'Jak bys k tomu přistoupil?' : 'How would you approach it?';
     const compactReactionCta = isCsLike ? 'Reagovat' : 'Open handshake';
@@ -303,8 +317,8 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
           </div>
         </div>
 
-        <div className="mt-4 grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
-          <div className="xl:col-span-7 space-y-2.5">
+            <div className="mt-4 grid grid-cols-1 xl:grid-cols-12 gap-4 items-start">
+              <div className="xl:col-span-7 space-y-2.5">
             {compactPrinciples.map(([title, body], index) => (
               <div
                 key={title}
@@ -320,9 +334,9 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
               </div>
             ))}
 
-            <div className="rounded-[1rem] border border-slate-200/80 dark:border-slate-800 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(239,246,255,0.9))] dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.9),rgba(12,74,110,0.28))] p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
+                <div className="rounded-[1rem] border border-slate-200/80 dark:border-slate-800 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(239,246,255,0.9))] dark:bg-[linear-gradient(135deg,rgba(15,23,42,0.9),rgba(12,74,110,0.28))] p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
                   <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                     {copy.previewLabel}
                   </div>
@@ -340,13 +354,41 @@ const WelcomePage: React.FC<WelcomePageProps> = ({
                   {compactReactionCta}
                   <ArrowRight size={16} />
                 </button>
-              </div>
-            </div>
-          </div>
+                  </div>
+                </div>
 
-          <div className="xl:col-span-5">
-            <div className="rounded-[1.05rem] border border-slate-200/85 dark:border-slate-800 bg-white/88 dark:bg-slate-950/48 p-4 shadow-[0_14px_24px_-28px_rgba(15,23,42,0.26)]">
-              <div className="flex items-center justify-between gap-2">
+                <div className="rounded-xl border border-sky-200/80 dark:border-sky-900/40 bg-sky-50/75 dark:bg-sky-950/15 p-3">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.14em] text-sky-700 dark:text-sky-300">
+                    {copy.microScenarioBadge}
+                  </div>
+                  <div className="mt-1 text-sm font-semibold text-slate-900 dark:text-white leading-snug">
+                    {copy.microScenarioTitle}
+                  </div>
+                  <div className="mt-2.5 space-y-2">
+                    {copy.microScenarioMessages.map((entry, index) => {
+                      const isCandidate = /candidate|kandidát/i.test(entry.speaker);
+                      return (
+                        <div
+                          key={`${entry.speaker}-${index}`}
+                          className={`max-w-[95%] rounded-xl border px-2.5 py-2 text-[12px] leading-relaxed ${
+                            isCandidate
+                              ? 'ml-auto border-sky-200 bg-white text-slate-700 dark:border-sky-900/40 dark:bg-slate-900/75 dark:text-slate-200'
+                              : 'border-emerald-200 bg-emerald-50/80 text-emerald-950 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-100'
+                          }`}
+                        >
+                          <span className="font-semibold">{entry.speaker}: </span>
+                          {entry.text}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="xl:col-span-5">
+                <div className="rounded-[1.05rem] border border-slate-200/85 dark:border-slate-800 bg-white/88 dark:bg-slate-950/48 p-4 shadow-[0_14px_24px_-28px_rgba(15,23,42,0.26)]">
+                  <div className="flex items-center justify-between gap-2">
                 <div className="inline-flex items-center gap-1.5 rounded-full border border-orange-200/80 dark:border-orange-900/40 bg-orange-50/90 dark:bg-orange-950/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.14em] text-orange-700 dark:text-orange-300">
                   <Sparkles size={11} />
                   {copy.compactChallengeBadge}
